@@ -1,0 +1,39 @@
+name: Security audit
+on:
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  push:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+jobs:
+  security_audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
+          - { os: "macOS-latest", target: "aarch64-apple-darwin", cross: false }
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              cross: false,
+            }
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Bloat
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: bloat
+      - name: Run bloat action to view largest crates
+        uses: actions-rs/cargo@v1
+        with:
+          command: run
+          args: bloat --release --crates
