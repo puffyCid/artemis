@@ -18,7 +18,7 @@ artifact_name = "files" # Name of artifact
 filter = true
 [artifacts.files]
 start_path = "/System/Volumes/Data/Applications" # Start of file listing
-depth = 100 # How many sub directories to descend
+depth = 5 # How many sub directories to descend
 metadata = false # Get executable metadata
 md5 = false # MD5 all files
 sha1 = false # SHA1 all files
