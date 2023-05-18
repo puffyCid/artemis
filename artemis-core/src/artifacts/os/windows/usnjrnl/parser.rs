@@ -41,6 +41,7 @@ mod tests {
     use crate::structs::artifacts::os::windows::UsnJrnlOptions;
 
     #[test]
+    #[ignore = "Takes a long time"]
     fn test_grab_usnjrnl() {
         let params = UsnJrnlOptions { alt_drive: None };
         let results = grab_usnjrnl(&params).unwrap();

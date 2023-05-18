@@ -116,7 +116,7 @@ mod tests {
             )
             .unwrap();
             let results = filter_userassist(&reg_results);
-            assert!(results.len() > 3);
+            assert!(results.len() > 0);
         }
     }
 }

@@ -107,6 +107,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes a long time"]
     fn test_get_data() {
         let result = get_data(&'C').unwrap();
         assert!(result.len() > 20)

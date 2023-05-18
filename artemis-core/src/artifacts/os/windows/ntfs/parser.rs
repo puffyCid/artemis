@@ -567,9 +567,10 @@ mod tests {
     #[test]
     fn test_get_rust_files() {
         let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let letter = test_location.display().to_string().chars().next().unwrap();
 
         let test_path = RawFilesOptions {
-            drive_letter: 'C',
+            drive_letter: letter,
             start_path: test_location.display().to_string(),
             depth: 3,
             recover_indx: true,
@@ -647,8 +648,11 @@ mod tests {
 
     #[test]
     fn test_output() {
+        let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let letter = test_location.display().to_string().chars().next().unwrap();
+
         let test_path = RawFilesOptions {
-            drive_letter: 'C',
+            drive_letter: letter,
             start_path: String::new(),
             depth: 1,
             recover_indx: true,

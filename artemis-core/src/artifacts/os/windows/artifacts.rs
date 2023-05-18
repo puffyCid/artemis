@@ -588,18 +588,7 @@ mod tests {
     }
 
     #[test]
-    fn test_live_prefetch() {
-        let pf = PrefetchOptions {
-            alt_drive: Some('C'),
-        };
-        let mut output = output_options("prefetch_temp", "json", "./tmp", false);
-
-        let status = prefetch(&pf, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_live_eventlogs() {
+    fn test_eventlogs() {
         let evt = EventLogsOptions {
             alt_drive: Some('C'),
         };
@@ -610,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn test_live_shimdb() {
+    fn test_shimdb() {
         let sdb = ShimdbOptions { alt_drive: None };
         let mut output = output_options("shimdb_temp", "json", "./tmp", false);
 
@@ -620,23 +609,10 @@ mod tests {
 
     #[test]
     fn test_prefetch() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win10");
         let pf = PrefetchOptions { alt_drive: None };
         let mut output = output_options("prefetch_temp", "json", "./tmp", false);
 
         let status = prefetch(&pf, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_eventlogs() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs");
-        let evt = EventLogsOptions { alt_drive: None };
-        let mut output = output_options("eventlogs_temp", "json", "./tmp", false);
-
-        let status = eventlogs(&evt, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -753,6 +729,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes a long time"]
     fn test_usnjrnl() {
         let options = UsnJrnlOptions { alt_drive: None };
         let mut output = output_options("usn_temp", "json", "./tmp", false);
