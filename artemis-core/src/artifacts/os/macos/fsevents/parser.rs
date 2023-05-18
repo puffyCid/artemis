@@ -43,14 +43,14 @@ pub(crate) fn grab_fseventsd() -> Result<Vec<FsEvents>, FsEventsError> {
 
 /// Get `FsEvent` files at default path
 fn get_fseventsd() -> Result<Vec<String>, FsEventsError> {
-    const CURRENT_PATH: &str = "/System/Volumes/Data/.fseventsd/";
-    fseventsd(CURRENT_PATH)
+    let path = "/System/Volumes/Data/.fseventsd/";
+    fseventsd(path)
 }
 
 /// Get `FsEvent` files at old path
 fn get_fseventsd_legacy() -> Result<Vec<String>, FsEventsError> {
-    const OLD_PATH: &str = "/.fseventsd";
-    fseventsd(OLD_PATH)
+    let path = "/.fseventsd";
+    fseventsd(path)
 }
 
 /// Get `FsEvents` data from decompressed file

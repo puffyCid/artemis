@@ -44,13 +44,13 @@ jobs:
       - name: Run clippy action to produce annotations
         run: cargo clippy
       - name: Build tests
-        run: cargo test --no-run --release
+        run: sudo cargo test --no-run --release
       - name: Run tests
-        run: cargo test --release --verbose
+        run: sudo cargo test --release --verbose
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage
-        run: cargo llvm-cov --release --workspace --lcov --output-path lcov.info
+        run: sudo cargo llvm-cov --release --workspace --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

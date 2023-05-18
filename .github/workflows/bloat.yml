@@ -9,7 +9,7 @@ on:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
 jobs:
-  security_audit:
+  bloat_check:
     strategy:
       fail-fast: false
       matrix:

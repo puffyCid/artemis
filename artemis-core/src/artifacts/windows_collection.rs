@@ -401,6 +401,7 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
 #[cfg(test)]
 mod tests {
     use super::windows_collection;
+    use crate::filesystem::files::read_file;
     use std::path::PathBuf;
 
     #[test]
