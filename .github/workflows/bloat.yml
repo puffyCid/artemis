@@ -1,4 +1,4 @@
-name: Security audit
+name: Crates Bloat
 on:
   pull_request:
     paths:

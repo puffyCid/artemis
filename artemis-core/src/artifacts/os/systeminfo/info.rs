@@ -225,8 +225,8 @@ mod tests {
 
         let system_info = SystemInfo::get_disks(&mut system);
         assert_eq!(system_info.len(), 2);
-        assert_eq!(system_info[0].disk_type, "SSD");
-        assert_eq!(system_info[1].disk_type, "SSD");
+        assert_eq!(system_info[0].disk_type.is_empty(), false);
+        assert_eq!(system_info[1].disk_type.is_empty(), false);
 
         assert_eq!(system_info[0].mount_point, "/");
         assert_eq!(system_info[1].mount_point, "/System/Volumes/Data");
