@@ -1,0 +1,7 @@
+system = "macos"
+
+[output]
+namePath = "testing"
+directory = "."
+format = "local"
+compress = 1

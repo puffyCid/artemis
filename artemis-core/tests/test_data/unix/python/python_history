@@ -1,0 +1,373 @@
+import lief
+binary = lief.MachO.parse("/bin/ls")
+binary = lief.MachO.parse("/bin/ls", lief.MachO.ParserConfig.deep())
+binary = lief.MachO.parse("/bin/ls")
+binary
+binary[0]
+binary[0].name
+binary[0].libraries()
+binary[0].libraries
+binary[0].libraries[0].name
+binary[0].libraries[0].timestamp
+library = binary[0].libraries[0]
+library.data
+library.command
+library.command.ENCRYPTION_INFO
+library.compatibility_version
+library.timestamp
+library.size
+library.name
+library.size()
+library.size
+binary[0].symbols
+binary[0].symbols.name
+binary[0].symbols[0].name
+binary[0].symbols[0].size
+binary[0].symbols[1].size
+binary[0].symbols[3.size
+binary[0].symbols[3].size
+for size in binary[0].symbols:
+print(size.size)
+for size in binary[0].symbols:
+    print(size.size)
+for size in binary[0].symbols:
+    print(size.size)
+for size in binary[0].symbols:
+    print(size.size)
+parser = lief.Parser.parse("/bin/ls")
+parser = lief.Binary.parse("/bin/ls")
+parser = lief.Binary.Parser.parse("/bin/ls")
+parser = lief.parse("/bin/ls")
+parser.exported_functions
+parser.imported_functions
+import lief
+parser = lief.parse("/bin/ls")
+parser.exported_functions
+parser.exported_functions[0]
+parser.exported_functions[0].name
+parser = lief.parse("/bin/ls")
+parser.exported_functions[0].name
+parser = lief.parse("/bin/ls")
+parser.exported_functions[0].name
+parser2 = lief.parse("/bin/ls")
+parser2.exported_functions[0].name
+parser2.exported_functions
+parser2 = lief.parse("/usr/local/bin/r2")
+import lief
+parser2 = lief.parse("/usr/local/bin/r2")
+parser2.exported_functions
+parser2 = lief.parse("/usr/local/bin/r2")
+parser2.exported_functions
+parser = lief.parse("/usr/local/bin/r2")
+parser.exported_functions
+parser.code_signature
+parser.code_signature[0]
+parser.code_signature.command
+parser.code_signature.data
+parser.encryption_info
+parser.uuid
+parser.uuid.uuid
+parser.exported_symbols
+parser.exported_symbols[0].name
+parser.exported_symbols[0]
+parser.exported_symbols
+parser.segments
+lief.
+parser.exported_functions
+import lief
+parser = lief.parse("/bin/ls")
+parser.exported_functions
+parser.exported_functions[0].name
+parser.exported_functions
+len(parser.exported_functions)
+parser = lief.parse("/bin/ls")
+len(parser.exported_functions)
+parser.version_min
+parser
+par = parser
+par.exported_functions
+parser.exported_functions
+import lief
+parser = lief.parse("/bin/ls")
+par = parser
+par.exported_functions
+parser = lief.parse("/bin/ls")
+parser.imported_functions
+binary = lief.MachO.parse("/bin/ls")
+binar[0].function_starts()
+binary[0].function_starts()
+binary[0].function_starts
+binary[0].function_starts[0]
+binary[0].function_starts
+start = binary[0].function_starts
+start.functions
+bin = binary[0]
+bin.exported_functions
+bin.imported_functions
+import lief
+binary = lief.MachO.parse("/bin/ls")
+binar
+binary
+binary[0]
+bin = binary[0]
+bin.exported_functions
+binary = lief.MachO.parse("/bin/ls")
+bin = binary[0]
+bin.exported_functions
+delete binary
+del binary
+binary = lief.MachO.parse("/bin/ls")
+bin = binary[0]
+bin.exported_functions
+import lief
+bin1 lief.MachO.parse("/bin/ls")
+bin1 = lief.MachO.parse("/bin/ls")
+bin2 = lief.MachO.parser("/usr/local/bin/r2")
+bin2 = lief.MachO.parse("/usr/local/bin/r2")
+bin[0].exported_functions
+bin1[0].exported_functions
+bin2[0].exported_functions
+bin2 = lief.MachO.parse("/usr/local/bin/r2")
+bin2[0].exported_functions
+import lief
+bin2 = lief.MachO.parse("/usr/local/bin/r2")
+bin2[0].exported_functions
+del bin2
+bin2 = lief.MachO.parse("/usr/local/bin/r2")
+bin2[0].exported_functions
+import lief
+bin1 = lief.MachO.parse("/bin/ls")
+bin1[0].sections[0].name
+bin1[0].sections[0].size
+bin1[0].sections[0].flags
+bin1[0].sections[1].flags
+for flag in bin1[0].sections:
+    print(flag.flags)
+for flag in bin1[0].sections:
+    print(flag.entropy)
+bin1 = lief.MachO.parse("/usr/local/bin/2to3")
+import lief
+bin1 = lief.MachO.parse("/bin/ls")
+len(bin1[0].symbols)
+len(bin1[0].functions)
+len(bin1[0].exported_functions)
+bin1 = lief.MachO.parse("/bin/ls")
+len(bin1[0].exported_functions)
+len(bin1[0].functions)
+lief.version
+lief.MachO.is_fat("/bin/ls")
+import lief
+bin1 = lief.MachO.parse("/bin/ls")
+len(bin1[0].exported_functions)
+len(bin1[0].functions)
+len(bin1[0].symbols)
+bin2 = lief.MachO.parse("/bin/ls")
+len(bin2[0].exported_functions)
+len(bin2[0].functions)
+len(bin2[0].symbols)
+len(bin2[1].exported_functions)
+log  = lief.Logger()
+log  = lief.Logger().enable
+lief.Logger().enable
+lief.LOGGING_LEVEL(3)
+lief.LOGGING_LEVEL(1)
+lief.LOGGING_LEVEL(2)
+lief.LOGGING_LEVEL(2
+lief.LOGGING_LEVEL(2)
+bin2 = lief.MachO.parse("/bin/ls")
+lief.Logger()
+lief.Logger(enable())
+lief.Logger(lief.LOGGING_LEVEL(2))
+lief.LOGGING_LEVEL(128)
+lief.Logger.enable()
+bin2 = lief.MachO.parse("/bin/ls")
+bin2[0].symbols
+bin2 = lief.MachO.parse("/bin/ls")
+import lief
+bin2 = lief.MachO.parse("/bin/ls")
+len(bin2[0].fucntions)
+len(bin2[0].functions)
+del(bin2)
+len(bin2[0].functions)
+bin2 = lief.MachO.parse("/bin/ls")
+len(bin2[0].functions)
+bin = bin2[0]
+bin.header
+bin.header.cpu_
+bin.header.cpu_type
+bin.section
+len(bin.sections)
+len(bin.segment)
+len(bin.segments)	
+import lief
+bin2 = lief.MachO.parse("/bin/ls")
+bin = bin2[0]
+len(bin.segments)	
+len(bin.sections)
+bin2 = lief.MachO.parse("/bin/ls")
+import lief
+bin = lief.parse("/bin/ls")
+len(bin.functions)
+del(bin)
+bin = lief.parse("/bin/ls")
+len(bin.functions)
+bin = lief.parse("/bin/ls")
+bin2 = lief.parse("/bin/ls")
+len(bin.functions)
+len(bin2.functions)
+import lief
+bin = lief.MachO.parse("/bin/ls")
+bin[0]
+bin2 = bin[0]
+bin2.version_min
+bin2.build_version
+bin2.build_version.platform
+bin2.build_version.sdk
+bin2.build_version.tools
+bin2.build_version.tools0]
+bin2.build_version.tools[0]
+bin2.build_version.tools[0].name
+bin2.build_version.tools.name
+bin2.build_version.tools[0]
+bin2.build_version.command
+bin2.imagebase
+bin2.header
+bin2.header.magic
+bin2.header.cpu_type
+bin2.header.flags
+bin2.header.flags_list
+bin2.header.nb_cmds
+bin2.header.file_type
+bin2.header.magic
+bin2.header.file_type
+bin2.header.cpu_subtype
+bin2.header.cpu_type
+type(bin2.header.cpu_type)
+str(bin2.header.cpu_type)
+bin2.header.cpu_type.ANY
+bin2.header.cpu_type
+bin2.header.cpu_type.name
+type(bin2.header.cpu_type)
+import lief
+bin = lief.parse("/bin/ls")
+bin2 = bin[0]
+bin
+bin.imported_functions
+func = bin.imported_functions
+func[0].name
+func[0].address
+func0 = func[0]
+func0.size
+func0.value
+func0.flags
+func0.address
+for fun in func:
+    print(fun.address)
+bin.relocations
+bin.relocations[0]
+bin.relocations[0].name
+reloc = bin.relocations[0]
+reloc.address
+reloc.architecture
+reloc.segment
+reloc.segment.name
+reloc.section.name
+bin.abstract
+lib = bin.libraries
+lib0 = lib[0]
+lib0
+sym = bin.symbols
+sym[0]
+sym0 = sym[0]
+sym0.demangled_name
+sym0.description
+sym0.type
+sym0.name
+sym0.numberof_sections
+sym0.binding_info
+for syms in sym:
+    print(syms.binding_info)
+for syms in sym:
+    try:print(syms.binding_info)
+for syms in sym:
+    try:print(syms.binding_info)
+for syms in sym
+for syms in sym:
+    try:
+       print(syms.binding_info)
+    catch:
+for syms in sym:
+    try:
+       print(syms.binding_info)
+    error:
+for syms in sym:
+    try:
+       print(syms.binding_info)
+    except:
+        print('except')
+libs = bin.libraries
+libs0 = libs[0]
+libs0
+import lief
+mac = lief
+mac = lief.parse("/bin/ls")
+import lief
+mac = lief.parse("/bin/ls")
+mac[0]
+mac
+mac.libraries
+mac.libraries[0]
+lib = mac.libraries[0]
+lib.size
+lib.timestamp
+lib.data
+lib.current_version
+lib.com
+lib.command
+lib.size
+lib.name
+lib.timestamp
+lib
+lib.timestamp
+lib.timestamp.real
+string(lib.timestamp)
+str(lib.timestamp)
+mac.format
+mac.commands
+mac.commands[0]
+seg = mac.commands[0]
+seg.command
+seg.name
+seg.file_
+seg.file_size
+seg.virtual_
+seg.virtual_size
+seg.name
+for seg in mac.commands:
+    print(seg.name)
+import lief
+mach = lief.parse('/bin/ls')
+print(mach.strings)
+mach = lief.parse('/bin/ls')
+import lief
+mach = lief.parse('/bin/ls')
+mach.concrete.strings
+mach.concrete.uuid
+mach.concrete.uuid.uuid
+print(mach.concrete.uuid)
+print(mach.concrete.source_version)
+import pandas
+import lief
+lief.parse("/System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd")
+results = lief.parse("/System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd")
+results
+results.version_min
+results.build_version
+results[0]
+results.build_version()
+results.build_version.minos
+results.name
+results.dyld_info
+results.source_version
+results.source_version.version
+results = lief.parse("/System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd")

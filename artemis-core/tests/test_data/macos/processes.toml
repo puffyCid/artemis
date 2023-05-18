@@ -1,0 +1,22 @@
+system = "macos"
+
+[output]
+name = "process_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "processes" # Name of artifact
+[artifacts.processes]
+# Get executable metadata
+metadata = true 
+# MD5 hash process binary
+md5 = true 
+ # SHA1 hash process binary
+sha1 = false
+# SHA256 hash process binary
+sha256 = false

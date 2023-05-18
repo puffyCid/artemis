@@ -1,0 +1,18 @@
+system = "macos"
+
+[output]
+name = "macos_collection"
+directory = "."
+format = "local"
+compress = false
+
+[[artifacts]]
+artifact_name = "files"
+[artifacts.files]
+start_path = "/usr/bin"
+depth = -1
+metadata = true
+md5 = true
+sha1 = false
+sha256 = false
+regex_filter = ""

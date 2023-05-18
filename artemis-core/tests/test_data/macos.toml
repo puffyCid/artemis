@@ -1,0 +1,79 @@
+system = "macos"
+
+[output]
+name = "macos_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = true
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+
+[[artifacts]]
+artifact_name = "loginitems"
+
+[[artifacts]]
+artifact_name = "emond"
+
+[[artifacts]]
+artifact_name = "fseventsd"
+
+[[artifacts]]
+artifact_name = "launchd"
+
+[[artifacts]]
+artifact_name = "files"
+[artifacts.files]
+start_path = "/"
+depth = 90
+metadata = true
+md5 = true
+sha1 = false
+sha256 = false
+regex_filter = ""
+
+[[artifacts]]
+artifact_name = "users"
+
+[[artifacts]]
+artifact_name = "groups"
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "shell_history"
+
+[[artifacts]]
+artifact_name = "chromium-history"
+
+[[artifacts]]
+artifact_name = "chromium-downloads"
+
+[[artifacts]]
+artifact_name = "firefox-history"
+
+[[artifacts]]
+artifact_name = "firefox-downloads"
+
+[[artifacts]]
+artifact_name = "safari-history"
+
+[[artifacts]]
+artifact_name = "safari-downloads"
+
+[[artifacts]]
+artifact_name = "cron"
+
+[[artifacts]]
+artifact_name = "unifiedlogs"
+[artifacts.unifiedlogs]
+sources = ["Persist", "Special", "Signpost", "HighVolume"] # Option to specify the log directories (sources)

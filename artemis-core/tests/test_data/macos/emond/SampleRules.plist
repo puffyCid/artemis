@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>name</key>
+		<string>sample rule</string>
+		<key>enabled</key>
+		<false/>
+		<key>eventTypes</key>
+		<array>
+			<string>startup</string>
+		</array>
+		<key>allowPartialCriterionMatch</key>
+		<false/>
+		<key>criterion</key>
+		<array>
+			<dict>
+				<key>operator</key>
+				<string>True</string>
+			</dict>
+		</array>
+		<key>actions</key>
+		<array>
+			<dict>
+				<key>message</key>
+				<string>Event Monitor started at ${builtin:now}</string>
+				<key>type</key>
+				<string>Log</string>
+				<key>logLevel</key>
+				<string>Notice</string>
+				<key>logType</key>
+				<string>syslog</string>
+			</dict>
+		</array>
+	</dict>
+</array>
+</plist>

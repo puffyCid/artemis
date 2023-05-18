@@ -1,0 +1,27 @@
+system = "macos"
+
+[output]
+name = "info_plist_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+filter_name = "apps_info_plists"
+# This script will take the files artifact below and filter it to only return Info.plist files
+# We could expand this even further by then using the plist parser on the Info.plist path and include that parsed data too
+filter_script = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IERlbm8uYXJnczsKICAgIGlmIChhcmdzLmxlbmd0aCA9PT0gMCkgewogICAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IGRhdGEgPSBKU09OLnBhcnNlKGFyZ3NbMF0pOwogICAgY29uc3QgZmlsdGVyX2ZpbGVzID0gW107CiAgICBmb3IgKGNvbnN0IGVudHJ5IG9mIGRhdGEpewogICAgICAgIGlmIChlbnRyeS5maWxlbmFtZSA9PT0gIkluZm8ucGxpc3QiKSB7CiAgICAgICAgICAgIGZpbHRlcl9maWxlcy5wdXNoKGVudHJ5KTsKICAgICAgICB9CiAgICB9CiAgICByZXR1cm4gZmlsdGVyX2ZpbGVzOwp9Cm1haW4oKTsKCg=="
+
+[[artifacts]]
+artifact_name = "files" # Name of artifact
+filter = true
+[artifacts.files]
+start_path = "/System/Volumes/Data/Applications" # Start of file listing
+depth = 100 # How many sub directories to descend
+metadata = false # Get executable metadata
+md5 = false # MD5 all files
+sha1 = false # SHA1 all files
+sha256 = false # SHA256 all files
+path_regex = "" # Regex for paths
+file_regex = "" # Regex for files

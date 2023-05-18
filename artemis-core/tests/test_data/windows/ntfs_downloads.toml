@@ -1,0 +1,24 @@
+system = "windows"
+
+[output]
+name = "ntfs_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "rawfiles"
+[artifacts.rawfiles]
+drive_letter = 'C'
+start_path = "C:\\Users"
+depth = 20
+recover_indx = false
+md5 = false
+sha1 = false
+sha256 = false
+metadata = true
+path_regex = ".*\\\\Downloads\\\\"
+filename_regex = ""

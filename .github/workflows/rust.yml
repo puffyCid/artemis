@@ -1,0 +1,63 @@
+name: Rust
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
+          - { os: "macOS-latest", target: "aarch64-apple-darwin", cross: false }
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              cross: false,
+            }
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Set up Rust toolchain
+        if: ${{ steps.skip_check.outputs.should_skip != 'true' }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy, audit, bloat
+          targets: ${{ matrix.info.target }}
+      - name: Enable Rust cache
+        if: ${{ steps.skip_check.outputs.should_skip != 'true' }}
+        uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f #2.1.0
+      - name: Fmt Check
+        run: cargo fmt -- --check
+      - name: Run clippy action to produce annotations
+        run: cargo clippy
+      - name: Run audit action to view any security issues
+        run: cargo audit
+      - name: Run bloat action to view largest crates
+        run: cargo bloat --release --crates
+      - name: Build tests
+        run: cargo test --no-run --release
+      - name: Run tests
+        run: cargo test --release --verbose
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Generate code coverage
+        run: cargo llvm-cov --release --workspace --lcov --output-path lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: true

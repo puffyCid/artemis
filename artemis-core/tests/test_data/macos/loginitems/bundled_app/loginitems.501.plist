@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.docker.helper</key>
+	<string>com.docker.docker</string>
+	<key>version.com.docker.helper</key>
+	<string>45519</string>
+	<key>version.com.csaba.fitzl.shield.ShieldHelper</key>
+	<string>109</string>
+	<key>com.csaba.fitzl.shield.ShieldHelper</key>
+	<string>com.csaba.fitzl.shield</string>
+</dict>
+</plist>

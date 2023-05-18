@@ -1,0 +1,96 @@
+system = "windows"
+
+[output]
+name = "windows_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = true
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "prefetch"
+[artifacts.prefetch]
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "chromium-history"
+
+[[artifacts]]
+artifact_name = "chromium-downloads"
+
+[[artifacts]]
+artifact_name = "firefox-history"
+
+[[artifacts]]
+artifact_name = "firefox-downloads"
+
+[[artifacts]]
+artifact_name = "amcache"
+[artifacts.amcache]
+
+[[artifacts]]
+artifact_name = "bits"
+[artifacts.bits]
+carve = true
+
+[[artifacts]]
+artifact_name = "eventlogs"
+[artifacts.eventlogs]
+
+[[artifacts]]
+artifact_name = "rawfiles"
+[artifacts.rawfiles]
+drive_letter = 'C'
+start_path = "C:\\"
+depth = 20
+recover_indx = true
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+path_regex = ""
+filename_regex = ""
+
+[[artifacts]]
+artifact_name = "registry" # Parses the whole Registry file
+[artifacts.registry]
+user_hives = true # All NTUSER.DAT and UsrClass.dat
+system_hives = true # SYSTEM, SOFTWARE, SAM, SECURITY
+path_regex = "" # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase
+
+[[artifacts]]
+artifact_name = "shellbags"
+[artifacts.shellbags]
+resolve_guids = true
+
+[[artifacts]]
+artifact_name = "shimcache"
+[artifacts.shimcache]
+
+[[artifacts]]
+artifact_name = "srum"
+[artifacts.srum]
+
+[[artifacts]]
+artifact_name = "userassist"
+[artifacts.userassist]
+
+[[artifacts]]
+artifact_name = "users"
+[artifacts.users]
+
+[[artifacts]]
+artifact_name = "usnjrnl"
+[artifacts.usnjrnl]

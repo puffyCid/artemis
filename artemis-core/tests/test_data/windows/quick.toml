@@ -1,0 +1,21 @@
+system = "windows"
+
+[output]
+name = "windows_quick"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = false
+
+[[artifacts]]
+artifact_name = "systeminfo"

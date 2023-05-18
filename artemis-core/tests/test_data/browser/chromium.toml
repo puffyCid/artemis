@@ -1,0 +1,17 @@
+system = "macos"
+
+[output]
+name = "chromium_macos"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "chromium-history"
+[artifacts.chromium_history]
+
+[[artifacts]]
+artifact_name = "chromium-downloads"

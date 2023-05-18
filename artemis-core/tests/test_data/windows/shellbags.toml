@@ -1,0 +1,16 @@
+system = "windows"
+
+[output]
+name = "shellbags_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "shellbags"
+[artifacts.shellbags]
+resolve_guids = true
+#alt_drive = 'C' # Optional
