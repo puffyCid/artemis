@@ -20,7 +20,7 @@ jobs:
               target: "x86_64-pc-windows-msvc",
               cross: false,
             }
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.info.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: taiki-e/upload-rust-binary-action@v1
