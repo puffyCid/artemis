@@ -273,7 +273,7 @@ pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError>
 
     if collector.output.compress && collector.output.output == "local" {
         let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
-        let zip_name = collector.output.name;
+        let zip_name = format!("{}/{}", collector.output.directory, collector.output.name);
         let zip_result = compress_output_zip(&output_dir, &zip_name);
         match zip_result {
             Ok(_) => {}
