@@ -31,7 +31,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: bloat
+          args: cargo-bloat
       - name: Run bloat action to view largest crates
         uses: actions-rs/cargo@v1
         with:

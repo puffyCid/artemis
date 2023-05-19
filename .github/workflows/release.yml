@@ -13,13 +13,12 @@ jobs:
     strategy:
       matrix:
         info:
-          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
-          - { os: "macOS-latest", target: "aarch64-apple-darwin", cross: false }
-          - {
-              os: "windows-latest",
-              target: "x86_64-pc-windows-msvc",
-              cross: false,
-            }
+          - os: "macOS-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macOS-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     steps:
       - uses: actions/checkout@v3
