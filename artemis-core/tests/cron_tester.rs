@@ -1,6 +1,6 @@
 #[test]
 #[cfg(target_os = "macos")]
-fn test_process_parser() {
+fn test_cron_parser() {
     use std::path::PathBuf;
 
     use artemis_core::core::parse_toml_file;
