@@ -35,5 +35,5 @@ jobs:
       - name: Run bloat action to view largest crates
         uses: actions-rs/cargo@v1
         with:
-          command: run
-          args: bloat --release --crates
+          command: bloat
+          args: --release --crates
