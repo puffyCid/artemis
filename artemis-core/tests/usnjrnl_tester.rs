@@ -1,5 +1,6 @@
 #[test]
 #[cfg(target_os = "windows")]
+#[ignore = "Parses the whole USNJrnl"]
 fn test_usnjrnl_parser() {
     use artemis_core::core::parse_toml_file;
     use std::path::PathBuf;
