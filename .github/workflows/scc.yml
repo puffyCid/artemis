@@ -16,7 +16,4 @@ jobs:
         with:
           args: ${{ env.workspace }} -i rs --by-file -s complexity
       - name: Echo scc output
-        run: |
-          echo
-          echo -n "${{ steps.scc.outputs.scc }}"
-          echo -n "${{ fromJson(steps.scc.outputs.scc)[0].Code }}"
+        run: echo  "${{ steps.scc.outputs.scc }}"
