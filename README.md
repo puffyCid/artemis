@@ -9,7 +9,7 @@ Notable features _so far_:
 - Parsing support for large amount of forensic artifacts (25+)
 - Output to JSON or JSONL file(s) (remote uploading support coming soon)
 - Embedded JavaScript runtime via [Deno](https://deno.land/)
-- Can be used as a library via [artemis-core]([./core/overview.md](https://puffycid.github.io/artemis-book/core/overview.html))
+- Can be used as a library via [artemis-core](https://puffycid.github.io/artemis-book/core/overview.html)
 - MIT license
 
 Checkout the online guide at https://puffycid.github.io/artemis-book for indepth
