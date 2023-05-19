@@ -58,9 +58,6 @@ jobs:
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --release --verbose
-      - name: Cleanup space (Windows)
-        if: matrix.info.os == 'windows-latest'
-        run: cargo clean
       - name: Generate code coverage (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
