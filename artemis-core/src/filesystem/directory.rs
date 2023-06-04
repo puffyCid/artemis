@@ -42,7 +42,9 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
         }
 
         #[cfg(target_os = "macos")]
-        String::from("/Users");
+        {
+            String::from("/Users")
+        }
 
         #[cfg(target_os = "linux")]
         {

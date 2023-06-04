@@ -7,6 +7,7 @@
  * On macOS the filelisting will read the firmlinks file at `/usr/share/firmlinks` and skip firmlink paths
  */
 use super::error::FileError;
+use crate::artifacts::os::systeminfo::info::SystemInfo;
 use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::{files::Hashes, metadata::get_timestamps};
@@ -65,69 +66,6 @@ pub(crate) struct FileInfo {
 }
 
 impl FileInfo {
-    #[cfg(target_os = "macos")]
-    /// Get macOS file listing and skip firmlinks
-    pub(crate) fn get_filelist(
-        start_directory: &str,
-        depth: usize,
-        metadata: bool,
-        hashes: &Hashes,
-        path_filter: &str,
-        output: &mut Output,
-        filter: &bool,
-    ) -> Result<(), FileError> {
-        let start_time = time_now();
-
-        let start_walk = WalkDir::new(start_directory).same_file_system(true);
-        let begin_walk = start_walk.max_depth(depth);
-        let mut filelist_vec: Vec<FileInfo> = Vec::new();
-        let mut firmlink_paths: Vec<String> = Vec::new();
-        let firmlink_paths_data = FileInfo::read_firmlinks();
-        match firmlink_paths_data {
-            Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
-            Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
-        }
-
-        let path_filter = FileInfo::user_regex(path_filter)?;
-
-        for entries in begin_walk
-            .into_iter()
-            .filter_entry(|f| !FileInfo::skip_firmlinks(f, &firmlink_paths))
-        {
-            let entry = match entries {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!("[files] Failed to get file info: {err:?}");
-                    continue;
-                }
-            };
-            // If Regex does not match then skip file info
-            if !regex_check(&path_filter, &entry.path().display().to_string()) {
-                continue;
-            }
-            let file_entry_result = FileInfo::file_metadata(&entry, metadata, hashes);
-            let file_entry = match file_entry_result {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!(
-                        "[files] Failed to get file {:?} entry data: {err:?}",
-                        entry.path()
-                    );
-                    continue;
-                }
-            };
-            filelist_vec.push(file_entry);
-            let max_list = 100000;
-            if filelist_vec.len() >= max_list {
-                FileInfo::output(&filelist_vec, output, &start_time, filter);
-                filelist_vec.clear();
-            }
-        }
-        FileInfo::output(&filelist_vec, output, &start_time, filter);
-
-        Ok(())
-    }
-
     /// Get file listing
     pub(crate) fn get_filelist(
         start_directory: &str,
@@ -145,8 +83,20 @@ impl FileInfo {
         let mut filelist_vec: Vec<FileInfo> = Vec::new();
 
         let path_filter = FileInfo::user_regex(path_filter)?;
+        let mut firmlink_paths: Vec<String> = Vec::new();
 
-        for entries in begin_walk {
+        #[cfg(target_os = "macos")]
+        {
+            let firmlink_paths_data = FileInfo::read_firmlinks();
+            match firmlink_paths_data {
+                Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
+                Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
+            }
+        }
+
+        for entries in begin_walk
+        .into_iter()
+        .filter_entry(|f| !FileInfo::skip_firmlinks(f, &firmlink_paths)) {
             let entry = match entries {
                 Ok(result) => result,
                 Err(err) => {
@@ -272,20 +222,26 @@ impl FileInfo {
         Ok(file_entry)
     }
 
-    #[cfg(target_os = "macos")]
     /// Skip default firmlinks on macOS
     fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
-        let mut is_firmlink = true;
-        for firmlink in firmlink_paths {
-            is_firmlink = entry
-                .path()
-                .to_str()
-                .map_or(false, |s| s.starts_with(firmlink));
-            if is_firmlink {
-                return is_firmlink;
-            }
+        if firmlink_paths.is_empty() {
+            return false
         }
-        is_firmlink
+        let platform = SystemInfo::get_platform();
+        if platform == "Darwin" {
+            let mut is_firmlink = true;
+            for firmlink in firmlink_paths {
+                is_firmlink = entry
+                    .path()
+                    .to_str()
+                    .map_or(false, |s| s.starts_with(firmlink));
+                if is_firmlink {
+                    return is_firmlink;
+                }
+            }
+            return is_firmlink
+        }
+        false
     }
 
     #[cfg(target_os = "macos")]

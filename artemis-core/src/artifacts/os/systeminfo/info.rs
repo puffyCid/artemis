@@ -108,6 +108,12 @@ impl SystemInfo {
         }
     }
 
+    /// Get endpoint platform type
+    pub(crate) fn get_platform() -> String {
+        let system = System::new();
+        system.name().unwrap_or_else(|| String::from("Unknown system name"))
+    }
+    
     #[cfg(target_os = "windows")]
     /// Get the OS version number
     pub(crate) fn get_os_version() -> String {
@@ -283,5 +289,11 @@ mod tests {
         assert!(system_info.avg_one_min >= 0.0);
         assert!(system_info.avg_five_min >= 0.0);
         assert!(system_info.avg_fifteen_min >= 0.0);
+    }
+
+    #[test]
+    fn test_get_platform() {
+        let plat = SystemInfo::get_platform();
+        assert_ne!(plat, "Unknown system name")
     }
 }
