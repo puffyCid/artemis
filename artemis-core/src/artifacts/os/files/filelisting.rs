@@ -28,6 +28,9 @@ use crate::artifacts::os::windows::{
     pe::parser::{parse_pe_file, PeInfo},
 };
 
+#[cfg(target_os = "linux")]
+use crate::artifacts::os::linux::artifacts::output_data;
+
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;
 
@@ -57,11 +60,13 @@ pub(crate) struct FileInfo {
     pub(crate) binary_info: Vec<MachoInfo>,
     #[cfg(target_os = "windows")]
     pub(crate) binary_info: Vec<PeInfo>,
+    #[cfg(target_os = "linux")]
+    pub(crate) binary_info: Vec<String>,
 }
 
 impl FileInfo {
-    /// Get macOS file listing
     #[cfg(target_os = "macos")]
+    /// Get macOS file listing and skip firmlinks
     pub(crate) fn get_filelist(
         start_directory: &str,
         depth: usize,
@@ -123,7 +128,7 @@ impl FileInfo {
         Ok(())
     }
 
-    #[cfg(target_os = "windows")]
+    /// Get file listing
     pub(crate) fn get_filelist(
         start_directory: &str,
         depth: usize,
@@ -267,8 +272,8 @@ impl FileInfo {
         Ok(file_entry)
     }
 
-    /// Skip default firmlinks on macOS
     #[cfg(target_os = "macos")]
+    /// Skip default firmlinks on macOS
     fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
         let mut is_firmlink = true;
         for firmlink in firmlink_paths {
@@ -283,8 +288,8 @@ impl FileInfo {
         is_firmlink
     }
 
-    /// Read the firmlinks file on disk (holds all default firmlink paths)
     #[cfg(target_os = "macos")]
+    /// Read the firmlinks file on disk (holds all default firmlink paths)
     fn read_firmlinks() -> Result<Vec<String>, std::io::Error> {
         use std::{
             fs::File,
@@ -338,6 +343,12 @@ impl FileInfo {
             }
         };
         Ok(vec![info])
+    }
+
+    #[cfg(target_os = "linux")]
+    /// Get executable metadata
+    fn executable_metadata(_path: &str) -> Result<Vec<String>, FileError> {
+        return Ok(Vec::new());
     }
 
     /// Create Regex based on provided input
@@ -466,6 +477,33 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_get_filelist() {
         let start_location = "C:\\Windows";
+        let depth = 1;
+        let metadata = false;
+        let hashes = Hashes {
+            md5: true,
+            sha1: false,
+            sha256: false,
+        };
+        let path_filter = "";
+        let mut output = output_options("files_temp", "local", "./tmp", false);
+
+        let results = FileInfo::get_filelist(
+            &start_location,
+            depth,
+            metadata,
+            &hashes,
+            path_filter,
+            &mut output,
+            &false,
+        )
+        .unwrap();
+        assert_eq!(results, ());
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_filelist() {
+        let start_location = "/bin";
         let depth = 1;
         let metadata = false;
         let hashes = Hashes {

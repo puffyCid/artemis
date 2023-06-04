@@ -18,7 +18,7 @@ jobs:
       matrix:
         info:
           - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
-          - { os: "macOS-latest", target: "aarch64-apple-darwin", cross: false }
+          - ( os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu", cross: false)
           - {
               os: "windows-latest",
               target: "x86_64-pc-windows-msvc",
@@ -47,10 +47,19 @@ jobs:
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
         run: sudo cargo test --release --verbose
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage (macOS)
         if: matrix.info.os == 'macOS-latest'
+        run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+      - name: Build tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo cargo test --no-run --release
+      - name: Run tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo cargo test --release --verbose
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Generate code coverage (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
         run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'

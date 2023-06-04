@@ -33,12 +33,18 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(target_family = "unix")]
     {
+        #[cfg(target_os = "linux")]
+        use std::os::linux::fs::MetadataExt;
+        #[cfg(target_os = "macos")]
         use std::os::macos::fs::MetadataExt;
 
         timestamps.accessed = meta.st_atime();
         timestamps.modified = meta.st_mtime();
         timestamps.changed = meta.st_ctime();
-        timestamps.created = meta.st_birthtime();
+        #[cfg(target_os = "macos")]
+        {
+            timestamps.created = meta.st_birthtime();
+        }
     }
 
     Ok(timestamps)
@@ -70,7 +76,11 @@ mod tests {
         test_location.push("tests");
 
         let result = get_timestamps(&test_location.display().to_string()).unwrap();
+        #[cfg(target_os = "windows")]
         assert!(result.created > 0);
+        #[cfg(target_os = "macos")]
+        assert!(result.created > 0);
+
         assert!(result.modified > 0);
         assert!(result.accessed > 0);
         #[cfg(target_os = "windows")]

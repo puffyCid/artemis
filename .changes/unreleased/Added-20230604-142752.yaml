@@ -1,0 +1,3 @@
+kind: Added
+body: Initial Linux support. Supports filelisting, processes, systeminfo, cron, shellhistory, chromium, and firefox artifacts.
+time: 2023-06-04T14:27:52.775704369-04:00

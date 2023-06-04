@@ -1,0 +1,21 @@
+system = "linux"
+
+[output]
+name = "linux_quick_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+
+[[artifacts]]
+artifact_name = "systeminfo"
