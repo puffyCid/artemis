@@ -95,8 +95,9 @@ impl FileInfo {
         }
 
         for entries in begin_walk
-        .into_iter()
-        .filter_entry(|f| !FileInfo::skip_firmlinks(f, &firmlink_paths)) {
+            .into_iter()
+            .filter_entry(|f| !FileInfo::skip_firmlinks(f, &firmlink_paths))
+        {
             let entry = match entries {
                 Ok(result) => result,
                 Err(err) => {
@@ -225,7 +226,7 @@ impl FileInfo {
     /// Skip default firmlinks on macOS
     fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
         if firmlink_paths.is_empty() {
-            return false
+            return false;
         }
         let platform = SystemInfo::get_platform();
         if platform == "Darwin" {
@@ -239,7 +240,7 @@ impl FileInfo {
                     return is_firmlink;
                 }
             }
-            return is_firmlink
+            return is_firmlink;
         }
         false
     }

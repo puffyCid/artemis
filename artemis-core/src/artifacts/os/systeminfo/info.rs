@@ -111,9 +111,11 @@ impl SystemInfo {
     /// Get endpoint platform type
     pub(crate) fn get_platform() -> String {
         let system = System::new();
-        system.name().unwrap_or_else(|| String::from("Unknown system name"))
+        system
+            .name()
+            .unwrap_or_else(|| String::from("Unknown system name"))
     }
-    
+
     #[cfg(target_os = "windows")]
     /// Get the OS version number
     pub(crate) fn get_os_version() -> String {
