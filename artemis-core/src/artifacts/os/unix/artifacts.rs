@@ -88,6 +88,7 @@ pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), U
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse cron data
 pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 

@@ -41,12 +41,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             format!("{}Users", &user_path.display().to_string()[0..3])
         }
 
-        #[cfg(target_os = "macos")]
-        {
-            String::from("/Users")
-        }
-
-        #[cfg(target_os = "linux")]
+        #[cfg(target_family = "unix")]
         {
             user_path.pop();
             user_path.display().to_string()

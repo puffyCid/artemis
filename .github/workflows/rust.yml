@@ -52,6 +52,9 @@ jobs:
       - name: Generate code coverage (macOS)
         if: matrix.info.os == 'macOS-latest'
         run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+      - name: Setup Rust for root (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" rustup default stable
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --no-run --release
