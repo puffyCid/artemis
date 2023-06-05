@@ -38,6 +38,8 @@ pub(crate) struct Processes {
     pub(crate) binary_info: Vec<MachoInfo>,
     #[cfg(target_os = "windows")]
     pub(crate) binary_info: Vec<PeInfo>,
+    #[cfg(target_os = "linux")]
+    pub(crate) binary_info: Vec<String>,
 }
 
 impl Processes {
@@ -118,7 +120,7 @@ impl Processes {
 
         #[cfg(target_os = "windows")]
         let first_proc = 0;
-        #[cfg(target_os = "macos")]
+        #[cfg(target_family = "unix")]
         let first_proc = 1;
 
         if process.pid().as_u32() != first_proc {
@@ -138,13 +140,20 @@ impl Processes {
         system_proc
     }
 
-    // Get all metadata related to binary path
     #[cfg(target_os = "macos")]
+    /// Get executable metadata
     fn executable_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
         macho_metadata(path)
     }
 
+    #[cfg(target_os = "linux")]
+    /// Get executable metadata
+    fn executable_metadata(_path: &str) -> Result<Vec<String>, ProcessError> {
+        Ok(Vec::new())
+    }
+
     #[cfg(target_os = "windows")]
+    /// Get executable metadata
     fn executable_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
         pe_metadata(path)
     }

@@ -63,6 +63,10 @@ impl FirefoxHistory {
                 "{users}\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"
             ))
             .to_path_buf();
+
+            #[cfg(target_os = "linux")]
+            let firefox_path = Path::new(&format!("{users}/.mozilla/firefox")).to_path_buf();
+
             if !firefox_path.is_dir() {
                 continue;
             }
@@ -107,7 +111,7 @@ impl FirefoxHistory {
             }
             #[cfg(target_os = "windows")]
             let path = format!("{}\\{target_file}", full_path.display());
-            #[cfg(target_os = "macos")]
+            #[cfg(target_family = "unix")]
             let path = format!("{}/{target_file}", full_path.display());
             firefox_data.push(path);
         }

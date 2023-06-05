@@ -7,6 +7,8 @@ use log::{error, info};
 use simplelog::{Config, WriteLogger};
 use std::str::from_utf8;
 
+#[cfg(target_os = "linux")]
+use crate::artifacts::linux_collection::linux_collection;
 #[cfg(target_os = "macos")]
 use crate::artifacts::macos_collection::macos_collection;
 #[cfg(target_os = "windows")]
@@ -77,6 +79,18 @@ fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError>
                 }
             }
         }
+    } else if os_target.system == "linux" {
+        #[cfg(target_os = "linux")]
+        {
+            let result = linux_collection(toml_data);
+            match result {
+                Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
+                Err(err) => {
+                    error!("[artemis-core] Core failed to parse Linux TOML data: {err:?}");
+                    return Err(TomlError::BadToml);
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -141,6 +155,8 @@ mod tests {
             system: String::from("macos"),
             #[cfg(target_os = "windows")]
             system: String::from("windows"),
+            #[cfg(target_os = "linux")]
+            system: String::from("linux"),
             output: Output {
                 name: String::from("core"),
                 directory: String::from("tmp"),

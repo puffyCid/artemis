@@ -49,7 +49,7 @@ pub(crate) struct Output {
 pub(crate) struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub(crate) artifact_name: String,
-    /**Specificy whether to filter the parsed data */
+    /**Specify whether to filter the parsed data */
     pub(crate) filter: Option<bool>,
     pub(crate) processes: Option<ProcessOptions>,
     pub(crate) files: Option<FileOptions>,
@@ -62,7 +62,7 @@ pub(crate) struct Artifacts {
 pub(crate) struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub(crate) artifact_name: String,
-    /**Specificy whether to filter the parsed data */
+    /**Specify whether to filter the parsed data */
     pub(crate) filter: Option<bool>,
     pub(crate) eventlogs: Option<EventLogsOptions>,
     pub(crate) prefetch: Option<PrefetchOptions>,
@@ -82,6 +82,17 @@ pub(crate) struct Artifacts {
     pub(crate) srum: Option<SrumOptions>,
     pub(crate) users: Option<UserOptions>,
     pub(crate) search: Option<SearchOptions>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg(target_os = "linux")]
+pub(crate) struct Artifacts {
+    /**Based on artifact parse one of the artifact types */
+    pub(crate) artifact_name: String,
+    /**Specify whether to filter the parsed data */
+    pub(crate) filter: Option<bool>,
+    pub(crate) processes: Option<ProcessOptions>,
+    pub(crate) files: Option<FileOptions>,
 }
 
 impl ArtemisToml {

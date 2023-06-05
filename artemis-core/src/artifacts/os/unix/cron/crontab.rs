@@ -1,4 +1,5 @@
 use super::error::CronError;
+use crate::filesystem::directory::is_directory;
 use crate::filesystem::files::list_files;
 use log::{error, warn};
 use serde::Serialize;
@@ -29,6 +30,13 @@ impl Cron {
     pub(crate) fn parse_cron() -> Result<Vec<CronFile>, CronError> {
         #[cfg(target_os = "macos")]
         let start_path = "/private/var/at/jobs/";
+
+        #[cfg(target_os = "linux")]
+        let start_path = "/var/spool/cron/crontabs/";
+
+        if !is_directory(start_path) {
+            return Ok(Vec::new());
+        }
 
         let cron_file_result = list_files(start_path);
         let cron_files = match cron_file_result {

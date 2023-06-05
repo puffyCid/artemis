@@ -54,6 +54,10 @@ impl ChromiumHistory {
             ))
             .to_path_buf();
 
+            #[cfg(target_os = "linux")]
+            let chromium_path =
+                Path::new(&format!("{users}/.config/chromium/Default/History")).to_path_buf();
+
             if !chromium_path.is_file() {
                 continue;
             }

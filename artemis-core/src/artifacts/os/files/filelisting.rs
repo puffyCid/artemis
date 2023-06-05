@@ -7,6 +7,7 @@
  * On macOS the filelisting will read the firmlinks file at `/usr/share/firmlinks` and skip firmlink paths
  */
 use super::error::FileError;
+use crate::artifacts::os::systeminfo::info::SystemInfo;
 use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::{files::Hashes, metadata::get_timestamps};
@@ -27,6 +28,9 @@ use crate::artifacts::os::windows::{
     artifacts::output_data,
     pe::parser::{parse_pe_file, PeInfo},
 };
+
+#[cfg(target_os = "linux")]
+use crate::artifacts::os::linux::artifacts::output_data;
 
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;
@@ -57,11 +61,12 @@ pub(crate) struct FileInfo {
     pub(crate) binary_info: Vec<MachoInfo>,
     #[cfg(target_os = "windows")]
     pub(crate) binary_info: Vec<PeInfo>,
+    #[cfg(target_os = "linux")]
+    pub(crate) binary_info: Vec<String>,
 }
 
 impl FileInfo {
-    /// Get macOS file listing
-    #[cfg(target_os = "macos")]
+    /// Get file listing
     pub(crate) fn get_filelist(
         start_directory: &str,
         depth: usize,
@@ -76,72 +81,23 @@ impl FileInfo {
         let start_walk = WalkDir::new(start_directory).same_file_system(true);
         let begin_walk = start_walk.max_depth(depth);
         let mut filelist_vec: Vec<FileInfo> = Vec::new();
-        let mut firmlink_paths: Vec<String> = Vec::new();
-        let firmlink_paths_data = FileInfo::read_firmlinks();
-        match firmlink_paths_data {
-            Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
-            Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
-        }
 
         let path_filter = FileInfo::user_regex(path_filter)?;
+        let mut firmlink_paths: Vec<String> = Vec::new();
+
+        #[cfg(target_os = "macos")]
+        {
+            let firmlink_paths_data = FileInfo::read_firmlinks();
+            match firmlink_paths_data {
+                Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
+                Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
+            }
+        }
 
         for entries in begin_walk
             .into_iter()
             .filter_entry(|f| !FileInfo::skip_firmlinks(f, &firmlink_paths))
         {
-            let entry = match entries {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!("[files] Failed to get file info: {err:?}");
-                    continue;
-                }
-            };
-            // If Regex does not match then skip file info
-            if !regex_check(&path_filter, &entry.path().display().to_string()) {
-                continue;
-            }
-            let file_entry_result = FileInfo::file_metadata(&entry, metadata, hashes);
-            let file_entry = match file_entry_result {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!(
-                        "[files] Failed to get file {:?} entry data: {err:?}",
-                        entry.path()
-                    );
-                    continue;
-                }
-            };
-            filelist_vec.push(file_entry);
-            let max_list = 100000;
-            if filelist_vec.len() >= max_list {
-                FileInfo::output(&filelist_vec, output, &start_time, filter);
-                filelist_vec.clear();
-            }
-        }
-        FileInfo::output(&filelist_vec, output, &start_time, filter);
-
-        Ok(())
-    }
-
-    #[cfg(target_os = "windows")]
-    pub(crate) fn get_filelist(
-        start_directory: &str,
-        depth: usize,
-        metadata: bool,
-        hashes: &Hashes,
-        path_filter: &str,
-        output: &mut Output,
-        filter: &bool,
-    ) -> Result<(), FileError> {
-        let start_time = time_now();
-
-        let start_walk = WalkDir::new(start_directory).same_file_system(true);
-        let begin_walk = start_walk.max_depth(depth);
-        let mut filelist_vec: Vec<FileInfo> = Vec::new();
-
-        let path_filter = FileInfo::user_regex(path_filter)?;
-
-        for entries in begin_walk {
             let entry = match entries {
                 Ok(result) => result,
                 Err(err) => {
@@ -268,23 +224,29 @@ impl FileInfo {
     }
 
     /// Skip default firmlinks on macOS
-    #[cfg(target_os = "macos")]
     fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
-        let mut is_firmlink = true;
-        for firmlink in firmlink_paths {
-            is_firmlink = entry
-                .path()
-                .to_str()
-                .map_or(false, |s| s.starts_with(firmlink));
-            if is_firmlink {
-                return is_firmlink;
-            }
+        if firmlink_paths.is_empty() {
+            return false;
         }
-        is_firmlink
+        let platform = SystemInfo::get_platform();
+        if platform == "Darwin" {
+            let mut is_firmlink = true;
+            for firmlink in firmlink_paths {
+                is_firmlink = entry
+                    .path()
+                    .to_str()
+                    .map_or(false, |s| s.starts_with(firmlink));
+                if is_firmlink {
+                    return is_firmlink;
+                }
+            }
+            return is_firmlink;
+        }
+        false
     }
 
-    /// Read the firmlinks file on disk (holds all default firmlink paths)
     #[cfg(target_os = "macos")]
+    /// Read the firmlinks file on disk (holds all default firmlink paths)
     fn read_firmlinks() -> Result<Vec<String>, std::io::Error> {
         use std::{
             fs::File,
@@ -338,6 +300,12 @@ impl FileInfo {
             }
         };
         Ok(vec![info])
+    }
+
+    #[cfg(target_os = "linux")]
+    /// Get executable metadata
+    fn executable_metadata(_path: &str) -> Result<Vec<String>, FileError> {
+        return Ok(Vec::new());
     }
 
     /// Create Regex based on provided input
@@ -466,6 +434,33 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_get_filelist() {
         let start_location = "C:\\Windows";
+        let depth = 1;
+        let metadata = false;
+        let hashes = Hashes {
+            md5: true,
+            sha1: false,
+            sha256: false,
+        };
+        let path_filter = "";
+        let mut output = output_options("files_temp", "local", "./tmp", false);
+
+        let results = FileInfo::get_filelist(
+            &start_location,
+            depth,
+            metadata,
+            &hashes,
+            path_filter,
+            &mut output,
+            &false,
+        )
+        .unwrap();
+        assert_eq!(results, ());
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_filelist() {
+        let start_location = "/bin";
         let depth = 1;
         let metadata = false;
         let hashes = Hashes {

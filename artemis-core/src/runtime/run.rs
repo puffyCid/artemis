@@ -22,6 +22,9 @@ use super::macos::extensions::setup_extensions;
 #[cfg(target_os = "windows")]
 use super::windows::extensions::setup_extensions;
 
+#[cfg(target_os = "linux")]
+use super::linux::extensions::setup_extensions;
+
 #[tokio::main]
 /// Execute the decoded Javascript and return a serde_json Value
 pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {

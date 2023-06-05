@@ -61,6 +61,9 @@ impl FirefoxDownloads {
             ))
             .to_path_buf();
 
+            #[cfg(target_os = "linux")]
+            let firefox_path = Path::new(&format!("{users}/.mozilla/firefox")).to_path_buf();
+
             if !firefox_path.is_dir() {
                 continue;
             }

@@ -28,7 +28,7 @@ pub(crate) fn list_directories(path: &str) -> Result<Vec<String>, FileSystemErro
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     let user_path_result = home::home_dir();
-    let user_path = if let Some(result) = user_path_result {
+    let mut user_path = if let Some(result) = user_path_result {
         result
     } else {
         error!("[artemis-core] Failed get user home paths");
@@ -41,8 +41,11 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             format!("{}Users", &user_path.display().to_string()[0..3])
         }
 
-        #[cfg(target_os = "macos")]
-        String::from("/Users")
+        #[cfg(target_family = "unix")]
+        {
+            user_path.pop();
+            user_path.display().to_string()
+        }
     } else {
         error!("[artemis-core] Failed get user base paths");
         return Err(FileSystemError::NoUserParent);
