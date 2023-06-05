@@ -18,7 +18,6 @@ pub enum ArtemisError {
     LogFile,
     #[cfg(target_os = "windows")]
     HuffmanCompression,
-    #[cfg(feature = "local")]
     Local,
 }
 
@@ -46,7 +45,6 @@ impl fmt::Display for ArtemisError {
             ArtemisError::HuffmanCompression => {
                 write!(f, "Failed to decompress huffman compressed data")
             }
-            #[cfg(feature = "local")]
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
         }
     }

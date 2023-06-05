@@ -26,6 +26,7 @@ chrono = "0.4.23"
 flate2 = "1.0.24"
 simplelog = "0.12.1"
 zip = { version = "0.6.4", default-features = false }
+ssh2 = "0.9.4"
 
 # Deno Runtime integration
 deno_core = {version = "0.185.0"}
@@ -45,7 +46,3 @@ pelite = "0.10.0"
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev= "09fbf4c36b8df941707d89ddf5484bcb1b336f86" }
 plist = "1.4.3"
-
-[features]
-default = ["local"]
-local = []

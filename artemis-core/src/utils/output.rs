@@ -12,8 +12,6 @@ pub(crate) fn output_artifact(
     match output.output.as_str() {
         "local" => {
             info!("Local output used");
-            #[cfg(feature = "local")]
-            {
                 let local_result = local_output(artifact_data, output, output_name, &output.format);
                 match local_result {
                     Ok(_) => {}
@@ -22,7 +20,6 @@ pub(crate) fn output_artifact(
                         return Err(ArtemisError::Local);
                     }
                 }
-            }
         }
         _ => {
             warn!("Unknown output format: {}", output.format);
