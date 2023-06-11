@@ -1,6 +1,6 @@
 use super::{artemis_toml::Output, error::ArtemisError};
-use crate::output::local::output::local_output;
-use log::{error, info, warn};
+use crate::output::{local::output::local_output, remote::gcp::gcp_upload};
+use log::{error, warn};
 
 /// Output artifact data based on output type
 pub(crate) fn output_artifact(
@@ -11,15 +11,24 @@ pub(crate) fn output_artifact(
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
         "local" => {
-            info!("Local output used");
-                let local_result = local_output(artifact_data, output, output_name, &output.format);
-                match local_result {
-                    Ok(_) => {}
-                    Err(err) => {
-                        error!("[artemis-core] Failed to output to local system: {err:?}");
-                        return Err(ArtemisError::Local);
-                    }
+            let local_result = local_output(artifact_data, output, output_name, &output.format);
+            match local_result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[artemis-core] Failed to output to local system: {err:?}");
+                    return Err(ArtemisError::Local);
                 }
+            }
+        }
+        "gcp" => {
+            let gcp_result = gcp_upload(artifact_data, output, output_name);
+            match gcp_result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[artemis-core] Failed to upload to Google Cloud Storage: {err:?}");
+                    return Err(ArtemisError::Gcp);
+                }
+            }
         }
         _ => {
             warn!("Unknown output format: {}", output.format);
@@ -40,12 +49,12 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("json"),
             compress: false,
-            // url: Some(String::new()),
-            // port: Some(0),
-            // api_key: Some(String::new()),
-            // username: Some(String::new()),
-            // password: Some(String::new()),
-            // generic_keys: Some(Vec::new()),
+            url: Some(String::new()),
+            port: Some(0),
+            api_key: Some(String::new()),
+            username: Some(String::new()),
+            password: Some(String::new()),
+            generic_keys: Some(Vec::new()),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: String::from("local"),

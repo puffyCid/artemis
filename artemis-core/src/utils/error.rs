@@ -19,6 +19,7 @@ pub enum ArtemisError {
     #[cfg(target_os = "windows")]
     HuffmanCompression,
     Local,
+    Gcp,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -46,6 +47,7 @@ impl fmt::Display for ArtemisError {
                 write!(f, "Failed to decompress huffman compressed data")
             }
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
+            ArtemisError::Gcp => write!(f, "Failed output data to google cloud"),
         }
     }
 }
