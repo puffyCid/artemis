@@ -43,8 +43,9 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
 
         #[cfg(target_family = "unix")]
         {
-            user_path.clone().pop();
-            user_path.display().to_string()
+            let mut mac_paths = user_path;
+            mac_paths.pop();
+            mac_paths.display().to_string()
         }
     } else {
         error!("[artemis-core] Failed get user base path");
