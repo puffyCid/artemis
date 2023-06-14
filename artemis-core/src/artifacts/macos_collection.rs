@@ -13,7 +13,10 @@ use crate::{
     artifacts::os::macos::artifacts::{emond, files, fseventsd, launchd, loginitems},
     filesystem::files::list_files,
     runtime::deno::execute_script,
-    utils::{artemis_toml::ArtemisToml, compression::compress_output_zip},
+    utils::{
+        artemis_toml::ArtemisToml, compression::compress_output_zip, logging::upload_logs,
+        output::compress_final_output,
+    },
 };
 use log::{error, info, warn};
 use std::fs::{remove_dir, remove_file};
@@ -271,53 +274,14 @@ pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError>
         }
     }
 
-    if collector.output.compress && collector.output.output == "local" {
+    if collector.output.output != "local" {
         let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
-        let zip_name = format!("{}/{}", collector.output.directory, collector.output.name);
-        let zip_result = compress_output_zip(&output_dir, &zip_name);
-        match zip_result {
-            Ok(_) => {}
-            Err(err) => {
-                error!("[artemis-core] Failed to zip output directory: {err:?}. DID NOT DELETE OUTPUT.");
-                return Err(MacArtifactError::Cleanup);
-            }
-        }
 
-        /*
-         * Now ready to delete output. Since we run in elevated privileges this is kind of terrifying.
-         * To maximize safety we only delete:
-         *  - Files that end in .json, .jsonl, .log, or .gz
-         *  - Only delete the output directory if its empty. Which means all the files above must be gone
-         */
-        let check = list_files(&output_dir);
-        match check {
-            Ok(results) => {
-                for entry in results {
-                    if !entry.ends_with(".json")
-                        && !entry.ends_with(".log")
-                        && !entry.ends_with(".gz")
-                    {
-                        continue;
-                    }
-                    // Remove our files. Entry is the full path to the file
-                    let _ = remove_file(&entry);
-                }
-            }
-            Err(err) => {
-                error!("[artemis-core] Failed to list files in output directory: {err:?}. DID NOT DELETE OUTPUT.");
-                return Err(MacArtifactError::Cleanup);
-            }
-        }
-        // Now remove directory if its empty
-        let remove_status = remove_dir(output_dir);
-        match remove_status {
-            Ok(_) => {}
-            Err(err) => {
-                error!("[artemis-core] Failed to remove empty output directory: {err:?}");
-                return Err(MacArtifactError::Cleanup);
-            }
-        }
+        let _ = upload_logs(&output_dir, &collector.output);
+    } else if collector.output.compress && collector.output.output == "local" {
+        let _ = compress_final_output(&collector.output);
     }
+
     Ok(())
 }
 

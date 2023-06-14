@@ -17,11 +17,7 @@ struct UploadResponse {
 }
 
 /// Upload data to Google Cloud Storage Bucket using signed JWT tokens
-pub(crate) fn gcp_upload(
-    data: &[u8],
-    output: &Output,
-    output_name: &str,
-) -> Result<(), RemoteError> {
+pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result<(), RemoteError> {
     // Grab URL which should include the target bucket
     let gcp_url = if let Some(url) = &output.url {
         url
@@ -35,7 +31,10 @@ pub(crate) fn gcp_upload(
         return Err(RemoteError::RemoteApiKey);
     };
 
-    let mut gcp_output = format!("{}%2F{output_name}.{}", output.directory, output.format);
+    let mut gcp_output = format!(
+        "{}%2F{}%2F{filename}.{}",
+        output.directory, output.name, output.format
+    );
     let mut header_value = "application/json-seq";
     let output_data = if output.compress {
         gcp_output = format!("{gcp_output}.gz");
@@ -121,7 +120,7 @@ fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError> {
     };
     if res.status() != StatusCode::OK {
         error!(
-            "[artemis-core] Non-200 response from Google Cloud Session : {:?}",
+            "[artemis-core] Non-200 response from Google Cloud Session: {:?}",
             res.text()
         );
         return Err(RemoteError::BadResponse);
@@ -131,12 +130,13 @@ fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError> {
         let session = match session_res {
             Ok(result) => result.to_string(),
             Err(err) => {
-                error!("[artemis-core] Could get Session URI string: {err:?}");
+                error!("[artemis-core] Could not get Session URI string: {err:?}");
                 return Err(RemoteError::BadResponse);
             }
         };
         return Ok(session);
     }
+
     error!("[artemis-core] No Location header in response");
     Err(RemoteError::BadResponse)
 }
@@ -164,17 +164,19 @@ fn gcp_resume_upload(
 
     let mut builder = client.put(session_uri);
     builder = builder.header("Content-Length", data_remaining);
+
+    let range_adjust = 1;
     builder = builder.header(
         "Content-Range",
         format!(
             "bytes {}-{}/{}",
-            (status + 1),
-            (output_data.len() - 1),
+            (status + range_adjust),
+            (output_data.len() - range_adjust as usize),
             output_data.len()
         ),
     );
-    println!("{builder:?}");
-    let output_left = output_data[status as usize..output_data.len()].to_vec();
+    println!("Resume builder: {builder:?}");
+    let output_left = output_data[status as usize + 1..output_data.len()].to_vec();
 
     let res_result = builder.body(output_left).send();
     let res = match res_result {
@@ -216,7 +218,8 @@ fn gcp_get_upload_status(url: &str, upload_size: usize) -> Result<isize, RemoteE
     };
     // Upload is done
     if res.status() == StatusCode::OK || res.status() == StatusCode::CREATED {
-        return Ok(-1);
+        let upload_ok = -1;
+        return Ok(upload_ok);
     }
 
     if res.status() != StatusCode::PERMANENT_REDIRECT {
@@ -240,8 +243,8 @@ fn gcp_get_upload_status(url: &str, upload_size: usize) -> Result<isize, RemoteE
         let upper_bytes: Vec<&str> = session.split('-').collect();
         let expected_len = 2;
         if upper_bytes.len() != expected_len {
-            println!("{session}");
-            panic!("what?");
+            error!("[artemis-core] Unexpected Range header response: {session}");
+            return Err(RemoteError::BadResponse);
         }
 
         let bytes_res = upper_bytes[1].parse::<isize>();
@@ -252,11 +255,12 @@ fn gcp_get_upload_status(url: &str, upload_size: usize) -> Result<isize, RemoteE
                 return Err(RemoteError::BadResponse);
             }
         };
-
         return Ok(bytes);
     }
+
     // If range is not in the Header response then no bytes have been uploaded yet
-    Ok(0)
+    let no_bytes = 0;
+    Ok(no_bytes)
 }
 
 #[derive(Deserialize)]

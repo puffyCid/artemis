@@ -43,7 +43,13 @@ pub(crate) fn jsonl_format(
         if entries.is_empty() {
             write_meta_json(&mut collection_output, output, output_name, &uuid)?;
         } else {
+            let mut json_lines = Vec::new();
             for entry in entries {
+                if output.output != "local" {
+                    let line = create_line(&mut collection_output, entry)?;
+                    json_lines.push(line);
+                    continue;
+                }
                 let write_result =
                     write_full_json(&mut collection_output, entry, output, output_name, &uuid);
                 match write_result {
@@ -54,6 +60,19 @@ pub(crate) fn jsonl_format(
                         );
                     }
                 }
+            }
+            if output.output != "local" {
+                let output_result = output_artifact(json_lines.join("").as_bytes(), output, &uuid);
+                match output_result {
+                    Ok(_) => info!("[artemis-core] {output_name} jsonl output success"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to output {output_name} jsonl: {err:?}");
+                        return Err(FormatError::Output);
+                    }
+                }
+                let _ = collection_status(output_name, output, &uuid);
+
+                return Ok(());
             }
         }
     } else {
@@ -66,7 +85,7 @@ pub(crate) fn jsonl_format(
         )?;
     }
 
-    if output.compress {
+    if output.compress && output.output == "local" {
         let path = format!("{}/{}/{}.jsonl", output.directory, output.name, uuid);
         let compress_result = compress_gzip(&path);
         match compress_result {
@@ -112,6 +131,21 @@ fn write_full_json(
     write_line(base_data, output, output_name, uuid)
 }
 
+/// Create the a single JSON line
+fn create_line(base_data: &mut Value, artifact_data: &Value) -> Result<String, FormatError> {
+    base_data["data"] = artifact_data.clone();
+    base_data["metadata"]["uuid"] = Value::String(generate_uuid());
+    let serde_collection_results = serde_json::to_string(base_data);
+    let serde_collection = match serde_collection_results {
+        Ok(results) => format!("{results}\n"),
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize jsonl output: {err:?}");
+            return Err(FormatError::Serialize);
+        }
+    };
+    Ok(serde_collection)
+}
+
 /// Write JSON line to file
 fn write_line(
     base_data: &mut Value,
@@ -141,7 +175,7 @@ fn write_line(
 
 #[cfg(test)]
 mod tests {
-    use super::{write_full_json, write_line, write_meta_json};
+    use super::{create_line, write_full_json, write_line, write_meta_json};
     use crate::{
         output::formats::jsonl::jsonl_format,
         utils::{artemis_toml::Output, time::time_now, uuid::generate_uuid},
@@ -241,6 +275,22 @@ mod tests {
 
         let uuid = generate_uuid();
         write_meta_json(&mut collection_output, &output, "test", &uuid).unwrap();
+    }
+
+    #[test]
+    fn test_create_line() {
+        let mut collection_output = json![{
+            "endpoint_id": "test",
+            "id": "1",
+            "artifact_name": "test",
+            "complete_time": time_now(),
+            "start_time": 1,
+        }];
+
+        let mut data = serde_json::Value::String(String::from("test"));
+
+        let line = create_line(&mut collection_output, &mut data).unwrap();
+        assert!(!line.is_empty());
     }
 
     #[test]

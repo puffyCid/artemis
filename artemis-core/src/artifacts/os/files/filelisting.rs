@@ -17,7 +17,8 @@ use crate::utils::time::time_now;
 use log::{error, info, warn};
 use regex::Regex;
 use serde::Serialize;
-use std::io::Error as ioError;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Error as ioError};
 use walkdir::{DirEntry, WalkDir};
 
 #[cfg(target_os = "macos")]
@@ -85,8 +86,8 @@ impl FileInfo {
         let path_filter = FileInfo::user_regex(path_filter)?;
         let mut firmlink_paths: Vec<String> = Vec::new();
 
-        #[cfg(target_os = "macos")]
-        {
+        let platform = SystemInfo::get_platform();
+        if platform == "Darwin" {
             let firmlink_paths_data = FileInfo::read_firmlinks();
             match firmlink_paths_data {
                 Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
@@ -245,14 +246,8 @@ impl FileInfo {
         false
     }
 
-    #[cfg(target_os = "macos")]
     /// Read the firmlinks file on disk (holds all default firmlink paths)
     fn read_firmlinks() -> Result<Vec<String>, std::io::Error> {
-        use std::{
-            fs::File,
-            io::{BufRead, BufReader},
-        };
-
         let default_firmlinks = "/usr/share/firmlinks";
         let file = File::open(default_firmlinks)?;
         let reader = BufReader::new(file);

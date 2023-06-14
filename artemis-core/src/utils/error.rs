@@ -20,6 +20,7 @@ pub enum ArtemisError {
     HuffmanCompression,
     Local,
     Gcp,
+    Cleanup,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -48,6 +49,7 @@ impl fmt::Display for ArtemisError {
             }
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
             ArtemisError::Gcp => write!(f, "Failed output data to google cloud"),
+            ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
         }
     }
 }
