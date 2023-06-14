@@ -14,7 +14,6 @@ pub(crate) enum MacArtifactError {
     BadToml,
     Serialize,
     Format,
-    Cleanup,
 }
 
 impl std::error::Error for MacArtifactError {}
@@ -34,7 +33,6 @@ impl fmt::Display for MacArtifactError {
             MacArtifactError::BadToml => write!(f, "Artemis failed to parse TOML data"),
             MacArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             MacArtifactError::Format => write!(f, "Unknown formatter provided"),
-            MacArtifactError::Cleanup => write!(f, "Could not delete output data safely"),
         }
     }
 }

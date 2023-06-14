@@ -4,13 +4,10 @@ use crate::artifacts::applications::artifacts::{
 use crate::artifacts::os::linux::artifacts::{files, processes, systeminfo};
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::unix::artifacts::{bash_history, cron_job, python_history, zsh_history};
-use crate::filesystem::files::list_files;
 use crate::utils::{
-    artemis_toml::ArtemisToml, compression::compress_output_zip, logging::upload_logs,
-    output::compress_final_output,
+    artemis_toml::ArtemisToml, logging::upload_logs, output::compress_final_output,
 };
 use log::{error, info, warn};
-use std::fs::{remove_dir, remove_file};
 
 pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactError> {
     let collector_results = ArtemisToml::parse_artemis_toml_data(toml_data);

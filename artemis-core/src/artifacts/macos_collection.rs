@@ -11,15 +11,10 @@ use super::{
 };
 use crate::{
     artifacts::os::macos::artifacts::{emond, files, fseventsd, launchd, loginitems},
-    filesystem::files::list_files,
     runtime::deno::execute_script,
-    utils::{
-        artemis_toml::ArtemisToml, compression::compress_output_zip, logging::upload_logs,
-        output::compress_final_output,
-    },
+    utils::{artemis_toml::ArtemisToml, logging::upload_logs, output::compress_final_output},
 };
 use log::{error, info, warn};
-use std::fs::{remove_dir, remove_file};
 
 /// Parse the TOML collector and get macOS artifact targets
 pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError> {
