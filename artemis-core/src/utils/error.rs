@@ -19,7 +19,7 @@ pub enum ArtemisError {
     #[cfg(target_os = "windows")]
     HuffmanCompression,
     Local,
-    Gcp,
+    Remote,
     Cleanup,
 }
 
@@ -48,7 +48,7 @@ impl fmt::Display for ArtemisError {
                 write!(f, "Failed to decompress huffman compressed data")
             }
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
-            ArtemisError::Gcp => write!(f, "Failed output data to google cloud"),
+            ArtemisError::Remote => write!(f, "Failed output data to remote URL"),
             ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
         }
     }

@@ -3,7 +3,10 @@ use std::fs::{remove_dir, remove_file};
 use super::{artemis_toml::Output, compression::compress_output_zip, error::ArtemisError};
 use crate::{
     filesystem::files::list_files,
-    output::{local::output::local_output, remote::gcp::gcp_upload},
+    output::{
+        local::output::local_output,
+        remote::{azure::azure_upload, gcp::gcp_upload},
+    },
 };
 use log::{error, warn};
 
@@ -31,7 +34,17 @@ pub(crate) fn output_artifact(
                 Ok(_) => {}
                 Err(err) => {
                     error!("[artemis-core] Failed to upload to Google Cloud Storage: {err:?}");
-                    return Err(ArtemisError::Gcp);
+                    return Err(ArtemisError::Remote);
+                }
+            }
+        }
+        "azure" => {
+            let azure_result = azure_upload(artifact_data, output, output_name);
+            match azure_result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[artemis-core] Failed to upload to Azure Blog Storage: {err:?}");
+                    return Err(ArtemisError::Remote);
                 }
             }
         }
