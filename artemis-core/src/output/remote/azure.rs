@@ -55,7 +55,7 @@ pub(crate) fn azure_upload(
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Failed to upload data to Azure blog storage: {err:?}");
+            error!("[artemis-core] Failed to upload data to Azure blob storage: {err:?}");
             return Err(RemoteError::RemoteUpload);
         }
     };

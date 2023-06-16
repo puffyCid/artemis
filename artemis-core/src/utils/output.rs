@@ -5,7 +5,7 @@ use crate::{
     filesystem::files::list_files,
     output::{
         local::output::local_output,
-        remote::{azure::azure_upload, gcp::gcp_upload},
+        remote::{aws::aws_upload, azure::azure_upload, gcp::gcp_upload},
     },
 };
 use log::{error, warn};
@@ -44,6 +44,16 @@ pub(crate) fn output_artifact(
                 Ok(_) => {}
                 Err(err) => {
                     error!("[artemis-core] Failed to upload to Azure Blog Storage: {err:?}");
+                    return Err(ArtemisError::Remote);
+                }
+            }
+        }
+        "aws" => {
+            let aws_result = aws_upload(artifact_data, output, output_name);
+            match aws_result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[artemis-core] Failed to upload to AWS S3 Bucket: {err:?}");
                     return Err(ArtemisError::Remote);
                 }
             }
