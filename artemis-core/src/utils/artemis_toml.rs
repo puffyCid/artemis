@@ -36,12 +36,8 @@ pub(crate) struct Output {
     pub(crate) compress: bool,
     pub(crate) filter_name: Option<String>,
     pub(crate) filter_script: Option<String>,
-    // pub(crate) url: Option<String>,
-    // pub(crate) port: Option<u16>,
-    // pub(crate) api_key: Option<String>,
-    // pub(crate) username: Option<String>,
-    // pub(crate) password: Option<String>,
-    // pub(crate) generic_keys: Option<Vec<String>>,
+    pub(crate) url: Option<String>,
+    pub(crate) api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

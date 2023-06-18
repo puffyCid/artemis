@@ -79,6 +79,29 @@ pub(crate) fn compress_gzip(path: &str) -> Result<(), ArtemisError> {
     Ok(())
 }
 
+/// Compress provided data with GZIP
+pub(crate) fn compress_gzip_data(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
+    let mut gz = GzEncoder::new(Vec::new(), Compression::default());
+    let status = gz.write_all(data);
+    match status {
+        Ok(_) => {}
+        Err(err) => {
+            error!("[compression] Could not compress data with gzip: {err:?}");
+            return Err(ArtemisError::CompressCreate);
+        }
+    }
+    let finish_status = gz.finish();
+
+    let data = match finish_status {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[compression] Could not finish gzip compressing data: {err:?}");
+            return Err(ArtemisError::GzipFinish);
+        }
+    };
+    Ok(data)
+}
+
 /// Compress the output directory to a zip file
 pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(), ArtemisError> {
     let output_files = WalkDir::new(directory);
@@ -255,6 +278,7 @@ pub(crate) fn decompress_lzxpress_huffman(
 
 #[cfg(test)]
 mod tests {
+    use super::compress_gzip_data;
     use crate::{
         filesystem::files::read_file,
         utils::compression::{compress_gzip, compress_output_zip},
@@ -295,6 +319,13 @@ mod tests {
         let data = read_file(&test_location.display().to_string()).unwrap();
         assert_eq!(data.len(), 89);
         remove_file(&test_location.display().to_string()).unwrap();
+    }
+
+    #[test]
+    fn test_compress_gzip_data() {
+        let data = "compressme".as_bytes();
+        let results = compress_gzip_data(data).unwrap();
+        assert_eq!(results.len(), 30)
     }
 
     #[test]

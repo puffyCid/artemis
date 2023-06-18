@@ -1,4 +1,4 @@
-/**!
+/**
  * macOS launchd (Daemons and Agents) can be used as persistence
  * They exist system wide and per user
  *

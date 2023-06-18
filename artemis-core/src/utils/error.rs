@@ -18,8 +18,9 @@ pub enum ArtemisError {
     LogFile,
     #[cfg(target_os = "windows")]
     HuffmanCompression,
-    #[cfg(feature = "local")]
     Local,
+    Remote,
+    Cleanup,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -46,8 +47,9 @@ impl fmt::Display for ArtemisError {
             ArtemisError::HuffmanCompression => {
                 write!(f, "Failed to decompress huffman compressed data")
             }
-            #[cfg(feature = "local")]
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
+            ArtemisError::Remote => write!(f, "Failed output data to remote URL"),
+            ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
         }
     }
 }
