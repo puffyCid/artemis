@@ -96,11 +96,9 @@ mod tests {
             format: String::from("json"),
             compress,
             url: Some(String::new()),
-            port: Some(0),
+
             api_key: Some(String::new()),
-            username: Some(String::new()),
-            password: Some(String::new()),
-            generic_keys: Some(Vec::new()),
+
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),

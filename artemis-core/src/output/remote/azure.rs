@@ -1,6 +1,6 @@
 use super::error::RemoteError;
 use crate::utils::{artemis_toml::Output, compression::compress_gzip_data};
-use log::{error, info};
+use log::{error, info, warn};
 use reqwest::{blocking::Client, StatusCode};
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
@@ -42,29 +42,42 @@ pub(crate) fn azure_upload(
         return Err(RemoteError::RemoteUrl);
     }
 
-    let azure_full_url = format!("{}/{azure_filename}?{}", azure_uris[0], azure_uris[1]);
-
     let client = Client::new();
-    let mut builder = client.put(azure_full_url);
-    builder = builder.header("Content-Type", header_value);
-    builder = builder.header("Content-Length", output_data.len());
-    builder = builder.header("x-ms-version", "2019-12-12");
-    builder = builder.header("x-ms-blob-type", "Blockblob");
+    let max_attempts = 15;
+    let mut attempts = 0;
 
-    let res_result = builder.body(output_data.clone()).send();
-    let res = match res_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[artemis-core] Failed to upload data to Azure blob storage: {err:?}");
+    while attempts < max_attempts {
+        let azure_full_url = format!("{}/{azure_filename}?{}", azure_uris[0], azure_uris[1]);
+
+        let mut builder = client.put(azure_full_url);
+        builder = builder.header("Content-Type", header_value);
+        builder = builder.header("Content-Length", output_data.len());
+        builder = builder.header("x-ms-version", "2019-12-12");
+        builder = builder.header("x-ms-blob-type", "Blockblob");
+        builder = builder.body(output_data.clone());
+
+        let res_result = builder.send();
+        let res = match res_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Failed to upload data to Azure blob storage: {err:?}");
+                return Err(RemoteError::RemoteUpload);
+            }
+        };
+
+        if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
+            if attempts < max_attempts {
+                warn!("[artemis-core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}");
+                attempts += 1;
+                continue;
+            }
+            error!(
+                "[artemis-core] Non-200 response from Azure blob storage: {:?}",
+                res.text()
+            );
             return Err(RemoteError::RemoteUpload);
         }
-    };
-    if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
-        error!(
-            "[artemis-core] Non-200 response from Azure blob storage: {:?}",
-            res.text()
-        );
-        return Err(RemoteError::RemoteUpload);
+        break;
     }
 
     info!(
@@ -94,11 +107,7 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(full_url.to_string()),
-            port: Some(0),
             api_key: Some(String::new()),
-            username: Some(String::from("foo")),
-            password: Some(String::from("pass")),
-            generic_keys: Some(Vec::new()),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
