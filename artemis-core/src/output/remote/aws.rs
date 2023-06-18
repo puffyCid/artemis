@@ -262,7 +262,7 @@ fn aws_multipart_upload<'a>(
     header_value: &str,
 ) -> nom::IResult<&'a [u8], Vec<String>> {
     // Upload in 1GB chunks
-    let gb_limit = 1024 * 1024 * 5;
+    let gb_limit = 1024 * 1024 * 1024;
     // Valid for one (1) hour
     let duration = Duration::from_secs(3600);
 
@@ -294,7 +294,7 @@ fn aws_multipart_upload<'a>(
             let response = match res_result {
                 Ok(result) => result,
                 Err(err) => {
-                    println!("[artemis-core] Could not upload data for multipart upload: {err:?}");
+                    error!("[artemis-core] Could not upload data for multipart upload: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -309,7 +309,7 @@ fn aws_multipart_upload<'a>(
                     continue;
                 }
 
-                println!(
+                error!(
                     "[artemis-core] Non-200 response from AWS S3 bucket: {:?}",
                     response.text()
                 );
