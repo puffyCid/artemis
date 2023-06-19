@@ -1,11 +1,13 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum MachoError {
     FatHeader,
     Header,
     Data,
     Magic,
+    Path,
+    Buffer,
 }
 
 impl std::error::Error for MachoError {}
@@ -17,6 +19,8 @@ impl fmt::Display for MachoError {
             MachoError::FatHeader => write!(f, "Failed to read fat macho header"),
             MachoError::Data => write!(f, "Failed to read macho data"),
             MachoError::Magic => write!(f, "Failed to check macho magic signature"),
+            MachoError::Path => write!(f, "Failed to get file reader from provided path"),
+            MachoError::Buffer => write!(f, "Failed to read contents into buffer"),
         }
     }
 }

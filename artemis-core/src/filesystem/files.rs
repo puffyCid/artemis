@@ -74,6 +74,25 @@ pub(crate) fn read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     file_read(path)
 }
 
+/// Create a `File` object that can be used to read a file
+pub(crate) fn file_reader(path: &str) -> Result<File, FileSystemError> {
+    // Verify provided path is a file
+    if !is_file(path) {
+        return Err(FileSystemError::NotFile);
+    }
+
+    let read_result = File::open(path);
+    let reader = match read_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Failed to open file {path}: {err:?}");
+            return Err(FileSystemError::OpenFile);
+        }
+    };
+
+    Ok(reader)
+}
+
 #[cfg(target_os = "windows")]
 /// Read a file that is less than the provided size in bytes
 /// Use `read_file_large` to read a file of any size or use `read_file` to use the the default size limit of 2GB
@@ -241,7 +260,7 @@ pub(crate) fn get_file_size(path: &str) -> u64 {
 
 /// Check if a provided file is too large than the default acceptable size (2GB).
 /// Use `file_too_large_custom` if you want to increase/decrease the default acceptable size
-fn file_too_large(path: &str) -> bool {
+pub(crate) fn file_too_large(path: &str) -> bool {
     let size = get_file_size(path);
     let max_size = 2147483648; // 2GB
     if size < max_size {
@@ -276,7 +295,8 @@ pub(crate) fn get_filename(path: &str) -> String {
 mod tests {
     use super::{file_too_large, is_file, list_files_directories};
     use crate::filesystem::files::{
-        file_extension, get_file_size, get_filename, hash_file, list_files, read_file, Hashes,
+        file_extension, file_reader, get_file_size, get_filename, hash_file, list_files, read_file,
+        Hashes,
     };
     use std::path::PathBuf;
 
@@ -446,5 +466,12 @@ mod tests {
             sha256,
             "e50231ef2d3836b4c27010f87a9b463df336123982f1612f2414df60d3d58560"
         );
+    }
+
+    #[test]
+    fn test_file_reader() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system/files/test.txt");
+        let _result = file_reader(&test_location.display().to_string()).unwrap();
     }
 }

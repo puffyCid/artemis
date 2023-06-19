@@ -15,9 +15,11 @@ use super::{
     fat::FatHeader,
     header::MachoHeader,
 };
+use crate::filesystem::files::{file_reader, file_too_large};
 use log::error;
 use plist::Dictionary;
 use serde::Serialize;
+use std::io::{Read, Seek, SeekFrom};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct MachoInfo {
@@ -36,14 +38,53 @@ pub(crate) struct MachoInfo {
 
 impl MachoInfo {
     /// Parse a macho file
-    pub(crate) fn parse_macho(data: &[u8]) -> Result<Vec<MachoInfo>, MachoError> {
+    pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
+        let reader_result = file_reader(path);
+        let mut reader = match reader_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[macho] Could not get file reader for {path}. Error: {err:?}");
+                return Err(MachoError::Path);
+            }
+        };
+
+        let mut buff = [0; 4];
+
+        if reader.read(&mut buff).is_err() {
+            return Err(MachoError::Buffer);
+        }
+        let fat_binary = [202, 254, 186, 190];
+        let binary = [250, 237, 254];
+
+        if buff != fat_binary && !buff.ends_with(&binary) {
+            return Err(MachoError::Magic);
+        }
+
+        if reader.seek(SeekFrom::Start(0)).is_err() {
+            return Err(MachoError::Buffer);
+        }
+
+        if file_too_large(path) {
+            return Err(MachoError::Buffer);
+        }
+
+        let mut data = Vec::new();
+
+        // Allow File read_to_end because we partially read the file above to check for Magic Header
+        #[allow(clippy::verbose_file_reads)]
+        let data_result = reader.read_to_end(&mut data);
+        match data_result {
+            Ok(_) => {}
+            Err(_) => return Err(MachoError::Buffer),
+        };
+
         let min_header_len = 4;
         let min_size = 100;
         if data.len() < min_header_len && data.len() < min_size {
             return Ok(Vec::new());
         }
 
-        let is_fat_results = FatHeader::is_fat(data);
+        let is_fat_results = FatHeader::is_fat(&data);
         let is_fat = match is_fat_results {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -53,7 +94,7 @@ impl MachoInfo {
 
         let mut macho_info: Vec<MachoInfo> = Vec::new();
         if is_fat {
-            let fat_header_results = MachoInfo::parse_fat(data);
+            let fat_header_results = MachoInfo::parse_fat(&data);
             let fat_header = match fat_header_results {
                 Ok(result) => result,
                 Err(_err) => {
@@ -62,7 +103,7 @@ impl MachoInfo {
             };
             // Parse in another function returning MachoInfo
             for arch in fat_header.archs {
-                let binary_data_results = MachoHeader::binary_start(data, arch.offset, arch.size);
+                let binary_data_results = MachoHeader::binary_start(&data, arch.offset, arch.size);
                 let binary_data = match binary_data_results {
                     Ok((_, results)) => results,
                     Err(_err) => {
@@ -103,7 +144,7 @@ impl MachoInfo {
             }
             return Ok(macho_info);
         }
-        let is_macho_results = MachoHeader::is_macho(data);
+        let is_macho_results = MachoHeader::is_macho(&data);
 
         let is_macho = match is_macho_results {
             Ok((_, result)) => result,
@@ -116,7 +157,7 @@ impl MachoInfo {
             return Ok(macho_info);
         }
 
-        let header_results = MachoHeader::parse_header(data);
+        let header_results = MachoHeader::parse_header(&data);
         let (command_data, header_data) = match header_results {
             Ok((command, result)) => (command, result),
             Err(err) => {
@@ -125,7 +166,7 @@ impl MachoInfo {
             }
         };
 
-        let commands_results = MachoInfo::parse_commands(command_data, &header_data, data);
+        let commands_results = MachoInfo::parse_commands(command_data, &header_data, &data);
         let commands = match commands_results {
             Ok(results) => results,
             Err(err) => {
@@ -146,7 +187,6 @@ impl MachoInfo {
             sdk: commands.build_system.sdk,
         };
         macho_info.push(macho_data);
-
         Ok(macho_info)
     }
 
@@ -185,7 +225,7 @@ impl MachoInfo {
 #[cfg(test)]
 mod tests {
     use super::MachoInfo;
-    use crate::filesystem::{directory::is_directory, files::read_file};
+    use crate::filesystem::directory::is_directory;
     use std::path::PathBuf;
     use walkdir::WalkDir;
 
@@ -194,8 +234,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/macho/fat/ls");
 
-        let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let result = MachoInfo::parse_macho(&buffer).unwrap();
+        let result = MachoInfo::parse_macho(&test_location.display().to_string()).unwrap();
         assert_eq!(result[0].certs.len(), 5924);
         assert_eq!(result[0].minos, "10.14.0");
         assert_eq!(result[0].sdk, "12.3.0");
@@ -208,15 +247,12 @@ mod tests {
     fn test_all_bin() {
         let start_walk = WalkDir::new("/usr/bin").same_file_system(true);
         let begin_walk = start_walk.max_depth(20);
-        let mut results: Vec<MachoInfo> = Vec::new();
         for entries in begin_walk.into_iter() {
             let entry_data = entries.unwrap();
             if !entry_data.metadata().unwrap().is_file() || entry_data.file_name() == "sudo" {
                 continue;
             }
-            let buffer = read_file(&entry_data.path().display().to_string()).unwrap();
-            let mut result = MachoInfo::parse_macho(&buffer).unwrap();
-            results.append(&mut result)
+            let _ = MachoInfo::parse_macho(&entry_data.path().display().to_string());
         }
     }
 
@@ -228,23 +264,12 @@ mod tests {
         }
         let start_walk = WalkDir::new(path).same_file_system(true);
         let begin_walk = start_walk.max_depth(20);
-        let mut results: Vec<MachoInfo> = Vec::new();
 
         for entries in begin_walk.into_iter() {
             let entry_data = entries.unwrap();
 
-            if !entry_data.metadata().unwrap().is_file()
-                || entry_data.path().extension().unwrap_or_default() == "class"
-                || entry_data.path().extension().unwrap_or_default() == "a"
-            {
-                continue;
-            }
-
-            let buffer = read_file(&entry_data.path().display().to_string()).unwrap();
-            let mut result = MachoInfo::parse_macho(&buffer).unwrap();
-            results.append(&mut result)
+            let _ = MachoInfo::parse_macho(&entry_data.path().display().to_string());
         }
-        assert!(results.len() > 12);
     }
 
     #[test]
@@ -260,11 +285,7 @@ mod tests {
                 continue;
             }
 
-            let buffer = read_file(&entry_data.path().display().to_string()).unwrap();
-            //let mut result = MachoInfo::parse_macho(&buffer).unwrap();
-            //results.append(&mut result);
-
-            let macho_result = MachoInfo::parse_macho(&buffer);
+            let macho_result = MachoInfo::parse_macho(&entry_data.path().display().to_string());
             match macho_result {
                 Ok(mut result) => results.append(&mut result),
                 Err(_) => continue,

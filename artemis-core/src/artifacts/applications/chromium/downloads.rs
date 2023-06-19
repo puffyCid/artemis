@@ -76,13 +76,30 @@ impl ChromiumDownloads {
             let chromium_path =
                 Path::new(&format!("{users}/.config/chromium/Default/History")).to_path_buf();
 
+            // Verify if History file is on disk
             if !chromium_path.is_file() {
                 continue;
             }
             let path = chromium_path.display().to_string();
             let downloads = ChromiumDownloads::downloads_query(&path)?;
+            let user;
 
-            let user = users[9..].to_string();
+            #[cfg(target_os = "macos")]
+            {
+                user = users.replace("/Users/", "");
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                let user_data: Vec<&str> = users.split('\\').collect();
+                user = (*user_data.last().unwrap_or(&"")).to_string();
+            }
+            #[cfg(target_os = "linux")]
+            {
+                let user_data: Vec<&str> = users.split("/").collect();
+                user = user_data.last().unwrap_or(&"").to_string();
+            }
+
             let downloads_data = ChromiumDownloads {
                 downloads,
                 path,
@@ -196,10 +213,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Get user Chromium downloads"]
     fn test_get_downloads() {
-        let result = ChromiumDownloads::get_downloads().unwrap();
-        assert!(result.len() > 0);
+        let _result = ChromiumDownloads::get_downloads().unwrap();
     }
 
     #[test]

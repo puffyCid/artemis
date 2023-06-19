@@ -1,5 +1,5 @@
 mod commands;
-mod error;
+pub(crate) mod error;
 mod fat;
 mod header;
-pub mod parser;
+pub(crate) mod parser;

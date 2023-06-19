@@ -1,6 +1,11 @@
-use crate::{filesystem::files::read_file, utils::encoding::base64_encode_standard};
+use crate::{
+    filesystem::files::{file_reader, file_too_large},
+    utils::encoding::base64_encode_standard,
+};
+use log::error;
 use pelite::PeFile;
 use serde::Serialize;
+use std::io::{Read, Seek, SeekFrom};
 
 #[derive(Debug, Serialize, Clone)]
 pub(crate) struct PeInfo {
@@ -22,9 +27,40 @@ pub(crate) struct PeInfo {
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
-    let read_result = read_file(path);
-    let data = match read_result {
+    let reader_result = file_reader(path);
+    let mut reader = match reader_result {
         Ok(result) => result,
+        Err(err) => {
+            error!("[pe] Could not get reader for {path}: {err:?}");
+            return Err(pelite::Error::Invalid);
+        }
+    };
+
+    let mut buff = [0; 2];
+    if reader.read(&mut buff).is_err() {
+        return Err(pelite::Error::Invalid);
+    }
+
+    let mz = [77, 90];
+    if buff != mz {
+        return Err(pelite::Error::BadMagic);
+    }
+
+    if reader.seek(SeekFrom::Start(0)).is_err() {
+        return Err(pelite::Error::Invalid);
+    }
+
+    if file_too_large(path) {
+        return Err(pelite::Error::Invalid);
+    }
+
+    let mut data = Vec::new();
+
+    // Allow File read_to_end because we partially read the file above to check for Magic Header
+    #[allow(clippy::verbose_file_reads)]
+    let data_result = reader.read_to_end(&mut data);
+    match data_result {
+        Ok(_) => {}
         Err(_) => return Err(pelite::Error::Overflow),
     };
 

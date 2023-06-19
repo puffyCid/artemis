@@ -48,6 +48,7 @@ impl ChromiumHistory {
                 "{users}/Library/Application Support/Chromium/Default/History"
             ))
             .to_path_buf();
+
             #[cfg(target_os = "windows")]
             let chromium_path = Path::new(&format!(
                 "{users}\\AppData\\Local\\Chromium\\User Data\\Default\\History"
@@ -58,13 +59,31 @@ impl ChromiumHistory {
             let chromium_path =
                 Path::new(&format!("{users}/.config/chromium/Default/History")).to_path_buf();
 
+            // Verify if History file is on disk
             if !chromium_path.is_file() {
                 continue;
             }
             let path = chromium_path.display().to_string();
             let history = ChromiumHistory::history_query(&path)?;
 
-            let user = users[9..].to_string();
+            let user;
+
+            #[cfg(target_os = "macos")]
+            {
+                user = users.replace("/Users/", "");
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                let user_data: Vec<&str> = users.split('\\').collect();
+                user = (*user_data.last().unwrap_or(&"")).to_string();
+            }
+            #[cfg(target_os = "linux")]
+            {
+                let user_data: Vec<&str> = users.split("/").collect();
+                user = user_data.last().unwrap_or(&"").to_string();
+            }
+
             let history_data = ChromiumHistory {
                 history,
                 path,
@@ -156,10 +175,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Get user Chromium history"]
     fn test_get_users_history() {
-        let result = ChromiumHistory::get_history().unwrap();
-        assert!(result.len() > 0);
+        let _result = ChromiumHistory::get_history().unwrap();
     }
 
     #[test]

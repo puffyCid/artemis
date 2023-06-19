@@ -1,19 +1,10 @@
 use super::error::ProcessError;
-use crate::{artifacts::os::macos::macho::parser::MachoInfo, filesystem::files::read_file};
+use crate::artifacts::os::macos::macho::parser::MachoInfo;
 use log::error;
 
 /// Get macho metadata for processes
 pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
-    let buffer_results = read_file(path);
-    let buffer = match buffer_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[processes] Failed to read file: {path}, error: {err:?}");
-            return Err(ProcessError::ParseProcFile);
-        }
-    };
-
-    let binary_results = MachoInfo::parse_macho(&buffer);
+    let binary_results = MachoInfo::parse_macho(path);
     match binary_results {
         Ok(results) => Ok(results),
         Err(err) => {
