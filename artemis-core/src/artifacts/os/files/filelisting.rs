@@ -190,7 +190,7 @@ impl FileInfo {
             file_entry.gid = metadata.gid();
         }
 
-        // Skip large files
+        // Get executable metadata if enabled
         if get_executable_info && file_entry.is_file {
             let meta_results = FileInfo::executable_metadata(&entry.path().display().to_string());
             file_entry.binary_info = match meta_results {
@@ -290,7 +290,9 @@ impl FileInfo {
         let info = match info_result {
             Ok(result) => result,
             Err(err) => {
-                warn!("[files] Could not parse PE file {path}: {err:?}");
+                if err != pelite::Error::Invalid && err != pelite::Error::BadMagic {
+                    warn!("[files] Could not parse PE file {path}: {err:?}");
+                }
                 return Err(FileError::ParseFile);
             }
         };
@@ -428,7 +430,7 @@ mod tests {
     fn test_get_filelist() {
         let start_location = "C:\\Windows";
         let depth = 1;
-        let metadata = false;
+        let metadata = true;
         let hashes = Hashes {
             md5: true,
             sha1: false,
@@ -481,7 +483,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_file_metadata() {
         let start_path = WalkDir::new("C:\\Windows\\System32").max_depth(1);
-        let metadata = false;
+        let metadata = true;
         let hashes = Hashes {
             md5: false,
             sha1: false,

@@ -82,20 +82,24 @@ impl ChromiumDownloads {
             }
             let path = chromium_path.display().to_string();
             let downloads = ChromiumDownloads::downloads_query(&path)?;
+            let user;
 
             #[cfg(target_os = "macos")]
-            let user = users.replace("/Users/", "");
+            {
+                user = users.replace("/Users/", "");
+            }
 
             #[cfg(target_os = "windows")]
             {
-                let user_data: Vec<&str> = users.split("\\").collect();
-                let user = user_data.last().unwrap_or(&"");
+                let user_data: Vec<&str> = users.split('\\').collect();
+                user = (*user_data.last().unwrap_or(&"")).to_string();
             }
             #[cfg(target_os = "linux")]
             {
                 let user_data: Vec<&str> = users.split("/").collect();
-                let user = user_data.last().unwrap_or(&"");
+                user = user_data.last().unwrap_or(&"").to_string();
             }
+
             let downloads_data = ChromiumDownloads {
                 downloads,
                 path,

@@ -76,18 +76,22 @@ impl FirefoxHistory {
             for path in firefox_data {
                 let history = FirefoxHistory::history_query(&path)?;
 
+                let user;
+
                 #[cfg(target_os = "macos")]
-                let user = users.replace("/Users/", "");
+                {
+                    user = users.replace("/Users/", "");
+                }
 
                 #[cfg(target_os = "windows")]
                 {
-                    let user_data: Vec<&str> = users.split("\\").collect();
-                    let user = user_data.last().unwrap_or(&"");
+                    let user_data: Vec<&str> = users.split('\\').collect();
+                    user = (*user_data.last().unwrap_or(&"")).to_string();
                 }
                 #[cfg(target_os = "linux")]
                 {
                     let user_data: Vec<&str> = users.split("/").collect();
-                    let user = user_data.last().unwrap_or(&"");
+                    user = user_data.last().unwrap_or(&"").to_string();
                 }
 
                 let history_data = FirefoxHistory {
