@@ -44,14 +44,14 @@ impl MachoInfo {
             Ok(result) => result,
             Err(err) => {
                 error!("[macho] Could not get file reader for {path}. Error: {err:?}");
-                return Err(MachoError::Data);
+                return Err(MachoError::Path);
             }
         };
 
         let mut buff = [0; 4];
 
         if reader.read(&mut buff).is_err() {
-            return Err(MachoError::Data);
+            return Err(MachoError::Buffer);
         }
         let fat_binary = [202, 254, 186, 190];
         let binary = [250, 237, 254];
@@ -61,11 +61,11 @@ impl MachoInfo {
         }
 
         if reader.seek(SeekFrom::Start(0)).is_err() {
-            return Err(MachoError::Data);
+            return Err(MachoError::Buffer);
         }
 
         if file_too_large(path) {
-            return Err(MachoError::Data);
+            return Err(MachoError::Buffer);
         }
 
         let mut data = Vec::new();
@@ -75,7 +75,7 @@ impl MachoInfo {
         let data_result = reader.read_to_end(&mut data);
         match data_result {
             Ok(_) => {}
-            Err(_) => return Err(MachoError::Data),
+            Err(_) => return Err(MachoError::Buffer),
         };
 
         let min_header_len = 4;

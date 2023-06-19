@@ -270,7 +270,7 @@ impl FileInfo {
         match binary_results {
             Ok(results) => Ok(results),
             Err(err) => {
-                if err != MachoError::Data && err != MachoError::Magic {
+                if err != MachoError::Buffer && err != MachoError::Magic {
                     error!("[files] Failed to parse executable binary {path}, error: {err:?}");
                 }
                 Err(FileError::ParseFile)
