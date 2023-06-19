@@ -1,12 +1,11 @@
-use crate::{artifacts::os::macos::macho::parser::MachoInfo, filesystem::files::read_file};
+use crate::artifacts::os::macos::macho::parser::MachoInfo;
 use deno_core::{error::AnyError, op};
 use log::error;
 
 #[op]
 /// Expose parsing macho file  to `Deno`
 fn get_macho(path: String) -> Result<String, AnyError> {
-    let data = read_file(&path)?;
-    let macho_results = MachoInfo::parse_macho(&data);
+    let macho_results = MachoInfo::parse_macho(&path);
     let macho = match macho_results {
         Ok(results) => results,
         Err(err) => {

@@ -264,20 +264,15 @@ impl FileInfo {
     #[cfg(target_os = "macos")]
     /// Get executable metadata
     fn executable_metadata(path: &str) -> Result<Vec<MachoInfo>, FileError> {
-        use crate::filesystem::files::read_file;
-        let buffer_results = read_file(path);
-        let buffer = match buffer_results {
-            Ok(results) => results,
-            Err(_err) => {
-                return Err(FileError::ReadFile);
-            }
-        };
+        use crate::artifacts::os::macos::macho::error::MachoError;
 
-        let binary_results = MachoInfo::parse_macho(&buffer);
+        let binary_results = MachoInfo::parse_macho(path);
         match binary_results {
             Ok(results) => Ok(results),
             Err(err) => {
-                error!("[files] Failed to parse executable binary {path}, error: {err:?}");
+                if err != MachoError::Data && err != MachoError::Magic {
+                    error!("[files] Failed to parse executable binary {path}, error: {err:?}");
+                }
                 Err(FileError::ParseFile)
             }
         }

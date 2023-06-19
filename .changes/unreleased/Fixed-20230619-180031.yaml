@@ -1,0 +1,3 @@
+kind: Fixed
+body: 'Possible array out bounds error when trying to get browser user info '
+time: 2023-06-19T18:00:31.743599-04:00
