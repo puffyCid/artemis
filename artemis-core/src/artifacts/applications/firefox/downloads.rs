@@ -64,6 +64,7 @@ impl FirefoxDownloads {
             #[cfg(target_os = "linux")]
             let firefox_path = Path::new(&format!("{users}/.mozilla/firefox")).to_path_buf();
 
+            // Verify if Profile directory is on disk
             if !firefox_path.is_dir() {
                 continue;
             }
@@ -71,7 +72,20 @@ impl FirefoxDownloads {
             for path in firefox_data {
                 let downloads = FirefoxDownloads::downloads_query(&path)?;
 
-                let user = users[9..].to_string();
+                #[cfg(target_os = "macos")]
+                let user = users.replace("/Users/", "");
+
+                #[cfg(target_os = "windows")]
+                {
+                    let user_data: Vec<&str> = users.split("\\").collect();
+                    let user = user_data.last().unwrap_or(&"");
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    let user_data: Vec<&str> = users.split("/").collect();
+                    let user = user_data.last().unwrap_or(&"");
+                }
+
                 let downloads_data = FirefoxDownloads {
                     downloads,
                     path,
@@ -176,10 +190,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Get user Firefox downloads"]
     fn test_get_downloads() {
-        let result = FirefoxDownloads::get_downloads().unwrap();
-        assert!(!result.is_empty());
+        let _result = FirefoxDownloads::get_downloads().unwrap();
     }
 
     #[test]

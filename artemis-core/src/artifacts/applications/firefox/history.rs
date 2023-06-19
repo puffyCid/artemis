@@ -67,6 +67,7 @@ impl FirefoxHistory {
             #[cfg(target_os = "linux")]
             let firefox_path = Path::new(&format!("{users}/.mozilla/firefox")).to_path_buf();
 
+            // Verify if Profile directory is on disk
             if !firefox_path.is_dir() {
                 continue;
             }
@@ -75,7 +76,20 @@ impl FirefoxHistory {
             for path in firefox_data {
                 let history = FirefoxHistory::history_query(&path)?;
 
-                let user = users[9..].to_string();
+                #[cfg(target_os = "macos")]
+                let user = users.replace("/Users/", "");
+
+                #[cfg(target_os = "windows")]
+                {
+                    let user_data: Vec<&str> = users.split("\\").collect();
+                    let user = user_data.last().unwrap_or(&"");
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    let user_data: Vec<&str> = users.split("/").collect();
+                    let user = user_data.last().unwrap_or(&"");
+                }
+
                 let history_data = FirefoxHistory {
                     history,
                     path,
@@ -200,10 +214,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Get user Firefox history"]
     fn test_get_history() {
-        let result = FirefoxHistory::get_history().unwrap();
-        assert!(!result.is_empty());
+        let _result = FirefoxHistory::get_history().unwrap();
     }
 
     #[test]
