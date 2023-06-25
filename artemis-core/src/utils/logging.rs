@@ -1,16 +1,15 @@
-use crate::filesystem::files::{get_filename, list_files, read_file};
-
 use super::{
     artemis_toml::Output, error::ArtemisError, output::output_artifact, uuid::generate_uuid,
 };
-use log::{error, warn};
+use crate::filesystem::files::{get_filename, list_files, read_file};
+use log::{error, warn, LevelFilter};
 use std::{
     fs::{create_dir_all, remove_dir, remove_file, File, OpenOptions},
     io::Write,
 };
 
-/// Create log output file based on TOML `Output` configuration
-pub(crate) fn create_log_file(output: &Output) -> Result<File, ArtemisError> {
+/// Create log output file and logging level based on TOML `Output` configuration
+pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), ArtemisError> {
     let path = format!("{}/{}", output.directory, output.name);
     let result = create_dir_all(&path);
     match result {
@@ -30,7 +29,19 @@ pub(crate) fn create_log_file(output: &Output) -> Result<File, ArtemisError> {
         }
     };
 
-    Ok(log_file)
+    let level = if let Some(log_level) = &output.logging {
+        match log_level.to_lowercase().as_str() {
+            "warn" => LevelFilter::Warn,
+            "error" => LevelFilter::Error,
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            _ => LevelFilter::Warn,
+        }
+    } else {
+        LevelFilter::Warn
+    };
+
+    Ok((log_file, level))
 }
 
 /// Create and update a simple `status.log` file to track our output data
@@ -129,7 +140,7 @@ mod tests {
         Method::{POST, PUT},
         MockServer,
     };
-    use log::warn;
+    use log::{warn, LevelFilter};
     use serde_json::json;
     use simplelog::{Config, WriteLogger};
     use std::{fs::File, io::Write, path::PathBuf};
@@ -148,11 +159,13 @@ mod tests {
             output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
-        let result = create_log_file(&test).unwrap();
+        let (result, level) = create_log_file(&test).unwrap();
         let _ = WriteLogger::init(log::LevelFilter::Warn, Config::default(), result);
         warn!("A simple fancy logger!");
+        assert_eq!(level, LevelFilter::Warn);
     }
 
     #[test]
@@ -169,6 +182,7 @@ mod tests {
             output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         collection_status("test", &test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
@@ -200,6 +214,7 @@ mod tests {
             output: String::from("gcp"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+logging: Some(String::new())
         };
 
         let mock_me = server.mock(|when, then| {

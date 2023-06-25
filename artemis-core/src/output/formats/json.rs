@@ -99,6 +99,7 @@ mod tests {
             output: String::from("json"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
         let start_time = time_now();
 

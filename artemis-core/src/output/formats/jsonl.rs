@@ -196,6 +196,7 @@ mod tests {
             output: String::from("json"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
         let start_time = time_now();
 
@@ -227,6 +228,7 @@ mod tests {
             output: String::from("json"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         let uuid = generate_uuid();
@@ -261,6 +263,7 @@ mod tests {
             output: String::from("json"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         let uuid = generate_uuid();
@@ -297,6 +300,7 @@ mod tests {
             output: String::from("json"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         let name = "test";

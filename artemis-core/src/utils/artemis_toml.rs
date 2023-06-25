@@ -38,6 +38,7 @@ pub(crate) struct Output {
     pub(crate) filter_script: Option<String>,
     pub(crate) url: Option<String>,
     pub(crate) api_key: Option<String>,
+    pub(crate) logging: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
