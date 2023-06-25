@@ -10,6 +10,7 @@ use deno_runtime::permissions::PermissionsContainer;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 use deno_runtime::BootstrapOptions;
+use deno_runtime::WorkerLogLevel;
 use log::error;
 use serde_json::Value;
 use std::env::current_dir;
@@ -88,7 +89,7 @@ fn create_worker_options(optional_args: &[String]) -> Result<WorkerOptions, AnyE
         bootstrap: BootstrapOptions {
             args: optional_args.to_vec(),
             cpu_count: 1,
-            debug_flag: false,
+            log_level: WorkerLogLevel::Warn,
             enable_testing_features: false,
             locale: deno_core::v8::icu::get_language_tag(),
             location: None,
@@ -122,8 +123,9 @@ fn create_worker_options(optional_args: &[String]) -> Result<WorkerOptions, AnyE
         shared_array_buffer_store: None,
         compiled_wasm_module_store: None,
         stdio: Default::default(),
-        node_fs: None,
+        create_params: None,
         root_cert_store_provider: None,
+        ..Default::default()
     };
     Ok(options)
 }
