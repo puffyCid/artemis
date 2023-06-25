@@ -65,9 +65,7 @@ mod tests {
     use super::grab_loginitems;
 
     #[test]
-    #[ignore = "LoginItems may not be on a live system"]
     fn test_() {
-        let results = grab_loginitems().unwrap();
-        assert!(results.len() > 0);
+        let _ = grab_loginitems().unwrap();
     }
 }

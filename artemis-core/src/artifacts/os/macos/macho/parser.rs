@@ -273,7 +273,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires root for xcode"]
     fn test_all_apps() {
         let start_walk = WalkDir::new("/Applications").same_file_system(true);
         let begin_walk = start_walk.max_depth(20);

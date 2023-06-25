@@ -37,7 +37,6 @@ mod tests {
     use super::grab_users;
 
     #[test]
-    #[ignore = "requires live system and root"]
     fn test_grab_users() {
         let results = grab_users();
         for data in results {

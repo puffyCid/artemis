@@ -8,11 +8,14 @@
  *   `https://www.xorrior.com/emond-persistence/`
  */
 use super::eventmonitor::EmondData;
-use crate::artifacts::os::macos::plist::{
-    error::PlistError,
-    property_list::{get_string, parse_plist_file_dict},
+use crate::{
+    artifacts::os::macos::plist::{
+        error::PlistError,
+        property_list::{get_string, parse_plist_file_dict},
+    },
+    filesystem::files::is_file,
 };
-use log::error;
+use log::{error, warn};
 use plist::Value;
 
 /// Parse Emond rules on macOS
@@ -28,7 +31,11 @@ pub(crate) fn grab_emond() -> Result<Vec<EmondData>, PlistError> {
 
 /// Parse the Emond Config PLIST to get any additional Emond Rules directories besides the default path
 fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
-    let emond_plist_path: String = String::from("/etc/emond.d/emond.plist");
+    let emond_plist_path = "/etc/emond.d/emond.plist";
+    if !is_file(emond_plist_path) {
+        warn!("[emond] No emond.plist file found. Emond removed starting on macOS Ventura");
+        return Ok(Vec::new());
+    }
 
     let emond_plist_result = parse_plist_file_dict(&emond_plist_path);
     let emond_plist = match emond_plist_result {
@@ -75,51 +82,14 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
 #[cfg(test)]
 mod tests {
     use super::{get_emond_rules_paths, grab_emond};
-    use plist::{Dictionary, Value};
 
     #[test]
-    #[ignore = "Emond gone on Ventura"]
     fn test_get_emond_rules_paths() {
-        let results = get_emond_rules_paths().unwrap();
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0], "/etc/emond.d/rules");
+        let _ = get_emond_rules_paths().unwrap();
     }
 
     #[test]
-    #[ignore = "Emond gone on Ventura"]
     fn test_grab_emond() {
-        let results = grab_emond().unwrap();
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].enabled, false);
-        assert_eq!(results[0].name, "sample rule");
-        assert_eq!(results[0].event_types, ["startup"]);
-        assert_eq!(results[0].allow_partial_criterion_match, false);
-        assert_eq!(results[0].criterion.len(), 1);
-
-        let mut test_dictionary = Dictionary::new();
-        test_dictionary.insert(
-            String::from("operator"),
-            Value::String(String::from("True")),
-        );
-
-        assert_eq!(results[0].criterion[0], test_dictionary);
-
-        assert_eq!(results[0].send_notification_actions.is_empty(), true);
-        assert_eq!(results[0].send_email_actions.is_empty(), true);
-        assert_eq!(results[0].variables.is_empty(), true);
-        assert_eq!(results[0].command_actions.is_empty(), true);
-
-        assert_eq!(results[0].log_actions.len(), 1);
-
-        assert_eq!(
-            results[0].log_actions[0].message,
-            "Event Monitor started at ${builtin:now}"
-        );
-        assert_eq!(results[0].log_actions[0].facility, String::new());
-        assert_eq!(results[0].log_actions[0].log_level, "Notice");
-        assert_eq!(results[0].log_actions[0].log_type, "syslog");
-        assert_eq!(results[0].log_actions[0].parameters, Dictionary::new());
+        let _ = grab_emond().unwrap();
     }
 }
