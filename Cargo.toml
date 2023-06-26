@@ -3,3 +3,6 @@ members = [
     "cli",
     "artemis-core"
 ]
+
+[profile.release]
+strip = true

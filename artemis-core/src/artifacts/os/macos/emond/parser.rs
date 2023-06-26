@@ -37,7 +37,7 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
         return Ok(Vec::new());
     }
 
-    let emond_plist_result = parse_plist_file_dict(&emond_plist_path);
+    let emond_plist_result = parse_plist_file_dict(emond_plist_path);
     let emond_plist = match emond_plist_result {
         Ok(results) => results,
         Err(err) => {
