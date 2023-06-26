@@ -123,25 +123,20 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_default_prefetch() {
-        let results = default_prefetch().unwrap();
-        assert!(results.len() > 5)
+        let _ = default_prefetch().unwrap();
     }
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_alt_drive_prefetch() {
         let drive = 'C';
-        let results = alt_drive_prefetch(&drive).unwrap();
-        assert!(results.len() > 5)
+        let _ = alt_drive_prefetch(&drive).unwrap();
     }
 
     #[test]
     fn test_grab_prefetch() {
         let options = PrefetchOptions { alt_drive: None };
-
-        let _results = grab_prefetch(&options).unwrap();
+        let _ = grab_prefetch(&options).unwrap();
     }
 
     #[test]

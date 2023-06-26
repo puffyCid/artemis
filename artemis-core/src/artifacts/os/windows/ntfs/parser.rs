@@ -502,7 +502,6 @@ mod tests {
 
     #[test]
     #[should_panic = "BadStart"]
-    #[ignore = "Requires admin"]
     fn test_raw_filelist_bad_start() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',

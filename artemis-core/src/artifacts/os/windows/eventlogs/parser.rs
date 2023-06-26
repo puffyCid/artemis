@@ -211,7 +211,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_default_eventlogs() {
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
@@ -220,7 +219,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_alt_drive_eventlogs() {
         let drive = 'C';
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
