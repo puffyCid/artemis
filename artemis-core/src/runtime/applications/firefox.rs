@@ -89,7 +89,6 @@ mod tests {
     }
 
     #[test]
-    //#[ignore = "requires firefox"]
     fn test_get_firefox_users_history() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2FwcGxpY2F0aW9ucy9maXJlZm94LnRzCmZ1bmN0aW9uIGdldF9maXJlZm94X3VzZXJzX2hpc3RvcnkoKSB7CiAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X2ZpcmVmb3hfdXNlcnNfaGlzdG9yeSgpOwogIGNvbnN0IGhpc3RvcnkgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiBoaXN0b3J5Owp9CgovLyAuLi8uLi9hcnRlbWlzLWFwaS9tb2QudHMKZnVuY3Rpb24gZ2V0RmlyZWZveFVzZXJzSGlzdG9yeSgpIHsKICByZXR1cm4gZ2V0X2ZpcmVmb3hfdXNlcnNfaGlzdG9yeSgpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEZpcmVmb3hVc2Vyc0hpc3RvcnkoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
@@ -101,7 +100,6 @@ mod tests {
     }
 
     #[test]
-    //#[ignore = "requires firefox"]
     fn test_get_firefox_users_downloads() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2FwcGxpY2F0aW9ucy9maXJlZm94LnRzCmZ1bmN0aW9uIGdldF9maXJlZm94X3VzZXJzX2Rvd25sb2FkcygpIHsKICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfZmlyZWZveF91c2Vyc19kb3dubG9hZHMoKTsKICBjb25zdCBkb3dubG9hZHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiBkb3dubG9hZHM7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL21vZC50cwpmdW5jdGlvbiBnZXRGaXJlZm94VXNlcnNEb3dubG9hZHMoKSB7CiAgcmV0dXJuIGdldF9maXJlZm94X3VzZXJzX2Rvd25sb2FkcygpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgcmV0dXJuIGdldEZpcmVmb3hVc2Vyc0Rvd25sb2FkcygpOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);

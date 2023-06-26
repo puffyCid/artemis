@@ -285,21 +285,17 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires Firefox sqlite file"]
     fn test_firefox_history() {
         let mut output = output_options("firefox_test", "json", "./tmp", false);
 
-        let status = firefox_history(&mut output, &false).unwrap();
-        assert_eq!(status, ());
+        let _ = firefox_history(&mut output, &false).unwrap();
     }
 
     #[test]
-    #[ignore = "Requires Firefox sqlite file"]
     fn test_firefox_downloads() {
         let mut output = output_options("firefox_test", "json", "./tmp", false);
 
-        let status = firefox_downloads(&mut output, &false).unwrap();
-        assert_eq!(status, ());
+        let _ = firefox_downloads(&mut output, &false).unwrap();
     }
 
     #[test]
