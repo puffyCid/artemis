@@ -31,7 +31,6 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
 
     let level = if let Some(log_level) = &output.logging {
         match log_level.to_lowercase().as_str() {
-            "warn" => LevelFilter::Warn,
             "error" => LevelFilter::Error,
             "info" => LevelFilter::Info,
             "debug" => LevelFilter::Debug,

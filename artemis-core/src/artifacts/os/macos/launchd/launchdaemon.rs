@@ -197,10 +197,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Gets user launchd daemons"]
     fn test_user_launchd_daemons() {
-        let results = user_launchd_daemons().unwrap();
-        assert!(!results.is_empty());
+        let _ = user_launchd_daemons().unwrap();
     }
 
     #[test]
@@ -216,10 +214,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Gets user launchd agents"]
     fn test_user_launchd_agents() {
-        let results = user_launchd_agents().unwrap();
-        assert!(!results.is_empty());
+        let _ = user_launchd_agents().unwrap();
     }
 
     #[test]

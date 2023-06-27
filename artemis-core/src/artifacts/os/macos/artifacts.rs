@@ -414,7 +414,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires root"]
     fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 

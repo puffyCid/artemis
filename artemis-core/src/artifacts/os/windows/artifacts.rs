@@ -574,14 +574,13 @@ mod tests {
             format: format.to_string(),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: String::from("local"),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
@@ -590,7 +589,7 @@ mod tests {
         let evt = EventLogsOptions {
             alt_drive: Some('C'),
         };
-        let mut output = output_options("eventlogs_temp", "json", "./tmp", false);
+        let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 
         let status = eventlogs(&evt, &mut output, &false).unwrap();
         assert_eq!(status, ());
@@ -622,7 +621,7 @@ mod tests {
             path_regex: None,
             alt_drive: None,
         };
-        let mut output = output_options("reg_temp", "json", "./tmp", false);
+        let mut output = output_options("reg_temp", "json", "./tmp", true);
 
         let status = registry(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
@@ -656,7 +655,7 @@ mod tests {
             sha256: false,
             metadata: false,
         };
-        let mut output = output_options("proc_temp", "json", "./tmp", false);
+        let mut output = output_options("proc_temp", "json", "./tmp", true);
 
         let status = processes(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());

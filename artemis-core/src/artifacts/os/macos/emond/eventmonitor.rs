@@ -244,16 +244,19 @@ impl EmondData {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::macos::emond::eventmonitor::EmondData;
+    use crate::{
+        artifacts::os::macos::emond::eventmonitor::EmondData, filesystem::directory::is_directory,
+    };
     use plist::{Dictionary, Value};
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Gone on Ventura"]
     fn test_system_parse_emond_rules() {
         let default_path = "/etc/emond.d/rules";
-        let results = EmondData::parse_emond_rules(default_path).unwrap();
-        assert_eq!(results.len(), 1);
+        if !is_directory(default_path) {
+            return;
+        }
+        let _ = EmondData::parse_emond_rules(default_path).unwrap();
     }
 
     #[test]

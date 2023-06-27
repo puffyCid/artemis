@@ -40,21 +40,20 @@ mod tests {
             format: String::from("json"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
     #[test]
     fn test_get_processes() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICBjb25zdCBoYXNoZXMgPSB7CiAgICAgICAgbWQ1LAogICAgICAgIHNoYTEsCiAgICAgICAgc2hhMjU2CiAgICB9OwogICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X3Byb2Nlc3NlcyhKU09OLnN0cmluZ2lmeShoYXNoZXMpLCBwZV9pbmZvKTsKICAgIGNvbnN0IHByb2NfYXJyYXkgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIHByb2NfYXJyYXk7Cn0KZnVuY3Rpb24gZ2V0UHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICByZXR1cm4gZ2V0X3Byb2Nlc3NlcyhtZDUsIHNoYTEsIHNoYTI1NiwgcGVfaW5mbyk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHByb2NfbGlzdCA9IGdldFByb2Nlc3Nlcyh0cnVlLCBmYWxzZSwgZmFsc2UsIHRydWUpOwogICAgcmV0dXJuIHByb2NfbGlzdDsKfQptYWluKCk7";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("processes"),
             script: test.to_string(),

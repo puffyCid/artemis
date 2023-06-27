@@ -196,7 +196,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires Admin permission"]
     fn test_parse_user_reg_headers() {
         let user_regs = get_user_registry_files(&'C').unwrap();
 

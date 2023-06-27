@@ -145,10 +145,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Get live users Safari downloads"]
     fn test_get_downloads() {
-        let result = SafariDownloads::get_downloads().unwrap();
-        assert!(result.len() > 0);
+        let _ = SafariDownloads::get_downloads().unwrap();
     }
 
     #[test]

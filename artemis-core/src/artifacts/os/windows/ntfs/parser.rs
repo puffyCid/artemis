@@ -448,14 +448,13 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
@@ -502,7 +501,6 @@ mod tests {
 
     #[test]
     #[should_panic = "BadStart"]
-    #[ignore = "Requires admin"]
     fn test_raw_filelist_bad_start() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
@@ -556,7 +554,7 @@ mod tests {
             path_regex: Some(String::from(".*\\Downloads\\.*")),
             filename_regex: Some(String::new()),
         };
-        let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
+        let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
         let result = RawFilelist::raw_filelist(&test_path, &mut output, &false).unwrap();
 
         assert_eq!(result, ());
@@ -579,7 +577,7 @@ mod tests {
             path_regex: Some(String::new()),
             filename_regex: Some(String::from(r".*\.rs")),
         };
-        let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
+        let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
         let result = RawFilelist::raw_filelist(&test_path, &mut output, &false).unwrap();
 
         assert_eq!(result, ());
