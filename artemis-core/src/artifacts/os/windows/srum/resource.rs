@@ -141,14 +141,13 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
@@ -167,7 +166,7 @@ mod tests {
             String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT"),
             String::from("SruDbIdMapTable"),
         ];
-        let mut output = output_options("srum_temp", "local", "./tmp", false);
+        let mut output = output_options("srum_temp", "local", "./tmp", true);
 
         parse_srum(test_path, &tables, &mut output, &false).unwrap();
     }

@@ -302,19 +302,18 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
     #[test]
     fn test_parse_user_hives() {
-        let mut output = output_options("reg_temp", "local", "./tmp", false);
+        let mut output = output_options("reg_temp", "local", "./tmp", true);
         let mut params = Params {
             start_path: String::from("ROOT"),
             path_regex: Regex::new("").unwrap(),
@@ -328,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_parse_default_system_hives() {
-        let mut output = output_options("reg_temp", "local", "./tmp", false);
+        let mut output = output_options("reg_temp", "local", "./tmp", true);
         let mut params = Params {
             start_path: String::from("ROOT"),
             path_regex: Regex::new("").unwrap(),
@@ -370,7 +369,7 @@ mod tests {
 
     #[test]
     fn test_parse_registry() {
-        let mut output = output_options("reg_temp", "local", "./tmp", false);
+        let mut output = output_options("reg_temp", "local", "./tmp", true);
 
         let reg_options = RegistryOptions {
             user_hives: true,

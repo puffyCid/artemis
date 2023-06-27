@@ -86,7 +86,7 @@ mod tests {
             alt_path: None,
             carve: true,
         };
-        let _result = grab_bits(&options).unwrap();
+        let _ = grab_bits(&options).unwrap();
     }
 
     #[test]

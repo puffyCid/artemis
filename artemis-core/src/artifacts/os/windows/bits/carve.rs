@@ -107,8 +107,11 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 bits.push(combine_file_and_job(&job, &file, carved));
                 continue;
             }
-            let (remaining_input, _) = JobInfo::job_details(input, &mut job, is_legacy)?;
-            job_data = remaining_input;
+            let remaining_input_result = JobInfo::job_details(input, &mut job, is_legacy);
+            match remaining_input_result {
+                Ok((result, _)) => job_data = result,
+                Err(_) => job_data = &[],
+            }
             jobs.push(job);
         }
     }

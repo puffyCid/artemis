@@ -126,6 +126,7 @@ mod tests {
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 

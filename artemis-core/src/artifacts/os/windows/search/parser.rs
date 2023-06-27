@@ -108,14 +108,13 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
