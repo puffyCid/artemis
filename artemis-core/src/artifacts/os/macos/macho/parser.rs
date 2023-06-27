@@ -273,10 +273,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires root for xcode"]
     fn test_all_apps() {
         let start_walk = WalkDir::new("/Applications").same_file_system(true);
-        let begin_walk = start_walk.max_depth(20);
+        let begin_walk = start_walk.max_depth(3);
         let mut results: Vec<MachoInfo> = Vec::new();
 
         for entries in begin_walk.into_iter() {

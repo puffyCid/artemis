@@ -292,9 +292,8 @@ pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError>
 
 #[cfg(test)]
 mod tests {
-    use crate::filesystem::files::read_file;
-
     use super::macos_collection;
+    use crate::filesystem::files::read_file;
     use std::path::PathBuf;
 
     #[test]

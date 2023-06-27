@@ -417,7 +417,13 @@ pub(crate) fn iterate_ntfs(
         };
 
         // Skip root directory loopback or DOS type names
-        if filename.name() == "." || filename.name().to_string().contains('~') {
+        if filename.name() == "."
+            || filename
+                .name()
+                .to_string()
+                .unwrap_or_default()
+                .contains('~')
+        {
             continue;
         }
 
@@ -439,7 +445,10 @@ pub(crate) fn iterate_ntfs(
         // Add to file metadata to Vec<RawFilelist> if it matches our start path and any optional regex
         if full_path.starts_with(&params.start_path)
             && regex_check(&params.path_regex, &full_path)
-            && regex_check(&params.file_regex, &filename.name().to_string())
+            && regex_check(
+                &params.file_regex,
+                &filename.name().to_string().unwrap_or_default(),
+            )
         {
             let ntfs_entry = NtfsEntry {
                 full_path: full_path.clone(),
@@ -455,7 +464,9 @@ pub(crate) fn iterate_ntfs(
             && strings_contains(&params.start_path, &full_path)
         {
             // Track directories so we can build paths while recursing
-            params.directory_tracker.push(name.to_string());
+            params
+                .directory_tracker
+                .push(name.to_string().unwrap_or_default());
             iterate_ntfs(ntfs_file, fs, ntfs, params)?;
         }
     }

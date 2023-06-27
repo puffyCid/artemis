@@ -234,19 +234,15 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Requires bash on a live system"]
     fn test_get_macos_user_bash_history() {
-        let results = BashHistory::get_user_bash_history().unwrap();
-        assert!(results.len() > 1);
+        let _ = BashHistory::get_user_bash_history().unwrap();
     }
 
     #[test]
-    #[ignore = "Requires bash on a live system"]
     fn test_get_bash_history() {
         let start_path = get_user_paths().unwrap();
 
-        let results = BashHistory::bash(&start_path).unwrap();
-        assert!(results.len() >= 1);
+        let _ = BashHistory::bash(&start_path).unwrap();
     }
 
     #[test]

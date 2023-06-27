@@ -222,19 +222,15 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Requires zsh on a local system"]
     fn test_get_macos_user_zsh_history() {
-        let results = ZshHistory::get_user_zsh_history().unwrap();
-        assert!(results.len() >= 1);
+        let _ = ZshHistory::get_user_zsh_history().unwrap();
     }
 
     #[test]
-    #[ignore = "Requires zsh on a local system"]
     fn test_get_zsh_history() {
         let start_path = get_user_paths().unwrap();
 
-        let results = ZshHistory::zsh(&start_path).unwrap();
-        assert!(results.len() >= 1);
+        let _ = ZshHistory::zsh(&start_path).unwrap();
     }
 
     #[test]

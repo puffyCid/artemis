@@ -39,7 +39,7 @@ impl RawFilelist {
 
         filename.parent_directory_reference().file_record_number();
 
-        file_info.filename = filename.name().to_string();
+        file_info.filename = filename.name().to_string().unwrap_or_default();
         file_info.filename_created =
             filetime_to_unixepoch(&filename.creation_time().nt_timestamp());
         file_info.filename_modified =
@@ -63,10 +63,13 @@ impl RawFilelist {
         file_info.owner = standard.owner_id().unwrap_or(0);
 
         file_info.sid = standard.security_id().unwrap_or(0);
-        file_info.attributes = format!("{:?}", standard.file_attributes())
-            .split(" | ")
-            .map(|s| s.to_string())
+
+        let attributes: Vec<String> = standard
+            .file_attributes()
+            .iter_names()
+            .map(|(s, _)| s.to_string())
             .collect();
+        file_info.attributes = attributes;
 
         if file_info.attributes.contains(&String::from("COMPRESSED")) {
             file_info.compression_type = CompressionType::NTFSCompressed;
@@ -156,7 +159,7 @@ impl RawFilelist {
         let attr_name_result = attribute.name();
 
         match attr_name_result {
-            Ok(result) => result.to_string(),
+            Ok(result) => result.to_string().unwrap_or_default(),
             Err(err) => {
                 error!("[ntfs] Failed to get INDX attribute name: {err:?}");
                 String::new()

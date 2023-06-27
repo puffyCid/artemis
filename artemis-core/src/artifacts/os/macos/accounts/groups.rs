@@ -40,7 +40,6 @@ mod tests {
     use crate::artifacts::os::macos::accounts::groups::grab_groups;
 
     #[test]
-    #[ignore = "requires live system and root"]
     fn test_grab_groups() {
         let results = grab_groups();
         assert!(results.len() > 10);

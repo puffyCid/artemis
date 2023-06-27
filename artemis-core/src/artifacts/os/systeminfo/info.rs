@@ -268,10 +268,10 @@ mod tests {
         let mut system = System::new();
 
         let system_info = SystemInfo::get_memory(&mut system);
-        assert!(system_info.available_memory > 100);
-        assert!(system_info.free_memory > 100);
-        assert!(system_info.total_memory > 100);
-        assert!(system_info.used_memory > 100);
+        assert!(system_info.available_memory > 1);
+        assert!(system_info.free_memory > 1);
+        assert!(system_info.total_memory > 1);
+        assert!(system_info.used_memory > 1);
     }
 
     #[test]

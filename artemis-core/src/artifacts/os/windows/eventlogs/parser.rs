@@ -190,40 +190,37 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: None,
             filter_script: None,
+            logging: None,
         }
     }
 
     #[test]
     fn test_grab_eventlogs() {
         let options = EventLogsOptions { alt_drive: None };
-        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = grab_eventlogs(&options, &mut output, &false).unwrap();
         assert_eq!(results, ())
     }
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_default_eventlogs() {
-        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = default_eventlogs(&mut output, &false).unwrap();
         assert_eq!(results, ())
     }
 
     #[test]
-    #[ignore = "Requires admin"]
     fn test_alt_drive_eventlogs() {
         let drive = 'C';
-        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = alt_drive_eventlogs(&drive, &mut output, &false).unwrap();
         assert_eq!(results, ())

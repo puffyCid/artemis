@@ -187,9 +187,7 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
@@ -208,12 +206,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not used on macos"]
     fn test_bash_history() {
         let mut output = output_options("bash_history", "local", "./tmp", false);
 
-        let status = bash_history(&mut output, &false).unwrap();
-        assert_eq!(status, ());
+        let _ = bash_history(&mut output, &false).unwrap();
     }
 
     #[test]

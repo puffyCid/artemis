@@ -96,7 +96,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires root permission"]
     fn test_grab_fseventsd() {
         let results = grab_fseventsd().unwrap();
         assert!(results.len() > 100);

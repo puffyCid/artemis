@@ -202,7 +202,6 @@ impl RawFilelist {
                 let (slack_data, _extended_flags) = take(size_of::<u32>())(slack_data)?;
 
                 let attr_flags = NtfsFileAttributeFlags::from_bits_truncate(flags);
-
                 let (slack_data, filename_len) = take(size_of::<u8>())(slack_data)?;
                 let empty = 0;
                 if filename_len[0] == empty {
@@ -216,6 +215,10 @@ impl RawFilelist {
 
                 let filename = extract_utf16_string(filename);
                 let (_, parent_mft_reference) = le_u64(mft_parent_reference)?;
+                let attributes: Vec<String> = attr_flags
+                    .iter_names()
+                    .map(|(s, _)| s.to_string())
+                    .collect();
 
                 let mut slack_file = RawFilelist {
                     full_path: format!("{directory}\\{filename}"),
@@ -235,10 +238,7 @@ impl RawFilelist {
                     sequence_number: 0,
                     parent_mft_reference,
                     owner: 0,
-                    attributes: format!("{attr_flags:?}")
-                        .split(" | ")
-                        .map(|s| s.to_string())
-                        .collect(),
+                    attributes,
                     md5: String::new(),
                     sha1: String::new(),
                     sha256: String::new(),

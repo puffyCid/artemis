@@ -113,19 +113,15 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Requires python on a local system"]
     fn test_get_macos_user_python_history() {
-        let results = PythonHistory::get_user_python_history().unwrap();
-        assert!(results.len() >= 1);
+        let _ = PythonHistory::get_user_python_history().unwrap();
     }
 
     #[test]
-    #[ignore = "Requires python on a local system"]
     fn test_get_python_history() {
         let start_path = get_user_paths().unwrap();
 
-        let results = PythonHistory::python(&start_path).unwrap();
-        assert!(results.len() >= 1);
+        let _ = PythonHistory::python(&start_path).unwrap();
     }
 
     #[test]

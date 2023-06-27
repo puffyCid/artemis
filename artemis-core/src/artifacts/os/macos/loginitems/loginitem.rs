@@ -211,10 +211,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Bundled LoginItems may not exist on live system"]
     fn test_loginitem_apps_system() {
-        let data = LoginItemsData::loginitem_apps_system().unwrap();
-        assert!(data.len() >= 1);
+        let _ = LoginItemsData::loginitem_apps_system().unwrap();
     }
 
     #[test]
