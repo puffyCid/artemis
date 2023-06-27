@@ -1,0 +1,4 @@
+kind: Added
+body: Support for setting logging level from TOML input. error, warn, info, debug
+  are supported
+time: 2023-06-25T18:03:50.670251-04:00

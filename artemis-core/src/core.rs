@@ -51,8 +51,8 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
 
 /// Based on target system collect data based on TOML config
 fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError> {
-    if let Ok(log_file) = create_log_file(&os_target.output) {
-        let _ = WriteLogger::init(log::LevelFilter::Warn, Config::default(), log_file);
+    if let Ok((log_file, level)) = create_log_file(&os_target.output) {
+        let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
     if os_target.system == "macos" {
@@ -169,6 +169,7 @@ mod tests {
                 output: String::from("local"),
                 filter_name: Some(String::new()),
                 filter_script: Some(String::new()),
+                logging: Some(String::new()),
             },
             artifacts: Vec::new(),
         };

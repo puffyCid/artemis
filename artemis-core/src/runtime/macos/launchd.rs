@@ -57,6 +57,7 @@ mod tests {
             output: output.to_string(),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         }
     }
 

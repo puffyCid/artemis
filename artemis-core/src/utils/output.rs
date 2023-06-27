@@ -135,6 +135,7 @@ mod tests {
             output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         let test = "A rust program";
@@ -160,6 +161,7 @@ mod tests {
             output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
+            logging: Some(String::new()),
         };
 
         let _ = compress_final_output(&output);
