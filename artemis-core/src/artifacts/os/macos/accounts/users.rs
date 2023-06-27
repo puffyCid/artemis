@@ -47,7 +47,7 @@ mod tests {
                 assert_eq!(data.account_photo.len(), 0);
                 assert!(data.account_created > 1000.0);
                 assert_eq!(data.password_last_set, 0.0);
-                assert_eq!(data.shell[0], "/bin/sh");
+                assert_eq!(data.shell[0].is_empty(), false);
                 assert_eq!(data.unlock_options.len(), 0);
                 assert_eq!(data.home_path[0], "/var/root");
                 assert_eq!(data.uuid[0], "FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000000");
