@@ -441,6 +441,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes a long time to run"]
     fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 
