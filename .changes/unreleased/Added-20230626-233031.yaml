@@ -1,0 +1,3 @@
+kind: Added
+body: Support for parsing ExecPolicy db on macOS
+time: 2023-06-26T23:30:31.431315-04:00
