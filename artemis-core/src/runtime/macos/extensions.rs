@@ -1,6 +1,7 @@
 use super::{
     accounts::{get_groups, get_users},
     emond::get_emond,
+    execpolicy::get_execpolicy,
     fsevents::get_fsevents,
     launchd::{get_launchd_agents, get_launchd_daemons},
     loginitems::get_loginitems,
@@ -40,6 +41,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_safari_users_downloads::decl(),
         get_safari_downloads::decl(),
         get_processes::decl(),
+        get_execpolicy::decl(),
     ];
 
     exts.append(&mut app_functions());

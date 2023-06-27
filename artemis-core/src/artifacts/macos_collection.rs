@@ -4,7 +4,7 @@ use super::{
         safari_history,
     },
     os::{
-        macos::artifacts::{groups, processes, systeminfo, unifiedlogs, users},
+        macos::artifacts::{execpolicy, groups, processes, systeminfo, unifiedlogs, users},
         unix::artifacts::{bash_history, cron_job, python_history},
     },
     os::{macos::error::MacArtifactError, unix::artifacts::zsh_history},
@@ -128,7 +128,17 @@ pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError>
                 match results {
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse system, error: {err:?}");
+                        error!("[artemis-core] Failed to parse systeminfo, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "execpolicy" => {
+                let results = execpolicy(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected execpolicy"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse execpolicy, error: {err:?}");
                         continue;
                     }
                 }
