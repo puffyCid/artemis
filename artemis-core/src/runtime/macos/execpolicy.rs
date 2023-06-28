@@ -1,19 +1,21 @@
-use crate::{artifacts::os::macos::emond::parser::grab_emond, runtime::error::RuntimeError};
+use crate::{
+    artifacts::os::macos::execpolicy::policy::grab_execpolicy, runtime::error::RuntimeError,
+};
 use deno_core::{error::AnyError, op};
 use log::error;
 
 #[op]
-/// Expose parsing Emond to `Deno`
-fn get_emond() -> Result<String, AnyError> {
-    let emond_results = grab_emond();
-    let emond = match emond_results {
+/// Expose parsing ExecPolicy to `Deno`
+fn get_execpolicy() -> Result<String, AnyError> {
+    let policy_results = grab_execpolicy();
+    let policy = match policy_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[runtime] Failed to parse emond: {err:?}");
+            error!("[runtime] Failed to parse execpolicy: {err:?}");
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&emond)?;
+    let results = serde_json::to_string_pretty(&policy)?;
     Ok(results)
 }
 
@@ -42,11 +44,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_emond() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZW1vbmQoKSB7CiAgICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfZW1vbmQoKTsKICAgIGNvbnN0IGVtb25kID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBlbW9uZDsKfQpmdW5jdGlvbiBnZXRFbW9uZCgpIHsKICAgIHJldHVybiBnZXRfZW1vbmQoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZGF0YSA9IGdldEVtb25kKCk7CiAgICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cgo=";
+    fn test_get_execpolicy() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfZXhlY3BvbGljeSgpOwogIGNvbnN0IHBvbGljeSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHBvbGljeTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9tb2QudHMKZnVuY3Rpb24gZ2V0RXhlY1BvbGljeSgpIHsKICByZXR1cm4gZ2V0X2V4ZWNwb2xpY3koKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRFeGVjUG9saWN5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
-            name: String::from("emond"),
+            name: String::from("execpolicy"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

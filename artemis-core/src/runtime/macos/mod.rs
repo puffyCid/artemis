@@ -1,5 +1,6 @@
 mod accounts;
 mod emond;
+mod execpolicy;
 pub(crate) mod extensions;
 mod fsevents;
 mod launchd;

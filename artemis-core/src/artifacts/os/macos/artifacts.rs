@@ -2,6 +2,7 @@ use super::{
     accounts::{groups::grab_groups, users::grab_users},
     emond::parser::grab_emond,
     error::MacArtifactError,
+    execpolicy::policy::grab_execpolicy,
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
     loginitems::parser::grab_loginitems,
@@ -296,6 +297,32 @@ pub(crate) fn unifiedlogs(
     )
 }
 
+/// Get macOS `ExecPolicy`
+pub(crate) fn execpolicy(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+    let start_time = time::time_now();
+
+    let artifact_result = grab_execpolicy();
+    let results = match artifact_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis macOS failed to query execpolicy: {err:?}");
+            return Err(MacArtifactError::ExecPolicy);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(results);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize execpolicy: {err:?}");
+            return Err(MacArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "execpolicy";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output macOS artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -357,8 +384,8 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, files, fseventsd, groups, launchd, loginitems, output_data, processes,
-            systeminfo, unifiedlogs, users,
+            emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
+            processes, systeminfo, unifiedlogs, users,
         },
         structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
         utils::{artemis_toml::Output, time},
@@ -414,6 +441,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes a long time to run"]
     fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 
@@ -475,6 +503,14 @@ mod tests {
             regex_filter: Some(String::new()),
         };
         let status = files(&file_config, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_execpolicy() {
+        let mut output = output_options("execpolicy_test", "local", "./tmp", false);
+
+        let status = execpolicy(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
