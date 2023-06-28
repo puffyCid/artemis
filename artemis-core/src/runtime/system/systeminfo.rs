@@ -2,7 +2,7 @@ use crate::artifacts::os::systeminfo::info::SystemInfo;
 use deno_core::{error::AnyError, op};
 
 #[op]
-/// Expose pulling Windows systeminfo to `Deno`
+/// Expose pulling systeminfo to `Deno`
 fn get_systeminfo() -> Result<String, AnyError> {
     let info = SystemInfo::get_info();
     let results = serde_json::to_string_pretty(&info)?;

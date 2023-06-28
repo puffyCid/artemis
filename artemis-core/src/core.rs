@@ -124,6 +124,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
+    #[ignore = "Runs full linux.toml collection"]
+    fn test_parse_windows_toml_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/linux.toml");
+        parse_toml_file(&test_location.display().to_string()).unwrap();
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_windows_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -138,6 +147,16 @@ mod tests {
     fn test_parse_macos_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/processes.toml");
+
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
+        parse_toml_data(&buffer).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_parse_linux_toml_data() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/linux/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         parse_toml_data(&buffer).unwrap();

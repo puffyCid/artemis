@@ -2,7 +2,8 @@
  * Get a standard filelisting from the system.  
  * Supports both Windows and macOS, in addition can parse executable metadata for each OS based on `FileOptions`  
  * `PE` for Windows  
- * `Macho` for macOS
+ * `MACHO` for macOS
+ * `ELF` for Linux
  *
  * On macOS the filelisting will read the firmlinks file at `/usr/share/firmlinks` and skip firmlink paths
  */
@@ -33,6 +34,7 @@ use crate::artifacts::os::windows::{
 #[cfg(target_os = "linux")]
 use crate::artifacts::os::linux::artifacts::output_data;
 
+use crate::artifacts::os::linux::executable::parser::{parse_elf_file, ElfInfo};
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;
 
@@ -63,7 +65,7 @@ pub(crate) struct FileInfo {
     #[cfg(target_os = "windows")]
     pub(crate) binary_info: Vec<PeInfo>,
     #[cfg(target_os = "linux")]
-    pub(crate) binary_info: Vec<String>,
+    pub(crate) binary_info: Vec<ElfInfo>,
 }
 
 impl FileInfo {
@@ -165,8 +167,8 @@ impl FileInfo {
             binary_info: Vec::new(),
         };
         file_entry.extension = file_extension(&file_entry.full_path);
-
         let metadata = get_metadata(&file_entry.full_path)?;
+
         let timestamps = get_timestamps(&file_entry.full_path)?;
         file_entry.is_file = metadata.is_file();
         file_entry.is_directory = metadata.is_dir();
@@ -296,8 +298,18 @@ impl FileInfo {
 
     #[cfg(target_os = "linux")]
     /// Get executable metadata
-    fn executable_metadata(_path: &str) -> Result<Vec<String>, FileError> {
-        return Ok(Vec::new());
+    fn executable_metadata(path: &str) -> Result<Vec<ElfInfo>, FileError> {
+        let binary_result = parse_elf_file(path);
+        let binary_info = match binary_result {
+            Ok(result) => vec![result],
+            Err(err) => {
+                if !err.to_string().contains("Magic Bytes") {
+                    error!("[files] Could not parse ELF file {path} error: {err:?}");
+                }
+                Vec::new()
+            }
+        };
+        Ok(binary_info)
     }
 
     /// Create Regex based on provided input
@@ -411,14 +423,14 @@ mod tests {
             depth: 1,
             binary_info: Vec::new(),
         };
-        FileInfo::output(&vec![info], &mut output, &0, &false)
+        FileInfo::output(&vec![info], &mut output, &0, &false);
     }
 
     #[test]
     fn test_user_regex() {
         let test = r".*/Downloads";
         let reg = FileInfo::user_regex(test).unwrap();
-        assert_eq!(reg.as_str(), ".*/Downloads")
+        assert_eq!(reg.as_str(), ".*/Downloads");
     }
 
     #[test]
@@ -435,7 +447,7 @@ mod tests {
         let path_filter = "";
         let mut output = output_options("files_temp", "local", "./tmp", false);
 
-        let results = FileInfo::get_filelist(
+        FileInfo::get_filelist(
             &start_location,
             depth,
             metadata,
@@ -445,7 +457,6 @@ mod tests {
             &false,
         )
         .unwrap();
-        assert_eq!(results, ());
     }
 
     #[test]
@@ -462,8 +473,8 @@ mod tests {
         let path_filter = "";
         let mut output = output_options("files_temp", "local", "./tmp", false);
 
-        let results = FileInfo::get_filelist(
-            &start_location,
+        FileInfo::get_filelist(
+            start_location,
             depth,
             metadata,
             &hashes,
@@ -472,13 +483,31 @@ mod tests {
             &false,
         )
         .unwrap();
-        assert_eq!(results, ());
     }
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_file_metadata() {
         let start_path = WalkDir::new("C:\\Windows\\System32").max_depth(1);
+        let metadata = true;
+        let hashes = Hashes {
+            md5: false,
+            sha1: false,
+            sha256: false,
+        };
+        let mut results: Vec<FileInfo> = Vec::new();
+        for entries in start_path {
+            let entry_data = entries.unwrap();
+            let data = FileInfo::file_metadata(&entry_data, metadata, &hashes).unwrap();
+            results.push(data);
+        }
+        assert!(results.len() > 3);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_file_metadata() {
+        let start_path = WalkDir::new("/bin").max_depth(1);
         let metadata = true;
         let hashes = Hashes {
             md5: false,
@@ -548,6 +577,15 @@ mod tests {
         let results = FileInfo::executable_metadata(test_path).unwrap();
 
         assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_binary_metadata() {
+        let test_path = "/bin/ls";
+        let results = FileInfo::executable_metadata(test_path).unwrap();
+
+        assert_eq!(results.len(), 1);
     }
 
     #[test]

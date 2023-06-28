@@ -90,6 +90,7 @@ pub(crate) struct Artifacts {
     pub(crate) filter: Option<bool>,
     pub(crate) processes: Option<ProcessOptions>,
     pub(crate) files: Option<FileOptions>,
+    pub(crate) script: Option<JSScript>,
 }
 
 impl ArtemisToml {

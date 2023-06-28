@@ -4,11 +4,13 @@ use crate::artifacts::applications::artifacts::{
 use crate::artifacts::os::linux::artifacts::{files, processes, systeminfo};
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::unix::artifacts::{bash_history, cron_job, python_history, zsh_history};
+use crate::runtime::deno::execute_script;
 use crate::utils::{
     artemis_toml::ArtemisToml, logging::upload_logs, output::compress_final_output,
 };
 use log::{error, info, warn};
 
+/// Parse the TOML collector and get Linux artifact targets
 pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactError> {
     let collector_results = ArtemisToml::parse_artemis_toml_data(toml_data);
     let mut collector = match collector_results {
@@ -142,6 +144,21 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
                     }
                 }
             }
+            "script" => {
+                let script_data = artifacts.script;
+                let script = match script_data {
+                    Some(result) => result,
+                    _ => continue,
+                };
+                let results = execute_script(&mut collector.output, &script);
+                match results {
+                    Ok(_) => info!("Executed JavaScript "),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to execute JavaScript error: {err:?}");
+                        continue;
+                    }
+                }
+            }
             _ => warn!(
                 "[artemis-core] Unsupported Linux artifact: {}",
                 artifacts.artifact_name
@@ -171,7 +188,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/quick.toml");
 
-        let mut buffer = read_file(&test_location.display().to_string()).unwrap();
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
         linux_collection(&buffer).unwrap();
     }
 }

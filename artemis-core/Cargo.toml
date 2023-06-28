@@ -42,7 +42,9 @@ evtx = { version = "0.8.1", default-features = false, features = ["multithreadin
 ntfs = "0.4.0"
 pelite = "0.10.0"
 
-# Unix Dependencies
+# Linux Dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+elf = "0.7.2"
 
 # macOS Dependencies
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -1,4 +1,5 @@
 use crate::runtime::applications::extensions::app_functions;
+use crate::runtime::system::extensions::system_functions;
 use crate::runtime::unix::extensions::unix_functions;
 use deno_core::Extension;
 
@@ -14,6 +15,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
+    exts.append(&mut system_functions());
     exts
 }
 

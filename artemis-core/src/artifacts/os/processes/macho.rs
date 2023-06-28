@@ -5,13 +5,14 @@ use log::error;
 /// Get macho metadata for processes
 pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
     let binary_results = MachoInfo::parse_macho(path);
-    match binary_results {
-        Ok(results) => Ok(results),
+    let info = match binary_results {
+        Ok(results) => results,
         Err(err) => {
             error!("[processes] Failed to parse process binary {path}, error: {err:?}");
-            Err(ProcessError::ParseProcFile)
+            return Err(ProcessError::ParseProcFile);
         }
-    }
+    };
+    Ok(vec![info])
 }
 
 #[cfg(test)]
@@ -23,6 +24,6 @@ mod tests {
         let test_path = "/bin/ls";
         let results = macho_metadata(test_path).unwrap();
 
-        assert_eq!(results.len(), 2)
+        assert_eq!(results.len(), 2);
     }
 }

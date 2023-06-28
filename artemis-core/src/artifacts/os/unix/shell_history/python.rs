@@ -1,4 +1,4 @@
-use crate::filesystem::files::is_file;
+use crate::filesystem::files::{file_lines, is_file};
 use crate::{
     artifacts::os::unix::shell_history::error::ShellError,
     filesystem::{
@@ -8,10 +8,6 @@ use crate::{
 };
 use log::{error, warn};
 use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct PythonHistory {
@@ -69,23 +65,19 @@ impl PythonHistory {
     // Parse the `python_history` file
     fn parse_python(python_history: &str) -> Result<Vec<PythonHistoryData>, ShellError> {
         let mut python_data: Vec<PythonHistoryData> = Vec::new();
-
-        let python_file_result = File::open(python_history);
-        let python_file = match python_file_result {
-            Ok(results) => results,
+        let file_result = file_lines(python_history);
+        let py_iter = match file_result {
+            Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[shell_history] Failed to open python file {python_history}, error: {err:?}",
-                );
+                error!("[shell_history] Could not read python_history lines: {err:?}");
                 return Err(ShellError::File);
             }
         };
 
-        let python_reader = BufReader::new(python_file);
-
+        let mut line_number = 1;
         // Read each line and parse the associated data
-        for (line_number, entry) in python_reader.lines().enumerate() {
-            let python_entry = match entry {
+        for line_entry in py_iter {
+            let python_entry = match line_entry {
                 Ok(result) => result,
                 Err(err) => {
                     warn!(
@@ -96,9 +88,10 @@ impl PythonHistory {
             };
             let python_history = PythonHistoryData {
                 history: python_entry,
-                line: line_number + 1,
+                line: line_number,
             };
             python_data.push(python_history);
+            line_number += 1;
         }
 
         Ok(python_data)

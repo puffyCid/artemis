@@ -1,17 +1,14 @@
 use crate::artifacts::os::unix::shell_history::error::ShellError;
 use crate::filesystem::directory::{get_root_home, get_user_paths};
-use crate::filesystem::files::{get_filename, list_files};
+use crate::filesystem::files::{file_lines, get_filename, list_files};
 use crate::filesystem::{
     directory::is_directory,
     files::{file_extension, is_file},
 };
+use crate::utils::regex_options::create_regex;
 use log::{error, warn};
 use regex::Regex;
 use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct BashHistory {
@@ -117,29 +114,19 @@ impl BashHistory {
     /// Parse the `bash_history` file
     fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
         let mut bash_data: Vec<BashHistoryData> = Vec::new();
-
-        let bash_file_result = File::open(bash_history);
-        let bash_file = match bash_file_result {
-            Ok(results) => results,
+        let file_result = file_lines(bash_history);
+        let mut bash_iter = match file_result {
+            Ok(result) => result,
             Err(err) => {
-                error!("[shell_history] Failed to open bash file {bash_history}, error: {err:?}",);
+                error!("[shell_history] Could not read bash_history lines: {err:?}");
                 return Err(ShellError::File);
             }
         };
 
-        let bash_reader = BufReader::new(bash_file);
-        // Regex if bash_history timestamp is enabled. Ex: "#1659581179"
-        let bash_regex_compile = Regex::new(r"^#([0-9]+)$");
-        let bash_regex = match bash_regex_compile {
-            Ok(results) => results,
-            Err(err) => {
-                warn!("[shell_history] Failed to compile bash regex: {err:?}");
-                return Err(ShellError::Regex);
-            }
-        };
-
         let mut line_number = 1;
-        let mut bash_iter = bash_reader.lines();
+        // Regex if bash_history timestamp is enabled. Ex: "#1659581179"
+        let bash_regex = create_regex(r"^#([0-9]+)$").unwrap();
+
         // Iterate through bash history looking for any timestamps and associated history entry
         while let Some(line_entry) = bash_iter.next() {
             let bash_entry = match line_entry {
@@ -234,7 +221,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_get_macos_user_bash_history() {
+    fn test_get_user_bash_history() {
         let _ = BashHistory::get_user_bash_history().unwrap();
     }
 
@@ -242,7 +229,7 @@ mod tests {
     fn test_get_bash_history() {
         let start_path = get_user_paths().unwrap();
 
-        let _ = BashHistory::bash(&start_path).unwrap();
+        BashHistory::bash(&start_path).unwrap();
     }
 
     #[test]

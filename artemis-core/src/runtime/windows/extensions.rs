@@ -18,7 +18,9 @@ use super::{
     userassist::{get_alt_userassist, get_userassist},
     usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
 };
-use crate::runtime::applications::extensions::app_functions;
+use crate::runtime::{
+    applications::extensions::app_functions, system::extensions::system_functions,
+};
 use deno_core::Extension;
 
 /// Include all the `Artemis` function in the `Runtime`
@@ -55,13 +57,12 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_bits::decl(),
         get_bits_path::decl(),
         get_srum::decl(),
-        get_processes::decl(),
         get_users::decl(),
         get_alt_users::decl(),
-        get_systeminfo::decl(),
         get_search::decl(),
     ];
     exts.append(&mut app_functions());
+    exts.append(&mut system_functions());
     exts
 }
 

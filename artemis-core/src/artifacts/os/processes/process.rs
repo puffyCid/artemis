@@ -13,6 +13,8 @@ use super::pe::pe_metadata;
 #[cfg(target_os = "windows")]
 use crate::artifacts::os::windows::pe::parser::PeInfo;
 
+use crate::artifacts::os::linux::executable::parser::ElfInfo;
+use crate::artifacts::os::processes::executable::elf_metadata;
 #[cfg(target_os = "macos")]
 use crate::artifacts::os::{macos::macho::parser::MachoInfo, processes::macho::macho_metadata};
 
@@ -39,7 +41,7 @@ pub(crate) struct Processes {
     #[cfg(target_os = "windows")]
     pub(crate) binary_info: Vec<PeInfo>,
     #[cfg(target_os = "linux")]
-    pub(crate) binary_info: Vec<String>,
+    pub(crate) binary_info: Vec<ElfInfo>,
 }
 
 impl Processes {
@@ -148,8 +150,8 @@ impl Processes {
 
     #[cfg(target_os = "linux")]
     /// Get executable metadata
-    fn executable_metadata(_path: &str) -> Result<Vec<String>, ProcessError> {
-        Ok(Vec::new())
+    fn executable_metadata(path: &str) -> Result<Vec<ElfInfo>, ProcessError> {
+        elf_metadata(path)
     }
 
     #[cfg(target_os = "windows")]
@@ -204,6 +206,15 @@ mod tests {
         let results = Processes::executable_metadata(test_path).unwrap();
 
         assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_executable_metadata() {
+        let test_path = "/bin/ls";
+        let results = Processes::executable_metadata(test_path).unwrap();
+
+        assert_eq!(results.len(), 1);
     }
 
     #[test]

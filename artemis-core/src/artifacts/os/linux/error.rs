@@ -7,7 +7,6 @@ pub(crate) enum LinuxArtifactError {
     BadToml,
     Serialize,
     Format,
-    Cleanup,
     File,
     Process,
 }
@@ -22,7 +21,6 @@ impl fmt::Display for LinuxArtifactError {
             LinuxArtifactError::BadToml => write!(f, "Artemis failed to parse TOML data"),
             LinuxArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             LinuxArtifactError::Format => write!(f, "Unknown formatter provided"),
-            LinuxArtifactError::Cleanup => write!(f, "Could not delete output data safely"),
             LinuxArtifactError::Process => write!(f, "Failed to parse Processes"),
             LinuxArtifactError::File => write!(f, "Failed to parse Files"),
         }

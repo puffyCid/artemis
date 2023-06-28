@@ -2,6 +2,7 @@ mod applications;
 pub(crate) mod deno;
 mod error;
 mod run;
+mod system;
 
 #[cfg(target_family = "unix")]
 mod unix;
