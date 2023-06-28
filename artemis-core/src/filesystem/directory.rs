@@ -1,8 +1,6 @@
 use super::{error::FileSystemError, files::list_files_directories};
-use crate::filesystem::files::file_lines;
 use log::error;
 use std::path::Path;
-use sysinfo::UserExt;
 
 /// Check if path is a directory
 pub(crate) fn is_directory(path: &str) -> bool {
@@ -51,7 +49,8 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
 #[cfg(target_os = "linux")]
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
-    use sysinfo::{System, SystemExt};
+    use crate::filesystem::files::file_lines;
+    use sysinfo::{System, SystemExt, UserExt};
 
     let mut system = System::new();
     system.refresh_users_list();

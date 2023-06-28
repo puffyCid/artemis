@@ -13,10 +13,13 @@ use super::pe::pe_metadata;
 #[cfg(target_os = "windows")]
 use crate::artifacts::os::windows::pe::parser::PeInfo;
 
-use crate::artifacts::os::linux::executable::parser::ElfInfo;
-use crate::artifacts::os::processes::executable::elf_metadata;
 #[cfg(target_os = "macos")]
 use crate::artifacts::os::{macos::macho::parser::MachoInfo, processes::macho::macho_metadata};
+
+#[cfg(target_os = "linux")]
+use crate::artifacts::os::{
+    linux::executable::parser::ElfInfo, processes::executable::elf_metadata,
+};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Processes {

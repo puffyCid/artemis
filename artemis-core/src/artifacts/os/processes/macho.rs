@@ -12,7 +12,7 @@ pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError>
             return Err(ProcessError::ParseProcFile);
         }
     };
-    Ok(vec![info])
+    Ok(info)
 }
 
 #[cfg(test)]

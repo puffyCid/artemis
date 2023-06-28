@@ -32,9 +32,11 @@ use crate::artifacts::os::windows::{
 };
 
 #[cfg(target_os = "linux")]
-use crate::artifacts::os::linux::artifacts::output_data;
+use crate::artifacts::os::linux::{
+    artifacts::output_data,
+    executable::parser::{parse_elf_file, ElfInfo},
+};
 
-use crate::artifacts::os::linux::executable::parser::{parse_elf_file, ElfInfo};
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;
 
