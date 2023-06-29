@@ -138,19 +138,19 @@ mod tests {
     #[test]
     fn test_create_worker_options() {
         let results = create_worker_options(&[]).unwrap();
-        assert_eq!(results.extensions.len(), 1)
+        assert_eq!(results.extensions.len(), 1);
     }
 
     #[test]
     fn test_run_script() {
         let results = run_script("console.log('hello rust!')", &[]).unwrap();
-        assert_eq!(results.is_null(), true)
+        assert!(results.is_null());
     }
 
     #[test]
     fn test_get_error_class_name() {
         let err = RuntimeError::Decode;
         let results = get_error_class_name(&err.into());
-        assert_eq!(results, "[runtime] script execution class error")
+        assert_eq!(results, "[runtime] script execution class error");
     }
 }

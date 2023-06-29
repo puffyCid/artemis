@@ -308,7 +308,7 @@ impl FileInfo {
                 if !err.to_string().contains("Magic Bytes") {
                     error!("[files] Could not parse ELF file {path} error: {err:?}");
                 }
-                Vec::new()
+                return Err(FileError::ParseFile);
             }
         };
         Ok(binary_info)
