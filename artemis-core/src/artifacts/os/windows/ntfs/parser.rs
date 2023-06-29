@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic = "BadStart"]
+    #[should_panic(expected = "BadStart")]
     fn test_raw_filelist_bad_start() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',

@@ -6,7 +6,6 @@ use super::{
     ntfs::{read_ads_data, read_raw_file},
     pe::get_pe,
     prefetch::{get_alt_prefetch, get_prefetch, get_prefetch_path},
-    processes::get_processes,
     registry::get_registry,
     search::get_search,
     shellbags::{get_alt_shellbags, get_shellbags},
@@ -14,7 +13,6 @@ use super::{
     shimdb::{get_alt_shimdb, get_custom_shimdb, get_shimdb},
     shortcuts::get_lnk_file,
     srum::get_srum,
-    systeminfo::get_systeminfo,
     userassist::{get_alt_userassist, get_userassist},
     usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
 };

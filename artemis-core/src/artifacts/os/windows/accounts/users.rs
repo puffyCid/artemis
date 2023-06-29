@@ -207,7 +207,8 @@ impl UserInfo {
         Ok((input, user))
     }
 
-    /// Determine the account flags
+    /// Determine the account flags  
+    // Identified at: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SAMR/%5BMS-SAMR%5D-210625.pdf
     fn get_flags(account_control: &u32) -> Vec<UacFlags> {
         let disabled = 0x1;
         let home_dir = 0x2;
@@ -233,70 +234,70 @@ impl UserInfo {
         let aes_keys = 0x200000;
 
         let mut flags = Vec::new();
-        if (account_control & disabled) == disabled {
+        if &(account_control | disabled) == account_control {
             flags.push(UacFlags::AccountDisabled);
         }
-        if (account_control & home_dir) == home_dir {
+        if &(account_control | home_dir) == account_control {
             flags.push(UacFlags::HomeDirectoryRequired);
         }
-        if (account_control & no_pass) == no_pass {
+        if &(account_control | no_pass) == account_control {
             flags.push(UacFlags::PasswordNotRequired);
         }
-        if (account_control & temp_dupe) == temp_dupe {
+        if &(account_control | temp_dupe) == account_control {
             flags.push(UacFlags::TempDuplicateAccount);
         }
-        if (account_control & normal) == normal {
+        if &(account_control | normal) == account_control {
             flags.push(UacFlags::NormalAccount);
         }
-        if (account_control & user_mns) == user_mns {
+        if &(account_control | user_mns) == account_control {
             flags.push(UacFlags::MNSLogonAccount);
         }
-        if (account_control & interdomain) == interdomain {
+        if &(account_control | interdomain) == account_control {
             flags.push(UacFlags::InterdomainTrustAccount);
         }
-        if (account_control & workstation) == workstation {
+        if &(account_control | workstation) == account_control {
             flags.push(UacFlags::WorkstationTrustAccount);
         }
-        if (account_control & server_trust) == server_trust {
+        if &(account_control | server_trust) == account_control {
             flags.push(UacFlags::ServerTrustAccount);
         }
-        if (account_control & dont_expire) == dont_expire {
+        if &(account_control | dont_expire) == account_control {
             flags.push(UacFlags::DontExpirePassword);
         }
-        if (account_control & auto_lock) == auto_lock {
+        if &(account_control | auto_lock) == account_control {
             flags.push(UacFlags::AccountAutoLocked);
         }
-        if (account_control & text_pass) == text_pass {
+        if &(account_control | text_pass) == account_control {
             flags.push(UacFlags::EncryptedTextPasswordAllowed);
         }
-        if (account_control & smartcard) == smartcard {
+        if &(account_control | smartcard) == account_control {
             flags.push(UacFlags::SmartcardRequired);
         }
-        if (account_control & trusted_delegate) == trusted_delegate {
+        if &(account_control | trusted_delegate) == account_control {
             flags.push(UacFlags::TrustedForDelegation);
         }
-        if (account_control & not_delegate) == not_delegate {
+        if &(account_control | not_delegate) == account_control {
             flags.push(UacFlags::NotDelegated);
         }
-        if (account_control & des_key) == des_key {
+        if &(account_control | des_key) == account_control {
             flags.push(UacFlags::UseDESKeyOnly);
         }
-        if (account_control & dont_require_preauth) == dont_require_preauth {
+        if &(account_control | dont_require_preauth) == account_control {
             flags.push(UacFlags::DontRequirePreauth);
         }
-        if (account_control & pass_expired) == pass_expired {
+        if &(account_control | pass_expired) == account_control {
             flags.push(UacFlags::PasswordExpired);
         }
-        if (account_control & trusted_to_auth) == trusted_to_auth {
+        if &(account_control | trusted_to_auth) == account_control {
             flags.push(UacFlags::TrustedToAuthenticateForDelegation);
         }
-        if (account_control & no_auth_data) == no_auth_data {
+        if &(account_control | no_auth_data) == account_control {
             flags.push(UacFlags::NoAuthDataRequired);
         }
-        if (account_control & partial_secrets) == partial_secrets {
+        if &(account_control | partial_secrets) == account_control {
             flags.push(UacFlags::PartialSecretsAccount);
         }
-        if (account_control & aes_keys) == aes_keys {
+        if &(account_control | aes_keys) == account_control {
             flags.push(UacFlags::UseAESKeys);
         }
         flags

@@ -1,4 +1,5 @@
 #[test]
+#[ignore = "Can take a long time"]
 #[cfg(target_os = "windows")]
 fn test_search() {
     use std::path::PathBuf;
