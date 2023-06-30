@@ -36,8 +36,6 @@ jobs:
         uses: Swatinem/rust-cache@v2.5.0
       - name: Fmt Check
         run: cargo fmt -- --check
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Run clippy action to produce annotations
         run: cargo clippy
       - name: Build tests (macOS)

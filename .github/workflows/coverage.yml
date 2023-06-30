@@ -35,6 +35,8 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.5.0
         with: 
