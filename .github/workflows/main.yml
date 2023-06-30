@@ -33,7 +33,7 @@ jobs:
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@2.50
+        uses: Swatinem/rust-cache@v2.5.0
       - name: Fmt Check
         run: cargo fmt -- --check
       - name: Install cargo-llvm-cov
