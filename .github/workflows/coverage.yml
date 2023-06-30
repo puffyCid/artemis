@@ -1,4 +1,4 @@
-name: Artemis Actions
+name: Code Coverage
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  coverage:
     strategy:
       fail-fast: false
       matrix:
@@ -35,41 +35,21 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
-      - name: Enable Rust cache
-        uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f #2.1.0
-      - name: Fmt Check
-        run: cargo fmt -- --check
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Run clippy action to produce annotations
-        run: cargo clippy
-      - name: Build tests (macOS)
-        if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --no-run --release
-      - name: Run tests (macOS)
-        if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --release --verbose
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2.5.0
+        with: 
+          save-if: false
       - name: Generate code coverage (macOS)
         if: matrix.info.os == 'macOS-latest'
         run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
-      - name: Build tests (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --no-run --release
-      - name: Run tests (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --release --verbose
       - name: Generate code coverage (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
-      - name: Build tests (Windows)
-        if: matrix.info.os == 'windows-latest'
-        run: cargo test --no-run --release
-      - name: Run tests (Windows)
-        if: matrix.info.os == 'windows-latest'
-        run: cargo test --release --verbose
       - name: Generate code coverage (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
