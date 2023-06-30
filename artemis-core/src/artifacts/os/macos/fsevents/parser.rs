@@ -41,6 +41,27 @@ pub(crate) fn grab_fseventsd() -> Result<Vec<FsEvents>, FsEventsError> {
     Ok(fsevents_data)
 }
 
+/// Parse a single `FsEvent` file
+pub(crate) fn grab_fsventsd_file(path: &str) -> Result<Vec<FsEvents>, FsEventsError> {
+    let mut fsevents_data: Vec<FsEvents> = Vec::new();
+    let decompress_result = decompress_gzip(&path);
+    let decompress_data = match decompress_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[fsevent] Could not decompress data {err:?}");
+            return Err(FsEventsError::Decompress);
+        }
+    };
+
+    let results = parse_fsevents(&decompress_data);
+    match results {
+        Ok((_, mut data)) => fsevents_data.append(&mut data),
+        Err(err) => error!("Failed to parse FsEvent file {path}, err: {err:?}"),
+    }
+
+    Ok(fsevents_data)
+}
+
 /// Get `FsEvent` files at default path
 fn get_fseventsd() -> Result<Vec<String>, FsEventsError> {
     let path = "/System/Volumes/Data/.fseventsd/";
@@ -85,7 +106,8 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
-        artifacts::os::macos::fsevents::parser::get_fseventsd, utils::compression::decompress_gzip,
+        artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
+        utils::compression::decompress_gzip,
     };
     use std::path::PathBuf;
 
@@ -116,6 +138,15 @@ mod tests {
         let test_path: &str = &test_location.display().to_string();
         let files = decompress_gzip(test_path).unwrap();
         let (_, results) = parse_fsevents(&files).unwrap();
+        assert_eq!(results.len(), 736)
+    }
+
+    #[test]
+    fn test_grab_fsventsd_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
+        let test_path = &test_location.display().to_string();
+        let results = grab_fsventsd_file(test_path).unwrap();
         assert_eq!(results.len(), 736)
     }
 

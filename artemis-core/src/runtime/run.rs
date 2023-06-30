@@ -47,7 +47,7 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
-            panic!("[runtime] Could not execute script: {err:?}");
+            error!("[runtime] Could not execute script: {err:?}");
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
