@@ -1,9 +1,6 @@
-name: Artemis Actions
+name: Artemis Main Branch Actions
 
 on:
-  pull_request:
-    branches:
-      - "main"
   push:
     branches:
       - main
@@ -36,7 +33,7 @@ jobs:
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f #2.1.0
+        uses: Swatinem/rust-cache@2.50
       - name: Fmt Check
         run: cargo fmt -- --check
       - name: Install cargo-llvm-cov
@@ -49,9 +46,6 @@ jobs:
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
         run: sudo cargo test --release --verbose
-      - name: Generate code coverage (macOS)
-        if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
@@ -61,21 +55,9 @@ jobs:
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --release --verbose
-      - name: Generate code coverage (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --no-run --release
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --release --verbose
-      - name: Generate code coverage (Windows)
-        if: matrix.info.os == 'windows-latest'
-        run: cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: lcov.info
-          fail_ci_if_error: true

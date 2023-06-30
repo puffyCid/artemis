@@ -1,0 +1,59 @@
+name: Code Coverage
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
+          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu", cross: false}
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              cross: false,
+            }
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          targets: ${{ matrix.info.target }}
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@2.5.0
+        with: 
+          save-if: false
+      - name: Generate code coverage (macOS)
+        if: matrix.info.os == 'macOS-latest'
+        run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+      - name: Setup Rust for root (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" rustup default stable
+      - name: Generate code coverage (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+      - name: Generate code coverage (Windows)
+        if: matrix.info.os == 'windows-latest'
+        run: cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: true

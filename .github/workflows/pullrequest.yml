@@ -1,0 +1,68 @@
+name: Artemis PR Actions
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
+          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu", cross: false}
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              cross: false,
+            }
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          targets: ${{ matrix.info.target }}
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@2.50
+        with: 
+          save-if: false
+      - name: Fmt Check
+        run: cargo fmt -- --check
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Run clippy action to produce annotations
+        run: cargo clippy
+      - name: Build tests (macOS)
+        if: matrix.info.os == 'macOS-latest'
+        run: sudo cargo test --no-run --release
+      - name: Run tests (macOS)
+        if: matrix.info.os == 'macOS-latest'
+        run: sudo cargo test --release --verbose
+      - name: Setup Rust for root (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" rustup default stable
+      - name: Build tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" cargo test --no-run --release
+      - name: Run tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" cargo test --release --verbose
+      - name: Build tests (Windows)
+        if: matrix.info.os == 'windows-latest'
+        run: cargo test --no-run --release
+      - name: Run tests (Windows)
+        if: matrix.info.os == 'windows-latest'
+        run: cargo test --release --verbose
