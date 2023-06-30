@@ -25,38 +25,66 @@ pub(crate) fn list_directories(path: &str) -> Result<Vec<String>, FileSystemErro
     Ok(dirs)
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     let user_path_result = home::home_dir();
-    let user_path = if let Some(result) = user_path_result {
+    let mut user_path = if let Some(result) = user_path_result {
         result
     } else {
         error!("[artemis-core] Failed get user home paths");
         return Err(FileSystemError::UserPaths);
     };
 
-    let user_parent = if user_path.has_root() {
-        #[cfg(target_os = "windows")]
-        {
-            format!("{}Users", &user_path.display().to_string()[0..3])
-        }
-
-        #[cfg(target_family = "unix")]
-        {
-            let mut mac_paths = user_path;
-            mac_paths.pop();
-            mac_paths.display().to_string()
-        }
-    } else {
-        error!("[artemis-core] Failed get user base path");
-        return Err(FileSystemError::NoUserParent);
-    };
+    user_path.pop();
+    let user_parent = user_path.display().to_string();
 
     if !is_directory(&user_parent) {
         return Err(FileSystemError::NoUserParent);
     }
 
     list_directories(&user_parent)
+}
+
+#[cfg(target_os = "linux")]
+/// Get directories associated with users on a system
+pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
+    use crate::filesystem::files::file_lines;
+    use sysinfo::{System, SystemExt, UserExt};
+
+    let mut system = System::new();
+    system.refresh_users_list();
+    let passwd_lines = file_lines("/etc/passwd")?;
+    let mut users: Vec<String> = Vec::new();
+
+    for line_entry in passwd_lines {
+        let entry = match line_entry {
+            Ok(result) => result,
+            Err(_) => continue,
+        };
+        if entry.contains("nologin") {
+            continue;
+        }
+
+        for user in system.users() {
+            if !entry.contains(&format!("/{}", user.name())) {
+                continue;
+            }
+
+            let line_split = entry.split(':');
+            for (key, split) in line_split.enumerate() {
+                let home = 5;
+                if key != home {
+                    continue;
+                }
+                if split.contains(&format!("/{}", user.name())) {
+                    users.push(split.to_string());
+                    break;
+                }
+            }
+        }
+    }
+    Ok(users)
 }
 
 #[cfg(target_family = "unix")]
@@ -83,12 +111,12 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests");
         let result = is_directory(&test_location.display().to_string());
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
     #[cfg(target_os = "windows")]
-    fn test_get_user_win_paths() {
+    fn test_get_user_paths() {
         let result = get_user_paths().unwrap();
         assert!(result.len() >= 4);
 
@@ -101,13 +129,13 @@ mod tests {
                 default = true;
             }
         }
-        assert_eq!(default, true);
-        assert_eq!(public, true);
+        assert!(default);
+        assert!(public);
     }
 
     #[test]
     #[cfg(target_os = "macos")]
-    fn test_get_user_macos_paths() {
+    fn test_get_user_paths() {
         let result = get_user_paths().unwrap();
 
         let mut shared = false;
@@ -116,7 +144,15 @@ mod tests {
                 shared = true;
             }
         }
-        assert_eq!(shared, true);
+        assert!(shared);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_user_paths() {
+        let result = get_user_paths().unwrap();
+
+        assert!(!result.is_empty());
     }
 
     #[test]
@@ -125,7 +161,7 @@ mod tests {
         use crate::filesystem::directory::get_root_home;
 
         let result = get_root_home().unwrap();
-        assert_eq!(result.contains("root"), true);
+        assert!(result.contains("root"));
     }
 
     #[test]
@@ -142,6 +178,6 @@ mod tests {
             }
         }
 
-        assert_eq!(test_data, true);
+        assert!(test_data);
     }
 }

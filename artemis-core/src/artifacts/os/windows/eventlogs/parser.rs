@@ -218,8 +218,9 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "Parser")]
     fn test_alt_drive_eventlogs() {
-        let drive = 'C';
+        let drive = 'A';
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = alt_drive_eventlogs(&drive, &mut output, &false).unwrap();

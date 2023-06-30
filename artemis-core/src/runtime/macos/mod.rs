@@ -7,6 +7,5 @@ mod launchd;
 mod loginitems;
 mod macho;
 mod plist;
-mod processes;
 mod safari;
 mod unifiedlogs;

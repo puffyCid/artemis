@@ -8,8 +8,7 @@ fn test_shellhistory_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/macos/shellhistory.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
-    assert_eq!(results, ())
+    parse_toml_file(&test_location.display().to_string()).unwrap();
 }
 
 #[test]
@@ -22,6 +21,5 @@ fn test_shellhistory_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/linux/shellhistory.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
-    assert_eq!(results, ())
+    parse_toml_file(&test_location.display().to_string()).unwrap();
 }

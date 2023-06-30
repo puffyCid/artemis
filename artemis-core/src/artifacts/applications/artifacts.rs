@@ -214,7 +214,6 @@ pub(crate) fn output_data(
             };
         }
     }
-
     let output_status = if output.format == "json" {
         json_format(serde_data, output_name, output, start_time)
     } else if output.format == "jsonl" {
@@ -255,9 +254,7 @@ mod tests {
             format: String::from("json"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
@@ -270,7 +267,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_safari_history() {
-        let mut output = output_options("safari_test", "json", "./tmp", false);
+        let mut output = output_options("safari_test", "local", "./tmp", false);
 
         let status = safari_history(&mut output, &false).unwrap();
         assert_eq!(status, ());
@@ -279,7 +276,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_safari_downloads() {
-        let mut output = output_options("safari_test", "json", "./tmp", false);
+        let mut output = output_options("safari_test", "local", "./tmp", false);
 
         let status = safari_downloads(&mut output, &false).unwrap();
         assert_eq!(status, ());
@@ -287,21 +284,21 @@ mod tests {
 
     #[test]
     fn test_firefox_history() {
-        let mut output = output_options("firefox_test", "json", "./tmp", false);
+        let mut output = output_options("firefox_test", "local", "./tmp", false);
 
         let _ = firefox_history(&mut output, &false).unwrap();
     }
 
     #[test]
     fn test_firefox_downloads() {
-        let mut output = output_options("firefox_test", "json", "./tmp", false);
+        let mut output = output_options("firefox_test", "local", "./tmp", false);
 
         let _ = firefox_downloads(&mut output, &false).unwrap();
     }
 
     #[test]
     fn test_chromium_history() {
-        let mut output = output_options("chromium_test", "json", "./tmp", false);
+        let mut output = output_options("chromium_test", "local", "./tmp", false);
 
         let status = chromium_history(&mut output, &false).unwrap();
         assert_eq!(status, ());
@@ -309,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_chromium_downloads() {
-        let mut output = output_options("chromium_test", "json", "./tmp", false);
+        let mut output = output_options("chromium_test", "local", "./tmp", false);
 
         let status = chromium_downloads(&mut output, &false).unwrap();
         assert_eq!(status, ());

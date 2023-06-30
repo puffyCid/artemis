@@ -1,7 +1,9 @@
+use crate::filesystem::files::file_lines;
 use crate::filesystem::{
     directory::is_directory,
     files::{file_extension, is_file, list_files},
 };
+use crate::utils::regex_options::create_regex;
 use crate::{
     artifacts::os::unix::shell_history::error::ShellError,
     filesystem::{
@@ -12,10 +14,6 @@ use crate::{
 use log::{error, info, warn};
 use regex::Regex;
 use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ZshHistory {
@@ -128,29 +126,21 @@ impl ZshHistory {
     // Parse the zsh_history file
     fn parse_zsh(zsh_history: &str) -> Result<Vec<ZshHistoryData>, ShellError> {
         let mut zsh_data: Vec<ZshHistoryData> = Vec::new();
-        let zsh_file_result = File::open(zsh_history);
-        let zsh_file = match zsh_file_result {
-            Ok(results) => results,
+        let file_result = file_lines(zsh_history);
+        let zsh_iter = match file_result {
+            Ok(result) => result,
             Err(err) => {
-                error!("[shell_history] Failed to open zsh file {zsh_history}, error: {err:?}");
+                error!("[shell_history] Could not read bash_history lines: {err:?}");
                 return Err(ShellError::File);
             }
         };
 
-        let zsh_reader = BufReader::new(zsh_file);
         // Regex if zsh_history timestamp is enabled. Ex: ": 1659414442:0;cargo test --release"
-        let zsh_regex_compile = Regex::new(r"^: {0,10}([0-9]{1,11}):[0-9]+;(.*)$");
-        let zsh_regex = match zsh_regex_compile {
-            Ok(results) => results,
-            Err(err) => {
-                warn!("[shell_history] Failed to compile zsh regex: {err:?}");
-                return Err(ShellError::Regex);
-            }
-        };
+        let zsh_regex = create_regex(r"^: {0,10}([0-9]{1,11}):[0-9]+;(.*)$").unwrap();
+        let mut line_number = 1;
 
         // Read each line and parse the associated data. Potentially: timestamp, duration, command
-        for (line_number, entry) in zsh_reader.lines().enumerate() {
-            let line_entry = entry;
+        for line_entry in zsh_iter {
             let zsh_entry = match line_entry {
                 Ok(result) => result,
                 Err(err) => {
@@ -164,12 +154,12 @@ impl ZshHistory {
             let zsh_history_results = ZshHistory::parse_line(&zsh_entry, &zsh_regex);
             match zsh_history_results {
                 Ok(mut zsh_history_data) => {
-                    // Since loop index starts at zero (0) always add one (1) to get accurate line number
-                    zsh_history_data.line = line_number + 1;
+                    zsh_history_data.line = line_number;
                     zsh_data.push(zsh_history_data);
                 }
                 Err(err) => warn!("[shell_history] Failed to parse zsh line entry: {err:?}"),
             }
+            line_number += 1;
         }
 
         Ok(zsh_data)

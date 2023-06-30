@@ -4,6 +4,7 @@ use md5::{Digest, Md5};
 use serde::Deserialize;
 use sha1::Sha1;
 use sha2::Sha256;
+use std::io::{BufRead, BufReader, Lines};
 use std::{
     fs::{read, read_dir, File},
     io::{copy, Read},
@@ -72,6 +73,13 @@ pub(crate) fn read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
         return Err(FileSystemError::LargeFile);
     }
     file_read(path)
+}
+
+/// Return a `Lines<BufReader>` to iterate through a text file
+pub(crate) fn file_lines(path: &str) -> Result<Lines<BufReader<File>>, FileSystemError> {
+    let reader = file_reader(path)?;
+    let buf_reader = BufReader::new(reader);
+    Ok(buf_reader.lines())
 }
 
 /// Create a `File` object that can be used to read a file
@@ -295,8 +303,8 @@ pub(crate) fn get_filename(path: &str) -> String {
 mod tests {
     use super::{file_too_large, is_file, list_files_directories};
     use crate::filesystem::files::{
-        file_extension, file_reader, get_file_size, get_filename, hash_file, list_files, read_file,
-        Hashes,
+        file_extension, file_lines, file_reader, get_file_size, get_filename, hash_file,
+        list_files, read_file, Hashes,
     };
     use std::path::PathBuf;
 
@@ -323,6 +331,18 @@ mod tests {
         assert_eq!(emond, true);
         assert_eq!(ntfs, true);
         assert_eq!(test_data, true);
+    }
+
+    #[test]
+    fn test_file_lines() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/unix/bash/bash_history");
+
+        let mut results = file_lines(&test_location.display().to_string()).unwrap();
+        assert_eq!(
+            results.next().unwrap().unwrap().to_string(),
+            "sudo cp /.fseventsd ~/Desktop/"
+        );
     }
 
     #[test]

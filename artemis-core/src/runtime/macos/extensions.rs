@@ -7,14 +7,16 @@ use super::{
     loginitems::get_loginitems,
     macho::get_macho,
     plist::get_plist,
-    processes::get_processes,
     safari::{
         get_safari_downloads, get_safari_history, get_safari_users_downloads,
         get_safari_users_history,
     },
     unifiedlogs::get_unified_log,
 };
-use crate::runtime::{applications::extensions::app_functions, unix::extensions::unix_functions};
+use crate::runtime::{
+    applications::extensions::app_functions, system::extensions::system_functions,
+    unix::extensions::unix_functions,
+};
 use deno_core::Extension;
 
 /// Include all the `Artemis` function in the `Runtime`
@@ -40,12 +42,12 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_safari_history::decl(),
         get_safari_users_downloads::decl(),
         get_safari_downloads::decl(),
-        get_processes::decl(),
         get_execpolicy::decl(),
     ];
 
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
+    exts.append(&mut system_functions());
     exts
 }
 

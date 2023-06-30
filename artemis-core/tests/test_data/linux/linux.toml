@@ -1,0 +1,50 @@
+system = "linux"
+
+[output]
+name = "linux_collection"
+directory = "./tmp"
+format = "json"
+compress = true
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "files"
+[artifacts.files]
+start_path = "/"
+depth = 90
+metadata = true
+md5 = true
+sha1 = false
+sha256 = false
+regex_filter = ""
+
+[[artifacts]]
+artifact_name = "shell_history"
+
+[[artifacts]]
+artifact_name = "chromium-history"
+
+[[artifacts]]
+artifact_name = "chromium-downloads"
+
+[[artifacts]]
+artifact_name = "firefox-history"
+
+[[artifacts]]
+artifact_name = "firefox-downloads"
+
+[[artifacts]]
+artifact_name = "cron"

@@ -86,8 +86,8 @@ impl FirefoxDownloads {
                 }
                 #[cfg(target_os = "linux")]
                 {
-                    let user_data: Vec<&str> = users.split("/").collect();
-                    user = user_data.last().unwrap_or(&"").to_string();
+                    let user_data: Vec<&str> = users.split('/').collect();
+                    user = (*user_data.last().unwrap_or(&"")).to_string();
                 }
 
                 let downloads_data = FirefoxDownloads {

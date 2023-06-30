@@ -1,7 +1,5 @@
-use std::{
-    fs::{metadata, Metadata},
-    io::Error,
-};
+use std::fs::symlink_metadata;
+use std::{fs::Metadata, io::Error};
 
 // Timestamps containing number of seconds since UNIX-EPOCH
 pub(crate) struct StandardTimestamps {
@@ -52,7 +50,7 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
 /// Get the metadata associated with provided path
 pub(crate) fn get_metadata(path: &str) -> Result<Metadata, Error> {
-    metadata(path)
+    symlink_metadata(path)
 }
 
 #[cfg(test)]
@@ -67,7 +65,7 @@ mod tests {
         test_location.push("tests");
 
         let result = get_metadata(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.is_dir(), true);
+        assert!(result.is_dir());
     }
 
     #[test]
