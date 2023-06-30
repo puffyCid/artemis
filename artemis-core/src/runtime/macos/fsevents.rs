@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn test_get_fsevents() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZnNldmVudHMoKSB7CiAgICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfZnNldmVudHMoKTsKICAgIGlmIChkYXRhID09PSAiIikgewogICAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IGZzZXZlbnRzID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBmc2V2ZW50czsKfQpmdW5jdGlvbiBnZXRGc0V2ZW50cygpIHsKICAgIHJldHVybiBnZXRfZnNldmVudHMoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZGF0YSA9IGdldEZzRXZlbnRzKCk7CiAgICBjb25zdCByc19kYXRhID0gW107CiAgICBmb3IgKGNvbnN0IGVudHJ5IG9mIGRhdGEpewogICAgICAgIGlmIChlbnRyeS5wYXRoLmluY2x1ZGVzKCIucnMiKSkgewogICAgICAgICAgICByc19kYXRhLnB1c2goZW50cnkpOwogICAgICAgIH0KICAgIH0KICAgIHJldHVybiByc19kYXRhOwp9Cm1haW4oKTsKCg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("fsevent"),
             script: test.to_string(),

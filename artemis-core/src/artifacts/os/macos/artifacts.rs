@@ -508,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_execpolicy() {
-        let mut output = output_options("execpolicy_test", "local", "./tmp", false);
+        let mut output = output_options("execpolicy_test", "local", "./tmp", true);
 
         let status = execpolicy(&mut output, &false).unwrap();
         assert_eq!(status, ());

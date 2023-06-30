@@ -96,9 +96,7 @@ mod tests {
             format: String::from("json"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
@@ -111,7 +109,7 @@ mod tests {
     #[test]
     fn test_get_unified_log() {
         let test = "ZnVuY3Rpb24gZ2V0WHByb3RlY3RFbnRyaWVzKCkgewogICAgY29uc3QgcGF0aCA9ICIvdmFyL2RiL2RpYWdub3N0aWNzL1BlcnNpc3QiOwogICAgY29uc3QgeHByb3RlY3RfbG9ncyA9IFtdOwogICAgZm9yIChjb25zdCBwZXJzaXN0X2VudHJ5IG9mIERlbm8ucmVhZERpclN5bmMocGF0aCkpewogICAgICAgIGlmICghcGVyc2lzdF9lbnRyeS5pc0ZpbGUpIHsKICAgICAgICAgICAgY29udGludWU7CiAgICAgICAgfQogICAgICAgIGNvbnN0IHBlcnNpc3RfZmlsZSA9IHBlcnNpc3RfZW50cnkubmFtZTsKICAgICAgICBjb25zdCBwZXJzaXN0X2Z1bGxfcGF0aCA9IGAke3BhdGh9LyR7cGVyc2lzdF9maWxlfWA7CiAgICAgICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X3VuaWZpZWRfbG9nKHBlcnNpc3RfZnVsbF9wYXRoKTsKICAgICAgICBjb25zdCBsb2dfZGF0YSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICAgICAgZm9yIChjb25zdCBlbnRyeSBvZiBsb2dfZGF0YSl7CiAgICAgICAgICAgIGlmICghZW50cnkubWVzc2FnZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKCJ4cHJvdGVjdCIpKSB7CiAgICAgICAgICAgICAgICBjb250aW51ZTsKICAgICAgICAgICAgfQogICAgICAgICAgICB4cHJvdGVjdF9sb2dzLnB1c2goZW50cnkpOwogICAgICAgIH0KICAgICAgICBicmVhazsKICAgIH0KICAgIHJldHVybiB4cHJvdGVjdF9sb2dzOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICByZXR1cm4gZ2V0WHByb3RlY3RFbnRyaWVzKCk7Cn0KbWFpbigpOw==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("xprotect_entries"),
             script: test.to_string(),
