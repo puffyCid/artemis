@@ -1,4 +1,4 @@
-name: Artemis Main Branch Actions
+name: Artemis Main Actions
 
 on:
   push:
