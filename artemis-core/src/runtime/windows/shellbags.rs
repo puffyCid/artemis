@@ -27,7 +27,7 @@ fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
 
 #[op]
 /// Expose parsing shellbags located on alt drive to `Deno`
-fn get_alt_shellbags(drive: String, resolve: bool) -> Result<String, AnyError> {
+fn get_alt_shellbags(resolve: bool, drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt shellbags drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_shellbags() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X2FsdF9zaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgZHJpdmUpOwogICAgY29uc3QgYmFnc19hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gYmFnc19hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGJhZ3MgPSBnZXRBbHRTaGVsbGJhZ3ModHJ1ZSwgIkMiKTsKICAgIGNvbnN0IGJhZ3NfZXhjZXB0X2RpcmVjdG9yeSA9IFtdOwogICAgZm9yIChjb25zdCBlbnRyeSBvZiBiYWdzKXsKICAgICAgICBpZiAoZW50cnkuc2hlbGxfdHlwZSA9PSAiRGlyZWN0b3J5IikgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgYmFnc19leGNlcHRfZGlyZWN0b3J5LnB1c2goZW50cnkpOwogICAgfQogICAgcmV0dXJuIGJhZ3NfZXhjZXB0X2RpcmVjdG9yeTsKfQptYWluKCk7";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X2FsdF9zaGVsbGJhZ3MoZHJpdmUsIHJlc29sdmVfZ3VpZHMpOwogICAgY29uc3QgYmFnc19hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gYmFnc19hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGJhZ3MgPSBnZXRBbHRTaGVsbGJhZ3ModHJ1ZSwgIkMiKTsKICAgIGNvbnN0IGJhZ3NfZXhjZXB0X2RpcmVjdG9yeSA9IFtdOwogICAgZm9yIChjb25zdCBlbnRyeSBvZiBiYWdzKXsKICAgICAgICBpZiAoZW50cnkuc2hlbGxfdHlwZSA9PSAiRGlyZWN0b3J5IikgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgYmFnc19leGNlcHRfZGlyZWN0b3J5LnB1c2goZW50cnkpOwogICAgfQogICAgcmV0dXJuIGJhZ3NfZXhjZXB0X2RpcmVjdG9yeTsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shellbags_alt"),
