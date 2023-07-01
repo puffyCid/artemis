@@ -61,12 +61,17 @@ fn decode_script(
             return Err(RuntimeError::ExecuteScript);
         }
     };
+
+    if script_value.is_null() {
+        return Ok(());
+    }
+
     output_data(&script_value, script_name, output, &start_time)?;
     Ok(())
 }
 
 /// Output Javascript results based on the output options provided from the TOML file
-fn output_data(
+pub(crate) fn output_data(
     serde_data: &Value,
     output_name: &str,
     output: &mut Output,
