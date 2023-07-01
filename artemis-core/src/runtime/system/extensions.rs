@@ -1,8 +1,14 @@
-use crate::runtime::system::{processes::get_processes, systeminfo::get_systeminfo};
+use crate::runtime::system::{
+    output::output_results, processes::get_processes, systeminfo::get_systeminfo,
+};
 
 /// Link Rust functions to `Deno core`
 pub(crate) fn system_functions() -> Vec<deno_core::OpDecl> {
-    vec![get_processes::decl(), get_systeminfo::decl()]
+    vec![
+        get_processes::decl(),
+        get_systeminfo::decl(),
+        output_results::decl(),
+    ]
 }
 
 #[cfg(test)]

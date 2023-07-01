@@ -44,7 +44,7 @@ pub(crate) fn grab_fseventsd() -> Result<Vec<FsEvents>, FsEventsError> {
 /// Parse a single `FsEvent` file
 pub(crate) fn grab_fsventsd_file(path: &str) -> Result<Vec<FsEvents>, FsEventsError> {
     let mut fsevents_data: Vec<FsEvents> = Vec::new();
-    let decompress_result = decompress_gzip(&path);
+    let decompress_result = decompress_gzip(path);
     let decompress_data = match decompress_result {
         Ok(result) => result,
         Err(err) => {
