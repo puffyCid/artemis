@@ -76,7 +76,6 @@ pub(crate) fn nom_unsigned_one_byte(data: &[u8], endian: Endian) -> nom::IResult
     Ok((input, value))
 }
 
-#[cfg(target_os = "windows")]
 /**
  * Nom sixteen (16) bytes to u128
  * Need to specify Endianess
