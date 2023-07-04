@@ -1,9 +1,3 @@
-// Object Header needs to be parsed first
-// Get size of payload
-// if array is full next_entry_array_offset will point to next array. If its zero then its the last one
-// If incompat flag compact is set array offset is 32bit
-// Return struct: Vec<Entry>, next_entry_array_offset. Then caller check if next_entry_array_offset == 0
-
 use super::{
     entry::Entry,
     header::{ObjectHeader, ObjectType},
@@ -20,6 +14,7 @@ pub(crate) struct EntryArray {
 }
 
 impl EntryArray {
+    /// Walk through Array of entries
     pub(crate) fn walk_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
@@ -55,12 +50,9 @@ impl EntryArray {
             };
 
             if object_header.obj_type != ObjectType::Entry {
-                panic!("[journal] Did not get Entry object type!"); //warn
+                warn!("[journal] Did not get Entry object type!");
                 continue;
             }
-
-            // Pass reader and offset to Object header function. Returns payload for entry data.
-            // Pass reader, entry_data, and is_compact to entry function
 
             let entry_result = Entry::parse_entry(reader, &object_header.payload, is_compact);
             let entry = match entry_result {

@@ -1,8 +1,5 @@
 use crate::{
-    artifacts::os::linux::journals::{
-        error::JournalError,
-        header::{IncompatFlags, JournalHeader},
-    },
+    artifacts::os::linux::journals::error::JournalError,
     utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_one_byte, Endian},
 };
 use log::error;
@@ -15,8 +12,8 @@ use std::{
 #[derive(Debug)]
 pub(crate) struct ObjectHeader {
     pub(crate) obj_type: ObjectType,
-    pub(crate) flags: Vec<IncompatFlags>,
-    reserved: Vec<u8>,
+    pub(crate) flag: ObjectFlag,
+    _reserved: Vec<u8>,
     size: u64,
     pub(crate) payload: Vec<u8>,
 }
@@ -31,6 +28,14 @@ pub(crate) enum ObjectType {
     FieldHashTable,
     EntryArray,
     Tag,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum ObjectFlag {
+    CompressedXz,
+    CompressedLz4,
+    CompressedZstd,
+    None,
 }
 
 impl ObjectHeader {
@@ -74,7 +79,7 @@ impl ObjectHeader {
     /// Parse the header data
     fn parse_header_data(data: &[u8]) -> nom::IResult<&[u8], ObjectHeader> {
         let (input, obj_type) = nom_unsigned_one_byte(data, Endian::Le)?;
-        let (input, flags) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, flag) = nom_unsigned_one_byte(input, Endian::Le)?;
 
         let reserved_size: u8 = 6;
         let (input, reserved_data) = take(reserved_size)(input)?;
@@ -86,13 +91,30 @@ impl ObjectHeader {
 
         let object_header = ObjectHeader {
             obj_type: ObjectHeader::object_type(&obj_type),
-            flags: JournalHeader::incompat_flags(&(flags as u32)),
-            reserved: reserved_data.to_vec(),
+            flag: ObjectHeader::object_flag(&flag),
+            _reserved: reserved_data.to_vec(),
             size,
             payload: Vec::new(),
         };
 
         Ok((input, object_header))
+    }
+
+    /// Get the Object flag in header
+    fn object_flag(flag: &u8) -> ObjectFlag {
+        let xz = 1;
+        let lz4 = 2;
+        let zstd = 4;
+
+        if (flag & xz) == xz {
+            ObjectFlag::CompressedXz
+        } else if (flag & lz4) == lz4 {
+            ObjectFlag::CompressedLz4
+        } else if (flag & zstd) == zstd {
+            ObjectFlag::CompressedZstd
+        } else {
+            ObjectFlag::None
+        }
     }
 
     /// Determine the Object type
@@ -129,7 +151,8 @@ impl ObjectHeader {
 mod tests {
     use super::ObjectHeader;
     use crate::{
-        artifacts::os::linux::journals::objects::header::ObjectType, filesystem::files::file_reader,
+        artifacts::os::linux::journals::objects::header::{ObjectFlag, ObjectType},
+        filesystem::files::file_reader,
     };
     use std::path::PathBuf;
 
@@ -141,7 +164,7 @@ mod tests {
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
 
         let result = ObjectHeader::parse_header(&mut reader, 0).unwrap();
-        assert!(result.flags.is_empty());
+        assert_eq!(result.flag, ObjectFlag::None);
         assert_eq!(result.obj_type, ObjectType::EntryArray);
         assert_eq!(result.size, 0x28);
         assert_eq!(
@@ -157,7 +180,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let (_, result) = ObjectHeader::parse_header_data(&test_data).unwrap();
-        assert!(result.flags.is_empty());
+        assert_eq!(result.flag, ObjectFlag::None);
         assert_eq!(result.obj_type, ObjectType::EntryArray);
         assert_eq!(result.size, 0x28);
         assert!(result.payload.is_empty());
@@ -167,5 +190,11 @@ mod tests {
     fn test_object_type() {
         let result = ObjectHeader::object_type(&1);
         assert_eq!(result, ObjectType::Data)
+    }
+
+    #[test]
+    fn test_object_flag() {
+        let result = ObjectHeader::object_flag(&1);
+        assert_eq!(result, ObjectFlag::CompressedXz)
     }
 }

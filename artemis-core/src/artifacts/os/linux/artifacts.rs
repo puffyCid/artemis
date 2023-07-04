@@ -13,6 +13,8 @@ use crate::utils::time;
 use log::{error, warn};
 use serde_json::Value;
 
+use super::journals::parser::grab_journal;
+
 /// Get Linux `Processes`
 pub(crate) fn processes(
     artifact: &ProcessOptions,
@@ -90,11 +92,25 @@ pub(crate) fn files(
     match artifact_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to get file listing: {err:?}");
+            error!("[artemis-core] Artemis Linux failed to get file listing: {err:?}");
             return Err(LinuxArtifactError::File);
         }
     };
     Ok(())
+}
+
+/// Get Linux `Journals`
+pub(crate) fn journals(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+    let start_time = time::time_now();
+
+    let artifact_result = grab_journal(output, &start_time, filter);
+    match artifact_result {
+        Ok(result) => Ok(result),
+        Err(err) => {
+            error!("[artemis-core] Artemis macOS failed to get journals: {err:?}");
+            Err(LinuxArtifactError::Journal)
+        }
+    }
 }
 
 /// Output Linux artifacts
@@ -156,7 +172,9 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::linux::artifacts::{files, output_data, processes, systeminfo};
+    use crate::artifacts::os::linux::artifacts::{
+        files, journals, output_data, processes, systeminfo,
+    };
     use crate::structs::artifacts::os::files::FileOptions;
     use crate::structs::artifacts::os::processes::ProcessOptions;
     use crate::utils::artemis_toml::Output;
@@ -210,6 +228,14 @@ mod tests {
         let mut output = output_options("system_test", "local", "./tmp", false);
 
         let status = systeminfo(&mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_journals() {
+        let mut output = output_options("journals_test", "local", "./tmp", false);
+
+        let status = journals(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

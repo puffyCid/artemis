@@ -3,20 +3,21 @@ use crate::artifacts::os::linux::journals::objects::data::DataObject;
 use crate::utils::nom_helper::{
     nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian,
 };
-use log::error;
+use log::{error, warn};
 use std::fs::File;
 
 #[derive(Debug)]
 pub(crate) struct Entry {
-    seqnum: u64,
-    realtime: u64,
+    pub(crate) seqnum: u64,
+    pub(crate) realtime: u64,
     monotonic: u64,
     boot_id: u128,
     xor_hash: u64,
-    data_objects: Vec<DataObject>,
+    pub(crate) data_objects: Vec<DataObject>,
 }
 
 impl Entry {
+    /// Parse Entry data in `Journal`
     pub(crate) fn parse_entry<'a>(
         reader: &mut File,
         data: &'a [u8],
@@ -39,7 +40,7 @@ impl Entry {
         };
         let min_size = 4;
         while !input.is_empty() && input.len() >= min_size {
-            let (hash, offset) = if !is_compact {
+            let (_hash, offset) = if !is_compact {
                 let (remaining_input, hash) = nom_unsigned_eight_bytes(input, Endian::Le)?;
                 let (remaining_input, offset) =
                     nom_unsigned_eight_bytes(remaining_input, Endian::Le)?;
@@ -61,15 +62,14 @@ impl Entry {
             };
 
             if object_header.obj_type != ObjectType::Data {
-                panic!("[journal] Did not get Data object type!"); //warn
+                warn!("[journal] Did not get Data object type!");
                 continue;
             }
 
             let data_result = DataObject::parse_data_object(
-                reader,
                 &object_header.payload,
                 is_compact,
-                &object_header.flags,
+                &object_header.flag,
             );
             let data_object = match data_result {
                 Ok((_, result)) => result,
@@ -78,7 +78,6 @@ impl Entry {
                     continue;
                 }
             };
-            // println!("{data_object:?}");
             entry.data_objects.push(data_object);
         }
 

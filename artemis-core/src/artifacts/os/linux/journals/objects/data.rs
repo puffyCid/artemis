@@ -1,11 +1,11 @@
-use crate::{
-    artifacts::os::linux::journals::header::IncompatFlags,
-    utils::{
-        nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
-        strings::extract_utf8_string,
-    },
+use super::header::ObjectFlag;
+use crate::utils::{
+    compression::decompress_zstd,
+    encoding::base64_encode_standard,
+    nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    strings::extract_utf8_string,
 };
-use std::fs::File;
+use log::error;
 
 #[derive(Debug)]
 pub(crate) struct DataObject {
@@ -22,11 +22,11 @@ pub(crate) struct DataObject {
 }
 
 impl DataObject {
+    /// Parse Data object in `Journal`
     pub(crate) fn parse_data_object<'a>(
-        reader: &mut File,
         data: &'a [u8],
         is_compact: bool,
-        compress_type: &[IncompatFlags],
+        compress_type: &ObjectFlag,
     ) -> nom::IResult<&'a [u8], DataObject> {
         let (input, hash) = nom_unsigned_eight_bytes(data, Endian::Le)?;
         let (input, next_hash_offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -57,16 +57,26 @@ impl DataObject {
             data_object.tail_entry_array_n_entries = tail_entry_array_n_entries;
         }
 
-        if compress_type.contains(&IncompatFlags::CompressedLz4) {
+        if compress_type == &ObjectFlag::CompressedLz4 {
             panic!("lz4!");
-        } else if compress_type.contains(&IncompatFlags::CompressedXz) {
+        } else if compress_type == &ObjectFlag::CompressedXz {
             panic!("xz!");
-        } else if compress_type.contains(&IncompatFlags::CompressedZstd) {
-            panic!("zstd!");
+        } else if compress_type == &ObjectFlag::CompressedZstd {
+            let decompress_result = decompress_zstd(input);
+            let decompress_data = match decompress_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[journal] Could not decompress zstd data: {err:?}");
+                    data_object.message = base64_encode_standard(input);
+                    return Ok((input, data_object));
+                }
+            };
+            let message = extract_utf8_string(&decompress_data);
+            data_object.message = message;
+        } else {
+            let message = extract_utf8_string(input);
+            data_object.message = message;
         }
-
-        let message = extract_utf8_string(input);
-        data_object.message = message;
 
         Ok((input, data_object))
     }
@@ -75,15 +85,10 @@ impl DataObject {
 #[cfg(test)]
 mod tests {
     use super::DataObject;
-    use crate::filesystem::files::file_reader;
-    use std::path::PathBuf;
+    use crate::artifacts::os::linux::journals::objects::header::ObjectFlag;
 
     #[test]
     fn test_parse_data_object() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
-
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let test_data = [
             46, 164, 30, 11, 52, 117, 233, 93, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176,
             12, 57, 0, 0, 0, 0, 0, 48, 20, 57, 0, 0, 0, 0, 0, 69, 1, 0, 0, 0, 0, 0, 0, 136, 200,
@@ -91,7 +96,7 @@ mod tests {
         ];
 
         let (_, result) =
-            DataObject::parse_data_object(&mut reader, &test_data, true, &[]).unwrap();
+            DataObject::parse_data_object(&test_data, true, &ObjectFlag::None).unwrap();
         assert_eq!(result.entry_array_offset, 3740720);
         assert_eq!(result.hash, 6767068781486187566);
         assert_eq!(result.next_field_offset, 0);

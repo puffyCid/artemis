@@ -221,7 +221,7 @@ mod tests {
         let strings = collect_strings_system().unwrap();
         let shared_strings = collect_shared_strings_system().unwrap();
         let timesync_data = collect_timesync_system().unwrap();
-        let mut output = output_options("unified_log_test", "json", "./tmp", false);
+        let mut output = output_options("unified_log_test", "local", "./tmp", false);
         let start_time = time::time_now();
         let sources = vec![String::from("Special")];
 

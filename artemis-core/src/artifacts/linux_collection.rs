@@ -10,6 +10,8 @@ use crate::utils::{
 };
 use log::{error, info, warn};
 
+use super::os::linux::artifacts::journals;
+
 /// Parse the TOML collector and get Linux artifact targets
 pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactError> {
     let collector_results = ArtemisToml::parse_artemis_toml_data(toml_data);
@@ -140,6 +142,16 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse system, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "journal" => {
+                let results = journals(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected journasls"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse journals, error: {err:?}");
                         continue;
                     }
                 }

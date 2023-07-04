@@ -1,3 +1,14 @@
+/**
+ * Linux Executable and Linkable Format `ELF` is the native executable format of Linux programs  
+ * We currently parse out basic amount of metadata
+ *
+ * References:  
+ *   `https://en.wikipedia.org/wiki/Executable_and_Linkable_Format`
+ *
+ * Other Parsers:  
+ *   `https://github.com/radareorg/radare2`  
+ *   `https://lief-project.github.io/`
+ */
 use crate::filesystem::files::{file_reader, file_too_large};
 use elf::endian::AnyEndian;
 use elf::ElfBytes;

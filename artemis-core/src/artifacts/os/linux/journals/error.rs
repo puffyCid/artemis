@@ -5,7 +5,10 @@ pub(crate) enum JournalError {
     SeekError,
     ReadError,
     ObjectHeader,
-    ObjectTypeArray,
+    Serialize,
+    ReaderError,
+    JournalHeader,
+    NotJournal,
 }
 
 impl std::error::Error for JournalError {}
@@ -16,7 +19,10 @@ impl fmt::Display for JournalError {
             JournalError::SeekError => write!(f, "Failed to seek to journal offset"),
             JournalError::ReadError => write!(f, "Failed to read journal data"),
             JournalError::ObjectHeader => write!(f, "Failed to parse object header"),
-            JournalError::ObjectTypeArray => write!(f, "Did not get object type array"),
+            JournalError::JournalHeader => write!(f, "Failed to parse journal header"),
+            JournalError::Serialize => write!(f, "Could not serialize data"),
+            JournalError::ReaderError => write!(f, "Could not create reader"),
+            JournalError::NotJournal => write!(f, "Not a journal file"),
         }
     }
 }
