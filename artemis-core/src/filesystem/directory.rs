@@ -1,5 +1,4 @@
 use super::{error::FileSystemError, files::list_files_directories};
-use log::error;
 use std::path::Path;
 
 /// Check if path is a directory
@@ -28,6 +27,8 @@ pub(crate) fn list_directories(path: &str) -> Result<Vec<String>, FileSystemErro
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
+    use log::error;
+
     let user_path_result = home::home_dir();
     let mut user_path = if let Some(result) = user_path_result {
         result
