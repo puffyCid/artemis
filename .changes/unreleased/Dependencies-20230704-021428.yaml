@@ -1,0 +1,3 @@
+kind: Dependencies
+body: Added lz4_flex for decompressing older Journal files
+time: 2023-07-04T02:14:28.805910114-04:00

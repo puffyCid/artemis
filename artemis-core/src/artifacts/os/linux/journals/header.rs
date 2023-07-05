@@ -6,30 +6,30 @@ use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct JournalHeader {
-    sig: u64,
-    compatible_flags: Vec<CompatFlags>,
+    _sig: u64,
+    _compatible_flags: Vec<CompatFlags>,
     pub(crate) incompatible_flags: Vec<IncompatFlags>,
-    state: State,
-    reserved: Vec<u8>,
-    file_id: u128,
-    machine_id: u128,
-    boot_id: u128,
-    seqnum_id: u128,
-    header_size: u64,
-    arena_size: u64,
-    data_hash_table_offset: u64,
-    data_hash_table_size: u64,
-    field_hash_table_offset: u64,
-    field_hash_table_size: u64,
-    tail_object_offset: u64,
-    n_objects: u64,
-    n_entries: u64,
-    tail_entry_seqnum: u64,
-    head_entry_seqnum: u64,
+    _state: State,
+    _reserved: Vec<u8>,
+    _file_id: u128,
+    _machine_id: u128,
+    _boot_id: u128,
+    _seqnum_id: u128,
+    _header_size: u64,
+    _arena_size: u64,
+    _data_hash_table_offset: u64,
+    _data_hash_table_size: u64,
+    _field_hash_table_offset: u64,
+    _field_hash_table_size: u64,
+    _tail_object_offset: u64,
+    _n_objects: u64,
+    _n_entries: u64,
+    _tail_entry_seqnum: u64,
+    _head_entry_seqnum: u64,
     pub(crate) entry_array_offset: u64,
-    head_entry_realtime: u64,
-    tail_entry_realtime: u64,
-    tail_entry_monotonic: u64,
+    _head_entry_realtime: u64,
+    _tail_entry_realtime: u64,
+    _tail_entry_monotonic: u64,
     /**Version 187. Header size 216 */
     n_data: u64,
     /**Version 187. Header size 216 */
@@ -107,30 +107,30 @@ impl JournalHeader {
         let version_252 = 264;
 
         let mut journal_header = JournalHeader {
-            sig,
-            compatible_flags: JournalHeader::compat_flags(&compatible_flags),
+            _sig: sig,
+            _compatible_flags: JournalHeader::compat_flags(&compatible_flags),
             incompatible_flags: JournalHeader::incompat_flags(&incompatible_flags),
-            state: JournalHeader::journal_state(&state),
-            reserved: reserved_data.to_vec(),
-            file_id,
-            machine_id,
-            boot_id,
-            seqnum_id,
-            header_size,
-            arena_size,
-            data_hash_table_offset,
-            data_hash_table_size,
-            field_hash_table_offset,
-            field_hash_table_size,
-            tail_object_offset,
-            n_objects,
-            n_entries,
-            tail_entry_seqnum,
-            head_entry_seqnum,
+            _state: JournalHeader::journal_state(&state),
+            _reserved: reserved_data.to_vec(),
+            _file_id: file_id,
+            _machine_id: machine_id,
+            _boot_id: boot_id,
+            _seqnum_id: seqnum_id,
+            _header_size: header_size,
+            _arena_size: arena_size,
+            _data_hash_table_offset: data_hash_table_offset,
+            _data_hash_table_size: data_hash_table_size,
+            _field_hash_table_offset: field_hash_table_offset,
+            _field_hash_table_size: field_hash_table_size,
+            _tail_object_offset: tail_object_offset,
+            _n_objects: n_objects,
+            _n_entries: n_entries,
+            _tail_entry_seqnum: tail_entry_seqnum,
+            _head_entry_seqnum: head_entry_seqnum,
             entry_array_offset,
-            head_entry_realtime,
-            tail_entry_realtime,
-            tail_entry_monotonic,
+            _head_entry_realtime: head_entry_realtime,
+            _tail_entry_realtime: tail_entry_realtime,
+            _tail_entry_monotonic: tail_entry_monotonic,
             n_data: 0,
             n_fields: 0,
             n_tags: 0,
@@ -271,21 +271,20 @@ mod tests {
             120, 59, 0, 174, 1, 0, 0,
         ];
         let (_, result) = JournalHeader::parse_header(&test_data).unwrap();
-        println!("{result:?}");
-        assert_eq!(result.sig, 5211307194293375052);
-        assert!(result.compatible_flags.is_empty());
+        assert_eq!(result._sig, 5211307194293375052);
+        assert!(result._compatible_flags.is_empty());
         assert_eq!(
             result.incompatible_flags,
             vec![KeyedHash, CompressedZstd, Compact]
         );
-        assert_eq!(result.state, State::Online);
-        assert_eq!(result.file_id, 0x7de6509883294001988a6fc028e128ec);
-        assert_eq!(result.machine_id, 0x2baf13cfb28b4c62a39a8d92e080c348);
-        assert_eq!(result.boot_id, 0x487df2a82dcf42889f6bfffda0d93181);
-        assert_eq!(result.seqnum_id, 0x9c59e07a1e4d4ae8b55752d99b33fde2);
-        assert_eq!(result.header_size, 264);
-        assert_eq!(result.n_objects, 2831);
-        assert_eq!(result.n_entries, 780);
+        assert_eq!(result._state, State::Online);
+        assert_eq!(result._file_id, 0x7de6509883294001988a6fc028e128ec);
+        assert_eq!(result._machine_id, 0x2baf13cfb28b4c62a39a8d92e080c348);
+        assert_eq!(result._boot_id, 0x487df2a82dcf42889f6bfffda0d93181);
+        assert_eq!(result._seqnum_id, 0x9c59e07a1e4d4ae8b55752d99b33fde2);
+        assert_eq!(result._header_size, 264);
+        assert_eq!(result._n_objects, 2831);
+        assert_eq!(result._n_entries, 780);
         assert_eq!(result.data_hash_chain_depth, 1);
         assert_eq!(result.tail_entry_array_n_entries, 430);
     }

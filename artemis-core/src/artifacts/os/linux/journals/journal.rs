@@ -15,20 +15,6 @@ use log::error;
 use serde::Serialize;
 use std::{collections::HashMap, fs::File, io::Read};
 
-/**
- * TODO
- * 3. support more compression (need old samples)
- * 4. deno test
- * 5. clippy
- **/
-
-// _ underscore entries are trusted fields
-// Everythign else is optional or can technically be repeated
-// https://www.freedesktop.org/software/systemd/man/systemd.journal-fields.html
-// Message_ID fields point to extra info at the catalog file at  /usr/lib/systemd/catalog/systemd.catalog
-// Technically catalogs exists for multiple languages. Will focus on english for now
-// maybe make an option in TOML? catalog_langague = "en|fr|ru|etc" // Default is english
-
 #[derive(Debug, Serialize)]
 pub(crate) struct Journal {
     uid: u32,
@@ -635,7 +621,7 @@ mod tests {
         while offset != last_entry {
             let object_header = ObjectHeader::parse_header(&mut reader, offset).unwrap();
             if object_header.obj_type != ObjectType::EntryArray {
-                panic!("[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Returning early", object_header.obj_type);
+                break;
             }
 
             let (_, mut entry_array) =

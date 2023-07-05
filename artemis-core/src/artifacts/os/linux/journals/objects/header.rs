@@ -63,9 +63,15 @@ impl ObjectHeader {
                 return Err(JournalError::ObjectHeader);
             }
         };
+        if header.obj_type == ObjectType::Unused {
+            return Ok(header);
+        }
 
         let header_meta_size = 16;
-        let mut payload_data: Vec<u8> = vec![0; (header.size - header_meta_size as u64) as usize];
+        if header.size < header_meta_size {
+            return Ok(header);
+        }
+        let mut payload_data: Vec<u8> = vec![0; (header.size - header_meta_size) as usize];
 
         if reader.read(&mut payload_data).is_err() {
             error!("[journal] Could not read payload datafrom object header");
@@ -84,10 +90,6 @@ impl ObjectHeader {
         let reserved_size: u8 = 6;
         let (input, reserved_data) = take(reserved_size)(input)?;
         let (input, size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-
-        // Size includes the header which we have already nom'd
-        //let adjust_size = 16;
-        //let (input, payload) = take(size - adjust_size)(input)?;
 
         let object_header = ObjectHeader {
             obj_type: ObjectHeader::object_type(&obj_type),

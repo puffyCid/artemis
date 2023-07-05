@@ -1,0 +1,3 @@
+kind: Dependencies
+body: Added xz2 for decompressing older Journal files
+time: 2023-07-04T23:52:44.096895548-04:00

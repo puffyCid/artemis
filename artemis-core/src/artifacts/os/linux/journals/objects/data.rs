@@ -1,6 +1,6 @@
 use super::header::ObjectFlag;
 use crate::utils::{
-    compression::decompress_zstd,
+    compression::{decompress_lz4, decompress_xz, decompress_zstd},
     encoding::base64_encode_standard,
     nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
     strings::extract_utf8_string,
@@ -9,12 +9,12 @@ use log::error;
 
 #[derive(Debug)]
 pub(crate) struct DataObject {
-    hash: u64,
-    next_hash_offset: u64,
-    next_field_offset: u64,
-    entry_offset: u64,
-    entry_array_offset: u64,
-    n_entries: u64,
+    _hash: u64,
+    _next_hash_offset: u64,
+    _next_field_offset: u64,
+    _entry_offset: u64,
+    _entry_array_offset: u64,
+    _n_entries: u64,
     tail_entry_array_offset: u32,
     tail_entry_array_n_entries: u32,
     /**May be compressed with XZ, LZ4, or ZSTD */
@@ -36,12 +36,12 @@ impl DataObject {
         let (mut input, n_entries) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         let mut data_object = DataObject {
-            hash,
-            next_hash_offset,
-            next_field_offset,
-            entry_offset,
-            entry_array_offset,
-            n_entries,
+            _hash: hash,
+            _next_hash_offset: next_hash_offset,
+            _next_field_offset: next_field_offset,
+            _entry_offset: entry_offset,
+            _entry_array_offset: entry_array_offset,
+            _n_entries: n_entries,
             tail_entry_array_offset: 0,
             tail_entry_array_n_entries: 0,
             message: String::new(),
@@ -58,16 +58,46 @@ impl DataObject {
         }
 
         if compress_type == &ObjectFlag::CompressedLz4 {
-            panic!("lz4!");
+            let (remaining_input, decom_size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+            let decompress_result = decompress_lz4(remaining_input, decom_size as usize);
+            let decompress_data = match decompress_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[journal] Could not decompress lz4 data: {err:?}");
+                    data_object.message = format!(
+                        "Failed to decompress lz4 data: {}",
+                        base64_encode_standard(input)
+                    );
+                    return Ok((input, data_object));
+                }
+            };
+            let message = extract_utf8_string(&decompress_data);
+            data_object.message = message;
         } else if compress_type == &ObjectFlag::CompressedXz {
-            panic!("xz!");
+            let decompress_result = decompress_xz(input);
+            let decompress_data = match decompress_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[journal] Could not decompress xz data: {err:?}");
+                    data_object.message = format!(
+                        "Failed to decompress xz data: {}",
+                        base64_encode_standard(input)
+                    );
+                    return Ok((input, data_object));
+                }
+            };
+            let message = extract_utf8_string(&decompress_data);
+            data_object.message = message;
         } else if compress_type == &ObjectFlag::CompressedZstd {
             let decompress_result = decompress_zstd(input);
             let decompress_data = match decompress_result {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[journal] Could not decompress zstd data: {err:?}");
-                    data_object.message = base64_encode_standard(input);
+                    data_object.message = format!(
+                        "Failed to decompress zstd data: {}",
+                        base64_encode_standard(input)
+                    );
                     return Ok((input, data_object));
                 }
             };
@@ -97,14 +127,14 @@ mod tests {
 
         let (_, result) =
             DataObject::parse_data_object(&test_data, true, &ObjectFlag::None).unwrap();
-        assert_eq!(result.entry_array_offset, 3740720);
-        assert_eq!(result.hash, 6767068781486187566);
-        assert_eq!(result.next_field_offset, 0);
-        assert_eq!(result.next_hash_offset, 0);
-        assert_eq!(result.n_entries, 325);
+        assert_eq!(result._entry_array_offset, 3740720);
+        assert_eq!(result._hash, 6767068781486187566);
+        assert_eq!(result._next_field_offset, 0);
+        assert_eq!(result._next_hash_offset, 0);
+        assert_eq!(result._n_entries, 325);
         assert_eq!(result.tail_entry_array_n_entries, 208);
         assert_eq!(result.tail_entry_array_offset, 3917960);
         assert_eq!(result.message, "PRIORITY=6");
-        assert_eq!(result.entry_offset, 3738800);
+        assert_eq!(result._entry_offset, 3738800);
     }
 }

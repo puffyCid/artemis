@@ -10,9 +10,9 @@ use std::fs::File;
 pub(crate) struct Entry {
     pub(crate) seqnum: u64,
     pub(crate) realtime: u64,
-    monotonic: u64,
-    boot_id: u128,
-    xor_hash: u64,
+    _monotonic: u64,
+    _boot_id: u128,
+    _xor_hash: u64,
     pub(crate) data_objects: Vec<DataObject>,
 }
 
@@ -33,16 +33,16 @@ impl Entry {
         let mut entry = Entry {
             seqnum,
             realtime,
-            monotonic,
-            boot_id,
-            xor_hash,
+            _monotonic: monotonic,
+            _boot_id: boot_id,
+            _xor_hash: xor_hash,
             data_objects: Vec::new(),
         };
         let min_size = 4;
         while !input.is_empty() && input.len() >= min_size {
             let (_hash, offset) = if !is_compact {
-                let (remaining_input, hash) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-                let (remaining_input, offset) =
+                let (remaining_input, offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+                let (remaining_input, hash) =
                     nom_unsigned_eight_bytes(remaining_input, Endian::Le)?;
                 input = remaining_input;
                 (hash, offset)
@@ -108,11 +108,11 @@ mod tests {
             57, 0, 48, 10, 57, 0, 216, 10, 57, 0, 136, 11, 57, 0, 24, 12, 57, 0,
         ];
         let (_, result) = Entry::parse_entry(&mut reader, &test_data, true).unwrap();
-        assert_eq!(result.boot_id, 0x762DF6838C590B903449FE57EF69A905);
+        assert_eq!(result._boot_id, 0x762DF6838C590B903449FE57EF69A905);
         assert_eq!(result.seqnum, 1677);
-        assert_eq!(result.monotonic, 69830830);
+        assert_eq!(result._monotonic, 69830830);
         assert_eq!(result.realtime, 1688346965559099);
-        assert_eq!(result.xor_hash, 5163019554081622815);
+        assert_eq!(result._xor_hash, 5163019554081622815);
         assert_eq!(result.data_objects.len(), 31);
         assert_eq!(result.data_objects[2].message, "TID=1712");
         assert_eq!(result.data_objects[8].message, "_TRANSPORT=journal");
