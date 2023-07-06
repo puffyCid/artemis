@@ -5,7 +5,7 @@ use super::{
     },
     os::{
         macos::artifacts::{execpolicy, groups, processes, systeminfo, unifiedlogs, users},
-        unix::artifacts::{bash_history, cron_job, python_history},
+        unix::artifacts::{bash_history, cron_job, python_history, sudo_logs},
     },
     os::{macos::error::MacArtifactError, unix::artifacts::zsh_history},
 };
@@ -253,6 +253,18 @@ pub(crate) fn macos_collection(toml_data: &[u8]) -> Result<(), MacArtifactError>
                     Ok(_) => info!("Collected macOS cron"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse macOS cron data, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "sudologs" => {
+                let results = sudo_logs(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected macOS sudo logs"),
+                    Err(err) => {
+                        error!(
+                            "[artemis-core] Failed to parse macOS sudo log data, error: {err:?}"
+                        );
                         continue;
                     }
                 }

@@ -1,8 +1,11 @@
+#[cfg(target_os = "linux")]
+use super::sudo::linux::grab_sudo_logs;
+#[cfg(target_os = "macos")]
+use super::sudo::macos::grab_sudo_logs;
 use super::{
     cron::crontab,
     error::UnixArtifactError,
     shell_history::{bash::BashHistory, python::PythonHistory, zsh::ZshHistory},
-    sudo::linux::grab_sudo_logs,
 };
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},

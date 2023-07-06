@@ -1,4 +1,8 @@
-use crate::{artifacts::os::unix::sudo::linux::grab_sudo_logs, runtime::error::RuntimeError};
+#[cfg(target_os = "linux")]
+use crate::artifacts::os::unix::sudo::linux::grab_sudo_logs;
+#[cfg(target_os = "macos")]
+use crate::artifacts::os::unix::sudo::macos::grab_sudo_logs;
+use crate::runtime::error::RuntimeError;
 use deno_core::{error::AnyError, op};
 use log::error;
 
