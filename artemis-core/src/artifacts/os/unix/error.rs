@@ -10,6 +10,7 @@ pub enum UnixArtifactError {
     Output,
     FilterOutput,
     Format,
+    SudoLog,
 }
 
 impl std::error::Error for UnixArtifactError {}
@@ -25,6 +26,7 @@ impl fmt::Display for UnixArtifactError {
             UnixArtifactError::Output => write!(f, "Failed to output unix data"),
             UnixArtifactError::FilterOutput => write!(f, "Failed to filter unix data"),
             UnixArtifactError::Format => write!(f, "Unknown format provided"),
+            UnixArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
         }
     }
 }

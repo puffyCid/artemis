@@ -1,5 +1,5 @@
-mod error;
+pub(crate) mod error;
 mod header;
-mod journal;
+pub(crate) mod journal;
 mod objects;
 pub(crate) mod parser;

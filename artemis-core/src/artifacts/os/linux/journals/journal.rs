@@ -20,7 +20,7 @@ pub(crate) struct Journal {
     uid: u32,
     gid: u32,
     pid: usize,
-    comm: String,
+    pub(crate) comm: String,
     priority: Priority,
     syslog_facility: Facility,
     thread_id: usize,
