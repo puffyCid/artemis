@@ -1,3 +1,7 @@
+#[cfg(target_os = "linux")]
+use super::sudo::linux::grab_sudo_logs;
+#[cfg(target_os = "macos")]
+use super::sudo::macos::grab_sudo_logs;
 use super::{
     cron::crontab,
     error::UnixArtifactError,
@@ -114,6 +118,32 @@ pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArt
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse sudo logs on a Unix system
+pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
+    let start_time = time::time_now();
+
+    let cron_results = grab_sudo_logs();
+    let cron_data = match cron_results {
+        Ok(results) => results,
+        Err(err) => {
+            warn!("[artemis-core] Artemis unix failed to get sudo log data: {err:?}");
+            return Err(UnixArtifactError::SudoLog);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            return Err(UnixArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "sudologs";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 // Output unix artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -173,12 +203,13 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
+    use super::output_data;
     use crate::{
-        artifacts::os::unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
+        artifacts::os::unix::artifacts::{
+            bash_history, cron_job, python_history, sudo_logs, zsh_history,
+        },
         utils::{artemis_toml::Output, time},
     };
-
-    use super::output_data;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -225,6 +256,14 @@ mod tests {
         let mut output = output_options("cron", "local", "./tmp", false);
 
         let status = cron_job(&mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_sudo_logs() {
+        let mut output = output_options("sudologs", "local", "./tmp", false);
+
+        let status = sudo_logs(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

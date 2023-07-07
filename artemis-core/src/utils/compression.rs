@@ -76,7 +76,7 @@ pub(crate) fn decompress_lz4(data: &[u8], decom_size: usize) -> Result<Vec<u8>, 
 }
 
 #[cfg(target_os = "linux")]
-/// Decompress lz4 data
+/// Decompress xz data
 pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     use std::io::Read;
     use xz2::read::XzDecoder;

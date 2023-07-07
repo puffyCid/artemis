@@ -11,6 +11,7 @@ use crate::utils::{
 use log::{error, info, warn};
 
 use super::os::linux::artifacts::journals;
+use super::os::unix::artifacts::sudo_logs;
 
 /// Parse the TOML collector and get Linux artifact targets
 pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactError> {
@@ -45,9 +46,21 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
             "cron" => {
                 let results = cron_job(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected macOS cron"),
+                    Ok(_) => info!("Collected Linux cron"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse macOS cron data, error: {err:?}");
+                        error!("[artemis-core] Failed to parse Linux cron data, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "sudologs" => {
+                let results = sudo_logs(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Linux sudo logs"),
+                    Err(err) => {
+                        error!(
+                            "[artemis-core] Failed to parse Linux sudo log data, error: {err:?}"
+                        );
                         continue;
                     }
                 }
