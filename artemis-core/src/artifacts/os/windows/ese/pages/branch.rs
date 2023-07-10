@@ -205,6 +205,9 @@ impl BranchPage {
                 }
                 TableDump::parse_row(leaf_row, column_info);
                 column_rows.push(column_info.to_vec());
+
+                // Now clear column data so when we go to next row we have no leftover data from previous row
+                TableDump::clear_column_data(column_info);
                 continue;
             }
 

@@ -99,6 +99,8 @@ pub(crate) fn grab_search_path(path: &str) -> Result<Vec<SearchEntry>, SearchErr
 #[cfg(test)]
 mod tests {
     use super::grab_search;
+    use super::grab_search_path;
+    use crate::filesystem::files::is_file;
     use crate::{structs::artifacts::os::windows::SearchOptions, utils::artemis_toml::Output};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -119,11 +121,24 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Can take a long time"]
     fn test_grab_search() {
         let mut output = output_options("search_temp", "local", "./tmp", false);
         let options = SearchOptions { alt_path: None };
 
         grab_search(&options, &mut output, &false).unwrap();
+    }
+
+    #[test]
+    #[ignore = "Can take a long time"]
+    fn test_grab_search_path() {
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(test_path) {
+            return;
+        }
+
+        let results = grab_search_path(test_path).unwrap();
+        assert!(results.len() > 20);
     }
 }

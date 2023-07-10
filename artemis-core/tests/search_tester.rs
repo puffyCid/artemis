@@ -1,7 +1,6 @@
 #[test]
-#[ignore = "Can take a long time"]
 #[cfg(target_os = "windows")]
-fn test_search() {
+fn test_search_parser() {
     use std::path::PathBuf;
 
     use artemis_core::core::parse_toml_file;
