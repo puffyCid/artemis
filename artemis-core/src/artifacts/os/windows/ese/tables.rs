@@ -710,7 +710,7 @@ impl TableDump {
     }
 
     /// Clear column data so when we go to the next row there is no leftover data from previous row
-    fn clear_column_data(column_info: &mut [ColumnInfo]) {
+    pub(crate) fn clear_column_data(column_info: &mut [ColumnInfo]) {
         for (_, entry) in column_info.iter_mut().enumerate() {
             entry.column_data.clear();
         }
