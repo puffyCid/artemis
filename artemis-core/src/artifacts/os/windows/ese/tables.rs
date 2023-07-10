@@ -112,7 +112,6 @@ impl TableDump {
     ) -> nom::IResult<&'a [u8], HashMap<String, Vec<Vec<TableDump>>>> {
         let (_, db_header) = EseHeader::parse_header(data)?;
         let (_, catalog) = Catalog::grab_catalog(data, db_header.page_size)?;
-
         let mut info = TableInfo {
             obj_id_table: 0,
             table_page: 0,
@@ -262,8 +261,9 @@ impl TableDump {
         // And update the data
         for column_row in &mut column_rows {
             for column in column_row {
-                if column.column_type == ColumnType::LongBinary
-                    || column.column_type == ColumnType::LongText
+                if (column.column_type == ColumnType::LongBinary
+                    || column.column_type == ColumnType::LongText)
+                    && !column.column_data.is_empty()
                 {
                     for (key, value) in &long_values {
                         let mut col = column.column_data.clone();
@@ -394,7 +394,6 @@ impl TableDump {
                     || flags.contains(&ColumnFlags::Compressed)
                 {
                     let (_, decompressed_data) = TableDump::get_decompressed_data(data)?;
-
                     base64_encode_standard(&decompressed_data)
                 } else {
                     base64_encode_standard(data)

@@ -121,7 +121,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Can take a long time"]
     fn test_grab_search() {
         let mut output = output_options("search_temp", "local", "./tmp", false);
         let options = SearchOptions { alt_path: None };
