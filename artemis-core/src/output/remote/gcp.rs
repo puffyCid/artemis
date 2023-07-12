@@ -31,10 +31,14 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
         return Err(RemoteError::RemoteApiKey);
     };
 
-    let mut gcp_output = format!(
-        "{}%2F{}%2F{filename}.{}",
-        output.directory, output.name, output.format
-    );
+    let mut gcp_output = if filename.ends_with(".log") {
+        format!("{}%2F{}%2F{filename}", output.directory, output.name)
+    } else {
+        format!(
+            "{}%2F{}%2F{filename}.{}",
+            output.directory, output.name, output.format
+        )
+    };
     let mut header_value = "application/json-seq";
     let output_data = if output.compress {
         gcp_output = format!("{gcp_output}.gz");

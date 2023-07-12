@@ -16,10 +16,14 @@ pub(crate) fn azure_upload(
     };
 
     let mut header_value = "application/json-seq";
-    let mut azure_filename = format!(
-        "{}%2F{}%2F{filename}.{}",
-        output.directory, output.name, output.format
-    );
+    let mut azure_filename = if filename.ends_with(".log") {
+        format!("{}%2F{}%2F{filename}", output.directory, output.name)
+    } else {
+        format!(
+            "{}%2F{}%2F{filename}.{}",
+            output.directory, output.name, output.format
+        )
+    };
     let output_data = if output.compress {
         azure_filename = format!("{azure_filename}.gz");
         header_value = "application/gzip";
