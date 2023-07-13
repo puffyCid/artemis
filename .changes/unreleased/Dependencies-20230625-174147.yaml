@@ -1,3 +1,0 @@
-kind: Dependencies
-body: Added rusty-s3, jsonwebtoken, reqwest for remote upload support. elf for ELF parsing
-time: 2023-06-25T17:41:47.87279-04:00
