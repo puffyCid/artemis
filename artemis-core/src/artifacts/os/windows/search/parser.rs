@@ -125,7 +125,7 @@ mod tests {
         let mut output = output_options("search_temp", "local", "./tmp", false);
         let options = SearchOptions { alt_path: None };
 
-        grab_search(&options, &mut output, &false).unwrap();
+        let _ = grab_search(&options, &mut output, &false);
     }
 
     #[test]

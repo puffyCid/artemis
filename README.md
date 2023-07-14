@@ -1,7 +1,7 @@
 # artemis
 
 artemis is a powerful command line digital forensic and incident response (DFIR)
-tool that collects forensic data from Windows and macOS endpoints. Its primary
+tool that collects forensic data from Windows, macOS, and Linux endpoints. Its primary
 focus is: speed, ease of use, and low resource usage.\
 Notable features _so far_:
 
