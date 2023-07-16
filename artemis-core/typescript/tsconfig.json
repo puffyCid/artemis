@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ESNext",
+        "outDir": "../javascript"
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

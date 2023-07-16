@@ -32,7 +32,6 @@ rusty-s3 = "0.4.1"
 
 # Deno Runtime integration
 deno_core = {version = "0.190.0"}
-deno_runtime = {version = "0.116.0"}
 tokio = {version = "1.28.2"}
 
 # Windows Dependencies
@@ -53,6 +52,10 @@ xz2 = {version = "0.1.7", default-features = false, features = ["static"]}
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev= "cd06f6ce8b531fca966248ad24b8fbb3b5efa361" }
 plist = "1.4.3"
+
+# Dependencies at compile time
+[build-dependencies]
+deno_core = {version = "0.190.0"}
 
 # Dependencies for tests
 [dev-dependencies]
