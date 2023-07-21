@@ -2,7 +2,7 @@ use crate::artifacts::os::linux::journals::parser::grab_journal_file;
 use deno_core::{error::AnyError, op};
 
 #[op]
-/// Expose parsing elf file  to `Deno`
+/// Expose parsing journal file  to `Deno`
 fn get_journal(path: String) -> Result<String, AnyError> {
     let elf_results = grab_journal_file(&path);
     let elf_data = match elf_results {

@@ -2,14 +2,10 @@ use crate::runtime::error::RuntimeError;
 use deno_core::error::AnyError;
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::Local;
-use deno_core::{FsModuleLoader, Extension, include_js_files, Snapshot};
-use deno_core::{resolve_path, JsRuntime, RuntimeOptions};
-
+use deno_core::{FsModuleLoader, JsRuntime, RuntimeOptions, Snapshot};
 use log::error;
 use serde_json::Value;
-use std::env::current_dir;
 use std::rc::Rc;
-use std::sync::Arc;
 
 #[cfg(target_os = "macos")]
 use super::macos::extensions::setup_extensions;
@@ -27,6 +23,28 @@ static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS
 pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
     let mut runtime = create_worker_options(args)?;
 
+    /*
+     // We already have the script data, so create a dummy path
+     let uri_result = resolve_path("", &current_dir()?);
+     let dummy_uri = match uri_result {
+         Ok(result) => result,
+         Err(err) => {
+             error!("[runtime] Could not create dummy URI: {err:?}");
+             return Err(RuntimeError::CreateUri.into());
+         }
+     };
+     let id = runtime
+         .load_main_module(&dummy_uri, Some(script.to_string().into()))
+         .await?;
+     let reciver = runtime.mod_evaluate(id);
+     println!("waiting???");
+     runtime.run_event_loop(false).await?;
+
+    reciver.await?;
+    println!("done?");
+     return Ok(());
+     */
+
     // Need Convert script string into a FastString: https://docs.rs/deno_core/0.180.0/deno_core/enum.FastString.html
     let script_result = runtime.execute_script("deno", script.to_string().into());
     let script_output = match script_result {
@@ -36,7 +54,7 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    runtime.run_event_loop(false).await?;
+    // runtime.run_event_loop(false).await?;
 
     let mut scope = runtime.handle_scope();
     let local = Local::new(&mut scope, script_output);
@@ -53,10 +71,9 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
 
 /// Handle Javascript errors
 fn get_error_class_name(e: &AnyError) -> &'static str {
-    deno_core::error::get_custom_error_class(e)
-        .unwrap_or("[runtime] script execution class error")
+    println!("Err: {e:?}");
+    deno_core::error::get_custom_error_class(e).unwrap_or("[runtime] script execution class error")
 }
-
 
 /// Create the Deno runtime worker options. Pass optional args
 fn create_worker_options(optional_args: &[String]) -> Result<JsRuntime, AnyError> {
@@ -67,7 +84,7 @@ fn create_worker_options(optional_args: &[String]) -> Result<JsRuntime, AnyError
         get_error_class_fn: Some(&get_error_class_name),
         module_loader: Some(module_loader),
         extensions: setup_extensions(),
-        startup_snapshot:Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
+        startup_snapshot: Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
         create_params: None,
         v8_platform: Default::default(),
         shared_array_buffer_store: Default::default(),

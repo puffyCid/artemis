@@ -14,8 +14,8 @@ use super::{
     unifiedlogs::get_unified_log,
 };
 use crate::runtime::{
-    applications::extensions::app_functions, system::extensions::system_functions,
-    unix::extensions::unix_functions,
+    applications::extensions::app_functions, filesystem::extensions::fs_runtime,
+    system::extensions::system_functions, unix::extensions::unix_functions,
 };
 use deno_core::Extension;
 
@@ -48,6 +48,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
     exts.append(&mut system_functions());
+
+    exts.append(&mut fs_runtime());
     exts
 }
 
