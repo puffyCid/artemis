@@ -30,5 +30,24 @@ class FileSystem {
     stat = (path) => {
         return core.ops.js_stat(path);
     };
+    /**
+     * Return hashes for a single file
+     * @param path File to hash
+     * @param md5 Enable MD5 hashing
+     * @param sha1 Enable SHA1 hashing
+     * @param sha256 Enable SHA256 hashing
+     * @returns Collection of hashes
+     */
+    hash = (path, md5, sha1, sha256) => {
+        return core.ops.js_hash_file(path, md5, sha1, sha256);
+    };
+    /**
+     * Read a text file. Currently only files less than 2GB in size can be read
+     * @param path Text file to read
+     * @returns String containing text of file
+     */
+    readTextFile = (path) => {
+        return core.ops.js_read_text_file(path);
+    };
 }
 export const filesystem = new FileSystem();

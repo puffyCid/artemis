@@ -8,18 +8,19 @@ use crate::runtime::applications::{
         get_firefox_users_history,
     },
 };
+use deno_core::Op;
 
 /// Link Rust functions to `Deno core`
 pub(crate) fn app_functions() -> Vec<deno_core::OpDecl> {
     vec![
-        get_firefox_users_history::decl(),
-        get_firefox_history::decl(),
-        get_firefox_users_downloads::decl(),
-        get_firefox_downloads::decl(),
-        get_chromium_users_history::decl(),
-        get_chromium_history::decl(),
-        get_chromium_users_downloads::decl(),
-        get_chromium_downloads::decl(),
+        get_firefox_users_history::DECL,
+        get_firefox_history::DECL,
+        get_firefox_users_downloads::DECL,
+        get_firefox_downloads::DECL,
+        get_chromium_users_history::DECL,
+        get_chromium_history::DECL,
+        get_chromium_users_downloads::DECL,
+        get_chromium_downloads::DECL,
     ]
 }
 

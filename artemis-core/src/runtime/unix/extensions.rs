@@ -3,15 +3,16 @@ use crate::runtime::unix::{
     shellhistory::{get_bash_history, get_python_history, get_zsh_history},
     sudo::get_sudologs,
 };
+use deno_core::Op;
 
 /// Link Rust functions to `Deno core`
 pub(crate) fn unix_functions() -> Vec<deno_core::OpDecl> {
     vec![
-        get_cron::decl(),
-        get_bash_history::decl(),
-        get_zsh_history::decl(),
-        get_python_history::decl(),
-        get_sudologs::decl(),
+        get_cron::DECL,
+        get_bash_history::DECL,
+        get_zsh_history::DECL,
+        get_python_history::DECL,
+        get_sudologs::DECL,
     ]
 }
 

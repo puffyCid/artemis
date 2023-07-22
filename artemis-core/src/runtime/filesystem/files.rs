@@ -1,8 +1,6 @@
-// read text file
-
 use super::directory::JsFileInfo;
 use crate::filesystem::{
-    files::{file_extension, get_filename, hash_file, Hashes},
+    files::{file_extension, get_filename, hash_file, read_text_file, Hashes},
     metadata::{get_metadata, get_timestamps},
 };
 use deno_core::{error::AnyError, op};
@@ -20,7 +18,7 @@ fn js_stat(path: String) -> Result<JsFileInfo, AnyError> {
         extension: file_extension(&path),
         directory: Path::new(&path)
             .parent()
-            .unwrap_or_else(|| &Path::new(""))
+            .unwrap_or_else(|| Path::new(""))
             .display()
             .to_string(),
         full_path: path,
@@ -53,12 +51,18 @@ struct HashInfo {
 fn js_hash_file(path: String, md5: bool, sha1: bool, sha256: bool) -> HashInfo {
     let hashes = Hashes { md5, sha1, sha256 };
     let (md5_value, sha1_value, sha256_value) = hash_file(&hashes, &path);
-    let info = HashInfo {
+    HashInfo {
         md5: md5_value,
         sha1: sha1_value,
         sha256: sha256_value,
-    };
-    info
+    }
+}
+
+#[op]
+/// Read a text file at provided path. Currently only files smaller than 2GB can be read
+fn js_read_text_file(path: String) -> Result<String, AnyError> {
+    let data = read_text_file(&path)?;
+    Ok(data)
 }
 
 #[cfg(test)]
@@ -115,6 +119,41 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("stat_path"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_js_hash_file() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGZzLnJlYWREaXIocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gaGFzaChwYXRoLCBtZDUsIHNoYTEsIHNoYTI1NikgewogIGNvbnN0IGRhdGEgPSBmcy5oYXNoKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIi8iOwogIGNvbnN0IGZpbGVzID0gcmVhZERpcihzdGFydCk7CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("hash_files"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_js_hash_file() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGZzLnJlYWREaXIocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gaGFzaChwYXRoLCBtZDUsIHNoYTEsIHNoYTI1NikgewogIGNvbnN0IGRhdGEgPSBmcy5oYXNoKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIkM6XFwiOwogIGNvbnN0IGZpbGVzID0gcmVhZERpcihzdGFydCk7CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("hash_files"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_js_read_text_file() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkVGV4dEZpbGUocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRoID0gIi9ldGMvcmVzb2x2LmNvbmYiOwogIGNvbnN0IGRhdGEgPSByZWFkVGV4dEZpbGUocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("read_text"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

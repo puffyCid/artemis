@@ -19,7 +19,7 @@ use super::{
 use crate::runtime::{
     applications::extensions::app_functions, system::extensions::system_functions,
 };
-use deno_core::Extension;
+use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_extensions() -> Vec<Extension> {
@@ -30,34 +30,34 @@ pub(crate) fn setup_extensions() -> Vec<Extension> {
 /// Link Rust functions to `Deno core`
 fn grab_functions() -> Vec<deno_core::OpDecl> {
     let mut exts = vec![
-        get_alt_shimcache::decl(),
-        get_shimcache::decl(),
-        get_registry::decl(),
-        get_eventlogs::decl(),
-        get_lnk_file::decl(),
-        get_usnjrnl::decl(),
-        get_alt_usnjrnl::decl(),
-        get_shellbags::decl(),
-        get_alt_shellbags::decl(),
-        read_raw_file::decl(),
-        read_ads_data::decl(),
-        get_pe::decl(),
-        get_prefetch::decl(),
-        get_alt_prefetch::decl(),
-        get_prefetch_path::decl(),
-        get_userassist::decl(),
-        get_alt_userassist::decl(),
-        get_amcache::decl(),
-        get_alt_amcache::decl(),
-        get_shimdb::decl(),
-        get_alt_shimdb::decl(),
-        get_custom_shimdb::decl(),
-        get_bits::decl(),
-        get_bits_path::decl(),
-        get_srum::decl(),
-        get_users::decl(),
-        get_alt_users::decl(),
-        get_search::decl(),
+        get_alt_shimcache::DECL,
+        get_shimcache::DECL,
+        get_registry::DECL,
+        get_eventlogs::DECL,
+        get_lnk_file::DECL,
+        get_usnjrnl::DECL,
+        get_alt_usnjrnl::DECL,
+        get_shellbags::DECL,
+        get_alt_shellbags::DECL,
+        read_raw_file::DECL,
+        read_ads_data::DECL,
+        get_pe::DECL,
+        get_prefetch::DECL,
+        get_alt_prefetch::DECL,
+        get_prefetch_path::DECL,
+        get_userassist::DECL,
+        get_alt_userassist::DECL,
+        get_amcache::DECL,
+        get_alt_amcache::DECL,
+        get_shimdb::DECL,
+        get_alt_shimdb::DECL,
+        get_custom_shimdb::DECL,
+        get_bits::DECL,
+        get_bits_path::DECL,
+        get_srum::DECL,
+        get_users::DECL,
+        get_alt_users::DECL,
+        get_search::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

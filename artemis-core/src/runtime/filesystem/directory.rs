@@ -55,7 +55,7 @@ async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
             directory: entry
                 .path()
                 .parent()
-                .unwrap_or_else(|| &Path::new(""))
+                .unwrap_or_else(|| Path::new(""))
                 .display()
                 .to_string(),
             created: timestamps.created,

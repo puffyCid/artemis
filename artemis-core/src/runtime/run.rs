@@ -28,7 +28,7 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
-            panic!("[runtime] Could not execute script: {err:?}");
+            error!("[runtime] Could not execute script: {err:?}");
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
@@ -96,6 +96,7 @@ fn create_worker_options(optional_args: &[String]) -> Result<JsRuntime, AnyError
         compiled_wasm_module_store: None,
         inspector: false,
         is_main: Default::default(),
+        preserve_snapshotted_modules: None,
     });
 
     Ok(runtime)

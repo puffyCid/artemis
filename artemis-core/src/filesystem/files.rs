@@ -4,6 +4,7 @@ use md5::{Digest, Md5};
 use serde::Deserialize;
 use sha1::Sha1;
 use sha2::Sha256;
+use std::fs::read_to_string;
 use std::io::{BufRead, BufReader, Lines};
 use std::{
     fs::{read, read_dir, File},
@@ -75,6 +76,14 @@ pub(crate) fn read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     file_read(path)
 }
 
+/// Read a text file that is less that 2GB in size
+pub(crate) fn read_text_file(path: &str) -> Result<String, FileSystemError> {
+    if file_too_large(path) {
+        return Err(FileSystemError::LargeFile);
+    }
+    file_read_text(path)
+}
+
 /// Return a `Lines<BufReader>` to iterate through a text file
 pub(crate) fn file_lines(path: &str) -> Result<Lines<BufReader<File>>, FileSystemError> {
     let reader = file_reader(path)?;
@@ -123,6 +132,22 @@ fn file_read(path: &str) -> Result<Vec<u8>, FileSystemError> {
         Ok(result) => Ok(result),
         Err(err) => {
             error!("[artemis-core] Failed to read file {path}: {err:?}");
+            Err(FileSystemError::ReadFile)
+        }
+    }
+}
+
+fn file_read_text(path: &str) -> Result<String, FileSystemError> {
+    // Verify provided path is a file
+    if !is_file(path) {
+        return Err(FileSystemError::NotFile);
+    }
+
+    let data = read_to_string(path);
+    match data {
+        Ok(result) => Ok(result),
+        Err(err) => {
+            error!("[artemis-core] Failed to read text file {path}: {err:?}");
             Err(FileSystemError::ReadFile)
         }
     }
@@ -303,8 +328,8 @@ pub(crate) fn get_filename(path: &str) -> String {
 mod tests {
     use super::{file_too_large, is_file, list_files_directories};
     use crate::filesystem::files::{
-        file_extension, file_lines, file_reader, get_file_size, get_filename, hash_file,
-        list_files, read_file, Hashes,
+        file_extension, file_lines, file_read_text, file_reader, get_file_size, get_filename,
+        hash_file, list_files, read_file, read_text_file, Hashes,
     };
     use std::path::PathBuf;
 
@@ -383,6 +408,26 @@ mod tests {
         let result = read_file(&test_location.display().to_string()).unwrap();
 
         assert_eq!(result.len(), 23);
+    }
+
+    #[test]
+    fn test_read_text_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system/files/test.txt");
+
+        let result = read_text_file(&test_location.display().to_string()).unwrap();
+
+        assert_eq!(result, "hello, world! Its Rust!");
+    }
+
+    #[test]
+    fn test_file_read_text() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system/files/test.txt");
+
+        let result = file_read_text(&test_location.display().to_string()).unwrap();
+
+        assert_eq!(result, "hello, world! Its Rust!");
     }
 
     #[test]
