@@ -137,6 +137,7 @@ fn file_read(path: &str) -> Result<Vec<u8>, FileSystemError> {
     }
 }
 
+/// Read a whole text file into a string
 fn file_read_text(path: &str) -> Result<String, FileSystemError> {
     // Verify provided path is a file
     if !is_file(path) {

@@ -21,7 +21,11 @@ static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS
 #[tokio::main]
 /// Execute the decoded Javascript and return a serde_json Value
 pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
-    let mut runtime = create_worker_options(args)?;
+    let mut runtime = create_worker_options()?;
+
+    // Scripts executed via `execute_script` are run in a global context.
+    let scripts_args = format!("const STATIC_ARGS = {args:?}");
+    let _ = runtime.execute_script("script_args", scripts_args.into())?;
 
     // Need Convert script string into a FastString: https://docs.rs/deno_core/0.180.0/deno_core/enum.FastString.html
     let script_result = runtime.execute_script("deno", script.to_string().into());
@@ -49,7 +53,11 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
 #[tokio::main]
 /// Execute the decoded async Javascript and return the data asynchronously
 pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
-    let mut runtime = create_worker_options(args)?;
+    let mut runtime = create_worker_options()?;
+
+    // Scripts executed via `execute_script` are run in a global context.
+    let scripts_args = format!("const STATIC_ARGS = {args:?}");
+    let _ = runtime.execute_script("script_args", scripts_args.into())?;
 
     let script_result = runtime.execute_script("deno", script.to_string().into());
     let script_output = match script_result {
@@ -81,7 +89,7 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 }
 
 /// Create the Deno runtime worker options. Pass optional args
-fn create_worker_options(optional_args: &[String]) -> Result<JsRuntime, AnyError> {
+fn create_worker_options() -> Result<JsRuntime, AnyError> {
     let module_loader = Rc::new(FsModuleLoader);
 
     let runtime = JsRuntime::new(RuntimeOptions {
@@ -109,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_create_worker_options() {
-        let results = create_worker_options(&[]).unwrap();
+        let results = create_worker_options().unwrap();
         assert_eq!(results.extensions().len(), 2);
     }
 
