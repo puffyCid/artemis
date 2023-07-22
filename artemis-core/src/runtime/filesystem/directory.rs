@@ -9,7 +9,8 @@ use crate::{
 use deno_core::{error::AnyError, op};
 use log::error;
 use serde::Serialize;
-use std::{fs::read_dir, path::Path};
+use std::path::Path;
+use tokio::fs::read_dir;
 
 #[derive(Serialize, Debug)]
 pub(crate) struct JsFileInfo {
@@ -32,16 +33,17 @@ pub(crate) struct JsFileInfo {
 }
 
 #[op]
-fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
+/// List all files and directories at provided directory path
+async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
     if !is_directory(&path) {
         error!("[runtime] Path is not a directory");
         return Err(RuntimeError::ExecuteScript.into());
     }
 
-    let mut dir = read_dir(&path)?;
+    let mut dir = read_dir(&path).await?;
 
     let mut files: Vec<JsFileInfo> = Vec::new();
-    while let Some(Ok(entry)) = dir.next() {
+    while let Some(entry) = dir.next_entry().await? {
         let full_path = entry.path().display().to_string();
         let timestamps = get_timestamps(&full_path)?;
         let meta = get_metadata(&full_path)?;
@@ -109,7 +111,19 @@ mod tests {
     #[test]
     #[cfg(target_family = "unix")]
     fn test_read_dir_root() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkRGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiLyI7CiAgY29uc3QgZmlsZXMgPSByZWFkRGlyKHN0YXJ0KTsKICBjb25zb2xlLmxvZyhmaWxlcyk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgY29uc29sZS5sb2coInZhbHVlOiAiICsgZW50cnkuZnVsbF9wYXRoKTsKICAgIGNvbnNvbGUubG9nKGVudHJ5KTsKICB9Cn0KbWFpbigpOwo=";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkRGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiLyI7CiAgY29uc3QgZmlsZXMgPSByZWFkRGlyKHN0YXJ0KTsKICBjb25zdCBkYXRhID0gW107CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKHR5cGVvZiBlbnRyeS5pbm9kZSA9PT0gImJpZ2ludCIpIHsKICAgICAgZW50cnkuaW5vZGUgPSBlbnRyeS5pbm9kZS50b1N0cmluZygpOwogICAgfQogICAgZGF0YS5wdXNoKGVudHJ5KTsKICB9CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("root_list"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_dir_root() {
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkRGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiQzpcXCI7CiAgY29uc3QgZmlsZXMgPSByZWFkRGlyKHN0YXJ0KTsKICBjb25zdCBkYXRhID0gW107CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKHR5cGVvZiBlbnRyeS5pbm9kZSA9PT0gImJpZ2ludCIpIHsKICAgICAgZW50cnkuaW5vZGUgPSBlbnRyeS5pbm9kZS50b1N0cmluZygpOwogICAgfQogICAgZGF0YS5wdXNoKGVudHJ5KTsKICB9CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("root_list"),

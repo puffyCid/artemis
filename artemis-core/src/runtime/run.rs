@@ -23,38 +23,15 @@ static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS
 pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
     let mut runtime = create_worker_options(args)?;
 
-    /*
-     // We already have the script data, so create a dummy path
-     let uri_result = resolve_path("", &current_dir()?);
-     let dummy_uri = match uri_result {
-         Ok(result) => result,
-         Err(err) => {
-             error!("[runtime] Could not create dummy URI: {err:?}");
-             return Err(RuntimeError::CreateUri.into());
-         }
-     };
-     let id = runtime
-         .load_main_module(&dummy_uri, Some(script.to_string().into()))
-         .await?;
-     let reciver = runtime.mod_evaluate(id);
-     println!("waiting???");
-     runtime.run_event_loop(false).await?;
-
-    reciver.await?;
-    println!("done?");
-     return Ok(());
-     */
-
     // Need Convert script string into a FastString: https://docs.rs/deno_core/0.180.0/deno_core/enum.FastString.html
     let script_result = runtime.execute_script("deno", script.to_string().into());
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute script: {err:?}");
+            panic!("[runtime] Could not execute script: {err:?}");
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    // runtime.run_event_loop(false).await?;
 
     let mut scope = runtime.handle_scope();
     let local = Local::new(&mut scope, script_output);
@@ -69,9 +46,37 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
     Ok(script_value)
 }
 
+#[tokio::main]
+/// Execute the decoded async Javascript and return the data asynchronously
+pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
+    let mut runtime = create_worker_options(args)?;
+
+    let script_result = runtime.execute_script("deno", script.to_string().into());
+    let script_output = match script_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not execute script: {err:?}");
+            return Err(RuntimeError::ExecuteScript.into());
+        }
+    };
+    // Wait for async script to return any value
+    let value = runtime.resolve_value(script_output).await?;
+
+    let mut scope = runtime.handle_scope();
+    let local = Local::new(&mut scope, value);
+    let value_result = from_v8::<Value>(&mut scope, local);
+    let script_value = match value_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not get script result: {err:?}");
+            return Err(RuntimeError::ScriptResult.into());
+        }
+    };
+    Ok(script_value)
+}
+
 /// Handle Javascript errors
 fn get_error_class_name(e: &AnyError) -> &'static str {
-    println!("Err: {e:?}");
     deno_core::error::get_custom_error_class(e).unwrap_or("[runtime] script execution class error")
 }
 
@@ -99,7 +104,7 @@ fn create_worker_options(optional_args: &[String]) -> Result<JsRuntime, AnyError
 #[cfg(test)]
 mod tests {
     use super::{create_worker_options, get_error_class_name, run_script};
-    use crate::runtime::error::RuntimeError;
+    use crate::runtime::{error::RuntimeError, run::run_async_script};
 
     #[test]
     fn test_create_worker_options() {
@@ -110,6 +115,12 @@ mod tests {
     #[test]
     fn test_run_script() {
         let results = run_script("console.log('hello rust!')", &[]).unwrap();
+        assert!(results.is_null());
+    }
+
+    #[test]
+    fn test_run_async_script() {
+        let results = run_async_script("console.error('hello async rust!')", &[]).unwrap();
         assert!(results.is_null());
     }
 

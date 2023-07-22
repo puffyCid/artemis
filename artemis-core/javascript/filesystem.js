@@ -12,7 +12,23 @@ class FileSystem {
      * @returns Array of file entries
      */
     readDir = (path) => {
-        return core.ops.js_read_dir(path);
+        const data = core.ops.js_read_dir(path);
+        return {
+            async *[SymbolAsyncIterator]() {
+                const entry = await data;
+                for (let i = 0; i < entry.length; ++i) {
+                    yield entry[i];
+                }
+            }
+        };
+    };
+    /**
+     * Return metadata for a single file or directory
+     * @param path Path to get metadata
+     * @returns Metadata about file or directory
+     */
+    stat = (path) => {
+        return core.ops.js_stat(path);
     };
 }
 export const filesystem = new FileSystem();

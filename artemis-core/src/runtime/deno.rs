@@ -2,7 +2,10 @@
  * Embeds the Deno runtime and core into Artemis
  * This allows us to execute Javascript using Rust
  */
-use super::{error::RuntimeError, run::run_script};
+use super::{
+    error::RuntimeError,
+    run::{run_async_script, run_script},
+};
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
     structs::artifacts::runtime::script::JSScript,
@@ -53,7 +56,12 @@ fn decode_script(
             return Err(RuntimeError::Decode);
         }
     };
-    let result = run_script(script, args);
+
+    let result = if script.contains(" async ") || script.contains(" await ") {
+        run_async_script(script, args)
+    } else {
+        run_script(script, args)
+    };
     let script_value = match result {
         Ok(result) => result,
         Err(err) => {
