@@ -5,7 +5,7 @@ use deno_core::{error::AnyError, op};
 /// Expose parsing Users to `Deno`
 fn get_users() -> Result<String, AnyError> {
     let users = grab_users();
-    let results = serde_json::to_string_pretty(&users)?;
+    let results = serde_json::to_string(&users)?;
     Ok(results)
 }
 
@@ -13,7 +13,7 @@ fn get_users() -> Result<String, AnyError> {
 /// Expose parsing Groups to `Deno`
 fn get_groups() -> Result<String, AnyError> {
     let groups = grab_groups();
-    let results = serde_json::to_string_pretty(&groups)?;
+    let results = serde_json::to_string(&groups)?;
     Ok(results)
 }
 

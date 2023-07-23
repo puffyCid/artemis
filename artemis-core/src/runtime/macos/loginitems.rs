@@ -15,7 +15,7 @@ fn get_loginitems() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&loginitems)?;
+    let results = serde_json::to_string(&loginitems)?;
     Ok(results)
 }
 

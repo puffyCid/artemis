@@ -21,7 +21,7 @@ fn get_srum(path: String, table: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&srum)?;
+    let results = serde_json::to_string(&srum)?;
     Ok(results)
 }
 

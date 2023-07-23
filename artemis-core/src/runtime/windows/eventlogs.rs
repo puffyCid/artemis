@@ -20,7 +20,7 @@ fn get_eventlogs(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&logs)?;
+    let results = serde_json::to_string(&logs)?;
     Ok(results)
 }
 

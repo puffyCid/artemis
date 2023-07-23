@@ -15,7 +15,7 @@ fn get_macho(path: String) -> Result<String, AnyError> {
             return Ok(String::new());
         }
     };
-    let results = serde_json::to_string_pretty(&macho)?;
+    let results = serde_json::to_string(&macho)?;
     Ok(results)
 }
 

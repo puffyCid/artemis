@@ -13,7 +13,7 @@ fn get_pe(path: String) -> Result<String, AnyError> {
             return Ok(String::new());
         }
     };
-    let results = serde_json::to_string_pretty(&pe)?;
+    let results = serde_json::to_string(&pe)?;
     Ok(results)
 }
 

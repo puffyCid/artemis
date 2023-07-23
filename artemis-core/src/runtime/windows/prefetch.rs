@@ -18,7 +18,7 @@ fn get_prefetch() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 
@@ -43,7 +43,7 @@ fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 
@@ -63,7 +63,7 @@ fn get_prefetch_path(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 

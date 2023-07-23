@@ -16,7 +16,7 @@ fn get_launchd_daemons() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&launchd)?;
+    let results = serde_json::to_string(&launchd)?;
     Ok(results)
 }
 
@@ -31,7 +31,7 @@ fn get_launchd_agents() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&launchd)?;
+    let results = serde_json::to_string(&launchd)?;
     Ok(results)
 }
 

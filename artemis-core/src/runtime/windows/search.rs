@@ -20,7 +20,7 @@ fn get_search(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&search)?;
+    let results = serde_json::to_string(&search)?;
     Ok(results)
 }
 

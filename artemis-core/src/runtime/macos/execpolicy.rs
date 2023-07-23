@@ -15,7 +15,7 @@ fn get_execpolicy() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&policy)?;
+    let results = serde_json::to_string(&policy)?;
     Ok(results)
 }
 

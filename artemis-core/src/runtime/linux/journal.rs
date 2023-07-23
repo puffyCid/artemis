@@ -13,7 +13,7 @@ fn get_journal(path: String) -> Result<String, AnyError> {
             return Ok(String::new());
         }
     };
-    let results = serde_json::to_string_pretty(&elf_data)?;
+    let results = serde_json::to_string(&elf_data)?;
     Ok(results)
 }
 

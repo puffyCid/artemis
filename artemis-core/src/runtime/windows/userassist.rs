@@ -19,7 +19,7 @@ fn get_userassist() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&assist)?;
+    let results = serde_json::to_string(&assist)?;
     Ok(results)
 }
 
@@ -45,7 +45,7 @@ fn get_alt_userassist(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&assist)?;
+    let results = serde_json::to_string(&assist)?;
     Ok(results)
 }
 

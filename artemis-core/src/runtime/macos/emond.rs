@@ -13,7 +13,7 @@ fn get_emond() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&emond)?;
+    let results = serde_json::to_string(&emond)?;
     Ok(results)
 }
 

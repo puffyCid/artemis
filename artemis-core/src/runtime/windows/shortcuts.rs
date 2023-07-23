@@ -15,7 +15,7 @@ fn get_lnk_file(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&lnk)?;
+    let results = serde_json::to_string(&lnk)?;
     Ok(results)
 }
 

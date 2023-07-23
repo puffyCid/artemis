@@ -16,7 +16,7 @@ fn get_chromium_users_history() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&history)?;
+    let results = serde_json::to_string(&history)?;
     Ok(results)
 }
 
@@ -31,7 +31,7 @@ fn get_chromium_history(path: String) -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&history)?;
+    let results = serde_json::to_string(&history)?;
     Ok(results)
 }
 
@@ -46,7 +46,7 @@ fn get_chromium_users_downloads() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&downloads)?;
+    let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
 
@@ -61,7 +61,7 @@ fn get_chromium_downloads(path: String) -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&downloads)?;
+    let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
 

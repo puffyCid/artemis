@@ -15,7 +15,7 @@ fn get_fsevents(path: String) -> Result<String, AnyError> {
             return Ok(String::new());
         }
     };
-    let results = serde_json::to_string_pretty(&fsevents)?;
+    let results = serde_json::to_string(&fsevents)?;
     Ok(results)
 }
 

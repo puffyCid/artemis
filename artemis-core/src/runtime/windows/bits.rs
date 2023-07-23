@@ -22,7 +22,7 @@ fn get_bits(carve: bool) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&bits)?;
+    let results = serde_json::to_string(&bits)?;
     Ok(results)
 }
 
@@ -43,7 +43,7 @@ fn get_bits_path(path: String, carve: bool) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&bits)?;
+    let results = serde_json::to_string(&bits)?;
     Ok(results)
 }
 

@@ -18,7 +18,7 @@ fn get_usnjrnl() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&jrnl)?;
+    let results = serde_json::to_string(&jrnl)?;
     Ok(results)
 }
 
@@ -44,7 +44,7 @@ fn get_alt_usnjrnl(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&jrnl)?;
+    let results = serde_json::to_string(&jrnl)?;
     Ok(results)
 }
 

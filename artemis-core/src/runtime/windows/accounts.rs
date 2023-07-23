@@ -19,7 +19,7 @@ fn get_users() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&users)?;
+    let results = serde_json::to_string(&users)?;
     Ok(results)
 }
 
@@ -45,7 +45,7 @@ fn get_alt_users(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&users)?;
+    let results = serde_json::to_string(&users)?;
     Ok(results)
 }
 

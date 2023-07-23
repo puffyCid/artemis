@@ -21,7 +21,7 @@ fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&bags)?;
+    let results = serde_json::to_string(&bags)?;
     Ok(results)
 }
 
@@ -48,7 +48,7 @@ fn get_alt_shellbags(resolve: bool, drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&bags)?;
+    let results = serde_json::to_string(&bags)?;
     Ok(results)
 }
 

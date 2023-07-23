@@ -19,7 +19,7 @@ fn get_registry(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&reg)?;
+    let results = serde_json::to_string(&reg)?;
     Ok(results)
 }
 

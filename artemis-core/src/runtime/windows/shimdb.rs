@@ -20,7 +20,7 @@ fn get_shimdb() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 
@@ -46,7 +46,7 @@ fn get_alt_shimdb(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 
@@ -63,7 +63,7 @@ fn get_custom_shimdb(paths: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 

@@ -1,7 +1,7 @@
 use crate::runtime::error::RuntimeError;
 use deno_core::error::AnyError;
 use deno_core::serde_v8::from_v8;
-use deno_core::v8::Local;
+use deno_core::v8::{CreateParams, Local};
 use deno_core::{FsModuleLoader, JsRuntime, RuntimeOptions, Snapshot};
 use log::error;
 use serde_json::Value;
@@ -92,13 +92,19 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 fn create_worker_options() -> Result<JsRuntime, AnyError> {
     let module_loader = Rc::new(FsModuleLoader);
 
+    let mut v8_params = CreateParams::default();
+    let initial_size = 0;
+    let max_size = 1024 * 1024 * 1024 * 2;
+    // Set max heap memory size to 2GB
+    v8_params = v8_params.heap_limits(initial_size, max_size);
+
     let runtime = JsRuntime::new(RuntimeOptions {
         source_map_getter: None,
         get_error_class_fn: Some(&get_error_class_name),
         module_loader: Some(module_loader),
         extensions: setup_extensions(),
         startup_snapshot: Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
-        create_params: None,
+        create_params: Some(v8_params),
         v8_platform: Default::default(),
         shared_array_buffer_store: Default::default(),
         compiled_wasm_module_store: None,

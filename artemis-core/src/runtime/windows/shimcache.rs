@@ -18,7 +18,7 @@ fn get_shimcache() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&reg)?;
+    let results = serde_json::to_string(&reg)?;
     Ok(results)
 }
 
@@ -44,7 +44,7 @@ fn get_alt_shimcache(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&reg)?;
+    let results = serde_json::to_string(&reg)?;
     Ok(results)
 }
 
