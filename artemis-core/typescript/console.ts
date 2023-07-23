@@ -10,6 +10,9 @@ const { core } = globalThis.Deno;
 const primordials = globalThis.__bootstrap.primordials;
 const { SafeArrayIterator } = primordials;
 
+/**
+ * @class Console used to print information to terminal
+ */
 class Console {
   private argsToMessage(...args: any[]) {
     return args.map((arg) =>
@@ -46,7 +49,7 @@ class Console {
       return;
     }
 
-    const [first, ...rest] = new SafeArrayIterator(args);
+    const [ first, ...rest ] = new SafeArrayIterator(args);
 
     if (typeof first === "string") {
       this.error(

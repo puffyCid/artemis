@@ -1,16 +1,9 @@
-/**
- * Console Namespace defined at https://console.spec.whatwg.org/#console-namespace
- * Only part of the namespace is implemented
- *
- * Partially inspired by https://github.com/denoland/deno/blob/main/ext/console/01_console.js
- */
-//@ts-ignore: Deno internals
 const { core } = globalThis.Deno;
 const primordials = globalThis.__bootstrap.primordials;
 const { SafeArrayIterator } = primordials;
 class Console {
     argsToMessage(...args) {
-        return args.map((arg) => JSON.stringify(arg, (_, value) => typeof value === 'bigint' ? value.toString() : value)).join(" ");
+        return args.map((arg) => JSON.stringify(arg, (_, value) => typeof value === "bigint" ? value.toString() : value)).join(" ");
     }
     log = (...args) => {
         core.print(`[runtime]: ${this.argsToMessage(...args)}\n`, false);

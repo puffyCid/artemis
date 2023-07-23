@@ -4,7 +4,7 @@ const primordials = globalThis.__bootstrap.primordials;
 const { SymbolAsyncIterator } = primordials;
 
 /**
- * Class used to interact with the FileSystem through Rust and Deno
+ * @class FileSystem used to interact with the FileSystem through Rust and Deno
  */
 class FileSystem {
   /**
@@ -15,10 +15,10 @@ class FileSystem {
   readDir = (path: string) => {
     const data = core.ops.js_read_dir(path);
     return {
-      async *[SymbolAsyncIterator]() {
+      async *[ SymbolAsyncIterator ]() {
         const entry = await data;
         for (let i = 0; i < entry.length; ++i) {
-          yield entry[i];
+          yield entry[ i ];
         }
       },
     };

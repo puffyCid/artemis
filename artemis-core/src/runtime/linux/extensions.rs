@@ -17,6 +17,9 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
     exts.append(&mut system_functions());
+
+    exts.append(&mut fs_runtime());
+    exts.append(&mut env_runtime());
     exts
 }
 

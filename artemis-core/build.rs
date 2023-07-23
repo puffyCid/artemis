@@ -7,7 +7,7 @@ use std::{env, path::PathBuf};
 /// Create a SnapShot at build time to help speed up our JavaScript Runtime
 fn main() {
     let extensions = Extension::builder("artemis")
-        .esm(include_js_files!(artemis "javascript/console.js","javascript/filesystem.js","javascript/main.js",))
+        .esm(include_js_files!(artemis "javascript/console.js","javascript/filesystem.js","javascript/environment.js","javascript/main.js",))
         .esm_entry_point("ext:artemis/javascript/main.js")
         .build();
     // Build the file path to the snapshot.

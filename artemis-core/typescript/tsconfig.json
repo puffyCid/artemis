@@ -2,7 +2,8 @@
     "compilerOptions": {
         "module": "ESNext",
         "target": "ESNext",
-        "outDir": "../javascript"
+        "outDir": "../javascript",
+        "removeComments": true
     },
     "exclude": [
         "node_modules"
