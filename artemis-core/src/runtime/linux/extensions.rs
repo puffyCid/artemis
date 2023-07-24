@@ -20,6 +20,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut fs_runtime());
     exts.append(&mut env_runtime());
+    exts.append(&mut enocoding_runtime());
+
     exts
 }
 

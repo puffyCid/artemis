@@ -17,7 +17,9 @@ use super::{
     usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
 };
 use crate::runtime::{
-    applications::extensions::app_functions, system::extensions::system_functions,
+    applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
+    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
+    system::extensions::system_functions,
 };
 use deno_core::{Extension, Op};
 
@@ -64,6 +66,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut fs_runtime());
     exts.append(&mut env_runtime());
+    exts.append(&mut enocoding_runtime());
+
     exts
 }
 

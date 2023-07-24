@@ -12,16 +12,9 @@ class FileSystem {
    * @param path Path to read
    * @returns Array of file entries
    */
-  readDir = (path: string) => {
-    const data = core.ops.js_read_dir(path);
-    return {
-      async *[ SymbolAsyncIterator ]() {
-        const entry = await data;
-        for (let i = 0; i < entry.length; ++i) {
-          yield entry[ i ];
-        }
-      },
-    };
+  readDir = async (path: string) => {
+    const data = await core.ops.js_read_dir(path);
+    return data;
   };
   /**
    * Return metadata for a single file or directory

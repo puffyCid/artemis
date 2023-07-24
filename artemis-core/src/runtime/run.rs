@@ -47,6 +47,7 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
             return Err(RuntimeError::ScriptResult.into());
         }
     };
+
     Ok(script_value)
 }
 

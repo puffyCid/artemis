@@ -1,5 +1,6 @@
 mod applications;
 pub(crate) mod deno;
+mod encoding;
 mod environment;
 mod error;
 mod filesystem;

@@ -34,7 +34,7 @@ pub(crate) struct JsFileInfo {
 
 #[op]
 /// List all files and directories at provided directory path
-async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
+async fn js_read_dir(path: String) -> Result<String, AnyError> {
     if !is_directory(&path) {
         error!("[runtime] Path is not a directory");
         return Err(RuntimeError::ExecuteScript.into());
@@ -48,7 +48,7 @@ async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
         let timestamps = get_timestamps(&full_path)?;
         let meta = get_metadata(&full_path)?;
 
-        let mut info = JsFileInfo {
+        let info = JsFileInfo {
             filename: get_filename(&full_path),
             extension: file_extension(&full_path),
             full_path,
@@ -75,6 +75,7 @@ async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
         #[cfg(target_family = "unix")]
         {
             use std::os::unix::prelude::MetadataExt;
+            let mut info = info;
             info.inode = meta.ino();
             info.mode = meta.mode();
             info.uid = meta.uid();
@@ -82,7 +83,9 @@ async fn js_read_dir(path: String) -> Result<Vec<JsFileInfo>, AnyError> {
         }
         files.push(info);
     }
-    Ok(files)
+
+    let data = serde_json::to_string(&files)?;
+    Ok(data)
 }
 
 #[cfg(test)]
@@ -111,7 +114,7 @@ mod tests {
     #[test]
     #[cfg(target_family = "unix")]
     fn test_read_dir_root() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkRGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiLyI7CiAgY29uc3QgZmlsZXMgPSByZWFkRGlyKHN0YXJ0KTsKICBjb25zdCBkYXRhID0gW107CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKHR5cGVvZiBlbnRyeS5pbm9kZSA9PT0gImJpZ2ludCIpIHsKICAgICAgZW50cnkuaW5vZGUgPSBlbnRyeS5pbm9kZS50b1N0cmluZygpOwogICAgfQogICAgZGF0YS5wdXNoKGVudHJ5KTsKICB9CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UoYXdhaXQgZnMucmVhZERpcihwYXRoKSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKYXN5bmMgZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBzdGFydCA9ICIvIjsKICBjb25zdCBmaWxlcyA9IGF3YWl0IHJlYWREaXIoc3RhcnQpOwogIHJldHVybiBmaWxlczsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("root_list"),
@@ -123,7 +126,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_dir_root() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkRGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiQzpcXCI7CiAgY29uc3QgZmlsZXMgPSByZWFkRGlyKHN0YXJ0KTsKICBjb25zdCBkYXRhID0gW107CiAgZm9yIGF3YWl0IChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKHR5cGVvZiBlbnRyeS5pbm9kZSA9PT0gImJpZ2ludCIpIHsKICAgICAgZW50cnkuaW5vZGUgPSBlbnRyeS5pbm9kZS50b1N0cmluZygpOwogICAgfQogICAgZGF0YS5wdXNoKGVudHJ5KTsKICB9CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UoYXdhaXQgZnMucmVhZERpcihwYXRoKSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKYXN5bmMgZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBzdGFydCA9ICJDOlxcIjsKICBjb25zdCBmaWxlcyA9IGF3YWl0IHJlYWREaXIoc3RhcnQpOwogIHJldHVybiBmaWxlczsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("root_list"),

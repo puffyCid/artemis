@@ -16,7 +16,7 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
         return Err(ArtemisError::Env);
     }
     // unwrap should be safe since we check for at least one value in string
-    Ok(sys_drive_result.chars().next().unwrap())
+    Ok(sys_drive.chars().next().unwrap())
 }
 
 #[cfg(target_os = "windows")]

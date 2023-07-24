@@ -2,16 +2,9 @@ const { core } = globalThis.Deno;
 const primordials = globalThis.__bootstrap.primordials;
 const { SymbolAsyncIterator } = primordials;
 class FileSystem {
-    readDir = (path) => {
-        const data = core.ops.js_read_dir(path);
-        return {
-            async *[SymbolAsyncIterator]() {
-                const entry = await data;
-                for (let i = 0; i < entry.length; ++i) {
-                    yield entry[i];
-                }
-            },
-        };
+    readDir = async (path) => {
+        const data = await core.ops.js_read_dir(path);
+        return data;
     };
     stat = (path) => {
         return core.ops.js_stat(path);
