@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[cfg(target_family = "unix")]
     fn test_get_env_value() {
         let result = get_env_value("PATH");
         assert!(!result.is_empty())
