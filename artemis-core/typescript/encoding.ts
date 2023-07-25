@@ -14,6 +14,14 @@ class Encoding {
         return core.ops.js_base64_decode(data)
     }
     /**
+     * Base64 encode a provided raw bytes
+     * @param data Raw bytes to encode
+     * @returns Base64 string
+     */
+    btoa = (data:ArrayBuffer) => {
+        return core.ops.js_base64_encode(data)
+    }
+    /**
      * Attempt to extract a UTF8 string from raw bytes
      * @param data Raw bytes to extract string from
      * @returns An extracted string or empty value
