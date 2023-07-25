@@ -13,7 +13,7 @@ fn js_stat(path: String) -> Result<String, AnyError> {
     let timestamps = get_timestamps(&path)?;
     let meta = get_metadata(&path)?;
 
-    let mut info = JsFileInfo {
+    let info = JsFileInfo {
         filename: get_filename(&path),
         extension: file_extension(&path),
         directory: Path::new(&path)

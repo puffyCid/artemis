@@ -48,7 +48,7 @@ async fn js_read_dir(path: String) -> Result<String, AnyError> {
         let timestamps = get_timestamps(&full_path)?;
         let meta = get_metadata(&full_path)?;
 
-        let info = JsFileInfo {
+        let mut info = JsFileInfo {
             filename: get_filename(&full_path),
             extension: file_extension(&full_path),
             full_path,
@@ -69,13 +69,13 @@ async fn js_read_dir(path: String) -> Result<String, AnyError> {
             gid: 0,
             is_file: meta.is_file(),
             is_directory: meta.is_dir(),
-            is_symlink: meta.is_symlink(),
+            is_symlink: false,
         };
+        info.is_symlink = meta.is_symlink();
 
         #[cfg(target_family = "unix")]
         {
             use std::os::unix::prelude::MetadataExt;
-            let mut info = info;
             info.inode = meta.ino();
             info.mode = meta.mode();
             info.uid = meta.uid();

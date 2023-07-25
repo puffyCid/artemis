@@ -14,9 +14,9 @@ use super::{
     unifiedlogs::get_unified_log,
 };
 use crate::runtime::{
-    applications::extensions::app_functions, environment::extensions::env_runtime,
-    filesystem::extensions::fs_runtime, system::extensions::system_functions,
-    unix::extensions::unix_functions,
+    applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
+    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
+    system::extensions::system_functions, unix::extensions::unix_functions,
 };
 use deno_core::{Extension, Op};
 
