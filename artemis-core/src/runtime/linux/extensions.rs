@@ -1,4 +1,7 @@
 use crate::runtime::applications::extensions::app_functions;
+use crate::runtime::encoding::extensions::enocoding_runtime;
+use crate::runtime::environment::extensions::env_runtime;
+use crate::runtime::filesystem::extensions::fs_runtime;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
 use crate::runtime::system::extensions::system_functions;
 use crate::runtime::unix::extensions::unix_functions;
