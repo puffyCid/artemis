@@ -3,6 +3,9 @@ class Encoding {
     atob = (data) => {
         return core.ops.js_base64_decode(data);
     };
+    btoa = (data) => {
+        return core.ops.js_base64_encode(data);
+    };
     extract_utf8_string = (data) => {
         return core.ops.js_extract_utf8_string(data);
     };
