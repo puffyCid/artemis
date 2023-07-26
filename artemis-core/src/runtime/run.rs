@@ -1,5 +1,5 @@
 use crate::runtime::error::RuntimeError;
-use deno_core::error::AnyError;
+use deno_core::error::{AnyError, JsError};
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
 use deno_core::{FsModuleLoader, JsRuntime, RuntimeOptions, Snapshot};
@@ -32,8 +32,21 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
+            let js_error = JsError {
+                name: Some(String::from("ExecutionFailure")),
+                message: Some(String::from("Failed to run JS code")),
+                stack: None,
+                cause: None,
+                exception_message: err.to_string(),
+                frames: Vec::new(),
+                source_line: None,
+                source_line_frame_index: None,
+                aggregated: None,
+            };
             error!("[runtime] Could not execute script: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
+            let value_error = Value::from(js_error.to_string());
+            // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
+            return Ok(value_error);
         }
     };
 

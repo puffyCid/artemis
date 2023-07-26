@@ -2,12 +2,12 @@ use crate::{
     filesystem::ntfs::raw_files::{raw_read_file, read_attribute},
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op, ByteString};
+use deno_core::{error::AnyError, op, ToJsBuffer};
 use log::error;
 
 #[op]
 /// Expose reading a raw file to `Deno`
-fn read_raw_file(path: String) -> Result<ByteString, AnyError> {
+fn read_raw_file(path: String) -> Result<ToJsBuffer, AnyError> {
     let data_result = raw_read_file(&path);
     let data = match data_result {
         Ok(results) => results,
@@ -21,7 +21,7 @@ fn read_raw_file(path: String) -> Result<ByteString, AnyError> {
 
 #[op]
 /// Expose reading an alternative data stream (ADS) to `Deno`
-fn read_ads_data(path: String, ads_name: String) -> Result<ByteString, AnyError> {
+fn read_ads_data(path: String, ads_name: String) -> Result<ToJsBuffer, AnyError> {
     let data_result = read_attribute(&path, &ads_name);
     let data = match data_result {
         Ok(results) => results,
