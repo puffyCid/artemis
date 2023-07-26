@@ -15,7 +15,7 @@ fn get_loginitems() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&loginitems)?;
+    let results = serde_json::to_string(&loginitems)?;
     Ok(results)
 }
 
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_get_loginitems() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfbG9naW5pdGVtcygpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF9sb2dpbml0ZW1zKCk7CiAgICBjb25zdCBpdGVtcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gaXRlbXM7Cn0KZnVuY3Rpb24gZ2V0TG9naW5JdGVtcygpIHsKICAgIHJldHVybiBnZXRfbG9naW5pdGVtcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0TG9naW5JdGVtcygpOwogICAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwoK";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfbG9naW5pdGVtcygpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9sb2dpbml0ZW1zKCk7CiAgICBjb25zdCBpdGVtcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gaXRlbXM7Cn0KZnVuY3Rpb24gZ2V0TG9naW5JdGVtcygpIHsKICAgIHJldHVybiBnZXRfbG9naW5pdGVtcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0TG9naW5JdGVtcygpOwogICAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("loginitems"),

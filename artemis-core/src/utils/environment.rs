@@ -1,20 +1,22 @@
-use super::error::ArtemisError;
-use log::error;
-#[cfg(target_os = "windows")]
 use std::collections::HashMap;
-use std::env::var;
+use std::env::vars_os;
+
+#[cfg(target_os = "windows")]
+use super::error::ArtemisError;
+#[cfg(target_os = "windows")]
+use log::error;
 
 #[cfg(target_os = "windows")]
 /// Get the `SystemDrive` for Windows
 pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
-    let sys_drive_result = get_env_value("SystemDrive")?;
+    let sys_drive = get_env_value("SystemDrive");
 
-    if sys_drive_result.is_empty() {
+    if sys_drive.is_empty() {
         error!("[artemis-core] Empty systemdrive value");
         return Err(ArtemisError::Env);
     }
     // unwrap should be safe since we check for at least one value in string
-    Ok(sys_drive_result.chars().next().unwrap())
+    Ok(sys_drive.chars().next().unwrap())
 }
 
 #[cfg(target_os = "windows")]
@@ -82,21 +84,31 @@ pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
     Ok(clsids)
 }
 
-#[cfg(target_os = "windows")]
 /// Get a specific environment variable value
-pub(crate) fn get_env_value(value: &str) -> Result<String, ArtemisError> {
-    let sys_drive_result = var(value);
-    match sys_drive_result {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            error!("[artemis-core] Could not get env value {value}: {err:?}");
-            Err(ArtemisError::Env)
-        }
+pub(crate) fn get_env_value(value: &str) -> String {
+    let envs = get_env();
+    if let Some(env) = envs.get(value) {
+        return env.to_string();
     }
+    String::new()
+}
+
+/// Get all environment variables associated with artemis process
+pub(crate) fn get_env() -> HashMap<String, String> {
+    let envs = vars_os();
+    let mut environment = HashMap::new();
+    for (key, value) in envs {
+        environment.insert(
+            key.into_string().unwrap_or_default(),
+            value.into_string().unwrap_or_default(),
+        );
+    }
+    environment
 }
 
 #[cfg(test)]
 mod tests {
+    use super::get_env_value;
 
     #[test]
     #[cfg(target_os = "windows")]
@@ -134,9 +146,14 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_env_value() {
-        use super::get_env_value;
-
-        let result = get_env_value("PUBLIC").unwrap();
+        let result = get_env_value("PUBLIC");
         assert_eq!(result, "C:\\Users\\Public")
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_env_value() {
+        let result = get_env_value("PATH");
+        assert!(!result.is_empty())
     }
 }

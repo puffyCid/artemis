@@ -14,10 +14,11 @@ use super::{
     unifiedlogs::get_unified_log,
 };
 use crate::runtime::{
-    applications::extensions::app_functions, system::extensions::system_functions,
-    unix::extensions::unix_functions,
+    applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
+    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
+    system::extensions::system_functions, unix::extensions::unix_functions,
 };
-use deno_core::Extension;
+use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_extensions() -> Vec<Extension> {
@@ -28,26 +29,31 @@ pub(crate) fn setup_extensions() -> Vec<Extension> {
 /// Link Rust functions to `Deno core`
 fn grab_functions() -> Vec<deno_core::OpDecl> {
     let mut exts = vec![
-        get_launchd_daemons::decl(),
-        get_launchd_agents::decl(),
-        get_unified_log::decl(),
-        get_plist::decl(),
-        get_fsevents::decl(),
-        get_macho::decl(),
-        get_loginitems::decl(),
-        get_users::decl(),
-        get_groups::decl(),
-        get_emond::decl(),
-        get_safari_users_history::decl(),
-        get_safari_history::decl(),
-        get_safari_users_downloads::decl(),
-        get_safari_downloads::decl(),
-        get_execpolicy::decl(),
+        get_launchd_daemons::DECL,
+        get_launchd_agents::DECL,
+        get_unified_log::DECL,
+        get_plist::DECL,
+        get_fsevents::DECL,
+        get_macho::DECL,
+        get_loginitems::DECL,
+        get_users::DECL,
+        get_groups::DECL,
+        get_emond::DECL,
+        get_safari_users_history::DECL,
+        get_safari_history::DECL,
+        get_safari_users_downloads::DECL,
+        get_safari_downloads::DECL,
+        get_execpolicy::DECL,
     ];
 
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
     exts.append(&mut system_functions());
+
+    exts.append(&mut fs_runtime());
+    exts.append(&mut env_runtime());
+    exts.append(&mut enocoding_runtime());
+
     exts
 }
 

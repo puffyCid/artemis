@@ -15,7 +15,7 @@ fn get_execpolicy() -> Result<String, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string_pretty(&policy)?;
+    let results = serde_json::to_string(&policy)?;
     Ok(results)
 }
 
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_get_execpolicy() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfZXhlY3BvbGljeSgpOwogIGNvbnN0IHBvbGljeSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHBvbGljeTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9tb2QudHMKZnVuY3Rpb24gZ2V0RXhlY1BvbGljeSgpIHsKICByZXR1cm4gZ2V0X2V4ZWNwb2xpY3koKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRFeGVjUG9saWN5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfZXhlY3BvbGljeSgpOwogIGNvbnN0IHBvbGljeSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHBvbGljeTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9tb2QudHMKZnVuY3Rpb24gZ2V0RXhlY1BvbGljeSgpIHsKICByZXR1cm4gZ2V0X2V4ZWNwb2xpY3koKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRFeGVjUG9saWN5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("execpolicy"),

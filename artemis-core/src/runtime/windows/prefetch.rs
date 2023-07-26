@@ -18,7 +18,7 @@ fn get_prefetch() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 
@@ -43,7 +43,7 @@ fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 
@@ -63,7 +63,7 @@ fn get_prefetch_path(path: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&pf)?;
+    let results = serde_json::to_string(&pf)?;
     Ok(results)
 }
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_get_prefetch() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2goKSB7CiAgICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfcHJlZmV0Y2goKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaCgpIHsKICAgIHJldHVybiBnZXRfcHJlZmV0Y2goKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgcGYgPSBnZXRQcmVmZXRjaCgpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2goKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfcHJlZmV0Y2goKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaCgpIHsKICAgIHJldHVybiBnZXRfcHJlZmV0Y2goKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgcGYgPSBnZXRQcmVmZXRjaCgpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("pf_default"),
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_prefetch() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3ByZWZldGNoKHBhdGgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF9hbHRfcHJlZmV0Y2gocGF0aCk7CiAgICBjb25zdCBwZiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gcGY7Cn0KZnVuY3Rpb24gZ2V0QWx0UHJlZmV0Y2gocGF0aCkgewogICAgcmV0dXJuIGdldF9hbHRfcHJlZmV0Y2gocGF0aCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHBmID0gZ2V0QWx0UHJlZmV0Y2goIkM6XFxXaW5kb3dzXFxQcmVmZXRjaCIpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3ByZWZldGNoKHBhdGgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfcHJlZmV0Y2gocGF0aCk7CiAgICBjb25zdCBwZiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gcGY7Cn0KZnVuY3Rpb24gZ2V0QWx0UHJlZmV0Y2gocGF0aCkgewogICAgcmV0dXJuIGdldF9hbHRfcHJlZmV0Y2gocGF0aCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHBmID0gZ2V0QWx0UHJlZmV0Y2goIkM6XFxXaW5kb3dzXFxQcmVmZXRjaCIpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("pf_alt"),
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_get_prefetch_path() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2hfcGF0aChwYXRoKSB7CiAgICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfcHJlZmV0Y2hfcGF0aChwYXRoKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaFBhdGgocGF0aCkgewogICAgcmV0dXJuIGdldF9wcmVmZXRjaF9wYXRoKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwZiA9IGdldFByZWZldGNoUGF0aCgiQzpcXFdpbmRvd3NcXFByZWZldGNoIik7CiAgICByZXR1cm4gcGY7Cn0KbWFpbigpOwoK";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2hfcGF0aChwYXRoKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfcHJlZmV0Y2hfcGF0aChwYXRoKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaFBhdGgocGF0aCkgewogICAgcmV0dXJuIGdldF9wcmVmZXRjaF9wYXRoKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwZiA9IGdldFByZWZldGNoUGF0aCgiQzpcXFdpbmRvd3NcXFByZWZldGNoIik7CiAgICByZXR1cm4gcGY7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("pf_path"),

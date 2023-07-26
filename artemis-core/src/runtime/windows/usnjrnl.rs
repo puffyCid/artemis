@@ -18,7 +18,7 @@ fn get_usnjrnl() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&jrnl)?;
+    let results = serde_json::to_string(&jrnl)?;
     Ok(results)
 }
 
@@ -44,7 +44,7 @@ fn get_alt_usnjrnl(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&jrnl)?;
+    let results = serde_json::to_string(&jrnl)?;
     Ok(results)
 }
 
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     #[ignore = "Parses the whole USNJrnl for rs files"]
     fn test_get_usnjrnl_rs_files() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNuanJubCgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF91c25qcm5sKCk7CiAgICBjb25zdCBqcm5sX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBqcm5sX2FycmF5Owp9CmZ1bmN0aW9uIGdldFVzbkpybmwoKSB7CiAgICByZXR1cm4gZ2V0X3VzbmpybmwoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QganJubF9lbnRyaWVzID0gZ2V0VXNuSnJubCgpOwogICAgY29uc3QgcnNfZW50cmllcyA9IFtdOwogICAgZm9yKGxldCBlbnRyeSA9IDA7IGVudHJ5IDwganJubF9lbnRyaWVzLmxlbmd0aDsgZW50cnkrKyl7CiAgICAgICAgaWYgKGpybmxfZW50cmllc1tlbnRyeV0uZXh0ZW5zaW9uID09PSAicnMiKSB7CiAgICAgICAgICAgIHJzX2VudHJpZXMucHVzaChqcm5sX2VudHJpZXNbZW50cnldKTsKICAgICAgICB9CiAgICB9CiAgICByZXR1cm4gcnNfZW50cmllczsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNuanJubCgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF91c25qcm5sKCk7CiAgICBjb25zdCBqcm5sX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBqcm5sX2FycmF5Owp9CmZ1bmN0aW9uIGdldFVzbkpybmwoKSB7CiAgICByZXR1cm4gZ2V0X3VzbmpybmwoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QganJubF9lbnRyaWVzID0gZ2V0VXNuSnJubCgpOwogICAgY29uc3QgcnNfZW50cmllcyA9IFtdOwogICAgZm9yKGxldCBlbnRyeSA9IDA7IGVudHJ5IDwganJubF9lbnRyaWVzLmxlbmd0aDsgZW50cnkrKyl7CiAgICAgICAgaWYgKGpybmxfZW50cmllc1tlbnRyeV0uZXh0ZW5zaW9uID09PSAicnMiKSB7CiAgICAgICAgICAgIHJzX2VudHJpZXMucHVzaChqcm5sX2VudHJpZXNbZW50cnldKTsKICAgICAgICB9CiAgICB9CiAgICByZXR1cm4gcnNfZW50cmllczsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("usnjnl_rs_files"),
@@ -87,7 +87,7 @@ mod tests {
     #[test]
     #[ignore = "Parses the whole USNJrnl"]
     fn test_get_alt_usnjrnl() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3VzbmpybmwoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF9hbHRfdXNuanJubChkcml2ZSk7CiAgICBjb25zdCBqcm5sX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBqcm5sX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFsdFVzbkpybmwoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3VzbmpybmwoZHJpdmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBqcm5sX2VudHJpZXMgPSBnZXRBbHRVc25Kcm5sKCJDIik7CiAgICByZXR1cm4ganJubF9lbnRyaWVzIDsKfQptYWluKCk7";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3VzbmpybmwoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdXNuanJubChkcml2ZSk7CiAgICBjb25zdCBqcm5sX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBqcm5sX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFsdFVzbkpybmwoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3VzbmpybmwoZHJpdmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBqcm5sX2VudHJpZXMgPSBnZXRBbHRVc25Kcm5sKCJDIik7CiAgICByZXR1cm4ganJubF9lbnRyaWVzIDsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("usnjrnl_alt"),

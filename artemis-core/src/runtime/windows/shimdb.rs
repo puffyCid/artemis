@@ -20,7 +20,7 @@ fn get_shimdb() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 
@@ -46,7 +46,7 @@ fn get_alt_shimdb(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 
@@ -63,7 +63,7 @@ fn get_custom_shimdb(paths: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&shimdb)?;
+    let results = serde_json::to_string(&shimdb)?;
     Ok(results)
 }
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_get_shimdb() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWRiKCkgewogICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X3NoaW1kYigpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRTaGltZGIoKSB7CiAgICByZXR1cm4gZ2V0X3NoaW1kYigpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBzZGIgPSBnZXRTaGltZGIoKTsKICAgIHJldHVybiBzZGI7Cn0KbWFpbigpOwoK";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWRiKCkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NoaW1kYigpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRTaGltZGIoKSB7CiAgICByZXR1cm4gZ2V0X3NoaW1kYigpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBzZGIgPSBnZXRTaGltZGIoKTsKICAgIHJldHVybiBzZGI7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimdb"),
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_shimdb() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoaW1kYihkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X2FsdF9zaGltZGIoZHJpdmUpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGltZGIoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoaW1kYihkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHNkYiA9IGdldEFsdFNoaW1kYigiQyIpOwogICAgcmV0dXJuIHNkYjsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoaW1kYihkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGltZGIoZHJpdmUpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGltZGIoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoaW1kYihkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHNkYiA9IGdldEFsdFNoaW1kYigiQyIpOwogICAgcmV0dXJuIHNkYjsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimdb_alt"),
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     #[ignore = "Searches all files under Users"]
     fn test_get_custom_shimdb() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfY3VzdG9tX3NoaW1kYihwYXRoKSB7CiAgICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfY3VzdG9tX3NoaW1kYihwYXRoKTsKICAgIGlmIChkYXRhID09PSAiIikgewogICAgICAgIHJldHVybiBudWxsOwogICAgfQogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRDdXN0b21TaGltZGIocGF0aCkgewogICAgcmV0dXJuIGdldF9jdXN0b21fc2hpbWRiKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkcml2ZSA9IERlbm8uZW52LmdldCgiU3lzdGVtRHJpdmUiKTsKICAgIGlmIChkcml2ZSA9PT0gdW5kZWZpbmVkKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdXNlcnMgPSBgJHtkcml2ZX1cXFVzZXJzYDsKICAgIGNvbnN0IGN1c3RvbV9zZGIgPSBbXTsKICAgIHJlY3Vyc2VfZGlyKGN1c3RvbV9zZGIsIHVzZXJzKTsKICAgIHJldHVybiBjdXN0b21fc2RiOwp9CmZ1bmN0aW9uIHJlY3Vyc2VfZGlyKHNkYnMsIHN0YXJ0X3BhdGgpIHsKICAgIGZvciAoY29uc3QgZW50cnkgb2YgRGVuby5yZWFkRGlyU3luYyhzdGFydF9wYXRoKSl7CiAgICAgICAgY29uc3Qgc2RiX3BhdGggPSBgJHtzdGFydF9wYXRofVxcJHtlbnRyeS5uYW1lfWA7CiAgICAgICAgaWYgKGVudHJ5LmlzRmlsZSkgewogICAgICAgICAgICBjb25zdCBkYXRhID0gZ2V0Q3VzdG9tU2hpbWRiKHNkYl9wYXRoKTsKICAgICAgICAgICAgaWYgKGRhdGEgPT09IG51bGwpIHsKICAgICAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgICAgICB9CiAgICAgICAgICAgIHNkYnMucHVzaChkYXRhKTsKICAgICAgICB9CiAgICAgICAgaWYgKGVudHJ5LmlzRGlyZWN0b3J5KSB7CiAgICAgICAgICAgIHJlY3Vyc2VfZGlyKHNkYnMsIHNkYl9wYXRoKTsKICAgICAgICB9CiAgICB9Cn0KbWFpbigpOwoK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zaGltZGIudHMKZnVuY3Rpb24gZ2V0Q3VzdG9tU2hpbWRiKHBhdGgpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfY3VzdG9tX3NoaW1kYihwYXRoKTsKICBpZiAoZGF0YSA9PT0gIiIpIHsKICAgIHJldHVybiBudWxsOwogIH0KICBjb25zdCByZXN1bHRzID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0czsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2RpcmVjdG9yeS50cwphc3luYyBmdW5jdGlvbiByZWFkRGlyKHBhdGgpIHsKICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShhd2FpdCBmcy5yZWFkRGlyKHBhdGgpKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRyaXZlID0gZ2V0RW52VmFsdWUoIlN5c3RlbURyaXZlIik7CiAgaWYgKGRyaXZlID09PSAiIikgewogICAgcmV0dXJuIFtdOwogIH0KICBjb25zdCB1c2VycyA9IGAke2RyaXZlfVxcVXNlcnNgOwogIGNvbnN0IGN1c3RvbV9zZGIgPSBbXTsKICBhd2FpdCByZWN1cnNlX2RpcihjdXN0b21fc2RiLCB1c2Vycyk7CiAgcmV0dXJuIGN1c3RvbV9zZGI7Cn0KYXN5bmMgZnVuY3Rpb24gcmVjdXJzZV9kaXIoc2Ricywgc3RhcnRfcGF0aCkgewogIGZvciAoY29uc3QgZW50cnkgb2YgYXdhaXQgcmVhZERpcihzdGFydF9wYXRoKSkgewogICAgY29uc3Qgc2RiX3BhdGggPSBgJHtzdGFydF9wYXRofVxcJHtlbnRyeS5maWxlbmFtZX1gOwogICAgaWYgKGVudHJ5LmlzX2ZpbGUpIHsKICAgICAgY29uc3QgZGF0YSA9IGdldEN1c3RvbVNoaW1kYihzZGJfcGF0aCk7CiAgICAgIGlmIChkYXRhID09PSBudWxsKSB7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgc2Ricy5wdXNoKGRhdGEpOwogICAgfQogICAgaWYgKGVudHJ5LmlzX2RpcmVjdG9yeSkgewogICAgICBhd2FpdCByZWN1cnNlX2RpcihzZGJzLCBzZGJfcGF0aCk7CiAgICB9CiAgfQp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("custom_sdb_files"),

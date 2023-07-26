@@ -18,7 +18,7 @@ fn get_amcache() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&amcache)?;
+    let results = serde_json::to_string(&amcache)?;
     Ok(results)
 }
 
@@ -44,7 +44,7 @@ fn get_alt_amcache(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&amcache)?;
+    let results = serde_json::to_string(&amcache)?;
     Ok(results)
 }
 
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_get_amcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF9hbWNhY2hlKCk7CiAgICBjb25zdCBhbWNhY2hlX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhbWNhY2hlX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFtY2FjaGUoKSB7CiAgICByZXR1cm4gZ2V0X2FtY2FjaGUoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgY2FjaGUgPSBnZXRBbWNhY2hlKCk7CiAgICByZXR1cm4gY2FjaGU7Cn0KbWFpbigpOwoK";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbWNhY2hlKCk7CiAgICBjb25zdCBhbWNhY2hlX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhbWNhY2hlX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFtY2FjaGUoKSB7CiAgICByZXR1cm4gZ2V0X2FtY2FjaGUoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgY2FjaGUgPSBnZXRBbWNhY2hlKCk7CiAgICByZXR1cm4gY2FjaGU7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("amcache"),
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_amcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vW0Rlbm8uaW50ZXJuYWxdLmNvcmUub3BzLmdldF9hbHRfYW1jYWNoZShkcml2ZSk7CiAgICBjb25zdCBhbWNhY2hlX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhbWNhY2hlX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFsdEFtY2FjaGUoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBjYWNoZSA9IGdldEFsdEFtY2FjaGUoIkMiKTsKICAgIHJldHVybiBjYWNoZTsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfYW1jYWNoZShkcml2ZSk7CiAgICBjb25zdCBhbWNhY2hlX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhbWNhY2hlX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFsdEFtY2FjaGUoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBjYWNoZSA9IGdldEFsdEFtY2FjaGUoIkMiKTsKICAgIHJldHVybiBjYWNoZTsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("amcache_alt"),

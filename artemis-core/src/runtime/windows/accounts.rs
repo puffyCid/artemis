@@ -19,7 +19,7 @@ fn get_users() -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&users)?;
+    let results = serde_json::to_string(&users)?;
     Ok(results)
 }
 
@@ -45,7 +45,7 @@ fn get_alt_users(drive: String) -> Result<String, AnyError> {
         }
     };
 
-    let results = serde_json::to_string_pretty(&users)?;
+    let results = serde_json::to_string(&users)?;
     Ok(results)
 }
 
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_get_users() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X3VzZXJzX3dpbigpIHsKICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfdXNlcnMoKTsKICBjb25zdCB1c2VyX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gdXNlcl9hcnJheTsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldFVzZXJzV2luKCkgewogIHJldHVybiBnZXRfdXNlcnNfd2luKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB1c2VycyA9IGdldFVzZXJzV2luKCk7CiAgcmV0dXJuIHVzZXJzOwp9Cm1haW4oKTsK";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X3VzZXJzX3dpbigpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfdXNlcnMoKTsKICBjb25zdCB1c2VyX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gdXNlcl9hcnJheTsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldFVzZXJzV2luKCkgewogIHJldHVybiBnZXRfdXNlcnNfd2luKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB1c2VycyA9IGdldFVzZXJzV2luKCk7CiAgcmV0dXJuIHVzZXJzOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("users"),
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_users() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X2FsdF91c2Vyc193aW4oZHJpdmUpIHsKICBjb25zdCBkYXRhID0gRGVub1tEZW5vLmludGVybmFsXS5jb3JlLm9wcy5nZXRfYWx0X3VzZXJzKGRyaXZlKTsKICBjb25zdCB1c2VyX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gdXNlcl9hcnJheTsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldEFsdFVzZXJzV2luKGRyaXZlKSB7CiAgcmV0dXJuIGdldF9hbHRfdXNlcnNfd2luKGRyaXZlKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRyaXZlID0gRGVuby5lbnYuZ2V0KCJTeXN0ZW1Ecml2ZSIpOwogIGlmIChkcml2ZSA9PT0gdm9pZCAwKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHVzZXJzID0gZ2V0QWx0VXNlcnNXaW4oZHJpdmUpOwogIHJldHVybiB1c2VyczsKfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy91c2Vycy50cwpmdW5jdGlvbiBnZXRBbHRVc2Vyc1dpbihkcml2ZSkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdXNlcnMoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdXNlcnMgPSBnZXRBbHRVc2Vyc1dpbigiQyIpOwogIHJldHVybiB1c2VyczsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("users_alt"),

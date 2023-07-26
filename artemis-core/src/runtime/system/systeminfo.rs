@@ -5,7 +5,7 @@ use deno_core::{error::AnyError, op};
 /// Expose pulling systeminfo to `Deno`
 fn get_systeminfo() -> Result<String, AnyError> {
     let info = SystemInfo::get_info();
-    let results = serde_json::to_string_pretty(&info)?;
+    let results = serde_json::to_string(&info)?;
     Ok(results)
 }
 
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn test_get_systeminfo() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvc3lzdGVtaW5mby50cwpmdW5jdGlvbiBnZXRfc3lzdGVtaW5mb193aW4oKSB7CiAgY29uc3QgZGF0YSA9IERlbm9bRGVuby5pbnRlcm5hbF0uY29yZS5vcHMuZ2V0X3N5c3RlbWluZm8oKTsKICBjb25zdCBpbmZvID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gaW5mbzsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldFN5c3RlbUluZm9XaW4oKSB7CiAgcmV0dXJuIGdldF9zeXN0ZW1pbmZvX3dpbigpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgaW5mbyA9IGdldFN5c3RlbUluZm9XaW4oKTsKICByZXR1cm4gaW5mbzsKfQptYWluKCk7Cg==";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvc3lzdGVtaW5mby50cwpmdW5jdGlvbiBnZXRfc3lzdGVtaW5mb193aW4oKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3N5c3RlbWluZm8oKTsKICBjb25zdCBpbmZvID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gaW5mbzsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldFN5c3RlbUluZm9XaW4oKSB7CiAgcmV0dXJuIGdldF9zeXN0ZW1pbmZvX3dpbigpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgaW5mbyA9IGdldFN5c3RlbUluZm9XaW4oKTsKICByZXR1cm4gaW5mbzsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
