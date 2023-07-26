@@ -29,6 +29,14 @@ class Encoding {
     extract_utf8_string = (data: Uint8Array) => {
         return core.ops.js_extract_utf8_string(data)
     }
+    /**
+     * Convert provided string to raw bytes
+     * @param data String to convert to bytes
+     * @returns Encode string into bytes
+     */
+    bytes_encode = (data: string) => {
+        return core.ops.js_encode_bytes(data)
+    }
 }
 
 export const encoding = new Encoding();

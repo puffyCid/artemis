@@ -1,10 +1,10 @@
-use crate::utils::strings::extract_utf8_string;
-use deno_core::op;
+use deno_core::{op, ToJsBuffer};
 
 #[op]
-/// Attempt to extract a UTF8 string from raw bytes
-fn js_extract_utf8_string(data: Vec<u8>) -> String {
-    extract_utf8_string(&data)
+/// Convert string to bytes
+fn js_encode_bytes(data: String) -> ToJsBuffer {
+    let value = data.as_bytes().to_vec();
+    value.into()
 }
 
 #[cfg(test)]
@@ -32,11 +32,11 @@ mod tests {
     }
 
     #[test]
-    fn test_js_extract_utf8_string() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdmFsdWUgPSBbNzksIDgzLCA4MSwgODUsIDY5LCA4MiwgODksIDY4LCA0NiwgNjksIDg4LCA2OSwgMF07CiAgY29uc3QgcmVzdWx0ID0gZXh0cmFjdFV0ZjhTdHJpbmcodmFsdWUpOwogIGNvbnNvbGUubG9nKHJlc3VsdCk7CiAgcmV0dXJuIHJlc3VsdDsKfQptYWluKCk7Cg==";
+    fn test_js_encode_bytes() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYnl0ZXMudHMKZnVuY3Rpb24gZW5jb2RlQnl0ZXMoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGVuY29kaW5nLmJ5dGVzX2VuY29kZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdGVzdCA9ICJEZW5vIGlzIHZlcnkgY29vbCEiOwogIGNvbnN0IGRhdGEgPSBlbmNvZGVCeXRlcyh0ZXN0KTsKICBjb25zb2xlLmxvZyhkYXRhKTsKICByZXR1cm4gQXJyYXkuZnJvbShkYXRhKTsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
-            name: String::from("strings_test"),
+            name: String::from("bytes_test"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
