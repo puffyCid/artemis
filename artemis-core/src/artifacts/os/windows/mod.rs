@@ -18,5 +18,6 @@ pub(crate) mod shimcache;
 pub(crate) mod shimdb;
 pub(crate) mod shortcuts;
 pub(crate) mod srum;
+pub(crate) mod tasks;
 pub(crate) mod userassist;
 pub(crate) mod usnjrnl;

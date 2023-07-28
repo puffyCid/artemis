@@ -31,7 +31,7 @@ jsonwebtoken = "8.3.0"
 rusty-s3 = "0.4.1"
 
 # Deno Runtime integration
-deno_core = {version = "0.195.0"}
+deno_core = {version = "0.197.0"}
 tokio = {version = "1.29.1"}
 
 # Windows Dependencies
@@ -40,6 +40,7 @@ ntapi = "0.4.1"
 evtx = { version = "0.8.1", default-features = false, features = ["multithreading"]}
 ntfs = "0.4.0"
 pelite = "0.10.0"
+quick-xml = {version ="0.30.0", default-features = false}
 
 # Linux Dependencies
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -55,7 +56,7 @@ plist = "1.5.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = {version = "0.195.0"}
+deno_core = {version = "0.197.0"}
 
 # Dependencies for tests
 [dev-dependencies]
