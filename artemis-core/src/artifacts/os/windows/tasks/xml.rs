@@ -13,7 +13,7 @@ impl TaskData {
     pub(crate) fn parse_xml(path: &str) {}
 
     /// Read a XML file into a string and check for UTF16 Byte Order Mark (BOM)
-    fn read_xml(path: &str) -> Result<String, TaskError> {
+    pub(crate) fn read_xml(path: &str) -> Result<String, TaskError> {
         let bytes_result = read_file(path);
         let bytes = match bytes_result {
             Ok(result) => result,

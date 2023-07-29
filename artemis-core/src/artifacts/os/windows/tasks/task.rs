@@ -1,4 +1,4 @@
-use super::schema::registration::RegistrationInfo;
+use super::schema::{registration::RegistrationInfo, triggers::Triggers};
 
 /**
  * Structure of a XML format Schedule Task
@@ -12,100 +12,6 @@ pub(crate) struct TaskData {
     data: Option<String>,
     principals: Option<Principals>,
     actions: Actions,
-}
-
-struct BaseTriggers {
-    id: String,
-    start_boundary: String,
-    end_boundary: String,
-    enabled: bool,
-    execution_time_limit: String,
-    repetition: Repetition,
-}
-
-struct Repetition {
-    interval: String,
-    duration: String,
-    stop_at_duration_end: bool,
-}
-
-struct Triggers {
-    boot: Option<BootTrigger>,
-    registration: Option<RegistrationTrigger>,
-    idle: Option<IdleTrigger>,
-    time: Option<TimeTrigger>,
-    event: Option<EventTrigger>,
-    logon: Option<LogonTrigger>,
-    session: Option<SessionTrigger>,
-    calendar: Option<CalendarTrigger>,
-}
-
-struct BootTrigger {
-    common: BaseTriggers,
-    delay: String,
-}
-
-struct RegistrationTrigger {
-    common: BaseTriggers,
-    delay: String,
-}
-
-struct IdleTrigger {
-    common: BaseTriggers,
-}
-
-struct TimeTrigger {
-    random_delay: String,
-}
-
-struct EventTrigger {
-    common: BaseTriggers,
-    subscription: String,
-    delay: String,
-    number_of_occurrences: u8,
-    period_of_occurrence: String,
-    matching_element: String,
-    value_queries: Vec<String>,
-}
-
-struct LogonTrigger {
-    common: BaseTriggers,
-    user_id: String,
-    delay: String,
-}
-
-struct SessionTrigger {
-    user_id: String,
-    delay: String,
-    state_change: String,
-}
-
-struct CalendarTrigger {
-    schedule_by_day: Option<ByDay>,
-    schedule_by_week: Option<ByWeek>,
-    schedule_by_month: Option<ByMonth>,
-    schedule_by_month_day_of_week: Option<ByMonthDayWeek>,
-}
-
-struct ByDay {
-    days_interval: u16,
-}
-
-struct ByWeek {
-    weeks_interval: u8,
-    days_of_week: Vec<String>,
-}
-
-struct ByMonth {
-    days_of_month: Vec<String>,
-    months: Vec<String>,
-}
-
-struct ByMonthDayWeek {
-    weeks: Vec<String>,
-    days_of_week: Vec<String>,
-    months: Vec<String>,
-    random_delay: String,
 }
 
 struct Settings {
