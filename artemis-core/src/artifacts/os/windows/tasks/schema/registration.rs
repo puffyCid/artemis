@@ -69,7 +69,6 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
         }
     }
 
-    println!("{info:?}");
     info
 }
 
@@ -96,7 +95,6 @@ fn process_registration(info: &mut RegistrationInfo, data: &BytesText<'_>, reg_t
 mod tests {
     use super::{parse_registration, process_registration, RegType, RegistrationInfo};
     use crate::artifacts::os::windows::tasks::task::TaskData;
-    use log::error;
     use quick_xml::{events::Event, Reader};
     use std::path::PathBuf;
 

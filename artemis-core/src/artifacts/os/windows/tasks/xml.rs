@@ -1,4 +1,8 @@
-use super::{error::TaskError, schema::registration::parse_registration, task::TaskData};
+use super::{
+    error::TaskError,
+    schema::{registration::parse_registration, triggers::parse_trigger},
+    task::TaskData,
+};
 use crate::{
     filesystem::files::read_file,
     utils::{
@@ -59,6 +63,11 @@ impl TaskData {
                 Ok(Event::Start(tag)) => match tag.name().as_ref() {
                     b"RegistrationInfo" => {
                         let reg_info = parse_registration(&mut reader);
+                        println!("{reg_info:?}");
+                    }
+                    b"Triggers" => {
+                        let trig_info = parse_trigger(&mut reader);
+                        println!("{trig_info:?}");
                     }
                     _ => (),
                 },
