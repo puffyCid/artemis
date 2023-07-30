@@ -1,8 +1,5 @@
-use log::{error, warn};
-use quick_xml::{
-    events::{BytesText, Event},
-    Reader,
-};
+use log::error;
+use quick_xml::{events::Event, Reader};
 
 #[derive(Debug)]
 pub(crate) struct RegistrationInfo {
@@ -14,18 +11,6 @@ pub(crate) struct RegistrationInfo {
     version: Option<String>,
     description: Option<String>,
     documentation: Option<String>,
-}
-
-enum RegType {
-    Uri,
-    Sid,
-    Source,
-    Date,
-    Author,
-    Version,
-    Description,
-    Documentation,
-    Unknown,
 }
 
 /// Parse RegistrationInfo of Task
@@ -41,7 +26,6 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
         documentation: None,
     };
 
-    let mut reg_type = RegType::Unknown;
     loop {
         match reader.read_event() {
             Err(err) => {
@@ -50,17 +34,35 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"URI" => reg_type = RegType::Uri,
-                b"SecurityDescriptor" => reg_type = RegType::Sid,
-                b"Source" => reg_type = RegType::Source,
-                b"Date" => reg_type = RegType::Date,
-                b"Author" => reg_type = RegType::Author,
-                b"Version" => reg_type = RegType::Version,
-                b"Description" => reg_type = RegType::Description,
-                b"Documentation" => reg_type = RegType::Documentation,
+                b"URI" => {
+                    info.uri = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"SecurityDescriptor" => {
+                    info.sid = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Source" => {
+                    info.source = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Date" => {
+                    info.date = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Author" => {
+                    info.author = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Version" => {
+                    info.version =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Description" => {
+                    info.description =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
+                b"Documentation" => {
+                    info.documentation =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                }
                 _ => break,
             },
-            Ok(Event::Text(tag)) => process_registration(&mut info, &tag, &reg_type),
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"RegistrationInfo" => break,
                 _ => continue,
@@ -72,28 +74,9 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
     info
 }
 
-/// Process each RegistrationType
-fn process_registration(info: &mut RegistrationInfo, data: &BytesText<'_>, reg_type: &RegType) {
-    match reg_type {
-        RegType::Uri => info.uri = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Date => info.date = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Author => info.author = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Description => {
-            info.description = Some(data.unescape().unwrap_or_default().to_string())
-        }
-        RegType::Sid => info.sid = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Source => info.source = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Version => info.version = Some(data.unescape().unwrap_or_default().to_string()),
-        RegType::Documentation => {
-            info.documentation = Some(data.unescape().unwrap_or_default().to_string())
-        }
-        RegType::Unknown => (),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{parse_registration, process_registration, RegType, RegistrationInfo};
+    use super::parse_registration;
     use crate::artifacts::os::windows::tasks::task::TaskData;
     use quick_xml::{events::Event, Reader};
     use std::path::PathBuf;
@@ -130,55 +113,5 @@ mod tests {
                 _ => (),
             }
         }
-    }
-
-    #[test]
-    fn test_process_registration() {
-        let xml = r#"
-                <URI>Test</URI>
-                <tag2>Test 2</tag2>
-             "#;
-
-        let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
-
-        let mut info = RegistrationInfo {
-            uri: None,
-            sid: None,
-            source: None,
-            date: None,
-            author: None,
-            version: None,
-            description: None,
-            documentation: None,
-        };
-        let mut reg_type = RegType::Unknown;
-
-        loop {
-            match reader.read_event() {
-                Err(_err) => {
-                    break;
-                }
-                Ok(Event::Eof) => break,
-                Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                    b"URI" => reg_type = RegType::Uri,
-                    b"SecurityDescriptor" => reg_type = RegType::Sid,
-                    b"Source" => reg_type = RegType::Source,
-                    b"Date" => reg_type = RegType::Date,
-                    b"Author" => reg_type = RegType::Author,
-                    b"Version" => reg_type = RegType::Version,
-                    b"Description" => reg_type = RegType::Description,
-                    b"Documentation" => reg_type = RegType::Documentation,
-                    _ => break,
-                },
-                Ok(Event::Text(tag)) => process_registration(&mut info, &tag, &reg_type),
-                Ok(Event::End(tag)) => match tag.name().as_ref() {
-                    b"RegistrationInfo" => break,
-                    _ => continue,
-                },
-                _ => (),
-            }
-        }
-        assert_eq!(info.uri, Some(String::from("Test")));
     }
 }

@@ -4,6 +4,9 @@ use super::{
     task::TaskData,
 };
 use crate::{
+    artifacts::os::windows::tasks::schema::{
+        principals::parse_principals, settings::parse_settings,
+    },
     filesystem::files::read_file,
     utils::{
         nom_helper::{nom_unsigned_two_bytes, Endian},
@@ -68,6 +71,14 @@ impl TaskData {
                     b"Triggers" => {
                         let trig_info = parse_trigger(&mut reader);
                         println!("{trig_info:?}");
+                    }
+                    b"Settings" => {
+                        let set_info = parse_settings(&mut reader);
+                        println!("{set_info:?}");
+                    }
+                    b"Principals" => {
+                        let prin_info = parse_principals(&mut reader);
+                        println!("{prin_info:?}");
                     }
                     _ => (),
                 },
