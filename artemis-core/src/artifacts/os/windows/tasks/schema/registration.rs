@@ -1,7 +1,8 @@
 use log::error;
 use quick_xml::{events::Event, Reader};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct RegistrationInfo {
     uri: Option<String>,
     sid: Option<String>,
@@ -13,7 +14,7 @@ pub(crate) struct RegistrationInfo {
     documentation: Option<String>,
 }
 
-/// Parse RegistrationInfo of Task
+/// Parse `RegistrationInfo` of Task
 pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo {
     let mut info = RegistrationInfo {
         uri: None,
@@ -35,31 +36,33 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"URI" => {
-                    info.uri = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    info.uri = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"SecurityDescriptor" => {
-                    info.sid = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    info.sid = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Source" => {
-                    info.source = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    info.source =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Date" => {
-                    info.date = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    info.date = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Author" => {
-                    info.author = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    info.author =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Version" => {
                     info.version =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Description" => {
                     info.description =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Documentation" => {
                     info.documentation =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 _ => break,
             },
@@ -77,7 +80,7 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
 #[cfg(test)]
 mod tests {
     use super::parse_registration;
-    use crate::artifacts::os::windows::tasks::task::TaskData;
+    use crate::artifacts::os::windows::tasks::xml::TaskXml;
     use quick_xml::{events::Event, Reader};
     use std::path::PathBuf;
 
@@ -86,13 +89,13 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let xml = TaskData::read_xml(&test_location.display().to_string()).unwrap();
+        let xml = TaskXml::read_xml(&test_location.display().to_string()).unwrap();
         let mut reader = Reader::from_str(&xml);
         reader.trim_text(true);
 
         loop {
             match reader.read_event() {
-                Err(err) => {
+                Err(_) => {
                     break;
                 }
                 Ok(Event::Eof) => break,

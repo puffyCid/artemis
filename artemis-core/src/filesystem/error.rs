@@ -9,6 +9,7 @@ pub(crate) enum FileSystemError {
     OpenFile,
     ReadFile,
     NotFile,
+    BadGlob,
     #[cfg(target_os = "windows")]
     NtfsSectorReader,
     #[cfg(target_os = "windows")]
@@ -39,6 +40,7 @@ impl fmt::Display for FileSystemError {
             FileSystemError::NotDirectory => write!(f, "Not a directory"),
             FileSystemError::UserPaths => write!(f, "Could not determine user home paths"),
             FileSystemError::NoUserParent => write!(f, "Could not find user parent path"),
+            FileSystemError::BadGlob => write!(f, "Could not glob"),
             FileSystemError::OpenFile => write!(f, "Could not open file"),
             FileSystemError::ReadFile => write!(f, "Could not read file"),
             FileSystemError::NotFile => write!(f, "Not a file"),

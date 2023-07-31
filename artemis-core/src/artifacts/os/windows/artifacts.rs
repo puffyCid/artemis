@@ -1,4 +1,5 @@
 use super::search::parser::grab_search;
+use super::tasks::parser::grab_tasks;
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
     error::WinArtifactError, eventlogs::parser::grab_eventlogs, ntfs::parser::RawFilelist,
@@ -16,7 +17,7 @@ use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
     RegistryOptions, SearchOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-    ShortcutOptions, SrumOptions, UserAssistOptions, UserOptions, UsnJrnlOptions,
+    ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions, UsnJrnlOptions,
 };
 use crate::{
     structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
@@ -486,6 +487,36 @@ pub(crate) fn users(
         }
     };
     let output_name = "users";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
+/// Parse the Windows `Schedule Tasks` artifact
+pub(crate) fn tasks(
+    options: &TasksOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let task_results = grab_tasks(options);
+    let task_data = match task_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse Tasks: {err:?}");
+            return Err(WinArtifactError::Tasks);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(task_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize tasks: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "tasks";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 

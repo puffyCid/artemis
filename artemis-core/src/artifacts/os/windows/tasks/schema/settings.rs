@@ -1,7 +1,8 @@
 use log::error;
 use quick_xml::{events::Event, Reader};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Settings {
     allow_start_on_demand: Option<bool>,
     restart_on_failure: Option<RestartType>,
@@ -27,13 +28,13 @@ pub(crate) struct Settings {
     volatile: Option<bool>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct RestartType {
     interval: String,
     count: u16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct IdleSettings {
     duration: Option<String>,
     wait_timeout: Option<String>,
@@ -41,13 +42,13 @@ struct IdleSettings {
     restart_on_idle: Option<bool>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct NetworkSettings {
     name: Option<String>,
     id: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct MaintenceSettings {
     period: String,
     deadline: Option<String>,
@@ -88,116 +89,115 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
                 break;
             }
             Ok(Event::Eof) => break,
+            Ok(Event::End(tag)) => match tag.name().as_ref() {
+                b"Settings" => break,
+                _ => continue,
+            },
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"AllowStartOnDemand" => {
                     info.allow_start_on_demand = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"DisallowStartIfOnBatteries" => {
                     info.disallow_start_if_on_batteries = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"StopIfGoingOnBatteries" => {
                     info.stop_if_going_on_batteries = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"AllowHardTerminate" => {
                     info.allow_hard_terminate = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"StartWhenAvailable" => {
                     info.start_when_available = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"RunOnlyIfNetworkAvailable" => {
                     info.run_only_if_network_available = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"WakeToRun" => {
                     info.wake_to_run = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"Enabled" => {
                     info.enabled = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"Hidden" => {
                     info.hidden = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"RunOnlyIfIdle" => {
                     info.run_only_if_idle = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"UseUnifiedSchedulingEngine" => {
                     info.use_unified_scheduling_engine = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"DisallowStartOnRemoteAppSession" => {
                     info.disallow_start_on_remote_app_session = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"Volatile" => {
                     info.volatile = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 b"NetworkProfileName" => {
                     info.newtork_profile_name =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"DeleteExpiredTaskAfter" => {
                     info.delete_expired_tasks_after =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"ExecutionTimeLimit" => {
                     info.execution_time_limit =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Priority" => {
                     info.priority = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
-                            .unwrap_or(7),
-                    )
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default()).unwrap_or(7),
+                    );
                 }
                 b"MultipleInstancesPolicy" => {
                     info.multiple_instances_policy =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"RestartOnFailure" => process_restart(&mut info, reader),
                 b"IdleSettings" => process_idle(&mut info, reader),
                 b"NetworkSettings" => process_network(&mut info, reader),
                 b"MaintenanceSettings" => process_maintence(&mut info, reader),
                 _ => break,
-            },
-            Ok(Event::End(tag)) => match tag.name().as_ref() {
-                b"Settings" => break,
-                _ => continue,
             },
             _ => (),
         }
@@ -206,7 +206,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
     info
 }
 
-/// Parse RestartTypes
+/// Parse `RestartTypes`
 fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     let mut restart = RestartType {
         interval: String::new(),
@@ -221,12 +221,11 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Interval" => {
-                    restart.interval = reader.read_text(tag.name()).unwrap_or_default().to_string()
+                    restart.interval = reader.read_text(tag.name()).unwrap_or_default().to_string();
                 }
                 b"Count" => {
-                    restart.count =
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
-                            .unwrap_or_default()
+                    restart.count = str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        .unwrap_or_default();
                 }
                 _ => break,
             },
@@ -240,7 +239,7 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     info.restart_on_failure = Some(restart);
 }
 
-/// Parse IdleSettings
+/// Parse `IdleSettings`
 fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     let mut idle = IdleSettings {
         duration: None,
@@ -258,23 +257,23 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Duration" => {
                     idle.duration =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"WaitTimeout" => {
                     idle.wait_timeout =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"StopOnIdleEnd" => {
                     idle.stop_on_idle_end = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(true),
-                    )
+                    );
                 }
                 b"RestartOnIdle" => {
                     idle.restart_on_idle = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or(false),
-                    )
+                    );
                 }
                 _ => break,
             },
@@ -288,7 +287,7 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     info.idle_settings = Some(idle);
 }
 
-/// Parse NetworkSettings
+/// Parse `NetworkSettings`
 fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     let mut net = NetworkSettings {
         name: None,
@@ -303,10 +302,10 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Name" => {
-                    net.name = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    net.name = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Id" => {
-                    net.id = Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                    net.id = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 _ => break,
             },
@@ -320,7 +319,7 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     info.network_settings = Some(net);
 }
 
-/// Parse MaintenceSettings
+/// Parse `MaintenceSettings`
 fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     let mut main = MaintenceSettings {
         period: String::new(),
@@ -334,25 +333,25 @@ fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
                 break;
             }
             Ok(Event::Eof) => break,
+            Ok(Event::End(tag)) => match tag.name().as_ref() {
+                b"MaintenanceSettings" => break,
+                _ => continue,
+            },
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Period" => {
-                    main.period = reader.read_text(tag.name()).unwrap_or_default().to_string()
+                    main.period = reader.read_text(tag.name()).unwrap_or_default().to_string();
                 }
                 b"Deadline" => {
                     main.deadline =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Exclusive" => {
                     main.exclusive = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
                             .unwrap_or_default(),
-                    )
+                    );
                 }
                 _ => break,
-            },
-            Ok(Event::End(tag)) => match tag.name().as_ref() {
-                b"MaintenanceSettings " => break,
-                _ => continue,
             },
             _ => (),
         }

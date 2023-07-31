@@ -1,7 +1,8 @@
 use log::error;
 use quick_xml::{events::Event, Reader};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct Principals {
     user_id: Option<String>,
     logon_type: Option<String>,
@@ -37,34 +38,34 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"UserId" => {
                     info.user_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"LogonType" => {
                     info.logon_type =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"GroupId" => {
                     info.group_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"DisplayName" => {
                     info.display_nme =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"RunLevel" => {
                     info.run_level =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"ProcessTokenSidType" => {
                     info.process_token_sid_type =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"Privilege" => {
                     privs.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"id" => {
                     info.id_attribute =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string())
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 _ => continue,
             },

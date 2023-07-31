@@ -1,4 +1,4 @@
 mod error;
+pub(crate) mod parser;
 mod schema;
-mod task;
 mod xml;

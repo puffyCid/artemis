@@ -90,3 +90,8 @@ pub(crate) struct UserOptions {
 pub(crate) struct SearchOptions {
     pub(crate) alt_path: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct TasksOptions {
+    pub(crate) alt_drive: Option<char>,
+}

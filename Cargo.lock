@@ -140,6 +140,7 @@ dependencies = [
  "elf",
  "evtx",
  "flate2",
+ "glob",
  "home",
  "httpmock",
  "jsonwebtoken",

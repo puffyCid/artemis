@@ -5,7 +5,8 @@ use super::{
     os::windows::{
         artifacts::{
             amcache, bits, eventlogs, files, prefetch, processes, raw_filelist, registry, search,
-            shellbags, shimcache, shimdb, shortcuts, srum, systeminfo, userassist, users, usnjrnl,
+            shellbags, shimcache, shimdb, shortcuts, srum, systeminfo, tasks, userassist, users,
+            usnjrnl,
         },
         error::WinArtifactError,
     },
@@ -334,6 +335,20 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                     Ok(_) => info!("Collected Users"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse users, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "tasks" => {
+                let artifact = match &artifacts.tasks {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = tasks(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Schedule Tasks"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse schedule tasks, error: {err:?}");
                         continue;
                     }
                 }
