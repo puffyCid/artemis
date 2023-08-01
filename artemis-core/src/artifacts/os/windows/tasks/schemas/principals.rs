@@ -2,7 +2,7 @@ use log::error;
 use quick_xml::{events::Event, Reader};
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub(crate) struct Principals {
     user_id: Option<String>,
     logon_type: Option<String>,
@@ -86,7 +86,7 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::tasks::schema::principals::parse_principals;
+    use crate::artifacts::os::windows::tasks::schemas::principals::parse_principals;
     use quick_xml::Reader;
 
     #[test]

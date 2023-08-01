@@ -5,14 +5,15 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Triggers {
-    boot: Option<BootTrigger>,
-    registration: Option<BootTrigger>,
-    idle: Option<IdleTrigger>,
-    time: Option<TimeTrigger>,
-    event: Option<EventTrigger>,
-    logon: Option<LogonTrigger>,
-    session: Option<SessionTrigger>,
-    calendar: Option<CalendarTrigger>,
+    boot: Vec<BootTrigger>,
+    registration: Vec<BootTrigger>,
+    idle: Vec<IdleTrigger>,
+    time: Vec<TimeTrigger>,
+    event: Vec<EventTrigger>,
+    logon: Vec<LogonTrigger>,
+    session: Vec<SessionTrigger>,
+    calendar: Vec<CalendarTrigger>,
+    wnf: Vec<WnfTrigger>,
 }
 
 #[derive(Debug, Serialize)]
@@ -76,6 +77,15 @@ struct SessionTrigger {
 }
 
 #[derive(Debug, Serialize)]
+struct WnfTrigger {
+    common: Option<BaseTriggers>,
+    state_name: String,
+    delay: Option<String>,
+    data: Option<String>,
+    data_offset: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct CalendarTrigger {
     common: Option<BaseTriggers>,
     random_delay: Option<String>,
@@ -112,14 +122,15 @@ struct ByMonthDayWeek {
 /// Parse all Task Trigger options.
 pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
     let mut info = Triggers {
-        boot: None,
-        registration: None,
-        idle: None,
-        time: None,
-        event: None,
-        logon: None,
-        session: None,
-        calendar: None,
+        boot: Vec::new(),
+        registration: Vec::new(),
+        idle: Vec::new(),
+        time: Vec::new(),
+        event: Vec::new(),
+        logon: Vec::new(),
+        session: Vec::new(),
+        calendar: Vec::new(),
+        wnf: Vec::new(),
     };
 
     loop {
@@ -138,6 +149,7 @@ pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
                 b"LogonTrigger" => process_logon(&mut info, reader),
                 b"SessionStateChangeTrigger" => process_session(&mut info, reader),
                 b"CalendarTrigger" => process_calendar(&mut info, reader),
+                b"WnfStateChangeTrigger" => process_notification(&mut info, reader),
                 _ => break,
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
@@ -189,10 +201,63 @@ fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: &bool)
 
     boot.common = Some(common);
     if *is_boot {
-        info.boot = Some(boot);
+        info.boot.push(boot);
     } else {
-        info.registration = Some(boot);
+        info.registration.push(boot);
     }
+}
+
+/// Parse `Wnf` (Windows Notification) options
+fn process_notification(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
+    let mut wnf = WnfTrigger {
+        common: None,
+        delay: None,
+        state_name: String::new(),
+        data: None,
+        data_offset: None,
+    };
+
+    let mut common = BaseTriggers {
+        id: None,
+        start_boundary: None,
+        end_boundary: None,
+        enabled: None,
+        execution_time_limit: None,
+        repetition: None,
+    };
+    loop {
+        match reader.read_event() {
+            Err(err) => {
+                error!("[tasks] Could not read WnfTrigger xml data: {err:?}");
+                break;
+            }
+            Ok(Event::Eof) => break,
+            Ok(Event::Start(tag)) => match tag.name().as_ref() {
+                b"Delay" => {
+                    wnf.delay = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                }
+                b"StateName" => {
+                    wnf.state_name = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                }
+                b"Data" => {
+                    wnf.data = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                }
+                b"DataOffset" => {
+                    wnf.data_offset =
+                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                }
+                _ => process_common(&mut common, &tag.name(), reader),
+            },
+            Ok(Event::End(tag)) => match tag.name().as_ref() {
+                b"WnfStateChangeTrigger" => break,
+                _ => continue,
+            },
+            _ => (),
+        }
+    }
+
+    wnf.common = Some(common);
+    info.wnf.push(wnf);
 }
 
 /// Parse `IdleTrigger` options
@@ -225,7 +290,7 @@ fn process_idle(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     let idle = IdleTrigger {
         common: Some(common),
     };
-    info.idle = Some(idle);
+    info.idle.push(idle);
 }
 
 /// Parse `TimeTrigger` options
@@ -266,7 +331,7 @@ fn process_time(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     }
 
     time.common = Some(common);
-    info.time = Some(time);
+    info.time.push(time);
 }
 
 /// Parse `EventTrigger` options
@@ -332,7 +397,7 @@ fn process_event(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     }
 
     event.common = Some(common);
-    info.event = Some(event);
+    info.event.push(event);
 }
 
 /// Parse `LogonTrigger` options
@@ -378,7 +443,7 @@ fn process_logon(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     }
 
     logon.common = Some(common);
-    info.logon = Some(logon);
+    info.logon.push(logon);
 }
 
 /// Parse `SessionTrigger` options
@@ -429,7 +494,7 @@ fn process_session(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     }
 
     session.common = Some(common);
-    info.session = Some(session);
+    info.session.push(session);
 }
 
 /// Parse `CalendarTrigger` options
@@ -480,7 +545,7 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     }
 
     cal.common = Some(common);
-    info.calendar = Some(cal);
+    info.calendar.push(cal);
 }
 
 /// Parse common values between all triggers
@@ -731,11 +796,11 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
 #[cfg(test)]
 mod tests {
     use super::parse_trigger;
-    use crate::artifacts::os::windows::tasks::schema::triggers::{
+    use crate::artifacts::os::windows::tasks::schemas::triggers::{
         process_boot, process_cal_day, process_cal_month, process_cal_month_day_week,
         process_cal_week, process_calendar, process_common, process_event, process_event_values,
-        process_idle, process_logon, process_repetition, process_session, process_time,
-        BaseTriggers, Triggers,
+        process_idle, process_logon, process_notification, process_repetition, process_session,
+        process_time, BaseTriggers, Triggers,
     };
     use quick_xml::{events::Event, Reader};
 
@@ -755,12 +820,12 @@ mod tests {
 
         let result = parse_trigger(&mut reader);
         assert_eq!(
-            result
-                .calendar
-                .unwrap()
+            result.calendar[0]
                 .common
+                .as_ref()
                 .unwrap()
                 .start_boundary
+                .as_ref()
                 .unwrap(),
             "2019-10-21T12:26:22"
         );
@@ -777,18 +842,19 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_boot(&mut result, &mut reader, &true);
         assert_eq!(
-            result.boot.unwrap().common.unwrap().id.unwrap(),
+            result.boot[0].common.as_ref().unwrap().id.as_ref().unwrap(),
             "asdfsadfsadfsadf"
         );
     }
@@ -803,26 +869,54 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_idle(&mut result, &mut reader);
         assert_eq!(
-            result
-                .idle
-                .unwrap()
+            result.idle[0]
                 .common
+                .as_ref()
                 .unwrap()
                 .execution_time_limit
+                .as_ref()
                 .unwrap(),
             "10D"
         );
+    }
+
+    #[test]
+    fn test_process_notification() {
+        let xml = r#"
+          <Delay>10D</Delay>
+          <StateName>asdfasdfasdfsadf</StateName>
+          <Data>11111</Data>
+          <DataOffset>4</DataOffset>
+             "#;
+
+        let mut reader = Reader::from_str(xml);
+        reader.trim_text(true);
+
+        let mut result = Triggers {
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
+        };
+        process_notification(&mut result, &mut reader);
+        assert_eq!(result.wnf[0].state_name, "asdfasdfasdfsadf");
     }
 
     #[test]
@@ -835,17 +929,18 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_time(&mut result, &mut reader);
-        assert_eq!(result.time.unwrap().random_delay.unwrap(), "PTOM");
+        assert_eq!(result.time[0].random_delay.as_ref().unwrap(), "PTOM");
     }
 
     #[test]
@@ -862,17 +957,18 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_event(&mut result, &mut reader);
-        assert_eq!(result.event.unwrap().subscription[0], "rusty");
+        assert_eq!(result.event[0].subscription[0], "rusty");
     }
 
     #[test]
@@ -886,17 +982,18 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_logon(&mut result, &mut reader);
-        assert_eq!(result.logon.unwrap().user_id.unwrap(), "bob");
+        assert_eq!(result.logon[0].user_id.as_ref().unwrap(), "bob");
     }
 
     #[test]
@@ -911,18 +1008,19 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_session(&mut result, &mut reader);
         assert_eq!(
-            result.session.unwrap().state_change.unwrap(),
+            result.session[0].state_change.as_ref().unwrap(),
             "ConsoleConnect"
         );
     }
@@ -942,21 +1040,21 @@ mod tests {
         reader.trim_text(true);
 
         let mut result = Triggers {
-            boot: None,
-            registration: None,
-            idle: None,
-            time: None,
-            event: None,
-            logon: None,
-            session: None,
-            calendar: None,
+            boot: Vec::new(),
+            registration: Vec::new(),
+            idle: Vec::new(),
+            time: Vec::new(),
+            event: Vec::new(),
+            logon: Vec::new(),
+            session: Vec::new(),
+            calendar: Vec::new(),
+            wnf: Vec::new(),
         };
         process_calendar(&mut result, &mut reader);
         assert_eq!(
-            result
-                .calendar
-                .unwrap()
+            result.calendar[0]
                 .schedule_by_day
+                .as_ref()
                 .unwrap()
                 .days_interval
                 .unwrap(),
@@ -989,7 +1087,7 @@ mod tests {
                 _ => break,
             }
         }
-        assert_eq!(result.end_boundary.unwrap(), "rusty");
+        assert_eq!(result.end_boundary.as_ref().unwrap(), "rusty");
     }
 
     #[test]
@@ -1012,7 +1110,13 @@ mod tests {
             repetition: None,
         };
         process_repetition(&mut result, &mut reader);
-        assert!(result.repetition.unwrap().stop_at_duration_end.unwrap());
+        assert!(result
+            .repetition
+            .as_ref()
+            .unwrap()
+            .stop_at_duration_end
+            .as_ref()
+            .unwrap());
     }
 
     #[test]

@@ -1,13 +1,13 @@
-use super::schema::{
+use super::schemas::{
     actions::Actions, principals::Principals, registration::RegistrationInfo, settings::Settings,
     triggers::Triggers,
 };
 use super::{
     error::TaskError,
-    schema::{actions::parse_actions, registration::parse_registration, triggers::parse_trigger},
+    schemas::{actions::parse_actions, registration::parse_registration, triggers::parse_trigger},
 };
 use crate::{
-    artifacts::os::windows::tasks::schema::{
+    artifacts::os::windows::tasks::schemas::{
         principals::parse_principals, settings::parse_settings,
     },
     filesystem::files::read_file,
@@ -32,7 +32,7 @@ pub(crate) struct TaskXml {
     settings: Option<Settings>,
     /**Arbitrary data, we base64 encode the data */
     data: Option<String>,
-    principals: Option<Principals>,
+    principals: Option<Vec<Principals>>,
     actions: Actions,
     path: String,
 }
@@ -86,13 +86,16 @@ impl TaskXml {
             data: None,
             principals: None,
             actions: Actions {
-                exec: None,
-                com_handler: None,
-                send_email: None,
-                show_message: None,
+                exec: Vec::new(),
+                com_handler: Vec::new(),
+                send_email: Vec::new(),
+                show_message: Vec::new(),
             },
             path: path.to_string(),
         };
+
+        // Track Principals
+        let mut principals = Vec::new();
 
         loop {
             match reader.read_event() {
@@ -114,9 +117,10 @@ impl TaskXml {
                         let set_info = parse_settings(&mut reader);
                         task_xml.settings = Some(set_info);
                     }
-                    b"Principals" => {
+                    b"Principal" => {
                         let prin_info = parse_principals(&mut reader);
-                        task_xml.principals = Some(prin_info);
+                        principals.push(prin_info);
+                        task_xml.principals = Some(principals.clone());
                     }
                     b"Actions" => {
                         let action_info = parse_actions(&mut reader);
@@ -150,7 +154,7 @@ mod tests {
         let result = TaskXml::parse_xml(&test_location.display().to_string()).unwrap();
 
         assert_ne!(result.principals, None);
-        assert_ne!(result.actions.exec, None);
+        assert_eq!(result.actions.exec.len(), 1);
         assert_eq!(result.path, test_location.display().to_string())
     }
 
@@ -174,7 +178,7 @@ mod tests {
         let result = TaskXml::process_xml(&xml, &test_location.display().to_string()).unwrap();
 
         assert_ne!(result.principals, None);
-        assert_ne!(result.actions.exec, None);
+        assert_eq!(result.actions.exec.len(), 1);
         assert_eq!(result.path, test_location.display().to_string())
     }
 }

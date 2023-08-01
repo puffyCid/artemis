@@ -78,4 +78,30 @@ fn alt_drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::grab_tasks;
+    use crate::{
+        artifacts::os::windows::tasks::parser::{alt_drive_tasks, default_tasks},
+        structs::artifacts::os::windows::TasksOptions,
+    };
+
+    #[test]
+    fn test_grab_tasks() {
+        let options = TasksOptions { alt_drive: None };
+
+        let result = grab_tasks(&options).unwrap();
+        assert!(result.tasks.len() > 10);
+    }
+
+    #[test]
+    fn test_default_tasks() {
+        let result = default_tasks().unwrap();
+        assert!(result.tasks.len() > 10);
+    }
+
+    #[test]
+    fn test_alt_drive_tasks() {
+        let result = alt_drive_tasks(&'C').unwrap();
+        assert!(result.tasks.len() > 10);
+    }
+}

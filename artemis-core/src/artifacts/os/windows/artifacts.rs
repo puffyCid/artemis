@@ -582,7 +582,7 @@ mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, files, output_data, prefetch, processes, raw_filelist,
-            registry, search, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo,
+            registry, search, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo, tasks,
             userassist, users, usnjrnl,
         },
         structs::artifacts::os::{
@@ -591,7 +591,8 @@ mod tests {
             windows::{
                 AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
                 RegistryOptions, SearchOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-                ShortcutOptions, SrumOptions, UserAssistOptions, UserOptions, UsnJrnlOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
+                UsnJrnlOptions,
             },
         },
         utils::{artemis_toml::Output, time},
@@ -817,6 +818,15 @@ mod tests {
         let mut output = output_options("users_temp", "json", "./tmp", false);
 
         let status = users(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_tasks() {
+        let options = TasksOptions { alt_drive: None };
+        let mut output = output_options("tasks_temp", "json", "./tmp", false);
+
+        let status = tasks(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

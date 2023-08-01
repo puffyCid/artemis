@@ -362,7 +362,7 @@ fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
 #[cfg(test)]
 mod tests {
     use super::parse_settings;
-    use crate::artifacts::os::windows::tasks::schema::settings::{
+    use crate::artifacts::os::windows::tasks::schemas::settings::{
         process_idle, process_maintence, process_network, process_restart, Settings,
     };
     use quick_xml::Reader;
@@ -429,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn terst_process_idle() {
+    fn test_process_idle() {
         let xml = r#"
         <Duration>P10M</Duration>
              "#;

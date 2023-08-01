@@ -5,10 +5,10 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct Actions {
-    pub(crate) exec: Option<ExecType>,
-    pub(crate) com_handler: Option<ComHandlerType>,
-    pub(crate) send_email: Option<SendEmail>,
-    pub(crate) show_message: Option<Message>,
+    pub(crate) exec: Vec<ExecType>,
+    pub(crate) com_handler: Vec<ComHandlerType>,
+    pub(crate) send_email: Vec<SendEmail>,
+    pub(crate) show_message: Vec<Message>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -47,10 +47,10 @@ pub(crate) struct Message {
 /// Parse all Task Actions
 pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
     let mut info = Actions {
-        exec: None,
-        com_handler: None,
-        send_email: None,
-        show_message: None,
+        exec: Vec::new(),
+        com_handler: Vec::new(),
+        send_email: Vec::new(),
+        show_message: Vec::new(),
     };
 
     loop {
@@ -61,10 +61,10 @@ pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Exec" => info.exec = Some(process_exec(reader)),
-                b"ComHandler" => info.com_handler = Some(process_com(reader)),
-                b"SendEmail" => info.send_email = Some(process_email(reader)),
-                b"ShowMessage" => info.show_message = Some(process_message(reader)),
+                b"Exec" => info.exec.push(process_exec(reader)),
+                b"ComHandler" => info.com_handler.push(process_com(reader)),
+                b"SendEmail" => info.send_email.push(process_email(reader)),
+                b"ShowMessage" => info.show_message.push(process_message(reader)),
                 _ => break,
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
@@ -273,7 +273,7 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::tasks::schema::actions::{
+    use crate::artifacts::os::windows::tasks::schemas::actions::{
         parse_actions, process_com, process_email, process_exec, process_message,
     };
     use quick_xml::Reader;
@@ -289,7 +289,7 @@ mod tests {
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
         let result = parse_actions(&mut reader);
-        assert_eq!(result.exec.unwrap().command, "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
+        assert_eq!(result.exec[0].command, "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
     }
 
     #[test]
