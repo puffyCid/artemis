@@ -3,29 +3,30 @@ use crate::utils::{
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
+use serde::Serialize;
 use std::mem::size_of;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Fixed {
     product_version: String,
     format_version: u16,
-    job_id: String,
+    pub(crate) job_id: String,
     app_offset: u16,
     triggers_offset: u16,
-    error_retry_count: u16,
-    error_retry_interval: u16,
-    idle_deadline: u16,
-    idle_wait: u16,
-    priority: Priority,
-    max_run_time: u32,
-    exit_code: u32,
-    status: Status,
-    flags: Vec<Flags>,
-    system_time: String,
+    pub(crate) error_retry_count: u16,
+    pub(crate) error_retry_interval: u16,
+    pub(crate) idle_deadline: u16,
+    pub(crate) idle_wait: u16,
+    pub(crate) priority: Priority,
+    pub(crate) max_run_time: u32,
+    pub(crate) exit_code: u32,
+    pub(crate) status: Status,
+    pub(crate) flags: Vec<Flags>,
+    pub(crate) system_time: String,
 }
 
-#[derive(Debug, PartialEq)]
-enum Priority {
+#[derive(Debug, PartialEq, Serialize)]
+pub(crate) enum Priority {
     Normal,
     High,
     Idle,
@@ -34,8 +35,8 @@ enum Priority {
 }
 
 /// Additional status codes at [Microsoft](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-error-and-success-constants)
-#[derive(Debug, PartialEq)]
-enum Status {
+#[derive(Debug, PartialEq, Serialize)]
+pub(crate) enum Status {
     Ready,
     Running,
     Disabled,
@@ -50,8 +51,8 @@ enum Status {
     Unknown,
 }
 
-#[derive(Debug, PartialEq)]
-enum Flags {
+#[derive(Debug, PartialEq, Serialize)]
+pub(crate) enum Flags {
     Interactive,
     DeleteWhenDone,
     Disabled,
@@ -68,6 +69,7 @@ enum Flags {
     ApplicationName,
 }
 
+/// Parse the Fixed section of the `Job` file
 pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
     let (input, product_version_data) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (input, format_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -89,6 +91,7 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
     let (input, flag_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, system_time_data) = take(size_of::<u128>())(input)?;
+    let (_, system_time) = system_time(system_time_data)?;
 
     let fixed = Fixed {
         product_version: product_version(&product_version_data),
@@ -105,12 +108,13 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
         exit_code,
         status: status(&status_data),
         flags: flags(&flag_data),
-        system_time: String::new(),
+        system_time,
     };
 
     Ok((input, fixed))
 }
 
+/// Determine the Product Version from the `Job` file
 fn product_version(version: &u16) -> String {
     match version {
         0x400 => String::from("Windows NT 4.0"),
@@ -125,6 +129,7 @@ fn product_version(version: &u16) -> String {
     }
 }
 
+/// Determine the `Job` Priority
 fn priority(priority: &u32) -> Priority {
     match priority {
         0x20 => Priority::Normal,
@@ -135,6 +140,7 @@ fn priority(priority: &u32) -> Priority {
     }
 }
 
+/// Determine the `Job` Status
 fn status(status: &u32) -> Status {
     match status {
         0x41300 => Status::Ready,
@@ -152,6 +158,7 @@ fn status(status: &u32) -> Status {
     }
 }
 
+/// Determine the Flags associated with the `Job`
 fn flags(flags: &u32) -> Vec<Flags> {
     let interactive = 0x1;
     let delete_done = 0x2;
@@ -216,16 +223,36 @@ fn flags(flags: &u32) -> Vec<Flags> {
     flag_vec
 }
 
-fn system_time(data: &[u8]) {}
+/// Get last run time of `Job`.
+fn system_time(data: &[u8]) -> nom::IResult<&[u8], String> {
+    if data == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] {
+        return Ok((data, String::new()));
+    }
+
+    let (input, year) = nom_unsigned_two_bytes(data, Endian::Le)?;
+    let (input, month) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, _weekday) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, day) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+    let (input, hours) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, mins) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, seconds) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, milliseconds) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+    let timestamp = format!("{year}-{month}-{day}T{hours}:{mins}:{seconds}.{milliseconds}");
+
+    Ok((input, timestamp))
+}
 
 #[cfg(test)]
 mod tests {
+    use super::{parse_fixed, product_version, system_time};
     use crate::{
-        artifacts::os::windows::tasks::sections::fixed::{Flags, Priority, Status},
+        artifacts::os::windows::tasks::sections::fixed::{
+            flags, priority, status, Flags, Priority, Status,
+        },
         filesystem::files::read_file,
     };
-
-    use super::parse_fixed;
     use std::path::PathBuf;
 
     #[test]
@@ -254,5 +281,40 @@ mod tests {
             vec![Flags::DeleteWhenDone, Flags::ApplicationName]
         );
         assert_eq!(result.system_time, "");
+    }
+
+    #[test]
+    fn test_product_version() {
+        let test = 0x400;
+        let version = product_version(&test);
+        assert_eq!(version, "Windows NT 4.0");
+    }
+
+    #[test]
+    fn test_priority() {
+        let test = 0x100;
+        let result = priority(&test);
+        assert_eq!(result, Priority::Realtime);
+    }
+
+    #[test]
+    fn test_status() {
+        let test = 0x41304;
+        let result = status(&test);
+        assert_eq!(result, Status::NoMoreRuns);
+    }
+
+    #[test]
+    fn test_flags() {
+        let test = 0x1;
+        let result = flags(&test);
+        assert_eq!(result, vec![Flags::Interactive]);
+    }
+
+    #[test]
+    fn test_system_time() {
+        let test = [02, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let (_, result) = system_time(&test).unwrap();
+        assert_eq!(result, "5890-0-0T0:0:0.0")
     }
 }

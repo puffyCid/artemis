@@ -6,16 +6,12 @@ use super::{
     error::TaskError,
     schemas::{actions::parse_actions, registration::parse_registration, triggers::parse_trigger},
 };
+use crate::utils::encoding::read_xml;
 use crate::{
     artifacts::os::windows::tasks::schemas::{
         principals::parse_principals, settings::parse_settings,
     },
-    filesystem::files::read_file,
-    utils::{
-        encoding::base64_encode_standard,
-        nom_helper::{nom_unsigned_two_bytes, Endian},
-        strings::extract_utf16_string,
-    },
+    utils::encoding::base64_encode_standard,
 };
 use log::error;
 use quick_xml::{events::Event, Reader};
@@ -39,40 +35,16 @@ pub(crate) struct TaskXml {
 impl TaskXml {
     /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
     pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
-        let xml_data = TaskXml::read_xml(path)?;
-        TaskXml::process_xml(&xml_data, path)
-    }
-
-    /// Read a XML file into a string and check for UTF16 Byte Order Mark (BOM)
-    pub(crate) fn read_xml(path: &str) -> Result<String, TaskError> {
-        let bytes_result = read_file(path);
-        let bytes = match bytes_result {
+        // Read XML file at provided path. Tasks use UTF16 encoding
+        let xml_result = read_xml(path);
+        let xml_data = match xml_result {
             Ok(result) => result,
             Err(err) => {
                 error!("[tasks] Could not read Task XML file at {path}: {err:?}");
                 return Err(TaskError::ReadXml);
             }
         };
-
-        let utf_check = nom_unsigned_two_bytes(&bytes, Endian::Be);
-        let (data, utf_status) = match utf_check {
-            Ok(result) => result,
-            Err(_err) => {
-                error!("[tasks] Could not read XML to determine UTF16 {path}");
-                return Err(TaskError::ReadXml);
-            }
-        };
-
-        let utf16_le = 0xfffe;
-        let utf16_be = 0xfeff;
-
-        let xml_string = if utf_status == utf16_be || utf_status == utf16_le {
-            extract_utf16_string(data)
-        } else {
-            extract_utf16_string(&bytes)
-        };
-
-        Ok(xml_string)
+        TaskXml::process_xml(&xml_data, path)
     }
 
     /// Parse the different parts the XML schema format
@@ -143,7 +115,7 @@ impl TaskXml {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::tasks::xml::TaskXml;
+    use crate::{artifacts::os::windows::tasks::xml::TaskXml, utils::encoding::read_xml};
     use std::path::PathBuf;
 
     #[test]
@@ -159,22 +131,11 @@ mod tests {
     }
 
     #[test]
-    fn test_read_xml() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
-
-        let result = TaskXml::read_xml(&test_location.display().to_string()).unwrap();
-        assert!(result.starts_with("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
-        assert!(result.contains("<URI>\\Microsoft\\VisualStudio\\VSIX Auto Update</URI>"));
-        assert_eq!(result.len(), 1356);
-    }
-
-    #[test]
     fn test_process_xml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let xml = TaskXml::read_xml(&test_location.display().to_string()).unwrap();
+        let xml = read_xml(&test_location.display().to_string()).unwrap();
         let result = TaskXml::process_xml(&xml, &test_location.display().to_string()).unwrap();
 
         assert_ne!(result.principals, None);

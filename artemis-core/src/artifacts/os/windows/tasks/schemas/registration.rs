@@ -80,7 +80,7 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
 #[cfg(test)]
 mod tests {
     use super::parse_registration;
-    use crate::artifacts::os::windows::tasks::xml::TaskXml;
+    use crate::utils::encoding::read_xml;
     use quick_xml::{events::Event, Reader};
     use std::path::PathBuf;
 
@@ -89,7 +89,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let xml = TaskXml::read_xml(&test_location.display().to_string()).unwrap();
+        let xml = read_xml(&test_location.display().to_string()).unwrap();
         let mut reader = Reader::from_str(&xml);
         reader.trim_text(true);
 
