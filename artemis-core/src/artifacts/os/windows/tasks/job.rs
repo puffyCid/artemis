@@ -34,7 +34,7 @@ pub(crate) struct TaskJob {
     comments: String,
     user_data: String,
     start_error: u32,
-    trigges: Vec<Triggers>,
+    triggers: Vec<Triggers>,
 }
 
 impl TaskJob {
@@ -92,7 +92,7 @@ impl TaskJob {
             comments: variable_value.comment,
             user_data: variable_value.user_data,
             start_error: variable_value.start_error,
-            trigges: variable_value.triggers,
+            triggers: variable_value.triggers,
         };
 
         Ok(job)
