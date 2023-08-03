@@ -1,3 +1,18 @@
+/**
+ * `Schedule Tasks` are a common form of Persistence on Windows systems. There are two (2) types of `Task` files:
+ *   - XML based `Task` files
+ *   - Job based `Task` files
+ *
+ * Starting on Windows Vista and higher XML files are used for `Schedule Tasks`.
+ *
+ * References:
+ * `https://github.com/libyal/dtformats/blob/main/documentation/Job%20file%20format.asciidoc`
+ * `https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsch/0d6383e4-de92-43e7-b0bb-a60cfa36379f`
+ *
+ * Other Parsers:
+ *  Any XML reader
+ * `https://github.com/Velocidex/velociraptor`
+ */
 use super::{error::TaskError, job::TaskJob, xml::TaskXml};
 use crate::{
     filesystem::{files::list_files, metadata::glob_paths},

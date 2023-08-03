@@ -7,7 +7,7 @@ pub(crate) struct Principals {
     user_id: Option<String>,
     logon_type: Option<String>,
     group_id: Option<String>,
-    display_nme: Option<String>,
+    display_name: Option<String>,
     run_level: Option<String>,
     process_token_sid_type: Option<String>,
     required_privileges: Option<Vec<String>>,
@@ -20,7 +20,7 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
         user_id: None,
         logon_type: None,
         group_id: None,
-        display_nme: None,
+        display_name: None,
         run_level: None,
         process_token_sid_type: None,
         required_privileges: None,
@@ -49,7 +49,7 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
                         Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"DisplayName" => {
-                    info.display_nme =
+                    info.display_name =
                         Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"RunLevel" => {

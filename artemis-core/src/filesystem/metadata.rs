@@ -1,6 +1,6 @@
 use crate::filesystem::error::FileSystemError;
 use log::error;
-use std::ffi::OsString;
+use serde::Serialize;
 use std::fs::symlink_metadata;
 use std::{fs::Metadata, io::Error};
 
@@ -56,10 +56,10 @@ pub(crate) fn get_metadata(path: &str) -> Result<Metadata, Error> {
     symlink_metadata(path)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct GlobInfo {
     pub(crate) full_path: String,
-    pub(crate) filename: OsString,
+    pub(crate) filename: String,
     pub(crate) is_file: bool,
     pub(crate) is_directory: bool,
     pub(crate) is_symlink: bool,
@@ -79,7 +79,12 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystem
     for entry in paths.flatten() {
         let glob_info = GlobInfo {
             full_path: entry.to_str().unwrap_or_default().to_string(),
-            filename: entry.file_name().unwrap_or_default().to_os_string(),
+            filename: entry
+                .file_name()
+                .unwrap_or_default()
+                .to_str()
+                .unwrap_or_default()
+                .to_string(),
             is_directory: entry.is_dir(),
             is_file: entry.is_file(),
             is_symlink: entry.is_symlink(),

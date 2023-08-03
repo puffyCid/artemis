@@ -43,5 +43,13 @@ class FileSystem {
   readTextFile = (path: string) => {
     return core.ops.js_read_text_file(path);
   };
+  /**
+   * Process a glob patter and return paths
+   * @param pattern Glob pattern to parse
+   * @returns String containing paths parsed from glob
+   */
+  glob = (pattern: string) => {
+    return core.ops.js_glob(pattern);
+  }
 }
 export const filesystem = new FileSystem();

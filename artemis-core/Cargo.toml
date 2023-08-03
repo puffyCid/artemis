@@ -30,6 +30,7 @@ reqwest = {version = "0.11.18", features = ["json", "blocking"]}
 jsonwebtoken = "8.3.0"
 rusty-s3 = "0.4.1"
 glob = "0.3.1"
+quick-xml = {version ="0.30.0", default-features = false, features = ["serialize"]}
 
 # Deno Runtime integration
 deno_core = {version = "0.197.0"}
@@ -41,7 +42,6 @@ ntapi = "0.4.1"
 evtx = { version = "0.8.1", default-features = false, features = ["multithreading"]}
 ntfs = "0.4.0"
 pelite = "0.10.0"
-quick-xml = {version ="0.30.0", default-features = false}
 
 # Linux Dependencies
 [target.'cfg(target_os = "linux")'.dependencies]

@@ -37,6 +37,14 @@ class Encoding {
     bytes_encode = (data: string) => {
         return core.ops.js_encode_bytes(data)
     }
+    /**
+     * Read a XML file into a JSON object
+     * @param data Path to XML file
+     * @returns JSON object representing the XML content
+     */
+    read_xml = (data: string) => {
+        return core.ops.js_read_xml(data)
+    }
 }
 
 export const encoding = new Encoding();

@@ -13,5 +13,6 @@ mod shimcache;
 mod shimdb;
 mod shortcuts;
 mod srum;
+mod tasks;
 mod userassist;
 mod usnjrnl;
