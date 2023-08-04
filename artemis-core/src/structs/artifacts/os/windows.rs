@@ -95,3 +95,8 @@ pub(crate) struct SearchOptions {
 pub(crate) struct TasksOptions {
     pub(crate) alt_drive: Option<char>,
 }
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct ServicesOptions {
+    pub(crate) alt_drive: Option<char>,
+}

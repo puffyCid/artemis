@@ -107,7 +107,7 @@ pub(crate) fn journals(output: &mut Output, filter: &bool) -> Result<(), LinuxAr
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to get journals: {err:?}");
+            error!("[artemis-core] Artemis Linux failed to get journals: {err:?}");
             Err(LinuxArtifactError::Journal)
         }
     }
