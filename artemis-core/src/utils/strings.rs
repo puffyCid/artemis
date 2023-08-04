@@ -95,7 +95,6 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
 /// Detect ASCII or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     if data.is_ascii() && data.iter().filter(|&c| *c == 0).count() <= 1 {
@@ -116,7 +115,7 @@ pub(crate) fn strings_contains(input1: &str, input2: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::extract_utf8_string;
+    use crate::utils::strings::{extract_ascii_utf16_string, extract_utf8_string};
 
     #[test]
     #[cfg(target_os = "windows")]
@@ -153,10 +152,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_extract_ascii_utf16_string() {
-        use crate::utils::strings::extract_ascii_utf16_string;
-
         let test_data = vec![79, 83, 81, 85, 69, 82, 89, 68, 46, 69, 88, 69, 0];
         assert_eq!(extract_ascii_utf16_string(&test_data), "OSQUERYD.EXE")
     }
