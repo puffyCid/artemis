@@ -1,4 +1,5 @@
 use super::search::parser::grab_search;
+use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
@@ -16,8 +17,9 @@ use crate::output::formats::{json::json_format, jsonl::jsonl_format};
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
-    RegistryOptions, SearchOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-    ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions, UsnJrnlOptions,
+    RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
+    ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
+    UsnJrnlOptions,
 };
 use crate::{
     structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
@@ -520,6 +522,36 @@ pub(crate) fn tasks(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse the Windows `Services` artifact
+pub(crate) fn services(
+    options: &ServicesOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let service_results = grab_services(options);
+    let service_data = match service_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse Services: {err:?}");
+            return Err(WinArtifactError::Services);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(service_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize services: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "services";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Windows artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -582,17 +614,17 @@ mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, files, output_data, prefetch, processes, raw_filelist,
-            registry, search, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo, tasks,
-            userassist, users, usnjrnl,
+            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo,
+            tasks, userassist, users, usnjrnl,
         },
         structs::artifacts::os::{
             files::FileOptions,
             processes::ProcessOptions,
             windows::{
                 AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
-                RegistryOptions, SearchOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
-                UsnJrnlOptions,
+                RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+                ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+                UserAssistOptions, UserOptions, UsnJrnlOptions,
             },
         },
         utils::{artemis_toml::Output, time},
@@ -827,6 +859,15 @@ mod tests {
         let mut output = output_options("tasks_temp", "json", "./tmp", false);
 
         let status = tasks(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_services() {
+        let options = ServicesOptions { alt_drive: None };
+        let mut output = output_options("services_temp", "json", "./tmp", false);
+
+        let status = services(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

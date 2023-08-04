@@ -25,6 +25,7 @@ pub enum WinArtifactError {
     Users,
     Search,
     Tasks,
+    Services,
 }
 
 impl std::error::Error for WinArtifactError {}
@@ -55,6 +56,7 @@ impl fmt::Display for WinArtifactError {
             WinArtifactError::FilterOutput => write!(f, "Failed to filter windows data"),
             WinArtifactError::Users => write!(f, "Failed to parse Users"),
             WinArtifactError::Tasks => write!(f, "Failed to parse Schedule Tasks"),
+            WinArtifactError::Services => write!(f, "Failed to parse Services"),
         }
     }
 }

@@ -1,5 +1,5 @@
 /**
- * `Schedule Tasks` are a common form of Persistence on Windows systems. There are two (2) types of `Task` files:
+ * `Schedule Tasks` are a common form of persistence on Windows systems. There are two (2) types of `Task` files:
  *   - XML based `Task` files
  *   - Job based `Task` files
  *

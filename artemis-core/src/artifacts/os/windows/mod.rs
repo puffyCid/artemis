@@ -12,6 +12,7 @@ mod propertystore;
 pub(crate) mod registry;
 pub(crate) mod search;
 mod securitydescriptor;
+pub(crate) mod services;
 pub(crate) mod shellbags;
 mod shellitems;
 pub(crate) mod shimcache;

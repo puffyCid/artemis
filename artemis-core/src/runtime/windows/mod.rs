@@ -8,6 +8,7 @@ mod pe;
 mod prefetch;
 mod registry;
 mod search;
+mod services;
 mod shellbags;
 mod shimcache;
 mod shimdb;
