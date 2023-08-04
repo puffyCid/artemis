@@ -6,7 +6,6 @@ use crate::{
     },
 };
 use log::error;
-use nom::bytes::complete::take;
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -170,10 +169,7 @@ fn parse_failure_actions(data: &[u8]) -> nom::IResult<&[u8], (Vec<FailureActions
     let (input, _command) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, actions_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (_, actions_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-    // Offset is from start of the failure action data
-    let (mut action_start, _) = take(actions_offset)(data)?;
+    let (mut action_start, _actions_pointer) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let mut count = 0;
     let mut failures = Vec::new();
