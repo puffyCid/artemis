@@ -1,15 +1,17 @@
 # artemis
 
 artemis is a powerful command line digital forensic and incident response (DFIR)
-tool that collects forensic data from Windows, macOS, and Linux endpoints. Its primary
-focus is: speed, ease of use, and low resource usage.\
+tool that collects forensic data from Windows, macOS, and Linux endpoints. Its
+primary focus is: speed, ease of use, and low resource usage.\
 Notable features _so far_:
 
 - Setup collections using basic TOML files
 - Parsing support for large amount of forensic artifacts (25+)
-- Output to JSON or JSONL file(s) (remote uploading support coming soon)
+- Output to JSON or JSONL file(s)
+- Can output results to local system or upload to cloud services.
 - Embedded JavaScript runtime via [Deno](https://deno.land/)
-- Can be used as a library via [artemis-core](https://puffycid.github.io/artemis-book/core/overview.html)
+- Can be used as a library via
+  [artemis-core](https://puffycid.github.io/artemis-book/core/overview.html)
 - MIT license
 
 Checkout the online guide at https://puffycid.github.io/artemis-book for indepth
