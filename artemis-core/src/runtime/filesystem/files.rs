@@ -1,7 +1,7 @@
 use super::directory::JsFileInfo;
 use crate::filesystem::{
     files::{file_extension, get_filename, hash_file, read_text_file, Hashes},
-    metadata::{get_metadata, get_timestamps},
+    metadata::{get_metadata, get_timestamps, glob_paths},
 };
 use deno_core::{error::AnyError, op};
 use serde::Serialize;
@@ -37,6 +37,15 @@ fn js_stat(path: String) -> Result<String, AnyError> {
     };
 
     let data = serde_json::to_string(&info)?;
+
+    Ok(data)
+}
+
+#[op]
+/// Return glob info based on provided glob string
+fn js_glob(glob: String) -> Result<String, AnyError> {
+    let globs = glob_paths(&glob)?;
+    let data = serde_json::to_string(&globs)?;
 
     Ok(data)
 }
@@ -169,6 +178,30 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("read_text"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_js_glob() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGZzLmdsb2IocGF0dGVybik7CiAgY29uc3QgcmVzdWx0ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aHMgPSBnbG9iKCJDOlxcKiIpOwogIGlmIChwYXRocyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gZ2xvYiBwYXRoOiAke3BhdGhzfWApOwogIH0KICByZXR1cm4gcGF0aHM7Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("glob"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_js_glob() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGZzLmdsb2IocGF0dGVybik7CiAgY29uc3QgcmVzdWx0ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aHMgPSBnbG9iKCIvKiIpOwogIGlmIChwYXRocyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gZ2xvYiBwYXRoOiAke3BhdGhzfWApOwogIH0KICByZXR1cm4gcGF0aHM7Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("glob"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

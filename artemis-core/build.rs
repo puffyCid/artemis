@@ -28,6 +28,7 @@ fn main() {
             extensions: vec![extensions],
             compression_cb: None,
             snapshot_module_load_cb: None,
+            with_runtime_cb: Default::default(),
         },
     );
 }

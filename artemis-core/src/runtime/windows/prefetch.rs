@@ -7,6 +7,7 @@ use deno_core::{error::AnyError, op};
 use log::error;
 
 #[op]
+/// Get Prefetch files at using default drive (typically C)
 fn get_prefetch() -> Result<String, AnyError> {
     let options = PrefetchOptions { alt_drive: None };
     let pf_result = grab_prefetch(&options);
@@ -23,6 +24,7 @@ fn get_prefetch() -> Result<String, AnyError> {
 }
 
 #[op]
+/// Get Prefetch files using alternative drive
 fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt prefetch drive. Need drive letter");
@@ -48,9 +50,10 @@ fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
 }
 
 #[op]
+/// Parse Prefetch files at provided directory
 fn get_prefetch_path(path: String) -> Result<String, AnyError> {
     if path.is_empty() {
-        error!("[runtime] Got empty prefetch path path.");
+        error!("[runtime] Got empty prefetch path.");
         return Err(RuntimeError::ExecuteScript.into());
     }
 

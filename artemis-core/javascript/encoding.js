@@ -12,5 +12,8 @@ class Encoding {
     bytes_encode = (data) => {
         return core.ops.js_encode_bytes(data);
     };
+    read_xml = (data) => {
+        return core.ops.js_read_xml(data);
+    };
 }
 export const encoding = new Encoding();

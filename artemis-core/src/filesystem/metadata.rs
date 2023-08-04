@@ -1,3 +1,6 @@
+use crate::filesystem::error::FileSystemError;
+use log::error;
+use serde::Serialize;
 use std::fs::symlink_metadata;
 use std::{fs::Metadata, io::Error};
 
@@ -53,10 +56,49 @@ pub(crate) fn get_metadata(path: &str) -> Result<Metadata, Error> {
     symlink_metadata(path)
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct GlobInfo {
+    pub(crate) full_path: String,
+    pub(crate) filename: String,
+    pub(crate) is_file: bool,
+    pub(crate) is_directory: bool,
+    pub(crate) is_symlink: bool,
+}
+/// Execute a provided Glob pattern (Ex: /files/*) and return results
+pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystemError> {
+    let mut info = Vec::new();
+    let glob_results = glob::glob(glob_pattern);
+    let paths = match glob_results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Could not glob {glob_pattern}: {err:?}");
+            return Err(FileSystemError::BadGlob);
+        }
+    };
+
+    for entry in paths.flatten() {
+        let glob_info = GlobInfo {
+            full_path: entry.to_str().unwrap_or_default().to_string(),
+            filename: entry
+                .file_name()
+                .unwrap_or_default()
+                .to_str()
+                .unwrap_or_default()
+                .to_string(),
+            is_directory: entry.is_dir(),
+            is_file: entry.is_file(),
+            is_symlink: entry.is_symlink(),
+        };
+        info.push(glob_info);
+    }
+
+    Ok(info)
+}
+
 #[cfg(test)]
 mod tests {
     use super::get_metadata;
-    use crate::filesystem::metadata::get_timestamps;
+    use crate::filesystem::metadata::{get_timestamps, glob_paths};
     use std::path::PathBuf;
 
     #[test]
@@ -66,6 +108,15 @@ mod tests {
 
         let result = get_metadata(&test_location.display().to_string()).unwrap();
         assert!(result.is_dir());
+    }
+
+    #[test]
+    fn test_glob_paths() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests");
+
+        let result = glob_paths(&format!("{}/*", &test_location.display().to_string())).unwrap();
+        assert!(result.len() > 10);
     }
 
     #[test]

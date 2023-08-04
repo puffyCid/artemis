@@ -27,6 +27,8 @@ pub enum ArtemisError {
     Local,
     Remote,
     Cleanup,
+    ReadXml,
+    UtfType,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -62,6 +64,8 @@ impl fmt::Display for ArtemisError {
             ArtemisError::Local => write!(f, "Failed output data to local directory"),
             ArtemisError::Remote => write!(f, "Failed output data to remote URL"),
             ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
+            ArtemisError::ReadXml => write!(f, "Failed to read XML"),
+            ArtemisError::UtfType => write!(f, "Failed to determine UTF XML type"),
         }
     }
 }

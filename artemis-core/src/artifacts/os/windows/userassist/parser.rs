@@ -1,3 +1,13 @@
+/**
+ * Windows `UserAssist` is a Registry artifact that records applications executed via Windows Explorer.
+ * These entries are typically ROT13 encoded (though this can be disabled)
+ *
+ * References:
+ * `https://winreg-kb.readthedocs.io/en/latest/sources/explorer-keys/User-assist.html`
+ *
+ * Other Parsers:
+ *  `https://github.com/Velocidex/velociraptor`
+ */
 use super::{assist::UserAssistEntry, error::UserAssistError, registry::get_userassist_data};
 use crate::{
     structs::artifacts::os::windows::UserAssistOptions, utils::environment::get_systemdrive,

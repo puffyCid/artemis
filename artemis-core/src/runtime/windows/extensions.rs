@@ -8,11 +8,13 @@ use super::{
     prefetch::{get_alt_prefetch, get_prefetch, get_prefetch_path},
     registry::get_registry,
     search::get_search,
+    services::{get_alt_services, get_service_file, get_services},
     shellbags::{get_alt_shellbags, get_shellbags},
     shimcache::{get_alt_shimcache, get_shimcache},
     shimdb::{get_alt_shimdb, get_custom_shimdb, get_shimdb},
     shortcuts::get_lnk_file,
     srum::get_srum,
+    tasks::{get_alt_tasks, get_task_file, get_tasks},
     userassist::{get_alt_userassist, get_userassist},
     usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
 };
@@ -60,6 +62,12 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_users::DECL,
         get_alt_users::DECL,
         get_search::DECL,
+        get_tasks::DECL,
+        get_alt_tasks::DECL,
+        get_task_file::DECL,
+        get_services::DECL,
+        get_alt_services::DECL,
+        get_service_file::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

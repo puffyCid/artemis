@@ -302,6 +302,7 @@ impl AccessControlEntry {
         if (rights_data & write_attr) == write_attr {
             rights.push(AccessMask::FileWriteAttributes);
         }
+
         rights
     }
 

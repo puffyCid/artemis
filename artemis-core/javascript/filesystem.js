@@ -15,5 +15,8 @@ class FileSystem {
     readTextFile = (path) => {
         return core.ops.js_read_text_file(path);
     };
+    glob = (pattern) => {
+        return core.ops.js_glob(pattern);
+    };
 }
 export const filesystem = new FileSystem();
