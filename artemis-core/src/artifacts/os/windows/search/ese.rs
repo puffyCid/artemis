@@ -66,6 +66,7 @@ pub(crate) fn parse_search(
     Ok(())
 }
 
+/// Parse Windows `Search` at provided path
 pub(crate) fn parse_search_path(
     path: &str,
     tables: &[String],

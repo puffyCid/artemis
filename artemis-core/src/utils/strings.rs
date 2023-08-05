@@ -8,7 +8,18 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
     let min_byte_size = 2;
     for wide_char in data.chunks(min_byte_size) {
         if wide_char == vec![0, 0] || wide_char.len() < min_byte_size {
+            // Check for last character
+            if !wide_char.is_empty() && !wide_char.contains(&0) {
+                utf16_data.push(wide_char[0] as u16);
+            }
             break;
+        }
+
+        // If Wide char does not contain 0, append separately
+        if !wide_char.contains(&0) {
+            utf16_data.push(wide_char[0] as u16);
+            utf16_data.push(wide_char[1] as u16);
+            continue;
         }
 
         utf16_data.push(u16::from_ne_bytes([wide_char[0], wide_char[1]]));
@@ -124,6 +135,15 @@ mod tests {
             0,
         ];
         assert_eq!(extract_utf16_string(&test_data), "OSQUERYD.EXE")
+    }
+
+    #[test]
+    fn test_extract_utf16_no_zeros() {
+        let test_data = vec![
+            75, 111, 110, 116, 114, 97, 115, 116, 32, 35, 49, 32, 40, 101, 120, 116, 114, 97, 103,
+            114, 111, 223, 41,
+        ];
+        assert_eq!(extract_utf16_string(&test_data), "Kontrast #1 (extragroß)")
     }
 
     #[test]

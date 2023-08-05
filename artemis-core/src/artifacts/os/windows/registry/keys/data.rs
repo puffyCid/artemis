@@ -133,8 +133,14 @@ fn check_big_data(
             // Check if we are at last big data entry
             // The last big data entry does not have to equal the max size (16344)
             if sizes_iter.peek().is_none() {
+                let end_string = 2;
                 // The final size should be the difference between the data size specified in the value key and our current data
-                let final_size = data_size as usize - binary_vec.len();
+                let final_size = if data_type == DataTypes::Binary {
+                    data_size as usize - binary_vec.len()
+                } else {
+                    (data_size as usize - start_size) + end_string
+                };
+
                 // Adjust the size based on final data size
                 let allocated_data = if final_size + start_size < large_data.len() {
                     &large_data[start_size..final_size + start_size]
