@@ -29,7 +29,8 @@ jobs:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
           # Note that glob pattern is not supported yet.
           bin: artemis
+          ref: refs/tags/nightly
           target: ${{ matrix.info.target }}
-          archive: $bin-nightly-$target
+          archive: $bin-$tag-$target
           # (required) GitHub token for uploading assets to GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
