@@ -1,10 +1,11 @@
 use crate::{
     error::TomlError,
-    filesystem::files::read_file,
+    filesystem::files::{read_file, read_text_file},
+    runtime::deno::raw_script,
     utils::{artemis_toml::ArtemisToml, logging::create_log_file},
 };
-use log::{error, info};
-use simplelog::{Config, WriteLogger};
+use log::{error, info, LevelFilter};
+use simplelog::{Config, SimpleLogger, WriteLogger};
 use std::str::from_utf8;
 
 #[cfg(target_os = "linux")]
@@ -46,6 +47,26 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
         }
     };
     toml_data(&os_target, data)?;
+    Ok(())
+}
+
+/// Execute a JavaScript file at provided path
+pub fn parse_js_file(path: &str) -> Result<(), TomlError> {
+    let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
+    let code_result = read_text_file(path);
+    let script = match code_result {
+        Ok(results) => results,
+        Err(_) => {
+            return Err(TomlError::NoFile);
+        }
+    };
+
+    let script_result = raw_script(&script);
+    if script_result.is_err() {
+        error!("[runtime] Failed to execute js file");
+        return Err(TomlError::BadJs);
+    }
+
     Ok(())
 }
 
@@ -97,7 +118,7 @@ fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError>
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_toml_data, parse_toml_file};
+    use super::{parse_js_file, parse_toml_data, parse_toml_file};
     use crate::{
         core::{toml_data, ArtemisToml},
         filesystem::files::read_file,
@@ -160,6 +181,13 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         parse_toml_data(&buffer).unwrap();
+    }
+
+    #[test]
+    fn test_parse_js_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/deno_scripts/vanilla.js");
+        parse_js_file(&test_location.display().to_string()).unwrap();
     }
 
     #[test]

@@ -30,6 +30,29 @@ pub(crate) fn filter_script(
     decode_script(output, filter_name, filter_script, args)
 }
 
+/// Execute raw JavaScript code
+pub(crate) fn raw_script(script: &str) -> Result<(), RuntimeError> {
+    let args = [];
+    let result = if script.contains(" async ") || script.contains(" await ") {
+        run_async_script(script, &args)
+    } else {
+        run_script(script, &args)
+    };
+
+    match result {
+        Ok(_result) => {}
+        Err(err) => {
+            error!(
+                "[runtime] Could not execute javascript: {}",
+                err.to_string()
+            );
+            return Err(RuntimeError::ExecuteScript);
+        }
+    };
+
+    Ok(())
+}
+
 /// Base64 decode the Javascript string and execute using Deno runtime and output the returned value
 fn decode_script(
     output: &mut Output,
@@ -105,7 +128,7 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_script, execute_script, filter_script};
+    use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
         runtime::deno::output_data,
         structs::artifacts::runtime::script::JSScript,
@@ -135,6 +158,12 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
         decode_script(&mut output, "hello world", test, &[]).unwrap();
+    }
+
+    #[test]
+    fn test_raw_script() {
+        let test = r#"console.log(2+2);"#;
+        raw_script(&test).unwrap();
     }
 
     #[test]
