@@ -6,15 +6,19 @@ use std::{env, path::PathBuf};
 
 /// Create a SnapShot at build time to help speed up our JavaScript Runtime
 fn main() {
-    let extensions = Extension::builder("artemis")
-        .esm(include_js_files!(artemis 
-            "javascript/console.js",
-            "javascript/filesystem.js",
-            "javascript/environment.js",
-            "javascript/encoding.js",
-            "javascript/main.js",))
-        .esm_entry_point("ext:artemis/javascript/main.js")
-        .build();
+    let extensions = Extension {
+        esm_files: include_js_files!(artemis 
+        "javascript/console.js",
+        "javascript/filesystem.js",
+        "javascript/environment.js",
+        "javascript/encoding.js",
+        "javascript/main.js",)
+        .to_vec()
+        .into(),
+        esm_entry_point: Some("ext:artemis/javascript/main.js"),
+        ..Default::default()
+    };
+
     // Build the file path to the snapshot.
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let snapshot_path = out.join("RUNJS_SNAPSHOT.bin");
@@ -27,7 +31,6 @@ fn main() {
             startup_snapshot: None,
             extensions: vec![extensions],
             compression_cb: None,
-            snapshot_module_load_cb: None,
             with_runtime_cb: Default::default(),
         },
     );

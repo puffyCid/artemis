@@ -22,7 +22,11 @@ use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_extensions() -> Vec<Extension> {
-    let extensions = Extension::builder("artemis").ops(grab_functions()).build();
+    let extensions = Extension {
+        name: "artemis",
+        ops: grab_functions().into(),
+        ..Default::default()
+    };
     vec![extensions]
 }
 

@@ -7,4 +7,4 @@ version = "0.1.0"
 base64 = "0.21.2"
 log = "0.4.19"
 artemis-core = {path = "../artemis-core"}
-clap = {version = "4.3.19", features = ["std", "help", "derive"]}
+clap = {version = "4.3.9", features = ["std", "help", "derive"]}
