@@ -57,14 +57,14 @@ pub(crate) fn grab_logs(
             start_time: *start_time,
             directory_name: source.to_string(),
         };
-        parse_trace_files(
+        let _ = parse_trace_files(
             &unified,
             &archive_path,
             output,
             &mut oversize_strings,
             &mut missing_data,
             &options,
-        )?;
+        );
         archive_path.pop();
     }
 
