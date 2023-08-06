@@ -37,3 +37,47 @@ process_collection
 ./process_collection:
 692f6c76-8312-472f-8005-2a3ecd2203f9.jsonl	d97b86bb-a762-4bae-b8e8-16dad8708fa4.log	status.log
 ```
+
+or you can also execute JavaScript code to call the artemis api (Rust functions)
+
+```javascript
+// https://raw.githubusercontent.com/puffycid/artemis-api/master/src/windows/processes.ts
+function getWinProcesses(md5, sha1, sha256, pe_info) {
+  const hashes = {
+    md5,
+    sha1,
+    sha256,
+  };
+  const data = Deno.core.ops.get_processes(
+    JSON.stringify(hashes),
+    pe_info,
+  );
+  const results = JSON.parse(data);
+  return results;
+}
+
+// main.ts
+function main() {
+  const md5 = false;
+  const sha1 = false;
+  const sha256 = false;
+  const pe_info = false;
+  const proc_list = getWinProcesses(md5, sha1, sha256, pe_info);
+  console.log(proc_list[0].full_path);
+  return proc_list;
+}
+main();
+```
+
+Executing the above code
+
+```
+sudo ./artemis -j ../../artemis-core/tests/test_data/deno_scripts/vanilla.js
+[artemis] Starting artemis collection!
+[runtime]: "/usr/libexec/nesessionmanager"
+[artemis] Finished artemis collection!
+```
+
+The online guide has additional documentation on scripting with artemis.\
+Additional examples can be found at
+https://github.com/puffyCid/artemis-scripts
