@@ -147,7 +147,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     #[ignore = "Runs full linux.toml collection"]
-    fn test_parse_windows_toml_file() {
+    fn test_parse_linux_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux.toml");
         parse_toml_file(&test_location.display().to_string()).unwrap();

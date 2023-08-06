@@ -285,7 +285,7 @@ impl Journal {
 
                 let _ = output_data(&serde_data, "journal", output, start_time, filter);
                 // Now empty the vec
-                entries.entries.clear();
+                entries.entries = Vec::new();
             }
         }
 
