@@ -20,6 +20,7 @@ function getWinProcesses(md5, sha1, sha256, pe_info) {
     const sha256 = false;
     const pe_info = false;
     const proc_list = getWinProcesses(md5, sha1, sha256, pe_info);
+    console.log(proc_list[0].full_path);
     return proc_list;
   }
   main();
