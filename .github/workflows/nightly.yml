@@ -1,12 +1,14 @@
-name: Stable Release
+name: Nightly Release
 
 permissions:
   contents: write
 
 on:
   push:
-    tags:
-      - v[0-9]+.*
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   upload-assets:
@@ -28,6 +30,6 @@ jobs:
           # Note that glob pattern is not supported yet.
           bin: artemis
           target: ${{ matrix.info.target }}
-          archive: $bin-$tag-$target
+          archive: $bin-nightly-$target
           # (required) GitHub token for uploading assets to GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}

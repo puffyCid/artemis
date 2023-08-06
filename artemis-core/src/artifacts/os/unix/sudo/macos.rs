@@ -46,7 +46,11 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, UnixArtifactError> {
     let mut sudo_logs: Vec<LogData> = Vec::new();
 
     for file in log_files {
-        let logs = parse_trace_file(&strings, &shared_strings, &timesync_data, &file)?;
+        let logs_result = parse_trace_file(&strings, &shared_strings, &timesync_data, &file);
+        if logs_result.is_err() {
+            continue;
+        }
+        let logs = logs_result.unwrap_or_default();
         filter_logs(logs, &mut sudo_logs);
     }
 
