@@ -86,7 +86,7 @@ pub(crate) fn parse_index_gthr(
                 }
             }
 
-            entries.clear();
+            entries = Vec::new();
         }
     }
 

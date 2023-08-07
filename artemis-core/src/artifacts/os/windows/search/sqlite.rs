@@ -104,7 +104,7 @@ pub(crate) fn parse_search_sqlite(
                                 }
                             }
 
-                            entries.clear();
+                            entries = Vec::new();
                         }
                     }
                     Err(err) => {

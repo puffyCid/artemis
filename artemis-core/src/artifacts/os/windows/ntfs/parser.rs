@@ -389,7 +389,7 @@ impl RawFilelist {
             // To keep memory usage small we only keep 100,000 files in the vec at a time
             if params.filelist.len() >= max_list {
                 RawFilelist::output(&params.filelist, output, &params.start_time, &params.filter);
-                params.filelist.clear();
+                params.filelist = Vec::new();
             }
 
             // Begin the recursive file listing. But respect any provided max depth
