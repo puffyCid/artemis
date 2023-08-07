@@ -5,6 +5,7 @@ pub(crate) mod bits;
 pub(crate) mod error;
 pub(crate) mod ese;
 pub(crate) mod eventlogs;
+pub(crate) mod jumplists;
 mod ntfs;
 pub(crate) mod pe;
 pub(crate) mod prefetch;
