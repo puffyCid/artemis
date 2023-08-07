@@ -132,7 +132,7 @@ impl FileInfo {
             let max_list = 100000;
             if filelist_vec.len() >= max_list {
                 FileInfo::output(&filelist_vec, output, &start_time, filter);
-                filelist_vec.clear();
+                filelist_vec = Vec::new();
             }
         }
         FileInfo::output(&filelist_vec, output, &start_time, filter);
