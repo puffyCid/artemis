@@ -7,6 +7,7 @@ pub(crate) mod ese;
 pub(crate) mod eventlogs;
 pub(crate) mod jumplists;
 mod ntfs;
+mod ole;
 pub(crate) mod pe;
 pub(crate) mod prefetch;
 mod propertystore;
