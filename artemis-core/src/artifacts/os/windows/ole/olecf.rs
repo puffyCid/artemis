@@ -65,8 +65,13 @@ impl OleData {
         // Now have all data needed to assemble all of the OLE data! Includes slack data!
         let mut ole_vec = Vec::new();
         for directory in directories {
-            // Already got Root data and we cant get data if sector ID is negative
-            if directory.directory_type == DirectoryType::Root || directory.sector_id < 0 {
+            // Cant get data if sector_id is negative
+            if directory.sector_id < 0 {
+                continue;
+            }
+
+            // Already got Root data
+            if directory.directory_type == DirectoryType::Root {
                 let ole_data = OleData {
                     name: directory.name,
                     data: root_data.clone(),

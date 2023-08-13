@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        nom_signed_eight_bytes, nom_signed_four_bytes, nom_unsigned_eight_bytes,
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+        nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
     },
     strings::extract_utf16_string,
     time::filetime_to_unixepoch,
@@ -25,7 +25,7 @@ pub(crate) fn assemble_ole_data<'a>(
         return Ok((data, ole_data));
     }
 
-    // Get data based on sector or stream size
+    // Get data based on sector size
     let (_, value) = take(size)(dir_start)?;
 
     ole_data.append(&mut value.to_vec());
@@ -45,14 +45,14 @@ pub(crate) fn assemble_ole_data<'a>(
         let (dir_start, _) = take(slot as u32 * size)(data)?;
 
         if dir_start.len() < size as usize {
-            // Get rest of stream data
+            // Get rest of OLE data
             let (_, value) = take(dir_start.len())(dir_start)?;
 
             ole_data.append(&mut value.to_vec());
             break;
         }
 
-        // Get data based on sector or stream size
+        // Get data based on sector size
         let (_, value) = take(size)(dir_start)?;
         // the slot value then points to the next slot
         slot_value = slot as u32;

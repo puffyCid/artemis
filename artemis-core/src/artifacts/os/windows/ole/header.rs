@@ -14,9 +14,9 @@ pub(crate) struct OleHeader {
     minor_version: u16,
     major_version: u16,
     byte_order: OleEndian,
-    /**Raised to power of two (2) */
+    /**Exponent to value for two (2) */
     pub(crate) sector_size: u16,
-    /**Raised to power of two (2) */
+    /**Exponent to value for two (2) */
     pub(crate) short_sector_size: u16,
     reserved: u16,
     reserved2: u32,

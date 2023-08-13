@@ -16,13 +16,10 @@ pub(crate) fn assemble_ssat_data(
     let (_, mut input) = take(sat_size)(input)?;
 
     let mut ssat_slots = Vec::new();
-    let unused = -11;
 
     while !input.is_empty() {
         let (ssat_remaining, ssat_slot) = nom_signed_four_bytes(input, Endian::Le)?;
-        if ssat_slot == unused {
-            break;
-        }
+
         ssat_slots.push(ssat_slot);
         input = ssat_remaining;
     }
@@ -55,13 +52,10 @@ pub(crate) fn add_ssat_slots<'a>(
         // Get data of based on sector size
         let (_, mut value) = take(size)(dir_start)?;
 
-        let unused = -11;
         // nom ssat slots until end or unused
         while !value.is_empty() {
             let (ssat_remaining, sat_slot) = nom_signed_four_bytes(value, Endian::Le)?;
-            if sat_slot == unused {
-                break;
-            }
+
             ssat_slots.push(sat_slot);
             value = ssat_remaining;
         }

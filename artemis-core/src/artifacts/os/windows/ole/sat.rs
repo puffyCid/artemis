@@ -9,7 +9,6 @@ pub(crate) fn assemble_sat_data<'a>(
 ) -> nom::IResult<&'a [u8], Vec<i32>> {
     let mut sat_slots = Vec::new();
 
-    let unused = -11;
     for entry in sat_sectors {
         let sat_offset = entry * sat_size;
         let (sat_start, _) = take(sat_offset)(data)?;
@@ -19,9 +18,7 @@ pub(crate) fn assemble_sat_data<'a>(
         // These values are used to assemble the Directory data
         while !remaining_data.is_empty() {
             let (sat_remaining, sat_slot) = nom_signed_four_bytes(remaining_data, Endian::Le)?;
-            if sat_slot == unused {
-                break;
-            }
+
             sat_slots.push(sat_slot);
             remaining_data = sat_remaining;
         }

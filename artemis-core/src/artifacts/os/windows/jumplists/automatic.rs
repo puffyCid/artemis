@@ -34,6 +34,7 @@ impl JumplistEntry {
                 continue;
             }
 
+            // Parse DestList directory to get metadata about the Shortcut (LNK) info
             let info_result = parse_destlist(&entry.data);
             dest_info = match info_result {
                 Ok((_, result)) => result,

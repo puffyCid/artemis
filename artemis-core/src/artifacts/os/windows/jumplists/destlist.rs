@@ -102,7 +102,7 @@ pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
             PinStatus::Pinned
         };
 
-        // Windows 10 introduce three (3) additional data types
+        // Windows 10 introduced three (3) additional data types
         if dest_data.version == DestVersion::Win10 {
             let (remaining, _unknown) = nom_unsigned_four_bytes(remaining_data, Endian::Le)?;
             // Unsure if this is really access count

@@ -44,7 +44,7 @@ impl JumplistEntry {
                     Ok((_, result)) => result,
                     Err(_err) => {
                         error!(
-                            "[jumplist] Could not parse Jumplist file {}",
+                            "[jumplist] Could not parse Automatic Jumplist file {}",
                             path.full_path
                         );
                         continue;
@@ -58,7 +58,7 @@ impl JumplistEntry {
                     Ok((_, result)) => result,
                     Err(_err) => {
                         error!(
-                            "[jumplist] Could not parse Jumplist file {}",
+                            "[jumplist] Could not parse Custom Jumplist file {}",
                             path.full_path
                         );
                         continue;
