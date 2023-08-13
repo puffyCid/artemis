@@ -4,8 +4,9 @@ use crate::{
     filesystem::{files::read_file, metadata::GlobInfo},
 };
 use log::error;
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct JumplistEntry {
     pub(crate) lnk_info: ShortcutInfo,
     pub(crate) path: String,
@@ -15,7 +16,7 @@ pub(crate) struct JumplistEntry {
     pub(crate) jumplist_metadata: DestEntries,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum ListType {
     Automatic,
     Custom,

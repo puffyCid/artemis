@@ -4,9 +4,9 @@ use super::{
     },
     os::windows::{
         artifacts::{
-            amcache, bits, eventlogs, files, prefetch, processes, raw_filelist, registry, search,
-            services, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo, tasks, userassist,
-            users, usnjrnl,
+            amcache, bits, eventlogs, files, jumplists, prefetch, processes, raw_filelist,
+            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo,
+            tasks, userassist, users, usnjrnl,
         },
         error::WinArtifactError,
     },
@@ -362,7 +362,21 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                 match results {
                     Ok(_) => info!("Collected Services"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse schedule services, error: {err:?}");
+                        error!("[artemis-core] Failed to parse services, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "jumplists" => {
+                let artifact = match &artifacts.jumplists {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = jumplists(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Jumplists"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse jumplists, error: {err:?}");
                         continue;
                     }
                 }

@@ -8,6 +8,7 @@ use crate::utils::{
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
+use serde::Serialize;
 use std::mem::size_of;
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub(crate) struct DestList {
     pub(crate) entries: Vec<DestEntries>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct DestEntries {
     pub(crate) droid_volume_id: String,
     pub(crate) droid_file_id: String,
@@ -40,7 +41,7 @@ pub(crate) enum DestVersion {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) enum PinStatus {
     Pinned,
     NotPinned,

@@ -57,7 +57,11 @@ impl JumplistEntry {
                 lnk_info,
                 path: path.to_string(),
                 jumplist_type: ListType::Custom,
-                app_id: get_filename(path),
+                app_id: get_filename(path)
+                    .split(".")
+                    .next()
+                    .unwrap_or_default()
+                    .to_string(),
                 jumplist_metadata: DestEntries {
                     droid_volume_id: String::new(),
                     droid_file_id: String::new(),

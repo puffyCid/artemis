@@ -26,6 +26,7 @@ pub enum WinArtifactError {
     Search,
     Tasks,
     Services,
+    Jumplists,
 }
 
 impl std::error::Error for WinArtifactError {}
@@ -57,6 +58,7 @@ impl fmt::Display for WinArtifactError {
             WinArtifactError::Users => write!(f, "Failed to parse Users"),
             WinArtifactError::Tasks => write!(f, "Failed to parse Schedule Tasks"),
             WinArtifactError::Services => write!(f, "Failed to parse Services"),
+            WinArtifactError::Jumplists => write!(f, "Failed to parse Jumplists"),
         }
     }
 }
