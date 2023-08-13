@@ -1,9 +1,10 @@
 use crate::utils::{
     nom_helper::{
-        nom_signed_eight_bytes, nom_signed_four_bytes, nom_unsigned_four_bytes,
-        nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        nom_signed_eight_bytes, nom_signed_four_bytes, nom_unsigned_eight_bytes,
+        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
     },
     strings::extract_utf16_string,
+    time::filetime_to_unixepoch,
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
@@ -128,8 +129,8 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
         let (remaining_input, class_data) = take(class_size)(remaining_input)?;
         let (remaining_input, flags) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
 
-        let (remaining_input, created) = nom_signed_eight_bytes(remaining_input, Endian::Le)?;
-        let (remaining_input, modified) = nom_signed_eight_bytes(remaining_input, Endian::Le)?;
+        let (remaining_input, created) = nom_unsigned_eight_bytes(remaining_input, Endian::Le)?;
+        let (remaining_input, modified) = nom_unsigned_eight_bytes(remaining_input, Endian::Le)?;
         let (remaining_input, sector_id) = nom_signed_four_bytes(remaining_input, Endian::Le)?;
 
         let (remaining_input, directory_size) =
@@ -148,8 +149,8 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
             next_id,
             class_id: format_guid_le_bytes(class_data),
             flags,
-            created,
-            modified,
+            created: filetime_to_unixepoch(&created),
+            modified: filetime_to_unixepoch(&modified),
             sector_id,
             directory_size,
             reserved,
@@ -185,7 +186,9 @@ mod tests {
     #[test]
     fn test_assemble_ole_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/jumplists/win11/automatic/1b4dd67f29cb1962.automaticDestinations-ms");
+        test_location.push(
+            "tests/test_data/dfir/windows/jumplists/win7/1b4dd67f29cb1962.automaticDestinations-ms",
+        );
         let data = read_file(&test_location.display().to_string()).unwrap();
 
         let (input, header) = OleHeader::parse_header(&data).unwrap();
@@ -212,7 +215,9 @@ mod tests {
     #[test]
     fn test_parse_directory() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/jumplists/win11/automatic/1b4dd67f29cb1962.automaticDestinations-ms");
+        test_location.push(
+            "tests/test_data/dfir/windows/jumplists/win7/1b4dd67f29cb1962.automaticDestinations-ms",
+        );
         let data = read_file(&test_location.display().to_string()).unwrap();
 
         let (input, header) = OleHeader::parse_header(&data).unwrap();
@@ -235,8 +240,8 @@ mod tests {
 
         let (_, result) = parse_directory(&dir_data).unwrap();
         assert_eq!(result.len(), 8);
-        assert_eq!(result[0].created, 0);
-        assert_eq!(result[0].modified, 130974494050460000);
+        assert_eq!(result[0].created, -11644473600);
+        assert_eq!(result[0].modified, 1452975805);
         assert_eq!(result[1].name, "1");
         assert_eq!(result[1].directory_size, 411);
     }

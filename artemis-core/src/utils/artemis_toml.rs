@@ -10,10 +10,10 @@ use std::str::from_utf8;
 // Target specific dependencies
 #[cfg(target_os = "windows")]
 use crate::structs::artifacts::os::windows::{
-    AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
-    RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
-    ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
-    UsnJrnlOptions,
+    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+    RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+    ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
+    UserOptions, UsnJrnlOptions,
 };
 
 #[cfg(target_os = "macos")]
@@ -82,6 +82,7 @@ pub(crate) struct Artifacts {
     pub(crate) search: Option<SearchOptions>,
     pub(crate) tasks: Option<TasksOptions>,
     pub(crate) services: Option<ServicesOptions>,
+    pub(crate) jumplists: Option<JumplistsOptions>,
 }
 
 #[derive(Debug, Deserialize)]

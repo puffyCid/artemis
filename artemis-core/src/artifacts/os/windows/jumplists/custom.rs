@@ -1,6 +1,10 @@
-use super::jumplist::JumplistEntry;
+use super::{
+    destlist::{DestEntries, PinStatus},
+    jumplist::JumplistEntry,
+};
 use crate::{
     artifacts::os::windows::{jumplists::jumplist::ListType, shortcuts::shortcut::ShortcutInfo},
+    filesystem::files::get_filename,
     utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
 };
 use nom::{
@@ -14,7 +18,7 @@ impl JumplistEntry {
         data: &'a [u8],
         path: &str,
     ) -> nom::IResult<&'a [u8], Vec<JumplistEntry>> {
-        let (input, version) = nom_unsigned_four_bytes(data, Endian::Le)?;
+        let (input, _version) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -53,7 +57,18 @@ impl JumplistEntry {
                 lnk_info,
                 path: path.to_string(),
                 jumplist_type: ListType::Custom,
-                version,
+                app_id: get_filename(path),
+                jumplist_metadata: DestEntries {
+                    droid_volume_id: String::new(),
+                    droid_file_id: String::new(),
+                    birth_droid_volume_id: String::new(),
+                    birth_droid_file_id: String::new(),
+                    hostname: String::new(),
+                    entry: 0,
+                    modified: 0,
+                    pin_status: PinStatus::None,
+                    path: String::new(),
+                },
             };
 
             lists.push(list);

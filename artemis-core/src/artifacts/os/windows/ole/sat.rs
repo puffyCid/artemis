@@ -40,7 +40,9 @@ mod tests {
     #[test]
     fn test_assemble_sat_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/jumplists/win11/automatic/1b4dd67f29cb1962.automaticDestinations-ms");
+        test_location.push(
+            "tests/test_data/dfir/windows/jumplists/win7/1b4dd67f29cb1962.automaticDestinations-ms",
+        );
         let data = read_file(&test_location.display().to_string()).unwrap();
 
         let (input, header) = OleHeader::parse_header(&data).unwrap();
