@@ -1,6 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+        nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+        nom_unsigned_two_bytes, Endian,
     },
     uuid::format_guid_le_bytes,
 };
@@ -27,7 +28,7 @@ pub(crate) struct OleHeader {
     /**Typically 4096 bytes. Smaller sizes stored in short-streams */
     pub(crate) min_stream_size: u32,
     /**Sector ID (SID) of short-sectory allocation table (SSAT) */
-    pub(crate) sector_id_ssat: u32,
+    pub(crate) sector_id_ssat: i32,
     pub(crate) total_ssat_sectors: u32,
     /**Sector ID (SID) of master sector allocation table (SSAT) */
     pub(crate) sector_id_msat: u32,
@@ -44,6 +45,7 @@ enum OleEndian {
 }
 
 impl OleHeader {
+    /// Parse Header information from OLE data
     pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OleHeader> {
         let (input, sig) = nom_unsigned_eight_bytes(data, Endian::Le)?;
         let guid_size: u8 = 16;
@@ -62,7 +64,7 @@ impl OleHeader {
         let (input, sector_id_chain) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, reserved4) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, min_stream_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let (input, sector_id_ssat) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, sector_id_ssat) = nom_signed_four_bytes(input, Endian::Le)?;
         let (input, total_ssat_sectors) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, sector_id_msat) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, total_msat_sectors) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -141,6 +143,7 @@ mod tests {
         assert_eq!(result.sector_id_chain, 1);
         assert_eq!(result.min_stream_size, 4096);
         assert_eq!(result.total_ssat_sectors, 1);
+        assert_eq!(result.sector_id_ssat, 2);
         assert_eq!(result.sector_id_msat, 4294967294); //0xfffffffe
     }
 }
