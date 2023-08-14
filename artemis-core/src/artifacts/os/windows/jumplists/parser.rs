@@ -1,5 +1,5 @@
 /**
- * Windows `Jumplists` files are files that track opened applications in the Taskbar or Start Menu
+ * Windows `Jumplists` files track opened files via applications in the Taskbar or Start Menu
  * Jumplists contain `lnk` data and therefore can show evidence of file interaction.
  * There are two (2) types of Jumplist files:
  *
