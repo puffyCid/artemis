@@ -15,9 +15,9 @@ use std::mem::size_of;
 pub(crate) struct DestList {
     pub(crate) version: DestVersion,
     pub(crate) number_entries: u32,
-    pub(crate) number_pinned_entries: u32,
-    pub(crate) last_entry: u32,
-    pub(crate) last_revision: u32,
+    pub(crate) _number_pinned_entries: u32,
+    pub(crate) _last_entry: u32,
+    pub(crate) _last_revision: u32,
     pub(crate) entries: Vec<DestEntries>,
 }
 
@@ -48,8 +48,20 @@ pub(crate) enum PinStatus {
     None,
 }
 
-/// Parse the DestList OLE Directory. Contains metadata about LNK data (JumpList entries)
+/// Parse the `DestList` OLE Directory. Contains metadata about LNK data (`JumpList` entries)
 pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
+    let min_size = 146;
+    if data.len() < min_size {
+        let dest_data = DestList {
+            version: DestVersion::Unknown,
+            number_entries: 0,
+            _number_pinned_entries: 0,
+            _last_entry: 0,
+            _last_revision: 0,
+            entries: Vec::new(),
+        };
+        return Ok((data, dest_data));
+    }
     let (input, version_data) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, number_entries) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, number_pinned_entries) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -73,14 +85,19 @@ pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
     let mut dest_data = DestList {
         version,
         number_entries,
-        number_pinned_entries,
-        last_entry,
-        last_revision,
+        _number_pinned_entries: number_pinned_entries,
+        _last_entry: last_entry,
+        _last_revision: last_revision,
         entries: Vec::new(),
     };
 
+    let min_meta_size = 112;
+
     // Get all the metadata associated with Jumplist entries
-    while !input.is_empty() {
+    while !input.is_empty()
+        && input.len() > min_meta_size
+        && dest_data.entries.len() != dest_data.number_entries as usize
+    {
         let (remaining_data, _unknown) = nom_unsigned_eight_bytes(input, Endian::Le)?;
         let (remaining_data, droid_volume) = take(size_of::<u128>())(remaining_data)?;
         let (remaining_data, droid_file) = take(size_of::<u128>())(remaining_data)?;
@@ -114,6 +131,10 @@ pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
 
         let (remaining_data, path_size) = nom_unsigned_two_bytes(remaining_data, Endian::Le)?;
         let utf_adjust: u32 = 2;
+        // Currently our OLE parser includes slack space in the directory data. If size is greater than remaining bytes, probably slack
+        if path_size as usize > remaining_data.len() {
+            break;
+        }
         let (remaining_data, path_data) = take(path_size as u32 * utf_adjust)(remaining_data)?;
 
         // Check for end of string character. Sometimes the path has it
@@ -169,8 +190,8 @@ mod tests {
 
             let (_, result) = parse_destlist(&entry.data).unwrap();
             assert_eq!(result.number_entries, 4);
-            assert_eq!(result.last_entry, 4);
-            assert_eq!(result.last_revision, 4);
+            assert_eq!(result._last_entry, 4);
+            assert_eq!(result._last_revision, 4);
             assert_eq!(result.entries.len(), 4);
             assert_eq!(result.entries[0].hostname, "win7x64");
             assert_eq!(result.entries[0].entry, 4);

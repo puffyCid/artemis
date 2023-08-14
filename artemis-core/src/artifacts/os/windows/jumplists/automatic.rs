@@ -5,7 +5,7 @@ use super::{
 use crate::{
     artifacts::os::windows::{
         jumplists::destlist::{DestList, DestVersion},
-        ole::olecf::OleData,
+        ole::olecf::{DirectoryType, OleData},
         shortcuts::shortcut::ShortcutInfo,
     },
     filesystem::files::get_filename,
@@ -24,13 +24,13 @@ impl JumplistEntry {
         let mut dest_info = DestList {
             version: DestVersion::Unknown,
             number_entries: 0,
-            number_pinned_entries: 0,
-            last_entry: 0,
-            last_revision: 0,
+            _number_pinned_entries: 0,
+            _last_entry: 0,
+            _last_revision: 0,
             entries: Vec::new(),
         };
         for entry in jump_ole.iter() {
-            if entry.name != "DestList" {
+            if entry.name != "DestList" || entry.directory_type == DirectoryType::Root {
                 continue;
             }
 
@@ -72,7 +72,7 @@ impl JumplistEntry {
                     path: path.to_string(),
                     jumplist_type: ListType::Automatic,
                     app_id: get_filename(path)
-                        .split(".")
+                        .split('.')
                         .next()
                         .unwrap_or_default()
                         .to_string(),

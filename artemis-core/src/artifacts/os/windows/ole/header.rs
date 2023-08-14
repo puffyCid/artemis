@@ -5,34 +5,35 @@ use crate::utils::{
     },
     uuid::format_guid_le_bytes,
 };
-use nom::bytes::complete::take;
+use log::error;
+use nom::{bytes::complete::take, error::ErrorKind};
 
 #[derive(Debug)]
 pub(crate) struct OleHeader {
-    sig: u64,
-    class_id: String,
-    minor_version: u16,
-    major_version: u16,
-    byte_order: OleEndian,
+    _sig: u64,
+    _class_id: String,
+    _minor_version: u16,
+    _major_version: u16,
+    _byte_order: OleEndian,
     /**Exponent to value for two (2) */
     pub(crate) sector_size: u16,
     /**Exponent to value for two (2) */
     pub(crate) short_sector_size: u16,
-    reserved: u16,
-    reserved2: u32,
-    reserved3: u32,
-    pub(crate) total_sectors_number: u32,
+    _reserved: u16,
+    _reserved2: u32,
+    _reserved3: u32,
+    _total_sectors_number: u32,
     /**Sector ID (SID) of directory stream (chain) */
     pub(crate) sector_id_chain: u32,
-    reserved4: u32,
+    _reserved4: u32,
     /**Typically 4096 bytes. Smaller sizes stored in short-streams */
     pub(crate) min_stream_size: u32,
     /**Sector ID (SID) of short-sectory allocation table (SSAT) */
     pub(crate) sector_id_ssat: i32,
-    pub(crate) total_ssat_sectors: u32,
+    _total_ssat_sectors: u32,
     /**Sector ID (SID) of master sector allocation table (SSAT) */
-    pub(crate) sector_id_msat: u32,
-    pub(crate) total_msat_sectors: u32,
+    _sector_id_msat: u32,
+    _total_msat_sectors: u32,
     /**First part of the MSAT. Contains 109 SIDs */
     pub(crate) msat_sectors: Vec<u32>,
 }
@@ -48,6 +49,16 @@ impl OleHeader {
     /// Parse Header information from OLE data
     pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OleHeader> {
         let (input, sig) = nom_unsigned_eight_bytes(data, Endian::Le)?;
+        let ole_sig = 16220472316735377360;
+
+        if sig != ole_sig {
+            error!("[ole] Incorrect OLE signature: {sig}!");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
+
         let guid_size: u8 = 16;
         let (input, class_id_data) = take(guid_size)(input)?;
 
@@ -96,24 +107,24 @@ impl OleHeader {
         }
 
         let header = OleHeader {
-            sig,
-            class_id: format_guid_le_bytes(class_id_data),
-            minor_version,
-            major_version,
-            byte_order: order,
+            _sig: sig,
+            _class_id: format_guid_le_bytes(class_id_data),
+            _minor_version: minor_version,
+            _major_version: major_version,
+            _byte_order: order,
             sector_size,
             short_sector_size,
-            reserved,
-            reserved2,
-            total_sectors_number,
+            _reserved: reserved,
+            _reserved2: reserved2,
+            _total_sectors_number: total_sectors_number,
             sector_id_chain,
-            reserved3,
-            reserved4,
+            _reserved3: reserved3,
+            _reserved4: reserved4,
             min_stream_size,
             sector_id_ssat,
-            total_ssat_sectors,
-            sector_id_msat,
-            total_msat_sectors,
+            _total_ssat_sectors: total_ssat_sectors,
+            _sector_id_msat: sector_id_msat,
+            _total_msat_sectors: total_msat_sectors,
             msat_sectors,
         };
         Ok((input, header))
@@ -133,17 +144,17 @@ mod tests {
         let data = read_file(&test_location.display().to_string()).unwrap();
 
         let (_, result) = OleHeader::parse_header(&data).unwrap();
-        assert_eq!(result.sig, 16220472316735377360);
-        assert_eq!(result.class_id, "00000000-0000-0000-0000-000000000000");
-        assert_eq!(result.minor_version, 62);
-        assert_eq!(result.major_version, 3);
+        assert_eq!(result._sig, 16220472316735377360);
+        assert_eq!(result._class_id, "00000000-0000-0000-0000-000000000000");
+        assert_eq!(result._minor_version, 62);
+        assert_eq!(result._major_version, 3);
 
         assert_eq!(result.sector_size, 9);
         assert_eq!(result.short_sector_size, 6);
         assert_eq!(result.sector_id_chain, 1);
         assert_eq!(result.min_stream_size, 4096);
-        assert_eq!(result.total_ssat_sectors, 1);
+        assert_eq!(result._total_ssat_sectors, 1);
         assert_eq!(result.sector_id_ssat, 2);
-        assert_eq!(result.sector_id_msat, 4294967294); //0xfffffffe
+        assert_eq!(result._sector_id_msat, 4294967294); //0xfffffffe
     }
 }

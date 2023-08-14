@@ -7,6 +7,7 @@ use crate::{
     filesystem::files::get_filename,
     utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
 };
+use log::warn;
 use nom::{
     branch::alt,
     bytes::complete::{take, take_until},
@@ -18,6 +19,12 @@ impl JumplistEntry {
         data: &'a [u8],
         path: &str,
     ) -> nom::IResult<&'a [u8], Vec<JumplistEntry>> {
+        let min_size = 50;
+        if data.len() < min_size {
+            warn!("[jumplists] Custom Jumplist file {path} too small. Likely empty");
+            return Ok((data, Vec::new()));
+        }
+
         let (input, _version) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -58,7 +65,7 @@ impl JumplistEntry {
                 path: path.to_string(),
                 jumplist_type: ListType::Custom,
                 app_id: get_filename(path)
-                    .split(".")
+                    .split('.')
                     .next()
                     .unwrap_or_default()
                     .to_string(),

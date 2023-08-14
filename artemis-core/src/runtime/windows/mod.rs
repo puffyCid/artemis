@@ -3,6 +3,7 @@ mod amcache;
 mod bits;
 mod eventlogs;
 pub(crate) mod extensions;
+mod jumplists;
 mod ntfs;
 mod pe;
 mod prefetch;

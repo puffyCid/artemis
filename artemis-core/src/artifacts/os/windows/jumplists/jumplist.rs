@@ -75,7 +75,7 @@ impl JumplistEntry {
 
     /// Parse a single `Jumplist` file at provided path. Supports both Custom and Automatic
     pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
-        let jump_data_result = read_file(&path);
+        let jump_data_result = read_file(path);
         let jump_data = match jump_data_result {
             Ok(result) => result,
             Err(err) => {
@@ -85,7 +85,7 @@ impl JumplistEntry {
         };
 
         let jump = if path.ends_with(".automaticDestinations-ms") {
-            let jump_result = JumplistEntry::parse_automatic(&jump_data, &path);
+            let jump_result = JumplistEntry::parse_automatic(&jump_data, path);
             match jump_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
@@ -94,7 +94,7 @@ impl JumplistEntry {
                 }
             }
         } else if path.ends_with(".customDestinations-ms") {
-            let jump_result = JumplistEntry::parse_custom(&jump_data, &path);
+            let jump_result = JumplistEntry::parse_custom(&jump_data, path);
             match jump_result {
                 Ok((_, result)) => result,
                 Err(_err) => {

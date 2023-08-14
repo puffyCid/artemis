@@ -1,5 +1,5 @@
 use super::{
-    directory::{assemble_ole_data, parse_directory, DirectoryType},
+    directory::{assemble_ole_data, parse_directory},
     header::OleHeader,
     sat::assemble_sat_data,
     ssat::assemble_ssat_data,
@@ -13,6 +13,17 @@ pub(crate) struct OleData {
     /**Raw bytes associated with OLE, includes slack space */
     pub(crate) data: Vec<u8>,
     pub(crate) directory_type: DirectoryType,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum DirectoryType {
+    Empty,
+    Storage,
+    Stream,
+    LockBytes,
+    Property,
+    Root,
+    Unknown,
 }
 
 impl OleData {

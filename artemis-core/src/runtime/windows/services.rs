@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_servicess() {
+    fn test_get_services() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlcygpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfc2VydmljZXMoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {

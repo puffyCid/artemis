@@ -1,3 +1,4 @@
+use super::olecf::DirectoryType;
 use crate::utils::{
     nom_helper::{
         nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -66,30 +67,19 @@ pub(crate) fn assemble_ole_data<'a>(
 #[derive(Debug)]
 pub(crate) struct OleDirectory {
     pub(crate) name: String,
-    name_size: u16,
+    _name_size: u16,
     pub(crate) directory_type: DirectoryType,
-    directory_color: DirectoryColor,
-    previous_id: i32,
-    id: i32,
-    next_id: i32,
-    class_id: String,
-    flags: u32,
-    created: i64,
-    modified: i64,
+    _directory_color: DirectoryColor,
+    _previous_id: i32,
+    _id: i32,
+    _next_id: i32,
+    _class_id: String,
+    _flags: u32,
+    _created: i64,
+    _modified: i64,
     pub(crate) sector_id: i32,
     pub(crate) directory_size: u32,
-    reserved: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) enum DirectoryType {
-    Empty,
-    Storage,
-    Stream,
-    LockBytes,
-    Property,
-    Root,
-    Unknown,
+    _reserved: u32,
 }
 
 #[derive(Debug)]
@@ -141,19 +131,19 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
 
         let directory = OleDirectory {
             name: extract_utf16_string(string_data),
-            name_size,
+            _name_size: name_size,
             directory_type: parse_directory_type(&type_data),
-            directory_color,
-            previous_id,
-            id,
-            next_id,
-            class_id: format_guid_le_bytes(class_data),
-            flags,
-            created: filetime_to_unixepoch(&created),
-            modified: filetime_to_unixepoch(&modified),
+            _directory_color: directory_color,
+            _previous_id: previous_id,
+            _id: id,
+            _next_id: next_id,
+            _class_id: format_guid_le_bytes(class_data),
+            _flags: flags,
+            _created: filetime_to_unixepoch(&created),
+            _modified: filetime_to_unixepoch(&modified),
             sector_id,
             directory_size,
-            reserved,
+            _reserved: reserved,
         };
 
         dir_entries.push(directory);
@@ -240,8 +230,8 @@ mod tests {
 
         let (_, result) = parse_directory(&dir_data).unwrap();
         assert_eq!(result.len(), 8);
-        assert_eq!(result[0].created, -11644473600);
-        assert_eq!(result[0].modified, 1452975805);
+        assert_eq!(result[0]._created, -11644473600);
+        assert_eq!(result[0]._modified, 1452975805);
         assert_eq!(result[1].name, "1");
         assert_eq!(result[1].directory_size, 411);
     }

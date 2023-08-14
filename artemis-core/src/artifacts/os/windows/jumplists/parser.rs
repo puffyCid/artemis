@@ -1,3 +1,18 @@
+/**
+ * Windows `Jumplists` files are files that track opened applications in the Taskbar or Start Menu
+ * Jumplists contain `lnk` data and therefore can show evidence of file interaction.
+ * There are two (2) types of Jumplist files:
+ *
+ * - Custom - Files that are pinned to Taskbar applications
+ * - Automatic - Files that are not pinned to Taskbar applications
+ *
+ * References:
+ * `https://github.com/libyal/dtformats/blob/main/documentation/Jump%20lists%20format.asciidoc`
+ * `https://binaryforay.blogspot.com/2016/02/jump-lists-in-depth-understand-format.html`
+ *
+ * Other parsers:
+ * `https://ericzimmerman.github.io/#!index.md`
+ */
 use super::{error::JumplistError, jumplist::JumplistEntry};
 use crate::{
     filesystem::metadata::glob_paths, structs::artifacts::os::windows::JumplistsOptions,
@@ -13,14 +28,13 @@ pub(crate) fn grab_jumplists(
         alt
     } else {
         let systemdrive_result = get_systemdrive();
-        let systemdrive = match systemdrive_result {
+        match systemdrive_result {
             Ok(result) => result,
             Err(err) => {
                 error!("[jumplist] Could not get systemdrive: {err:?}");
                 return Err(JumplistError::Systemdrive);
             }
-        };
-        systemdrive
+        }
     };
 
     let path = format!(
@@ -39,14 +53,39 @@ pub(crate) fn grab_jumplists(
     JumplistEntry::get_jumplists(&glob_paths)
 }
 
+/// Parse single `Jumplist` file. Supports both Custom and Automatic `Jumplist` files
+pub(crate) fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
+    JumplistEntry::get_jumplist_path(path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::grab_jumplists;
-    use crate::structs::artifacts::os::windows::JumplistsOptions;
+    use crate::{
+        artifacts::os::windows::jumplists::{jumplist::ListType, parser::grab_jumplist_file},
+        structs::artifacts::os::windows::JumplistsOptions,
+    };
+    use std::path::PathBuf;
 
     #[test]
     fn test_grab_jumplists() {
         let options = JumplistsOptions { alt_drive: None };
         let _ = grab_jumplists(&options).unwrap();
+    }
+
+    #[test]
+    fn test_grab_jumplist_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push(
+            "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
+        );
+
+        let result = grab_jumplist_file(&test_location.display().to_string()).unwrap();
+        assert_eq!(result.len(), 8);
+        assert_eq!(result[0].jumplist_type, ListType::Custom);
+        assert_eq!(result[0].lnk_info.created, 1571636919);
+        assert_eq!(result[0].lnk_info.modified, 1686748880);
+        assert_eq!(result[0].lnk_info.accessed, 1691366002);
+        assert_eq!(result[0].lnk_info.file_size, 149416368);
     }
 }
