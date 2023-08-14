@@ -100,3 +100,8 @@ pub(crate) struct TasksOptions {
 pub(crate) struct ServicesOptions {
     pub(crate) alt_drive: Option<char>,
 }
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct JumplistsOptions {
+    pub(crate) alt_drive: Option<char>,
+}

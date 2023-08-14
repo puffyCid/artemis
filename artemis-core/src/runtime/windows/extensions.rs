@@ -3,6 +3,7 @@ use super::{
     amcache::{get_alt_amcache, get_amcache},
     bits::{get_bits, get_bits_path},
     eventlogs::get_eventlogs,
+    jumplists::{get_alt_jumplists, get_jumplist_file, get_jumplists},
     ntfs::{read_ads_data, read_raw_file},
     pe::get_pe,
     prefetch::{get_alt_prefetch, get_prefetch, get_prefetch_path},
@@ -72,6 +73,9 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_services::DECL,
         get_alt_services::DECL,
         get_service_file::DECL,
+        get_jumplists::DECL,
+        get_alt_jumplists::DECL,
+        get_jumplist_file::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

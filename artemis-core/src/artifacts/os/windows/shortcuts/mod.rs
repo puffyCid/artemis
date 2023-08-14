@@ -5,6 +5,6 @@ mod location;
 mod network;
 pub(crate) mod parser;
 mod shellitems;
-mod shortcut;
+pub(crate) mod shortcut;
 mod strings;
 mod volume;

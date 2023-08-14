@@ -1,3 +1,4 @@
+use super::jumplists::parser::grab_jumplists;
 use super::search::parser::grab_search;
 use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
@@ -16,10 +17,10 @@ use crate::filesystem::files::Hashes;
 use crate::output::formats::{json::json_format, jsonl::jsonl_format};
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::windows::{
-    AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
-    RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
-    ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
-    UsnJrnlOptions,
+    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+    RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+    ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
+    UserOptions, UsnJrnlOptions,
 };
 use crate::{
     structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
@@ -552,6 +553,36 @@ pub(crate) fn services(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse the Windows `Jumplists` artifact
+pub(crate) fn jumplists(
+    options: &JumplistsOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let jumplist_result = grab_jumplists(options);
+    let jumplist_data = match jumplist_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse Jumplists: {err:?}");
+            return Err(WinArtifactError::Jumplists);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(jumplist_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize jumplists: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "jumplists";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Windows artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -613,16 +644,16 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, files, output_data, prefetch, processes, raw_filelist,
-            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo,
-            tasks, userassist, users, usnjrnl,
+            amcache, bits, eventlogs, files, jumplists, output_data, prefetch, processes,
+            raw_filelist, registry, search, services, shellbags, shimcache, shimdb, shortcuts,
+            srum, systeminfo, tasks, userassist, users, usnjrnl,
         },
         structs::artifacts::os::{
             files::FileOptions,
             processes::ProcessOptions,
             windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, PrefetchOptions, RawFilesOptions,
-                RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+                RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
                 ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
                 UserAssistOptions, UserOptions, UsnJrnlOptions,
             },
@@ -868,6 +899,15 @@ mod tests {
         let mut output = output_options("services_temp", "json", "./tmp", false);
 
         let status = services(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn tests_jumplists() {
+        let options = JumplistsOptions { alt_drive: None };
+        let mut output = output_options("jumplists_temp", "json", "./tmp", false);
+
+        let status = jumplists(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
