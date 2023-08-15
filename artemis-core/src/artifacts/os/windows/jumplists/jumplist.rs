@@ -28,46 +28,18 @@ impl JumplistEntry {
         let mut jumps = Vec::new();
 
         for path in paths {
-            let jump_data_result = read_file(&path.full_path);
-            let jump_data = match jump_data_result {
+            let jump_result = JumplistEntry::get_jumplist_path(&path.full_path);
+            let mut jump = match jump_result {
                 Ok(result) => result,
                 Err(err) => {
                     error!(
-                        "[jumplist] Could not read Jumplist file {}: {err:?}",
+                        "[jumplist] Could not parse Jumplist file {}: {err:?}",
                         path.full_path
                     );
                     continue;
                 }
             };
-            if path.full_path.ends_with(".automaticDestinations-ms") {
-                let jump_result = JumplistEntry::parse_automatic(&jump_data, &path.full_path);
-                let mut jump = match jump_result {
-                    Ok((_, result)) => result,
-                    Err(_err) => {
-                        error!(
-                            "[jumplist] Could not parse Automatic Jumplist file {}",
-                            path.full_path
-                        );
-                        continue;
-                    }
-                };
-
-                jumps.append(&mut jump);
-            } else if path.full_path.ends_with(".customDestinations-ms") {
-                let jump_result = JumplistEntry::parse_custom(&jump_data, &path.full_path);
-                let mut jump = match jump_result {
-                    Ok((_, result)) => result,
-                    Err(_err) => {
-                        error!(
-                            "[jumplist] Could not parse Custom Jumplist file {}",
-                            path.full_path
-                        );
-                        continue;
-                    }
-                };
-
-                jumps.append(&mut jump);
-            }
+            jumps.append(&mut jump);
         }
 
         Ok(jumps)
