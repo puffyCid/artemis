@@ -62,7 +62,7 @@ impl OleData {
 
         let mut root_data = Vec::new();
 
-        // Now get RootDirectory data. Root data is used for Directory data strams smaller than the sector stream (4096)
+        // Now get RootDirectory data. Root data is used for Directory data streams smaller than the sector stream (4096)
         for directory in directories.iter() {
             if directory.directory_type != DirectoryType::Root || directory.sector_id < 0 {
                 continue;
