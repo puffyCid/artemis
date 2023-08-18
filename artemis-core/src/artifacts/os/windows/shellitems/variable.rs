@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::shellitems::{
-        beef::{beef0004, beef0026},
+        beef::{beef0004, beef0013, beef0026},
         items::ShellType::Variable,
     },
     utils::{
@@ -24,6 +24,7 @@ enum BeefTypes {
     Beef0019,
     Beef0004,
     Beef0026,
+    Beef0013,
 }
 
 /// Parse a `variable` `ShellItem`. May contain any 0xbeef00XX shell extension, zip file content, FTP URI, GUID, or Property view
@@ -59,6 +60,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
                 variable_item.accessed = accessed;
                 return Ok((input, variable_item));
             }
+            BeefTypes::Beef0013 => beef0013::parse_beef(input),
         };
         let (input, guid) = match result {
             Ok(results) => results,
@@ -68,6 +70,11 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         // If beef0000 returns dummy GUID try searching again
         if guid.contains("0000000-0000-0000-0000-00000") {
             return parse_variable(input);
+        }
+
+        // If we parsed an undocumented Beef extension keep searching
+        if guid.is_empty() {
+            continue;
         }
         variable_item.value = guid;
         return Ok((input, variable_item));
@@ -256,6 +263,7 @@ fn get_beef_sigs() -> HashMap<BeefTypes, [u8; 4]> {
         (BeefTypes::Beef0019, [25, 0, 239, 190]),
         (BeefTypes::Beef0004, [4, 0, 239, 190]),
         (BeefTypes::Beef0026, [38, 0, 239, 190]),
+        (BeefTypes::Beef0013, [19, 0, 239, 190]),
     ])
 }
 

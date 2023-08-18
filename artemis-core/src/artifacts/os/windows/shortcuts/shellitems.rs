@@ -2,6 +2,7 @@ use crate::{
     artifacts::os::windows::shellitems::items::ShellItem,
     utils::nom_helper::{nom_unsigned_two_bytes, Endian},
 };
+use log::error;
 use nom::bytes::complete::take;
 
 /// Parse the `ShellItems` that are in the `Shortcut` data
@@ -18,7 +19,14 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
         // Size includes size itself
         let adjust_size = 2;
         let (remaining_input, shellitem_data) = take(item_size - adjust_size)(shell_input)?;
-        let (_, shellitem) = ShellItem::detect_shellitem(shellitem_data).unwrap();
+        let item_result = ShellItem::detect_shellitem(shellitem_data);
+        let shellitem = match item_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[shortcuts] Could not parse shellitem");
+                break;
+            }
+        };
         shellitems_vec.push(shellitem);
 
         input = remaining_input;

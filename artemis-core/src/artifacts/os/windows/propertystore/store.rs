@@ -1,11 +1,16 @@
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::take;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::mem::size_of;
+
+use super::formats::parse_formats;
 
 pub(crate) struct PropertyStore {
     _version: u32,
     pub(crate) guid: String,
+    pub(crate) stores: Vec<HashMap<String, Value>>,
 }
 
 impl PropertyStore {
@@ -18,12 +23,16 @@ impl PropertyStore {
         let (remaining_data, store_data) = take(size - size_adjust)(input)?;
 
         let (input, version) = nom_unsigned_four_bytes(store_data, Endian::Le)?;
-        let (_input, guid_data) = take(size_of::<u128>())(input)?;
+        let (input, guid_data) = take(size_of::<u128>())(input)?;
 
         let store = PropertyStore {
             _version: version,
             guid: format_guid_le_bytes(guid_data),
+            stores: Vec::new(),
         };
+
+        let (_, results) = parse_formats(input, &store.guid)?;
+        println!("{results:?}");
 
         // Rest of data is currently not parsed
         Ok((remaining_data, store))
