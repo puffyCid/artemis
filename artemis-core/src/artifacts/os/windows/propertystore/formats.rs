@@ -36,6 +36,7 @@ pub(crate) fn parse_formats<'a>(
         "fb8d2d7b-90d1-4e34-bf60-6eac09922bbf" => parse_numeric(data)?,
         "49691c90-7e17-101a-a91c-08002b2ecda9" => parse_numeric(data)?,
         "0ae54373-43be-4fad-85e4-69dc8633986e" => parse_numeric(data)?,
+        "0cef7d53-fa64-11d1-a203-0000f81fedee" => parse_numeric(data)?,
         _ => {
             panic!("[propertystore] Unknown Property format: {guid}");
             return Err(nom::Err::Failure(nom::error::Error::new(
