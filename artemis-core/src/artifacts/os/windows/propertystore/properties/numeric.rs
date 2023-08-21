@@ -8,25 +8,38 @@ use nom::bytes::complete::take;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// Parse numeric propertystore type
+/// Parse numeric `Property Store` type
 pub(crate) fn parse_numeric(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, Value>> {
-    let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
-    let empty = 0;
-    let adjust_size = 4;
+    let mut remaining_data = data;
 
-    // Sometimes the property store is empty (has size zero (0)). Seen in Jumplists
-    if size == empty || size < adjust_size {
-        return Ok((input, HashMap::new()));
+    let end = [0, 0, 0, 0];
+    let mut values = HashMap::new();
+    let mut count = 0;
+
+    while !remaining_data.is_empty() && remaining_data != end {
+        let (input, size) = nom_unsigned_four_bytes(remaining_data, Endian::Le)?;
+        let empty = 0;
+        let adjust_size = 4;
+
+        // Sometimes the value is empty (has size zero (0)). Seen in Jumplists
+        if size == empty || size < adjust_size {
+            remaining_data = input;
+            continue;
+        }
+        // Size includes size itself
+        let (input, prop_data) = take(size - adjust_size)(input)?;
+        remaining_data = input;
+
+        let (prop_data, _entry_type) = nom_unsigned_four_bytes(prop_data, Endian::Le)?;
+        let (prop_data, _padding) = nom_unsigned_one_byte(prop_data, Endian::Le)?;
+        let (prop_data, prop_type) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
+        let (prop_data, _padding) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
+
+        let _ = parse_types(prop_data, &prop_type, &mut values, format!("value{count}"))?;
+        count += 1;
     }
-    // Size includes size itself
-    let (input, prop_data) = take(size - adjust_size)(input)?;
-    let (prop_data, _entry_type) = nom_unsigned_four_bytes(prop_data, Endian::Le)?;
-    let (prop_data, _padding) = nom_unsigned_one_byte(prop_data, Endian::Le)?;
-    let (prop_data, prop_type) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
-    let (prop_data, _padding) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
 
-    let (_, (value, _)) = parse_types(prop_data, &prop_type)?;
-    Ok((input, value))
+    Ok((remaining_data, values))
 }
 
 #[cfg(test)]
@@ -42,7 +55,7 @@ mod tests {
 
         let (_, value) = parse_numeric(&test_data).unwrap();
         assert_eq!(
-            value.get("value").unwrap(),
+            value.get("value0").unwrap(),
             "c3693081-ccc2-4d8c-80df-6c0dd8f26709"
         );
     }

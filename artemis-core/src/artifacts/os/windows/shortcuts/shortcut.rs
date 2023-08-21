@@ -26,6 +26,8 @@ use crate::{
 };
 use nom::bytes::complete::take;
 use serde::Serialize;
+use serde_json::Value;
+use std::collections::HashMap;
 
 /**
  * `Shortcut` files contain alot of metatdata.
@@ -60,7 +62,7 @@ pub(crate) struct ShortcutInfo {
     pub(crate) birth_droid_volume_id: String,
     pub(crate) birth_droid_file_id: String,
     pub(crate) shellitems: Vec<ShellItem>,
-    pub(crate) property_guid: String,
+    pub(crate) properties: Vec<HashMap<String, Value>>,
     pub(crate) environment_variable: String,
 }
 
@@ -96,7 +98,7 @@ impl ShortcutInfo {
             birth_droid_volume_id: String::new(),
             birth_droid_file_id: String::new(),
             shellitems: Vec::new(),
-            property_guid: String::new(),
+            properties: Vec::new(),
             environment_variable: String::new(),
         };
 
@@ -198,9 +200,9 @@ impl ShortcutInfo {
             shortcut_info.droid_volume_id = tracker.droid_volume_id;
             shortcut_info.hostname = tracker.machine_id;
         }
-        let (found_prop, guid) = has_property(input);
+        let (found_prop, stores) = has_property(input);
         if found_prop {
-            shortcut_info.property_guid = guid;
+            shortcut_info.properties = stores;
         }
         let (found_env, path) = has_environment(input);
         if found_env {
@@ -301,7 +303,8 @@ mod tests {
                     modified: 0,
                     accessed: 0,
                     mft_entry: 0,
-                    mft_sequence: 0
+                    mft_sequence: 0,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Projects"),
@@ -310,7 +313,8 @@ mod tests {
                     modified: 1612040064,
                     accessed: 1612040064,
                     mft_entry: 226573,
-                    mft_sequence: 7
+                    mft_sequence: 7,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Rust"),
@@ -319,7 +323,8 @@ mod tests {
                     modified: 1667441368,
                     accessed: 1670560382,
                     mft_entry: 1133647,
-                    mft_sequence: 4
+                    mft_sequence: 4,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("artemis-core"),
@@ -328,11 +333,12 @@ mod tests {
                     modified: 1670383114,
                     accessed: 1670560418,
                     mft_entry: 799135,
-                    mft_sequence: 21
+                    mft_sequence: 21,
+                    stores: vec![],
                 }
             ]
         );
-        assert_eq!(result.property_guid, "446d16b1-8dad-4870-a748-402ea43d788c");
+        assert_eq!(result.properties.len(), 1);
         assert_eq!(result.hostname, "desktop-eis938n");
 
         assert_eq!(
@@ -417,7 +423,7 @@ mod tests {
             birth_droid_volume_id: String::new(),
             birth_droid_file_id: String::new(),
             shellitems: Vec::new(),
-            property_guid: String::new(),
+            properties: Vec::new(),
             environment_variable: String::new(),
         };
 
@@ -462,7 +468,8 @@ mod tests {
                     modified: 0,
                     accessed: 0,
                     mft_entry: 0,
-                    mft_sequence: 0
+                    mft_sequence: 0,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Projects"),
@@ -471,7 +478,8 @@ mod tests {
                     modified: 1612040064,
                     accessed: 1612040064,
                     mft_entry: 226573,
-                    mft_sequence: 7
+                    mft_sequence: 7,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Rust"),
@@ -480,7 +488,8 @@ mod tests {
                     modified: 1667441368,
                     accessed: 1670560382,
                     mft_entry: 1133647,
-                    mft_sequence: 4
+                    mft_sequence: 4,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("artemis-core"),
@@ -489,14 +498,12 @@ mod tests {
                     modified: 1670383114,
                     accessed: 1670560418,
                     mft_entry: 799135,
-                    mft_sequence: 21
+                    mft_sequence: 21,
+                    stores: vec![],
                 }
             ]
         );
-        assert_eq!(
-            shortcut_info.property_guid,
-            "446d16b1-8dad-4870-a748-402ea43d788c"
-        );
+        assert_eq!(shortcut_info.properties.len(), 1);
         assert_eq!(shortcut_info.hostname, "desktop-eis938n");
 
         assert_eq!(

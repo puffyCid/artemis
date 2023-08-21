@@ -1,19 +1,20 @@
 use crate::artifacts::os::windows::propertystore::parser::get_property_guid;
 use log::error;
 use nom::bytes::complete::{take, take_until};
-use std::mem::size_of;
+use serde_json::Value;
+use std::{collections::HashMap, mem::size_of};
 
 /// Determine if extra Property Store data exists in `Shortcut` data
-pub(crate) fn has_property(data: &[u8]) -> (bool, String) {
+pub(crate) fn has_property(data: &[u8]) -> (bool, Vec<HashMap<String, Value>>) {
     let result = parse_property(data);
     match result {
         Ok((_, guid)) => (true, guid),
-        Err(_err) => (false, String::new()),
+        Err(_err) => (false, Vec::new()),
     }
 }
 
 /// Scan for Property Store data and parse if exists
-fn parse_property(data: &[u8]) -> nom::IResult<&[u8], String> {
+fn parse_property(data: &[u8]) -> nom::IResult<&[u8], Vec<HashMap<String, Value>>> {
     let tracker_sig = [9, 0, 0, 160];
     let (_, sig_start) = take_until(tracker_sig.as_slice())(data)?;
 
@@ -24,10 +25,10 @@ fn parse_property(data: &[u8]) -> nom::IResult<&[u8], String> {
 
     let prop_result = get_property_guid(input);
     match prop_result {
-        Ok(guid) => Ok((input, guid)),
+        Ok(stores) => Ok((input, stores)),
         Err(err) => {
             error!("[shortcut] Failed to parse extra property data: {:?}", err);
-            Ok((input, String::from("Failed to get extra property data")))
+            Ok((input, Vec::new()))
         }
     }
 }
@@ -46,7 +47,7 @@ mod tests {
         ];
         let (has_prop, result) = has_property(&test);
         assert_eq!(has_prop, true);
-        assert_eq!(result, "446d16b1-8dad-4870-a748-402ea43d788c");
+        assert_eq!(result.len(), 1);
     }
 
     #[test]
@@ -57,6 +58,9 @@ mod tests {
             144, 47, 84, 8, 0, 0, 0, 0, 0, 0, 80, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let (_, result) = parse_property(&test).unwrap();
-        assert_eq!(result, "446d16b1-8dad-4870-a748-402ea43d788c");
+        assert_eq!(
+            result[0].get("value0").unwrap(),
+            "08542f90-0000-0000-0000-501f00000000"
+        );
     }
 }

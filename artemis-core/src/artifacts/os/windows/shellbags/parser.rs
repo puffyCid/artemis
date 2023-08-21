@@ -21,6 +21,7 @@ use crate::{
 };
 use log::error;
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +37,7 @@ pub(crate) struct Shellbag {
     pub(crate) reg_file: String,
     pub(crate) reg_path: String,
     pub(crate) reg_file_path: String,
+    pub(crate) stores: Vec<HashMap<String, Value>>,
 }
 
 /// Get Windows `Shellbags` for all users based on optional drive, otherwise default drive letter is used
@@ -175,6 +177,7 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
                             accessed: 0,
                             mft_entry: 0,
                             mft_sequence: 0,
+                            stores: Vec::new(),
                         }
                     }
                 };
@@ -240,6 +243,7 @@ fn update_shellbags(
             reg_file: reg_info.reg_file.clone(),
             reg_file_path: reg_info.reg_file_path.clone(),
             reg_path: reg_info.reg_path.clone(),
+            stores: shell.stores.clone(),
         };
 
         shell_map.insert(reg_info.bagkey.clone(), bag);
@@ -276,6 +280,7 @@ fn update_shellbags(
         reg_file: reg_info.reg_file.clone(),
         reg_file_path: reg_info.reg_file_path.clone(),
         reg_path: reg_info.reg_path.clone(),
+        stores: shell.stores.clone(),
     };
 
     shell_map.insert(reg_info.bagkey.clone(), bag);
@@ -339,6 +344,7 @@ mod tests {
             accessed: 0,
             mft_entry: 0,
             mft_sequence: 0,
+            stores: Vec::new(),
         };
         let mut shell_map = HashMap::new();
         let empty_clsids = HashMap::new();
@@ -367,6 +373,7 @@ mod tests {
             reg_file: String::from("shellbags are complex"),
             reg_path: String::from("shellbags are complex"),
             reg_file_path: String::from("shellbags are complex"),
+            stores: Vec::new(),
         };
         let mut shell_map = HashMap::new();
         let mut shellbag_vec = Vec::new();

@@ -19,22 +19,23 @@ pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, _id_data) = take(id_size)(input)?;
 
     let result = get_property_guid(input);
-    let guid = match result {
+    let stores = match result {
         Ok(results) => results,
         Err(err) => {
             error!("[shellitems] Could not get property store shellitem:{err:?}");
-            String::from("Unknown GUID")
+            Vec::new()
         }
     };
 
     let store_item = ShellItem {
-        value: guid,
+        value: String::from("Property View"),
         shell_type: ShellType::UserPropertyView,
         created: 0,
         modified: 0,
         accessed: 0,
         mft_entry: 0,
         mft_sequence: 0,
+        stores,
     };
 
     Ok((input, store_item))
@@ -57,6 +58,7 @@ pub(crate) fn parse_property_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem
         accessed: 0,
         mft_entry: 0,
         mft_sequence: 0,
+        stores: Vec::new(),
     };
     Ok((input, store_item))
 }
@@ -110,13 +112,18 @@ mod tests {
         ];
 
         let (_, result) = parse_property(&test_data).unwrap();
-        assert_eq!(result.value, "d5cdd505-2e9c-101b-9397-08002b2cf9ae");
+        assert_eq!(result.value, "Property View");
         assert_eq!(result.shell_type, ShellType::UserPropertyView);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
         assert_eq!(result.created, 0);
         assert_eq!(result.modified, 0);
         assert_eq!(result.accessed, 0);
+        assert_eq!(result.stores.len(), 1);
+        assert_eq!(
+            result.stores[0].get("AutoCacheKey").unwrap(),
+            "Search Results in System320"
+        );
     }
 
     #[test]

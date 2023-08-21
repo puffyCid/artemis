@@ -195,7 +195,8 @@ mod tests {
                     modified: 0,
                     accessed: 0,
                     mft_entry: 0,
-                    mft_sequence: 0
+                    mft_sequence: 0,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Projects"),
@@ -204,7 +205,8 @@ mod tests {
                     modified: 1612040064,
                     accessed: 1612040064,
                     mft_entry: 226573,
-                    mft_sequence: 7
+                    mft_sequence: 7,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("Rust"),
@@ -213,7 +215,8 @@ mod tests {
                     modified: 1667441368,
                     accessed: 1670560382,
                     mft_entry: 1133647,
-                    mft_sequence: 4
+                    mft_sequence: 4,
+                    stores: vec![],
                 },
                 ShellItem {
                     value: String::from("artemis-core"),
@@ -222,11 +225,12 @@ mod tests {
                     modified: 1670383114,
                     accessed: 1670560418,
                     mft_entry: 799135,
-                    mft_sequence: 21
+                    mft_sequence: 21,
+                    stores: vec![],
                 }
             ]
         );
-        assert_eq!(result.property_guid, "446d16b1-8dad-4870-a748-402ea43d788c");
+        assert_eq!(result.properties.len(), 1);
         assert_eq!(result.hostname, "desktop-eis938n");
 
         assert_eq!(
@@ -263,7 +267,7 @@ mod tests {
         assert_eq!(result.created, -11644473600);
         assert_eq!(result.modified, -11644473600);
         assert_eq!(result.accessed, -11644473600);
-        assert_eq!(result.property_guid, "46588ae2-4cbc-4338-bbfc-139326986dce");
+        assert_eq!(result.properties.len(), 5);
         assert_eq!(result.environment_variable, "%windir%\\explorer.exe");
     }
 

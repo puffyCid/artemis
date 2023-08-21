@@ -33,6 +33,7 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
         accessed: fattime_utc_to_unixepoch(accessed_data),
         mft_entry: 0,
         mft_sequence: 0,
+        stores: Vec::new(),
     };
 
     let vista_version = 7;

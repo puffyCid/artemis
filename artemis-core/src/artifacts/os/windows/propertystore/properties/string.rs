@@ -14,7 +14,7 @@ use nom::bytes::complete::{take, take_until};
 use serde_json::{Number, Value};
 use std::collections::HashMap;
 
-/// Parse a PropertyStore stream
+/// Parse a `Property Store` stream
 pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, Value>> {
     let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let adjust_size = 4;
@@ -34,11 +34,12 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
     let (property_input, _padding) = nom_unsigned_two_bytes(property_input, Endian::Le)?;
 
     let name = extract_utf16_string(name_data);
-    println!("{name}");
-    let (_, (mut value, items)) = parse_types(property_input, &prop_type)?;
+    let mut values = HashMap::new();
+
+    let (_, items) = parse_types(property_input, &prop_type, &mut values, String::new())?;
     let serde_result = serde_json::to_value(items);
     let _ = match serde_result {
-        Ok(results) => value.insert(name, results),
+        Ok(results) => values.insert(name, results),
         Err(err) => {
             error!("[propertystore] Failed to serialize property store shellitems: {err:?}");
             Option::None
@@ -47,7 +48,7 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
 
     let time_results = scan_cache_time(input);
     let _ = match time_results {
-        Ok((_, result)) => value.insert(
+        Ok((_, result)) => values.insert(
             String::from("AutoCacheTime"),
             Value::Number(Number::from(result)),
         ),
@@ -56,14 +57,14 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
 
     let key_results = scan_cache_key(input);
     let _ = match key_results {
-        Ok((_, result)) => value.insert(String::from("AutoCacheKey"), Value::String(result)),
+        Ok((_, result)) => values.insert(String::from("AutoCacheKey"), Value::String(result)),
         Err(_err) => Option::None,
     };
 
-    Ok((input, value))
+    Ok((input, values))
 }
 
-/// Scan PropertyStore bytes for cache time
+/// Scan `Property Store` bytes for cache time
 fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], i64> {
     // UTF16 string: AutoCacheTime
     let cache_time = [
@@ -79,7 +80,7 @@ fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], i64> {
     Ok((input, filetime_to_unixepoch(&filetime)))
 }
 
-/// Scan PropertyStore bytes for cache key
+/// Scan `Property Store` bytes for cache key
 fn scan_cache_key(data: &[u8]) -> nom::IResult<&[u8], String> {
     // UTF16 string: AutoCacheKey
     let cache_key = [

@@ -16,6 +16,7 @@ use crate::{
 };
 use log::info;
 use nom::bytes::complete::{take, take_until, take_while};
+use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
 
 #[derive(PartialEq, Hash, Eq)]
@@ -37,6 +38,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         accessed: 0,
         mft_entry: 0,
         mft_sequence: 0,
+        stores: Vec::new(),
     };
 
     let sigs = get_beef_sigs();
@@ -92,9 +94,9 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     if check_property(data) {
         // Nom till we get to start of property store
         let (input, _) = take(size_of::<u8>())(data)?;
-        let (is_property, guid) = get_property(input);
-        if is_property && guid != "Unknown GUID" {
-            variable_item.value = guid;
+        let (is_property, stores) = get_property(input);
+        if is_property {
+            variable_item.stores = stores;
             return Ok((input, variable_item));
         }
     }
@@ -169,16 +171,16 @@ pub(crate) fn parse_zip(data: &[u8]) -> nom::IResult<&[u8], (bool, String)> {
 }
 
 /// Parse a `Variable` Property Store `ShellItem`
-fn get_property(data: &[u8]) -> (bool, String) {
+fn get_property(data: &[u8]) -> (bool, Vec<HashMap<String, Value>>) {
     let result = parse_property(data);
     let (_, item) = match result {
         Ok(results) => results,
         Err(_err) => {
-            return (false, String::new());
+            return (false, Vec::new());
         }
     };
 
-    (true, item.value)
+    (true, item.stores)
 }
 
 /// Check if the `ShellItem` could be a ZIP type by checking for the value "/" at offsets 37 or 45
@@ -499,9 +501,10 @@ mod tests {
             189, 222, 179, 55, 131, 67, 145, 231, 68, 152, 218, 41, 149, 171, 17, 0, 0, 0, 3, 0, 0,
             0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let (is_property, guid) = get_property(&data);
+        let (is_property, stores) = get_property(&data);
         assert_eq!(is_property, true);
-        assert_eq!(guid, "0ae54373-43be-4fad-85e4-69dc8633986e");
+        assert_eq!(stores.len(), 3);
+        assert_eq!(stores[1].get("value0").unwrap(), "vmware-host");
     }
 
     #[test]

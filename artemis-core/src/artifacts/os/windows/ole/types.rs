@@ -12,10 +12,9 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
-use log::error;
+use log::warn;
 use nom::{
     bytes::complete::{take, take_while},
-    error::ErrorKind,
     number::complete::{le_f32, le_f64},
 };
 use serde_json::Value;
@@ -25,88 +24,93 @@ use std::{collections::HashMap, mem::size_of};
 pub(crate) fn parse_types<'a>(
     data: &'a [u8],
     ole_type: &u16,
-) -> nom::IResult<&'a [u8], (HashMap<String, Value>, Vec<ShellItem>)> {
+    values: &mut HashMap<String, Value>,
+    key: String,
+) -> nom::IResult<&'a [u8], Vec<ShellItem>> {
     // List at https://github.com/libyal/libfole/blob/main/documentation/OLE%20definitions.asciidoc
     let (input, result) = match ole_type {
         0x48 => {
             let (input, id_data) = take(size_of::<u128>())(data)?;
-            (input, format!("{}", format_guid_le_bytes(id_data)))
+            (input, Value::String(format_guid_le_bytes(id_data)))
         }
-        0x0 | 0x1 => (data, String::new()),
+        0x0 | 0x1 => (data, Value::Null),
         0x2 => {
             let (input, result) = nom_signed_two_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x3 | 0xa | 0x16 => {
             let (input, result) = nom_signed_four_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x4 => {
             let (input, vt_data) = take(size_of::<u32>())(data)?;
             let (_, result) = le_f32(vt_data)?;
-            (input, format!("{result}"))
+            (input, Value::String(format!("{result}")))
         }
         0x5 | 0x6 => {
             let (input, vt_data) = take(size_of::<u64>())(data)?;
             let (_, result) = le_f64(vt_data)?;
-            (input, format!("{result}"))
+            (input, Value::String(format!("{result}")))
         }
         0x7 => {
             let (input, vt_data) = take(size_of::<u64>())(data)?;
             let (_, oletime) = le_f64(vt_data)?;
             (
                 input,
-                format!("{}", ole_automationtime_to_unixepoch(&oletime)),
+                Value::Number(ole_automationtime_to_unixepoch(&oletime).into()),
             )
         }
         0x8 => {
             let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
             let (input, binary_string) = take(size)(input)?;
-            (input, base64_encode_standard(binary_string))
+            (input, Value::String(base64_encode_standard(binary_string)))
         }
         0xb => {
             let (input, result) = nom_unsigned_one_byte(data, Endian::Le)?;
             if result == 0 {
-                (input, String::from("false"))
+                (input, Value::Bool(false))
             } else {
-                (input, String::from("true"))
+                (input, Value::Bool(true))
             }
         }
         0x10 | 0x11 => {
             let (input, result) = nom_unsigned_one_byte(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0xe => {
             let (input, result) = nom_unsigned_sixteen_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::String(format!("{result}")))
         }
         0x12 => {
             let (input, result) = nom_unsigned_two_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x13 | 0x17 => {
             let (input, result) = nom_unsigned_four_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x14 => {
             let (input, result) = nom_signed_eight_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x15 => {
             let (input, result) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-            (input, format!("{result}"))
+            (input, Value::Number(result.into()))
         }
         0x1e => {
             let (input, string_data) = take_while(|b| b != 0)(data)?;
             let (input, _eof) = nom_unsigned_one_byte(input, Endian::Le)?;
-            (input, extract_utf8_string(string_data))
+            (input, Value::String(extract_utf8_string(string_data)))
         }
         0x40 => {
             let (input, filetime) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-            (input, format!("{}", filetime_to_unixepoch(&filetime)))
+            (
+                input,
+                Value::Number(filetime_to_unixepoch(&filetime).into()),
+            )
         }
         0x42 => {
-            let (input, result) = parse_stream(data)?;
+            let (input, result) = parse_stream(data, values)?;
             return Ok((input, result));
         }
         0x1f => {
@@ -114,26 +118,25 @@ pub(crate) fn parse_types<'a>(
             let utf_adjust = 2;
             let (input, string_data) = take(string_size * utf_adjust)(input)?;
 
-            (input, extract_utf16_string(string_data))
+            (input, Value::String(extract_utf16_string(string_data)))
         }
         _ => {
-            panic!("[olecf] Unknown/Unsupported ole type {ole_type}");
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                data,
-                ErrorKind::Fail,
-            )));
+            warn!("[olecf] Unknown/Unsupported ole type {ole_type}");
+            return Ok((&[], Vec::new()));
         }
     };
 
-    let mut values = HashMap::new();
-    values.insert(String::from("value"), Value::String(result));
+    values.insert(key, result);
 
     // No shellitems if the ole_type is not 0x42 (stream)
-    Ok((input, (values, Vec::new())))
+    Ok((input, Vec::new()))
 }
 
 /// Parse the OLE Stream aassociated with type 0x42
-fn parse_stream(data: &[u8]) -> nom::IResult<&[u8], (HashMap<String, Value>, Vec<ShellItem>)> {
+fn parse_stream<'a>(
+    data: &'a [u8],
+    values: &mut HashMap<String, Value>,
+) -> nom::IResult<&'a [u8], Vec<ShellItem>> {
     let (input, value_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, value_name) = take(value_size)(input)?;
 
@@ -163,7 +166,7 @@ fn parse_stream(data: &[u8]) -> nom::IResult<&[u8], (HashMap<String, Value>, Vec
         let shellitem = match item_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[ole] Could not parse shellitem");
+                warn!("[ole] Could not parse shellitem");
                 break;
             }
         };
@@ -172,7 +175,6 @@ fn parse_stream(data: &[u8]) -> nom::IResult<&[u8], (HashMap<String, Value>, Vec
         input = item_remaining;
     }
 
-    let mut values = HashMap::new();
     values.insert(
         String::from("other_values"),
         Value::Array(vec![
@@ -181,11 +183,13 @@ fn parse_stream(data: &[u8]) -> nom::IResult<&[u8], (HashMap<String, Value>, Vec
         ]),
     );
 
-    Ok((remaining_input, (values, shellitems_vec)))
+    Ok((remaining_input, shellitems_vec))
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::parse_stream;
     use crate::artifacts::os::windows::ole::types::parse_types;
 
@@ -195,10 +199,10 @@ mod tests {
             129, 48, 105, 195, 194, 204, 140, 77, 128, 223, 108, 13, 216, 242, 103, 9, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
-
-        let (_, (value, _)) = parse_types(&test_data, &0x48).unwrap();
+        let mut values = HashMap::new();
+        let _ = parse_types(&test_data, &0x48, &mut values, String::from("value")).unwrap();
         assert_eq!(
-            value.get("value").unwrap(),
+            values.get("value").unwrap(),
             "c3693081-ccc2-4d8c-80df-6c0dd8f26709"
         );
     }
@@ -229,9 +233,11 @@ mod tests {
             102, 0, 101, 0, 116, 0, 99, 0, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let (_, (result, items)) = parse_stream(&test_data).unwrap();
+        let mut values = HashMap::new();
+
+        let (_, items) = parse_stream(&test_data, &mut values).unwrap();
         assert_eq!(
-            result.get("other_values").unwrap().as_array().unwrap()[0],
+            values.get("other_values").unwrap().as_array().unwrap()[0],
             "prop4294967295"
         );
         assert_eq!(items.len(), 4);
