@@ -503,7 +503,7 @@ mod tests {
         ];
         let (is_property, stores) = get_property(&data);
         assert_eq!(is_property, true);
-        assert_eq!(stores.len(), 3);
+        assert_eq!(stores.len(), 4);
         assert_eq!(stores[1].get("value0").unwrap(), "vmware-host");
     }
 
