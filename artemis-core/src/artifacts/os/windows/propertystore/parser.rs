@@ -10,7 +10,7 @@ use log::error;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// Grab GUID from a `Property Store`
+/// Grab Stores from a `Property Store`
 pub(crate) fn get_property_guid(data: &[u8]) -> Result<Vec<HashMap<String, Value>>, StoreError> {
     let result = parse_property_store(data);
     let (_, store) = match result {
