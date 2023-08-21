@@ -255,7 +255,7 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                     }
                 }
             }
-            "shortcut" => {
+            "shortcuts" => {
                 let artifact = match &artifacts.shortcuts {
                     Some(result) => result,
                     None => continue,
