@@ -18,6 +18,7 @@ pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         accessed: 0,
         mft_entry: 0,
         mft_sequence: 0,
+        stores: Vec::new(),
     };
 
     // There may also be 0xbeef0026, 0xbeef0017, or 0xbeef0025 data

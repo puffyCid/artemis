@@ -131,10 +131,7 @@ mod tests {
             result[0].lnk_info.birth_droid_file_id,
             "004c7ebf-f3c6-11e9-a0cc-0800276eb45e"
         );
-        assert_eq!(
-            result[0].lnk_info.property_guid,
-            "f29f85e0-4ff9-1068-ab91-08002b27b3d9"
-        );
+        assert_eq!(result[0].lnk_info.properties.len(), 2);
         assert_eq!(result[0].lnk_info.shellitems.len(), 5);
 
         assert_eq!(result[7].lnk_info.created, 1571636919);
@@ -155,10 +152,7 @@ mod tests {
             result[7].lnk_info.birth_droid_file_id,
             "004c7ebf-f3c6-11e9-a0cc-0800276eb45e"
         );
-        assert_eq!(
-            result[7].lnk_info.property_guid,
-            "f29f85e0-4ff9-1068-ab91-08002b27b3d9"
-        );
+        assert_eq!(result[7].lnk_info.properties.len(), 2);
         assert_eq!(result[7].lnk_info.shellitems.len(), 5);
         assert_eq!(result[7].lnk_info.drive_serial, "D49D126F");
     }

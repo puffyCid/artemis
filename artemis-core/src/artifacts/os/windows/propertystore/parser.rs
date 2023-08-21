@@ -5,12 +5,14 @@
  * References:
  *  `https://github.com/libyal/libfwps/blob/main/documentation/Windows%20Property%20Store%20format.asciidoc`
  */
-use super::{error::StoreError, store::PropertyStore};
+use super::{error::StoreError, store::parse_property_store};
 use log::error;
+use serde_json::Value;
+use std::collections::HashMap;
 
-/// Grab GUID from a `Property Store`
-pub(crate) fn get_property_guid(data: &[u8]) -> Result<String, StoreError> {
-    let result = PropertyStore::parse_property_store(data);
+/// Grab Stores from a `Property Store`
+pub(crate) fn get_property_guid(data: &[u8]) -> Result<Vec<HashMap<String, Value>>, StoreError> {
+    let result = parse_property_store(data);
     let (_, store) = match result {
         Ok(results) => results,
         Err(_err) => {
@@ -19,12 +21,12 @@ pub(crate) fn get_property_guid(data: &[u8]) -> Result<String, StoreError> {
         }
     };
 
-    Ok(store.guid)
+    Ok(store)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::propertystore::store::PropertyStore;
+    use crate::artifacts::os::windows::propertystore::parser::get_property_guid;
 
     #[test]
     fn test_get_property_guid() {
@@ -63,7 +65,11 @@ mod tests {
             51, 0, 50, 0, 48, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let (_, result) = PropertyStore::parse_property_store(&test_data).unwrap();
-        assert_eq!(result.guid, "d5cdd505-2e9c-101b-9397-08002b2cf9ae");
+        let result = get_property_guid(&test_data).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(
+            result[0].get("AutoCacheKey").unwrap(),
+            "Search Results in System320"
+        );
     }
 }

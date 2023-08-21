@@ -33,7 +33,8 @@ use crate::{
 use log::error;
 use nom::bytes::complete::take;
 use serde::Serialize;
-use std::mem::size_of;
+use serde_json::Value;
+use std::{collections::HashMap, mem::size_of};
 
 /**  Return a `ShellItem` structure containing
  * value: Generic value of the `ShellItem`, can be a directory, file, URI, or GUID
@@ -47,11 +48,15 @@ use std::mem::size_of;
 pub(crate) struct ShellItem {
     pub(crate) value: String,
     pub(crate) shell_type: ShellType,
-    pub(crate) created: i64,  // FAT time
-    pub(crate) modified: i64, // FAT time
-    pub(crate) accessed: i64, // FAT time
+    /**FAT time */
+    pub(crate) created: i64,
+    /**FAT time */
+    pub(crate) modified: i64,
+    /**FAT time */
+    pub(crate) accessed: i64,
     pub(crate) mft_entry: u64,
     pub(crate) mft_sequence: u16,
+    pub(crate) stores: Vec<HashMap<String, Value>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

@@ -1,38 +1,54 @@
+use super::formats::parse_formats;
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 use crate::utils::uuid::format_guid_le_bytes;
-use nom::bytes::complete::take;
+use nom::bytes::complete::{take, take_until};
+use nom::number::complete::le_u32;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::mem::size_of;
 
-pub(crate) struct PropertyStore {
-    _version: u32,
-    pub(crate) guid: String,
-}
+/// Parse the property store, only getting the first GUID right now
+pub(crate) fn parse_property_store(
+    data: &[u8],
+) -> nom::IResult<&[u8], Vec<HashMap<String, Value>>> {
+    let mut remaining_data = data;
+    let end = [0, 0, 0, 0];
 
-impl PropertyStore {
-    /// Parse the property store, only getting the first GUID right now
-    pub(crate) fn parse_property_store(data: &[u8]) -> nom::IResult<&[u8], PropertyStore> {
-        let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let mut stores = Vec::new();
+    while !remaining_data.is_empty() && !remaining_data.starts_with(&end) {
+        let version_sig = [49, 83, 80, 83];
+        let (input, size_data) = take_until(version_sig.as_slice())(remaining_data)?;
 
-        // Size includes the size itself, which we already nom'd
-        let size_adjust = 4;
-        let (remaining_data, store_data) = take(size - size_adjust)(input)?;
+        let property_size = 4;
+        if size_data.len() != property_size {
+            break;
+        }
 
-        let (input, version) = nom_unsigned_four_bytes(store_data, Endian::Le)?;
-        let (_input, guid_data) = take(size_of::<u128>())(input)?;
+        let (_, data_size) = le_u32(size_data)?;
+        let (remaining, input) = take(data_size as usize - property_size)(input)?;
 
-        let store = PropertyStore {
-            _version: version,
-            guid: format_guid_le_bytes(guid_data),
-        };
+        remaining_data = remaining;
 
-        // Rest of data is currently not parsed
-        Ok((remaining_data, store))
+        let (input, _version) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, guid_data) = take(size_of::<u128>())(input)?;
+
+        let (_, store) = parse_formats(input, &format_guid_le_bytes(guid_data))?;
+        if store.is_empty() {
+            continue;
+        }
+        stores.push(store);
     }
+
+    Ok((remaining_data, stores))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::propertystore::store::PropertyStore;
+    use crate::{
+        artifacts::os::windows::propertystore::store::parse_property_store,
+        filesystem::files::read_file,
+    };
+    use std::path::PathBuf;
 
     #[test]
     fn test_parse_property_store() {
@@ -71,8 +87,22 @@ mod tests {
             51, 0, 50, 0, 48, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let (_, result) = PropertyStore::parse_property_store(&test_data).unwrap();
-        assert_eq!(result._version, 1397773105); // 1SPS
-        assert_eq!(result.guid, "d5cdd505-2e9c-101b-9397-08002b2cf9ae");
+        let (_, result) = parse_property_store(&test_data).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(
+            result[0].get("AutoCacheKey").unwrap(),
+            "Search Results in System320"
+        );
+    }
+
+    #[test]
+    fn test_parse_formats() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location
+            .push("tests/test_data/windows/propertystores/win11/multiplepropertystores.raw");
+
+        let results = read_file(&test_location.display().to_string()).unwrap();
+        let (_, prop_results) = parse_property_store(&results).unwrap();
+        assert_eq!(prop_results.len(), 5);
     }
 }

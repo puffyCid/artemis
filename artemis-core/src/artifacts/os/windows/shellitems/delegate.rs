@@ -35,6 +35,7 @@ pub(crate) fn get_delegate_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellIt
         accessed: delegate_item.accessed,
         mft_entry: delegate_item.mft_entry,
         mft_sequence: delegate_item.mft_sequence,
+        stores: Vec::new(),
     };
 
     Ok((input, item))

@@ -23,6 +23,7 @@ pub(crate) fn parse_network(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         accessed: 0,
         mft_entry: 0,
         mft_sequence: 0,
+        stores: Vec::new(),
     };
 
     Ok((input, network))
