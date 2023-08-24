@@ -1,7 +1,6 @@
 //@ts-ignore: Deno internals
 const { core } = globalThis.Deno;
 const primordials = globalThis.__bootstrap.primordials;
-const { SymbolAsyncIterator } = primordials;
 
 /**
  * @class FileSystem used to interact with the FileSystem through Rust and Deno
@@ -50,6 +49,6 @@ class FileSystem {
    */
   glob = (pattern: string) => {
     return core.ops.js_glob(pattern);
-  }
+  };
 }
 export const filesystem = new FileSystem();
