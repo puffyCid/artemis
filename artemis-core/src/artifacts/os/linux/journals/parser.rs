@@ -1,6 +1,6 @@
 /**
  * Linux `Journal` files are the logs associated with the Systemd service  
- * Systemd is a populer system service that is common on most Linux distros  
+ * Systemd is a popular system service that is common on most Linux distros
  * The logs can contain data related to application activity, sudo commands, and more
  *
  * References:  
