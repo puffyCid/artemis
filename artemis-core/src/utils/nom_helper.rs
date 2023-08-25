@@ -92,7 +92,6 @@ pub(crate) fn nom_unsigned_sixteen_bytes(data: &[u8], endian: Endian) -> nom::IR
     Ok((input, value))
 }
 
-#[cfg(target_os = "windows")]
 /**
  * Nom four (4) bytes to i32
  * Need to specify Endianess
@@ -110,7 +109,6 @@ pub(crate) fn nom_signed_four_bytes(data: &[u8], endian: Endian) -> nom::IResult
     Ok((input, value))
 }
 
-#[cfg(target_os = "windows")]
 /**
  * Nom eight (8) bytes to i64
  * Need to specify Endianess
@@ -127,7 +125,6 @@ pub(crate) fn nom_signed_eight_bytes(data: &[u8], endian: Endian) -> nom::IResul
     Ok((input, value))
 }
 
-#[cfg(target_os = "windows")]
 /**
  * Nom two (2) bytes to i16
  * Need to specify Endianess
@@ -147,45 +144,34 @@ pub(crate) fn nom_signed_two_bytes(data: &[u8], endian: Endian) -> nom::IResult<
 #[cfg(test)]
 mod tests {
     use crate::utils::nom_helper::{
+        nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
     };
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_nom_signed_two_bytes() {
-        use crate::utils::nom_helper::nom_signed_two_bytes;
-
         let test = [2, 0];
         let (_, results) = nom_signed_two_bytes(&test, Endian::Le).unwrap();
         assert_eq!(results, 2);
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_nom_signed_eight_bytes() {
-        use crate::utils::nom_helper::nom_signed_eight_bytes;
-
         let test = [2, 0, 0, 0, 0, 0, 0, 0];
         let (_, results) = nom_signed_eight_bytes(&test, Endian::Le).unwrap();
         assert_eq!(results, 2);
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_nom_signed_four_bytes() {
-        use crate::utils::nom_helper::nom_signed_four_bytes;
-
         let test = [2, 0, 0, 0];
         let (_, results) = nom_signed_four_bytes(&test, Endian::Le).unwrap();
         assert_eq!(results, 2);
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_nom_unsigned_sixteen_bytes() {
-        use crate::utils::nom_helper::nom_unsigned_sixteen_bytes;
-
         let test = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let (_, results) = nom_unsigned_sixteen_bytes(&test, Endian::Le).unwrap();
         assert_eq!(results, 2);

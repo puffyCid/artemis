@@ -3,6 +3,7 @@ use crate::runtime::encoding::extensions::enocoding_runtime;
 use crate::runtime::environment::extensions::env_runtime;
 use crate::runtime::filesystem::extensions::fs_runtime;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
+use crate::runtime::nom::extensions::nom_functions;
 use crate::runtime::system::extensions::system_functions;
 use crate::runtime::unix::extensions::unix_functions;
 use deno_core::{Extension, Op};
@@ -28,6 +29,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut fs_runtime());
     exts.append(&mut env_runtime());
     exts.append(&mut enocoding_runtime());
+
+    exts.append(&mut nom_functions());
 
     exts
 }
