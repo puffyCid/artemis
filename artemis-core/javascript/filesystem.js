@@ -1,6 +1,5 @@
 const { core } = globalThis.Deno;
 const primordials = globalThis.__bootstrap.primordials;
-const { SymbolAsyncIterator } = primordials;
 class FileSystem {
     readDir = async (path) => {
         const data = await core.ops.js_read_dir(path);

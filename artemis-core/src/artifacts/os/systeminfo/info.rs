@@ -73,11 +73,11 @@ impl SystemInfo {
                 .unwrap_or_else(|| String::from("Unknown hostname")),
             os_version: system
                 .os_version()
-                .unwrap_or_else(|| String::from("Unknown OS Version")),
+                .unwrap_or_else(|| String::from("Unknown OS version")),
             uptime: system.uptime(),
             kernel_version: system
                 .kernel_version()
-                .unwrap_or_else(|| String::from("Unknown Kernel Version")),
+                .unwrap_or_else(|| String::from("Unknown kernel version")),
             platform: system
                 .name()
                 .unwrap_or_else(|| String::from("Unknown system name")),
@@ -137,7 +137,7 @@ impl SystemInfo {
     }
 
     /// Get Disk info from system
-    fn get_disks(system: &mut System) -> Vec<Disks> {
+    pub(crate) fn get_disks(system: &mut System) -> Vec<Disks> {
         system.refresh_disks_list();
         let disks = system.disks();
 
@@ -158,7 +158,7 @@ impl SystemInfo {
     }
 
     /// Get CPU info from system
-    fn get_cpu(system: &mut System) -> Vec<Cpus> {
+    pub(crate) fn get_cpu(system: &mut System) -> Vec<Cpus> {
         system.refresh_cpu();
         let mut cpu_vec: Vec<Cpus> = Vec::new();
 
@@ -177,7 +177,7 @@ impl SystemInfo {
     }
 
     /// Get Memory info from system
-    fn get_memory(system: &mut System) -> Memory {
+    pub(crate) fn get_memory(system: &mut System) -> Memory {
         system.refresh_memory();
         Memory {
             available_memory: system.available_memory(),
