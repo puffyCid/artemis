@@ -1,7 +1,7 @@
 [package]
 name = "artemis"
 edition = "2021"
-version = "0.1.0"
+version = "0.4.0"
 
 [dependencies]
 base64 = "0.21.2"
