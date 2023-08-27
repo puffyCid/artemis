@@ -16,8 +16,9 @@ use super::windows::extensions::setup_extensions;
 #[cfg(target_os = "linux")]
 use super::linux::extensions::setup_extensions;
 
-#[cfg(target_os = "macos")]
+#[cfg(target_os = "freebsd")]
 use super::freebsd::extensions::setup_extensions;
+
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
 
 #[tokio::main]

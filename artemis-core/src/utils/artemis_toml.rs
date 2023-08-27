@@ -97,6 +97,18 @@ pub(crate) struct Artifacts {
     pub(crate) script: Option<JSScript>,
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg(target_os = "freebsd")]
+pub(crate) struct Artifacts {
+    /**Based on artifact parse one of the artifact types */
+    pub(crate) artifact_name: String,
+    /**Specify whether to filter the parsed data */
+    pub(crate) filter: Option<bool>,
+    pub(crate) processes: Option<ProcessOptions>,
+    pub(crate) files: Option<FileOptions>,
+    pub(crate) script: Option<JSScript>,
+}
+
 impl ArtemisToml {
     // Parse the Artemis TOML collector file
     pub(crate) fn parse_artemis_toml_data(toml_data: &[u8]) -> Result<ArtemisToml, ArtemisError> {

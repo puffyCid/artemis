@@ -45,6 +45,8 @@ pub(crate) struct Processes {
     pub(crate) binary_info: Vec<PeInfo>,
     #[cfg(target_os = "linux")]
     pub(crate) binary_info: Vec<ElfInfo>,
+    #[cfg(target_os = "freebsd")]
+    pub(crate) binary_info: Vec<String>,
 }
 
 impl Processes {
@@ -155,6 +157,12 @@ impl Processes {
     /// Get executable metadata
     fn executable_metadata(path: &str) -> Result<Vec<ElfInfo>, ProcessError> {
         elf_metadata(path)
+    }
+
+    #[cfg(target_os = "freebsd")]
+    /// Get executable metadata
+    fn executable_metadata(path: &str) -> Result<Vec<String>, ProcessError> {
+        Ok(Vec::new())
     }
 
     #[cfg(target_os = "windows")]
