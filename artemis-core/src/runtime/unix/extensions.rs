@@ -1,7 +1,8 @@
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use crate::runtime::unix::sudo::get_sudologs;
 use crate::runtime::unix::{
     cron::get_cron,
     shellhistory::{get_bash_history, get_python_history, get_zsh_history},
-    sudo::get_sudologs,
 };
 use deno_core::Op;
 

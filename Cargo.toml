@@ -7,3 +7,7 @@ resolver = "2"
 
 [profile.release]
 strip = true
+
+# FreeBSD Patch for V8
+# [patch.crates-io]
+# v8 = {path = "../rusty_v8"}
