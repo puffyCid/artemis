@@ -9,3 +9,6 @@ pub(crate) mod windows_collection;
 
 #[cfg(target_os = "linux")]
 pub(crate) mod linux_collection;
+
+#[cfg(target_os = "freebsd")]
+pub(crate) mod freebsd_collection;

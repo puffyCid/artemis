@@ -19,3 +19,6 @@ mod windows;
 
 #[cfg(target_os = "linux")]
 mod linux;
+
+#[cfg(target_os = "freebsd")]
+mod freebsd;

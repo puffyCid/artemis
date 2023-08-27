@@ -12,3 +12,6 @@ pub(crate) mod windows;
 
 #[cfg(target_os = "linux")]
 pub(crate) mod linux;
+
+#[cfg(target_os = "freebsd")]
+pub(crate) mod freebsd;

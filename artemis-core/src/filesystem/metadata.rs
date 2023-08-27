@@ -34,6 +34,8 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(target_family = "unix")]
     {
+        #[cfg(target_os = "freebsd")]
+        use std::os::freebsd::fs::MetadataExt;
         #[cfg(target_os = "linux")]
         use std::os::linux::fs::MetadataExt;
         #[cfg(target_os = "macos")]

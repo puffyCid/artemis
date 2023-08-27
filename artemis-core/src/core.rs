@@ -81,9 +81,9 @@ fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError>
         {
             let result = macos_collection(toml_data);
             match result {
-                Ok(_) => info!("[artemis-core] Core parsed macos TOML data"),
+                Ok(_) => info!("[artemis-core] Core parsed macOS TOML data"),
                 Err(err) => {
-                    error!("[artemis-core] Core failed to parse macos TOML data: {err:?}");
+                    error!("[artemis-core] Core failed to parse macOS TOML data: {err:?}");
                     return Err(TomlError::BadToml);
                 }
             }
@@ -105,9 +105,23 @@ fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError>
         {
             let result = linux_collection(toml_data);
             match result {
-                Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
+                Ok(_) => info!("[artemis-core] Core parsed Linux TOML data"),
                 Err(err) => {
                     error!("[artemis-core] Core failed to parse Linux TOML data: {err:?}");
+                    return Err(TomlError::BadToml);
+                }
+            }
+        }
+    } else if os_target.system == "freebsd" {
+        #[cfg(target_os = "freebsd")]
+        {
+            use crate::artifacts::freebsd_collection::freebsd_collection;
+
+            let result = freebsd_collection(toml_data);
+            match result {
+                Ok(_) => info!("[artemis-core] Core parsed FreeBSD TOML data"),
+                Err(err) => {
+                    error!("[artemis-core] Core failed to parse FreeBSD TOML data: {err:?}");
                     return Err(TomlError::BadToml);
                 }
             }

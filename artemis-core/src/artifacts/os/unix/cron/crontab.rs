@@ -34,6 +34,9 @@ impl Cron {
         #[cfg(target_os = "linux")]
         let start_path = "/var/spool/cron/crontabs/";
 
+        #[cfg(target_os = "freebsd")]
+        let start_path = "/var/cron/tabs/";
+
         if !is_directory(start_path) {
             return Ok(Vec::new());
         }

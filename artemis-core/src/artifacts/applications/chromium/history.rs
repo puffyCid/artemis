@@ -55,7 +55,7 @@ impl ChromiumHistory {
             ))
             .to_path_buf();
 
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
             let chromium_path =
                 Path::new(&format!("{users}/.config/chromium/Default/History")).to_path_buf();
 
@@ -78,7 +78,7 @@ impl ChromiumHistory {
                 let user_data: Vec<&str> = users.split('\\').collect();
                 user = (*user_data.last().unwrap_or(&"")).to_string();
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
             {
                 let user_data: Vec<&str> = users.split('/').collect();
                 user = (*user_data.last().unwrap_or(&"")).to_string();

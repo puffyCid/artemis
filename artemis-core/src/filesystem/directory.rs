@@ -47,7 +47,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     list_directories(&user_parent)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     use crate::filesystem::files::file_lines;
@@ -93,7 +93,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
 pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
     #[cfg(target_os = "macos")]
     let root_home = "/var/root";
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     let root_home = "/root";
 
     if !is_directory(root_home) {
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     fn test_get_user_paths() {
         let result = get_user_paths().unwrap();
 

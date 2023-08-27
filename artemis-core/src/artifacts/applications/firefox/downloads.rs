@@ -61,7 +61,7 @@ impl FirefoxDownloads {
             ))
             .to_path_buf();
 
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
             let firefox_path = Path::new(&format!("{users}/.mozilla/firefox")).to_path_buf();
 
             // Verify if Profile directory is on disk
@@ -84,7 +84,7 @@ impl FirefoxDownloads {
                     let user_data: Vec<&str> = users.split('\\').collect();
                     user = (*user_data.last().unwrap_or(&"")).to_string();
                 }
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "linux", target_os = "freebsd"))]
                 {
                     let user_data: Vec<&str> = users.split('/').collect();
                     user = (*user_data.last().unwrap_or(&"")).to_string();

@@ -68,6 +68,8 @@ pub(crate) struct FileInfo {
     pub(crate) binary_info: Vec<PeInfo>,
     #[cfg(target_os = "linux")]
     pub(crate) binary_info: Vec<ElfInfo>,
+    #[cfg(target_os = "freebsd")]
+    pub(crate) binary_info: Vec<String>,
 }
 
 impl FileInfo {
@@ -312,6 +314,10 @@ impl FileInfo {
             }
         };
         Ok(binary_info)
+    }
+    #[cfg(target_os = "freebsd")]
+    fn executable_metadata(path: &str) -> Result<Vec<String>, FileError> {
+        Ok(Vec::new())
     }
 
     /// Create Regex based on provided input
