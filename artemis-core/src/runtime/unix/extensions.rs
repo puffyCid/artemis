@@ -13,6 +13,7 @@ pub(crate) fn unix_functions() -> Vec<deno_core::OpDecl> {
         get_bash_history::DECL,
         get_zsh_history::DECL,
         get_python_history::DECL,
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         get_sudologs::DECL,
     ]
 }

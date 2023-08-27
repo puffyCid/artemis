@@ -118,6 +118,7 @@ pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArt
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 /// Parse sudo logs on a Unix system
 pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
