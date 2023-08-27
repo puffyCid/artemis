@@ -13,7 +13,7 @@ class SystemInfo {
         return core.ops.js_kernel_version();
     };
     platform = () => {
-        return core.ops.js_kernel_version();
+        return core.ops.js_platform();
     };
     disks = () => {
         return core.ops.js_disk_info();

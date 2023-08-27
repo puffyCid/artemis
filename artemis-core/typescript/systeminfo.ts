@@ -38,7 +38,7 @@ class SystemInfo {
      * @returns platform of the system. Ex: `Darwin` for macOS
      */
     platform = () => {
-        return core.ops.js_kernel_version();
+        return core.ops.js_platform();
     };
     /**
      * Get disk information about the system
