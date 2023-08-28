@@ -5,6 +5,7 @@ use crate::utils::{
     time::fattime_utc_to_unixepoch,
 };
 use byteorder::{LittleEndian, ReadBytesExt};
+use nom::Needed;
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
@@ -17,6 +18,9 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
 
     // Size includes size itself
     let adjust_size = 2;
+    if sig_size < adjust_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     let (remaining_data, input) = take(sig_size - adjust_size)(input)?;
     let (input, version) = nom_unsigned_two_bytes(input, Endian::Le)?;
     let (input, _signature) = take(size_of::<u32>())(input)?;

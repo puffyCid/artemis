@@ -6,7 +6,7 @@ use crate::{
     },
     utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
 };
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, Needed};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -59,6 +59,10 @@ impl HiveBin {
 
             // Size includes the size itself. We nommed that away
             let adjust_cell_size = 4;
+            if size < adjust_cell_size {
+                return Err(nom::Err::Incomplete(Needed::Unknown));
+            }
+
             if !allocated {
                 // Size is a non-negative number so it should be ok to convert to unsigned
                 let (input, _) = take(size - adjust_cell_size)(input)?;

@@ -3,6 +3,7 @@ use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::{take, take_until};
 use nom::number::complete::le_u32;
+use nom::Needed;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::mem::size_of;
@@ -25,6 +26,9 @@ pub(crate) fn parse_property_store(
         }
 
         let (_, data_size) = le_u32(size_data)?;
+        if data_size < property_size as u32 {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         let (remaining, input) = take(data_size as usize - property_size)(input)?;
 
         remaining_data = remaining;

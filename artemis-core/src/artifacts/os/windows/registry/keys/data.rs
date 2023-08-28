@@ -10,6 +10,7 @@ use log::error;
 use nom::{
     bytes::complete::take,
     number::complete::{le_i64, le_u64},
+    Needed,
 };
 
 #[derive(PartialEq)]
@@ -74,6 +75,9 @@ pub(crate) fn parse_qword_filetime(
     }
     // Size includes the size itself. We nommed that away
     let adjust_cell_size = 4;
+    if data_cell_size < adjust_cell_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     let (_, allocated_data) = take(data_cell_size - adjust_cell_size)(input)?;
 
     // The size in the Value key is the actual size of the data
@@ -188,6 +192,9 @@ fn check_big_data(
 
     // Size includes the size itself. We nommed that away
     let adjust_cell_size = 4;
+    if data_cell_size < adjust_cell_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     let (_, allocated_data) = take(data_cell_size - adjust_cell_size)(input)?;
 
     // The size in the Value key is the actual size of the data
@@ -244,6 +251,9 @@ fn parse_big_data<'a>(
 
         // Size includes the size itself. We nommed that away
         let adjust_cell_size = 4;
+        if data_cell_size < adjust_cell_size {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         let (_, allocated_data) = take(data_cell_size - adjust_cell_size)(data)?;
         sizes.push(data_cell_size - adjust_cell_size);
         large_data.append(&mut allocated_data.to_vec());

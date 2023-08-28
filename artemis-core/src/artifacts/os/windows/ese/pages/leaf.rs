@@ -5,7 +5,7 @@ use crate::{
     },
 };
 use log::error;
-use nom::{bytes::complete::take, error::ErrorKind};
+use nom::{bytes::complete::take, error::ErrorKind, Needed};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -145,6 +145,9 @@ impl PageLeaf {
         let (input, variable_data_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let adjust_offset = 4;
+        if variable_data_offset < adjust_offset {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         // Offset is from the start of the table data, but we already nom'd four (4) bytes
         // Adjust offset accordingly, this gives use the start the variable data and the fixed data
         let (input, fixed) = take(variable_data_offset - adjust_offset)(input)?;

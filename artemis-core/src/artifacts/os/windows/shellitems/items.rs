@@ -31,7 +31,7 @@ use crate::{
     },
 };
 use log::error;
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, Needed};
 use serde::Serialize;
 use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
@@ -112,6 +112,9 @@ impl ShellItem {
 
         // Size includes size itself
         let adjust_size = 2;
+        if size < adjust_size {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         let (remaining_input, input) = take(size - adjust_size)(input)?;
         let (_, shellitem) = ShellItem::detect_shellitem(input)?;
 

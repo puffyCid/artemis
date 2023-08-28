@@ -2,7 +2,10 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, Endian},
     strings::{extract_utf16_string, extract_utf8_string},
 };
-use nom::bytes::complete::{take, take_while};
+use nom::{
+    bytes::complete::{take, take_while},
+    Needed,
+};
 use serde::Serialize;
 
 #[derive(Debug)]
@@ -36,6 +39,9 @@ impl LnkLocation {
 
         // Size includes the size itself (4 bytes)
         let adjust_size = 4;
+        if size < adjust_size {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         let (remaining_input, input) = take(size - adjust_size)(input)?;
 
         let (input, header_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
