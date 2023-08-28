@@ -11,9 +11,9 @@ use std::str::from_utf8;
 #[cfg(target_os = "windows")]
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-    RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
-    ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-    UserOptions, UsnJrnlOptions,
+    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
+    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions,
 };
 
 #[cfg(target_os = "macos")]
@@ -83,6 +83,7 @@ pub(crate) struct Artifacts {
     pub(crate) tasks: Option<TasksOptions>,
     pub(crate) services: Option<ServicesOptions>,
     pub(crate) jumplists: Option<JumplistsOptions>,
+    pub(crate) recyclebin: Option<RecycleBinOptions>,
 }
 
 #[derive(Debug, Deserialize)]
