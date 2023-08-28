@@ -6,7 +6,9 @@ use super::{
     parser::{KeyValue, Params},
 };
 use log::{error, warn};
-use nom::{bytes::complete::take, combinator::peek, error::ErrorKind, number::complete::le_u16};
+use nom::{
+    bytes::complete::take, combinator::peek, error::ErrorKind, number::complete::le_u16, Needed,
+};
 use std::mem::size_of;
 
 #[derive(Debug, PartialEq)]
@@ -69,6 +71,9 @@ pub(crate) fn walk_registry<'a>(
     }
     // Size includes the size itself. We nommed that away
     let adjust_cell_size = 4;
+    if size < adjust_cell_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     // Grab all data associated with the list based on list size
     let (_, list_data) = take(size - adjust_cell_size)(list_data)?;
 
@@ -114,7 +119,9 @@ pub(crate) fn walk_values<'a>(
 
     // Size includes the size itself. We nommed that away
     let adjust_cell_size = 4;
-
+    if size < adjust_cell_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     // Grab all data associated with the list based on list size
     let (_, mut list_data) = take(size - adjust_cell_size)(list_data)?;
 
@@ -144,7 +151,9 @@ pub(crate) fn walk_values<'a>(
 
         // Size includes the size itself. We nommed that away
         let adjust_cell_size = 4;
-
+        if size < adjust_cell_size {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         let (_, vk_data) = take(size - adjust_cell_size)(vk_data)?;
         // Check for the value key signature (vk)
         let (vk_data, cell_type) = get_cell_type(vk_data)?;

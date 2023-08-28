@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use log::warn;
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, Needed};
 use serde::Serialize;
 use std::mem::size_of;
 
@@ -121,6 +121,9 @@ impl AccessControlEntry {
         let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let adjust_size = 8;
+        if size < adjust_size {
+            return Err(nom::Err::Incomplete(Needed::Unknown));
+        }
         // Size includes the header too, but we already nom'd that away
         let (remaining_input, input) = take(size - adjust_size)(input)?;
 
@@ -137,6 +140,9 @@ impl AccessControlEntry {
             let flags = AccessControlEntry::get_ace_flags(&flags_value);
 
             let adjust_entry_size = 4;
+            if size < adjust_size {
+                return Err(nom::Err::Incomplete(Needed::Unknown));
+            }
             // Size includes the header of the entry, but we already nom'd that away
             let (input, ace_entry_data) = take(size - adjust_entry_size)(input)?;
             entries_data = input;

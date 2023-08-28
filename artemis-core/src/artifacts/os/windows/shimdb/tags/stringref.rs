@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use log::warn;
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, Needed};
 
 /// Grab and return string from stringtable based on the parsed stringref value
 pub(crate) fn parse_stringref<'a>(
@@ -23,6 +23,9 @@ pub(crate) fn parse_stringref<'a>(
 
     // We already nommed the first 6 bytes of the stringtable to determine the list (stringtable) and to get the size
     let adjust_offset = 6;
+    if offset < adjust_offset {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    }
     let (string_entry, _) = take(offset - adjust_offset)(stringtable_data)?;
 
     // We should now be at the start of the STRING tag associated with the stringref
