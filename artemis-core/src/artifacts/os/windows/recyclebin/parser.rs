@@ -1,11 +1,11 @@
 /**
  * Windows `Recycle Bin` files contain metadata about "deleted" files
  * Currently artemis parses the `$I Recycle Bin` files using the std API
- * 
+ *
  * References:
  * `https://github.com/libyal/dtformats/blob/main/documentation/Windows%20Recycle.Bin%20file%20formats.asciidoc`
  * `https://cybersecurity.att.com/blogs/security-essentials/digital-dumpster-diving-exploring-the-intricacies-of-recycle-bin-forensics`
- * 
+ *
  * Other parsers:
  * `https://ericzimmerman.github.io/#!index.md`
  * `https://github.com/Velocidex/velociraptor`

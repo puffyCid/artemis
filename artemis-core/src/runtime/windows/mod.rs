@@ -7,6 +7,7 @@ mod jumplists;
 mod ntfs;
 mod pe;
 mod prefetch;
+mod recyclebin;
 mod registry;
 mod search;
 mod services;
