@@ -1,4 +1,5 @@
 use super::jumplists::parser::grab_jumplists;
+use super::recyclebin::parser::grab_recycle_bin;
 use super::search::parser::grab_search;
 use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
@@ -18,9 +19,9 @@ use crate::output::formats::{json::json_format, jsonl::jsonl_format};
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-    RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
-    ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-    UserOptions, UsnJrnlOptions,
+    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
+    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions,
 };
 use crate::{
     structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
@@ -583,6 +584,36 @@ pub(crate) fn jumplists(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse the Windows `Recycle Bin` artifact
+pub(crate) fn recycle_bin(
+    options: &RecycleBinOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let bin_result = grab_recycle_bin(options);
+    let bin_data = match bin_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse Recycle Bin: {err:?}");
+            return Err(WinArtifactError::RecycleBin);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(bin_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize recycle bin: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "recyclebin";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Windows artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -645,17 +676,18 @@ mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, files, jumplists, output_data, prefetch, processes,
-            raw_filelist, registry, search, services, shellbags, shimcache, shimdb, shortcuts,
-            srum, systeminfo, tasks, userassist, users, usnjrnl,
+            raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb,
+            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl,
         },
         structs::artifacts::os::{
             files::FileOptions,
             processes::ProcessOptions,
             windows::{
                 AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-                RawFilesOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
-                ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-                UserAssistOptions, UserOptions, UsnJrnlOptions,
+                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
+                UsnJrnlOptions,
             },
         },
         utils::{artemis_toml::Output, time},
@@ -908,6 +940,15 @@ mod tests {
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
         let status = jumplists(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn tests_recycle_bin() {
+        let options = RecycleBinOptions { alt_drive: None };
+        let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
+
+        let status = recycle_bin(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

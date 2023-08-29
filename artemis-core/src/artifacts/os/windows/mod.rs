@@ -11,6 +11,7 @@ mod ole;
 pub(crate) mod pe;
 pub(crate) mod prefetch;
 mod propertystore;
+pub(crate) mod recyclebin;
 pub(crate) mod registry;
 pub(crate) mod search;
 mod securitydescriptor;

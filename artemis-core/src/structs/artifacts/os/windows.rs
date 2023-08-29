@@ -105,3 +105,8 @@ pub(crate) struct ServicesOptions {
 pub(crate) struct JumplistsOptions {
     pub(crate) alt_drive: Option<char>,
 }
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct RecycleBinOptions {
+    pub(crate) alt_drive: Option<char>,
+}

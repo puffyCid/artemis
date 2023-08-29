@@ -7,6 +7,7 @@ use super::{
     ntfs::{read_ads_data, read_raw_file},
     pe::get_pe,
     prefetch::{get_alt_prefetch, get_prefetch, get_prefetch_path},
+    recyclebin::{get_alt_recycle_bin, get_recycle_bin, get_recycle_bin_file},
     registry::get_registry,
     search::get_search,
     services::{get_alt_services, get_service_file, get_services},
@@ -76,6 +77,9 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_jumplists::DECL,
         get_alt_jumplists::DECL,
         get_jumplist_file::DECL,
+        get_recycle_bin::DECL,
+        get_alt_recycle_bin::DECL,
+        get_recycle_bin_file::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

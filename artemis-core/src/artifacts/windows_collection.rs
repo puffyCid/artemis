@@ -5,8 +5,8 @@ use super::{
     os::windows::{
         artifacts::{
             amcache, bits, eventlogs, files, jumplists, prefetch, processes, raw_filelist,
-            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, systeminfo,
-            tasks, userassist, users, usnjrnl,
+            recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum,
+            systeminfo, tasks, userassist, users, usnjrnl,
         },
         error::WinArtifactError,
     },
@@ -377,6 +377,20 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                     Ok(_) => info!("Collected Jumplists"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse jumplists, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "recyclebin" => {
+                let artifact = match &artifacts.recyclebin {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = recycle_bin(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Recycle Bin"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse recycle bin, error: {err:?}");
                         continue;
                     }
                 }

@@ -19,7 +19,7 @@ walkthrough on using artemis
 
 ## Quick Guide
 
-1. Download the latest release binary from GitHub
+1. Download the latest stable release binary from GitHub. Nightly versions also [available](https://github.com/puffyCid/artemis/releases/tag/nightly)
 2. Download an
    [example](https://github.com/puffyCid/artemis/tree/main/artemis-core/tests/test_data)
    TOML collection
