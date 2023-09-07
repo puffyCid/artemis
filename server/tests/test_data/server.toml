@@ -1,0 +1,12 @@
+enroll_key = "arandomkey"
+[metadata]
+version = "0.1.0"
+name = "artemis-server"
+min_rust_version = "1.70"
+target = "darwin"
+
+[endpoint_server]
+address = "127.0.0.1"
+port = 8443
+cert = ""
+storage = "./tmp"
