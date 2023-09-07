@@ -21,7 +21,7 @@ pub(crate) struct ServerState {
 }
 
 #[tokio::main]
-async fn start(path: &str) {
+pub async fn start(path: &str) {
     let config_result = read_config(path);
     let config = match config_result {
         Ok(result) => result,
