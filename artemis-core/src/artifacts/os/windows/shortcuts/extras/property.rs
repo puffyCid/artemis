@@ -15,8 +15,8 @@ pub(crate) fn has_property(data: &[u8]) -> (bool, Vec<HashMap<String, Value>>) {
 
 /// Scan for Property Store data and parse if exists
 fn parse_property(data: &[u8]) -> nom::IResult<&[u8], Vec<HashMap<String, Value>>> {
-    let tracker_sig = [9, 0, 0, 160];
-    let (_, sig_start) = take_until(tracker_sig.as_slice())(data)?;
+    let sig = [9, 0, 0, 160];
+    let (_, sig_start) = take_until(sig.as_slice())(data)?;
 
     let adjust_start = 4;
     let (property_tracker, _) = take(sig_start.len() - adjust_start)(data)?;

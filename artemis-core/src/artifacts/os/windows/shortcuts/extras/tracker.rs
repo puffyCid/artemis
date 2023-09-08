@@ -43,8 +43,8 @@ pub(crate) fn has_tracker(data: &[u8]) -> (bool, Tracker) {
 
 /// Scan for Tracker data and parse if exists
 fn parse_tracker(data: &[u8]) -> nom::IResult<&[u8], Tracker> {
-    let tracker_sig = [3, 0, 0, 160];
-    let (_, sig_start) = take_until(tracker_sig.as_slice())(data)?;
+    let sig = [3, 0, 0, 160];
+    let (_, sig_start) = take_until(sig.as_slice())(data)?;
 
     let adjust_start = 4;
     let (tracker_start, _) = take(sig_start.len() - adjust_start)(data)?;

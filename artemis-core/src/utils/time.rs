@@ -112,7 +112,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     let utc = NaiveDateTime::new(ymd, hms);
 
     // The FAT time is already in UTC format
-    let epoch: DateTime<Utc> = DateTime::from_utc(utc, Utc);
+    let epoch: DateTime<Utc> = DateTime::from_naive_utc_and_offset(utc, Utc);
     epoch.timestamp()
 }
 

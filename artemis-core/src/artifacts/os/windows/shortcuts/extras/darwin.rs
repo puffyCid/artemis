@@ -1,60 +1,51 @@
-use crate::utils::strings::extract_utf16_string;
-use nom::bytes::complete::{take, take_until, take_while};
+use crate::utils::strings::{extract_utf16_string, extract_utf8_string};
+use nom::bytes::complete::{take, take_until};
 use std::mem::size_of;
 
-/// Determine if extra Environment data exists in `Shortcut` data
-pub(crate) fn has_environment(data: &[u8]) -> (bool, String) {
-    let result = parse_environment(data);
+/// Determine if extra Darwin folder data exists in `Shortcut` data
+pub(crate) fn has_darwin(data: &[u8]) -> (bool, String) {
+    let result = parse_darwin(data);
     match result {
-        Ok((_, path)) => (true, path),
+        Ok((_, darwin)) => (true, darwin),
         Err(_err) => (false, String::new()),
     }
 }
 
-/// Scan for Environment data and parse if exists
-fn parse_environment(data: &[u8]) -> nom::IResult<&[u8], String> {
-    let sig = [1, 0, 0, 160];
+/// Parse `Shortcut` Darwin info
+fn parse_darwin(data: &[u8]) -> nom::IResult<&[u8], String> {
+    let sig = [6, 0, 0, 160];
     let (_, sig_start) = take_until(sig.as_slice())(data)?;
 
     let adjust_start = 4;
-    let (env_data, _) = take(sig_start.len() - adjust_start)(data)?;
-    let (input, _size_data) = take(size_of::<u32>())(env_data)?;
+    let (console_data, _) = take(sig_start.len() - adjust_start)(data)?;
+    let (input, _size_data) = take(size_of::<u32>())(console_data)?;
     let (input, _sig_data) = take(size_of::<u32>())(input)?;
 
     let ascii_size: u16 = 260;
-    // ASCII data is 260 bytes in size. Not all of it is used
-    let (input, ascii_data) = take(ascii_size)(input)?;
-    let end_of_string = 0;
-    let (_, _ascii_data) = take_while(|b| b != end_of_string)(ascii_data)?;
+    let (input, string_data) = take(ascii_size)(input)?;
+    let darwin_string = extract_utf8_string(string_data);
 
-    // Unicode data is 520 bytes in size. Not all of it is used
-    let unicode_size: u16 = 520;
-    let (input, unicode_data) = take(unicode_size)(input)?;
+    if !darwin_string.is_empty() {
+        return Ok((input, darwin_string));
+    }
 
-    let unicode_path = extract_utf16_string(unicode_data);
-    Ok((input, unicode_path))
+    let utf16_size: u16 = 520;
+    let (input, string_data) = take(utf16_size)(input)?;
+    let darwin_string = extract_utf16_string(string_data);
+
+    Ok((input, darwin_string))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::has_environment;
-    use crate::artifacts::os::windows::shortcuts::extras::environment::parse_environment;
+    use crate::artifacts::os::windows::shortcuts::extras::darwin::{has_darwin, parse_darwin};
 
     #[test]
-    fn test_has_environment() {
+    fn test_has_darwin() {
+        // Cant find real lnk file with Darwin data. Fake data below
         let test = [
-            20, 3, 0, 0, 1, 0, 0, 160, 37, 119, 105, 110, 100, 105, 114, 37, 92, 101, 120, 112,
-            108, 111, 114, 101, 114, 46, 101, 120, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 119, 0, 105,
-            0, 110, 0, 100, 0, 105, 0, 114, 0, 37, 0, 92, 0, 101, 0, 120, 0, 112, 0, 108, 0, 111,
-            0, 114, 0, 101, 0, 114, 0, 46, 0, 101, 0, 120, 0, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            20, 3, 0, 0, 6, 0, 0, 160, 103, 105, 109, 109, 101, 32, 109, 111, 114, 101, 32, 108,
+            110, 107, 115, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -71,29 +62,29 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let (has_env, result) = has_environment(&test);
 
-        assert_eq!(has_env, true);
-        assert_eq!(result, "%windir%\\explorer.exe");
+        let (has_darwin, darwin) = has_darwin(&test);
+        assert!(has_darwin);
+        assert_eq!(darwin, "gimme more lnks!");
     }
 
     #[test]
-    fn test_parse_environment() {
+    fn test_parse_darwin() {
+        // Cant find real lnk file with Darwin data. Fake data below
         let test = [
-            20, 3, 0, 0, 1, 0, 0, 160, 37, 119, 105, 110, 100, 105, 114, 37, 92, 101, 120, 112,
-            108, 111, 114, 101, 114, 46, 101, 120, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 119, 0, 105,
-            0, 110, 0, 100, 0, 105, 0, 114, 0, 37, 0, 92, 0, 101, 0, 120, 0, 112, 0, 108, 0, 111,
-            0, 114, 0, 101, 0, 114, 0, 46, 0, 101, 0, 120, 0, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            20, 3, 0, 0, 6, 0, 0, 160, 103, 105, 109, 109, 101, 32, 109, 111, 114, 101, 32, 108,
+            110, 107, 115, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -110,10 +101,19 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let (_, result) = parse_environment(&test).unwrap();
 
-        assert_eq!(result, "%windir%\\explorer.exe");
+        let (_, darwin) = parse_darwin(&test).unwrap();
+        assert_eq!(darwin, "gimme more lnks!");
     }
 }
