@@ -30,7 +30,7 @@ async fn handle_socket(
 ) {
     let (mut sender, mut receiver) = socket.split();
 
-    let mut receive_task = tokio::spawn(async move {
+    let _receive_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
             let control = parse_message(&message, &addr, &endpoint_db);
             if control.is_break() {
@@ -46,10 +46,16 @@ async fn handle_socket(
                         Vec::new()
                     }
                 };
+                let serde_result = serde_json::to_string(&jobs);
+                let serde_value = match serde_result {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[server] Could not serialize jobs for {id}: {err:?}");
+                        continue;
+                    }
+                };
 
-                let send_result = sender
-                    .send(Message::Text(serde_json::to_string(&jobs).unwrap()))
-                    .await;
+                let send_result = sender.send(Message::Text(serde_value)).await;
 
                 if send_result.is_err() {
                     error!(

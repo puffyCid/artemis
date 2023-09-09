@@ -17,8 +17,8 @@ fn parse_codepage(data: &[u8]) -> nom::IResult<&[u8], u32> {
     let (_, sig_start) = take_until(sig.as_slice())(data)?;
 
     let adjust_start = 4;
-    let (console_data, _) = take(sig_start.len() - adjust_start)(data)?;
-    let (input, _size_data) = take(size_of::<u32>())(console_data)?;
+    let (code_data, _) = take(sig_start.len() - adjust_start)(data)?;
+    let (input, _size_data) = take(size_of::<u32>())(code_data)?;
     let (input, _sig_data) = take(size_of::<u32>())(input)?;
 
     let (input, codepage) = nom_unsigned_four_bytes(input, Endian::Le)?;

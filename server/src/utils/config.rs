@@ -1,11 +1,7 @@
-use super::{
-    error::UtilServerError,
-    filesystem::{is_file, read_file},
-    uuid::generate_uuid,
-};
+use super::{error::UtilServerError, filesystem::read_file, uuid::generate_uuid};
 use log::error;
 use serde::Deserialize;
-use std::{path::PathBuf, str::from_utf8};
+use std::str::from_utf8;
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct ArtemisConfig {

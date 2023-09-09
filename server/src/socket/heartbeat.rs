@@ -8,7 +8,7 @@ pub(crate) fn parse_heartbeat(data: &str, ip: &str) -> String {
     let beat = match beat_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Failed to deserialize heartbeat: {err:?}");
+            error!("[server] Failed to deserialize heartbeat from {ip}: {err:?}");
             return String::new();
         }
     };
@@ -21,7 +21,7 @@ pub(crate) fn parse_pulse(data: &str, ip: &str) -> String {
     let pulse = match pulse_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Failed to deserialize pulse: {err:?}");
+            error!("[server] Failed to deserialize pulse from {ip}: {err:?}");
             return String::new();
         }
     };

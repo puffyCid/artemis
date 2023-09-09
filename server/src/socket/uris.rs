@@ -1,5 +1,5 @@
 use super::websocket::socket_connection;
-use crate::{server::ServerState, utils::config::ArtemisConfig};
+use crate::server::ServerState;
 use axum::{routing::get, Router};
 
 /// Setup `Web Socket` routes

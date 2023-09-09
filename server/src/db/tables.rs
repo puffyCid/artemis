@@ -145,14 +145,14 @@ pub(crate) fn setup_db(path: &str) -> Result<Arc<Database>, DbError> {
     let db = match db_result {
         Ok(result) => result,
         Err(err) => {
-            // Open errors should only occur during tests. When the server is running the Database is opened and shared via axum::State
+            // Open errors should only occur during tests. When the server is running the Database is opened and should be shared via axum::State
             if let DatabaseError::DatabaseAlreadyOpen = err {
                 let sleep_time = 2;
                 warn!("[server] {path} already opened. Sleeping {sleep_time} millisecond(s)");
                 sleep(Duration::from_millis(sleep_time));
                 return setup_db(path);
             } else {
-                error!("[server] Failed to open {path} DB: {err:?}");
+                println!("[server] Failed to open {path} DB: {err:?}");
                 return Err(DbError::Open);
             }
         }
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_add_table_data() {
-        let path = "./tmp/endpoints.redb";
+        let path = "./tmp/endpointsadd.redb";
 
         let db = setup_db(path).unwrap();
         let id = "arandomkey";
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_check_write() {
-        let path = "./tmp/jobs.redb";
+        let path = "./tmp/jobscheck.redb";
 
         let db = setup_db(path).unwrap();
         let id = "arandomkey";
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_write_table_data() {
-        let path = "./tmp/jobs.redb";
+        let path = "./tmp/jobswrite.redb";
 
         let db = setup_db(path).unwrap();
         let id = "arandomkey";

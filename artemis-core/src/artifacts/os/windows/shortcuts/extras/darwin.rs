@@ -17,8 +17,8 @@ fn parse_darwin(data: &[u8]) -> nom::IResult<&[u8], String> {
     let (_, sig_start) = take_until(sig.as_slice())(data)?;
 
     let adjust_start = 4;
-    let (console_data, _) = take(sig_start.len() - adjust_start)(data)?;
-    let (input, _size_data) = take(size_of::<u32>())(console_data)?;
+    let (darwin_data, _) = take(sig_start.len() - adjust_start)(data)?;
+    let (input, _size_data) = take(size_of::<u32>())(darwin_data)?;
     let (input, _sig_data) = take(size_of::<u32>())(input)?;
 
     let ascii_size: u16 = 260;
