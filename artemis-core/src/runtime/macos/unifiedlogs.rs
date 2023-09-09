@@ -114,7 +114,7 @@ mod tests {
             name: String::from("xprotect_entries"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        let _ = execute_script(&mut output, &script).unwrap();
     }
 
     #[test]
