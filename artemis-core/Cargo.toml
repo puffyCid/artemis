@@ -22,7 +22,7 @@ walkdir = "2.4.0"
 sysinfo = "0.29.10"
 home = "0.5.5"
 uuid = { version = "1.4.1", features = ["v4"] }
-chrono = "0.4.29"
+chrono = "0.4.30"
 flate2 = "1.0.27"
 simplelog = "0.12.1"
 zip = { version = "0.6.6", default-features = false }
@@ -56,7 +56,7 @@ xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 
 # macOS Dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
-macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "f79a3c8905ea35091a7af8cbc303e2d22286cd4e" }
+macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "06c6a94be890442928df65ab37e834d2723c9e3d" }
 plist = "1.5.0"
 
 # Dependencies at compile time

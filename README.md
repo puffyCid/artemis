@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/github/puffyCid/artemis/graph/badge.svg?token=SJU36Z9DYK)](https://codecov.io/github/puffyCid/artemis)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/nightly.yml)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/audit.yml?label=Audit)
 
 artemis is a powerful command line digital forensic and incident response (DFIR)
 tool that collects forensic data from Windows, macOS, and Linux endpoints. Its
