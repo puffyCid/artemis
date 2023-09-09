@@ -66,3 +66,9 @@ deno_core = { version = "0.209.0" }
 # Dependencies for tests
 [dev-dependencies]
 httpmock = "0.6.8"
+criterion = "0.5.1"
+
+# Some benchmarking
+[[bench]]
+name = "macho_benchmark"
+harness = false
