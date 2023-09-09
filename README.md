@@ -1,5 +1,9 @@
 # artemis
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/github/puffyCid/artemis/graph/badge.svg?token=SJU36Z9DYK)](https://codecov.io/github/puffyCid/artemis)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/nightly.yml)
+
 artemis is a powerful command line digital forensic and incident response (DFIR)
 tool that collects forensic data from Windows, macOS, and Linux endpoints. Its
 primary focus is: speed, ease of use, and low resource usage.\
@@ -19,7 +23,8 @@ walkthrough on using artemis
 
 ## Quick Guide
 
-1. Download the latest stable release binary from GitHub. Nightly versions also [available](https://github.com/puffyCid/artemis/releases/tag/nightly)
+1. Download the latest stable release binary from GitHub. Nightly versions also
+   [available](https://github.com/puffyCid/artemis/releases/tag/nightly)
 2. Download an
    [example](https://github.com/puffyCid/artemis/tree/main/artemis-core/tests/test_data)
    TOML collection
@@ -79,5 +84,4 @@ sudo ./artemis -j ../../artemis-core/tests/test_data/deno_scripts/vanilla.js
 ```
 
 The online guide has additional documentation on scripting with artemis.\
-Additional examples can be found at
-https://github.com/puffyCid/artemis-scripts
+Additional examples can be found at https://github.com/puffyCid/artemis-scripts
