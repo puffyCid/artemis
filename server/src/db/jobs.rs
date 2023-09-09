@@ -65,16 +65,17 @@ pub(crate) fn get_jobs(id: &str, db: &Database) -> Result<Vec<JobInfo>, DbError>
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::{add_job, get_jobs};
     use crate::{
         artifacts::jobs::{JobInfo, Status},
         db::tables::setup_db,
+        utils::filesystem::create_dirs,
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_add_job() {
+        create_dirs("./tmp").unwrap();
         let path = "./tmp/jobs.redb";
         let id = "jobkey";
         let data = JobInfo {
@@ -94,14 +95,13 @@ mod tests {
 
     #[test]
     fn test_get_jobs() {
-        let path = "./tmp/jobs.redb";
+        create_dirs("./tmp").unwrap();
+        let path = "./tmp/jobsnofound.redb";
         let id = "1cacf8ac-c98d-45cb-a69b-166338aabe9a";
         let db = setup_db(path).unwrap();
 
         let jobs = get_jobs(&id, &db).unwrap();
-        if !jobs.is_empty() {
-            assert!(!jobs[0].collection.is_empty());
-        }
+        assert!(jobs.is_empty());
     }
 
     #[test]

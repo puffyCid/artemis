@@ -122,12 +122,15 @@ mod tests {
             systeminfo::Memory,
         },
         db::{endpoints::lookup_endpoint, tables::setup_db},
+        utils::filesystem::create_dirs,
     };
     use std::path::PathBuf;
 
     #[test]
     fn test_enroll_endpointdb() {
+        create_dirs("./tmp").unwrap();
         let path = "./tmp/endpoints.redb";
+
         let id = "arandomkey";
         let data = EndpointInfo {
             boot_time: 1111,
@@ -156,7 +159,8 @@ mod tests {
 
     #[test]
     fn test_update_heartbeat() {
-        let path = "./tmp/endpoints.redb";
+        create_dirs("./tmp").unwrap();
+        let path = "./tmp/endpointsbeat.redb";
         let id = "arandomkey";
         let data = Heartbeat {
             endpoint_id: id.to_string(),
@@ -189,7 +193,8 @@ mod tests {
 
     #[test]
     fn test_update_pulse() {
-        let path = "./tmp/endpoints.redb";
+        create_dirs("./tmp").unwrap();
+        let path = "./tmp/endpointspulse.redb";
         let id = "arandomkey";
         let data = Pulse {
             endpoint_id: id.to_string(),

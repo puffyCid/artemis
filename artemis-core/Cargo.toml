@@ -9,7 +9,7 @@ edition = "2021"
 serde = { version = "1.0.188", features = ["derive"] }
 log = "0.4.20"
 serde_json = "1.0.105"
-toml = "0.7.6"
+toml = "0.7.7"
 base64 = "0.21.3"
 nom = "7.1.3"
 rusqlite = { version = "0.29.0", features = ["bundled"] }
@@ -22,7 +22,7 @@ walkdir = "2.4.0"
 sysinfo = "0.29.10"
 home = "0.5.5"
 uuid = { version = "1.4.1", features = ["v4"] }
-chrono = "0.4.29"
+chrono = "0.4.30"
 flate2 = "1.0.27"
 simplelog = "0.12.1"
 zip = { version = "0.6.6", default-features = false }
@@ -35,7 +35,7 @@ quick-xml = { version = "0.30.0", default-features = false, features = [
 ] }
 
 # Deno Runtime integration
-deno_core = { version = "0.208.0" }
+deno_core = { version = "0.209.0" }
 tokio = { version = "1.32.0" }
 
 # Windows Dependencies
@@ -56,12 +56,12 @@ xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 
 # macOS Dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
-macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "f79a3c8905ea35091a7af8cbc303e2d22286cd4e" }
+macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "06c6a94be890442928df65ab37e834d2723c9e3d" }
 plist = "1.5.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.208.0" }
+deno_core = { version = "0.209.0" }
 
 # Dependencies for tests
 [dev-dependencies]

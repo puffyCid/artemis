@@ -53,7 +53,7 @@ pub(crate) fn verify_enrollment(data: &str, ip: &str, db: &Database) -> bool {
     let verify = match verify_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Failed to deserialize endpoint verification: {err:?}");
+            error!("[server] Failed to deserialize endpoint verification from {ip}: {err:?}");
             return false;
         }
     };

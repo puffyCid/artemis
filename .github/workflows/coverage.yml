@@ -18,7 +18,11 @@ jobs:
       matrix:
         info:
           - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
-          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu", cross: false}
+          - {
+              os: "ubuntu-latest",
+              target: "x86_64-unknown-linux-gnu",
+              cross: false,
+            }
           - {
               os: "windows-latest",
               target: "x86_64-pc-windows-msvc",
@@ -39,7 +43,7 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.5.0
-        with: 
+        with:
           save-if: false
       - name: Generate code coverage (macOS)
         if: matrix.info.os == 'macOS-latest'

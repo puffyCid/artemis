@@ -1,5 +1,14 @@
 use super::{
-    extras::environment::has_environment,
+    extras::{
+        codepage::has_codepage,
+        console::{has_console, Console},
+        darwin::has_darwin,
+        environment::has_environment,
+        items::has_item,
+        known::has_known,
+        shim::has_shim,
+        special::has_special,
+    },
     header::DataFlags,
     location::{LnkLocation, LocationFlag},
     network::{LnkNetwork, NetworkProviderType},
@@ -29,11 +38,6 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/**
- * `Shortcut` files contain alot of metatdata.
- * Currently parsing the most interesting artifacts
- * `https://github.com/libyal/liblnk/blob/main/documentation/Windows%20Shortcut%20File%20(LNK)%20format.asciidoc` lists more
- */
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct ShortcutInfo {
     pub(crate) source_path: String,
@@ -64,6 +68,12 @@ pub(crate) struct ShortcutInfo {
     pub(crate) shellitems: Vec<ShellItem>,
     pub(crate) properties: Vec<HashMap<String, Value>>,
     pub(crate) environment_variable: String,
+    pub(crate) console: Vec<Console>,
+    pub(crate) codepage: u32,
+    pub(crate) special_folder_id: u32,
+    pub(crate) darwin_id: String,
+    pub(crate) shim_layer: String,
+    pub(crate) known_folder: String,
 }
 
 impl ShortcutInfo {
@@ -100,6 +110,12 @@ impl ShortcutInfo {
             shellitems: Vec::new(),
             properties: Vec::new(),
             environment_variable: String::new(),
+            console: Vec::new(),
+            codepage: 0,
+            special_folder_id: 0,
+            darwin_id: String::new(),
+            shim_layer: String::new(),
+            known_folder: String::new(),
         };
 
         let (input, _) = ShortcutInfo::get_shortcut_info(input, &mut shortcut_info)?;
@@ -188,10 +204,6 @@ impl ShortcutInfo {
             }
         }
 
-        // After parsing the additional structures based on flags
-        // Extra data may be found at the end of the `shortcut` data
-        // Currently looking for: tracker database data, property store data, or environment data
-        // Full list at: `https://github.com/libyal/liblnk/blob/main/documentation/Windows%20Shortcut%20File%20(LNK)%20format.asciidoc`
         let (found_tracker, tracker) = has_tracker(input);
         if found_tracker {
             shortcut_info.birth_droid_file_id = tracker.birth_droid_file_id;
@@ -207,6 +219,41 @@ impl ShortcutInfo {
         let (found_env, path) = has_environment(input);
         if found_env {
             shortcut_info.environment_variable = path;
+        }
+
+        let (found_console, console) = has_console(data);
+        if found_console {
+            shortcut_info.console = console;
+        }
+
+        let (found_page, codepage) = has_codepage(data);
+        if found_page {
+            shortcut_info.codepage = codepage;
+        }
+
+        let (found_special, special) = has_special(data);
+        if found_special {
+            shortcut_info.special_folder_id = special;
+        }
+
+        let (found_darwin, darwin) = has_darwin(data);
+        if found_darwin {
+            shortcut_info.darwin_id = darwin;
+        }
+
+        let (found_shim, shim) = has_shim(data);
+        if found_shim {
+            shortcut_info.shim_layer = shim;
+        }
+
+        let (found_known, known) = has_known(data);
+        if found_known {
+            shortcut_info.known_folder = known;
+        }
+
+        let (has_items, mut items) = has_item(data);
+        if has_items {
+            shortcut_info.shellitems.append(&mut items);
         }
 
         Ok((input, ()))
@@ -425,6 +472,12 @@ mod tests {
             shellitems: Vec::new(),
             properties: Vec::new(),
             environment_variable: String::new(),
+            console: Vec::new(),
+            codepage: 0,
+            special_folder_id: 0,
+            darwin_id: String::new(),
+            shim_layer: String::new(),
+            known_folder: String::new(),
         };
 
         let (_, _) = ShortcutInfo::get_shortcut_info(input, &mut shortcut_info).unwrap();

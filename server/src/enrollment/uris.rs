@@ -1,5 +1,5 @@
 use super::enroll::enroll_endpoint;
-use crate::{server::ServerState, utils::config::ArtemisConfig};
+use crate::server::ServerState;
 use axum::{routing::post, Router};
 
 /// Setup `Enrollment` routes
