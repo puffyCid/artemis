@@ -13,7 +13,7 @@ use crate::utils::time;
 use log::{error, warn};
 use serde_json::Value;
 
-use super::journals::parser::grab_journal;
+use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 
 /// Get Linux `Processes`
 pub(crate) fn processes(
@@ -113,6 +113,24 @@ pub(crate) fn journals(output: &mut Output, filter: &bool) -> Result<(), LinuxAr
     }
 }
 
+/// Get Linux `Logon` info
+pub(crate) fn logons(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+    let start_time = time::time_now();
+
+    let result = grab_logons();
+    let serde_data_result = serde_json::to_value(result);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize logons: {err:?}");
+            return Err(LinuxArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "logons";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Linux artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -173,7 +191,7 @@ pub(crate) fn output_data(
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::linux::artifacts::{
-        files, journals, output_data, processes, systeminfo,
+        files, journals, logons, output_data, processes, systeminfo,
     };
     use crate::structs::artifacts::os::files::FileOptions;
     use crate::structs::artifacts::os::processes::ProcessOptions;
@@ -236,6 +254,14 @@ mod tests {
         let mut output = output_options("journals_test", "local", "./tmp", false);
 
         let status = journals(&mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_logons() {
+        let mut output = output_options("logons_test", "local", "./tmp", false);
+
+        let status = logons(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

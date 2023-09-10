@@ -47,16 +47,16 @@ jobs:
           save-if: false
       - name: Generate code coverage (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+        run: sudo cargo llvm-cov --release --workspace --lcov --output-path lcov.info
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
       - name: Generate code coverage (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+        run: sudo env "PATH=$PATH" cargo llvm-cov --release --workspace --lcov --output-path lcov.info
       - name: Generate code coverage (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: cargo llvm-cov --release -p artemis-core --lcov --output-path lcov.info
+        run: cargo llvm-cov --release --workspace --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

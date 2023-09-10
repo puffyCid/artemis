@@ -4,8 +4,8 @@ use deno_core::{error::AnyError, op};
 #[op]
 /// Expose parsing journal file  to `Deno`
 fn get_journal(path: String) -> Result<String, AnyError> {
-    let elf_results = grab_journal_file(&path);
-    let elf_data = match elf_results {
+    let journal_results = grab_journal_file(&path);
+    let journal_data = match journal_results {
         Ok(results) => results,
         Err(_err) => {
             // Parsing Journal files could fail
@@ -13,7 +13,7 @@ fn get_journal(path: String) -> Result<String, AnyError> {
             return Ok(String::new());
         }
     };
-    let results = serde_json::to_string(&elf_data)?;
+    let results = serde_json::to_string(&journal_data)?;
     Ok(results)
 }
 
