@@ -271,7 +271,6 @@ impl Journal {
 
             // The Journal file can be configured to be very large. Default size is usually ~10MB
             // To limit memory usage we output every 100k entries
-
             if entries.entries.len() >= limit {
                 let messages = Journal::parse_messages(&entries.entries);
                 let serde_data_result = serde_json::to_value(messages);

@@ -10,7 +10,7 @@ use crate::utils::{
 };
 use log::{error, info, warn};
 
-use super::os::linux::artifacts::journals;
+use super::os::linux::artifacts::{journals, logons};
 use super::os::unix::artifacts::sudo_logs;
 
 /// Parse the TOML collector and get Linux artifact targets
@@ -162,7 +162,7 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
             "journal" => {
                 let results = journals(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected journasls"),
+                    Ok(_) => info!("Collected journals"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse journals, error: {err:?}");
                         continue;
@@ -180,6 +180,16 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {
                         error!("[artemis-core] Failed to execute JavaScript error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "logon" => {
+                let results = logons(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected logons"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse logons, error: {err:?}");
                         continue;
                     }
                 }

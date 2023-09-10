@@ -15,7 +15,5 @@ fn bench_macho_files(c: &mut Criterion) {
     });
 }
 
-#[cfg(target_os = "macos")]
 criterion_group!(benches, bench_macho_files);
-#[cfg(target_os = "macos")]
 criterion_main!(benches);
