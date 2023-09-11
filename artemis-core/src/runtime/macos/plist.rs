@@ -1,11 +1,29 @@
-use crate::artifacts::os::macos::plist::property_list::parse_plist_file;
-use deno_core::{error::AnyError, op};
+use crate::artifacts::os::macos::plist::property_list::{parse_plist_data, parse_plist_file};
+use deno_core::{error::AnyError, op, JsBuffer};
 use log::error;
 
 #[op]
 /// Expose parsing plist file  to `Deno`
 fn get_plist(path: String) -> Result<String, AnyError> {
     let plist_results = parse_plist_file(&path);
+    let plist = match plist_results {
+        Ok(results) => results,
+        Err(err) => {
+            // Parsing plist files could fail for many reasons
+            // Instead of cancelling the whole script, return empty result
+            error!("[runtime] Failed to parse plist: {err:?}");
+
+            return Ok(String::new());
+        }
+    };
+    let results = serde_json::to_string(&plist)?;
+    Ok(results)
+}
+
+#[op]
+/// Expose parsing plist file  to `Deno`
+fn get_plist_data(data: JsBuffer) -> Result<String, AnyError> {
+    let plist_results = parse_plist_data(&data);
     let plist = match plist_results {
         Ok(results) => results,
         Err(err) => {
@@ -54,6 +72,18 @@ mod tests {
 
         let script = JSScript {
             name: String::from("plist_files"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_get_plist_data() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvcGxpc3QudHMKZnVuY3Rpb24gZ2V0UGxpc3QocGF0aCkgewogIGlmIChwYXRoIGluc3RhbmNlb2YgVWludDhBcnJheSkgewogICAgY29uc3QgZGF0YTIgPSBEZW5vLmNvcmUub3BzLmdldF9wbGlzdF9kYXRhKHBhdGgpOwogICAgaWYgKGRhdGEyIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgICAgcmV0dXJuIGRhdGEyOwogICAgfQogICAgY29uc3QgcGxpc3RfZGF0YTIgPSBKU09OLnBhcnNlKGRhdGEyKTsKICAgIHJldHVybiBwbGlzdF9kYXRhMjsKICB9CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3BsaXN0KHBhdGgpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICBjb25zdCBwbGlzdF9kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcGxpc3RfZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICBjb25zdCBieXRlcyA9IGVuY29kaW5nLmF0b2IoYjY0KTsKICByZXR1cm4gYnl0ZXM7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gIkFBQUFBQUZ1QUFJQUFBeE5ZV05wYm5SdmMyZ2dTRVFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBUWtRQUFmLy8vLzhLYlhWc2RHbHdZWE56WkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBLy8vLy93QUFBQUFBQUFBQUFBQUFBUC8vLy84QUFBb2dZM1VBQUFBQUFBQUFBQUFBQUFBQUEySnBiZ0FBQWdCRUx6cE1hV0p5WVhKNU9rRndjR3hwWTJGMGFXOXVJRk4xY0hCdmNuUTZZMjl0TG1OaGJtOXVhV05oYkM1dGRXeDBhWEJoYzNNNlltbHVPbTExYkhScGNHRnpjMlFBRGdBV0FBb0FiUUIxQUd3QWRBQnBBSEFBWVFCekFITUFaQUFQQUJvQURBQk5BR0VBWXdCcEFHNEFkQUJ2QUhNQWFBQWdBRWdBUkFBU0FFSk1hV0p5WVhKNUwwRndjR3hwWTJGMGFXOXVJRk4xY0hCdmNuUXZZMjl0TG1OaGJtOXVhV05oYkM1dGRXeDBhWEJoYzNNdlltbHVMMjExYkhScGNHRnpjMlFBRXdBQkx3RC8vd0FBIjsKICBjb25zdCByYXdfcGxpc3QgPSBkZWNvZGUoZGF0YSk7CiAgY29uc3QgX3Jlc3VsdHMgPSBnZXRQbGlzdChyYXdfcGxpc3QpOwp9Cm1haW4oKTsK";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+
+        let script = JSScript {
+            name: String::from("plist_raw"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

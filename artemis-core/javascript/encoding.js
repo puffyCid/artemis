@@ -15,5 +15,8 @@ class Encoding {
     read_xml = (data) => {
         return core.ops.js_read_xml(data);
     };
+    bytes_to_hex_string = (data) => {
+        return core.ops.js_bytes_to_hex_string(data);
+    };
 }
 export const encoding = new Encoding();

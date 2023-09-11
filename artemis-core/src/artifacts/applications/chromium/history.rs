@@ -1,5 +1,5 @@
 use super::error::ChromiumHistoryError;
-use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_uniexepoch};
+use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_unixepoch};
 use log::error;
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
@@ -148,7 +148,7 @@ impl ChromiumHistory {
                     match history {
                         Ok(mut history_data) => {
                             let adjust_time = 1000000;
-                            history_data.last_visit_time = webkit_time_to_uniexepoch(
+                            history_data.last_visit_time = webkit_time_to_unixepoch(
                                 &(history_data.last_visit_time / adjust_time),
                             );
                             history_vec.push(history_data);

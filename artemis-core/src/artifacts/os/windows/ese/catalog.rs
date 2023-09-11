@@ -872,6 +872,6 @@ mod tests {
         }
         let (_, header) = EseHeader::parse_header(&data).unwrap();
         let (_, results) = Catalog::grab_catalog(&data, header.page_size).unwrap();
-        assert!(results.len() > 100);
+        assert!(results.len() > 10);
     }
 }

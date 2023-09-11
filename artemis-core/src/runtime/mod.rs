@@ -7,6 +7,7 @@ mod filesystem;
 mod nom;
 mod run;
 mod system;
+mod time;
 
 #[cfg(target_family = "unix")]
 mod unix;

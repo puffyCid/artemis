@@ -6,7 +6,7 @@ use super::{
     launchd::{get_launchd_agents, get_launchd_daemons},
     loginitems::get_loginitems,
     macho::get_macho,
-    plist::get_plist,
+    plist::{get_plist, get_plist_data},
     safari::{
         get_safari_downloads, get_safari_history, get_safari_users_downloads,
         get_safari_users_history,
@@ -17,7 +17,7 @@ use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
     environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
     nom::extensions::nom_functions, system::extensions::system_functions,
-    unix::extensions::unix_functions,
+    time::extensions::time_functions, unix::extensions::unix_functions,
 };
 use deno_core::{Extension, Op};
 
@@ -38,6 +38,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_launchd_agents::DECL,
         get_unified_log::DECL,
         get_plist::DECL,
+        get_plist_data::DECL,
         get_fsevents::DECL,
         get_macho::DECL,
         get_loginitems::DECL,
@@ -60,6 +61,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut enocoding_runtime());
 
     exts.append(&mut nom_functions());
+    exts.append(&mut time_functions());
 
     exts
 }
