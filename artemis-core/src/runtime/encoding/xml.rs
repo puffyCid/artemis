@@ -1,7 +1,6 @@
 use crate::utils::encoding::read_xml;
 use deno_core::{error::AnyError, op};
-use quick_xml::de::from_str;
-use serde_json::Value;
+use xml2json_rs::JsonBuilder;
 
 #[op]
 /// Read XML file into a JSON object
@@ -10,7 +9,8 @@ fn js_read_xml(path: String) -> Result<String, AnyError> {
     let xml = read_xml(&path)?;
 
     // Parse XML string into generic serde Value
-    let xml_json: Value = from_str(&xml)?;
+    let xml_builder = JsonBuilder::default();
+    let xml_json = xml_builder.build_from_xml(&xml)?;
 
     let json = serde_json::to_string(&xml_json)?;
     Ok(json)

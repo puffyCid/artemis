@@ -88,7 +88,7 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
                 source_line_frame_index: None,
                 aggregated: None,
             };
-            error!("[runtime] Could not execute script: {err:?}");
+            println!("[runtime] Could not execute script: {err:?}");
             let value_error = Value::from(js_error.to_string());
             // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
             return Ok(value_error);

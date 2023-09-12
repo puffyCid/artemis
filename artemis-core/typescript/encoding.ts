@@ -43,7 +43,11 @@ class Encoding {
      * @returns JSON object representing the XML content
      */
     read_xml = (data: string) => {
-        return core.ops.js_read_xml(data);
+        try {
+            return core.ops.js_read_xml(data);
+        } catch (err) {
+            return err;
+        }
     };
     /**
      * Convert raw bytes to a hex string

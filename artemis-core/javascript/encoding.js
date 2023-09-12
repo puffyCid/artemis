@@ -13,7 +13,12 @@ class Encoding {
         return core.ops.js_encode_bytes(data);
     };
     read_xml = (data) => {
-        return core.ops.js_read_xml(data);
+        try {
+            return core.ops.js_read_xml(data);
+        }
+        catch (err) {
+            return err;
+        }
     };
     bytes_to_hex_string = (data) => {
         return core.ops.js_bytes_to_hex_string(data);
