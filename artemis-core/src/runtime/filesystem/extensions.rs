@@ -1,6 +1,6 @@
 use crate::runtime::filesystem::{
     directory::js_read_dir,
-    files::{js_glob, js_hash_file, js_read_text_file, js_stat},
+    files::{js_glob, js_hash_file, js_read_file, js_read_text_file, js_stat},
 };
 use deno_core::Op;
 
@@ -12,5 +12,6 @@ pub(crate) fn fs_runtime() -> Vec<deno_core::OpDecl> {
         js_hash_file::DECL,
         js_read_text_file::DECL,
         js_glob::DECL,
+        js_read_file::DECL,
     ]
 }

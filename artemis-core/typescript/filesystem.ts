@@ -70,5 +70,17 @@ class FileSystem {
       return err;
     }
   };
+  /**
+   * Read a file. Currently only files less than 2GB in size can be read
+   * @param path File to read
+   * @returns Bytes of file
+   */
+  readFile = (path: string) => {
+    try {
+      return core.ops.js_read_file(path);
+    } catch (err) {
+      return err;
+    }
+  };
 }
 export const filesystem = new FileSystem();

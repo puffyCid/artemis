@@ -42,5 +42,13 @@ class FileSystem {
             return err;
         }
     };
+    readFile = (path) => {
+        try {
+            return core.ops.js_read_file(path);
+        }
+        catch (err) {
+            return err;
+        }
+    };
 }
 export const filesystem = new FileSystem();

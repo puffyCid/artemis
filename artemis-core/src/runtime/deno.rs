@@ -88,7 +88,7 @@ fn decode_script(
     let script_value = match result {
         Ok(result) => result,
         Err(err) => {
-            println!("[runtime] Could not execute javascript: {err:?}");
+            error!("[runtime] Could not execute javascript: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
