@@ -71,3 +71,7 @@ criterion = "0.5.1"
 [[bench]]
 name = "macho_benchmark"
 harness = false
+
+[[bench]]
+name = "shimcache_benchmark"
+harness = false

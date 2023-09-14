@@ -146,7 +146,9 @@ fn check_big_data(
                 };
 
                 // Adjust the size based on final data size
-                let allocated_data = if final_size + start_size < large_data.len() {
+                let allocated_data = if final_size + start_size < large_data.len()
+                    && final_size + start_size > start_size
+                {
                     &large_data[start_size..final_size + start_size]
                 } else {
                     &large_data[start_size..]
