@@ -138,7 +138,7 @@ pub(crate) fn parse_ese_bits(bits_data: &[u8], carve: bool) -> Result<WindowsBit
     // If we are carving and since this is ESE bits we currently do not combine job and file info
     if carve {
         let is_legacy = false;
-        let (_carved_bits, mut carved_jobs, mut carved_files) = parse_carve(bits_data, is_legacy)?;
+        let (_carved_bits, mut carved_jobs, mut carved_files) = parse_carve(bits_data, is_legacy);
         windows_bits.carved_jobs.append(&mut carved_jobs);
         windows_bits.carved_files.append(&mut carved_files);
     }
@@ -196,7 +196,7 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<WindowsBits, BitsEr
     if carve {
         let is_legacy = false;
         let (mut carved_bits, mut carved_jobs, mut carved_files) =
-            parse_carve(&bits_data, is_legacy)?;
+            parse_carve(&bits_data, is_legacy);
         windows_bits.carved_jobs.append(&mut carved_jobs);
         windows_bits.carved_files.append(&mut carved_files);
         windows_bits.bits.append(&mut carved_bits);
@@ -211,13 +211,13 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<WindowsBits, BitsEr
  * For BITS in ESE format (Win10+) BITS jobs and files are separate tables but since we are scanning the whole ESE db  
  * we do not merge the jobs and file info since we cannot determine what links the tables
  */
-fn parse_carve(data: &[u8], is_legacy: bool) -> Result<WinBits, BitsError> {
+fn parse_carve(data: &[u8], is_legacy: bool) -> WinBits {
     let results = carve_bits(data, is_legacy);
     match results {
-        Ok((_, bits)) => Ok(bits),
+        Ok((_, bits)) => bits,
         Err(_err) => {
             error!("[bits] Could not carve BITS data");
-            Err(BitsError::CarveBits)
+            (Vec::new(), Vec::new(), Vec::new())
         }
     }
 }
@@ -259,7 +259,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let (_, jobs, files) = parse_carve(&data, false).unwrap();
+        let (_, jobs, files) = parse_carve(&data, false);
         assert_eq!(jobs.len(), 86);
         assert_eq!(files.len(), 41);
     }

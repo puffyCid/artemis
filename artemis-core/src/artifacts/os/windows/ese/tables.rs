@@ -174,6 +174,8 @@ impl TableDump {
 
         let mut key_data: Vec<u8> = Vec::new();
         let mut has_key = true;
+        let mut final_page = 0;
+
         for tag in table_page_data.page_tags {
             // Defunct tags are not used
             if tag.flags.contains(&TagFlags::Defunct) {
@@ -233,16 +235,37 @@ impl TableDump {
 
             // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
             let mut page_tracker: HashMap<u32, bool> = HashMap::new();
-            let _ = BranchPage::parse_branch_child_table(
+            let (_, last_page) = BranchPage::parse_branch_child_table(
                 child_data,
                 data,
                 &mut info.column_info,
                 &mut column_rows,
                 &mut page_tracker,
-            );
+            )?;
+            final_page = last_page;
 
             // Now clear column data so when we go to next row we have no leftover data from previous row
             TableDump::clear_column_data(&mut info.column_info);
+        }
+
+        let last_page = 0;
+        while final_page != last_page {
+            let branch_start = (final_page + adjust_page) * db_header.page_size;
+            let (branch_child_page_start, _) = take(branch_start)(data)?;
+            // Now get the child page
+            let (_, child_data) = take(db_header.page_size)(branch_child_page_start)?;
+
+            // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
+            let mut page_tracker: HashMap<u32, bool> = HashMap::new();
+            let (_, last_page) = BranchPage::parse_branch_child_table(
+                child_data,
+                data,
+                &mut info.column_info,
+                &mut column_rows,
+                &mut page_tracker,
+            )?;
+
+            final_page = last_page;
         }
 
         // No long values can just create our table data nwo

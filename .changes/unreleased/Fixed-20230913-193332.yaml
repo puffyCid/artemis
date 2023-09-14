@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug when parsing ESE pages and not parsing the last page
+time: 2023-09-13T19:33:32.280809-04:00

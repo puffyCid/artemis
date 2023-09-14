@@ -146,11 +146,11 @@ impl BranchPage {
         column_info: &mut [ColumnInfo],
         column_rows: &mut Vec<Vec<ColumnInfo>>,
         page_tracker: &mut HashMap<u32, bool>,
-    ) -> nom::IResult<&'a [u8], ()> {
+    ) -> nom::IResult<&'a [u8], u32> {
         let (page_data, branch_page_data) = PageHeader::parse_header(page_branch_data)?;
         // Empty pages are not part of table data
         if branch_page_data.page_flags.contains(&PageFlags::Empty) {
-            return Ok((page_branch_data, ()));
+            return Ok((page_branch_data, 0));
         }
 
         let mut has_root = false;
@@ -217,7 +217,7 @@ impl BranchPage {
 
             if let Some(_page) = page_tracker.get(&branch.child_page) {
                 warn!("[ese] Found a table branch child recursively pointing to same page {}. Exiting early", branch.child_page);
-                return Ok((page_branch_data, ()));
+                return Ok((page_branch_data, 0));
             }
             // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
             page_tracker.insert(branch.child_page, true);
@@ -236,7 +236,7 @@ impl BranchPage {
                 page_tracker,
             )?;
         }
-        Ok((page_branch_data, ()))
+        Ok((page_branch_data, branch_page_data.next_page_number))
     }
 }
 
@@ -282,7 +282,7 @@ mod tests {
             column_tagged_flags: Vec::new(),
         }];
         let mut rows = Vec::new();
-        let (_, _) = BranchPage::parse_branch_child_table(
+        let (_, last_page) = BranchPage::parse_branch_child_table(
             &test_data,
             &[],
             &mut info,
@@ -296,6 +296,7 @@ mod tests {
         assert_eq!(rows[0][0].column_data, [3, 0, 0, 0]);
         assert_eq!(rows[4][0].column_data, [56, 0, 0, 0]);
         assert_eq!(rows[9][0].column_data, [61, 0, 0, 0]);
+        assert_eq!(last_page, 607);
     }
 
     #[test]
