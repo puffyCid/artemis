@@ -6,6 +6,7 @@ use crate::runtime::filesystem::extensions::fs_runtime;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
 use crate::runtime::nom::extensions::nom_functions;
 use crate::runtime::system::extensions::system_functions;
+use crate::runtime::time::extensions::time_functions;
 use crate::runtime::unix::extensions::unix_functions;
 use deno_core::{Extension, Op};
 
@@ -32,6 +33,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut enocoding_runtime());
 
     exts.append(&mut nom_functions());
+    exts.append(&mut time_functions());
 
     exts
 }

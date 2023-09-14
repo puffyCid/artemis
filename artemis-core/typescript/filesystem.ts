@@ -12,8 +12,12 @@ class FileSystem {
    * @returns Array of file entries
    */
   readDir = async (path: string) => {
-    const data = await core.ops.js_read_dir(path);
-    return data;
+    try {
+      const data = await core.ops.js_read_dir(path);
+      return data;
+    } catch (err) {
+      return err;
+    }
   };
   /**
    * Return metadata for a single file or directory
@@ -21,7 +25,11 @@ class FileSystem {
    * @returns Metadata about file or directory
    */
   stat = (path: string) => {
-    return core.ops.js_stat(path);
+    try {
+      return core.ops.js_stat(path);
+    } catch (err) {
+      return err;
+    }
   };
   /**
    * Return hashes for a single file
@@ -32,7 +40,11 @@ class FileSystem {
    * @returns Collection of hashes
    */
   hash = (path: string, md5: boolean, sha1: boolean, sha256: boolean) => {
-    return core.ops.js_hash_file(path, md5, sha1, sha256);
+    try {
+      return core.ops.js_hash_file(path, md5, sha1, sha256);
+    } catch (err) {
+      return err;
+    }
   };
   /**
    * Read a text file. Currently only files less than 2GB in size can be read
@@ -40,7 +52,11 @@ class FileSystem {
    * @returns String containing text of file
    */
   readTextFile = (path: string) => {
-    return core.ops.js_read_text_file(path);
+    try {
+      return core.ops.js_read_text_file(path);
+    } catch (err) {
+      return err;
+    }
   };
   /**
    * Process a glob patter and return paths
@@ -48,7 +64,23 @@ class FileSystem {
    * @returns String containing paths parsed from glob
    */
   glob = (pattern: string) => {
-    return core.ops.js_glob(pattern);
+    try {
+      return core.ops.js_glob(pattern);
+    } catch (err) {
+      return err;
+    }
+  };
+  /**
+   * Read a file. Currently only files less than 2GB in size can be read
+   * @param path File to read
+   * @returns Bytes of file
+   */
+  readFile = (path: string) => {
+    try {
+      return core.ops.js_read_file(path);
+    } catch (err) {
+      return err;
+    }
   };
 }
 export const filesystem = new FileSystem();

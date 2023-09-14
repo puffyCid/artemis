@@ -8,9 +8,9 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0.188", features = ["derive"] }
 log = "0.4.20"
-serde_json = "1.0.105"
-toml = "0.7.7"
-base64 = "0.21.3"
+serde_json = "1.0.106"
+toml = "0.8.0"
+base64 = "0.21.4"
 nom = "7.1.3"
 rusqlite = { version = "0.29.0", features = ["bundled"] }
 md-5 = "0.10.5"
@@ -30,9 +30,8 @@ reqwest = { version = "0.11.20", features = ["json", "blocking"] }
 jsonwebtoken = "8.3.0"
 rusty-s3 = "0.4.1"
 glob = "0.3.1"
-quick-xml = { version = "0.30.0", default-features = false, features = [
-    "serialize",
-] }
+quick-xml = { version = "0.30.0", default-features = false}
+xml2json-rs = "1.0.1"
 
 # Deno Runtime integration
 deno_core = { version = "0.209.0" }
@@ -71,4 +70,8 @@ criterion = "0.5.1"
 # Some benchmarking
 [[bench]]
 name = "macho_benchmark"
+harness = false
+
+[[bench]]
+name = "shimcache_benchmark"
 harness = false

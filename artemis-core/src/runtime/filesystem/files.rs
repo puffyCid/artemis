@@ -1,9 +1,9 @@
 use super::directory::JsFileInfo;
 use crate::filesystem::{
-    files::{file_extension, get_filename, hash_file, read_text_file, Hashes},
+    files::{file_extension, get_filename, hash_file, read_file, read_text_file, Hashes},
     metadata::{get_metadata, get_timestamps, glob_paths},
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op, ToJsBuffer};
 use serde::Serialize;
 use std::path::Path;
 
@@ -74,6 +74,13 @@ fn js_hash_file(path: String, md5: bool, sha1: bool, sha256: bool) -> HashInfo {
 fn js_read_text_file(path: String) -> Result<String, AnyError> {
     let data = read_text_file(&path)?;
     Ok(data)
+}
+
+#[op]
+/// Read a file at provided path. Currently only files smaller than 2GB can be read
+fn js_read_file(path: String) -> Result<ToJsBuffer, AnyError> {
+    let data = read_file(&path)?;
+    Ok(data.into())
 }
 
 #[cfg(test)]
@@ -172,9 +179,33 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
+    fn test_js_read_file() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGZzLnJlYWRGaWxlKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aCA9ICIvZXRjL3Jlc29sdi5jb25mIjsKICBjb25zdCBkYXRhID0gcmVhZEZpbGUocGF0aCk7CiAgcmV0dXJuIEFycmF5LmZyb20oZGF0YSk7Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("read_file"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_js_read_text_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBmcy5yZWFkVGV4dEZpbGUocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRoID0gIkM6XFxXaW5kb3dzXFx3aW4uaW5pIjsKICBjb25zdCBkYXRhID0gcmVhZFRleHRGaWxlKHBhdGgpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("read_text"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_js_read_file() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGZzLnJlYWRGaWxlKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aCA9ICJDOlxcV2luZG93c1xcd2luLmluaSI7CiAgY29uc3QgZGF0YSA9IHJlYWRGaWxlKHBhdGgpOwogIHJldHVybiBBcnJheS5mcm9tKGRhdGEpOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("read_text"),

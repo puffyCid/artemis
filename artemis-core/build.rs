@@ -13,6 +13,7 @@ fn main() {
         "javascript/environment.js",
         "javascript/encoding.js",
         "javascript/systeminfo.js",
+        "javascript/time.js",
         "javascript/main.js",)
         .to_vec()
         .into(),

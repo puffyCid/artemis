@@ -1,0 +1,3 @@
+kind: Fixed
+body: Added some error handling when calling JS runtime functions
+time: 2023-09-12T02:47:46.33972-04:00

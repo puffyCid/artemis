@@ -1,5 +1,5 @@
 use super::error::ChromiumHistoryError;
-use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_uniexepoch};
+use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_unixepoch};
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
@@ -180,14 +180,13 @@ impl ChromiumDownloads {
                     match download {
                         Ok(mut download_data) => {
                             let adjust_time = 1000000;
-                            download_data.start_time = webkit_time_to_uniexepoch(
-                                &(download_data.start_time / adjust_time),
-                            );
-                            download_data.last_access_time = webkit_time_to_uniexepoch(
+                            download_data.start_time =
+                                webkit_time_to_unixepoch(&(download_data.start_time / adjust_time));
+                            download_data.last_access_time = webkit_time_to_unixepoch(
                                 &(download_data.last_access_time / adjust_time),
                             );
                             download_data.end_time =
-                                webkit_time_to_uniexepoch(&(download_data.end_time / adjust_time));
+                                webkit_time_to_unixepoch(&(download_data.end_time / adjust_time));
 
                             download_vec.push(download_data);
                         }

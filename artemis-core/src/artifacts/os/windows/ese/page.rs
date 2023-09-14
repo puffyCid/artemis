@@ -12,7 +12,7 @@ pub(crate) struct PageHeader {
     checksum: u64,
     database_last_modified: String,
     previous_page_number: u32,
-    next_page_number: u32,
+    pub(crate) next_page_number: u32,
     father_data_page: u32,
     available_page_size: u16,
     available_uncommitted_data_size: u16,
