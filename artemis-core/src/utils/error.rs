@@ -10,7 +10,6 @@ pub enum ArtemisError {
     GzipReadFile,
     #[cfg(target_os = "macos")]
     GzipDecompress,
-    GzipOpen,
     #[cfg(target_os = "linux")]
     ZstdDecompresss,
     #[cfg(target_os = "linux")]
@@ -18,7 +17,6 @@ pub enum ArtemisError {
     #[cfg(target_os = "linux")]
     XzDecompress,
     CompressCreate,
-    GzipCopy,
     GzipFinish,
     CreateDirectory,
     LogFile,
@@ -50,9 +48,7 @@ impl fmt::Display for ArtemisError {
             ArtemisError::Lz4Decompresss => write!(f, "Could not decompress lz4 data"),
             #[cfg(target_os = "linux")]
             ArtemisError::XzDecompress => write!(f, "Could not decompress xz data"),
-            ArtemisError::GzipOpen => write!(f, "Could not open file for compression"),
             ArtemisError::CompressCreate => write!(f, "Could not create file for compression"),
-            ArtemisError::GzipCopy => write!(f, "Could not copy data for compression"),
             ArtemisError::GzipFinish => write!(f, "Could not complete gzip compression"),
             ArtemisError::CreateDirectory => write!(f, "Could not create directory(ies)"),
             ArtemisError::LogFile => write!(f, "Could not create log file"),

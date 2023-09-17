@@ -75,3 +75,7 @@ harness = false
 [[bench]]
 name = "shimcache_benchmark"
 harness = false
+
+[[bench]]
+name = "userassist_benchmark"
+harness = false

@@ -2,13 +2,12 @@ use super::error::FormatError;
 use crate::{
     artifacts::os::systeminfo::info::SystemInfo,
     utils::{
-        artemis_toml::Output, compression::compress_gzip, logging::collection_status,
+        artemis_toml::Output, compression::compress_gzip_data, logging::collection_status,
         output::output_artifact, time::time_now, uuid::generate_uuid,
     },
 };
 use log::{error, info};
 use serde_json::{json, Value};
-use std::fs::remove_file;
 
 /// Output to `json` format
 pub(crate) fn json_format(
@@ -45,32 +44,28 @@ pub(crate) fn json_format(
             return Err(FormatError::Serialize);
         }
     };
+    let collection_data = serde_collection.as_bytes();
+
+    let output_data = if output.compress {
+        let compressed_results = compress_gzip_data(collection_data);
+        match compressed_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Failed to compress data: {err:?}");
+                return Err(FormatError::Output);
+            }
+        }
+    } else {
+        collection_data.to_vec()
+    };
 
     let uuid = generate_uuid();
-    let output_result = output_artifact(serde_collection.as_bytes(), output, &uuid);
+    let output_result = output_artifact(&output_data, output, &uuid);
     match output_result {
         Ok(_) => info!("[artemis-core] {} json output success", output_name),
         Err(err) => {
             error!("[artemis-core] Failed to output {output_name} json: {err:?}");
             return Err(FormatError::Output);
-        }
-    }
-
-    if output.compress {
-        let path = format!("{}/{}/{}.json", output.directory, output.name, uuid);
-        let compress_result = compress_gzip(&path);
-        match compress_result {
-            Ok(_) => {
-                let status = remove_file(&path);
-                match status {
-                    Ok(_) => {}
-                    Err(err) => {
-                        error!("[artemis-core] Could not remove old file at {path}: {err:?}");
-                        return Err(FormatError::RemoveOldFile);
-                    }
-                }
-            }
-            Err(_err) => return Err(FormatError::Output),
         }
     }
     let _ = collection_status(output_name, output, &uuid);
