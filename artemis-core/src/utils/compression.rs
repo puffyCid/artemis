@@ -2,10 +2,7 @@ use super::error::ArtemisError;
 use crate::filesystem::files::read_file;
 use flate2::{write::GzEncoder, Compression};
 use log::{error, warn};
-use std::{
-    fs::File,
-    io::{copy, BufReader, Write},
-};
+use std::{fs::File, io::Write};
 use walkdir::WalkDir;
 use zip::{write::FileOptions, ZipWriter};
 
@@ -89,47 +86,6 @@ pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     }
 
     Ok(data)
-}
-
-/// Compress a file at provided path using gzip compression
-pub(crate) fn compress_gzip(path: &str) -> Result<(), ArtemisError> {
-    let open_result = File::open(path);
-    let target = match open_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[compression] Could not open file for compressing: {err:?}");
-            return Err(ArtemisError::GzipOpen);
-        }
-    };
-    let mut input = BufReader::new(target);
-    let output_result = File::create(format!("{path}.gz"));
-    let output = match output_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[compression] Could not create compressed file: {err:?}");
-            return Err(ArtemisError::CompressCreate);
-        }
-    };
-    let mut data = GzEncoder::new(output, Compression::default());
-
-    let copy_result = copy(&mut input, &mut data);
-    match copy_result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[compression] Could not copy data to compressed file: {err:?}");
-            return Err(ArtemisError::GzipCopy);
-        }
-    }
-
-    let finish_status = data.finish();
-    match finish_status {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[compression] Could not finish compressing data to file: {err:?}");
-            return Err(ArtemisError::GzipFinish);
-        }
-    }
-    Ok(())
 }
 
 /// Compress provided data with GZIP
@@ -332,10 +288,7 @@ pub(crate) fn decompress_lzxpress_huffman(
 #[cfg(test)]
 mod tests {
     use super::compress_gzip_data;
-    use crate::{
-        filesystem::files::read_file,
-        utils::compression::{compress_gzip, compress_output_zip},
-    };
+    use crate::{filesystem::files::read_file, utils::compression::compress_output_zip};
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]
@@ -359,19 +312,6 @@ mod tests {
         let huffman = 4;
         let files = decompress_lzxpress_huffman(&mut bytes, 153064, huffman).unwrap();
         assert_eq!(files.len(), 153064);
-    }
-
-    #[test]
-    fn test_compress_file() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/compressme.txt");
-        let _ = compress_gzip(&test_location.display().to_string()).unwrap();
-        test_location.pop();
-        test_location.push("compressme.txt.gz");
-
-        let data = read_file(&test_location.display().to_string()).unwrap();
-        assert_eq!(data.len(), 89);
-        remove_file(&test_location.display().to_string()).unwrap();
     }
 
     #[test]

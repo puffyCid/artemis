@@ -26,16 +26,17 @@ impl UserAssistEntry {
         reg_entry: &[UserAssistReg],
     ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
         let mut userassist_entries: Vec<UserAssistEntry> = Vec::new();
-        let mut folder_descriptions = HashMap::new();
         let folder_result = get_folder_descriptions();
-        match folder_result {
-            Ok(result) => folder_descriptions = result,
+
+        let descriptions = match folder_result {
+            Ok(result) => result,
             Err(err) => {
                 warn!("[userassist] Could not get folder descriptions cannot do CLSID lookups: {err:?}");
+                HashMap::new()
             }
-        }
+        };
         for entry in reg_entry {
-            UserAssistEntry::get_entries(entry, &mut userassist_entries, &folder_descriptions);
+            UserAssistEntry::get_entries(entry, &mut userassist_entries, &descriptions);
         }
         Ok(userassist_entries)
     }
@@ -63,7 +64,7 @@ impl UserAssistEntry {
                 let (_, mut userassist) = match assist_result {
                     Ok(result) => result,
                     Err(_err) => {
-                        error!("[userassist] Could not parse userassit data");
+                        error!("[userassist] Could not parse userassist data");
                         continue;
                     }
                 };

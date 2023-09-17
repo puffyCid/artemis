@@ -1,8 +1,5 @@
 use super::error::RemoteError;
-use crate::utils::{
-    artemis_toml::Output, compression::compress_gzip_data, encoding::base64_decode_standard,
-    time::time_now,
-};
+use crate::utils::{artemis_toml::Output, encoding::base64_decode_standard, time::time_now};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use log::{error, info, warn};
 use reqwest::{blocking::Client, StatusCode};
@@ -31,7 +28,7 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
         return Err(RemoteError::RemoteApiKey);
     };
 
-    let mut gcp_output = if filename.ends_with(".log") {
+    let gcp_output = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
         format!(
@@ -39,21 +36,7 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
             output.directory, output.name, output.format
         )
     };
-    let mut header_value = "application/json-seq";
-    let output_data = if output.compress {
-        gcp_output = format!("{gcp_output}.gz");
-        header_value = "application/gzip";
-        let compressed_results = compress_gzip_data(data);
-        match compressed_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[artemis-core] Failed to compress data: {err:?}");
-                return Err(RemoteError::CompressFailed);
-            }
-        }
-    } else {
-        data.to_vec()
-    };
+    let header_value = "application/json-seq";
 
     let client = Client::new();
     // Full URL to target bucket and make upload resumable
@@ -66,15 +49,15 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
 
     let mut builder = client.put(&session_uri);
     builder = builder.header("Content-Type", header_value);
-    builder = builder.header("Content-Length", output_data.len());
+    builder = builder.header("Content-Length", data.len());
 
-    let res_result = builder.body(output_data.clone()).send();
+    let res_result = builder.body(data.to_vec()).send();
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
             error!("[artemis-core] Failed to upload data to GCP storage: {err:?}");
             let attempt = 0;
-            return gcp_resume_upload(&session_uri, &output_data, attempt);
+            return gcp_resume_upload(&session_uri, data, attempt);
         }
     };
     if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
@@ -83,7 +66,7 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
             res.text()
         );
         let attempt = 0;
-        return gcp_resume_upload(&session_uri, &output_data, attempt);
+        return gcp_resume_upload(&session_uri, data, attempt);
     }
 
     match res.bytes() {

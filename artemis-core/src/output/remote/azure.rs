@@ -1,5 +1,5 @@
 use super::error::RemoteError;
-use crate::utils::{artemis_toml::Output, compression::compress_gzip_data};
+use crate::utils::artemis_toml::Output;
 use log::{error, info, warn};
 use reqwest::{blocking::Client, StatusCode};
 
@@ -15,28 +15,14 @@ pub(crate) fn azure_upload(
         return Err(RemoteError::RemoteUrl);
     };
 
-    let mut header_value = "application/json-seq";
-    let mut azure_filename = if filename.ends_with(".log") {
+    let header_value = "application/json-seq";
+    let azure_filename = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
         format!(
             "{}%2F{}%2F{filename}.{}",
             output.directory, output.name, output.format
         )
-    };
-    let output_data = if output.compress {
-        azure_filename = format!("{azure_filename}.gz");
-        header_value = "application/gzip";
-        let compressed_results = compress_gzip_data(data);
-        match compressed_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[artemis-core] Failed to compress data: {err:?}");
-                return Err(RemoteError::CompressFailed);
-            }
-        }
-    } else {
-        data.to_vec()
     };
 
     let azure_uris: Vec<&str> = azure_url.split('?').collect();
@@ -55,10 +41,10 @@ pub(crate) fn azure_upload(
 
         let mut builder = client.put(azure_full_url);
         builder = builder.header("Content-Type", header_value);
-        builder = builder.header("Content-Length", output_data.len());
+        builder = builder.header("Content-Length", data.len());
         builder = builder.header("x-ms-version", "2019-12-12");
         builder = builder.header("x-ms-blob-type", "Blockblob");
-        builder = builder.body(output_data.clone());
+        builder = builder.body(data.to_vec());
 
         let res_result = builder.send();
         let res = match res_result {
@@ -86,7 +72,7 @@ pub(crate) fn azure_upload(
 
     info!(
         "[artemis-core] Uploaded {} bytes to Azure blob storage",
-        output_data.len()
+        data.len()
     );
 
     Ok(())

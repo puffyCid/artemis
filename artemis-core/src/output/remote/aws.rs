@@ -1,7 +1,5 @@
 use super::error::RemoteError;
-use crate::utils::{
-    artemis_toml::Output, compression::compress_gzip_data, encoding::base64_decode_standard,
-};
+use crate::utils::{artemis_toml::Output, encoding::base64_decode_standard};
 use log::{error, info, warn};
 use nom::bytes::complete::take;
 use nom::error::ErrorKind;
@@ -27,7 +25,7 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
         return Err(RemoteError::RemoteApiKey);
     };
 
-    let mut aws_filename = if filename.ends_with(".log") {
+    let aws_filename = if filename.ends_with(".log") {
         format!("{}/{}/{filename}", output.directory, output.name)
     } else {
         format!(
@@ -45,30 +43,13 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
         }
     };
 
-    let mut header_value = "application/json-seq";
-
-    let output_data = if output.compress && !aws_filename.ends_with(".log") {
-        aws_filename = format!("{aws_filename}.gz");
-        header_value = "application/gzip";
-
-        let compressed_results = compress_gzip_data(data);
-        match compressed_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[artemis-core] Failed to compress data: {err:?}");
-                return Err(RemoteError::CompressFailed);
-            }
-        }
-    } else {
-        data.to_vec()
-    };
-
+    let header_value = "application/json-seq";
     let aws_info = aws_creds(api_key)?;
 
     aws_start_upload(
         aws_info,
         aws_endpoint_url,
-        &output_data,
+        data,
         &aws_filename,
         header_value,
     )
