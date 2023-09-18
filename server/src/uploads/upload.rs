@@ -154,7 +154,11 @@ mod tests {
         ))
         .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
+        let jobdb = setup_db(&format!(
+            "{}/jobsuploading.redb",
+            &config.endpoint_server.storage
+        ))
+        .unwrap();
 
         let state_server = ServerState {
             config,
