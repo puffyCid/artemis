@@ -1,14 +1,25 @@
 use crate::utils::error::UtilServerError;
-use log::error;
+use flate2::bufread;
+use log::{error, info};
 use std::{
     fs::{create_dir_all, read},
     path::Path,
 };
-
+use tokio::io::Error;
+use tokio::{fs::File, io::AsyncWriteExt};
 /// Check if path is a file
 pub(crate) fn is_file(path: &str) -> bool {
     let file = Path::new(path);
     if file.is_file() {
+        return true;
+    }
+    false
+}
+
+/// Check if path is a directory
+pub(crate) fn is_directory(path: &str) -> bool {
+    let file = Path::new(path);
+    if file.is_dir() {
         return true;
     }
     false
@@ -31,6 +42,26 @@ pub(crate) fn read_file(path: &str) -> Result<Vec<u8>, UtilServerError> {
     }
 }
 
+/// Write data to a file asynchronously. Supports gzip decompression
+pub(crate) async fn write_file(data: &[u8], path: &str, decompress: bool) -> Result<(), Error> {
+    if decompress {
+        use std::{fs::File, io::copy};
+
+        let mut file = File::create(path)?;
+        let mut data = bufread::GzDecoder::new(data);
+        copy(&mut data, &mut file)?;
+        return Ok(());
+    }
+
+    let mut file = File::create(path).await?;
+
+    file.write_all(data).await?;
+
+    info!("[server] Wrote {} bytes to {path}", data.len());
+
+    Ok(())
+}
+
 /// Create a directory and all its parents
 pub(crate) fn create_dirs(path: &str) -> Result<(), UtilServerError> {
     let result = create_dir_all(path);
@@ -48,7 +79,7 @@ pub(crate) fn create_dirs(path: &str) -> Result<(), UtilServerError> {
 #[cfg(test)]
 mod tests {
     use super::read_file;
-    use crate::utils::filesystem::{create_dirs, is_file};
+    use crate::utils::filesystem::{create_dirs, is_directory, is_file, write_file};
     use std::path::PathBuf;
 
     #[test]
@@ -61,12 +92,43 @@ mod tests {
         assert!(!results.is_empty());
     }
 
+    #[tokio::test]
+    async fn test_write_file() {
+        create_dirs("./tmp").unwrap();
+
+        let test = b"hello world!";
+        write_file(test, "./tmp/test", false).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_write_file_decompress() {
+        let data = [
+            31, 139, 8, 0, 215, 132, 7, 101, 0, 255, 5, 128, 65, 9, 0, 0, 8, 3, 171, 104, 55, 5,
+            31, 7, 131, 125, 172, 63, 110, 65, 245, 50, 211, 1, 109, 194, 180, 3, 12, 0, 0, 0,
+        ];
+        create_dirs("./tmp").unwrap();
+
+        let path = "./tmp/data.txt";
+
+        write_file(&data, &path, true).await.unwrap();
+    }
+
     #[test]
     fn test_is_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
         let config_path = test_location.display().to_string();
         let results = is_file(&config_path);
+
+        assert!(results);
+    }
+
+    #[test]
+    fn test_is_directory() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data");
+        let config_path = test_location.display().to_string();
+        let results = is_directory(&config_path);
 
         assert!(results);
     }

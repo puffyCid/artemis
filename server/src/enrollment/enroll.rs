@@ -2,7 +2,7 @@ use crate::{
     artifacts::enrollment::{Endpoint, EndpointInfo},
     db::endpoints::{enroll_endpointdb, lookup_endpoint},
     server::ServerState,
-    utils::uuid::generate_uuid,
+    utils::{filesystem::create_dirs, uuid::generate_uuid},
 };
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
@@ -38,7 +38,26 @@ pub(crate) async fn enroll_endpoint(
 
     let endpoint_id = generate_uuid();
 
-    let _ = enroll_endpointdb(&data.endpoint_info, &endpoint_id, &state.endpoint_db);
+    let status = enroll_endpointdb(&data.endpoint_info, &endpoint_id, &state.endpoint_db);
+    if status.is_err() {
+        error!(
+            "[server] Could not enroll {endpoint_id} into enrollment db: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    // Database is now setup. Now setup the directory store data collected from endpoint
+    let endpoint_path = format!("{}/{endpoint_id}", state.config.endpoint_server.storage);
+    let status = create_dirs(&endpoint_path);
+    if status.is_err() {
+        error!(
+            "[server] Could not create {endpoint_id} storage directory: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
     let enrolled = Enrolled {
         endpoint_id,
         client_config: String::new(),
@@ -80,7 +99,7 @@ mod tests {
         db::tables::setup_db,
         enrollment::enroll::{enroll_endpoint, Enrollment},
         server::ServerState,
-        utils::config::read_config,
+        utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
     use std::path::PathBuf;
@@ -112,15 +131,20 @@ mod tests {
         let test = Json(info);
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").unwrap();
 
         let config = read_config(&test_location.display().to_string()).unwrap();
         let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
+            "{}/endpointsenroll.redb",
             &config.endpoint_server.storage
         ))
         .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
+        let jobdb = setup_db(&format!(
+            "{}/jobsenroll.redb",
+            &config.endpoint_server.storage
+        ))
+        .unwrap();
 
         let state_server = ServerState {
             config,
@@ -161,15 +185,20 @@ mod tests {
         let test = Json(info);
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").unwrap();
 
         let config = read_config(&test_location.display().to_string()).unwrap();
         let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
+            "{}/endpointsbbad.redb",
             &config.endpoint_server.storage
         ))
         .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
+        let jobdb = setup_db(&format!(
+            "{}/jobsbadenroll.redb",
+            &config.endpoint_server.storage
+        ))
+        .unwrap();
 
         let state_server = ServerState {
             config,

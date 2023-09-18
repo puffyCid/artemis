@@ -1,4 +1,7 @@
-use crate::{enrollment::uris::enroll_routes, server::ServerState, socket::uris::socket_routes};
+use crate::{
+    enrollment::uris::enroll_routes, server::ServerState, socket::uris::socket_routes,
+    uploads::uris::upload_routes,
+};
 use axum::{routing::get, Router};
 
 pub(crate) fn setup_routes() -> Router<ServerState> {
@@ -11,6 +14,7 @@ pub(crate) fn setup_routes() -> Router<ServerState> {
 
     app = app.merge(enroll_routes(&base));
     app = app.merge(socket_routes(&base));
+    app = app.merge(upload_routes(&base));
     app
 }
 

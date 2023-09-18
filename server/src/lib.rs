@@ -79,4 +79,5 @@ mod enrollment;
 mod routes;
 pub mod server;
 mod socket;
+mod uploads;
 mod utils;

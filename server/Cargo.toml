@@ -17,6 +17,7 @@ axum = { version = "0.6.20", default-features = false, features = [
     "form",
     "query",
     "ws",
+    "multipart",
 ] }
 tokio = { version = "1.32.0", features = ["full"] }
 log = "0.4.20"
@@ -26,6 +27,7 @@ uuid = { version = "1.4.1", features = ["v4"] }
 toml = "0.8.0"
 futures = "0.3.28"
 redb = { version = "1.1.0", default-features = false }
+flate2 = "1.0.27"
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }

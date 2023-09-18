@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct JobInfo {
     pub(crate) id: u64,
     pub(crate) name: String,
@@ -15,7 +15,7 @@ pub(crate) struct JobInfo {
     pub(crate) collection: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub(crate) enum Status {
     NotStarted,
     Started,

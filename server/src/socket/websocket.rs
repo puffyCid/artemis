@@ -8,6 +8,7 @@ use axum::response::IntoResponse;
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
 use redb::Database;
+use std::collections::HashMap;
 use std::ops::ControlFlow::Continue;
 use std::sync::Arc;
 use std::{net::SocketAddr, ops::ControlFlow};
@@ -43,7 +44,7 @@ async fn handle_socket(
                     Ok(result) => result,
                     Err(err) => {
                         error!("[server] Could not get jobs using ID {id}: {err:?}");
-                        Vec::new()
+                        HashMap::new()
                     }
                 };
                 let serde_result = serde_json::to_string(&jobs);
