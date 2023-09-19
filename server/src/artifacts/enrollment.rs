@@ -20,12 +20,14 @@ pub(crate) struct Endpoint {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct EndpointDb {
+/// Static data about and endpoint that rarely changes
+pub(crate) struct EndpointStatic {
     pub(crate) hostname: String,
     pub(crate) platform: String,
     pub(crate) tags: Vec<String>,
     pub(crate) notes: Vec<Notes>,
     pub(crate) checkin: u64,
+    pub(crate) id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

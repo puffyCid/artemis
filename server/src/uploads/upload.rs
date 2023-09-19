@@ -1,9 +1,9 @@
 use crate::{
     artifacts::jobs::JobInfo,
-    db::jobs::update_job,
+    filestore::jobs::update_job,
     server::ServerState,
     utils::{
-        filesystem::{create_dirs, is_directory, write_file},
+        filesystem::{create_dirs, write_file},
         uuid::generate_uuid,
     },
 };
@@ -12,7 +12,6 @@ use axum::{
     http::StatusCode,
 };
 use log::{error, warn};
-use redb::Database;
 
 /// Process uploaded data
 pub(crate) async fn upload_collection(
@@ -20,6 +19,7 @@ pub(crate) async fn upload_collection(
     mut multipart: Multipart,
 ) -> Result<(), StatusCode> {
     let mut endpoint_id = String::new();
+    let path = state.config.endpoint_server.storage;
 
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap_or_default().to_string();
@@ -28,7 +28,8 @@ pub(crate) async fn upload_collection(
             endpoint_id = field.text().await.unwrap_or_default();
         } else if name == "job-info" {
             let data = field.text().await.unwrap_or_default();
-            update_job_db(&endpoint_id, &data, &state.job_db).await?;
+            let endpoint_path = format!("{path}/{endpoint_id}");
+            update_job_file(&endpoint_path, &data).await?;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -39,7 +40,7 @@ pub(crate) async fn upload_collection(
             };
 
             let data = field.bytes().await.unwrap_or_default();
-            let endpoint_dir = format!("{}/{endpoint_id}", state.config.endpoint_server.storage);
+            let endpoint_dir = format!("{path}/{endpoint_id}");
             write_collection(&endpoint_dir, &filename, &data).await?;
         }
     }
@@ -47,9 +48,9 @@ pub(crate) async fn upload_collection(
 }
 
 /// Update the Job DB using the uploaded job-info data
-async fn update_job_db(endpoint_id: &str, data: &str, db: &Database) -> Result<(), StatusCode> {
-    if endpoint_id.is_empty() {
-        warn!("[server] No endpoint ID provide cannot update Job DB");
+async fn update_job_file(path: &str, data: &str) -> Result<(), StatusCode> {
+    if path.is_empty() {
+        error!("[server] No endpoint path provided cannot update jobs.json");
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -57,15 +58,15 @@ async fn update_job_db(endpoint_id: &str, data: &str, db: &Database) -> Result<(
     let job: JobInfo = match job_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Cannot deserialize Job Info for Endpoint ID {endpoint_id}: {err:?}");
+            error!("[server] Cannot deserialize Job Info for Endpoint ID {path}: {err:?}");
             return Err(StatusCode::BAD_REQUEST);
         }
     };
 
-    let status = update_job(endpoint_id, job, db);
+    let status = update_job(job, path).await;
     if status.is_err() {
         error!(
-            "[server] Could not update Job DB for {endpoint_id}: {:?}",
+            "[server] Could not update Job for {path}: {:?}",
             status.unwrap_err()
         );
         return Err(StatusCode::BAD_REQUEST);
@@ -81,22 +82,21 @@ async fn write_collection(
     data: &[u8],
 ) -> Result<(), StatusCode> {
     // Endpoint storage directory should have been created upon enrollment. But check in case
-    if !is_directory(endpoint_dir) {
-        let status = create_dirs(endpoint_dir);
-        if status.is_err() {
-            error!(
-                "[server] Could not create {endpoint_dir} storage directory: {:?}",
-                status.unwrap_err()
-            );
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-        }
+    let collections = format!("{endpoint_dir}/collections");
+    let status = create_dirs(&collections).await;
+    if status.is_err() {
+        error!(
+            "[server] Could not create {collections} storage directory: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     // Only decompress data smaller than 2GB
     let max_size = 2147483648;
     if data.len() < max_size {
         let decom_name = filename.trim_end_matches(".gz");
-        let endpoint_path = format!("{endpoint_dir}/{decom_name}");
+        let endpoint_path = format!("{collections}/{decom_name}");
         // Write the data to endpoint directory,  but decompress first
         let status = write_file(data, &endpoint_path, true).await;
         if status.is_err() {
@@ -108,10 +108,10 @@ async fn write_collection(
             return Ok(());
         }
 
-        warn!("[server] Could not decompress and write data to {endpoint_dir}. Trying compressed data!");
+        warn!("[server] Could not decompress and write data to {collections}. Trying compressed data!");
     }
 
-    let endpoint_path = format!("{endpoint_dir}/{filename}");
+    let endpoint_path = format!("{collections}/{filename}");
 
     // Write the compressed data to endpoint directory
     let status = write_file(data, &endpoint_path, false).await;
@@ -129,61 +129,47 @@ async fn write_collection(
 #[cfg(test)]
 mod tests {
     use crate::artifacts::jobs::{JobInfo, Status};
-    use crate::db::jobs::add_job;
     use crate::uploads::upload::write_collection;
-    use crate::utils::filesystem::create_dirs;
+    use crate::utils::filesystem::{create_dirs, write_file};
     use crate::{
-        db::tables::setup_db,
-        server::ServerState,
-        uploads::upload::update_job_db,
+        uploads::upload::update_job_file,
         utils::{config::read_config, uuid::generate_uuid},
     };
-    use axum::extract::State;
+    use std::collections::HashMap;
     use std::path::PathBuf;
 
     #[tokio::test]
-    async fn test_update_job_db() {
+    async fn test_update_job_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
-        create_dirs("./tmp").unwrap();
+        create_dirs("./tmp/uploads").await.unwrap();
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpointsupload.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
-
-        let jobdb = setup_db(&format!(
-            "{}/jobsuploading.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
-
-        let state_server = ServerState {
-            config,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
-        let test2 = State(state_server);
-
-        let value = JobInfo {
+        let mut value = JobInfo {
             id: 1,
             collection: String::from("asdfasdfasdfasd=="),
             created: 1000,
             started: 10001,
             finished: 20000,
             name: String::from("processes"),
-            status: Status::Finished,
+            status: Status::NotStarted,
         };
-        add_job("arandomkey", value.clone(), &test2.job_db).unwrap();
-        update_job_db(
-            "arandomkey",
-            &serde_json::to_string(&value).unwrap(),
-            &test2.job_db,
+
+        let mut jobs = HashMap::new();
+        jobs.insert(1, value.clone());
+
+        write_file(
+            &serde_json::to_vec(&jobs).unwrap(),
+            "./tmp/uploads/jobs.json",
+            false,
         )
         .await
         .unwrap();
+
+        value.status = Status::Failed;
+
+        update_job_file("./tmp/uploads", &serde_json::to_string(&value).unwrap())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -191,7 +177,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
         let endpoint_id = generate_uuid();
 
         let path = format!("{}/{endpoint_id}", config.endpoint_server.storage);

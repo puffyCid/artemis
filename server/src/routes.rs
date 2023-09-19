@@ -21,7 +21,7 @@ pub(crate) fn setup_routes() -> Router<ServerState> {
 #[cfg(test)]
 mod tests {
     use super::setup_routes;
-    use crate::{db::tables::setup_db, server::ServerState, utils::config::read_config};
+    use crate::{server::ServerState, utils::config::read_config};
     use axum::{
         body::Body,
         http::{Request, StatusCode},
@@ -34,20 +34,11 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let result = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
-            &result.endpoint_server.storage
-        ))
-        .unwrap();
+        let result = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &result.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config: result,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
+        let state_server = ServerState { config: result };
 
         let app = setup_routes();
         let res = app

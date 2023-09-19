@@ -10,7 +10,7 @@ pub(crate) fn enroll_routes(base: &str) -> Router<ServerState> {
 #[cfg(test)]
 mod tests {
     use super::enroll_routes;
-    use crate::{db::tables::setup_db, server::ServerState, utils::config::read_config};
+    use crate::{server::ServerState, utils::config::read_config};
     use axum::{
         body::Body,
         http::{Method, Request, StatusCode},
@@ -25,20 +25,11 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpointsuri.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobsuri.redb", &config.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
+        let state_server = ServerState { config };
         let res = route
             .with_state(state_server)
             .oneshot(

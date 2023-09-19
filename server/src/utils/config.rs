@@ -50,8 +50,11 @@ pub(crate) fn generate_config() -> ArtemisConfig {
 }
 
 /// Compare and verify enrollment key against server TOML config
-pub(crate) fn verify_enroll_key(key: &str, config_path: &str) -> Result<bool, UtilServerError> {
-    let config = read_config(config_path)?;
+pub(crate) async fn verify_enroll_key(
+    key: &str,
+    config_path: &str,
+) -> Result<bool, UtilServerError> {
+    let config = read_config(config_path).await?;
 
     if key != config.enroll_key {
         return Ok(false);
@@ -60,14 +63,14 @@ pub(crate) fn verify_enroll_key(key: &str, config_path: &str) -> Result<bool, Ut
     Ok(true)
 }
 
-pub(crate) fn storage_path(config_path: &str) -> Result<String, UtilServerError> {
-    let config = read_config(config_path)?;
+pub(crate) async fn storage_path(config_path: &str) -> Result<String, UtilServerError> {
+    let config = read_config(config_path).await?;
     Ok(config.endpoint_server.storage)
 }
 
 /// Read the server TOML config file
-pub(crate) fn read_config(path: &str) -> Result<ArtemisConfig, UtilServerError> {
-    let buffer = read_file(path)?;
+pub(crate) async fn read_config(path: &str) -> Result<ArtemisConfig, UtilServerError> {
+    let buffer = read_file(path).await?;
 
     let config_result = toml::from_str(from_utf8(&buffer).unwrap_or_default());
     let config = match config_result {
@@ -93,22 +96,26 @@ mod tests {
         assert!(!result.metadata.name.is_empty());
     }
 
-    #[test]
-    fn test_read_config() {
+    #[tokio::test]
+    async fn test_read_config() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let result = read_config(&test_location.display().to_string()).unwrap();
+        let result = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
         assert_eq!(result.enroll_key, "arandomkey");
         assert_eq!(result.endpoint_server.address, "127.0.0.1")
     }
 
-    #[test]
-    fn test_verify_enroll_key() {
+    #[tokio::test]
+    async fn test_verify_enroll_key() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let result = verify_enroll_key("arandomkey", &test_location.display().to_string()).unwrap();
+        let result = verify_enroll_key("arandomkey", &test_location.display().to_string())
+            .await
+            .unwrap();
         assert!(result);
     }
 }
