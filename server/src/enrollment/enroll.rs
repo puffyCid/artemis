@@ -85,7 +85,8 @@ mod tests {
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
 
     #[tokio::test]
     async fn test_enroll_endpoint() {
@@ -120,8 +121,9 @@ mod tests {
             .await
             .unwrap();
 
-        let state_server = ServerState { config };
-        let test2 = State(state_server);
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
         assert!(!result.endpoint_id.is_empty())
@@ -161,8 +163,9 @@ mod tests {
             .await
             .unwrap();
 
-        let state_server = ServerState { config };
-        let test2 = State(state_server);
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
         assert!(!result.endpoint_id.is_empty())

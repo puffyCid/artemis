@@ -128,7 +128,7 @@ async fn write_collection(
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::jobs::{JobInfo, Status};
+    use crate::artifacts::jobs::{Action, JobInfo, JobType, Status};
     use crate::uploads::upload::write_collection;
     use crate::utils::filesystem::{create_dirs, write_file};
     use crate::{
@@ -152,6 +152,10 @@ mod tests {
             finished: 20000,
             name: String::from("processes"),
             status: Status::NotStarted,
+            duration: 0,
+            start_time: 0,
+            action: Action::Start,
+            job_type: JobType::Collection,
         };
 
         let mut jobs = HashMap::new();

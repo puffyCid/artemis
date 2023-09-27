@@ -10,7 +10,7 @@ use std::collections::HashMap;
  * Save `JobInfo` to endpoint `jobs.json` file.
  * Path is full path to endpoint **including** the endpoint ID
  *
- * Jobs are only saved if they endpoint is offline. Otherwise the Job is sent directly to endpoint
+ * Only `JobType::Collection` entries are written to disk. Otherwise the Job is sent directly to endpoint
  */
 pub(crate) async fn save_job(mut job: JobInfo, path: &str) -> Result<(), StoreError> {
     let job_file = format!("{path}/jobs.json");
@@ -26,15 +26,17 @@ pub(crate) async fn save_job(mut job: JobInfo, path: &str) -> Result<(), StoreEr
             }
         };
 
-        let jobs_result = serde_json::from_slice(&job_data);
-        let existing_jobs: HashMap<u64, JobInfo> = match jobs_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[server] Could not deserialize existing jobs: {err:?}");
-                return Err(StoreError::Deserialize);
-            }
-        };
-        jobs = existing_jobs;
+        if !job_data.is_empty() {
+            let jobs_result = serde_json::from_slice(&job_data);
+            let existing_jobs: HashMap<u64, JobInfo> = match jobs_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[server] Could not deserialize existing jobs: {err:?}");
+                    return Err(StoreError::Deserialize);
+                }
+            };
+            jobs = existing_jobs;
+        }
     }
 
     job.id = jobs.len() as u64 + 1;
@@ -140,7 +142,7 @@ pub(crate) async fn update_job(job: JobInfo, path: &str) -> Result<(), StoreErro
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::jobs::{JobInfo, Status};
+    use crate::artifacts::jobs::{Action, JobInfo, JobType, Status};
     use crate::filestore::jobs::{get_jobs, save_job, update_job};
     use crate::utils::filesystem::create_dirs;
     use std::path::PathBuf;
@@ -156,6 +158,10 @@ mod tests {
             started: 0,
             finished: 0,
             status: Status::NotStarted,
+            duration: 0,
+            start_time: 0,
+            action: Action::Start,
+            job_type: JobType::Collection,
             collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="),
         };
 
@@ -193,6 +199,10 @@ mod tests {
             started: 0,
             finished: 0,
             status: Status::NotStarted,
+            duration: 0,
+            start_time: 0,
+            action: Action::Start,
+            job_type: JobType::Collection,
             collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="),
         };
 

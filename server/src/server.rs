@@ -5,12 +5,19 @@ use crate::{
         filesystem::create_dirs,
     },
 };
+use axum::extract::ws::Message;
 use log::error;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
+};
+use tokio::sync::{mpsc, RwLock};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ServerState {
     pub(crate) config: ArtemisConfig,
+    pub(crate) command: Arc<RwLock<HashMap<String, mpsc::Sender<Message>>>>,
 }
 
 #[tokio::main]
@@ -30,10 +37,11 @@ pub async fn start(path: &str) {
         return;
     }
 
-    let server_state = ServerState { config };
+    let command = Arc::new(RwLock::new(HashMap::new()));
+    let server_state = ServerState { config, command };
 
     let app = routes::setup_routes().with_state(server_state);
-    let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);
+    let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8000);
 
     let status = axum::Server::bind(&address)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())

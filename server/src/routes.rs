@@ -26,23 +26,25 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
-    use std::path::PathBuf;
-    use tower::util::ServiceExt;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
+    use tower::ServiceExt;
 
     #[tokio::test]
     async fn test_setup_routes() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let result = read_config(&test_location.display().to_string())
+        let config = read_config(&test_location.display().to_string())
             .await
             .unwrap();
 
-        let state_server = ServerState { config: result };
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
 
         let app = setup_routes();
         let res = app
-            .with_state(state_server)
+            .with_state(server_state)
             .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
             .await
             .unwrap();

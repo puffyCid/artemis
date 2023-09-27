@@ -1,7 +1,9 @@
+use super::command::parse_command;
 use super::heartbeat::{parse_heartbeat, parse_pulse};
 use crate::enrollment::enroll::verify_enrollment;
 use crate::filestore::jobs::get_jobs;
 use crate::server::ServerState;
+use crate::socket::command::quick_jobs;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
@@ -10,77 +12,194 @@ use log::{error, warn};
 use std::collections::HashMap;
 use std::ops::ControlFlow::Continue;
 use std::{net::SocketAddr, ops::ControlFlow};
+use tokio::sync::mpsc;
 
-/// Accept `Web Sockets`
+/// Accept websockets
 pub(crate) async fn socket_connection(
-    State(state): State<ServerState>,
     socket: WebSocketUpgrade,
+    State(state): State<ServerState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    socket.on_upgrade(move |ws| handle_socket(ws, addr, state.config.endpoint_server.storage))
+    socket.on_upgrade(move |ws| handle_socket(ws, addr, state))
 }
 
-/// Process the `Web Socket`
-async fn handle_socket(socket: WebSocket, addr: SocketAddr, path: String) {
+/// Parse all websocket communications
+async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) {
     let (mut sender, mut receiver) = socket.split();
+    let storage_path = state.config.endpoint_server.storage.clone();
 
-    let _receive_task = tokio::spawn(async move {
+    let mut message_source = MessageSource::None;
+    let mut socket_message = String::new();
+    /*
+     * When a system first connects over websockets we need to determine source of message:
+     * 1. MessageSource::Client - Socket connection is remote system
+     * 2. MessageSource::Server - Socket connection local server
+     *
+     *  MessageSource::Client will return the endpoint_id as the `socket_message`
+     *  MessageSource::Server will return the entire message as the `socket_message`
+     */
+    while let Some(Ok(message)) = receiver.next().await {
+        let control = parse_message(&message, &addr, &storage_path).await;
+        if control.is_break() {
+            break;
+        }
+
+        if let Continue((message, source)) = control {
+            message_source = source;
+            socket_message = message;
+            break;
+        }
+    }
+    // If the message is None, don't setup any async tasks. We should only
+    if message_source == MessageSource::None {
+        warn!("[server] Unexpected message source none");
+        return;
+    }
+
+    /*
+     * Register new endpoint clients and use ID to track channels to send websocket commands from server
+     * When client system first checks in setup an async task and channel.
+     * This async task will be used to communicate with single client. This task is stored in a shared state (HashMap) to track individual clients
+     */
+    if message_source == MessageSource::Client
+        && state.command.read().await.get(&socket_message).is_none()
+    {
+        let (client_send, mut client_recv) = mpsc::channel(50);
+
+        let _send_task = tokio::spawn(async move {
+            while let Some(msg) = client_recv.recv().await {
+                // If any websocket error, break loop.
+                let result = sender.send(msg).await;
+                if result.is_err() {
+                    error!(
+                        "[server] Could not send server message: {:?}",
+                        result.unwrap_err()
+                    );
+                    break;
+                }
+            }
+        });
+
+        // Register sender associated with endpoint client. Tracked via Endpoint ID
+        state
+            .command
+            .write()
+            .await
+            .insert(socket_message.clone(), client_send);
+    }
+
+    /*
+     * After we have registerd an async task for a client. Spawn another task to receive websocket data.
+     * Types of websocket data:
+     *  - Server commands
+     *  - Client heartbeat
+     *  - Client pulse
+     */
+    let _recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
-            let control = parse_message(&message, &addr, &path).await;
+            // Parse the websocket data
+            let control = parse_message(&message, &addr, &storage_path).await;
+            // If the client disconnects from us, we need to remove from our tracker. We can no longer send commands from server
             if control.is_break() {
+                state.command.write().await.remove(&socket_message);
                 break;
             }
 
-            if let Continue(id) = control {
-                let endpoint_path = format!("{path}/{id}");
+            if let Continue((socket_data, source)) = control {
+                if source == MessageSource::None {
+                    continue;
+                }
+
+                // If the source is the Server then the socket_data contains a command to be sent the client
+                if source == MessageSource::Server {
+                    let send_result = quick_jobs(&socket_data, &state.command.read().await).await;
+                    if send_result.is_err() {
+                        error!(
+                            "[server] Could not issue quick job command: {:?}",
+                            send_result.unwrap_err()
+                        );
+                    }
+                    continue;
+                }
+
+                /*
+                 * The message source should now be Client. socket_data = endpoint_id
+                 * The function `parse_message` already handles the heartbeat and pulse data
+                 *
+                 * At this point we just need the endpoint_id to check for collection jobs
+                 */
+                let endpoint_path = format!("{storage_path}/{socket_data}");
                 let jobs_result = get_jobs(&endpoint_path).await;
                 let jobs = match jobs_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[server] Could not get jobs using ID {id}: {err:?}");
+                        error!("[server] Could not get jobs using ID {socket_data}: {err:?}");
                         HashMap::new()
                     }
                 };
+
+                // Serialize the available collection jobs if any
                 let serde_result = serde_json::to_string(&jobs);
                 let serde_value = match serde_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[server] Could not serialize jobs for {id}: {err:?}");
+                        error!("[server] Could not serialize jobs for {socket_data}: {err:?}");
                         continue;
                     }
                 };
 
-                let send_result = sender.send(Message::Text(serde_value)).await;
-
-                if send_result.is_err() {
-                    error!(
-                        "[server] Could not send jobs to ID {id}: {:?}",
-                        send_result.unwrap_err()
-                    );
+                // Get the registered socket sender associated with the registered async task for the Client.
+                // This was registered when the client first checked into the server
+                if let Some(client_send) = state.command.read().await.get(&socket_data) {
+                    // Only send message if we found the sender associated with endpoint ID
+                    let send_result = client_send.send(Message::Text(serde_value)).await;
+                    if send_result.is_err() {
+                        error!(
+                            "[server] Could not send jobs to ID {socket_data}: {:?}",
+                            send_result.unwrap_err()
+                        );
+                    }
                 }
             }
         }
     });
 }
 
-/// Parse `Web Socket` message
+#[derive(PartialEq, Debug)]
+enum MessageSource {
+    Client,
+    Server,
+    None,
+}
+
+/// Parse websocket message. Currently messages are either Server messages (commands) or client messages (heartbeat, pulse)
 async fn parse_message(
     message: &Message,
     addr: &SocketAddr,
     path: &str,
-) -> ControlFlow<(), String> {
+) -> ControlFlow<(), (String, MessageSource)> {
     let ip = addr.ip().to_string();
     match message {
         Message::Text(data) => {
+            if data.contains("\"targets\":") && ip == "127.0.0.1" {
+                let command = parse_command(data, path).await;
+                if command.is_err() {
+                    error!("[server] Could not parse the server command");
+                    return ControlFlow::Break(());
+                }
+                // Send the command the to targets
+                return ControlFlow::Continue((data.to_string(), MessageSource::Server));
+            }
+
             if verify_enrollment(data, &ip, path).is_err() {
                 return ControlFlow::Break(());
             }
-            if data.contains("\"heartbeat\"") {
+            if data.contains("\"heartbeat\":") {
                 let id = parse_heartbeat(data, &ip, path).await;
-                return ControlFlow::Continue(id);
-            } else if data.contains("\"pulse\"") {
+                return ControlFlow::Continue((id, MessageSource::Client));
+            } else if data.contains("\"pulse\":") {
                 let id = parse_pulse(data, &ip, path).await;
-                return ControlFlow::Continue(id);
+                return ControlFlow::Continue((id, MessageSource::Client));
             }
         }
         Message::Binary(_) => {
@@ -92,13 +211,15 @@ async fn parse_message(
         Message::Ping(_data) | Message::Pong(_data) => {}
     }
 
-    ControlFlow::Continue(String::new())
+    // For unsupported messages return None
+    ControlFlow::Continue((String::new(), MessageSource::None))
 }
 
 #[cfg(test)]
 mod tests {
     use super::parse_message;
     use crate::socket::websocket::Message::Text;
+    use crate::socket::websocket::MessageSource;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::ops::ControlFlow::Continue;
     use std::path::PathBuf;
@@ -115,8 +236,9 @@ mod tests {
         let path = test_location.display().to_string();
 
         let control = parse_message(&message, &address, &path).await;
-        if let Continue(value) = control {
+        if let Continue((value, source)) = control {
             assert_eq!(value, "3482136c-3176-4272-9bd7-b79f025307d6");
+            assert_eq!(source, MessageSource::Client)
         }
     }
 }

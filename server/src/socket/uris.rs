@@ -15,7 +15,8 @@ mod tests {
         body::Body,
         http::{Method, Request, StatusCode},
     };
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
     use tower::util::ServiceExt;
 
     #[tokio::test]
@@ -30,10 +31,11 @@ mod tests {
             .await
             .unwrap();
 
-        let state_server = ServerState { config };
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
 
         let res = route
-            .with_state(state_server)
+            .with_state(server_state)
             .oneshot(
                 Request::builder()
                     .method(Method::GET)

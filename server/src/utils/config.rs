@@ -63,6 +63,7 @@ pub(crate) async fn verify_enroll_key(
     Ok(true)
 }
 
+/// Return only the storage path from the server config
 pub(crate) async fn storage_path(config_path: &str) -> Result<String, UtilServerError> {
     let config = read_config(config_path).await?;
     Ok(config.endpoint_server.storage)
@@ -87,7 +88,7 @@ pub(crate) async fn read_config(path: &str) -> Result<ArtemisConfig, UtilServerE
 #[cfg(test)]
 mod tests {
     use super::generate_config;
-    use crate::utils::config::{read_config, verify_enroll_key};
+    use crate::utils::config::{read_config, storage_path, verify_enroll_key};
     use std::path::PathBuf;
 
     #[test]
@@ -117,5 +118,16 @@ mod tests {
             .await
             .unwrap();
         assert!(result);
+    }
+
+    #[tokio::test]
+    async fn test_storage_path() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/server.toml");
+
+        let result = storage_path(&test_location.display().to_string())
+            .await
+            .unwrap();
+        assert_eq!(result, "./tmp");
     }
 }

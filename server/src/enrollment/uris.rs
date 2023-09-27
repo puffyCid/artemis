@@ -15,8 +15,9 @@ mod tests {
         body::Body,
         http::{Method, Request, StatusCode},
     };
-    use std::path::PathBuf;
-    use tower::util::ServiceExt;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
+    use tower::ServiceExt;
 
     #[tokio::test]
     async fn test_enroll_routes() {
@@ -29,9 +30,11 @@ mod tests {
             .await
             .unwrap();
 
-        let state_server = ServerState { config };
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+
         let res = route
-            .with_state(state_server)
+            .with_state(server_state)
             .oneshot(
                 Request::builder()
                     .method(Method::POST)
