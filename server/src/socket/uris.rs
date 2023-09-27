@@ -10,12 +10,13 @@ pub(crate) fn socket_routes(base: &str) -> Router<ServerState> {
 #[cfg(test)]
 mod tests {
     use super::socket_routes;
-    use crate::{db::tables::setup_db, server::ServerState, utils::config::read_config};
+    use crate::{server::ServerState, utils::config::read_config};
     use axum::{
         body::Body,
         http::{Method, Request, StatusCode},
     };
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
     use tower::util::ServiceExt;
 
     #[tokio::test]
@@ -26,23 +27,15 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
 
         let res = route
-            .with_state(state_server)
+            .with_state(server_state)
             .oneshot(
                 Request::builder()
                     .method(Method::GET)

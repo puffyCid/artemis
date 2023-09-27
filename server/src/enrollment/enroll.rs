@@ -1,13 +1,12 @@
 use crate::{
     artifacts::enrollment::{Endpoint, EndpointInfo},
-    db::endpoints::{enroll_endpointdb, lookup_endpoint},
+    filestore::endpoints::create_endpoint_path,
     server::ServerState,
-    utils::uuid::generate_uuid,
+    utils::filesystem::is_directory,
 };
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
 use log::error;
-use redb::Database;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 
@@ -36,9 +35,17 @@ pub(crate) async fn enroll_endpoint(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let endpoint_id = generate_uuid();
+    let id_result =
+        create_endpoint_path(&state.config.endpoint_server.storage, &data.endpoint_info).await;
 
-    let _ = enroll_endpointdb(&data.endpoint_info, &endpoint_id, &state.endpoint_db);
+    let endpoint_id = match id_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not create enrollment storage directory: {err:?}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
     let enrolled = Enrolled {
         endpoint_id,
         client_config: String::new(),
@@ -48,28 +55,24 @@ pub(crate) async fn enroll_endpoint(
 }
 
 /// Verify the provided `endpoint_id` is registered with artemis. Based on path to storage directory
-pub(crate) fn verify_enrollment(data: &str, ip: &str, db: &Database) -> bool {
+pub(crate) fn verify_enrollment(data: &str, ip: &str, path: &str) -> Result<(), StatusCode> {
     let verify_result: Result<Endpoint, Error> = serde_json::from_str(data);
     let verify = match verify_result {
         Ok(result) => result,
         Err(err) => {
             error!("[server] Failed to deserialize endpoint verification from {ip}: {err:?}");
-            return false;
+            return Err(StatusCode::BAD_REQUEST);
         }
     };
 
-    let value_result = lookup_endpoint(db, &verify.endpoint_id);
-    let (found, _) = match value_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!(
-                "[server] Could not lookup {} in endpoints db: {err:?}",
-                verify.endpoint_id
-            );
-            return false;
-        }
-    };
-    found
+    let endpoint_path = format!("{path}/{}", verify.endpoint_id);
+
+    let status = is_directory(&endpoint_path);
+    if !status {
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -77,13 +80,13 @@ mod tests {
     use super::verify_enrollment;
     use crate::{
         artifacts::{enrollment::EndpointInfo, systeminfo::Memory},
-        db::tables::setup_db,
         enrollment::enroll::{enroll_endpoint, Enrollment},
         server::ServerState,
-        utils::config::read_config,
+        utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
 
     #[tokio::test]
     async fn test_enroll_endpoint() {
@@ -112,22 +115,15 @@ mod tests {
         let test = Json(info);
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").await.unwrap();
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
-        let test2 = State(state_server);
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
         assert!(!result.endpoint_id.is_empty())
@@ -161,22 +157,15 @@ mod tests {
         let test = Json(info);
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").await.unwrap();
 
-        let config = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
-            &config.endpoint_server.storage
-        ))
-        .unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &config.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
-        let test2 = State(state_server);
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
         assert!(!result.endpoint_id.is_empty())
@@ -188,11 +177,9 @@ mod tests {
         let ip = "127.0.0.1";
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/endpoints.redb");
+        test_location.push("tests/test_data");
         let path = test_location.display().to_string();
-        let db = setup_db(&path).unwrap();
 
-        let result = verify_enrollment(data, ip, &db);
-        assert!(result)
+        verify_enrollment(data, ip, &path).unwrap();
     }
 }

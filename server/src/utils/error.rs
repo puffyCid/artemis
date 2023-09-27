@@ -7,6 +7,7 @@ pub enum UtilServerError {
     NotFile,
     ReadFile,
     CreateDirectory,
+    GzipDecompress,
 }
 
 impl fmt::Display for UtilServerError {
@@ -16,7 +17,8 @@ impl fmt::Display for UtilServerError {
             UtilServerError::BadToml => write!(f, "Failed to parse TOML data"),
             UtilServerError::NotFile => write!(f, "Not a file"),
             UtilServerError::ReadFile => write!(f, "Could not read file"),
-            UtilServerError::CreateDirectory => write!(f, "Could create directory"),
+            UtilServerError::CreateDirectory => write!(f, "Could not create directory"),
+            UtilServerError::GzipDecompress => write!(f, "Could decompress data"),
         }
     }
 }

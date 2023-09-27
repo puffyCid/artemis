@@ -1,28 +1,28 @@
-use super::enroll::enroll_endpoint;
+use super::upload::upload_collection;
 use crate::server::ServerState;
 use axum::{routing::post, Router};
 
-/// Setup `Enrollment` routes
-pub(crate) fn enroll_routes(base: &str) -> Router<ServerState> {
-    Router::new().route(&format!("{base}/enroll"), post(enroll_endpoint))
+/// Setup upload routes
+pub(crate) fn upload_routes(base: &str) -> Router<ServerState> {
+    Router::new().route(&format!("{base}/upload"), post(upload_collection))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::enroll_routes;
-    use crate::{server::ServerState, utils::config::read_config};
+    use crate::{server::ServerState, uploads::uris::upload_routes, utils::config::read_config};
     use axum::{
         body::Body,
         http::{Method, Request, StatusCode},
     };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
     use tokio::sync::RwLock;
-    use tower::ServiceExt;
+    use tower::util::ServiceExt;
 
     #[tokio::test]
-    async fn test_enroll_routes() {
+    async fn test_upload_routes() {
         let base = "/endpoint/v1";
-        let route = enroll_routes(base);
+        let route = upload_routes(base);
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
@@ -38,8 +38,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method(Method::POST)
-                    .uri(format!("{base}/enroll"))
-                    .header("content-type", "application/json")
+                    .uri(format!("{base}/upload"))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -49,6 +48,6 @@ mod tests {
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 
         let body = hyper::body::to_bytes(res.into_body()).await.unwrap();
-        assert_eq!(body, "Failed to parse the request body as JSON: EOF while parsing a value at line 1 column 0")
+        assert_eq!(body, "Invalid `boundary` for `multipart/form-data` request")
     }
 }

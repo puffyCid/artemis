@@ -1,4 +1,7 @@
-use crate::{enrollment::uris::enroll_routes, server::ServerState, socket::uris::socket_routes};
+use crate::{
+    enrollment::uris::enroll_routes, server::ServerState, socket::uris::socket_routes,
+    uploads::uris::upload_routes,
+};
 use axum::{routing::get, Router};
 
 pub(crate) fn setup_routes() -> Router<ServerState> {
@@ -11,43 +14,37 @@ pub(crate) fn setup_routes() -> Router<ServerState> {
 
     app = app.merge(enroll_routes(&base));
     app = app.merge(socket_routes(&base));
+    app = app.merge(upload_routes(&base));
     app
 }
 
 #[cfg(test)]
 mod tests {
     use super::setup_routes;
-    use crate::{db::tables::setup_db, server::ServerState, utils::config::read_config};
+    use crate::{server::ServerState, utils::config::read_config};
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
-    use std::path::PathBuf;
-    use tower::util::ServiceExt;
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use tokio::sync::RwLock;
+    use tower::ServiceExt;
 
     #[tokio::test]
     async fn test_setup_routes() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
-        let result = read_config(&test_location.display().to_string()).unwrap();
-        let endpointdb = setup_db(&format!(
-            "{}/endpoints.redb",
-            &result.endpoint_server.storage
-        ))
-        .unwrap();
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
 
-        let jobdb = setup_db(&format!("{}/jobs.redb", &result.endpoint_server.storage)).unwrap();
-
-        let state_server = ServerState {
-            config: result,
-            endpoint_db: endpointdb,
-            job_db: jobdb,
-        };
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
 
         let app = setup_routes();
         let res = app
-            .with_state(state_server)
+            .with_state(server_state)
             .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
             .await
             .unwrap();

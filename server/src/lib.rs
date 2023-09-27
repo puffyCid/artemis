@@ -74,9 +74,10 @@
 )]
 
 mod artifacts;
-mod db;
 mod enrollment;
+mod filestore;
 mod routes;
 pub mod server;
 mod socket;
+mod uploads;
 mod utils;
