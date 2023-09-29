@@ -92,7 +92,7 @@ async fn js_read_dir(path: String) -> Result<String, AnyError> {
 mod tests {
     use crate::runtime::deno::execute_script;
     use crate::structs::artifacts::runtime::script::JSScript;
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

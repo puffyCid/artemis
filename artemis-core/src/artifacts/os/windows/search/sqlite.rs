@@ -225,7 +225,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 #[cfg(test)]
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

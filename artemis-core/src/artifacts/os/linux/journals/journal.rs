@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     artifacts::os::linux::artifacts::output_data, filesystem::files::file_reader,
-    utils::artemis_toml::Output,
+    structs::toml::Output,
 };
 use log::error;
 use serde::Serialize;
@@ -557,7 +557,7 @@ mod tests {
             },
         },
         filesystem::files::file_reader,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
     use std::path::PathBuf;
 

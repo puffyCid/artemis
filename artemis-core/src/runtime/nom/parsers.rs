@@ -136,7 +136,7 @@ mod tests {
             },
         },
         structs::artifacts::runtime::script::JSScript,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

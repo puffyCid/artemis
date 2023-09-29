@@ -78,5 +78,5 @@ mod error;
 mod filesystem;
 mod output;
 mod runtime;
-mod structs;
+pub mod structs;
 mod utils;

@@ -1,5 +1,8 @@
 use super::error::RemoteError;
-use crate::utils::{artemis_toml::Output, encoding::base64_decode_standard, time::time_now};
+use crate::{
+    structs::toml::Output,
+    utils::{encoding::base64_decode_standard, time::time_now},
+};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use log::{error, info, warn};
 use reqwest::{blocking::Client, StatusCode};
@@ -323,7 +326,7 @@ mod tests {
     use super::{create_jwt_gcp, gcp_get_upload_status, gcp_resume_upload};
     use crate::{
         output::remote::gcp::{gcp_session, gcp_upload},
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
     use httpmock::{
         Method::{POST, PUT},

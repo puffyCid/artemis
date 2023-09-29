@@ -101,7 +101,7 @@ mod tests {
     use super::grab_search;
     use super::grab_search_path;
     use crate::filesystem::files::is_file;
-    use crate::{structs::artifacts::os::windows::SearchOptions, utils::artemis_toml::Output};
+    use crate::{structs::artifacts::os::windows::SearchOptions, structs::toml::Output};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

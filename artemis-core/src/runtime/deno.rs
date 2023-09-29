@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
-    structs::artifacts::runtime::script::JSScript,
-    utils::{artemis_toml::Output, encoding::base64_decode_standard, time},
+    structs::{artifacts::runtime::script::JSScript, toml::Output},
+    utils::{encoding::base64_decode_standard, time},
 };
 use log::error;
 use serde_json::Value;
@@ -131,8 +131,8 @@ mod tests {
     use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
         runtime::deno::output_data,
-        structs::artifacts::runtime::script::JSScript,
-        utils::{artemis_toml::Output, time},
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        utils::time,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

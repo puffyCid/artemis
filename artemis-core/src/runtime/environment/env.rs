@@ -18,7 +18,7 @@ fn js_env_value(var: String) -> String {
 mod tests {
     use crate::runtime::deno::execute_script;
     use crate::structs::artifacts::runtime::script::JSScript;
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

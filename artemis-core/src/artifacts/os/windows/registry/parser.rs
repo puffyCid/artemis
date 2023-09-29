@@ -291,7 +291,7 @@ impl RegistryData {
 #[cfg(test)]
 mod tests {
     use super::{Params, RegistryData};
-    use crate::{structs::artifacts::os::windows::RegistryOptions, utils::artemis_toml::Output};
+    use crate::{structs::artifacts::os::windows::RegistryOptions, structs::toml::Output};
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
 

@@ -112,7 +112,7 @@ pub(crate) fn parse_search_path(
 #[cfg(test)]
 mod tests {
     use super::{parse_search, parse_search_path};
-    use crate::{filesystem::files::is_file, utils::artemis_toml::Output};
+    use crate::{filesystem::files::is_file, structs::toml::Output};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

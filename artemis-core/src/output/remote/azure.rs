@@ -1,5 +1,5 @@
 use super::error::RemoteError;
-use crate::utils::artemis_toml::Output;
+use crate::structs::toml::Output;
 use log::{error, info, warn};
 use reqwest::{blocking::Client, StatusCode};
 
@@ -81,7 +81,7 @@ pub(crate) fn azure_upload(
 #[cfg(test)]
 mod tests {
     use super::azure_upload;
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use httpmock::{Method::PUT, MockServer};
 
     fn output_options(

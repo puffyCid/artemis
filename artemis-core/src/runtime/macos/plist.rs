@@ -38,7 +38,7 @@ fn get_plist_data(data: JsBuffer) -> Result<String, AnyError> {
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

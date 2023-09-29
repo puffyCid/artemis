@@ -1,7 +1,8 @@
-use super::{
-    artemis_toml::Output, error::ArtemisError, output::output_artifact, uuid::generate_uuid,
+use super::{error::ArtemisError, output::output_artifact, uuid::generate_uuid};
+use crate::{
+    filesystem::files::{get_filename, list_files, read_file},
+    structs::toml::Output,
 };
-use crate::filesystem::files::{get_filename, list_files, read_file};
 use log::{error, warn, LevelFilter};
 use std::{
     fs::{create_dir_all, remove_dir, remove_file, File, OpenOptions},
@@ -134,7 +135,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
 #[cfg(test)]
 mod tests {
     use super::{collection_status, create_log_file, upload_logs};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use httpmock::{
         Method::{POST, PUT},
         MockServer,

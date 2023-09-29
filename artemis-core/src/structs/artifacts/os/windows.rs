@@ -1,112 +1,112 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PrefetchOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct PrefetchOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct EventLogsOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct EventLogsOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RawFilesOptions {
-    pub(crate) drive_letter: char,
-    pub(crate) start_path: String,
-    pub(crate) depth: u8,
+pub struct RawFilesOptions {
+    pub drive_letter: char,
+    pub start_path: String,
+    pub depth: u8,
     /**Extract deleted indx entries */
-    pub(crate) recover_indx: bool,
-    pub(crate) md5: Option<bool>,
-    pub(crate) sha1: Option<bool>,
-    pub(crate) sha256: Option<bool>,
-    pub(crate) metadata: Option<bool>,
-    pub(crate) path_regex: Option<String>,
-    pub(crate) filename_regex: Option<String>,
+    pub recover_indx: bool,
+    pub md5: Option<bool>,
+    pub sha1: Option<bool>,
+    pub sha256: Option<bool>,
+    pub metadata: Option<bool>,
+    pub path_regex: Option<String>,
+    pub filename_regex: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct ShimdbOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct ShimdbOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RegistryOptions {
-    pub(crate) user_hives: bool,
-    pub(crate) system_hives: bool,
-    pub(crate) alt_drive: Option<char>,
-    pub(crate) path_regex: Option<String>,
+pub struct RegistryOptions {
+    pub user_hives: bool,
+    pub system_hives: bool,
+    pub alt_drive: Option<char>,
+    pub path_regex: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct UserAssistOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct UserAssistOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct ShimcacheOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct ShimcacheOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct ShellbagsOptions {
-    pub(crate) resolve_guids: bool,
-    pub(crate) alt_drive: Option<char>,
+pub struct ShellbagsOptions {
+    pub resolve_guids: bool,
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct AmcacheOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct AmcacheOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct ShortcutOptions {
+pub struct ShortcutOptions {
     /**Path to directory containing `Shortcut (lnk)` files */
-    pub(crate) path: String,
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct UsnJrnlOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct UsnJrnlOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct BitsOptions {
-    pub(crate) alt_path: Option<String>,
-    pub(crate) carve: bool,
+pub struct BitsOptions {
+    pub alt_path: Option<String>,
+    pub carve: bool,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct SrumOptions {
-    pub(crate) alt_path: Option<String>,
+pub struct SrumOptions {
+    pub alt_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct UserOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct UserOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct SearchOptions {
-    pub(crate) alt_path: Option<String>,
+pub struct SearchOptions {
+    pub alt_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct TasksOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct TasksOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct ServicesOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct ServicesOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct JumplistsOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct JumplistsOptions {
+    pub alt_drive: Option<char>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RecycleBinOptions {
-    pub(crate) alt_drive: Option<char>,
+pub struct RecycleBinOptions {
+    pub alt_drive: Option<char>,
 }

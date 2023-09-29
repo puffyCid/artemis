@@ -1,8 +1,13 @@
+use crate::collector::macos::run_collector;
+use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
+use collector::macos::Commands;
 use log::info;
 
-#[derive(Parser, Debug)]
+mod collector;
+
+#[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Full path to TOML collector
@@ -16,6 +21,9 @@ struct Args {
     /// Full path to JavaScript file
     #[clap(short, long, value_parser)]
     javascript: Option<String>,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
 }
 
 fn main() {
@@ -70,6 +78,22 @@ fn parse_args(args: &Args) {
                 }
             }
         }
+    } else if let Some(command) = &args.command {
+        let out = Output {
+            name: String::from("local_collector"),
+            endpoint_id: String::from("local"),
+            collection_id: 0,
+            directory: String::from("./tmp"),
+            output: String::from("local"),
+            format: String::from("json"),
+            compress: false,
+            filter_name: None,
+            filter_script: None,
+            url: None,
+            api_key: None,
+            logging: None,
+        };
+        run_collector(command, out)
     } else {
         println!("[artemis] No valid command args provided!");
         return;
@@ -79,7 +103,7 @@ fn parse_args(args: &Args) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_args, Args};
+    use crate::{collector::macos::Commands, parse_args, Args};
     use std::path::PathBuf;
 
     #[test]
@@ -143,6 +167,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -155,6 +180,38 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gIm1hY29zIgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
             javascript: None,
+            command: None,
+        };
+
+        parse_args(&args);
+    }
+
+    #[test]
+    fn test_parse_args_command() {
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                processes: true,
+                files: false,
+                unifiedlogs: false,
+                loginitems: false,
+                emond: false,
+                fsevents: false,
+                launchd: false,
+                users: false,
+                groups: false,
+                systeminfo: false,
+                execpolicy: false,
+                safari: false,
+                firefox: false,
+                chromium: false,
+                shellhistory: false,
+                cron: false,
+                sudologs: false,
+                format: String::from("json"),
+            }),
         };
 
         parse_args(&args);
@@ -168,6 +225,7 @@ mod tests {
             toml: None,
             decode: None,
             javascript: Some(test_location.display().to_string()),
+            command: None,
         };
 
         parse_args(&args);

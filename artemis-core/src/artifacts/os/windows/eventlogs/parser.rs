@@ -180,7 +180,7 @@ mod tests {
     use super::{
         alt_drive_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs,
     };
-    use crate::{structs::artifacts::os::windows::EventLogsOptions, utils::artemis_toml::Output};
+    use crate::{structs::artifacts::os::windows::EventLogsOptions, structs::toml::Output};
     use std::{fs::read_dir, path::PathBuf};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

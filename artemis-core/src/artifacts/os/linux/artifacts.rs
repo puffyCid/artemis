@@ -8,7 +8,7 @@ use crate::output::formats::jsonl::jsonl_format;
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::files::FileOptions;
 use crate::structs::artifacts::os::processes::ProcessOptions;
-use crate::utils::artemis_toml::Output;
+use crate::structs::toml::Output;
 use crate::utils::time;
 use log::{error, warn};
 use serde_json::Value;
@@ -195,7 +195,7 @@ mod tests {
     };
     use crate::structs::artifacts::os::files::FileOptions;
     use crate::structs::artifacts::os::processes::ProcessOptions;
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use crate::utils::time;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

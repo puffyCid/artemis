@@ -83,7 +83,7 @@ mod tests {
     use super::parse_trace_file;
     use crate::{
         filesystem::files::list_files, runtime::deno::execute_script,
-        structs::artifacts::runtime::script::JSScript, utils::artemis_toml::Output,
+        structs::artifacts::runtime::script::JSScript, structs::toml::Output,
     };
     use macos_unifiedlogs::parser::{
         collect_shared_strings_system, collect_strings_system, collect_timesync_system,

@@ -15,8 +15,11 @@ use crate::{
     filesystem::files::Hashes,
     output::formats::{json::json_format, jsonl::jsonl_format},
     runtime::deno::filter_script,
-    structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
-    utils::{artemis_toml::Output, time},
+    structs::{
+        artifacts::os::{files::FileOptions, processes::ProcessOptions},
+        toml::Output,
+    },
+    utils::time,
 };
 use log::{error, warn};
 use macos_unifiedlogs::parser::{
@@ -387,8 +390,11 @@ mod tests {
             emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
             processes, systeminfo, unifiedlogs, users,
         },
-        structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
-        utils::{artemis_toml::Output, time},
+        structs::{
+            artifacts::os::{files::FileOptions, processes::ProcessOptions},
+            toml::Output,
+        },
+        utils::time,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

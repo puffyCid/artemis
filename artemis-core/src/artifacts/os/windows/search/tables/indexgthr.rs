@@ -171,7 +171,7 @@ mod tests {
     use super::{parse_index_gthr, parse_index_gthr_path};
     use crate::{
         artifacts::os::windows::ese::parser::grab_ese_tables_path, filesystem::files::is_file,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
     use std::collections::HashMap;
 

@@ -132,7 +132,7 @@ pub(crate) fn get_srum(path: &str, tables: &[String]) -> Result<Value, SrumError
 #[cfg(test)]
 mod tests {
     use super::{get_srum, parse_srum};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

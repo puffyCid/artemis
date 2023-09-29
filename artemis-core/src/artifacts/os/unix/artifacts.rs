@@ -10,7 +10,8 @@ use super::{
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
     runtime::deno::filter_script,
-    utils::{artemis_toml::Output, time},
+    structs::toml::Output,
+    utils::time,
 };
 use log::{error, warn};
 use serde_json::Value;
@@ -208,7 +209,8 @@ mod tests {
         artifacts::os::unix::artifacts::{
             bash_history, cron_job, python_history, sudo_logs, zsh_history,
         },
-        utils::{artemis_toml::Output, time},
+        structs::toml::Output,
+        utils::time,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
