@@ -1,7 +1,6 @@
 use super::{error::SearchError, ese::SearchEntry};
 use crate::{
-    artifacts::os::windows::artifacts::output_data,
-    utils::{artemis_toml::Output, time::time_now},
+    artifacts::os::windows::artifacts::output_data, structs::toml::Output, utils::time::time_now,
 };
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};

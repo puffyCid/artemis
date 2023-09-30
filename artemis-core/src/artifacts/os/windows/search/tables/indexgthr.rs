@@ -4,8 +4,8 @@ use crate::{
         ese::parser::TableDump,
         search::{error::SearchError, ese::SearchEntry},
     },
+    structs::toml::Output,
     utils::{
-        artemis_toml::Output,
         encoding::base64_decode_standard,
         nom_helper::{nom_unsigned_eight_bytes, Endian},
         time::filetime_to_unixepoch,

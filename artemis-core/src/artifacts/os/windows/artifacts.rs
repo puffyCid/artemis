@@ -23,9 +23,10 @@ use crate::structs::artifacts::os::windows::{
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
     UserAssistOptions, UserOptions, UsnJrnlOptions,
 };
+use crate::structs::toml::Output;
 use crate::{
     structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
-    utils::{artemis_toml::Output, time},
+    utils::time,
 };
 use log::{error, warn};
 use serde_json::Value;
@@ -679,18 +680,21 @@ mod tests {
             raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb,
             shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl,
         },
-        structs::artifacts::os::{
-            files::FileOptions,
-            processes::ProcessOptions,
-            windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
-                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
-                UsnJrnlOptions,
+        structs::{
+            artifacts::os::{
+                files::FileOptions,
+                processes::ProcessOptions,
+                windows::{
+                    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions,
+                    PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
+                    SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
+                    ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
+                    UserOptions, UsnJrnlOptions,
+                },
             },
+            toml::Output,
         },
-        utils::{artemis_toml::Output, time},
+        utils::time,
     };
     use std::path::PathBuf;
 

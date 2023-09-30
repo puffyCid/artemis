@@ -1,9 +1,14 @@
-use crate::collector::macos::run_collector;
 use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
-use collector::macos::Commands;
+use collector::windows::Commands;
 use log::info;
+
+#[cfg(target_os = "macos")]
+use crate::collector::macos::run_collector;
+use crate::collector::windows::run_collector;
+#[cfg(target_os = "macos")]
+use collector::macos::Commands;
 
 mod collector;
 
@@ -103,7 +108,7 @@ fn parse_args(args: &Args) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{collector::macos::Commands, parse_args, Args};
+    use crate::{parse_args, Args};
     use std::path::PathBuf;
 
     #[test]
@@ -115,6 +120,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -127,6 +133,7 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gImxpbnV4IgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -141,6 +148,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -153,6 +161,7 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInN5c3RlbWluZm9fY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQplbmRwb2ludF9pZCA9ICJhYmRjIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic3lzdGVtaW5mbyIK")),
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -187,7 +196,10 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_args_command() {
+    #[cfg(target_os = "macos")]
+    fn test_parse_args_command_macos() {
+        use crate::collector::macos::Commands;
+
         let args = Args {
             toml: None,
             decode: None,
@@ -211,6 +223,46 @@ mod tests {
                 cron: false,
                 sudologs: false,
                 format: String::from("json"),
+            }),
+        };
+
+        parse_args(&args);
+    }
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_parse_args_command_macos() {
+        use crate::collector::windows::Commands;
+
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                processes: true,
+                files: false,
+                format: String::from("json"),
+                prefetch: false,
+                eventlogs: false,
+                shimdb: false,
+                registry: false,
+                userassist: false,
+                users: false,
+                shimcache: false,
+                systeminfo: false,
+                shortcuts: String::new(),
+                shellbags: false,
+                amcache: false,
+                firefox: false,
+                chromium: false,
+                usnjrnl: false,
+                bits: false,
+                srum: false,
+                search: false,
+                tasks: false,
+                services: false,
+                jumplists: false,
+                recyclebin: false,
+                rawfiles: false,
             }),
         };
 

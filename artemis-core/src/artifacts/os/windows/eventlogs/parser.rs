@@ -13,8 +13,8 @@ use super::error::EventLogsError;
 use crate::{
     artifacts::os::windows::artifacts::output_data,
     filesystem::files::{file_extension, list_files},
-    structs::artifacts::os::windows::EventLogsOptions,
-    utils::{artemis_toml::Output, environment::get_systemdrive, time::time_now},
+    structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
+    utils::{environment::get_systemdrive, time::time_now},
 };
 use evtx::EvtxParser;
 use log::error;
@@ -58,7 +58,7 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.timestamp_nanos(),
+                    timestamp: data.timestamp.timestamp_nanos_opt().unwrap_or_default(),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);
@@ -145,7 +145,7 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.timestamp_nanos(),
+                    timestamp: data.timestamp.timestamp_nanos_opt().unwrap_or_default(),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);

@@ -13,22 +13,14 @@ use super::{
 };
 use crate::{
     runtime::deno::execute_script,
-    utils::{artemis_toml::ArtemisToml, logging::upload_logs, output::compress_final_output},
+    structs::toml::ArtemisToml,
+    utils::{logging::upload_logs, output::compress_final_output},
 };
 use log::{error, info, warn};
 
 /// Parse a Windows collection TOML script
-pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactError> {
-    let collector_results = ArtemisToml::parse_artemis_toml_data(toml_data);
-    let mut collector = match collector_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Windows Artemis failed to parse TOML data: {err:?}");
-            return Err(WinArtifactError::BadToml);
-        }
-    };
-
-    for artifacts in collector.artifacts {
+pub(crate) fn windows_collection(collector: &mut ArtemisToml) -> Result<(), WinArtifactError> {
+    for artifacts in &collector.artifacts {
         let filter = artifacts.filter.unwrap_or(false);
 
         match artifacts.artifact_name.as_str() {
@@ -115,13 +107,13 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                 }
             }
             "processes" => {
-                let proc = artifacts.processes;
+                let proc = &artifacts.processes;
                 let proc_artifacts = match proc {
                     Some(result) => result,
                     _ => continue,
                 };
 
-                let results = processes(&proc_artifacts, &mut collector.output, &filter);
+                let results = processes(proc_artifacts, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
@@ -131,13 +123,13 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                 }
             }
             "files" => {
-                let file_data = artifacts.files;
+                let file_data = &artifacts.files;
                 let file_artifact_config = match file_data {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = files(&file_artifact_config, &mut collector.output, &filter);
+                let results = files(file_artifact_config, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
@@ -241,12 +233,12 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
                 }
             }
             "script" => {
-                let script_data = artifacts.script;
+                let script_data = &artifacts.script;
                 let script = match script_data {
                     Some(result) => result,
                     _ => continue,
                 };
-                let results = execute_script(&mut collector.output, &script);
+                let results = execute_script(&mut collector.output, script);
                 match results {
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {
@@ -416,7 +408,7 @@ pub(crate) fn windows_collection(toml_data: &[u8]) -> Result<(), WinArtifactErro
 #[cfg(test)]
 mod tests {
     use super::windows_collection;
-    use crate::filesystem::files::read_file;
+    use crate::{filesystem::files::read_file, structs::toml::ArtemisToml};
     use std::path::PathBuf;
 
     #[test]
@@ -425,6 +417,7 @@ mod tests {
         test_location.push("tests/test_data/windows/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        windows_collection(&buffer).unwrap();
+        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        windows_collection(&mut collector).unwrap();
     }
 }
