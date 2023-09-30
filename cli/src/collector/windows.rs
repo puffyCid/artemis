@@ -509,7 +509,7 @@ mod tests {
             shortcuts: String::new(),
             shellbags: true,
             amcache: true,
-            usnjrnl: true,
+            usnjrnl: false,
             bits: false,
             srum: false,
             search: false,

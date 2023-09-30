@@ -41,7 +41,7 @@ pub async fn start(path: &str) {
     let server_state = ServerState { config, command };
 
     let app = routes::setup_routes().with_state(server_state);
-    let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8000);
+    let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);
 
     let status = axum::Server::bind(&address)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())

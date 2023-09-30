@@ -50,7 +50,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
             break;
         }
     }
-    // If the message is None, don't setup any async tasks. We should only
+    // If the message is None, don't setup any async tasks
     if message_source == MessageSource::None {
         warn!("[server] Unexpected message source none");
         return;
