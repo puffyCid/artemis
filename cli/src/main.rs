@@ -240,38 +240,17 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_args_command_windows() {
+        use crate::collector::commands::CommandArgs::Shortcuts;
         use crate::collector::windows::Commands;
-
         let args = Args {
             toml: None,
             decode: None,
             javascript: None,
             command: Some(Commands::Acquire {
-                processes: true,
-                files: false,
+                artifact: Some(Shortcuts {
+                    path: String::from("C:\\"),
+                }),
                 format: String::from("json"),
-                prefetch: false,
-                eventlogs: false,
-                shimdb: false,
-                registry: false,
-                userassist: false,
-                users: false,
-                shimcache: false,
-                systeminfo: false,
-                shortcuts: String::new(),
-                shellbags: false,
-                amcache: false,
-                firefox: false,
-                chromium: false,
-                usnjrnl: false,
-                bits: false,
-                srum: false,
-                search: false,
-                tasks: false,
-                services: false,
-                jumplists: false,
-                recyclebin: false,
-                rawfiles: false,
             }),
         };
 
@@ -281,9 +260,9 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_parse_args_command_macos() {
-        use crate::collector::linux::Commands;
         use crate::collector::commands::CommandArgs::Processes;
-        
+        use crate::collector::linux::Commands;
+
         let args = Args {
             toml: None,
             decode: None,

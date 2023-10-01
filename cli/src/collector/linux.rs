@@ -40,9 +40,8 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             }
 
             let arti = artifact.as_ref().unwrap();
-            if artifact.is_some() {
-                collector.artifacts.push(setup_artifact(arti))
-            }
+            collector.artifacts.push(setup_artifact(arti));
+
             if !format.is_empty() {
                 collector.output.format = format.to_string();
             }
