@@ -206,6 +206,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_parse_args_command_macos() {
+        use crate::collector::commands::CommandArgs::Filelisting;
         use crate::collector::macos::Commands;
 
         let args = Args {
@@ -213,23 +214,15 @@ mod tests {
             decode: None,
             javascript: None,
             command: Some(Commands::Acquire {
-                processes: true,
-                files: false,
-                unifiedlogs: false,
-                loginitems: false,
-                emond: false,
-                fsevents: false,
-                launchd: false,
-                users: false,
-                groups: false,
-                systeminfo: false,
-                execpolicy: false,
-                safari: false,
-                firefox: false,
-                chromium: false,
-                shellhistory: false,
-                cron: false,
-                sudologs: false,
+                artifact: Some(Filelisting {
+                    md5: false,
+                    sha1: false,
+                    sha256: false,
+                    metadata: false,
+                    start_path: String::from("/"),
+                    depth: 1,
+                    regex_filter: None,
+                }),
                 format: String::from("json"),
             }),
         };

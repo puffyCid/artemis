@@ -67,18 +67,21 @@ pub(crate) enum CommandArgs {
     /// Parse Logon files
     Logons {},
 
+    #[cfg(target_os = "windows")]
     /// Parse Prefetch
     Prefetch {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse EventLogs
     Eventlogs {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse NTFS to get filelisting
     Rawfilelisting {
         /// Drive letter to parse
@@ -112,12 +115,14 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         filename_regex: Option<String>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse ShimDatabase
     Shimdb {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Registry
     Registry {
         /// Paser user Registry files
@@ -133,18 +138,21 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         path_regex: Option<String>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Userassist
     Userassist {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Shimcache
     Shimcache {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Shellbags
     Shellbags {
         /// Try to resolve GUIDs to directory names
@@ -154,24 +162,28 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Amcache
     Amcache {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Shortcuts
     Shortcuts {
         /// Path to directory containing Shortcut files
         #[arg(long)]
         path: String,
     },
+    #[cfg(target_os = "windows")]
     /// Parse UsnJrnl
     Usnjrnl {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse BITS
     Bits {
         /// Try to parse deleted BITS entries
@@ -181,46 +193,88 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse SRUM
     Srum {
         /// Alternative SRUM file path
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Users
     Users {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Windows Search
     Search {
         /// Alternative Search file path
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Windows Tasks
     Tasks {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Windows Services
     Services {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse Jumplists
     Jumplists {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
     /// Parse RecycleBin
     Recyclebin {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
+    },
+
+    #[cfg(target_os = "macos")]
+    /// Parse ExecPolicy
+    Execpolicy {},
+    #[cfg(target_os = "macos")]
+    /// Collect local users
+    Users {},
+    #[cfg(target_os = "macos")]
+    /// Parse FsEvents entries
+    Fsevents {},
+    #[cfg(target_os = "macos")]
+    /// Parse Emond persistence. Removed in Ventura
+    Emond {},
+    #[cfg(target_os = "macos")]
+    /// Parse LoginItems
+    Loginitems {},
+    #[cfg(target_os = "macos")]
+    /// Parse Launch Daemons and Agents
+    Launchd {},
+    #[cfg(target_os = "macos")]
+    /// Collect local groups
+    Groups {},
+    #[cfg(target_os = "macos")]
+    /// Collect Safari History
+    Safarihistory {},
+    #[cfg(target_os = "macos")]
+    /// Collect Safari Downloads
+    Safaridownloads {},
+    #[cfg(target_os = "macos")]
+    /// Parse the Unified Logs
+    Unifiedlogs {
+        /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume
+        #[arg(long, value_delimiter = ',')]
+        sources: Vec<String>,
     },
 }

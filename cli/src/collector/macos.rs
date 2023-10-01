@@ -1,4 +1,4 @@
-use super::artifacts::Options;
+use super::commands::CommandArgs;
 use artemis_core::{
     core::artemis_collection,
     structs::{
@@ -12,57 +12,8 @@ use clap::{arg, Subcommand};
 pub(crate) enum Commands {
     /// Acquire forensic artifacts
     Acquire {
-        /// Collect processes
-        #[arg(long)]
-        processes: bool,
-        /// Pull filelisting
-        #[arg(long)]
-        files: bool,
-        /// Parse Unfied Logs
-        #[arg(long)]
-        unifiedlogs: bool,
-        /// Parse LoginItems
-        #[arg(long)]
-        loginitems: bool,
-        /// Parse Emond
-        #[arg(long)]
-        emond: bool,
-        /// Parse FsEvents
-        #[arg(long)]
-        fsevents: bool,
-        /// Parse Launchd
-        #[arg(long)]
-        launchd: bool,
-        /// Parse Users
-        #[arg(long)]
-        users: bool,
-        /// Parse Groups
-        #[arg(long)]
-        groups: bool,
-        /// Get systeminfo
-        #[arg(long)]
-        systeminfo: bool,
-        /// Parse ExecPolicy
-        #[arg(long)]
-        execpolicy: bool,
-        /// Parse Safari History and Downloads
-        #[arg(long)]
-        safari: bool,
-        /// Parse Firefox History and Downloads
-        #[arg(long)]
-        firefox: bool,
-        /// Parse Chromium History and Downloads
-        #[arg(long)]
-        chromium: bool,
-        /// Parse Shellhistory
-        #[arg(long)]
-        shellhistory: bool,
-        /// Parse Cron Jobs
-        #[arg(long)]
-        cron: bool,
-        /// Grab Sudo logs
-        #[arg(long)]
-        sudologs: bool,
+        #[command(subcommand)]
+        artifact: Option<CommandArgs>,
         /// Output format. JSON or JSON.
         #[arg(long, default_value_t = String::from("json"))]
         format: String,
@@ -82,120 +33,15 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
     );
 
     match command {
-        Commands::Acquire {
-            processes,
-            files,
-            unifiedlogs,
-            emond,
-            loginitems,
-            launchd,
-            safari,
-            firefox,
-            chromium,
-            users,
-            groups,
-            fsevents,
-            systeminfo,
-            shellhistory,
-            execpolicy,
-            cron,
-            sudologs,
-            format,
-        } => {
-            if *processes {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::Processes, "processes"))
+        Commands::Acquire { artifact, format } => {
+            if artifact.is_none() {
+                println!("No artifact provided");
+                return;
             }
-            if *files {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::Files, "files"))
-            }
-            if *unifiedlogs {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::Unifiedlogs, "unifiedlogs"))
-            }
-            if *emond {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "emond"))
-            }
-            if *loginitems {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "loginitems"))
-            }
-            if *safari {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "safari-downloads"));
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "safari-history"))
-            }
-            if *launchd {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "launchd"))
-            }
-            if *firefox {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "firefox-downloads"));
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "firefox-history"))
-            }
-            if *chromium {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "chromium-downloads"));
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "chromium-history"))
-            }
-            if *users {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "users"))
-            }
-            if *groups {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "groups"))
-            }
-            if *fsevents {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "fseventsd"))
-            }
-            if *systeminfo {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "systeminfo"))
-            }
-            if *shellhistory {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "shell_history"))
-            }
-            if *execpolicy {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "execpolicy"))
-            }
-            if *cron {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "cron"))
-            }
-            if *sudologs {
-                collector
-                    .artifacts
-                    .push(setup_artifact(Options::None, "sudologs"))
-            }
+
+            let arti = artifact.as_ref().unwrap();
+            collector.artifacts.push(setup_artifact(arti));
+
             if !format.is_empty() {
                 collector.output.format = format.to_string();
             }
@@ -206,9 +52,9 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
 }
 
 /// Setup any artifact options. Only a few have options on macOS
-fn setup_artifact(artifact: Options, name: &str) -> Artifacts {
+fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
     let mut collect = Artifacts {
-        artifact_name: name.to_string(),
+        artifact_name: String::new(),
         filter: None,
         processes: None,
         files: None,
@@ -216,39 +62,70 @@ fn setup_artifact(artifact: Options, name: &str) -> Artifacts {
         script: None,
     };
     match artifact {
-        Options::Processes => {
+        CommandArgs::Processes {
+            md5,
+            sha1,
+            sha256,
+            metadata,
+        } => {
             let options = ProcessOptions {
-                md5: true,
-                sha1: false,
-                sha256: false,
-                metadata: false,
+                md5: *md5,
+                sha1: *sha1,
+                sha256: *sha256,
+                metadata: *metadata,
             };
             collect.processes = Some(options);
+            collect.artifact_name = String::from("processes");
         }
-        Options::Unifiedlogs => {
-            let options = UnifiedLogsOptions {
-                sources: vec![
-                    String::from("Persist"),
-                    String::from("Special"),
-                    String::from("HighVolume"),
-                    String::from("Signpost"),
-                ],
-            };
-            collect.unifiedlogs = Some(options);
-        }
-        Options::Files => {
+        CommandArgs::Filelisting {
+            md5,
+            sha1,
+            sha256,
+            metadata,
+            start_path,
+            depth,
+            regex_filter,
+        } => {
             let options = FileOptions {
-                start_path: String::from("/"),
-                depth: Some(100),
-                metadata: None,
-                md5: Some(true),
-                sha1: None,
-                sha256: None,
-                regex_filter: None,
+                md5: Some(*md5),
+                start_path: start_path.to_string(),
+                depth: Some(*depth),
+                metadata: Some(*metadata),
+                sha1: Some(*sha1),
+                sha256: Some(*sha256),
+                regex_filter: regex_filter.clone(),
             };
             collect.files = Some(options);
+            collect.artifact_name = String::from("files");
         }
-        _ => {}
+        CommandArgs::Chromiumhistory {} => collect.artifact_name = String::from("chromium-history"),
+        CommandArgs::Chromiumdownloads {} => {
+            collect.artifact_name = String::from("chromium-downloads")
+        }
+        CommandArgs::Firefoxdownloads {} => {
+            collect.artifact_name = String::from("firefox-downloads")
+        }
+        CommandArgs::Firefoxhistory {} => collect.artifact_name = String::from("firefox-history"),
+        CommandArgs::Cron {} => collect.artifact_name = String::from("cron"),
+        CommandArgs::Sudologs {} => collect.artifact_name = String::from("sudologs"),
+        CommandArgs::Shellhistory {} => collect.artifact_name = String::from("shell_history"),
+        CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
+        CommandArgs::Emond {} => collect.artifact_name = String::from("emond"),
+        CommandArgs::Fsevents {} => collect.artifact_name = String::from("fseventsd"),
+        CommandArgs::Execpolicy {} => collect.artifact_name = String::from("execpolicy"),
+        CommandArgs::Groups {} => collect.artifact_name = String::from("groups"),
+        CommandArgs::Launchd {} => collect.artifact_name = String::from("launchd"),
+        CommandArgs::Loginitems {} => collect.artifact_name = String::from("loginitems"),
+        CommandArgs::Safaridownloads {} => collect.artifact_name = String::from("safari-downloads"),
+        CommandArgs::Safarihistory {} => collect.artifact_name = String::from("safari-history"),
+        CommandArgs::Users {} => collect.artifact_name = String::from("users"),
+        CommandArgs::Unifiedlogs { sources } => {
+            let options = UnifiedLogsOptions {
+                sources: sources.clone(),
+            };
+            collect.unifiedlogs = Some(options);
+            collect.artifact_name = String::from("unifiedlogs");
+        }
     }
     collect
 }
@@ -256,32 +133,13 @@ fn setup_artifact(artifact: Options, name: &str) -> Artifacts {
 #[cfg(test)]
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
-    use crate::collector::artifacts::Options;
+    use crate::collector::macos::CommandArgs::{
+        Chromiumdownloads, Chromiumhistory, Cron, Emond, Execpolicy, Filelisting, Firefoxdownloads,
+        Firefoxhistory, Fsevents, Groups, Launchd, Loginitems, Processes, Safaridownloads,
+        Safarihistory, Shellhistory, Sudologs, Systeminfo, Unifiedlogs, Users,
+    };
     use artemis_core::structs::toml::Output;
-
-    #[test]
-    fn test_run_collector() {
-        let command = Commands::Acquire {
-            processes: true,
-            files: false,
-            unifiedlogs: false,
-            loginitems: true,
-            emond: true,
-            fsevents: false,
-            launchd: true,
-            users: false,
-            groups: false,
-            systeminfo: true,
-            execpolicy: false,
-            safari: true,
-            firefox: true,
-            chromium: true,
-            shellhistory: true,
-            cron: true,
-            sudologs: false,
-            format: String::from("json"),
-        };
-
+    fn output() -> Output {
         let out = Output {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
@@ -297,94 +155,191 @@ mod tests {
             logging: None,
         };
 
+        out
+    }
+
+    #[test]
+    fn test_run_collector_proc() {
+        let command = Commands::Acquire {
+            artifact: Some(Processes {
+                md5: true,
+                sha1: false,
+                sha256: false,
+                metadata: false,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_files() {
+        let command = Commands::Acquire {
+            artifact: Some(Filelisting {
+                md5: true,
+                sha1: false,
+                sha256: false,
+                metadata: false,
+                start_path: String::from("/"),
+                depth: 1,
+                regex_filter: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
         run_collector(&command, out);
     }
 
     #[test]
     fn test_run_collector_root() {
         let command = Commands::Acquire {
-            processes: false,
-            files: false,
-            unifiedlogs: false,
-            loginitems: false,
-            emond: false,
-            fsevents: true,
-            launchd: false,
-            users: true,
-            groups: true,
-            systeminfo: false,
-            execpolicy: true,
-            safari: false,
-            firefox: false,
-            chromium: false,
-            shellhistory: false,
-            cron: false,
-            sudologs: false,
-            format: String::from("jsonl"),
-        };
-
-        let out = Output {
-            name: String::from("root_local_collector"),
-            endpoint_id: String::from("local"),
-            collection_id: 0,
-            directory: String::from("./tmp"),
-            output: String::from("local"),
+            artifact: Some(Chromiumdownloads {}),
             format: String::from("json"),
-            compress: false,
-            filter_name: None,
-            filter_script: None,
-            url: None,
-            api_key: None,
-            logging: None,
         };
 
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Chromiumhistory {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Firefoxdownloads {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Firefoxhistory {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Launchd {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Users {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Sudologs {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Cron {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Systeminfo {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Groups {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Execpolicy {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Shellhistory {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Fsevents {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Emond {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Safaridownloads {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Safarihistory {}),
+            format: String::from("json"),
+        };
+
+        let out = output();
         run_collector(&command, out);
     }
 
     #[test]
-    fn test_run_collector_sudo() {
+    fn test_run_collector_logs() {
         let command = Commands::Acquire {
-            processes: false,
-            files: false,
-            unifiedlogs: false,
-            loginitems: false,
-            emond: false,
-            fsevents: false,
-            launchd: false,
-            users: false,
-            groups: false,
-            systeminfo: false,
-            execpolicy: false,
-            safari: false,
-            firefox: false,
-            chromium: false,
-            shellhistory: false,
-            cron: false,
-            sudologs: true,
+            artifact: Some(Unifiedlogs {
+                sources: vec![String::from("Special")],
+            }),
             format: String::from("json"),
         };
 
-        let out = Output {
-            name: String::from("sudo_local_collector"),
-            endpoint_id: String::from("local"),
-            collection_id: 0,
-            directory: String::from("./tmp"),
-            output: String::from("local"),
-            format: String::from("json"),
-            compress: false,
-            filter_name: None,
-            filter_script: None,
-            url: None,
-            api_key: None,
-            logging: None,
-        };
-
+        let out = output();
         run_collector(&command, out);
     }
 
     #[test]
     fn test_setup_artifact() {
-        let result = setup_artifact(Options::None, "loginitems");
+        let result = setup_artifact(&Loginitems {});
         assert_eq!(result.artifact_name, "loginitems");
     }
 }
