@@ -1,8 +1,26 @@
+use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
 use log::info;
 
-#[derive(Parser, Debug)]
+#[cfg(target_os = "macos")]
+use crate::collector::macos::run_collector;
+#[cfg(target_os = "macos")]
+use collector::macos::Commands;
+
+#[cfg(target_os = "windows")]
+use crate::collector::windows::run_collector;
+#[cfg(target_os = "windows")]
+use collector::windows::Commands;
+
+#[cfg(target_os = "linux")]
+use crate::collector::linux::run_collector;
+#[cfg(target_os = "linux")]
+use collector::linux::Commands;
+
+mod collector;
+
+#[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Full path to TOML collector
@@ -16,6 +34,9 @@ struct Args {
     /// Full path to JavaScript file
     #[clap(short, long, value_parser)]
     javascript: Option<String>,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
 }
 
 fn main() {
@@ -70,6 +91,22 @@ fn parse_args(args: &Args) {
                 }
             }
         }
+    } else if let Some(command) = &args.command {
+        let out = Output {
+            name: String::from("local_collector"),
+            endpoint_id: String::from("local"),
+            collection_id: 0,
+            directory: String::from("./tmp"),
+            output: String::from("local"),
+            format: String::from("json"),
+            compress: false,
+            filter_name: None,
+            filter_script: None,
+            url: None,
+            api_key: None,
+            logging: None,
+        };
+        run_collector(command, out)
     } else {
         println!("[artemis] No valid command args provided!");
         return;
@@ -91,6 +128,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -103,6 +141,7 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gImxpbnV4IgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -117,6 +156,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -129,6 +169,7 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInN5c3RlbWluZm9fY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQplbmRwb2ludF9pZCA9ICJhYmRjIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic3lzdGVtaW5mbyIK")),
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -143,6 +184,7 @@ mod tests {
             toml: Some(test_location.display().to_string()),
             decode: None,
             javascript: None,
+            command: None,
         };
 
         parse_args(&args);
@@ -155,6 +197,78 @@ mod tests {
             toml: None,
             decode: Some(String::from("c3lzdGVtID0gIm1hY29zIgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
             javascript: None,
+            command: None,
+        };
+
+        parse_args(&args);
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn test_parse_args_command_macos() {
+        use crate::collector::commands::CommandArgs::Filelisting;
+        use crate::collector::macos::Commands;
+
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                artifact: Some(Filelisting {
+                    md5: false,
+                    sha1: false,
+                    sha256: false,
+                    metadata: false,
+                    start_path: String::from("/"),
+                    depth: 1,
+                    regex_filter: None,
+                }),
+                format: String::from("json"),
+            }),
+        };
+
+        parse_args(&args);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_parse_args_command_windows() {
+        use crate::collector::commands::CommandArgs::Shortcuts;
+        use crate::collector::windows::Commands;
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                artifact: Some(Shortcuts {
+                    path: String::from("C:\\"),
+                }),
+                format: String::from("json"),
+            }),
+        };
+
+        parse_args(&args);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_parse_args_command_macos() {
+        use crate::collector::commands::CommandArgs::Processes;
+        use crate::collector::linux::Commands;
+
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                artifact: Some(Processes {
+                    md5: true,
+                    sha1: false,
+                    sha256: false,
+                    metadata: false,
+                }),
+                format: String::from("json"),
+            }),
         };
 
         parse_args(&args);
@@ -168,6 +282,7 @@ mod tests {
             toml: None,
             decode: None,
             javascript: Some(test_location.display().to_string()),
+            command: None,
         };
 
         parse_args(&args);

@@ -1,5 +1,5 @@
 use super::error::LocalError;
-use crate::utils::artemis_toml::Output;
+use crate::structs::toml::Output;
 use log::error;
 use std::{
     fs::{create_dir_all, OpenOptions},
@@ -56,7 +56,7 @@ pub(crate) fn local_output(
 
 #[cfg(test)]
 mod tests {
-    use crate::{output::local::output::local_output, utils::artemis_toml::Output};
+    use crate::{output::local::output::local_output, structs::toml::Output};
 
     #[test]
     fn test_output_json() {

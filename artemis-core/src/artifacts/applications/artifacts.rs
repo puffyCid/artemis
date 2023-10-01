@@ -6,7 +6,8 @@ use super::{
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
     runtime::deno::filter_script,
-    utils::{artemis_toml::Output, time},
+    structs::toml::Output,
+    utils::time,
 };
 use log::{error, warn};
 use serde_json::Value;
@@ -241,7 +242,7 @@ mod tests {
         artifacts::applications::artifacts::{
             chromium_downloads, chromium_history, firefox_downloads, firefox_history,
         },
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
 
     #[cfg(target_os = "macos")]

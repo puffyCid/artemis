@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::macos::{artifacts::output_data, error::MacArtifactError},
     filesystem::files::{is_file, list_files},
-    utils::artemis_toml::Output,
+    structs::toml::Output,
 };
 use log::{error, info};
 use macos_unifiedlogs::{
@@ -189,15 +189,13 @@ fn parse_trace_files(
 
 #[cfg(test)]
 mod tests {
-
-    use std::path::PathBuf;
-
     use super::{grab_logs, parse_trace_files, ParseOptions, UnifiedLog};
-    use crate::utils::{artemis_toml::Output, time};
+    use crate::{structs::toml::Output, utils::time};
     use macos_unifiedlogs::{
         parser::{collect_shared_strings_system, collect_strings_system, collect_timesync_system},
         unified_log::UnifiedLogData,
     };
+    use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

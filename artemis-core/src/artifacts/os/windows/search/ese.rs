@@ -4,8 +4,8 @@ use super::{
     tables::indexgthr::{parse_index_gthr, parse_index_gthr_path},
 };
 use crate::{
-    artifacts::os::windows::ese::parser::grab_ese_tables_path,
-    utils::{artemis_toml::Output, time::time_now},
+    artifacts::os::windows::ese::parser::grab_ese_tables_path, structs::toml::Output,
+    utils::time::time_now,
 };
 use log::{error, warn};
 use serde::Serialize;
@@ -112,7 +112,7 @@ pub(crate) fn parse_search_path(
 #[cfg(test)]
 mod tests {
     use super::{parse_search, parse_search_path};
-    use crate::{filesystem::files::is_file, utils::artemis_toml::Output};
+    use crate::{filesystem::files::is_file, structs::toml::Output};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

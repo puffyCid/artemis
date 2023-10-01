@@ -2,11 +2,11 @@ use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
     runtime::deno::raw_script,
-    utils::{artemis_toml::ArtemisToml, logging::create_log_file},
+    structs::toml::ArtemisToml,
+    utils::logging::create_log_file,
 };
 use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger, WriteLogger};
-use std::str::from_utf8;
 
 #[cfg(target_os = "linux")]
 use crate::artifacts::linux_collection::linux_collection;
@@ -25,28 +25,28 @@ pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
         }
     };
 
-    let toml_results = toml::from_str(from_utf8(&buffer).unwrap_or_default());
-    let os_target: ArtemisToml = match toml_results {
+    let toml_results = ArtemisToml::parse_artemis_toml(&buffer);
+    let mut collection = match toml_results {
         Ok(results) => results,
         Err(_) => {
             return Err(TomlError::BadToml);
         }
     };
 
-    toml_data(&os_target, &buffer)?;
+    artemis_collection(&mut collection)?;
     Ok(())
 }
 
 /// Parse an already read TOML file
 pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
-    let toml_results = toml::from_str(from_utf8(data).unwrap_or_default());
-    let os_target: ArtemisToml = match toml_results {
+    let toml_results = ArtemisToml::parse_artemis_toml(data);
+    let mut collection = match toml_results {
         Ok(results) => results,
         Err(_) => {
             return Err(TomlError::BadToml);
         }
     };
-    toml_data(&os_target, data)?;
+    artemis_collection(&mut collection)?;
     Ok(())
 }
 
@@ -71,43 +71,43 @@ pub fn parse_js_file(path: &str) -> Result<(), TomlError> {
 }
 
 /// Based on target system collect data based on TOML config
-fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError> {
-    if let Ok((log_file, level)) = create_log_file(&os_target.output) {
+pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
+    if let Ok((log_file, level)) = create_log_file(&collection.output) {
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
-    if os_target.system == "macos" {
+    if collection.system == "macos" {
         #[cfg(target_os = "macos")]
         {
-            let result = macos_collection(toml_data);
+            let result = macos_collection(collection);
             match result {
                 Ok(_) => info!("[artemis-core] Core parsed macos TOML data"),
                 Err(err) => {
-                    error!("[artemis-core] Core failed to parse macos TOML data: {err:?}");
+                    error!("[artemis-core] Core failed to parse macos collection: {err:?}");
                     return Err(TomlError::BadToml);
                 }
             }
         }
-    } else if os_target.system == "windows" {
+    } else if collection.system == "windows" {
         #[cfg(target_os = "windows")]
         {
-            let result = windows_collection(toml_data);
+            let result = windows_collection(collection);
             match result {
                 Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
                 Err(err) => {
-                    error!("[artemis-core] Core failed to parse Windows TOML data: {err:?}");
+                    error!("[artemis-core] Core failed to parse Windows collection: {err:?}");
                     return Err(TomlError::BadToml);
                 }
             }
         }
-    } else if os_target.system == "linux" {
+    } else if collection.system == "linux" {
         #[cfg(target_os = "linux")]
         {
-            let result = linux_collection(toml_data);
+            let result = linux_collection(collection);
             match result {
                 Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
                 Err(err) => {
-                    error!("[artemis-core] Core failed to parse Linux TOML data: {err:?}");
+                    error!("[artemis-core] Core failed to parse Linux collection: {err:?}");
                     return Err(TomlError::BadToml);
                 }
             }
@@ -120,9 +120,9 @@ fn toml_data(os_target: &ArtemisToml, toml_data: &[u8]) -> Result<(), TomlError>
 mod tests {
     use super::{parse_js_file, parse_toml_data, parse_toml_file};
     use crate::{
-        core::{toml_data, ArtemisToml},
+        core::{artemis_collection, ArtemisToml},
         filesystem::files::read_file,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
     use std::path::PathBuf;
 
@@ -191,13 +191,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "BadToml")]
     fn test_bad_parse_toml_file() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/malformed_tests/bad.toml");
-
-        let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let os_target = ArtemisToml {
+        let mut collection = ArtemisToml {
             #[cfg(target_os = "macos")]
             system: String::from("macos"),
             #[cfg(target_os = "windows")]
@@ -220,6 +215,6 @@ mod tests {
             },
             artifacts: Vec::new(),
         };
-        toml_data(&os_target, &buffer).unwrap();
+        artemis_collection(&mut collection).unwrap();
     }
 }

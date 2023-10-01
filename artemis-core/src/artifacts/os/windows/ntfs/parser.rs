@@ -24,9 +24,8 @@ use crate::{
         files::{file_extension, Hashes},
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
     },
-    structs::artifacts::os::windows::RawFilesOptions,
+    structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
     utils::{
-        artemis_toml::Output,
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
         time::time_now,
@@ -435,8 +434,8 @@ mod tests {
     use crate::{
         artifacts::os::windows::ntfs::parser::{Hashes, Params},
         filesystem::ntfs::setup::setup_ntfs_parser,
-        structs::artifacts::os::windows::RawFilesOptions,
-        utils::{artemis_toml::Output, time::time_now},
+        structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
+        utils::time::time_now,
     };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};

@@ -12,7 +12,8 @@ use crate::{
         artifacts::output_data, ese::parser::grab_ese_tables_path,
         srum::tables::index::parse_id_lookup,
     },
-    utils::{artemis_toml::Output, time::time_now},
+    structs::toml::Output,
+    utils::time::time_now,
 };
 use log::{error, warn};
 use serde_json::Value;
@@ -132,7 +133,7 @@ pub(crate) fn get_srum(path: &str, tables: &[String]) -> Result<Value, SrumError
 #[cfg(test)]
 mod tests {
     use super::{get_srum, parse_srum};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

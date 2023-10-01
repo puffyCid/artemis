@@ -1,9 +1,10 @@
 use super::error::FormatError;
 use crate::{
     artifacts::os::systeminfo::info::SystemInfo,
+    structs::toml::Output,
     utils::{
-        artemis_toml::Output, compression::compress_gzip_data, logging::collection_status,
-        output::output_artifact, time::time_now, uuid::generate_uuid,
+        compression::compress_gzip_data, logging::collection_status, output::output_artifact,
+        time::time_now, uuid::generate_uuid,
     },
 };
 use log::{error, info};
@@ -132,7 +133,8 @@ mod tests {
     use super::{create_line, write_json, write_meta_json};
     use crate::{
         output::formats::jsonl::jsonl_format,
-        utils::{artemis_toml::Output, time::time_now, uuid::generate_uuid},
+        structs::toml::Output,
+        utils::{time::time_now, uuid::generate_uuid},
     };
     use serde_json::json;
 

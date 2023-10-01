@@ -1,7 +1,6 @@
 use super::{error::SearchError, ese::SearchEntry};
 use crate::{
-    artifacts::os::windows::artifacts::output_data,
-    utils::{artemis_toml::Output, time::time_now},
+    artifacts::os::windows::artifacts::output_data, structs::toml::Output, utils::time::time_now,
 };
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
@@ -225,7 +224,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 #[cfg(test)]
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

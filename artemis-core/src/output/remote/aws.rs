@@ -1,5 +1,6 @@
 use super::error::RemoteError;
-use crate::utils::{artemis_toml::Output, encoding::base64_decode_standard};
+use crate::structs::toml::Output;
+use crate::utils::encoding::base64_decode_standard;
 use log::{error, info, warn};
 use nom::bytes::complete::take;
 use nom::error::ErrorKind;
@@ -427,7 +428,7 @@ mod tests {
         aws_complete_multipart, aws_create_multipart, aws_creds, aws_multipart_upload,
         aws_start_upload, aws_upload,
     };
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use httpmock::{
         Method::{POST, PUT},
         MockServer,

@@ -12,7 +12,7 @@ use crate::artifacts::os::systeminfo::info::SystemInfo;
 use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::{files::Hashes, metadata::get_timestamps};
-use crate::utils::artemis_toml::Output;
+use crate::structs::toml::Output;
 use crate::utils::regex_options::{create_regex, regex_check};
 use crate::utils::time::time_now;
 use log::{error, info, warn};
@@ -350,7 +350,7 @@ impl FileInfo {
 #[cfg(test)]
 mod tests {
     use super::FileInfo;
-    use crate::{artifacts::os::files::filelisting::Hashes, utils::artemis_toml::Output};
+    use crate::{artifacts::os::files::filelisting::Hashes, structs::toml::Output};
     use walkdir::WalkDir;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

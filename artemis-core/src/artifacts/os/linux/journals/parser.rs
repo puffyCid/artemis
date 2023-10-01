@@ -19,7 +19,7 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    utils::artemis_toml::Output,
+    structs::toml::Output,
 };
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
@@ -72,9 +72,7 @@ pub(crate) fn grab_journal_file(path: &str) -> Result<Vec<Journal>, JournalError
 #[cfg(test)]
 mod tests {
     use super::grab_journal;
-    use crate::{
-        artifacts::os::linux::journals::parser::grab_journal_file, utils::artemis_toml::Output,
-    };
+    use crate::{artifacts::os::linux::journals::parser::grab_journal_file, structs::toml::Output};
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

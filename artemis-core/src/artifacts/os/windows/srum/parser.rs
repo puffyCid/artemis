@@ -18,8 +18,8 @@ use super::{
     resource::{get_srum, parse_srum},
 };
 use crate::{
-    structs::artifacts::os::windows::SrumOptions,
-    utils::{artemis_toml::Output, environment::get_systemdrive},
+    structs::{artifacts::os::windows::SrumOptions, toml::Output},
+    utils::environment::get_systemdrive,
 };
 use log::error;
 use serde_json::Value;
@@ -77,7 +77,7 @@ pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError
 mod tests {
     use crate::{
         artifacts::os::windows::srum::parser::grab_srum_path,
-        structs::artifacts::os::windows::SrumOptions, utils::artemis_toml::Output,
+        structs::artifacts::os::windows::SrumOptions, structs::toml::Output,
     };
 
     use super::grab_srum;

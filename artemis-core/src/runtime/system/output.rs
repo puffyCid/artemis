@@ -1,4 +1,4 @@
-use crate::{runtime::deno::output_data, utils::artemis_toml::Output};
+use crate::{runtime::deno::output_data, structs::toml::Output};
 use deno_core::{error::AnyError, op};
 use log::error;
 use serde_json::Value;
@@ -43,7 +43,7 @@ fn output_results(
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        utils::artemis_toml::Output,
+        structs::toml::Output,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

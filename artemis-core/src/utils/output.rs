@@ -1,14 +1,14 @@
-use std::fs::{remove_dir, remove_file};
-
-use super::{artemis_toml::Output, compression::compress_output_zip, error::ArtemisError};
+use super::{compression::compress_output_zip, error::ArtemisError};
 use crate::{
     filesystem::files::list_files,
     output::{
         local::output::local_output,
         remote::{aws::aws_upload, azure::azure_upload, gcp::gcp_upload},
     },
+    structs::toml::Output,
 };
 use log::{error, warn};
+use std::fs::{remove_dir, remove_file};
 
 /// Output artifact data based on output type
 pub(crate) fn output_artifact(
@@ -118,7 +118,7 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
 #[cfg(test)]
 mod tests {
     use super::{compress_final_output, output_artifact};
-    use crate::utils::artemis_toml::Output;
+    use crate::structs::toml::Output;
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]

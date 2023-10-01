@@ -1,8 +1,8 @@
-pub(crate) mod files;
-pub(crate) mod processes;
+pub mod files;
+pub mod processes;
 
 #[cfg(target_os = "macos")]
-pub(crate) mod macos;
+pub mod macos;
 
 #[cfg(target_os = "windows")]
-pub(crate) mod windows;
+pub mod windows;

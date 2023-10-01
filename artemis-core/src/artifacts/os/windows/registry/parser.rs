@@ -30,11 +30,8 @@ use crate::{
             setup::setup_ntfs_parser,
         },
     },
-    structs::artifacts::os::windows::RegistryOptions,
-    utils::{
-        artemis_toml::Output, environment::get_systemdrive, regex_options::create_regex,
-        time::time_now,
-    },
+    structs::{artifacts::os::windows::RegistryOptions, toml::Output},
+    utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
 use log::error;
 use regex::Regex;
@@ -291,7 +288,7 @@ impl RegistryData {
 #[cfg(test)]
 mod tests {
     use super::{Params, RegistryData};
-    use crate::{structs::artifacts::os::windows::RegistryOptions, utils::artemis_toml::Output};
+    use crate::{structs::artifacts::os::windows::RegistryOptions, structs::toml::Output};
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
 

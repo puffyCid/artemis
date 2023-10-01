@@ -4,7 +4,6 @@ use std::fmt;
 pub(crate) enum LinuxArtifactError {
     Output,
     FilterOutput,
-    BadToml,
     Serialize,
     Format,
     File,
@@ -19,7 +18,6 @@ impl fmt::Display for LinuxArtifactError {
         match self {
             LinuxArtifactError::Output => write!(f, "Failed to output data"),
             LinuxArtifactError::FilterOutput => write!(f, "Failed to filter linux data"),
-            LinuxArtifactError::BadToml => write!(f, "Artemis failed to parse TOML data"),
             LinuxArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             LinuxArtifactError::Format => write!(f, "Unknown formatter provided"),
             LinuxArtifactError::Process => write!(f, "Failed to parse Processes"),

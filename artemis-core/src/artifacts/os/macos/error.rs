@@ -12,7 +12,6 @@ pub(crate) enum MacArtifactError {
     ExecPolicy,
     Output,
     FilterOutput,
-    BadToml,
     Serialize,
     Format,
 }
@@ -32,7 +31,6 @@ impl fmt::Display for MacArtifactError {
             MacArtifactError::ExecPolicy => write!(f, "Failed to query ExecPolicy"),
             MacArtifactError::Output => write!(f, "Failed to output data"),
             MacArtifactError::FilterOutput => write!(f, "Failed to filter macos data"),
-            MacArtifactError::BadToml => write!(f, "Artemis failed to parse TOML data"),
             MacArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             MacArtifactError::Format => write!(f, "Unknown formatter provided"),
         }
