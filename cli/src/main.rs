@@ -13,6 +13,11 @@ use crate::collector::windows::run_collector;
 #[cfg(target_os = "windows")]
 use collector::windows::Commands;
 
+#[cfg(target_os = "linux")]
+use crate::collector::linux::run_collector;
+#[cfg(target_os = "linux")]
+use collector::linux::Commands;
+
 mod collector;
 
 #[derive(Parser)]
@@ -267,6 +272,30 @@ mod tests {
                 jumplists: false,
                 recyclebin: false,
                 rawfiles: false,
+            }),
+        };
+
+        parse_args(&args);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_parse_args_command_macos() {
+        use crate::collector::linux::Commands;
+        use crate::collector::commands::CommandArgs::Processes;
+        
+        let args = Args {
+            toml: None,
+            decode: None,
+            javascript: None,
+            command: Some(Commands::Acquire {
+                artifact: Some(Processes {
+                    md5: true,
+                    sha1: false,
+                    sha256: false,
+                    metadata: false,
+                }),
+                format: String::from("json"),
             }),
         };
 

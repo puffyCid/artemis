@@ -5,36 +5,26 @@ use crate::artifacts::os::linux::artifacts::{files, processes, systeminfo};
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::unix::artifacts::{bash_history, cron_job, python_history, zsh_history};
 use crate::runtime::deno::execute_script;
-use crate::utils::{
-    artemis_toml::ArtemisToml, logging::upload_logs, output::compress_final_output,
-};
+use crate::structs::toml::ArtemisToml;
+use crate::utils::{logging::upload_logs, output::compress_final_output};
 use log::{error, info, warn};
 
 use super::os::linux::artifacts::{journals, logons};
 use super::os::unix::artifacts::sudo_logs;
 
 /// Parse the TOML collector and get Linux artifact targets
-pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactError> {
-    let collector_results = ArtemisToml::parse_artemis_toml_data(toml_data);
-    let mut collector = match collector_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Linux Artemis failed to parse TOML data: {err:?}");
-            return Err(LinuxArtifactError::BadToml);
-        }
-    };
-
-    for artifacts in collector.artifacts {
+pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxArtifactError> {
+    for artifacts in &collector.artifacts {
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
             "files" => {
-                let file_data = artifacts.files;
+                let file_data = &artifacts.files;
                 let file_artifact_config = match file_data {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = files(&file_artifact_config, &mut collector.output, &filter);
+                let results = files(file_artifact_config, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
@@ -94,13 +84,13 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
                 }
             }
             "processes" => {
-                let proc = artifacts.processes;
+                let proc = &artifacts.processes;
                 let proc_artifacts = match proc {
                     Some(result) => result,
                     _ => continue,
                 };
 
-                let results = processes(&proc_artifacts, &mut collector.output, &filter);
+                let results = processes(proc_artifacts, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
@@ -170,12 +160,12 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
                 }
             }
             "script" => {
-                let script_data = artifacts.script;
+                let script_data = &artifacts.script;
                 let script = match script_data {
                     Some(result) => result,
                     _ => continue,
                 };
-                let results = execute_script(&mut collector.output, &script);
+                let results = execute_script(&mut collector.output, script);
                 match results {
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {
@@ -216,6 +206,7 @@ pub(crate) fn linux_collection(toml_data: &[u8]) -> Result<(), LinuxArtifactErro
 mod tests {
     use crate::artifacts::linux_collection::linux_collection;
     use crate::filesystem::files::read_file;
+    use crate::structs::toml::ArtemisToml;
     use std::path::PathBuf;
 
     #[test]
@@ -224,6 +215,7 @@ mod tests {
         test_location.push("tests/test_data/linux/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        linux_collection(&buffer).unwrap();
+        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        linux_collection(&mut collector).unwrap();
     }
 }
