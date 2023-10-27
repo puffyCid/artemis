@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::BitsOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing default BITS location on systemdrive to `Deno`
-fn get_bits(carve: bool) -> Result<String, AnyError> {
+pub(crate) fn get_bits(carve: bool) -> Result<String, AnyError> {
     let options = BitsOptions {
         alt_path: None,
         carve,
@@ -26,9 +27,10 @@ fn get_bits(carve: bool) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing provided BITS path to `Deno`
-fn get_bits_path(path: String, carve: bool) -> Result<String, AnyError> {
+pub(crate) fn get_bits_path(#[string] path: String, carve: bool) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Can not parse BITS path, path is empty.");
         return Err(RuntimeError::ExecuteScript.into());

@@ -2,12 +2,13 @@ use crate::{
     artifacts::applications::firefox::{downloads::FirefoxDownloads, history::FirefoxHistory},
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get `Firefox` history for all users
-fn get_firefox_users_history() -> Result<String, AnyError> {
+pub(crate) fn get_firefox_users_history() -> Result<String, AnyError> {
     let history_results = FirefoxHistory::get_history();
     let history = match history_results {
         Ok(results) => results,
@@ -20,9 +21,10 @@ fn get_firefox_users_history() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Firefox` history from provided path
-fn get_firefox_history(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_firefox_history(#[string] path: String) -> Result<String, AnyError> {
     let history_results = FirefoxHistory::history_query(&path);
     let history = match history_results {
         Ok(results) => results,
@@ -35,9 +37,10 @@ fn get_firefox_history(path: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Firefox` downloads for all users
-fn get_firefox_users_downloads() -> Result<String, AnyError> {
+pub(crate) fn get_firefox_users_downloads() -> Result<String, AnyError> {
     let downloads_results = FirefoxDownloads::get_downloads();
     let downloads = match downloads_results {
         Ok(results) => results,
@@ -50,9 +53,10 @@ fn get_firefox_users_downloads() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Firefox` downloads from provided path
-fn get_firefox_downloads(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_firefox_downloads(#[string] path: String) -> Result<String, AnyError> {
     let downloads_results = FirefoxDownloads::downloads_query(&path);
     let downloads = match downloads_results {
         Ok(results) => results,

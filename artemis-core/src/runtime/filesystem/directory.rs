@@ -6,7 +6,7 @@ use crate::{
     },
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 use serde::Serialize;
 use std::path::Path;
@@ -32,9 +32,10 @@ pub(crate) struct JsFileInfo {
     pub(crate) is_symlink: bool,
 }
 
-#[op]
+#[op2(async)]
+#[string]
 /// List all files and directories at provided directory path
-async fn js_read_dir(path: String) -> Result<String, AnyError> {
+pub(crate) async fn js_read_dir(#[string] path: String) -> Result<String, AnyError> {
     if !is_directory(&path) {
         error!("[runtime] Path is not a directory");
         return Err(RuntimeError::ExecuteScript.into());

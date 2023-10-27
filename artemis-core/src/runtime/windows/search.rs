@@ -1,12 +1,13 @@
 use crate::{
     artifacts::os::windows::search::parser::grab_search_path, runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Windows Search to `Deno`
-fn get_search(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_search(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Empty path to Search file");
         return Err(RuntimeError::ExecuteScript.into());

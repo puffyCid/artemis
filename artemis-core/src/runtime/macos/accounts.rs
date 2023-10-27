@@ -1,7 +1,8 @@
 use crate::artifacts::os::macos::accounts::{groups::grab_groups, users::grab_users};
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Users to `Deno`
 fn get_users() -> Result<String, AnyError> {
     let users = grab_users();
@@ -9,7 +10,8 @@ fn get_users() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Groups to `Deno`
 fn get_groups() -> Result<String, AnyError> {
     let groups = grab_groups();

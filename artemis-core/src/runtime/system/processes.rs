@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::processes::process::Processes, filesystem::files::Hashes,
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose pulling process listing to `Deno`
-fn get_processes(hashes: String, metadata: bool) -> Result<String, AnyError> {
+pub(crate) fn get_processes(#[string] hashes: String, metadata: bool) -> Result<String, AnyError> {
     let hashes: Hashes = serde_json::from_str(&hashes).unwrap_or(Hashes {
         md5: false,
         sha1: false,

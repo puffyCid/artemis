@@ -1,15 +1,17 @@
 use crate::utils::strings::extract_utf8_string;
-use deno_core::{op, JsBuffer};
+use deno_core::{op2, JsBuffer};
 
-#[op]
+#[op2]
+#[string]
 /// Attempt to extract a UTF8 string from raw bytes
-fn js_extract_utf8_string(data: JsBuffer) -> String {
+pub(crate) fn js_extract_utf8_string(#[buffer] data: JsBuffer) -> String {
     extract_utf8_string(&data)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Attempt to represent bytes as a Hex string
-fn js_bytes_to_hex_string(data: JsBuffer) -> String {
+pub(crate) fn js_bytes_to_hex_string(#[buffer] data: JsBuffer) -> String {
     format!("{:02x?}", data)
         .trim_matches('[')
         .trim_matches(']')

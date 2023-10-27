@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::userassist::parser::grab_userassist, runtime::error::RuntimeError,
     structs::artifacts::os::windows::UserAssistOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing userassist located on systemdrive to `Deno`
-fn get_userassist() -> Result<String, AnyError> {
+pub(crate) fn get_userassist() -> Result<String, AnyError> {
     let options = UserAssistOptions { alt_drive: None };
 
     let assist_result = grab_userassist(&options);
@@ -23,9 +24,10 @@ fn get_userassist() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing userassist located on alt drive to `Deno`
-fn get_alt_userassist(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_userassist(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt userassist drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

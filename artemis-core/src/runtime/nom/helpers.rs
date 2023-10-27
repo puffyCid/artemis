@@ -3,18 +3,22 @@ use crate::utils::nom_helper::{
     nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_sixteen_bytes,
     nom_unsigned_two_bytes, Endian,
 };
-use deno_core::{error::AnyError, op, JsBuffer, ToJsBuffer};
+use deno_core::{error::AnyError, op2, JsBuffer, ToJsBuffer};
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct NomUnsignedJs {
+pub(crate) struct NomUnsignedJs {
     remaining: ToJsBuffer,
     value: usize,
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_unsigned_four_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsignedJs, AnyError> {
+pub(crate) fn js_nom_unsigned_four_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomUnsignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -30,9 +34,13 @@ fn js_nom_unsigned_four_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsig
     Ok(nom_bytes)
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_unsigned_eight_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsignedJs, AnyError> {
+pub(crate) fn js_nom_unsigned_eight_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomUnsignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -48,9 +56,13 @@ fn js_nom_unsigned_eight_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsi
     Ok(nom_bytes)
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_unsigned_two_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsignedJs, AnyError> {
+pub(crate) fn js_nom_unsigned_two_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomUnsignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -66,9 +78,13 @@ fn js_nom_unsigned_two_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsign
     Ok(nom_bytes)
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_unsigned_one_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsignedJs, AnyError> {
+pub(crate) fn js_nom_unsigned_one_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomUnsignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -85,14 +101,15 @@ fn js_nom_unsigned_one_bytes(data: JsBuffer, big_little: u8) -> Result<NomUnsign
 }
 
 #[derive(Serialize)]
-struct NomUnsignedLargeJs {
+pub(crate) struct NomUnsignedLargeJs {
     remaining: ToJsBuffer,
     value: String,
 }
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_unsigned_sixteen_bytes(
-    data: JsBuffer,
+pub(crate) fn js_nom_unsigned_sixteen_bytes(
+    #[buffer] data: JsBuffer,
     big_little: u8,
 ) -> Result<NomUnsignedLargeJs, AnyError> {
     let endian = if big_little == 1 {
@@ -111,14 +128,18 @@ fn js_nom_unsigned_sixteen_bytes(
 }
 
 #[derive(Serialize)]
-struct NomSignedJs {
+pub(crate) struct NomSignedJs {
     remaining: ToJsBuffer,
     value: isize,
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_signed_four_bytes(data: JsBuffer, big_little: u8) -> Result<NomSignedJs, AnyError> {
+pub(crate) fn js_nom_signed_four_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomSignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -134,9 +155,13 @@ fn js_nom_signed_four_bytes(data: JsBuffer, big_little: u8) -> Result<NomSignedJ
     Ok(nom_bytes)
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_signed_eight_bytes(data: JsBuffer, big_little: u8) -> Result<NomSignedJs, AnyError> {
+pub(crate) fn js_nom_signed_eight_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomSignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {
@@ -152,9 +177,13 @@ fn js_nom_signed_eight_bytes(data: JsBuffer, big_little: u8) -> Result<NomSigned
     Ok(nom_bytes)
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nom helper to Deno
-fn js_nom_signed_two_bytes(data: JsBuffer, big_little: u8) -> Result<NomSignedJs, AnyError> {
+pub(crate) fn js_nom_signed_two_bytes(
+    #[buffer] data: JsBuffer,
+    big_little: u8,
+) -> Result<NomSignedJs, AnyError> {
     let endian = if big_little == 1 {
         Endian::Le
     } else {

@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::accounts::parser::grab_users, runtime::error::RuntimeError,
     structs::artifacts::os::windows::UserOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing user info to `Deno`
-fn get_users() -> Result<String, AnyError> {
+pub(crate) fn get_users() -> Result<String, AnyError> {
     let options = UserOptions { alt_drive: None };
 
     let users_results = grab_users(&options);
@@ -23,9 +24,10 @@ fn get_users() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing user info on alt drive to `Deno`
-fn get_alt_users(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_users(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse user info. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

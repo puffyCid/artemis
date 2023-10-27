@@ -1,5 +1,5 @@
 use crate::runtime::error::RuntimeError;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,
@@ -12,9 +12,10 @@ use macos_unifiedlogs::{
     uuidtext::UUIDText,
 };
 
-#[op]
+#[op2]
+#[string]
 /// Expose Unified Log parsing to `Deno`
-fn get_unified_log(path: String) -> Result<String, AnyError> {
+fn get_unified_log(#[string] path: String) -> Result<String, AnyError> {
     // Not ideal but for now we have to parse the Unified Log metadata each time we want to parse a log file
     // Fortunately the metadata logs are really small and are parsed very quickly
     let strings_results = collect_strings_system();

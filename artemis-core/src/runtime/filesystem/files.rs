@@ -3,13 +3,14 @@ use crate::filesystem::{
     files::{file_extension, get_filename, hash_file, read_file, read_text_file, Hashes},
     metadata::{get_metadata, get_timestamps, glob_paths},
 };
-use deno_core::{error::AnyError, op, ToJsBuffer};
+use deno_core::{error::AnyError, op2};
 use serde::Serialize;
 use std::path::Path;
 
-#[op]
+#[op2]
+#[string]
 /// Return metadata about provided path or file
-fn js_stat(path: String) -> Result<String, AnyError> {
+pub(crate) fn js_stat(#[string] path: String) -> Result<String, AnyError> {
     let timestamps = get_timestamps(&path)?;
     let meta = get_metadata(&path)?;
 
@@ -41,9 +42,10 @@ fn js_stat(path: String) -> Result<String, AnyError> {
     Ok(data)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Return glob info based on provided glob string
-fn js_glob(glob: String) -> Result<String, AnyError> {
+pub(crate) fn js_glob(#[string] glob: String) -> Result<String, AnyError> {
     let globs = glob_paths(&glob)?;
     let data = serde_json::to_string(&globs)?;
 
@@ -51,15 +53,21 @@ fn js_glob(glob: String) -> Result<String, AnyError> {
 }
 
 #[derive(Serialize, Debug)]
-struct HashInfo {
+pub(crate) struct HashInfo {
     md5: String,
     sha1: String,
     sha256: String,
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Hash a file from provided path based on hashing algorithms. If file is not provided empty values are returned
-fn js_hash_file(path: String, md5: bool, sha1: bool, sha256: bool) -> HashInfo {
+pub(crate) fn js_hash_file(
+    #[string] path: String,
+    md5: bool,
+    sha1: bool,
+    sha256: bool,
+) -> HashInfo {
     let hashes = Hashes { md5, sha1, sha256 };
     let (md5_value, sha1_value, sha256_value) = hash_file(&hashes, &path);
     HashInfo {
@@ -69,18 +77,20 @@ fn js_hash_file(path: String, md5: bool, sha1: bool, sha256: bool) -> HashInfo {
     }
 }
 
-#[op]
+#[op2]
+#[string]
 /// Read a text file at provided path. Currently only files smaller than 2GB can be read
-fn js_read_text_file(path: String) -> Result<String, AnyError> {
+pub(crate) fn js_read_text_file(#[string] path: String) -> Result<String, AnyError> {
     let data = read_text_file(&path)?;
     Ok(data)
 }
 
-#[op]
+#[op2]
+#[buffer]
 /// Read a file at provided path. Currently only files smaller than 2GB can be read
-fn js_read_file(path: String) -> Result<ToJsBuffer, AnyError> {
+pub(crate) fn js_read_file(#[string] path: String) -> Result<Vec<u8>, AnyError> {
     let data = read_file(&path)?;
-    Ok(data.into())
+    Ok(data)
 }
 
 #[cfg(test)]

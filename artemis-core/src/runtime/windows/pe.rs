@@ -1,9 +1,10 @@
 use crate::artifacts::os::windows::pe::parser::parse_pe_file;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing pe file  to `Deno`
-fn get_pe(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_pe(#[string] path: String) -> Result<String, AnyError> {
     let pe_results = parse_pe_file(&path);
     let pe = match pe_results {
         Ok(results) => results,

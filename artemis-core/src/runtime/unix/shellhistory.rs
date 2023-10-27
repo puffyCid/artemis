@@ -4,10 +4,11 @@ use crate::{
     },
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get `Bash history` for all users
 fn get_bash_history() -> Result<String, AnyError> {
     let history_results = BashHistory::get_user_bash_history();
@@ -22,7 +23,8 @@ fn get_bash_history() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Zsh history` for all users
 fn get_zsh_history() -> Result<String, AnyError> {
     let history_results = ZshHistory::get_user_zsh_history();
@@ -37,7 +39,8 @@ fn get_zsh_history() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Python history` for all users
 fn get_python_history() -> Result<String, AnyError> {
     let downloads_results = PythonHistory::get_user_python_history();

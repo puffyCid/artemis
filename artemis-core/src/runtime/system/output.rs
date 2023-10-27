@@ -1,13 +1,13 @@
 use crate::{runtime::deno::output_data, structs::toml::Output};
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 use serde_json::Value;
 
-#[op]
-fn output_results(
-    data: String,
-    output_name: String,
-    output_format: String,
+#[op2(fast)]
+pub(crate) fn output_results(
+    #[string] data: String,
+    #[string] output_name: String,
+    #[string] output_format: String,
 ) -> Result<bool, AnyError> {
     let sucess = true;
     let failure = false;

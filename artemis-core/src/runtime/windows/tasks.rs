@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::TasksOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Schedule Tasks at default systemdrive to Deno
-fn get_tasks() -> Result<String, AnyError> {
+pub(crate) fn get_tasks() -> Result<String, AnyError> {
     let options = TasksOptions { alt_drive: None };
     let task_result = grab_tasks(&options);
     let task = match task_result {
@@ -23,9 +24,10 @@ fn get_tasks() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Schedule Tasks at alternative drive to Deno
-fn get_alt_tasks(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_tasks(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt tasks drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -49,9 +51,10 @@ fn get_alt_tasks(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Schedule Task file to Deno
-fn get_task_file(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_task_file(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Got empty task file arguement.");
         return Err(RuntimeError::ExecuteScript.into());

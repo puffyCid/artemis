@@ -2,12 +2,13 @@ use crate::{
     filesystem::ntfs::raw_files::{raw_read_file, read_attribute},
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op, ToJsBuffer};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[buffer]
 /// Expose reading a raw file to `Deno`
-fn read_raw_file(path: String) -> Result<ToJsBuffer, AnyError> {
+pub(crate) fn read_raw_file(#[string] path: String) -> Result<Vec<u8>, AnyError> {
     let data_result = raw_read_file(&path);
     let data = match data_result {
         Ok(results) => results,
@@ -16,12 +17,16 @@ fn read_raw_file(path: String) -> Result<ToJsBuffer, AnyError> {
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    Ok(data.into())
+    Ok(data)
 }
 
-#[op]
+#[op2]
+#[buffer]
 /// Expose reading an alternative data stream (ADS) to `Deno`
-fn read_ads_data(path: String, ads_name: String) -> Result<ToJsBuffer, AnyError> {
+pub(crate) fn read_ads_data(
+    #[string] path: String,
+    #[string] ads_name: String,
+) -> Result<Vec<u8>, AnyError> {
     let data_result = read_attribute(&path, &ads_name);
     let data = match data_result {
         Ok(results) => results,
@@ -31,7 +36,7 @@ fn read_ads_data(path: String, ads_name: String) -> Result<ToJsBuffer, AnyError>
         }
     };
 
-    Ok(data.into())
+    Ok(data)
 }
 
 #[cfg(test)]

@@ -1,10 +1,11 @@
 use crate::artifacts::os::macos::plist::property_list::{parse_plist_data, parse_plist_file};
-use deno_core::{error::AnyError, op, JsBuffer};
+use deno_core::{error::AnyError, op2, JsBuffer};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing plist file  to `Deno`
-fn get_plist(path: String) -> Result<String, AnyError> {
+fn get_plist(#[string] path: String) -> Result<String, AnyError> {
     let plist_results = parse_plist_file(&path);
     let plist = match plist_results {
         Ok(results) => results,
@@ -18,9 +19,10 @@ fn get_plist(path: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[buffer]
 /// Expose parsing plist file  to `Deno`
-fn get_plist_data(data: JsBuffer) -> Result<String, AnyError> {
+fn get_plist_data(#[buffer] data: JsBuffer) -> Result<String, AnyError> {
     let plist_results = parse_plist_data(&data);
     let plist = match plist_results {
         Ok(results) => results,

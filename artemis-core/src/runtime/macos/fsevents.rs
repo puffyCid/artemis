@@ -1,10 +1,11 @@
 use crate::artifacts::os::macos::fsevents::parser::grab_fsventsd_file;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing FsEvents to `Deno`
-fn get_fsevents(path: String) -> Result<String, AnyError> {
+fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
     let fsevents_results = grab_fsventsd_file(&path);
     let fsevents = match fsevents_results {
         Ok(results) => results,

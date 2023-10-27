@@ -1,9 +1,10 @@
 use crate::artifacts::os::linux::executable::parser::parse_elf_file;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing elf file  to `Deno`
-fn get_elf(path: String) -> Result<String, AnyError> {
+fn get_elf(#[string] path: String) -> Result<String, AnyError> {
     let elf_results = parse_elf_file(&path);
     let elf_data = match elf_results {
         Ok(results) => results,

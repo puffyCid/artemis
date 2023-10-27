@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::shimcache::parser::grab_shimcache, runtime::error::RuntimeError,
     structs::artifacts::os::windows::ShimcacheOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shimcache located on default drive to `Deno`
-fn get_shimcache() -> Result<String, AnyError> {
+pub(crate) fn get_shimcache() -> Result<String, AnyError> {
     let options = ShimcacheOptions { alt_drive: None };
     let shim_results = grab_shimcache(&options);
     let reg = match shim_results {
@@ -22,9 +23,10 @@ fn get_shimcache() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shimcache located on alt drive to `Deno`
-fn get_alt_shimcache(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_shimcache(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt shimcache drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

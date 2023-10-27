@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::JumplistsOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Jumplists at default systemdrive to Deno
-fn get_jumplists() -> Result<String, AnyError> {
+pub(crate) fn get_jumplists() -> Result<String, AnyError> {
     let options = JumplistsOptions { alt_drive: None };
     let jumplist_result = grab_jumplists(&options);
     let jumplist = match jumplist_result {
@@ -23,9 +24,10 @@ fn get_jumplists() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Jumplists at alternative drive to Deno
-fn get_alt_jumplists(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_jumplists(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt jumplists drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -49,9 +51,10 @@ fn get_alt_jumplists(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Jumplist file to Deno
-fn get_jumplist_file(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_jumplist_file(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Got empty jumplist file arguement.");
         return Err(RuntimeError::ExecuteScript.into());

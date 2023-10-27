@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::RecycleBinOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Recycle Bin at default systemdrive to Deno
-fn get_recycle_bin() -> Result<String, AnyError> {
+pub(crate) fn get_recycle_bin() -> Result<String, AnyError> {
     let options = RecycleBinOptions { alt_drive: None };
     let bin_result = grab_recycle_bin(&options);
     let bin = match bin_result {
@@ -23,9 +24,10 @@ fn get_recycle_bin() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Recycle Bin at alternative drive to Deno
-fn get_alt_recycle_bin(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_recycle_bin(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt recycle bin drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -49,9 +51,10 @@ fn get_alt_recycle_bin(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Recycle Bin file to Deno
-fn get_recycle_bin_file(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_recycle_bin_file(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Got empty recycle bin file arguement.");
         return Err(RuntimeError::ExecuteScript.into());

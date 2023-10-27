@@ -1,10 +1,11 @@
 use crate::{
     artifacts::os::macos::loginitems::parser::grab_loginitems, runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing LoginItems to `Deno`
 fn get_loginitems() -> Result<String, AnyError> {
     let loginitems_results = grab_loginitems();
