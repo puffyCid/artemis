@@ -8,7 +8,7 @@ use crate::runtime::nom::extensions::nom_functions;
 use crate::runtime::system::extensions::system_functions;
 use crate::runtime::time::extensions::time_functions;
 use crate::runtime::unix::extensions::unix_functions;
-use deno_core::{op2, Extension};
+use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_extensions() -> Vec<Extension> {

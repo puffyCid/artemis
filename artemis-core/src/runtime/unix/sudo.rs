@@ -9,7 +9,7 @@ use log::error;
 #[op2]
 #[string]
 /// Get `Sudo log` data
-fn get_sudologs() -> Result<String, AnyError> {
+pub(crate) fn get_sudologs() -> Result<String, AnyError> {
     let history_results = grab_sudo_logs();
     let history = match history_results {
         Ok(results) => results,

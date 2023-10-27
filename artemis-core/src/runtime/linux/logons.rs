@@ -4,7 +4,7 @@ use deno_core::{error::AnyError, op2};
 #[op2]
 #[string]
 /// Expose parsing logon file  to `Deno`
-fn get_logon(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_logon(#[string] path: String) -> Result<String, AnyError> {
     let mut logons = Vec::new();
     grab_logon_file(&path, &mut logons);
 

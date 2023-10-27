@@ -5,7 +5,7 @@ use log::error;
 #[op2]
 #[string]
 /// Get `Cron` data
-fn get_cron() -> Result<String, AnyError> {
+pub(crate) fn get_cron() -> Result<String, AnyError> {
     let history_results = Cron::parse_cron();
     let history = match history_results {
         Ok(results) => results,

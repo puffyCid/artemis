@@ -4,7 +4,7 @@ use deno_core::{error::AnyError, op2};
 #[op2]
 #[string]
 /// Expose parsing journal file  to `Deno`
-fn get_journal(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_journal(#[string] path: String) -> Result<String, AnyError> {
     let journal_results = grab_journal_file(&path);
     let journal_data = match journal_results {
         Ok(results) => results,

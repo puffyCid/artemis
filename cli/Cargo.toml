@@ -4,7 +4,7 @@ edition = "2021"
 version = "0.4.0"
 
 [dependencies]
-base64 = "0.21.4"
+base64 = "0.21.5"
 log = "0.4.20"
 artemis-core = {path = "../artemis-core"}
-clap = {version = "4.4.6", features = ["std", "help", "derive"]}
+clap = {version = "4.4.7", features = ["std", "help", "derive"]}
