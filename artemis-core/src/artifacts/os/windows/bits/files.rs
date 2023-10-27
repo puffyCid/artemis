@@ -197,11 +197,10 @@ mod tests {
     #[test]
     fn test_get_files() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
         let tables = vec![String::from("Files")];
-        let bits_tables = grab_ese_tables(&data, &tables).unwrap();
+        let bits_tables = grab_ese_tables(test_location.to_str().unwrap(), &tables).unwrap();
         let files = bits_tables.get("Files").unwrap();
 
         let files_info = FileInfo::get_files(files).unwrap();

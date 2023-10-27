@@ -59,10 +59,10 @@ pub(crate) struct BitsInfo {
 /**
  * Parse modern version (Win10+) of BITS which is an ESE database by dumping the `Jobs` and `Files` tables and parsing their contents  
  */
-pub(crate) fn parse_ese_bits(bits_data: &[u8], carve: bool) -> Result<WindowsBits, BitsError> {
+pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
     let tables = vec![String::from("Jobs"), String::from("Files")];
     // Dump the Jobs and Files tables from the BITS database
-    let ese_results = grab_ese_tables(bits_data, &tables);
+    let ese_results = grab_ese_tables(bits_path, &tables);
     let bits_tables = match ese_results {
         Ok(results) => results,
         Err(err) => {
@@ -138,9 +138,18 @@ pub(crate) fn parse_ese_bits(bits_data: &[u8], carve: bool) -> Result<WindowsBit
     // If we are carving and since this is ESE bits we currently do not combine job and file info
     if carve {
         let is_legacy = false;
-        let (_carved_bits, mut carved_jobs, mut carved_files) = parse_carve(bits_data, is_legacy);
-        windows_bits.carved_jobs.append(&mut carved_jobs);
-        windows_bits.carved_files.append(&mut carved_files);
+        let read_result = raw_read_file(bits_path);
+        if read_result.is_ok() {
+            let (_carved_bits, mut carved_jobs, mut carved_files) =
+                parse_carve(&read_result.unwrap_or_default(), is_legacy);
+            windows_bits.carved_jobs.append(&mut carved_jobs);
+            windows_bits.carved_files.append(&mut carved_files);
+        } else {
+            error!(
+                "[bits] Could not read {bits_path} for carving: {:?}",
+                read_result.unwrap_err()
+            );
+        }
     }
     Ok(windows_bits)
 }
@@ -234,9 +243,8 @@ mod tests {
     #[test]
     fn test_parse_ese_bits() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let results = parse_ese_bits(&data, false).unwrap();
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let results = parse_ese_bits(test_location.to_str().unwrap(), false).unwrap();
         assert_eq!(results.bits.len(), 1);
     }
 

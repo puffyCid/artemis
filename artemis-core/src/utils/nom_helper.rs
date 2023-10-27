@@ -8,7 +8,10 @@
  */
 use nom::{
     bytes::complete::take,
-    number::complete::{be_u16, be_u32, be_u64, be_u8, le_u16, le_u32, le_u64, le_u8},
+    number::complete::{
+        be_i16, be_i32, be_i64, be_u128, be_u16, be_u32, be_u64, be_u8, le_i16, le_i32, le_i64,
+        le_u128, le_u16, le_u32, le_u64, le_u8,
+    },
 };
 use std::mem::size_of;
 
@@ -81,8 +84,6 @@ pub(crate) fn nom_unsigned_one_byte(data: &[u8], endian: Endian) -> nom::IResult
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_sixteen_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u128> {
-    use nom::number::complete::{be_u128, le_u128};
-
     let (input, value_data) = take(size_of::<u128>())(data)?;
 
     let (_, value) = match endian {
@@ -97,8 +98,6 @@ pub(crate) fn nom_unsigned_sixteen_bytes(data: &[u8], endian: Endian) -> nom::IR
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_four_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i32> {
-    use nom::number::complete::{be_i32, le_i32};
-
     let (input, value_data) = take(size_of::<u32>())(data)?;
 
     let (_, value) = match endian {
@@ -114,8 +113,6 @@ pub(crate) fn nom_signed_four_bytes(data: &[u8], endian: Endian) -> nom::IResult
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_eight_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i64> {
-    use nom::number::complete::{be_i64, le_i64};
-
     let (input, value_data) = take(size_of::<u64>())(data)?;
 
     let (_, value) = match endian {
@@ -130,8 +127,6 @@ pub(crate) fn nom_signed_eight_bytes(data: &[u8], endian: Endian) -> nom::IResul
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_two_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i16> {
-    use nom::number::complete::{be_i16, le_i16};
-
     let (input, value_data) = take(size_of::<u16>())(data)?;
 
     let (_, value) = match endian {
@@ -141,10 +136,19 @@ pub(crate) fn nom_signed_two_bytes(data: &[u8], endian: Endian) -> nom::IResult<
     Ok((input, value))
 }
 
+/**
+ * Nom an arbitrary amount of data and return the bytes remaining and bytes nom'd
+ */
+pub(crate) fn nom_data(data: &[u8], count: u64) -> nom::IResult<&[u8], &[u8]> {
+    let (input, value) = take(count)(data)?;
+
+    Ok((input, value))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::utils::nom_helper::{
-        nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+        nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
         nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
     };
@@ -175,6 +179,13 @@ mod tests {
         let test = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let (_, results) = nom_unsigned_sixteen_bytes(&test, Endian::Le).unwrap();
         assert_eq!(results, 2);
+    }
+
+    #[test]
+    fn test_nom_data() {
+        let test = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let (_, results) = nom_data(&test, 3).unwrap();
+        assert_eq!(results.len(), 3);
     }
 
     #[test]

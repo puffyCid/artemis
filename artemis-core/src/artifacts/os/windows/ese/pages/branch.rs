@@ -8,11 +8,14 @@ use crate::{
         tables::ColumnInfo,
         tags::TagFlags,
     },
+    filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
     utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
 };
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
+use ntfs::NtfsFile;
 use std::collections::HashMap;
+use std::{fs::File, io::BufReader};
 
 #[derive(Debug)]
 pub(crate) struct BranchPage {
@@ -56,8 +59,9 @@ impl BranchPage {
     /// Parse child branch pages related to catalog. Only care about tags that have data definition type
     pub(crate) fn parse_branch_child_catalog<'a>(
         data: &'a [u8],
-        ese_data: &'a [u8],
         page_tracker: &mut HashMap<u32, bool>,
+        ntfs_file: &NtfsFile<'_>,
+        fs: &mut BufReader<SectorReader<File>>,
     ) -> nom::IResult<&'a [u8], Vec<Catalog>> {
         let (page_data, branch_page_data) = PageHeader::parse_header(data)?;
 
@@ -130,11 +134,27 @@ impl BranchPage {
 
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) as usize * data.len();
-            let (branch_child_page_start, _) = take(branch_start)(ese_data)?;
             // Now get the child page
-            let (_, child_data) = take(data.len())(branch_child_page_start)?;
-
-            BranchPage::parse_branch_child_catalog(child_data, ese_data, page_tracker)?;
+            let child_result = read_bytes(&(branch_start as u64), data.len() as u64, ntfs_file, fs);
+            let child_data = match child_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Could not read child page data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
+            let rows_results =
+                BranchPage::parse_branch_child_catalog(&child_data, page_tracker, ntfs_file, fs);
+            let (_, mut rows) = if let Ok(results) = rows_results {
+                results
+            } else {
+                error!("[ese] Could not parse child branch");
+                continue;
+            };
+            catalog_rows.append(&mut rows);
         }
         Ok((data, catalog_rows))
     }
@@ -142,10 +162,11 @@ impl BranchPage {
     /// Parse child branch pages related to tables. Only care about tags that have data definition type
     pub(crate) fn parse_branch_child_table<'a>(
         page_branch_data: &'a [u8],
-        ese_data: &'a [u8],
         column_info: &mut [ColumnInfo],
         column_rows: &mut Vec<Vec<ColumnInfo>>,
         page_tracker: &mut HashMap<u32, bool>,
+        ntfs_file: &NtfsFile<'_>,
+        fs: &mut BufReader<SectorReader<File>>,
     ) -> nom::IResult<&'a [u8], u32> {
         let (page_data, branch_page_data) = PageHeader::parse_header(page_branch_data)?;
         // Empty pages are not part of table data
@@ -224,17 +245,36 @@ impl BranchPage {
 
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) as usize * page_branch_data.len();
-            let (branch_child_page_start, _) = take(branch_start)(ese_data)?;
-            // Now get the child page
-            let (_, child_data) = take(page_branch_data.len())(branch_child_page_start)?;
 
-            BranchPage::parse_branch_child_table(
-                child_data,
-                ese_data,
+            // Now get the child page
+            let child_result = read_bytes(
+                &(branch_start as u64),
+                page_branch_data.len() as u64,
+                ntfs_file,
+                fs,
+            );
+            let child_data = match child_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Failed to read bytes for child data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
+
+            let result = BranchPage::parse_branch_child_table(
+                &child_data,
                 column_info,
                 column_rows,
                 page_tracker,
-            )?;
+                ntfs_file,
+                fs,
+            );
+            if result.is_err() {
+                error!("[ese] Failed to parse branch child table");
+            }
         }
         Ok((page_branch_data, branch_page_data.next_page_number))
     }
@@ -245,19 +285,35 @@ mod tests {
     use super::BranchPage;
     use crate::{
         artifacts::os::windows::ese::tables::{ColumnFlags, ColumnInfo, ColumnType},
-        filesystem::files::read_file,
+        filesystem::{
+            files::read_file,
+            ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
+        },
     };
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_parse_branch_child_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/branch_child_search.raw");
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\branch_child_search.raw");
         let test_data = read_file(test_location.to_str().unwrap()).unwrap();
         let mut tracker = HashMap::new();
 
-        let (_, results) =
-            BranchPage::parse_branch_child_catalog(&test_data, &[], &mut tracker).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let ntfs_file = raw_reader(
+            test_location.to_str().unwrap(),
+            &ntfs_parser.ntfs,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
+
+        let (_, results) = BranchPage::parse_branch_child_catalog(
+            &test_data,
+            &mut tracker,
+            &ntfs_file,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
 
         assert_eq!(results.len(), 241);
         assert_eq!(results[0].name, "MSysObjects");
@@ -269,7 +325,7 @@ mod tests {
     #[test]
     fn test_parse_branch_child_table() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/branch_child_table.raw");
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\branch_child_table.raw");
         let test_data = read_file(test_location.to_str().unwrap()).unwrap();
         let mut tracker = HashMap::new();
         let mut info = vec![ColumnInfo {
@@ -282,12 +338,21 @@ mod tests {
             column_tagged_flags: Vec::new(),
         }];
         let mut rows = Vec::new();
+        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+
+        let reader = raw_reader(
+            test_location.to_str().unwrap(),
+            &ntfs_parser.ntfs,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
         let (_, last_page) = BranchPage::parse_branch_child_table(
             &test_data,
-            &[],
             &mut info,
             &mut rows,
             &mut tracker,
+            &reader,
+            &mut ntfs_parser.fs,
         )
         .unwrap();
 

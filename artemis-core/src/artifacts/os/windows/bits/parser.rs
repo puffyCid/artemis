@@ -18,10 +18,7 @@ use super::{
     error::BitsError,
 };
 use crate::{
-    filesystem::{
-        files::{file_extension, is_file},
-        ntfs::raw_files::raw_read_file,
-    },
+    filesystem::files::{file_extension, is_file},
     structs::artifacts::os::windows::BitsOptions,
     utils::environment::get_systemdrive,
 };
@@ -59,15 +56,7 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError>
  */
 pub(crate) fn grab_bits_path(path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
     if file_extension(path) == "db" {
-        let read_results = raw_read_file(path);
-        let bits_data = match read_results {
-            Ok(results) => results,
-            Err(err) => {
-                error!("[bits] Could not read file {path}: {err:?}");
-                return Err(BitsError::ReadFile);
-            }
-        };
-        return parse_ese_bits(&bits_data, carve);
+        return parse_ese_bits(path, carve);
     }
     legacy_bits(path, carve)
 }

@@ -663,11 +663,10 @@ mod tests {
     #[test]
     fn test_get_jobs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
         let tables = vec![String::from("Jobs")];
-        let bits_tables = grab_ese_tables(&data, &tables).unwrap();
+        let bits_tables = grab_ese_tables(test_location.to_str().unwrap(), &tables).unwrap();
         let jobs = bits_tables.get("Jobs").unwrap();
 
         let jobs_info = JobInfo::get_jobs(jobs).unwrap();

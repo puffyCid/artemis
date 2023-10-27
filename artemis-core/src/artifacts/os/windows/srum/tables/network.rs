@@ -185,7 +185,7 @@ pub(crate) fn parse_network_connectivity(
 mod tests {
     use super::{parse_network, parse_network_connectivity};
     use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables_path, srum::tables::index::parse_id_lookup,
+        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
     };
 
     #[test]
@@ -195,7 +195,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{973F5D5C-1D90-4944-BE8E-24B94231A174}"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let network = test_data
@@ -212,7 +212,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{DD6636C4-8929-4683-974E-22C046A43763}"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let network = test_data

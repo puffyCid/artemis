@@ -64,13 +64,13 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
 #[cfg(test)]
 mod tests {
     use super::parse_id_lookup;
-    use crate::artifacts::os::windows::ese::parser::grab_ese_tables_path;
+    use crate::artifacts::os::windows::ese::parser::grab_ese_tables;
 
     #[test]
     fn test_parse_id_lookup() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
         let table = vec![String::from("SruDbIdMapTable")];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let results = parse_id_lookup(&ids);
         assert!(results.len() > 20);

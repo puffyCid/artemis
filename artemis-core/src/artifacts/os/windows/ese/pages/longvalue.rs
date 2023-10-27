@@ -1,15 +1,20 @@
 use super::root::parse_root_page;
-use crate::artifacts::os::windows::ese::{
-    page::{PageFlags, PageHeader},
-    pages::{
-        branch::BranchPage,
-        leaf::{LeafType, PageLeaf},
+use crate::{
+    artifacts::os::windows::ese::{
+        page::{PageFlags, PageHeader},
+        pages::{
+            branch::BranchPage,
+            leaf::{LeafType, PageLeaf},
+        },
+        tags::TagFlags,
     },
-    tags::TagFlags,
+    filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
 };
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
+use ntfs::NtfsFile;
 use std::collections::HashMap;
+use std::{fs::File, io::BufReader};
 
 /**
  * Parse long value page into a `HashMap`  
@@ -18,7 +23,8 @@ use std::collections::HashMap;
  */
 pub(crate) fn parse_long_value<'a>(
     page_lv_data: &'a [u8],
-    data: &'a [u8],
+    ntfs_file: &NtfsFile<'_>,
+    fs: &mut BufReader<SectorReader<File>>,
 ) -> nom::IResult<&'a [u8], HashMap<Vec<u8>, Vec<u8>>> {
     let (page_data, table_page_data) = PageHeader::parse_header(page_lv_data)?;
     let mut has_root = false;
@@ -97,11 +103,29 @@ pub(crate) fn parse_long_value<'a>(
 
         let adjust_page = 1;
         let branch_start = (branch.child_page + adjust_page) as usize * page_lv_data.len();
-        let (branch_child_page_start, _) = take(branch_start)(data)?;
-        // Now get the child page
-        let (_, child_data) = take(page_lv_data.len())(branch_child_page_start)?;
 
-        parse_long_value_child(child_data, &mut values)?;
+        // Now get the child page
+        let child_result = read_bytes(
+            &(branch_start as u64),
+            page_lv_data.len() as u64,
+            ntfs_file,
+            fs,
+        );
+        let child_data = match child_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Failed to read bytes for long value child data: {err:?}");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
+
+        let result = parse_long_value_child(&child_data, &mut values);
+        if result.is_err() {
+            error!("[ese] Failed to parse long value child");
+        }
     }
 
     Ok((page_data, values))
@@ -195,20 +219,26 @@ mod tests {
     use super::parse_long_value;
     use crate::{
         artifacts::os::windows::ese::pages::longvalue::parse_long_value_child,
-        filesystem::files::read_file,
+        filesystem::{
+            files::read_file,
+            ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
+        },
     };
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_parse_long_value() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\longvalue_page.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        test_location.pop();
-        test_location.push("longvalue_page.raw");
         let lv = read_file(test_location.to_str().unwrap()).unwrap();
-        let (_, results) = parse_long_value(&lv, &data).unwrap();
+        test_location.pop();
+        test_location.push("qmgr.db");
+        let binding = test_location.display().to_string();
+        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+
+        let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
+        let (_, results) = parse_long_value(&lv, &reader, &mut ntfs_parser.fs).unwrap();
         assert_eq!(results.len(), 94);
     }
 

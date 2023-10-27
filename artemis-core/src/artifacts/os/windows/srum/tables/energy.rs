@@ -165,7 +165,7 @@ pub(crate) fn parse_energy_usage(
 mod tests {
     use super::{parse_energy, parse_energy_usage};
     use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables_path, srum::tables::index::parse_id_lookup,
+        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
     };
 
     #[test]
@@ -175,7 +175,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let energy = test_data
@@ -192,7 +192,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let energy = test_data
@@ -209,7 +209,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let energy = test_data
