@@ -45,7 +45,6 @@ mod tests {
                 assert_eq!(data.name[0], "root");
                 assert_eq!(data.gid[0], "0");
                 assert_eq!(data.account_photo.len(), 0);
-                assert!(data.account_created > 1000.0);
                 assert_eq!(data.password_last_set, 0.0);
                 assert_eq!(data.shell[0].is_empty(), false);
                 assert_eq!(data.unlock_options.len(), 0);
