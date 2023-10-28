@@ -1,11 +1,12 @@
 use crate::{
     artifacts::os::windows::shortcuts::parser::grab_lnk_file, runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
-fn get_lnk_file(path: String) -> Result<String, AnyError> {
+#[op2]
+#[string]
+pub(crate) fn get_lnk_file(#[string] path: String) -> Result<String, AnyError> {
     let lnk_result = grab_lnk_file(&path);
     let lnk = match lnk_result {
         Ok(results) => results,

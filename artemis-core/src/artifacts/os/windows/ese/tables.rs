@@ -8,16 +8,21 @@ use super::{
 use crate::{
     artifacts::os::windows::ese::{
         catalog::{TaggedData, TaggedDataFlag},
+        error::EseError,
         page::{PageFlags, PageHeader},
         pages::{
             branch::BranchPage, leaf::PageLeaf, longvalue::parse_long_value, root::parse_root_page,
         },
     },
+    filesystem::ntfs::{
+        raw_files::raw_reader, reader::read_bytes, sector_reader::SectorReader,
+        setup::setup_ntfs_parser,
+    },
     utils::{
         compression::{decompress_lzxpress_huffman, decompress_seven_bit},
         encoding::base64_encode_standard,
         nom_helper::{
-            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
             nom_unsigned_two_bytes, Endian,
         },
@@ -32,7 +37,8 @@ use nom::{
     error::ErrorKind,
     number::complete::{le_f32, le_f64},
 };
-use std::{collections::HashMap, mem::size_of};
+use ntfs::NtfsFile;
+use std::{collections::HashMap, fs::File, io::BufReader, mem::size_of};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ColumnType {
@@ -106,12 +112,77 @@ impl TableDump {
      * An abstracted function to dump any ESE database table
      * Will auto parse non-binary columns (Ex: Parse GUID column types into a valid GUID)
      */
-    pub(crate) fn dump_table<'a>(
-        data: &'a [u8],
+    pub(crate) fn dump_table(
+        path: &str,
+        name: &str,
+    ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
+        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+
+        let reader_result = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+        let ntfs_file = match reader_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Could not setup reader: {err:?}");
+                return Err(EseError::ReadFile);
+            }
+        };
+
+        let ese_results = TableDump::read_ese(&ntfs_file, &mut ntfs_parser.fs, name);
+        let (_, tables) = match ese_results {
+            Ok(results) => results,
+            Err(_err) => {
+                error!("[ese] Could not parse ESE file at: {path:?}");
+                return Err(EseError::ParseEse);
+            }
+        };
+
+        Ok(tables)
+    }
+
+    // Create a reader and parse the ESE file
+    pub(crate) fn read_ese<'a>(
+        ntfs_file: &NtfsFile<'_>,
+        fs: &mut BufReader<SectorReader<File>>,
         name: &str,
     ) -> nom::IResult<&'a [u8], HashMap<String, Vec<Vec<TableDump>>>> {
-        let (_, db_header) = EseHeader::parse_header(data)?;
-        let (_, catalog) = Catalog::grab_catalog(data, db_header.page_size)?;
+        let header_size = 668;
+        let offset = 0;
+
+        let header_result = read_bytes(&offset, header_size, ntfs_file, fs);
+        let header_data = match header_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Failed to reader header bytes: {err:?}");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
+
+        let db_result = EseHeader::parse_header(&header_data);
+        let (_, db_header) = match db_result {
+            Ok(result) => result,
+            Err(_err) => {
+                error!("[ese] Failed to parse ESE header");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
+        // Grab the ESE Catalog. Need Catalog info before we can parse other data
+        let catalog_result = Catalog::grab_catalog(ntfs_file, fs, db_header.page_size);
+        let catalog = match catalog_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Failed to parse catalog: {err:?}");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
         let mut info = TableInfo {
             obj_id_table: 0,
             table_page: 0,
@@ -119,6 +190,7 @@ impl TableDump {
             column_info: Vec::new(),
             long_value_page: 0,
         };
+        // Get metadata from Catalog associated with the table we want
         for entry in catalog {
             if entry.name == name {
                 info.table_name = entry.name;
@@ -155,20 +227,54 @@ impl TableDump {
             warn!("[ese] No table with name: {name} exists in ESE in data");
             let mut missing_table = HashMap::new();
             missing_table.insert(name.to_string(), Vec::new());
-            return Ok((data, missing_table));
+            return Ok((&[], missing_table));
         }
 
         let mut column_rows: Vec<Vec<ColumnInfo>> = Vec::new();
         // Need to adjust page number to account for header page
         let adjust_page = 1;
         let page_number = (info.table_page as u32 + adjust_page) * db_header.page_size;
-        let (page_start, _) = take(page_number)(data)?;
-        let (_, page_start) = take(db_header.page_size)(page_start)?;
-        let (page_data, table_page_data) = PageHeader::parse_header(page_start)?;
+
+        let start_result = read_bytes(
+            &(page_number as u64),
+            db_header.page_size as u64,
+            ntfs_file,
+            fs,
+        );
+        let page_start = match start_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Failed to read bytes for page start: {err:?}");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
+
+        // Start parsing the page associated with the table data
+        let page_header_result = PageHeader::parse_header(&page_start);
+        let (page_data, table_page_data) = match page_header_result {
+            Ok(result) => result,
+            Err(_err) => {
+                error!("[ese] Failed to parse ESE header");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
 
         let mut has_root = false;
         if table_page_data.page_flags.contains(&PageFlags::Root) {
-            let (_, _root_page) = parse_root_page(page_data)?;
+            let root_page_result = parse_root_page(page_data);
+            if root_page_result.is_err() {
+                error!("[ese] Failed to parse root page. Stopping parsing");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
             has_root = true;
         }
 
@@ -187,15 +293,55 @@ impl TableDump {
                 has_key = false;
                 continue;
             } else if key_data.is_empty() && has_key {
-                let (key_start, _) = take(tag.offset)(page_data)?;
-                let (_, page_key_data) = take(tag.value_size)(key_start)?;
+                let key_result = nom_data(page_data, tag.offset.into());
+                let (key_start, _) = match key_result {
+                    Ok(result) => result,
+                    Err(_err) => {
+                        error!("[ese] Failed to get key data");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
+                let page_key_data_result = nom_data(key_start, tag.value_size.into());
+                let (_, page_key_data) = match page_key_data_result {
+                    Ok(result) => result,
+                    Err(_err) => {
+                        error!("[ese] Failed to get page key data");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
                 key_data = page_key_data.to_vec();
                 continue;
             }
 
             if table_page_data.page_flags.contains(&PageFlags::Leaf) {
-                let (leaf_start, _) = take(tag.offset)(page_data)?;
-                let (_, leaf_data) = take(tag.value_size)(leaf_start)?;
+                let leaf_result = nom_data(page_data, tag.offset.into());
+                let (leaf_start, _) = match leaf_result {
+                    Ok(result) => result,
+                    Err(_err) => {
+                        error!("[ese] Failed to get leaf data");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
+                let leaf_result = nom_data(leaf_start, tag.value_size.into());
+                let (_, leaf_data) = match leaf_result {
+                    Ok(result) => result,
+                    Err(_err) => {
+                        error!("[ese] Failed to get leaf data");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
 
                 let leaf_result = PageLeaf::parse_leaf_page(
                     leaf_data,
@@ -208,7 +354,7 @@ impl TableDump {
                     Err(_err) => {
                         error!("[ese] Failed to parse leaf page for table {name}");
                         return Err(nom::Err::Failure(nom::error::Error::new(
-                            leaf_data,
+                            &[],
                             ErrorKind::Fail,
                         )));
                     }
@@ -223,25 +369,81 @@ impl TableDump {
                 continue;
             }
 
-            let (branch_start, _) = take(tag.offset)(page_data)?;
-            let (_, branch_data) = take(tag.value_size)(branch_start)?;
-            let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
+            let branch_result = nom_data(page_data, tag.offset.into());
+            let (branch_start, _) = match branch_result {
+                Ok(result) => result,
+                Err(_err) => {
+                    error!("[ese] Failed to get branch start data");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
+            let branch_result = nom_data(branch_start, tag.value_size.into());
+            let (_, branch_data) = match branch_result {
+                Ok(result) => result,
+                Err(_err) => {
+                    error!("[ese] Failed to get branch data");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
+            let branch_result = BranchPage::parse_branch_page(branch_data, &tag.flags);
+            let (_, branch) = match branch_result {
+                Ok(result) => result,
+                Err(_err) => {
+                    error!("[ese] Failed to get branch page data");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
 
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) * db_header.page_size;
-            let (branch_child_page_start, _) = take(branch_start)(data)?;
+
             // Now get the child page
-            let (_, child_data) = take(db_header.page_size)(branch_child_page_start)?;
+            let child_result = read_bytes(
+                &(branch_start as u64),
+                db_header.page_size as u64,
+                ntfs_file,
+                fs,
+            );
+            let child_data = match child_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Failed to read bytes for child data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
 
             // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
             let mut page_tracker: HashMap<u32, bool> = HashMap::new();
-            let (_, last_page) = BranchPage::parse_branch_child_table(
-                child_data,
-                data,
+            let last_result = BranchPage::parse_branch_child_table(
+                &child_data,
                 &mut info.column_info,
                 &mut column_rows,
                 &mut page_tracker,
-            )?;
+                ntfs_file,
+                fs,
+            );
+            let (_, last_page) = match last_result {
+                Ok(result) => result,
+                Err(_err) => {
+                    error!("[ese] Could not parse branch child table and last page in page tags");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
             final_page = last_page;
 
             // Now clear column data so when we go to next row we have no leftover data from previous row
@@ -251,19 +453,44 @@ impl TableDump {
         let last_page = 0;
         while final_page != last_page {
             let branch_start = (final_page + adjust_page) * db_header.page_size;
-            let (branch_child_page_start, _) = take(branch_start)(data)?;
             // Now get the child page
-            let (_, child_data) = take(db_header.page_size)(branch_child_page_start)?;
+            let child_result = read_bytes(
+                &(branch_start as u64),
+                db_header.page_size as u64,
+                ntfs_file,
+                fs,
+            );
+            let child_data = match child_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Failed to read bytes for child data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
 
             // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
             let mut page_tracker: HashMap<u32, bool> = HashMap::new();
-            let (_, last_page) = BranchPage::parse_branch_child_table(
-                child_data,
-                data,
+            let last_result = BranchPage::parse_branch_child_table(
+                &child_data,
                 &mut info.column_info,
                 &mut column_rows,
                 &mut page_tracker,
-            )?;
+                ntfs_file,
+                fs,
+            );
+            let (_, last_page) = match last_result {
+                Ok(result) => result,
+                Err(_err) => {
+                    error!("[ese] Could not parse branch child table and last page");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
 
             final_page = last_page;
         }
@@ -271,14 +498,40 @@ impl TableDump {
         // No long values can just create our table data nwo
         if info.long_value_page == 0 {
             let table_data = TableDump::create_table_data(&column_rows, name);
-            return Ok((data, table_data));
+            return Ok((&[], table_data));
         }
 
         // Need to adjust page number to account for header page
         let page_number = (info.long_value_page as u32 + adjust_page) * db_header.page_size;
-        let (page_start, _) = take(page_number)(data)?;
-        let (_, page_start) = take(db_header.page_size)(page_start)?;
-        let (_, long_values) = parse_long_value(page_start, data)?;
+
+        let page_result = read_bytes(
+            &(page_number as u64),
+            db_header.page_size as u64,
+            ntfs_file,
+            fs,
+        );
+        let page_start = match page_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Failed to read bytes for child data: {err:?}");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
+
+        let long_result = parse_long_value(&page_start, ntfs_file, fs);
+        let (_, long_values) = match long_result {
+            Ok(result) => result,
+            Err(_err) => {
+                error!("[ese] Could not get long value data");
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    &[],
+                    ErrorKind::Fail,
+                )));
+            }
+        };
 
         // Now we check if columns have longbinary, longtext column types
         // And update the data
@@ -316,7 +569,7 @@ impl TableDump {
         // Finally done, now just need to create an abstracted table dump where we parse non-binary column data
         let table_data = TableDump::create_table_data(&column_rows, name);
 
-        Ok((data, table_data))
+        Ok((&[], table_data))
     }
 
     //// Create hashmap that represents our table data
@@ -497,6 +750,9 @@ impl TableDump {
 
     /// Parse the row of the table
     pub(crate) fn parse_row(leaf_row: PageLeaf, column_info: &mut [ColumnInfo]) {
+        if leaf_row.leaf_type != LeafType::DataDefinition {
+            return;
+        }
         // All leaf data for the table has Data Definition type
         // All calls to parse_row check for Data Definition type
         let leaf_data: DataDefinition = serde_json::from_value(leaf_row.leaf_data).unwrap();
@@ -875,7 +1131,10 @@ mod tests {
             pages::leaf::{LeafType, PageLeaf},
             tables::{ColumnFlags, ColumnType},
         },
-        filesystem::{files::read_file, ntfs::raw_files::raw_read_file},
+        filesystem::ntfs::{
+            raw_files::{raw_read_file, raw_reader},
+            setup::setup_ntfs_parser,
+        },
     };
     use serde_json::json;
     use std::path::PathBuf;
@@ -883,14 +1142,14 @@ mod tests {
     #[test]
     fn test_dump_table() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
-        let (_, results) = TableDump::dump_table(&data, "MSysObjects").unwrap();
+        let results =
+            TableDump::dump_table(test_location.to_str().unwrap(), "MSysObjects").unwrap();
         let catalog = results.get("MSysObjects").unwrap();
         assert_eq!(catalog.len(), 82);
 
-        let (_, results) = TableDump::dump_table(&data, "Jobs").unwrap();
+        let results = TableDump::dump_table(test_location.to_str().unwrap(), "Jobs").unwrap();
         let job = results.get("Jobs").unwrap();
         assert_eq!(job[0][0].column_name, "Id");
         assert_eq!(job[0][0].column_type, ColumnType::Guid);
@@ -903,7 +1162,53 @@ mod tests {
         assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
         assert_eq!(job[0][1].column_data.len(), 2740);
 
-        let (_, results) = TableDump::dump_table(&data, "Files").unwrap();
+        let results = TableDump::dump_table(test_location.to_str().unwrap(), "Files").unwrap();
+        let job = results.get("Files").unwrap();
+        assert_eq!(job[0][0].column_name, "Id");
+        assert_eq!(job[0][0].column_type, ColumnType::Guid);
+        assert_eq!(
+            job[0][0].column_data,
+            "95d6889c-b2d3-4748-8eb1-9da0650cb892"
+        );
+
+        assert_eq!(job[0][1].column_name, "Blob");
+        assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
+        assert_eq!(job[0][1].column_data.len(), 1432);
+    }
+
+    #[test]
+    fn test_read_ese() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+        let ntfs_file = raw_reader(
+            test_location.to_str().unwrap(),
+            &ntfs_parser.ntfs,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
+
+        let (_, results) =
+            TableDump::read_ese(&ntfs_file, &mut ntfs_parser.fs, "MSysObjects").unwrap();
+        let catalog = results.get("MSysObjects").unwrap();
+        assert_eq!(catalog.len(), 82);
+
+        let results = TableDump::dump_table(test_location.to_str().unwrap(), "Jobs").unwrap();
+        let job = results.get("Jobs").unwrap();
+        assert_eq!(job[0][0].column_name, "Id");
+        assert_eq!(job[0][0].column_type, ColumnType::Guid);
+        assert_eq!(
+            job[0][0].column_data,
+            "266504ac-d974-446c-96ad-2be13a5665b0"
+        );
+
+        assert_eq!(job[0][1].column_name, "Blob");
+        assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
+        assert_eq!(job[0][1].column_data.len(), 2740);
+
+        let results = TableDump::dump_table(test_location.to_str().unwrap(), "Files").unwrap();
         let job = results.get("Files").unwrap();
         assert_eq!(job[0][0].column_name, "Id");
         assert_eq!(job[0][0].column_type, ColumnType::Guid);
@@ -1085,31 +1390,41 @@ mod tests {
         if data.is_empty() {
             return;
         }
-        let (_, results) = TableDump::dump_table(&data, "tbFiles").unwrap();
+        let results = TableDump::dump_table(
+            "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb",
+            "tbFiles",
+        )
+        .unwrap();
         assert_eq!(results.len(), 1)
     }
 
     #[test]
     fn test_dump_srum_empty() {
-        let data = raw_read_file("C:\\Windows\\System32\\sru\\SRUDB.dat").unwrap();
-        let (_, results) =
-            TableDump::dump_table(&data, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}").unwrap();
+        let results = TableDump::dump_table(
+            "C:\\Windows\\System32\\sru\\SRUDB.dat",
+            "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}",
+        )
+        .unwrap();
         assert_eq!(results.len(), 1)
     }
 
     #[test]
     fn test_dump_bits_live() {
-        let data =
-            raw_read_file("C:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db").unwrap();
-        let (_, results) = TableDump::dump_table(&data, "Jobs").unwrap();
+        let results = TableDump::dump_table(
+            "C:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db",
+            "Jobs",
+        )
+        .unwrap();
         assert_eq!(results.len(), 1)
     }
 
     #[test]
     fn test_dump_srum() {
-        let data = raw_read_file("C:\\Windows\\System32\\sru\\SRUDB.dat").unwrap();
-        let (_, results) =
-            TableDump::dump_table(&data, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
+        let results = TableDump::dump_table(
+            "C:\\Windows\\System32\\sru\\SRUDB.dat",
+            "{5C8CF1C7-7257-4F13-B223-970EF5939312}",
+        )
+        .unwrap();
         assert_eq!(results.len(), 1)
     }
 

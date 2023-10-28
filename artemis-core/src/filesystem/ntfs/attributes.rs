@@ -86,7 +86,6 @@ fn read_attribute_data(
     entry_attr: &NtfsAttribute<'_, '_>,
 ) -> Result<Vec<u8>, NtfsError> {
     let mut all_data = Vec::new();
-    //let attribute_data_len = value.len() as usize;
     // If attribute data is resident, just read the all the data. Resident data is very small
     if entry_attr.is_resident() {
         let mut resident_data = raw_read_data(value, fs)?;

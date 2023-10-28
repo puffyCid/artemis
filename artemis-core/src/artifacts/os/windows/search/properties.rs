@@ -36,9 +36,7 @@ pub(crate) fn parse_prop_id_lookup(
 #[cfg(test)]
 mod tests {
     use super::parse_prop_id_lookup;
-    use crate::{
-        artifacts::os::windows::ese::parser::grab_ese_tables_path, filesystem::files::is_file,
-    };
+    use crate::{artifacts::os::windows::ese::parser::grab_ese_tables, filesystem::files::is_file};
 
     #[test]
     #[ignore = "Can take a long time"]
@@ -50,7 +48,7 @@ mod tests {
             return;
         }
         let table = vec![String::from("SystemIndex_PropertyStore")];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SystemIndex_PropertyStore").unwrap();
         let results = parse_prop_id_lookup(&ids);
         assert!(results.len() > 20);

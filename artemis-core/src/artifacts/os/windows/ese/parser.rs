@@ -15,7 +15,6 @@
  * `https://github.com/Velocidex/velociraptor`
  */
 use super::{error::EseError, tables::ColumnType};
-use crate::filesystem::ntfs::raw_files::raw_read_file;
 use log::error;
 use std::collections::HashMap;
 
@@ -34,41 +33,20 @@ pub(crate) struct TableDump {
 }
 
 /**
- * Read and dump one (1) or more ESE tables from provided ESE DB path  
- * This function will use `raw_read_file` to read ESE db files  
- * This lets us bypass locked files  
- * Returns a `HashMap` of dumped tables where each table represents the `HashMap` key
- */
-pub(crate) fn grab_ese_tables_path(
-    path: &str,
-    tables: &[String],
-) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-    let read_result = raw_read_file(path);
-    let ese_data = match read_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[ese] Could not read ESE db at {path}: {err:?}");
-            return Err(EseError::ReadFile);
-        }
-    };
-    grab_ese_tables(&ese_data, tables)
-}
-
-/**
  * Parse and dump one (1) or more ESE tables from provided bytes
  * Returns a `HashMap` of dumped tables where each table represents the `HashMap` key
  */
 pub(crate) fn grab_ese_tables(
-    data: &[u8],
+    path: &str,
     tables: &[String],
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
     let mut table_data = HashMap::new();
 
     for table in tables {
         // Dump our table
-        let table_result = TableDump::dump_table(data, table);
+        let table_result = TableDump::dump_table(path, table);
         match table_result {
-            Ok((_, result)) => {
+            Ok(result) => {
                 // Our hashmap is based on table name for the keys
                 if let Some(value) = result.get(table) {
                     table_data.insert(table.clone(), value.clone());
@@ -85,66 +63,16 @@ pub(crate) fn grab_ese_tables(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        artifacts::os::windows::ese::{
-            parser::{grab_ese_tables, grab_ese_tables_path},
-            tables::ColumnType,
-        },
-        filesystem::files::read_file,
-    };
+    use crate::artifacts::os::windows::ese::{parser::grab_ese_tables, tables::ColumnType};
     use std::path::PathBuf;
-
-    #[test]
-    fn test_grab_ese_tables_path() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
-
-        let results = grab_ese_tables_path(
-            &test_location.to_str().unwrap(),
-            &vec![
-                String::from("MSysObjects"),
-                String::from("Jobs"),
-                String::from("Files"),
-            ],
-        )
-        .unwrap();
-
-        let catalog = results.get("MSysObjects").unwrap();
-        assert_eq!(catalog.len(), 82);
-
-        let job = results.get("Jobs").unwrap();
-        assert_eq!(job[0][0].column_name, "Id");
-        assert_eq!(job[0][0].column_type, ColumnType::Guid);
-        assert_eq!(
-            job[0][0].column_data,
-            "266504ac-d974-446c-96ad-2be13a5665b0"
-        );
-
-        assert_eq!(job[0][1].column_name, "Blob");
-        assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
-        assert_eq!(job[0][1].column_data.len(), 2740);
-
-        let job = results.get("Files").unwrap();
-        assert_eq!(job[0][0].column_name, "Id");
-        assert_eq!(job[0][0].column_type, ColumnType::Guid);
-        assert_eq!(
-            job[0][0].column_data,
-            "95d6889c-b2d3-4748-8eb1-9da0650cb892"
-        );
-
-        assert_eq!(job[0][1].column_name, "Blob");
-        assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
-        assert_eq!(job[0][1].column_data.len(), 1432);
-    }
 
     #[test]
     fn test_grab_ese_tables() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
         let results = grab_ese_tables(
-            &data,
+            test_location.to_str().unwrap(),
             &vec![
                 String::from("MSysObjects"),
                 String::from("Jobs"),

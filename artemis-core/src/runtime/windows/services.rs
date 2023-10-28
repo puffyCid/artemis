@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::ServicesOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Services at default systemdrive to Deno
-fn get_services() -> Result<String, AnyError> {
+pub(crate) fn get_services() -> Result<String, AnyError> {
     let options = ServicesOptions { alt_drive: None };
     let service_result = grab_services(&options);
     let service = match service_result {
@@ -23,9 +24,10 @@ fn get_services() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Services at alternative drive to Deno
-fn get_alt_services(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_services(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt services drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -49,9 +51,10 @@ fn get_alt_services(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Services file to Deno
-fn get_service_file(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_service_file(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Got empty service file arguement.");
         return Err(RuntimeError::ExecuteScript.into());

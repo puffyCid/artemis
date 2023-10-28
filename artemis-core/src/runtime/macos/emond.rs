@@ -1,10 +1,11 @@
 use crate::{artifacts::os::macos::emond::parser::grab_emond, runtime::error::RuntimeError};
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Emond to `Deno`
-fn get_emond() -> Result<String, AnyError> {
+pub(crate) fn get_emond() -> Result<String, AnyError> {
     let emond_results = grab_emond();
     let emond = match emond_results {
         Ok(results) => results,

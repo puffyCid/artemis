@@ -2,47 +2,54 @@ use crate::utils::time::{
     cocoatime_to_unixepoch, fattime_utc_to_unixepoch, filetime_to_unixepoch, hfs_to_unixepoch,
     ole_automationtime_to_unixepoch, time_now, webkit_time_to_unixepoch,
 };
-use deno_core::{op, JsBuffer};
+use deno_core::{op2, JsBuffer};
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose current time now in seconds or 0
-fn js_time_now() -> u64 {
+pub(crate) fn js_time_now() -> u64 {
     time_now()
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting filetimes to unixepoch
-fn js_filetime_to_unixepoch(filetime: u64) -> i64 {
+pub(crate) fn js_filetime_to_unixepoch(#[bigint] filetime: u64) -> i64 {
     filetime_to_unixepoch(&filetime)
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting cocoatimes to unixepoch
-fn js_cocoatime_to_unixepoch(cocoatime: f64) -> i64 {
+pub(crate) fn js_cocoatime_to_unixepoch(cocoatime: f64) -> i64 {
     cocoatime_to_unixepoch(&cocoatime)
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting HFS+ time to unixepoch
-fn js_hfs_to_unixepoch(hfstime: i64) -> i64 {
+pub(crate) fn js_hfs_to_unixepoch(#[bigint] hfstime: i64) -> i64 {
     hfs_to_unixepoch(&hfstime)
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting OLE time to unixepoch
-fn js_ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
+pub(crate) fn js_ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
     ole_automationtime_to_unixepoch(&oletime)
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting WebKit time to unixepoch
-fn js_webkit_time_to_uniexepoch(webkittime: i64) -> i64 {
+pub(crate) fn js_webkit_time_to_uniexepoch(#[bigint] webkittime: i64) -> i64 {
     webkit_time_to_unixepoch(&webkittime)
 }
 
-#[op]
+#[op2(fast)]
+#[bigint]
 /// Expose converting WebKit time to unixepoch
-fn js_fat_time_to_unixepoch(fattime: JsBuffer) -> i64 {
+pub(crate) fn js_fat_time_to_unixepoch(#[buffer] fattime: JsBuffer) -> i64 {
     fattime_utc_to_unixepoch(&fattime)
 }
 

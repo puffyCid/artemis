@@ -4,7 +4,7 @@ use super::{
     tables::indexgthr::{parse_index_gthr, parse_index_gthr_path},
 };
 use crate::{
-    artifacts::os::windows::ese::parser::grab_ese_tables_path, structs::toml::Output,
+    artifacts::os::windows::ese::parser::grab_ese_tables, structs::toml::Output,
     utils::time::time_now,
 };
 use log::{error, warn};
@@ -28,7 +28,7 @@ pub(crate) fn parse_search(
 ) -> Result<(), SearchError> {
     let start_time = time_now();
 
-    let table_results = grab_ese_tables_path(path, tables);
+    let table_results = grab_ese_tables(path, tables);
     let table_data = match table_results {
         Ok(results) => results,
         Err(err) => {
@@ -71,7 +71,7 @@ pub(crate) fn parse_search_path(
     path: &str,
     tables: &[String],
 ) -> Result<Vec<SearchEntry>, SearchError> {
-    let table_results = grab_ese_tables_path(path, tables);
+    let table_results = grab_ese_tables(path, tables);
     let table_data = match table_results {
         Ok(results) => results,
         Err(err) => {

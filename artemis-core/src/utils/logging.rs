@@ -214,7 +214,7 @@ mod tests {
             output: String::from("gcp"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
-logging: Some(String::new())
+            logging: Some(String::new())
         };
 
         let mock_me = server.mock(|when, then| {

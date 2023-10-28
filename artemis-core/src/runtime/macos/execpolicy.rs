@@ -1,12 +1,13 @@
 use crate::{
     artifacts::os::macos::execpolicy::policy::grab_execpolicy, runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing ExecPolicy to `Deno`
-fn get_execpolicy() -> Result<String, AnyError> {
+pub(crate) fn get_execpolicy() -> Result<String, AnyError> {
     let policy_results = grab_execpolicy();
     let policy = match policy_results {
         Ok(results) => results,

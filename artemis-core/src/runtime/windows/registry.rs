@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys, runtime::error::RuntimeError,
     utils::regex_options::create_regex,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing Registry file to `Deno`
-fn get_registry(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_registry(#[string] path: String) -> Result<String, AnyError> {
     let all = create_regex("").unwrap(); // Valid regex
     let start_root = "";
     let reg_results = get_registry_keys(start_root, &all, &path);

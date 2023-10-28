@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::ShimdbOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shimdb located on systemdrive to `Deno`
-fn get_shimdb() -> Result<String, AnyError> {
+pub(crate) fn get_shimdb() -> Result<String, AnyError> {
     let options = ShimdbOptions { alt_drive: None };
     let shimdb_result = grab_shimdb(&options);
 
@@ -24,9 +25,10 @@ fn get_shimdb() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shimdb located on alt drive to `Deno`
-fn get_alt_shimdb(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_shimdb(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt shimdb drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -50,9 +52,10 @@ fn get_alt_shimdb(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing custom shimdb path to `Deno`
-fn get_custom_shimdb(paths: String) -> Result<String, AnyError> {
+pub(crate) fn get_custom_shimdb(#[string] paths: String) -> Result<String, AnyError> {
     let shimdb_result = custom_shimdb_path(&paths);
     let shimdb = match shimdb_result {
         Ok(results) => results,

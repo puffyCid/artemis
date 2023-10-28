@@ -1,10 +1,11 @@
-use deno_core::{op, ToJsBuffer};
+use deno_core::op2;
 
-#[op]
+#[op2]
+#[buffer]
 /// Convert string to bytes
-fn js_encode_bytes(data: String) -> ToJsBuffer {
+pub(crate) fn js_encode_bytes(#[string] data: String) -> Vec<u8> {
     let value = data.as_bytes().to_vec();
-    value.into()
+    value
 }
 
 #[cfg(test)]

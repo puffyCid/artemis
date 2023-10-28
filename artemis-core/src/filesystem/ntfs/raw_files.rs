@@ -11,7 +11,7 @@ use crate::{
         strings::strings_contains,
     },
 };
-use log::error;
+use log::{error, warn};
 use md5::{Digest, Md5};
 use ntfs::{
     attribute_value::NtfsAttributeValue, Ntfs, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
@@ -47,6 +47,63 @@ pub(crate) fn raw_read_data(
             buff_data.append(&mut temp_buff);
         }
     }
+}
+
+/// Return the file reference number for a file. Can be used to create reader to stream the file
+pub(crate) fn raw_reader<'a>(
+    path: &str,
+    ntfs: &'a Ntfs,
+    fs: &mut BufReader<SectorReader<File>>,
+) -> Result<NtfsFile<'a>, FileSystemError> {
+    let min_path_len = 4;
+    if path.len() < min_path_len || !path.contains(':') {
+        return Err(FileSystemError::NotFile);
+    }
+
+    let drive = &path.chars().next().unwrap(); // Only need Drive letter
+    let root_dir_result = ntfs.root_directory(fs);
+    let root_dir = match root_dir_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Failed to get NTFS root directory, error: {err:?}");
+            return Err(FileSystemError::RootDirectory);
+        }
+    };
+
+    let mut ntfs_options = NtfsOptions {
+        start_path: path.to_string(),
+        start_path_depth: 0,
+        depth: path.split('\\').count(),
+        path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
+        file_regex: create_regex("").unwrap(), // Valid Regex, should never fail
+        filelist: Vec::new(),
+        directory_tracker: vec![format!("{drive}:")],
+    };
+
+    // Search and iterate through the NTFS system for the file
+    let _ = iterate_ntfs(root_dir, fs, ntfs, &mut ntfs_options);
+
+    // Loop through filelisting. It should only have one entry
+    for filelist in ntfs_options.filelist {
+        if filelist.full_path != path {
+            continue;
+        }
+
+        let ntfs_file_result = filelist.file.to_file(ntfs, fs);
+        let ntfs_file = match ntfs_file_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Failed to get NTFS root directory, error: {err:?}");
+                return Err(FileSystemError::NtfsSectorReader);
+            }
+        };
+
+        // Return the file reference
+        return Ok(ntfs_file);
+    }
+
+    warn!("[artemis-core] Could not create reader for {path}");
+    Err(FileSystemError::OpenFile)
 }
 
 /// Given a file $DATA attribute, read and hash the data
@@ -477,7 +534,7 @@ pub(crate) fn iterate_ntfs(
 
 #[cfg(test)]
 mod tests {
-    use super::{get_user_registry_files, iterate_ntfs, NtfsOptions};
+    use super::{get_user_registry_files, iterate_ntfs, raw_reader, NtfsOptions};
     use crate::{
         filesystem::{
             files::Hashes,
@@ -653,5 +710,17 @@ mod tests {
         );
 
         assert!(ntfs_options.filelist.len() > 0);
+    }
+
+    #[test]
+    fn test_raw_reader() {
+        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let result = raw_reader(
+            "C:\\Windows\\explorer.exe",
+            &ntfs_parser.ntfs,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
+        assert!(result.file_record_number() > 5);
     }
 }

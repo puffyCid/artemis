@@ -1,16 +1,18 @@
 use crate::utils::environment::{get_env, get_env_value};
-use deno_core::op;
+use deno_core::op2;
 use std::collections::HashMap;
 
-#[op]
+#[op2]
+#[serde]
 /// Get all Environmental variables
-fn js_env() -> HashMap<String, String> {
+pub(crate) fn js_env() -> HashMap<String, String> {
     get_env()
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get a specific Environmental variable
-fn js_env_value(var: String) -> String {
+pub(crate) fn js_env_value(#[string] var: String) -> String {
     get_env_value(&var)
 }
 

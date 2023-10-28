@@ -9,8 +9,7 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::{
-        artifacts::output_data, ese::parser::grab_ese_tables_path,
-        srum::tables::index::parse_id_lookup,
+        artifacts::output_data, ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
     },
     structs::toml::Output,
     utils::time::time_now,
@@ -27,7 +26,7 @@ pub(crate) fn parse_srum(
 ) -> Result<(), SrumError> {
     let start_time = time_now();
 
-    let table_results = grab_ese_tables_path(path, tables);
+    let table_results = grab_ese_tables(path, tables);
     let table_data = match table_results {
         Ok(results) => results,
         Err(err) => {
@@ -82,7 +81,7 @@ pub(crate) fn parse_srum(
 }
 
 pub(crate) fn get_srum(path: &str, tables: &[String]) -> Result<Value, SrumError> {
-    let table_results = grab_ese_tables_path(path, tables);
+    let table_results = grab_ese_tables(path, tables);
     let table_data = match table_results {
         Ok(results) => results,
         Err(err) => {

@@ -1,10 +1,11 @@
 use crate::{artifacts::os::unix::cron::crontab::Cron, runtime::error::RuntimeError};
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get `Cron` data
-fn get_cron() -> Result<String, AnyError> {
+pub(crate) fn get_cron() -> Result<String, AnyError> {
     let history_results = Cron::parse_cron();
     let history = match history_results {
         Ok(results) => results,

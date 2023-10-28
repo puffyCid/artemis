@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::shellbags::parser::grab_shellbags, runtime::error::RuntimeError,
     structs::artifacts::os::windows::ShellbagsOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shellbags located on systemdrive to `Deno`
-fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
+pub(crate) fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
     let options = ShellbagsOptions {
         alt_drive: None,
         resolve_guids: resolve,
@@ -25,9 +26,13 @@ fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing shellbags located on alt drive to `Deno`
-fn get_alt_shellbags(resolve: bool, drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_shellbags(
+    resolve: bool,
+    #[string] drive: String,
+) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt shellbags drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

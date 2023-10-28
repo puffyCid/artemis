@@ -2,12 +2,13 @@ use crate::{
     artifacts::applications::chromium::{downloads::ChromiumDownloads, history::ChromiumHistory},
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get `Chromium` history for all users
-fn get_chromium_users_history() -> Result<String, AnyError> {
+pub(crate) fn get_chromium_users_history() -> Result<String, AnyError> {
     let history_results = ChromiumHistory::get_history();
     let history = match history_results {
         Ok(results) => results,
@@ -20,9 +21,10 @@ fn get_chromium_users_history() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Chromium` history from provided path
-fn get_chromium_history(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_chromium_history(#[string] path: String) -> Result<String, AnyError> {
     let history_results = ChromiumHistory::history_query(&path);
     let history = match history_results {
         Ok(results) => results,
@@ -35,9 +37,10 @@ fn get_chromium_history(path: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Chromium` downloads for all users
-fn get_chromium_users_downloads() -> Result<String, AnyError> {
+pub(crate) fn get_chromium_users_downloads() -> Result<String, AnyError> {
     let downloads_results = ChromiumDownloads::get_downloads();
     let downloads = match downloads_results {
         Ok(results) => results,
@@ -50,9 +53,10 @@ fn get_chromium_users_downloads() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get `Chromium` downloads from provided path
-fn get_chromium_downloads(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_chromium_downloads(#[string] path: String) -> Result<String, AnyError> {
     let downloads_results = ChromiumDownloads::downloads_query(&path);
     let downloads = match downloads_results {
         Ok(results) => results,

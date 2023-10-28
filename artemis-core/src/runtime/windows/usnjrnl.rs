@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::usnjrnl::parser::grab_usnjrnl, runtime::error::RuntimeError,
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing usnjrnl located on systemdrive to `Deno`
-fn get_usnjrnl() -> Result<String, AnyError> {
+pub(crate) fn get_usnjrnl() -> Result<String, AnyError> {
     let options = UsnJrnlOptions { alt_drive: None };
     let jrnl_results = grab_usnjrnl(&options);
     let jrnl = match jrnl_results {
@@ -22,9 +23,10 @@ fn get_usnjrnl() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing usnjrnl located on alt drive to `Deno`
-fn get_alt_usnjrnl(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_usnjrnl(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt usnjrnl drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

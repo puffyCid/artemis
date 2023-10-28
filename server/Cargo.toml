@@ -19,14 +19,14 @@ axum = { version = "0.6.20", default-features = false, features = [
     "ws",
     "multipart",
 ] }
-tokio = { version = "1.32.0", features = ["full"] }
+tokio = { version = "1.33.0", features = ["full"] }
 log = "0.4.20"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.190", features = ["derive"] }
 serde_json = "1.0.107"
-uuid = { version = "1.4.1", features = ["v4"] }
-toml = "0.8.1"
-futures = "0.3.28"
-flate2 = "1.0.27"
+uuid = { version = "1.5.0", features = ["v4"] }
+toml = "0.8.5"
+futures = "0.3.29"
+flate2 = "1.0.28"
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }

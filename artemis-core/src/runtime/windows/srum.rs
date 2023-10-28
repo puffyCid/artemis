@@ -1,10 +1,14 @@
 use crate::{artifacts::os::windows::srum::parser::grab_srum_path, runtime::error::RuntimeError};
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing a single SRUM table to `Deno`
-fn get_srum(path: String, table: String) -> Result<String, AnyError> {
+pub(crate) fn get_srum(
+    #[string] path: String,
+    #[string] table: String,
+) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Empty path to SRUM file");
         return Err(RuntimeError::ExecuteScript.into());

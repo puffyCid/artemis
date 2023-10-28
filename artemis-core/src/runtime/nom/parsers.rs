@@ -1,4 +1,4 @@
-use deno_core::{error::AnyError, op, JsBuffer, ToJsBuffer};
+use deno_core::{error::AnyError, op2, JsBuffer, ToJsBuffer};
 use nom::bytes::complete::{take, take_until, take_while};
 use serde::Serialize;
 
@@ -8,9 +8,13 @@ struct NomStringJs {
     nommed: String,
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose nomming strings to Deno
-fn js_nom_take_string(data: String, input: usize) -> Result<String, AnyError> {
+pub(crate) fn js_nom_take_string(
+    #[string] data: String,
+    #[bigint] input: usize,
+) -> Result<String, AnyError> {
     let (remaining, nommed) = nom_take_string(&data, input).unwrap_or_default();
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
@@ -33,9 +37,13 @@ pub(crate) struct NomBytesJs {
     nommed: ToJsBuffer,
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose nomming bytes to Deno
-fn js_nom_take_bytes(data: JsBuffer, input: usize) -> Result<NomBytesJs, AnyError> {
+pub(crate) fn js_nom_take_bytes(
+    #[buffer] data: JsBuffer,
+    #[bigint] input: usize,
+) -> Result<NomBytesJs, AnyError> {
     let (remaining, nommed) = nom_take_bytes(&data, input).unwrap_or_default();
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),
@@ -51,9 +59,13 @@ fn nom_take_bytes(data: &[u8], input: usize) -> nom::IResult<&[u8], Vec<u8>> {
     Ok((remaining, nommed.to_vec()))
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose `take_until` string function to Deno
-fn js_nom_take_until_string(data: String, input: String) -> Result<String, AnyError> {
+pub(crate) fn js_nom_take_until_string(
+    #[string] data: String,
+    #[string] input: String,
+) -> Result<String, AnyError> {
     let (remaining, nommed) = nom_take_until_string(&data, &input).unwrap_or_default();
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
@@ -70,9 +82,13 @@ fn nom_take_until_string<'a>(data: &'a str, input: &str) -> nom::IResult<&'a str
     Ok((remaining, nommed.to_string()))
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose `take_until` bytes function to Deno
-fn js_nom_take_until_bytes(data: JsBuffer, input: JsBuffer) -> Result<NomBytesJs, AnyError> {
+pub(crate) fn js_nom_take_until_bytes(
+    #[buffer] data: JsBuffer,
+    #[buffer] input: JsBuffer,
+) -> Result<NomBytesJs, AnyError> {
     let (remaining, nommed) = nom_take_until_bytes(&data, &input).unwrap_or_default();
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),
@@ -88,9 +104,13 @@ fn nom_take_until_bytes<'a>(data: &'a [u8], input: &[u8]) -> nom::IResult<&'a [u
     Ok((remaining, nommed.to_vec()))
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose `take_while` string function to Deno
-fn js_nom_take_while_string(data: String, input: char) -> Result<String, AnyError> {
+pub(crate) fn js_nom_take_while_string(
+    #[string] data: String,
+    #[serde] input: char,
+) -> Result<String, AnyError> {
     let (remaining, nommed) = nom_take_while_string(&data, input).unwrap_or_default();
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
@@ -107,9 +127,13 @@ fn nom_take_while_string(data: &str, input: char) -> nom::IResult<&str, String> 
     Ok((remaining, nommed.to_string()))
 }
 
-#[op]
+#[op2]
+#[serde]
 /// Expose `take_while` bytes function to Deno
-fn js_nom_take_while_bytes(data: JsBuffer, input: u8) -> Result<NomBytesJs, AnyError> {
+pub(crate) fn js_nom_take_while_bytes(
+    #[buffer] data: JsBuffer,
+    input: u8,
+) -> Result<NomBytesJs, AnyError> {
     let (remaining, nommed) = nom_take_while_bytes(&data, input).unwrap_or_default();
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),

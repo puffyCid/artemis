@@ -170,7 +170,7 @@ pub(crate) fn parse_index_gthr_path(
 mod tests {
     use super::{parse_index_gthr, parse_index_gthr_path};
     use crate::{
-        artifacts::os::windows::ese::parser::grab_ese_tables_path, filesystem::files::is_file,
+        artifacts::os::windows::ese::parser::grab_ese_tables, filesystem::files::is_file,
         structs::toml::Output,
     };
     use std::collections::HashMap;
@@ -203,7 +203,7 @@ mod tests {
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
         let table = vec![String::from("SystemIndex_Gthr")];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SystemIndex_Gthr").unwrap();
 
         parse_index_gthr(&ids, &HashMap::new(), &mut output, &0, &false).unwrap();
@@ -219,7 +219,7 @@ mod tests {
         }
 
         let table = vec![String::from("SystemIndex_Gthr")];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SystemIndex_Gthr").unwrap();
         let mut entries = Vec::new();
 

@@ -3,12 +3,13 @@ use crate::{
     runtime::error::RuntimeError,
     structs::artifacts::os::windows::PrefetchOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get Prefetch files at using default drive (typically C)
-fn get_prefetch() -> Result<String, AnyError> {
+pub(crate) fn get_prefetch() -> Result<String, AnyError> {
     let options = PrefetchOptions { alt_drive: None };
     let pf_result = grab_prefetch(&options);
     let pf = match pf_result {
@@ -23,9 +24,10 @@ fn get_prefetch() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Get Prefetch files using alternative drive
-fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_prefetch(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt prefetch drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());
@@ -49,9 +51,10 @@ fn get_alt_prefetch(drive: String) -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Parse Prefetch files at provided directory
-fn get_prefetch_path(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_prefetch_path(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Got empty prefetch path.");
         return Err(RuntimeError::ExecuteScript.into());

@@ -3,12 +3,13 @@ use crate::artifacts::os::unix::sudo::linux::grab_sudo_logs;
 #[cfg(target_os = "macos")]
 use crate::artifacts::os::unix::sudo::macos::grab_sudo_logs;
 use crate::runtime::error::RuntimeError;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Get `Sudo log` data
-fn get_sudologs() -> Result<String, AnyError> {
+pub(crate) fn get_sudologs() -> Result<String, AnyError> {
     let history_results = grab_sudo_logs();
     let history = match history_results {
         Ok(results) => results,

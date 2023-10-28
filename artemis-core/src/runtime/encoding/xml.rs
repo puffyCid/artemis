@@ -1,10 +1,11 @@
 use crate::utils::encoding::read_xml;
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use xml2json_rs::JsonBuilder;
 
-#[op]
+#[op2]
+#[string]
 /// Read XML file into a JSON object
-fn js_read_xml(path: String) -> Result<String, AnyError> {
+pub(crate) fn js_read_xml(#[string] path: String) -> Result<String, AnyError> {
     // read_xml supports UTF16 and UTF8 encodings
     let xml = read_xml(&path)?;
 

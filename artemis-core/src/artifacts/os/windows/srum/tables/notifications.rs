@@ -86,7 +86,7 @@ pub(crate) fn parse_notification(
 mod tests {
     use super::parse_notification;
     use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables_path, srum::tables::index::parse_id_lookup,
+        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
     };
 
     #[test]
@@ -96,7 +96,7 @@ mod tests {
             String::from("SruDbIdMapTable"),
             String::from("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}"),
         ];
-        let test_data = grab_ese_tables_path(test_path, &table).unwrap();
+        let test_data = grab_ese_tables(test_path, &table).unwrap();
         let ids = test_data.get("SruDbIdMapTable").unwrap();
         let id_results = parse_id_lookup(&ids);
         let energy = test_data

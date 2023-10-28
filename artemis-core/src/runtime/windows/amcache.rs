@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::windows::amcache::parser::grab_amcache, runtime::error::RuntimeError,
     structs::artifacts::os::windows::AmcacheOptions,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing amcache located on systemdrive to `Deno`
-fn get_amcache() -> Result<String, AnyError> {
+pub(crate) fn get_amcache() -> Result<String, AnyError> {
     let options = AmcacheOptions { alt_drive: None };
     let amcache_results = grab_amcache(&options);
     let amcache = match amcache_results {
@@ -22,9 +23,10 @@ fn get_amcache() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing amcache located on alt drive to `Deno`
-fn get_alt_amcache(drive: String) -> Result<String, AnyError> {
+pub(crate) fn get_alt_amcache(#[string] drive: String) -> Result<String, AnyError> {
     if drive.is_empty() {
         error!("[runtime] Failed to parse alt amcache drive. Need drive letter");
         return Err(RuntimeError::ExecuteScript.into());

@@ -2,12 +2,13 @@ use crate::{
     artifacts::os::macos::launchd::launchdaemon::{grab_launchd_agents, grab_launchd_daemons},
     runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing launchd daemons to `Deno`
-fn get_launchd_daemons() -> Result<String, AnyError> {
+pub(crate) fn get_launchd_daemons() -> Result<String, AnyError> {
     let launchd_results = grab_launchd_daemons();
     let launchd = match launchd_results {
         Ok(results) => results,
@@ -20,9 +21,10 @@ fn get_launchd_daemons() -> Result<String, AnyError> {
     Ok(results)
 }
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing launchd agents to `Deno`
-fn get_launchd_agents() -> Result<String, AnyError> {
+pub(crate) fn get_launchd_agents() -> Result<String, AnyError> {
     let launchd_results = grab_launchd_agents();
     let launchd = match launchd_results {
         Ok(results) => results,

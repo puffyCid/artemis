@@ -1,12 +1,13 @@
 use crate::{
     artifacts::os::windows::eventlogs::parser::parse_eventlogs, runtime::error::RuntimeError,
 };
-use deno_core::{error::AnyError, op};
+use deno_core::{error::AnyError, op2};
 use log::error;
 
-#[op]
+#[op2]
+#[string]
 /// Expose parsing a single eventlog file (evtx) to `Deno`
-fn get_eventlogs(path: String) -> Result<String, AnyError> {
+pub(crate) fn get_eventlogs(#[string] path: String) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Empty path to eventlog file");
         return Err(RuntimeError::ExecuteScript.into());
