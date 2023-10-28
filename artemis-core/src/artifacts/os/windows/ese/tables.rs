@@ -116,7 +116,7 @@ impl TableDump {
         path: &str,
         name: &str,
     ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
 
         let reader_result = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
         let ntfs_file = match reader_result {
@@ -1181,7 +1181,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
         let ntfs_file = raw_reader(
             test_location.to_str().unwrap(),
             &ntfs_parser.ntfs,

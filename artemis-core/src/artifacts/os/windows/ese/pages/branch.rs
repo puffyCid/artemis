@@ -299,7 +299,8 @@ mod tests {
         let test_data = read_file(test_location.to_str().unwrap()).unwrap();
         let mut tracker = HashMap::new();
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
         let ntfs_file = raw_reader(
             test_location.to_str().unwrap(),
             &ntfs_parser.ntfs,
@@ -338,7 +339,8 @@ mod tests {
             column_tagged_flags: Vec::new(),
         }];
         let mut rows = Vec::new();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(
             test_location.to_str().unwrap(),

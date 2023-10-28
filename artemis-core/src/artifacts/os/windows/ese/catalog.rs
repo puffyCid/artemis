@@ -736,7 +736,8 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
         let binding = test_location.display().to_string();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
         let header_bytes = read_bytes(&0, 668, &reader, &mut ntfs_parser.fs).unwrap();
