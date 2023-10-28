@@ -7,7 +7,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing LoginItems to `Deno`
-fn get_loginitems() -> Result<String, AnyError> {
+pub(crate) fn get_loginitems() -> Result<String, AnyError> {
     let loginitems_results = grab_loginitems();
     let loginitems = match loginitems_results {
         Ok(results) => results,

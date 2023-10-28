@@ -5,7 +5,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing FsEvents to `Deno`
-fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
     let fsevents_results = grab_fsventsd_file(&path);
     let fsevents = match fsevents_results {
         Ok(results) => results,

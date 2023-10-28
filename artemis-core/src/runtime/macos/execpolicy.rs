@@ -7,7 +7,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing ExecPolicy to `Deno`
-fn get_execpolicy() -> Result<String, AnyError> {
+pub(crate) fn get_execpolicy() -> Result<String, AnyError> {
     let policy_results = grab_execpolicy();
     let policy = match policy_results {
         Ok(results) => results,

@@ -103,7 +103,7 @@ mod tests {
         Output {
             name: name.to_string(),
             directory: directory.to_string(),
-            format: String::from("jsonl"),
+            format: String::from("json"),
             compress,
             url: Some(String::new()),
             api_key: Some(String::new()),

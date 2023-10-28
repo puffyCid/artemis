@@ -8,7 +8,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing launchd daemons to `Deno`
-fn get_launchd_daemons() -> Result<String, AnyError> {
+pub(crate) fn get_launchd_daemons() -> Result<String, AnyError> {
     let launchd_results = grab_launchd_daemons();
     let launchd = match launchd_results {
         Ok(results) => results,
@@ -24,7 +24,7 @@ fn get_launchd_daemons() -> Result<String, AnyError> {
 #[op2]
 #[string]
 /// Expose parsing launchd agents to `Deno`
-fn get_launchd_agents() -> Result<String, AnyError> {
+pub(crate) fn get_launchd_agents() -> Result<String, AnyError> {
     let launchd_results = grab_launchd_agents();
     let launchd = match launchd_results {
         Ok(results) => results,

@@ -5,7 +5,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing macho file  to `Deno`
-fn get_macho(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_macho(#[string] path: String) -> Result<String, AnyError> {
     let macho_results = MachoInfo::parse_macho(&path);
     let macho = match macho_results {
         Ok(results) => results,

@@ -5,7 +5,7 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing plist file  to `Deno`
-fn get_plist(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_plist(#[string] path: String) -> Result<String, AnyError> {
     let plist_results = parse_plist_file(&path);
     let plist = match plist_results {
         Ok(results) => results,
@@ -20,9 +20,9 @@ fn get_plist(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[op2]
-#[buffer]
+#[string]
 /// Expose parsing plist file  to `Deno`
-fn get_plist_data(#[buffer] data: JsBuffer) -> Result<String, AnyError> {
+pub(crate) fn get_plist_data(#[buffer] data: JsBuffer) -> Result<String, AnyError> {
     let plist_results = parse_plist_data(&data);
     let plist = match plist_results {
         Ok(results) => results,
