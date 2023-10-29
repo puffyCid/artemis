@@ -4,25 +4,27 @@ headerPath: header.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md
 versionFormat: '## {{.Version}} - {{.Time.Format "2006-01-02"}}'
-kindFormat: '### {{.Kind}}'
-changeFormat: '* {{.Body}}'
+kindFormat: "### {{.Kind}}"
+changeFormat: "* {{.Body}}"
 kinds:
-- label: Added
-  auto: minor
-- label: Changed
-  auto: major
-- label: Deprecated
-  auto: minor
-- label: Removed
-  auto: major
-- label: Fixed
-  auto: patch
-- label: Security
-  auto: patch
-- label: Dependencies
-  auto: patch
-- label: Tests
-  auto: patch
+  - label: Added
+    auto: minor
+  - label: Changed
+    auto: major
+  - label: Deprecated
+    auto: minor
+  - label: Removed
+    auto: major
+  - label: Fixed
+    auto: patch
+  - label: Security
+    auto: patch
+  - label: Dependencies
+    auto: patch
+  - label: Tests
+    auto: patch
+  - label: ArtemisApi
+    autho: patch
 newlines:
   afterChangelogHeader: 1
   beforeChangelogVersion: 1
