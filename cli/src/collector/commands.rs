@@ -13,7 +13,7 @@ pub(crate) enum CommandArgs {
         /// SHA256 hash processes
         #[arg(long)]
         sha256: bool,
-        /// Parse ELF binaries
+        /// Parse binaries
         #[arg(long)]
         metadata: bool,
     },
