@@ -1,3 +1,0 @@
-kind: Added
-body: "Support for collecting artifacts using command args. Example: `artemis acquire processes`"
-time: 2023-09-28T23:17:29.098102-04:00
