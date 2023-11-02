@@ -76,6 +76,7 @@
 mod artifacts;
 mod enrollment;
 mod filestore;
+mod frontend;
 mod routes;
 pub mod server;
 mod socket;

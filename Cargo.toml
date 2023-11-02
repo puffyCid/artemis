@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "artemis-core", "server"]
+members = ["cli", "artemis-core", "server", "webui"]
 resolver = "2"
 
 [profile.release]

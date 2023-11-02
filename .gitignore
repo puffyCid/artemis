@@ -7,3 +7,4 @@
 *.org
 /.vscode/
 *heartbeat.jsonl
+*/style
