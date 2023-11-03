@@ -1,12 +1,7 @@
-use leptos::{component, view, IntoView};
-
-#[derive(Debug)]
-pub(crate) enum EndpointOS {
-    Windows,
-    MacOS,
-    Linux,
-    All,
-}
+use common::server::EndpointOS;
+use leptos::logging::error;
+use leptos::{component, create_resource, view, IntoView, SignalGet, Transition};
+use reqwest::Client;
 
 #[component]
 /// Calculate endpoint counts
@@ -14,22 +9,54 @@ pub(crate) fn Stats(
     /// Endpoint OS to count
     os: EndpointOS,
 ) -> impl IntoView {
+    let count = create_resource(|| (), move |_| async move { endpoint_stats(&os).await });
+
     view! {
         <div class="stat shadow">
             <div class="stat-figure text-primary">{format!("{os:?} icon")}</div>
             <div class="stat-title"> {format!("{os:?} Endpoint Count")}</div>
-            <div class="stat-value"> {endpoint_stats(os)}</div>
+            <div class="stat-value">
+                <Transition fallback=move || view!{<p> "Loading..."</p>}>
+                    {move || count.get()}
+                </Transition>
+            </div>
         </div>
     }
 }
 
 /// Request count of endpoints enrolled
-fn endpoint_stats(os: EndpointOS) -> u32 {
-    match os {
-        EndpointOS::All => 10,
-        EndpointOS::Linux => 5,
-        EndpointOS::MacOS => 25,
-        EndpointOS::Windows => 100,
+async fn endpoint_stats(os: &EndpointOS) -> u32 {
+    let uri = "http://127.0.0.1:8000/ui/v1/endpoint_stats";
+    let client = Client::new()
+        .post(uri)
+        .body(serde_json::to_string(&os).unwrap())
+        .header("Content-Type", "application/json")
+        .send()
+        .await;
+
+    let res_result = match client {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to make request for {os:?} endpoint count: {err:?}");
+            return 0;
+        }
+    };
+
+    let res = res_result.text().await;
+    let count_str = match res {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to get {os:?} endpoint count: {err:?}");
+            return 0;
+        }
+    };
+    let count_result = count_str.parse::<u32>();
+    match count_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to parse {os:?} endpoint count {count_str}: {err:?}");
+            0
+        }
     }
 }
 
@@ -37,10 +64,9 @@ fn endpoint_stats(os: EndpointOS) -> u32 {
 mod tests {
     use super::{endpoint_stats, EndpointOS};
 
-    #[test]
-    fn test_endpoint_stats() {
+    #[tokio::test]
+    async fn test_endpoint_stats() {
         let os = EndpointOS::All;
-        let stats = endpoint_stats(os);
-        assert_eq!(stats, 10);
+        let _stats = endpoint_stats(&os).await;
     }
 }

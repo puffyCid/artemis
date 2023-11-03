@@ -1,10 +1,16 @@
-use super::webui::webui;
+use super::{endpoints::endpoint_stats, webui::webui};
 use crate::server::ServerState;
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 /// Setup `WebUI` routes
-pub(crate) fn setup_webui(path: &str) -> Router<ServerState> {
-    Router::new().route(path, get(webui))
+pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
+    let mut frontend = Router::new().route(&format!("{base}/home"), get(webui));
+    frontend = frontend
+        .merge(Router::new().route(&format!("{base}/endpoint_stats"), post(endpoint_stats)));
+    frontend
 }
 
 #[cfg(test)]
@@ -20,7 +26,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_setup_webui() {
-        let base = "/home";
+        let base = "/ui/v1";
         let route = setup_webui(base);
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -38,7 +44,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method(Method::GET)
-                    .uri(base)
+                    .uri(format!("{base}/home"))
                     .body(Body::empty())
                     .unwrap(),
             )

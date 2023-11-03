@@ -1,9 +1,6 @@
 mod components;
-use crate::components::{
-    footer::Footer,
-    menu::Menu,
-    stats::endpoints::{EndpointOS, Stats},
-};
+use crate::components::{footer::Footer, menu::Menu, stats::endpoints::Stats};
+use common::server::EndpointOS;
 use leptos::{component, mount_to_body, view, IntoView};
 use leptos_meta::Stylesheet;
 
@@ -21,7 +18,7 @@ fn App() -> impl IntoView {
         <Menu />
         <div class="col-span-1"><Stats os=EndpointOS::All /></div>
         <div class="col-span-1"><Stats os=EndpointOS::Linux /></div>
-        <div class="col-span-1"><Stats os=EndpointOS::MacOS /></div>
+        <div class="col-span-1"><Stats os=EndpointOS::Darwin /></div>
         <div class="col-span-1"><Stats os=EndpointOS::Windows /></div>
     </div>
     <Footer />

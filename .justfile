@@ -32,3 +32,9 @@ linux: (_test "artifacts::os::linux")
 
 # Test all the Unix artifacts
 unix: (_test "artifacts::os::unix")
+
+# Compile WASM and server code then start the server
+server:
+  cd webui && trunk build --release
+  cd server && cargo build --release
+  cd target/release/examples/ && ./start_server ../../../server/tests/test_data/server.toml

@@ -19,7 +19,9 @@ pub(crate) fn setup_routes() -> Router<ServerState> {
     app = app.merge(enroll_routes(&endpoint_base));
     app = app.merge(socket_routes(&endpoint_base));
     app = app.merge(upload_routes(&endpoint_base));
-    app = app.merge(setup_webui("/home"));
+
+    let webui_base = format!("/ui/{version}");
+    app = app.merge(setup_webui(&webui_base));
 
     app = app.fallback(webui_assets);
     app
