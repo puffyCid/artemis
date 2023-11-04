@@ -40,28 +40,34 @@ jobs:
         uses: Swatinem/rust-cache@v2.5.0
         with:
           cache-on-failure: true
+      - name: Install just runner
+        uses: taiki-e/install-action@just
+
       - name: Fmt Check
         run: cargo fmt -- --check
       - name: Run clippy action to produce annotations
         run: cargo clippy
+
       - name: Build tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --no-run --release
+        run: sudo just _pretest
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --release --verbose
+        run: sudo just test
+
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --no-run --release
+        run: sudo env "PATH=$PATH" just _pretest
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --release --verbose
+        run: sudo env "PATH=$PATH" just test
+
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: cargo test --no-run --release
+        run: just --shell powershell.exe --shell-arg -c _pretest
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: cargo test --release --verbose
+        run: just --shell powershell.exe --shell-arg -c test

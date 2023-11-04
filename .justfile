@@ -1,5 +1,7 @@
 # Small Justfile (https://github.com/casey/just and https://just.systems/man/en). 
-# `just` is optional. Useful when you want to run groups of tests and do not want to type the full test path
+# `just` is recommended. 
+# Its useful when you want to run groups of tests and do not want to type the full test path
+# Its very useful to prebuild WASM code before compiling the rest of artemis
 # Windows users will need to use PowerShell `just --shell powershell.exe --shell-arg -c`
 
 # Run cargo clippy on artemis project 
@@ -8,6 +10,13 @@ default:
 
 _test target:
   cargo test --release {{target}}
+
+_wasm:
+  mkdir -p target/dist/web
+  cd webui && trunk build --release
+
+_pretest:(_wasm)
+  cargo test --no-run --release
 
 # Test only the ESE parsing functions
 ese: (_test "artifacts::os::windows::ese")
@@ -34,8 +43,18 @@ linux: (_test "artifacts::os::linux")
 unix: (_test "artifacts::os::unix")
 
 # Compile WASM and server code then start the server
-server:
-  mkdir -p target/dist/web
-  cd webui && trunk build --release
+server:(_wasm)
   cd server && cargo build --release --examples
   cd target/release/examples/ && ./start_server ../../../server/tests/test_data/server.toml
+
+# Build the entire artemis project.
+build:(_wasm)
+  cargo build --release
+
+# Run tests for code coverage. Used by CI
+_coverage:
+  cargo llvm-cov --release --workspace --lcov --output-path lcov.info
+
+# Test the entire artemis project
+test:(_wasm)
+  cargo test --release
