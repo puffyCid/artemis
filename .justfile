@@ -12,8 +12,11 @@ _test target:
   cargo test --release {{target}}
 
 _wasm:
-  mkdir -p target/dist/web
-  cd webui && trunk build --release
+  # Ignore Windows errors any prexisting directories
+  -mkdir -p target/dist/web
+  # Trying both trunk configs. Windows has seperate config. Continue if we get an error
+  -cd webui && trunk build --release
+  -cd webui && trunk build --config TrunkWin.toml --release
 
 _pretest:(_wasm)
   cargo test --no-run --release
@@ -52,7 +55,7 @@ build:(_wasm)
   cargo build --release
 
 # Run tests for code coverage. Used by CI
-_coverage:
+_coverage:(_wasm)
   cargo llvm-cov --release --workspace --lcov --output-path lcov.info
 
 # Test the entire artemis project

@@ -74,7 +74,7 @@ jobs:
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" rustup default stable
+        run: sudo env "PATH=$PATH" rustup default stable && sudo env "PATH=$PATH" rustup target add wasm32-unknown-unknown
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" just _pretest
