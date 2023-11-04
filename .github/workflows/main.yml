@@ -36,6 +36,15 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
+      - name: Setup NodeJS toolchain
+        uses: actions/setup-node@v3
+      - name: Install TailwindCSS
+        run: npm install -D tailwindcss
+      - name: Install DaisyUI
+        run: npm install -D tailwindcss
+      - name: Install TailwindCSS Typography
+        run: npm install -D @tailwindcss/typography
+
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.5.0
         with:
