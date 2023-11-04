@@ -5,7 +5,7 @@
 # Windows users will need to use PowerShell `just --shell powershell.exe --shell-arg -c`
 
 # Run cargo clippy on artemis project 
-default:
+default:(_wasm)
   cargo clippy
 
 _test target:
@@ -58,3 +58,7 @@ _coverage:
 # Test the entire artemis project
 test:(_wasm)
   cargo test --release
+
+# Test the entire artemis project using nextest
+nextest:(_wasm)
+  cargo nextest run --release

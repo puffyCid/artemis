@@ -45,8 +45,12 @@ jobs:
 
       - name: Fmt Check
         run: cargo fmt -- --check
-      - name: Run clippy action to produce annotations
-        run: cargo clippy
+      - name: Run clippy action to produce annotations on Windows
+        if: matrix.info.os == 'windows-latest'
+        run: just --shell powershell.exe
+      - name: Run clippy action to produce annotations non-Windows
+        if: matrix.info.os != 'windows-latest'
+        run: just
 
       - name: Build tests (macOS)
         if: matrix.info.os == 'macOS-latest'
