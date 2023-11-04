@@ -7,7 +7,9 @@ use crate::{
         uuid::generate_uuid,
     },
 };
+use common::server::EndpointOS;
 use log::error;
+use serde::Serialize;
 
 /// Create the endpoint storage directory and generate an ID
 pub(crate) async fn create_endpoint_path(
@@ -34,7 +36,7 @@ pub(crate) async fn create_endpoint_path(
         }
     };
 
-    let endpoint_path = format!("{path}/{}", data.id);
+    let endpoint_path = format!("{path}/{}/{}", data.platform, data.id);
 
     let status = create_dirs(&endpoint_path).await;
     if status.is_err() {
@@ -72,12 +74,68 @@ async fn create_enroll_file(path: &str, data: &[u8]) -> Result<(), StoreError> {
     Ok(())
 }
 
+/// Simple way to count Endpoint OS enrollment
+pub(crate) async fn endpoint_count(path: &str, os: &EndpointOS) -> Result<usize, StoreError> {
+    let count = match os {
+        EndpointOS::All => glob_paths(&format!("{path}/*/*/enroll.json"))?,
+        EndpointOS::Linux => glob_paths(&format!("{path}/Linux/*/enroll.json"))?,
+        EndpointOS::Darwin => glob_paths(&format!("{path}/Darwin/*/enroll.json"))?,
+        EndpointOS::Windows => glob_paths(&format!("{path}/Windows/*/enroll.json"))?,
+    };
+
+    Ok(count.len())
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct GlobInfo {
+    pub(crate) full_path: String,
+    pub(crate) filename: String,
+    pub(crate) is_file: bool,
+    pub(crate) is_directory: bool,
+    pub(crate) is_symlink: bool,
+}
+
+/// Execute a provided Glob pattern (Ex: /files/*) and return results
+pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, StoreError> {
+    let mut info = Vec::new();
+    let glob_results = glob::glob(glob_pattern);
+    let paths = match glob_results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Could not glob {glob_pattern}: {err:?}");
+            return Err(StoreError::BadGlob);
+        }
+    };
+
+    for entry in paths.flatten() {
+        let glob_info = GlobInfo {
+            full_path: entry.to_str().unwrap_or_default().to_string(),
+            filename: entry
+                .file_name()
+                .unwrap_or_default()
+                .to_str()
+                .unwrap_or_default()
+                .to_string(),
+            is_directory: entry.is_dir(),
+            is_file: entry.is_file(),
+            is_symlink: entry.is_symlink(),
+        };
+        info.push(glob_info);
+    }
+
+    Ok(info)
+}
+
 #[cfg(test)]
 mod tests {
+    use common::server::EndpointOS;
+    use std::path::PathBuf;
+
     use super::{create_endpoint_path, create_enroll_file};
     use crate::{
         artifacts::{enrollment::EndpointInfo, systeminfo::Memory},
-        utils::filesystem::create_dirs,
+        filestore::endpoints::{endpoint_count, glob_paths},
+        utils::{config::read_config, filesystem::create_dirs},
     };
 
     #[tokio::test]
@@ -119,5 +177,28 @@ mod tests {
     async fn test_create_enroll_file_bad() {
         let test = ".";
         create_enroll_file(&test, b"hello").await.unwrap();
+    }
+
+    #[test]
+    fn test_glob_paths() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests");
+
+        let _result = glob_paths(&format!("{}/*", test_location.to_str().unwrap())).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_endpoint_count() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").await.unwrap();
+
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
+
+        let _ = endpoint_count(&config.endpoint_server.storage, &EndpointOS::All)
+            .await
+            .unwrap();
     }
 }

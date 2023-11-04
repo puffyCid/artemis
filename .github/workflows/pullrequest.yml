@@ -36,32 +36,55 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
+      - name: Setup NodeJS toolchain
+        uses: actions/setup-node@v3
+      - name: Install TailwindCSS
+        run: npm install -D tailwindcss
+      - name: Install DaisyUI
+        run: npm install -D daisyui@latest
+      - name: Install TailwindCSS Typography
+        run: npm install -D @tailwindcss/typography
+      - name: Add WASM Support
+        run: rustup target add wasm32-unknown-unknown
+
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.5.0
         with:
           save-if: false
       - name: Fmt Check
         run: cargo fmt -- --check
-      - name: Run clippy action to produce annotations
-        run: cargo clippy
+      - name: Install just runner
+        uses: taiki-e/install-action@just
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.4.0
+
+      - name: Run clippy action to produce annotations on Windows
+        if: matrix.info.os == 'windows-latest'
+        run: just --shell pwsh.exe --shell-arg -c
+      - name: Run clippy action to produce annotations non-Windows
+        if: matrix.info.os != 'windows-latest'
+        run: just
+
       - name: Build tests (macOS)
         if: matrix.info.os == 'macOS-latest'
         run: sudo cargo test --no-run --release
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --release --verbose
+        run: sudo cargo test --release
+
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" rustup default stable
+        run: sudo env "PATH=$PATH" rustup default stable && sudo env "PATH=$PATH" rustup target add wasm32-unknown-unknown
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --no-run --release
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --release --verbose
+        run: sudo env "PATH=$PATH" cargo test --release
+
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --no-run --release
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: cargo test --release --verbose
+        run: cargo test --release

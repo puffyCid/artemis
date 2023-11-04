@@ -64,6 +64,7 @@ pub(crate) struct GlobInfo {
     pub(crate) is_directory: bool,
     pub(crate) is_symlink: bool,
 }
+
 /// Execute a provided Glob pattern (Ex: /files/*) and return results
 pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystemError> {
     let mut info = Vec::new();
@@ -115,7 +116,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests");
 
-        let result = glob_paths(&format!("{}/*", &test_location.display().to_string())).unwrap();
+        let result = glob_paths(&format!("{}/*", test_location.to_str().unwrap())).unwrap();
         assert!(result.len() > 10);
     }
 
