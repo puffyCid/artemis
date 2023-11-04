@@ -60,7 +60,7 @@ jobs:
 
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe
+        run: just --shell pwsh.exe --shell-arg -c
       - name: Run clippy action to produce annotations non-Windows
         if: matrix.info.os != 'windows-latest'
         run: just
@@ -74,7 +74,7 @@ jobs:
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" rustup default stable
+        run: sudo env "PATH=$PATH" rustup default stable && rustup target add wasm32-unknown-unknown
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" just _pretest
@@ -84,7 +84,7 @@ jobs:
 
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe --shell-arg -c _pretest
+        run: just --shell pwsh.exe --shell-arg -c _pretest
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe --shell-arg -c test
+        run: just --shell pwsh.exe --shell-arg -c test

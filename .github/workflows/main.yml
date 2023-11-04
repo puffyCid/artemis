@@ -60,7 +60,7 @@ jobs:
         run: cargo fmt -- --check
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe
+        run: just --shell pwsh.exe --shell-arg -c
       - name: Run clippy action to produce annotations non-Windows
         if: matrix.info.os != 'windows-latest'
         run: just
@@ -84,7 +84,7 @@ jobs:
 
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe --shell-arg -c _pretest
+        run: just --shell pwsh.exe --shell-arg -c _pretest
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell powershell.exe --shell-arg -c test
+        run: just --shell pwsh.exe --shell-arg -c test

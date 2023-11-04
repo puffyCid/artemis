@@ -2,7 +2,7 @@
 # `just` is recommended. 
 # Its useful when you want to run groups of tests and do not want to type the full test path
 # Its very useful to prebuild WASM code before compiling the rest of artemis
-# Windows users will need to use PowerShell `just --shell powershell.exe --shell-arg -c`
+# Windows users will need to use PowerShell `just --shell pwsh.exe --shell-arg -c`
 
 # Run cargo clippy on artemis project 
 default:(_wasm)

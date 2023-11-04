@@ -38,7 +38,10 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: jetli/trunk-action@v0.4.0
       # Compile WASM before compiling binary
-      - run: just _wasm
+      - if: matrix.info.os == 'windows-latest'
+        run: just --shell pwsh.exe --shell-arg -c _wasm
+      - if: matrix.info.os != 'windows-latest'
+        run: just _wasm
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
