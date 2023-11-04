@@ -17,7 +17,6 @@ pub(crate) async fn webui() -> Result<Response, StatusCode> {
 
 /// Return the remaining web assets the the WASM binary
 pub(crate) async fn webui_assets(uri: Uri) -> Result<Response, StatusCode> {
-    println!("path is: {uri:?}");
     let path = uri.path().trim_start_matches('/');
     match Frontend::get(path) {
         Some(result) => {

@@ -8,12 +8,14 @@ use reqwest::Client;
 pub(crate) fn Stats(
     /// Endpoint OS to count
     os: EndpointOS,
+    html: String,
 ) -> impl IntoView {
-    let count = create_resource(|| (), move |_| async move { endpoint_stats(&os).await });
+    let port: u16 = 8000;
+    let count = create_resource(|| (), move |_| async move { endpoint_stats(&os, &port).await });
 
     view! {
         <div class="stat shadow">
-            <div class="stat-figure text-primary">{format!("{os:?} icon")}</div>
+            <div class="stat-figure text-primary" inner_html=html></div>
             <div class="stat-title"> {format!("{os:?} Endpoint Count")}</div>
             <div class="stat-value">
                 <Transition fallback=move || view!{<p> "Loading..."</p>}>
@@ -25,11 +27,11 @@ pub(crate) fn Stats(
 }
 
 /// Request count of endpoints enrolled
-async fn endpoint_stats(os: &EndpointOS) -> u32 {
-    let uri = "http://127.0.0.1:8000/ui/v1/endpoint_stats";
+async fn endpoint_stats(os: &EndpointOS, port: &u16) -> u32 {
+    let uri = format!("http://127.0.0.1:{port}/ui/v1/endpoint_stats");
     let client = Client::new()
         .post(uri)
-        .body(serde_json::to_string(&os).unwrap())
+        .body(serde_json::to_string(&os).unwrap_or_default())
         .header("Content-Type", "application/json")
         .send()
         .await;
@@ -62,11 +64,15 @@ async fn endpoint_stats(os: &EndpointOS) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use httpmock::MockServer;
     use super::{endpoint_stats, EndpointOS};
 
     #[tokio::test]
     async fn test_endpoint_stats() {
+        let server = MockServer::start();
+        let port = server.port();
+        
         let os = EndpointOS::All;
-        let _stats = endpoint_stats(&os).await;
+        let _stats = endpoint_stats(&os, &port).await;
     }
 }
