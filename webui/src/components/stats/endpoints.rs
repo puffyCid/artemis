@@ -11,7 +11,10 @@ pub(crate) fn Stats(
     html: String,
 ) -> impl IntoView {
     let port: u16 = 8000;
-    let count = create_resource(|| (), move |_| async move { endpoint_stats(&os, &port).await });
+    let count = create_resource(
+        || (),
+        move |_| async move { endpoint_stats(&os, &port).await },
+    );
 
     view! {
         <div class="stat shadow">
@@ -64,14 +67,14 @@ async fn endpoint_stats(os: &EndpointOS, port: &u16) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use httpmock::MockServer;
     use super::{endpoint_stats, EndpointOS};
+    use httpmock::MockServer;
 
     #[tokio::test]
     async fn test_endpoint_stats() {
         let server = MockServer::start();
         let port = server.port();
-        
+
         let os = EndpointOS::All;
         let _stats = endpoint_stats(&os, &port).await;
     }
