@@ -44,7 +44,7 @@ jobs:
       - name: Install TailwindCSS
         run: npm install -D tailwindcss
       - name: Install DaisyUI
-        run: npm install -D tailwindcss
+        run: npm install -D daisyui@latest
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
 
