@@ -47,6 +47,8 @@ jobs:
         run: npm install -D daisyui@latest
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
+      - name: Add WASM Support
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Install trunk
         uses: jetli/trunk-action@v0.4.0
