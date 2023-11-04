@@ -67,24 +67,24 @@ jobs:
 
       - name: Build tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo just _pretest
+        run: sudo cargo test --no-run --release
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo just test
+        run: sudo cargo test --release
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable && sudo env "PATH=$PATH" rustup target add wasm32-unknown-unknown
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" just _pretest
+        run: sudo env "PATH=$PATH" cargo test --no-run --release
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" just test
+        run: sudo env "PATH=$PATH" cargo test --release
 
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c _pretest
+        run: cargo test --no-run --release
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c test
+        run: cargo test --release
