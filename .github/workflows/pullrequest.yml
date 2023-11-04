@@ -44,6 +44,8 @@ jobs:
         run: cargo fmt -- --check
       - name: Install just runner
         uses: taiki-e/install-action@just
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.4.0
 
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'

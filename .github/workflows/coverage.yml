@@ -39,6 +39,8 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.4.0
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 

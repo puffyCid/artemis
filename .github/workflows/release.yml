@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: taiki-e/install-action@just
+      - uses: jetli/trunk-action@v0.4.0
       # Compile WASM before compiling binary
       - run: just _wasm
       - uses: taiki-e/upload-rust-binary-action@v1

@@ -42,6 +42,8 @@ jobs:
           cache-on-failure: true
       - name: Install just runner
         uses: taiki-e/install-action@just
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.4.0
 
       - name: Fmt Check
         run: cargo fmt -- --check
