@@ -3,13 +3,13 @@
  *
  * They exist per user account at:
  *   `/Users/%/Library/Application Support/com.apple.backgroundtaskmanagementagent/backgrounditems.btm` (pre-Ventura)
- *   `/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v4.btm` (Ventura+)
+ *   `/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v*.btm` (Ventura+)
  *
  * References:
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
 use super::{error::LoginItemError, loginitem::LoginItemsData};
-use crate::filesystem::{directory::get_user_paths, files::is_file};
+use crate::filesystem::{directory::get_user_paths, metadata::glob_paths};
 use log::error;
 use std::path::Path;
 
@@ -41,21 +41,32 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
 
     // Starting on Ventura `LoginItems` file now also contains Launch daemons and agents
     // We still only want loginitems
-    let ventura_loginitems = "/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v4.btm";
-    if is_file(ventura_loginitems) {
+    let ventura_loginitems = "/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v*.btm";
+    let loginitems_glob = glob_paths(ventura_loginitems);
+    let items = match loginitems_glob {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[loginitems] Failed to glob {ventura_loginitems}: {err:?}");
+            Vec::new()
+        }
+    };
+
+    for item in items {
+        if !item.is_file {
+            continue;
+        }
+
         let results = LoginItemsData::parse_loginitems(ventura_loginitems);
         match results {
             Ok(mut data) => loginitems_data.append(&mut data),
             Err(err) => {
-                error!("[loginitem] Could not parse Ventura loginitems: {err:?}");
+                error!("[loginitem] Could not parse modern loginitems: {err:?}");
             }
         }
     }
+
     let mut app_loginitems = LoginItemsData::loginitem_apps_system()?;
     loginitems_data.append(&mut app_loginitems);
-    if !loginitems_data.is_empty() {
-        return Ok(loginitems_data);
-    }
 
     Ok(loginitems_data)
 }
@@ -65,7 +76,7 @@ mod tests {
     use super::grab_loginitems;
 
     #[test]
-    fn test_() {
+    fn test_grab_loginitems() {
         let _ = grab_loginitems().unwrap();
     }
 }
