@@ -27,6 +27,7 @@ pub(crate) fn get_registry(#[string] path: String) -> Result<String, AnyError> {
 
 #[op2]
 #[string]
+/// Expose parsing the Security Key to `Deno`
 pub(crate) fn get_sk_info(#[string] path: String, offset: i32) -> Result<String, AnyError> {
     let sk_result = lookup_sk_info(&path, offset);
     let sk = match sk_result {
