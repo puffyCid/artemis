@@ -1,5 +1,6 @@
 use crate::{
-    artifacts::os::windows::registry::helper::get_registry_keys, runtime::error::RuntimeError,
+    artifacts::os::windows::registry::helper::{get_registry_keys, lookup_sk_info},
+    runtime::error::RuntimeError,
     utils::regex_options::create_regex,
 };
 use deno_core::{error::AnyError, op2};
@@ -21,6 +22,22 @@ pub(crate) fn get_registry(#[string] path: String) -> Result<String, AnyError> {
     };
 
     let results = serde_json::to_string(&reg)?;
+    Ok(results)
+}
+
+#[op2]
+#[string]
+pub(crate) fn get_sk_info(#[string] path: String, offset: i32) -> Result<String, AnyError> {
+    let sk_result = lookup_sk_info(&path, offset);
+    let sk = match sk_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Failed to parse registry file: {err:?}");
+            return Err(RuntimeError::ExecuteScript.into());
+        }
+    };
+
+    let results = serde_json::to_string(&sk)?;
     Ok(results)
 }
 
@@ -54,6 +71,17 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("programs"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_get_sk_info() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcmVnaXN0cnkocGF0aCkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3JlZ2lzdHJ5KHBhdGgpOwogICAgY29uc3QgcmVnX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiByZWdfYXJyYXk7Cn0KCmZ1bmN0aW9uIGxvb2t1cFNlY3VyaXR5S2V5KHBhdGgsIG9mZnNldCkgewogICAgaWYgKG9mZnNldCA8PSAwKSB7CiAgICAgIHJldHVybiBuZXcgRXJyb3IoIkNhbm5vdCB1c2UgbmVnYXRpdmUgb2Zmc2V0IG9yIHplcm8hIik7CiAgICB9CiAgICAgIC8vQHRzLWlnbm9yZTogQ3VzdG9tIEFydGVtaXMgZnVuY3Rpb24KICAgICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NrX2luZm8ocGF0aCwgb2Zmc2V0KTsKICAKICAgICAgY29uc3QgcmVzdWx0cyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICAgIHJldHVybiByZXN1bHRzOwogIH0KCmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIkM6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcY29uZmlnXFxEUklWRVJTIjsKICAgIGNvbnN0IHJlZyA9IGdldF9yZWdpc3RyeShwYXRoKTsKICAgIGZvciAoY29uc3QgZW50cmllcyBvZiByZWcpewogICAgICAgIHJldHVybiBsb29rdXBTZWN1cml0eUtleShwYXRoLCBlbnRyaWVzLnNlY3VyaXR5X29mZnNldCk7CiAgICB9Cn0KbWFpbigpOw==";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("sk"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
