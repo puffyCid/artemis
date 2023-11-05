@@ -14,16 +14,16 @@ use std::mem::size_of;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub(crate) struct AccessControlEntry {
-    ace_type: AceTypes,
-    flags: Vec<AceFlags>,
-    access_rights: Vec<AccessMask>,
-    sid: String,
-    account: String,
+    pub(crate) ace_type: AceTypes,
+    pub(crate) flags: Vec<AceFlags>,
+    pub(crate) access_rights: Vec<AccessMask>,
+    pub(crate) sid: String,
+    pub(crate) account: String,
     /**Only if Object data_type and ACE_OBJECT_TYPE_PRESENT object flag */
-    object_flags: ObjectFlag,
+    pub(crate) object_flags: ObjectFlag,
     /**Only if Object data_type and ACE_INHERITED_OBJECT_TYPE_PRESENT object flag */
-    object_type_guid: String,
-    inherited_object_type_guid: String,
+    pub(crate) object_type_guid: String,
+    pub(crate) inherited_object_type_guid: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -73,6 +73,7 @@ pub(crate) enum AccessItem {
     Folder,
     NonFolder,
     Mandatory,
+    Registry,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -102,12 +103,25 @@ pub(crate) enum AccessMask {
     MandatoryNoWriteUp,
     MandatoryNoReadUp,
     MandatoryNoExecuteUp,
+    // Registry related. https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-key-security-and-access-rights
+    AllAccess,
+    CreateLink,
+    CreateSubKey,
+    EnumerateSubKeys,
+    Execute,
+    Notify,
+    QueryValue,
+    Read,
+    SetValue,
+    Wow64Key32,
+    Wow64Key64,
+    Write,
 }
 
 impl AccessControlEntry {
     /**
      * Parse the raw Windows Acess Control List (ACL) data  
-     * Must specify the ACL item either: `NonFolder` or `Folder`  
+     * Must specify the ACL item either: `NonFolder` or `Folder` or `Registry`  
      */
     pub(crate) fn parse_acl<'a>(
         data: &'a [u8],
@@ -147,8 +161,13 @@ impl AccessControlEntry {
             let (input, ace_entry_data) = take(size - adjust_entry_size)(input)?;
             entries_data = input;
 
-            let (ace_entry_data, rights_data) =
-                nom_unsigned_four_bytes(ace_entry_data, Endian::Be)?;
+            let endian = if item == &AccessItem::Registry {
+                Endian::Le
+            } else {
+                Endian::Be
+            };
+
+            let (ace_entry_data, rights_data) = nom_unsigned_four_bytes(ace_entry_data, endian)?;
 
             let access_rights = if ace_type == AceTypes::SystemMandatoryLabel {
                 AccessControlEntry::get_access_rights(&rights_data, &AccessItem::Mandatory)
@@ -230,19 +249,6 @@ impl AccessControlEntry {
         let no_executeup = 0x4;
 
         // Lots of rights...now need to check them all
-        // Generic
-        if (rights_data & gen_read) == gen_read {
-            rights.push(AccessMask::GenericRead);
-        }
-        if (rights_data & gen_write) == gen_write {
-            rights.push(AccessMask::GenericWrite);
-        }
-        if (rights_data & gen_exec) == gen_exec {
-            rights.push(AccessMask::GenericExecute);
-        }
-        if (rights_data & gen_all) == gen_all {
-            rights.push(AccessMask::GenericAll);
-        }
 
         // Standard
         if (rights_data & delete) == delete {
@@ -294,6 +300,70 @@ impl AccessControlEntry {
             if (rights_data & no_executeup) == no_executeup {
                 rights.push(AccessMask::MandatoryNoExecuteUp);
             }
+        } else if item == &AccessItem::Registry {
+            let all_access = 0xf003f;
+            let create_link = 0x20;
+            let create_sub_key = 0x4;
+            let enumerate_sub_keys = 0x8;
+            let execute = 0x20019;
+            let notify = 0x10;
+            let query_value = 0x1;
+            let set_value = 0x2;
+            let wow_32key = 0x200;
+            let wow_64key = 0x100;
+            let write = 0x20006;
+
+            if (rights_data & all_access) == all_access {
+                rights.push(AccessMask::AllAccess);
+            }
+            if (rights_data & create_link) == create_link {
+                rights.push(AccessMask::CreateLink);
+            }
+            if (rights_data & create_sub_key) == create_sub_key {
+                rights.push(AccessMask::CreateSubKey);
+            }
+            if (rights_data & enumerate_sub_keys) == enumerate_sub_keys {
+                rights.push(AccessMask::EnumerateSubKeys);
+            }
+            if (rights_data & execute) == execute {
+                // Read and Execute have same value and mean the same thing
+                rights.push(AccessMask::Execute);
+                rights.push(AccessMask::Read);
+            }
+            if (rights_data & notify) == notify {
+                rights.push(AccessMask::Notify);
+            }
+            if (rights_data & query_value) == query_value {
+                rights.push(AccessMask::QueryValue);
+            }
+            if (rights_data & set_value) == set_value {
+                rights.push(AccessMask::SetValue);
+            }
+            if (rights_data & wow_32key) == wow_32key {
+                rights.push(AccessMask::Wow64Key32);
+            }
+            if (rights_data & wow_64key) == wow_64key {
+                rights.push(AccessMask::Wow64Key64);
+            }
+            if (rights_data & write) == write {
+                rights.push(AccessMask::Write);
+            }
+
+            return rights;
+        }
+
+        // Generic
+        if (rights_data & gen_read) == gen_read {
+            rights.push(AccessMask::GenericRead);
+        }
+        if (rights_data & gen_write) == gen_write {
+            rights.push(AccessMask::GenericWrite);
+        }
+        if (rights_data & gen_exec) == gen_exec {
+            rights.push(AccessMask::GenericExecute);
+        }
+        if (rights_data & gen_all) == gen_all {
+            rights.push(AccessMask::GenericAll);
         }
 
         if (rights_data & read_prop) == read_prop {

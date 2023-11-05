@@ -2,6 +2,7 @@ use super::{
     error::RegistryError,
     hbin::HiveBin,
     header::RegHeader,
+    keys::sk::SecurityKey,
     parser::{Params, RegistryEntry},
 };
 use crate::filesystem::ntfs::{
@@ -110,6 +111,28 @@ pub(crate) fn read_registry_ref(
     }
 }
 
+/// Lookup Security Key info based on SK offset.
+pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, RegistryError> {
+    let empty = 0;
+    if sk_offset < empty {
+        error!("[registry] Provided unallocated offset. Refusing to parse SK data.");
+        return Err(RegistryError::ReadRegistry);
+    }
+    let adjust_offset = 4096;
+    // Since we are jumping straight to the SK offset we need to add 4096 to skip the HBIN header
+    let offset = sk_offset + adjust_offset;
+    let reg_data = read_registry(path)?;
+
+    let sk_result = SecurityKey::parse_security_key(&reg_data, offset as u32);
+    let sk = if let Ok((_, result)) = sk_result {
+        result
+    } else {
+        error!("[registry] Could not parse Security info at offset {sk_offset}");
+        return Err(RegistryError::Parser);
+    };
+    Ok(sk)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -117,7 +140,7 @@ mod tests {
         read_registry_ref,
     };
     use crate::{
-        artifacts::os::windows::registry::parser::Params,
+        artifacts::os::windows::registry::{helper::lookup_sk_info, parser::Params},
         filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     };
     use regex::Regex;
@@ -183,6 +206,15 @@ mod tests {
         let result =
             get_registry_keys(start_path, &regex, &test_location.display().to_string()).unwrap();
         assert_eq!(result.len(), 666);
+    }
+
+    #[test]
+    fn test_lookup_sk_info() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let result = lookup_sk_info(&test_location.display().to_string(), 368).unwrap();
+        assert_eq!(result.reference_count, 1);
+        assert_eq!(result.info.owner_sid, "S-1-5-32-544");
     }
 
     #[test]
