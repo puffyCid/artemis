@@ -1,6 +1,3 @@
-use log::error;
-use nom::bytes::complete::take;
-
 use crate::{
     artifacts::os::windows::registry::{
         cell::{walk_registry, walk_values},
@@ -16,6 +13,8 @@ use crate::{
         time::filetime_to_unixepoch,
     },
 };
+use log::error;
+use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct NameKey {
@@ -109,7 +108,9 @@ impl NameKey {
             values: Vec::new(),
             last_modified: filetime_to_unixepoch(&last_modified),
             depth: params.key_tracker.len(),
+            security_offset: key_security_offset,
         };
+
         params.key_tracker.push(name_key.key_name);
 
         registry_entry.path = params.key_tracker.join("\\");

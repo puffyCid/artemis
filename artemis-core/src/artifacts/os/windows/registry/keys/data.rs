@@ -66,7 +66,7 @@ pub(crate) fn parse_qword_filetime(
     data_size: u32,
     filetime: bool,
 ) -> nom::IResult<&[u8], String> {
-    let (input, _) = take(offset as usize)(reg_data)?;
+    let (input, _) = take(offset)(reg_data)?;
     let (input, (allocated, data_cell_size)) = is_allocated(input)?;
 
     if !allocated {
@@ -102,7 +102,7 @@ fn check_big_data(
     data_type: DataTypes,
     minor_version: u32,
 ) -> nom::IResult<&[u8], String> {
-    let (input, _) = take(offset as usize)(reg_data)?;
+    let (input, _) = take(offset)(reg_data)?;
 
     let (input, (allocated, data_cell_size)) = is_allocated(input)?;
 

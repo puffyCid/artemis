@@ -53,6 +53,7 @@ pub(crate) struct RegistryEntry {
     pub(crate) values: Vec<KeyValue>,
     pub(crate) last_modified: i64,
     pub(crate) depth: usize,
+    pub(crate) security_offset: i32,
 }
 
 #[derive(Debug, Serialize, Clone)]

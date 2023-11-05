@@ -138,7 +138,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         inspector: false,
         is_main: Default::default(),
         preserve_snapshotted_modules: None,
-        op_metrics_fn: None,
+        op_metrics_factory_fn: None,
         feature_checker: None,
     });
 

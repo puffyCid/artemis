@@ -8,7 +8,7 @@ use super::{
     pe::get_pe,
     prefetch::{get_alt_prefetch, get_prefetch, get_prefetch_path},
     recyclebin::{get_alt_recycle_bin, get_recycle_bin, get_recycle_bin_file},
-    registry::get_registry,
+    registry::{get_registry, get_sk_info},
     search::get_search,
     services::{get_alt_services, get_service_file, get_services},
     shellbags::{get_alt_shellbags, get_shellbags},
@@ -81,6 +81,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_recycle_bin::DECL,
         get_alt_recycle_bin::DECL,
         get_recycle_bin_file::DECL,
+        get_sk_info::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());
