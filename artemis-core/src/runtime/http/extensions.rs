@@ -11,7 +11,7 @@ mod tests {
     use super::http_functions;
 
     #[test]
-    fn test_system_functions() {
+    fn test_http_functions() {
         let results = http_functions();
         assert!(results.len() > 0)
     }

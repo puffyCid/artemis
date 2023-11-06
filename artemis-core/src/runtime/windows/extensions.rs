@@ -23,8 +23,8 @@ use super::{
 use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
     environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
-    nom::extensions::nom_functions, system::extensions::system_functions,
-    time::extensions::time_functions, http::extensions::http_functions
+    http::extensions::http_functions, nom::extensions::nom_functions,
+    system::extensions::system_functions, time::extensions::time_functions,
 };
 use deno_core::{Extension, Op};
 
