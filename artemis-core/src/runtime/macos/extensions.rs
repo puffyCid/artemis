@@ -63,6 +63,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut nom_functions());
     exts.append(&mut time_functions());
+    exts.append(&mut http_functions());
 
     exts
 }
