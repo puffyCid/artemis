@@ -4,6 +4,7 @@ mod encoding;
 mod environment;
 mod error;
 mod filesystem;
+mod http;
 mod nom;
 mod run;
 mod system;

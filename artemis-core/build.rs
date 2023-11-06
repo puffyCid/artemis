@@ -14,6 +14,7 @@ fn main() {
         "javascript/encoding.js",
         "javascript/systeminfo.js",
         "javascript/time.js",
+        "javascript/http.js",
         "javascript/main.js",)
         .to_vec()
         .into(),
