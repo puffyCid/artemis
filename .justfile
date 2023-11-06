@@ -65,3 +65,11 @@ test:(_wasm)
 # Test the entire artemis project using nextest
 nextest:(_wasm)
   cargo nextest run --release
+
+# Just build the artemis binary
+cli:
+  cd cli && cargo build --release
+
+# Just build artemis-core
+core:
+  cd artemis-core && cargo build --release

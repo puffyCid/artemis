@@ -24,7 +24,7 @@ use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
     environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
     nom::extensions::nom_functions, system::extensions::system_functions,
-    time::extensions::time_functions,
+    time::extensions::time_functions, http::extensions::http_functions
 };
 use deno_core::{Extension, Op};
 
@@ -91,6 +91,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut nom_functions());
     exts.append(&mut time_functions());
+    exts.append(&mut http_functions());
 
     exts
 }

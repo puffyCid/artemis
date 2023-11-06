@@ -1,13 +1,12 @@
 use super::logons::get_logon;
-use crate::runtime::applications::extensions::app_functions;
-use crate::runtime::encoding::extensions::enocoding_runtime;
-use crate::runtime::environment::extensions::env_runtime;
-use crate::runtime::filesystem::extensions::fs_runtime;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
-use crate::runtime::nom::extensions::nom_functions;
-use crate::runtime::system::extensions::system_functions;
-use crate::runtime::time::extensions::time_functions;
-use crate::runtime::unix::extensions::unix_functions;
+use crate::runtime::{
+    applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
+    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
+    http::extensions::http_functions, nom::extensions::nom_functions,
+    system::extensions::system_functions, time::extensions::time_functions,
+    unix::extensions::unix_functions,
+};
 use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
@@ -34,6 +33,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut nom_functions());
     exts.append(&mut time_functions());
+    exts.append(&mut http_functions());
 
     exts
 }

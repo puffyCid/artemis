@@ -8,6 +8,7 @@ mod nom;
 mod run;
 mod system;
 mod time;
+mod http;
 
 #[cfg(target_family = "unix")]
 mod unix;
