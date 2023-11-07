@@ -12,7 +12,7 @@ fn main() {
         "javascript/filesystem.js",
         "javascript/environment.js",
         "javascript/encoding.js",
-        "javascript/systeminfo.js",
+        "javascript/system.js",
         "javascript/time.js",
         "javascript/http.js",
         "javascript/main.js",)

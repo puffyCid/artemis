@@ -1,5 +1,5 @@
 const { core } = globalThis.Deno;
-class SystemInfo {
+class System {
     uptime = () => {
         return core.ops.js_uptime();
     };
@@ -24,5 +24,8 @@ class SystemInfo {
     cpu = () => {
         return core.ops.js_cpu_info();
     };
+    execute = (command, args) => {
+        return core.ops.js_command(command, args);
+    };
 }
-export const systemInfo = new SystemInfo();
+export const system = new System();

@@ -69,9 +69,15 @@ pub(crate) async fn js_request(
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
+        runtime::deno::execute_script,
+        structs::artifacts::runtime::script::JSScript,
         structs::toml::Output,
+        utils::{
+            encoding::{base64_decode_standard, base64_encode_standard},
+            strings::extract_utf8_string,
+        },
     };
+    use httpmock::{Method::GET, MockServer};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -92,12 +98,27 @@ mod tests {
 
     #[test]
     fn test_js_request() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2h0dHAvY2xpZW50LnRzCmFzeW5jIGZ1bmN0aW9uIHJlcXVlc3QoCiAgdXJsLAogIHByb3RvY29sLAogIGJvZHkgPSBuZXcgQXJyYXlCdWZmZXIoMCksCiAgaGVhZGVycyA9IHsgIkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiB9LAopIHsKICBjb25zdCByZXN1bHQgPSBhd2FpdCBodHRwLnNlbmQodXJsLCBwcm90b2NvbCwgaGVhZGVycywgYm9keSk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zdCByZXMgPSBKU09OLnBhcnNlKHJlc3VsdCk7CiAgcmV0dXJuIHJlczsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2J5dGVzLnRzCmZ1bmN0aW9uIGVuY29kZUJ5dGVzKGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBlbmNvZGluZy5ieXRlc19lbmNvZGUoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL3N0cmluZ3MudHMKZnVuY3Rpb24gZXh0cmFjdFV0ZjhTdHJpbmcoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGVuY29kaW5nLmV4dHJhY3RfdXRmOF9zdHJpbmcoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVybCA9ICJodHRwczovL2h0dHBiaW4ub3JnL3VzZXItYWdlbnQiOwogIGNvbnN0IGJvZHkgPSAiIjsKICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KHVybCwgIkdFVCIsIC8qIEdFVCAqLyBlbmNvZGVCeXRlcyhib2R5KSk7CiAgY29uc29sZS5sb2coSlNPTi5wYXJzZShleHRyYWN0VXRmOFN0cmluZyhuZXcgVWludDhBcnJheShyZXMuYm9keSkpKSk7CiAgcmV0dXJuIHJlczsKfQptYWluKCk7Cg==";
+        let server = MockServer::start();
+        let port = server.port();
+
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2h0dHAvY2xpZW50LnRzCmFzeW5jIGZ1bmN0aW9uIHJlcXVlc3QoCiAgdXJsLAogIHByb3RvY29sLAogIGJvZHkgPSBuZXcgQXJyYXlCdWZmZXIoMCksCiAgaGVhZGVycyA9IHsgIkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiB9LAopIHsKICBjb25zdCByZXN1bHQgPSBhd2FpdCBodHRwLnNlbmQodXJsLCBwcm90b2NvbCwgaGVhZGVycywgYm9keSk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zdCByZXMgPSBKU09OLnBhcnNlKHJlc3VsdCk7CiAgcmV0dXJuIHJlczsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2J5dGVzLnRzCmZ1bmN0aW9uIGVuY29kZUJ5dGVzKGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBlbmNvZGluZy5ieXRlc19lbmNvZGUoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL3N0cmluZ3MudHMKZnVuY3Rpb24gZXh0cmFjdFV0ZjhTdHJpbmcoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGVuY29kaW5nLmV4dHJhY3RfdXRmOF9zdHJpbmcoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVybCA9ICJodHRwOi8vMTI3LjAuMC4xOlJFUExBQ0VQT1JUL3VzZXItYWdlbnQiOwogIGNvbnN0IGJvZHkgPSAiIjsKICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KHVybCwgIkdFVCIsIC8qIEdFVCAqLyBlbmNvZGVCeXRlcyhib2R5KSk7CiAgY29uc29sZS5sb2coSlNPTi5wYXJzZShleHRyYWN0VXRmOFN0cmluZyhuZXcgVWludDhBcnJheShyZXMuYm9keSkpKSk7CiAgcmV0dXJuIHJlczsKfQptYWluKCk7Cg==";
+        let data = base64_decode_standard(&test).unwrap();
+        let temp_script = extract_utf8_string(&data).replace("REPLACEPORT", &format!("{port}"));
+        let update_script = base64_encode_standard(temp_script.as_bytes());
+
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("network_request"),
-            script: test.to_string(),
+            script: update_script,
         };
+        let mock_me = server.mock(|when, then| {
+            when.method(GET);
+            then.status(200)
+                .body("{\"data\": \"A mock response\"}")
+                .header("Last-Modified", "2023-06-14 12:00:00")
+                .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
+        });
         execute_script(&mut output, &script).unwrap();
+        mock_me.assert();
     }
 }

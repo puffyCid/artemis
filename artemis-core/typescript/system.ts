@@ -2,9 +2,9 @@
 const { core } = globalThis.Deno;
 
 /**
- * @class SystemInfo used to get metadata about the system
+ * @class System used to interact and get data about the system
  */
-class SystemInfo {
+class System {
     /**
      * Get amount of time the system has been powered on in seconds
      * @returns uptime of system in seconds
@@ -61,6 +61,15 @@ class SystemInfo {
     cpu = () => {
         return core.ops.js_cpu_info();
     };
+    /**
+     * Execute commands on the system
+     * @param command Command to execute
+     * @param args Args to pass to command
+     * @returns Execution results
+     */
+    execute = (command: string, args: Record<number, string>) => {
+        return core.ops.js_command(command, args);
+    };
 }
 
-export const systemInfo = new SystemInfo();
+export const system = new System();
