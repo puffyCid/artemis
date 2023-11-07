@@ -10,7 +10,7 @@ class Request {
      * @param body Optional body to provide
      * @returns HTTP Response data
      */
-    send = (url: string, protocol: string, headers: Record<string, string>, body: string) => {
+    send = (url: string, protocol: string, headers: Record<string, string>, body: ArrayBuffer) => {
         return core.ops.js_request(url, protocol, headers, body);
     };
 }
