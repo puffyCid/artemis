@@ -1,4 +1,5 @@
 use crate::runtime::system::{
+    command::js_command,
     cpu::js_cpu_info,
     disks::js_disk_info,
     memory::js_memory_info,
@@ -24,6 +25,7 @@ pub(crate) fn system_functions() -> Vec<deno_core::OpDecl> {
         js_cpu_info::DECL,
         js_disk_info::DECL,
         js_memory_info::DECL,
+        js_command::DECL,
     ]
 }
 

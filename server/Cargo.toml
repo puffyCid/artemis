@@ -3,6 +3,7 @@ name = "server"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.70"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,7 +25,7 @@ log = "0.4.20"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_json = "1.0.108"
 uuid = { version = "1.5.0", features = ["v4"] }
-toml = "0.8.6"
+toml = "0.8.8"
 futures = "0.3.29"
 flate2 = "1.0.28"
 rust-embed = "8.0.0"
