@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::processes::process::Processes, filesystem::files::Hashes,
+    artifacts::os::processes::process::proc_list, filesystem::files::Hashes,
     runtime::error::RuntimeError,
 };
 use deno_core::{error::AnyError, op2};
@@ -14,7 +14,7 @@ pub(crate) fn get_processes(#[string] hashes: String, metadata: bool) -> Result<
         sha1: false,
         sha256: false,
     });
-    let proc_results = Processes::proc_list(&hashes, metadata);
+    let proc_results = proc_list(&hashes, metadata);
     let proc = match proc_results {
         Ok(results) => results,
         Err(err) => {

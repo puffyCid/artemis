@@ -1,4 +1,4 @@
-use crate::artifacts::os::systeminfo::info::SystemInfo;
+use crate::artifacts::os::systeminfo::info::get_memory;
 use deno_core::{error::AnyError, op2};
 use sysinfo::{System, SystemExt};
 
@@ -7,7 +7,7 @@ use sysinfo::{System, SystemExt};
 /// Return memory info about the system
 pub(crate) fn js_memory_info() -> Result<String, AnyError> {
     let mut info = System::new();
-    let mem = SystemInfo::get_memory(&mut info);
+    let mem = get_memory(&mut info);
     let results = serde_json::to_string(&mem)?;
     Ok(results)
 }

@@ -8,3 +8,7 @@ license = "MIT"
 
 [dependencies]
 serde = { version = "1.0.191", features = ["derive"] }
+
+# macOS Dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+plist = "1.6.0"

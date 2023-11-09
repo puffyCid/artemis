@@ -1,3 +1,4 @@
+use super::eventmonitor::parse_emond_rules;
 /**
  * macOS `Emond` (Event Monitor) can be used as persistence on a system  
  * A user can create `Emond` rules to execute commands on macOS  
@@ -7,7 +8,6 @@
  * References:  
  *   `https://www.xorrior.com/emond-persistence/`
  */
-use super::eventmonitor::EmondData;
 use crate::{
     artifacts::os::macos::plist::{
         error::PlistError,
@@ -15,6 +15,7 @@ use crate::{
     },
     filesystem::files::is_file,
 };
+use common::macos::EmondData;
 use log::{error, warn};
 use plist::Value;
 
@@ -23,7 +24,7 @@ pub(crate) fn grab_emond() -> Result<Vec<EmondData>, PlistError> {
     let paths = get_emond_rules_paths()?;
     let mut emond_data: Vec<EmondData> = Vec::new();
     for path in paths {
-        let mut data = EmondData::parse_emond_rules(&path)?;
+        let mut data = parse_emond_rules(&path)?;
         emond_data.append(&mut data);
     }
     Ok(emond_data)

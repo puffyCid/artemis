@@ -1,7 +1,7 @@
 use super::{
-    chromium::{downloads::ChromiumDownloads, history::ChromiumHistory},
+    chromium::{downloads::get_chromium_downloads, history::get_chromium_history},
     error::ApplicationError,
-    firefox::{downloads::FirefoxDownloads, history::FirefoxHistory},
+    firefox::{downloads::get_firefox_downloads, history::get_firefox_history},
 };
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
@@ -15,11 +15,11 @@ use serde_json::Value;
 /// Parse macOS Safari history
 #[cfg(target_os = "macos")]
 pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
-    use super::safari::history::SafariHistory;
+    use super::safari::history::get_safari_history;
 
     let start_time = time::time_now();
 
-    let history_results = SafariHistory::get_history();
+    let history_results = get_safari_history();
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -44,11 +44,11 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
 /// Parse macOS Safari downloads
 #[cfg(target_os = "macos")]
 pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
-    use super::safari::downloads::SafariDownloads;
+    use super::safari::downloads::get_safari_downloads;
 
     let start_time = time::time_now();
 
-    let download_results = SafariDownloads::get_downloads();
+    let download_results = get_safari_downloads();
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {
@@ -73,7 +73,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
 /// Parse `Firefox` history
 pub(crate) fn firefox_history(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
     let start_time = time::time_now();
-    let history_results = FirefoxHistory::get_history();
+    let history_results = get_firefox_history();
 
     let history_data = match history_results {
         Ok(results) => results,
@@ -102,7 +102,7 @@ pub(crate) fn firefox_downloads(
     filter: &bool,
 ) -> Result<(), ApplicationError> {
     let start_time = time::time_now();
-    let download_results = FirefoxDownloads::get_downloads();
+    let download_results = get_firefox_downloads();
 
     let download_data = match download_results {
         Ok(results) => results,
@@ -129,7 +129,7 @@ pub(crate) fn firefox_downloads(
 pub(crate) fn chromium_history(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
     let start_time = time::time_now();
 
-    let history_results = ChromiumHistory::get_history();
+    let history_results = get_chromium_history();
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -158,7 +158,7 @@ pub(crate) fn chromium_downloads(
 ) -> Result<(), ApplicationError> {
     let start_time = time::time_now();
 
-    let download_results = ChromiumDownloads::get_downloads();
+    let download_results = get_chromium_downloads();
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {

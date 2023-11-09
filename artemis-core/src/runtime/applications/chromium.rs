@@ -1,7 +1,4 @@
-use crate::{
-    artifacts::applications::chromium::{downloads::ChromiumDownloads, history::ChromiumHistory},
-    runtime::error::RuntimeError,
-};
+use crate::{artifacts::applications::chromium, runtime::error::RuntimeError};
 use deno_core::{error::AnyError, op2};
 use log::error;
 
@@ -9,7 +6,7 @@ use log::error;
 #[string]
 /// Get `Chromium` history for all users
 pub(crate) fn get_chromium_users_history() -> Result<String, AnyError> {
-    let history_results = ChromiumHistory::get_history();
+    let history_results = chromium::history::get_chromium_history();
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -25,7 +22,7 @@ pub(crate) fn get_chromium_users_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Chromium` history from provided path
 pub(crate) fn get_chromium_history(#[string] path: String) -> Result<String, AnyError> {
-    let history_results = ChromiumHistory::history_query(&path);
+    let history_results = chromium::history::history_query(&path);
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -41,7 +38,7 @@ pub(crate) fn get_chromium_history(#[string] path: String) -> Result<String, Any
 #[string]
 /// Get `Chromium` downloads for all users
 pub(crate) fn get_chromium_users_downloads() -> Result<String, AnyError> {
-    let downloads_results = ChromiumDownloads::get_downloads();
+    let downloads_results = chromium::downloads::get_chromium_downloads();
     let downloads = match downloads_results {
         Ok(results) => results,
         Err(err) => {
@@ -57,7 +54,7 @@ pub(crate) fn get_chromium_users_downloads() -> Result<String, AnyError> {
 #[string]
 /// Get `Chromium` downloads from provided path
 pub(crate) fn get_chromium_downloads(#[string] path: String) -> Result<String, AnyError> {
-    let downloads_results = ChromiumDownloads::downloads_query(&path);
+    let downloads_results = chromium::downloads::downloads_query(&path);
     let downloads = match downloads_results {
         Ok(results) => results,
         Err(err) => {

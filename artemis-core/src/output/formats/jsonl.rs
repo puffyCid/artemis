@@ -1,6 +1,6 @@
 use super::error::FormatError;
 use crate::{
-    artifacts::os::systeminfo::info::SystemInfo,
+    artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
     utils::{
         compression::compress_gzip_data, logging::collection_status, output::output_artifact,
@@ -18,7 +18,7 @@ pub(crate) fn jsonl_format(
     start_time: &u64,
 ) -> Result<(), FormatError> {
     // Get small amount of system metadata
-    let info = SystemInfo::get_info_metadata();
+    let info = get_info_metadata();
     let mut collection_output = json![{
         "metadata": {
             "endpoint_id": output.endpoint_id,

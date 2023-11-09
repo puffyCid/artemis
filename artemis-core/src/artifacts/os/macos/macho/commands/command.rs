@@ -1,14 +1,14 @@
+use super::{
+    build::Build,
+    codesign::{CodeDirectory, CodeSign},
+    dylib::parse_dylyb_command,
+    segments::{parse_segment32, parse_segment64},
+};
 use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, Endian},
     uuid::format_guid_be_bytes,
 };
-
-use super::{
-    build::Build,
-    codesign::{CodeDirectory, CodeSign},
-    dylib::DylibCommand,
-    segments::Segment64,
-};
+use common::macos::{DylibCommand, Segment64};
 use log::error;
 use nom::bytes::complete::take;
 use plist::Dictionary;
@@ -103,7 +103,7 @@ impl Commands {
 
     /// Get `Segment64` command
     fn get_segment64(data: &[u8], segments: &mut Vec<Segment64>) {
-        let segment_result = Segment64::parse_segment64(data);
+        let segment_result = parse_segment64(data);
         match segment_result {
             Ok((_, result)) => segments.push(result),
             Err(err) => {
@@ -114,7 +114,7 @@ impl Commands {
 
     /// Get `Segment32` command
     fn get_segment32(data: &[u8], segments: &mut Vec<Segment64>) {
-        let segment_result = Segment64::parse_segment32(data);
+        let segment_result = parse_segment32(data);
         match segment_result {
             Ok((_, result)) => segments.push(result),
             Err(err) => {
@@ -130,7 +130,7 @@ impl Commands {
 
     /// Get `DYLIB` command
     fn get_dylib_command(data: &[u8], dylib_commands: &mut Vec<DylibCommand>) {
-        let segment_result = DylibCommand::parse_dylyb_command(data);
+        let segment_result = parse_dylyb_command(data);
         match segment_result {
             Ok((_, result)) => dylib_commands.push(result),
             Err(err) => {
@@ -177,9 +177,11 @@ impl Commands {
 
 #[cfg(test)]
 mod tests {
+    use common::macos::Segment64;
+
     use super::Commands;
     use crate::{
-        artifacts::os::macos::macho::commands::{dylib::DylibCommand, segments::Segment64},
+        artifacts::os::macos::macho::commands::dylib::parse_dylyb_command,
         utils::uuid::format_guid_be_bytes,
     };
 
@@ -356,7 +358,7 @@ mod tests {
             24, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 47, 117, 115, 114, 47, 108, 105, 98,
             47, 108, 105, 98, 117, 116, 105, 108, 46, 100, 121, 108, 105, 98, 0, 0,
         ];
-        let (_, result) = DylibCommand::parse_dylyb_command(&test_data).unwrap();
+        let (_, result) = parse_dylyb_command(&test_data).unwrap();
 
         assert_eq!(result.name, "/usr/lib/libutil.dylib");
         assert_eq!(result.timestamp, 2);

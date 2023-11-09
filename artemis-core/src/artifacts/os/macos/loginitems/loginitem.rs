@@ -4,215 +4,162 @@ use crate::artifacts::os::macos::plist::property_list::parse_plist_file_dict;
 use crate::{
     artifacts::os::macos::bookmarks::parser::parse_bookmark, filesystem::files::list_files,
 };
+use common::macos::LoginItemsData;
 use log::{error, warn};
-use serde::Serialize;
 
-#[derive(Debug, Serialize)]
-pub(crate) struct LoginItemsData {
-    /**Path to file to run */
-    path: Vec<String>,
-    /**Path represented as Catalog Node ID */
-    cnid_path: Vec<i64>,
-    /**Created timestamp of target file in UNIXEPOCH seconds */
-    created: i64,
-    /**Path to the volume of target file */
-    volume_path: String,
-    /**Target file URL type */
-    volume_url: String,
-    /**Name of volume target file is on */
-    volume_name: String,
-    /**Volume UUID */
-    volume_uuid: String,
-    /**Size of target volume in bytes */
-    volume_size: i64,
-    /**Created timestamp of volume in UNIXEPOCH seconds */
-    volume_created: i64,
-    /**Volume Property flags */
-    volume_flag: Vec<u64>,
-    /**Flag if volume if the root filesystem */
-    volume_root: bool,
-    /**Localized name of target file */
-    localized_name: String,
-    /**Read-Write security extension of target file */
-    security_extension_rw: String,
-    /**Read-Only security extension of target file */
-    security_extension_ro: String,
-    /**File property flags */
-    target_flags: Vec<u64>,
-    /**Username associated with `Bookmark` */
-    username: String,
-    /**Folder index number associated with target file */
-    folder_index: i64,
-    /**UID associated with `LoginItem` */
-    uid: i32,
-    /**`LoginItem` creation flags */
-    creation_options: i32,
-    /**Is `LoginItem` bundled in app */
-    is_bundled: bool,
-    /**App ID associated with `LoginItem` */
-    app_id: String,
-    /**App binary name */
-    app_binary: String,
-    /**Is target file executable */
-    is_executable: bool,
-    /**Does target file have file reference flag */
-    file_ref_flag: bool,
-    /**Path to `LoginItem` source */
-    source_path: String,
-}
-
-impl LoginItemsData {
-    /// Parse User `LoginItems` from provided path
-    pub(crate) fn parse_loginitems(path: &str) -> Result<Vec<LoginItemsData>, LoginItemError> {
-        // Parse PLIST file and get any bookmark data
-        let loginitems_results = get_bookmarks(path);
-        let loginitems_data = match loginitems_results {
-            Ok(data) => data,
-            Err(err) => {
-                error!("[loginitem] Failed to read plist {path}: {err:?}");
-                return Err(LoginItemError::Plist);
-            }
-        };
-        if loginitems_data.is_empty() {
-            return Ok(Vec::new());
+/// Parse User `LoginItems` from provided path
+pub(crate) fn parse_loginitems(path: &str) -> Result<Vec<LoginItemsData>, LoginItemError> {
+    // Parse PLIST file and get any bookmark data
+    let loginitems_results = get_bookmarks(path);
+    let loginitems_data = match loginitems_results {
+        Ok(data) => data,
+        Err(err) => {
+            error!("[loginitem] Failed to read plist {path}: {err:?}");
+            return Err(LoginItemError::Plist);
         }
-
-        let mut loginitems_results: Vec<LoginItemsData> = Vec::new();
-        for data in loginitems_data {
-            let results = parse_bookmark(&data);
-            let bookmark = match results {
-                Ok(bookmark_data) => bookmark_data,
-                Err(err) => {
-                    // Even if we fail to parse one (1) entry keep trying the others
-                    // Plist may contain non-bookmark binary data
-                    error!("Failed to parse bookmark data: {err:?}");
-                    continue;
-                }
-            };
-            let mut loginitem_data = LoginItemsData {
-                path: bookmark.path,
-                cnid_path: bookmark.cnid_path,
-                created: bookmark.created,
-                volume_path: bookmark.volume_path,
-                volume_url: bookmark.volume_url,
-                volume_name: bookmark.volume_name,
-                volume_uuid: bookmark.volume_uuid,
-                volume_size: bookmark.volume_size,
-                volume_created: bookmark.volume_created,
-                volume_flag: bookmark.volume_flag,
-                volume_root: bookmark.volume_root,
-                localized_name: bookmark.localized_name,
-                security_extension_rw: bookmark.security_extension_rw,
-                security_extension_ro: bookmark.security_extension_ro,
-                target_flags: bookmark.target_flags,
-                username: bookmark.username,
-                folder_index: bookmark.folder_index,
-                uid: bookmark.uid,
-                creation_options: bookmark.creation_options,
-                file_ref_flag: bookmark.file_ref_flag,
-                is_bundled: false,
-                app_id: String::new(),
-                app_binary: String::new(),
-                is_executable: bookmark.is_executable,
-                source_path: String::new(),
-            };
-            loginitem_data.source_path = path.to_string();
-            loginitems_results.push(loginitem_data);
-        }
-
-        Ok(loginitems_results)
+    };
+    if loginitems_data.is_empty() {
+        return Ok(Vec::new());
     }
 
-    /// Parse `LoginItems` associated with bundled apps
-    pub(crate) fn loginitems_bundled_apps_path(
-        path: &str,
-    ) -> Result<Vec<LoginItemsData>, LoginItemError> {
-        let files_result = list_files(path);
-        let files = match files_result {
-            Ok(result) => result,
+    let mut loginitems_results: Vec<LoginItemsData> = Vec::new();
+    for data in loginitems_data {
+        let results = parse_bookmark(&data);
+        let bookmark = match results {
+            Ok(bookmark_data) => bookmark_data,
             Err(err) => {
-                error!("[loginitems] Failed to read LoginItem bundled App directory: {err:?}");
-                return Err(LoginItemError::Path);
-            }
-        };
-        let mut loginitems_vec: Vec<LoginItemsData> = Vec::new();
-
-        for file in files {
-            if !file.contains("loginitems") {
+                // Even if we fail to parse one (1) entry keep trying the others
+                // Plist may contain non-bookmark binary data
+                error!("Failed to parse bookmark data: {err:?}");
                 continue;
             }
+        };
+        let mut loginitem_data = LoginItemsData {
+            path: bookmark.path,
+            cnid_path: bookmark.cnid_path,
+            created: bookmark.created,
+            volume_path: bookmark.volume_path,
+            volume_url: bookmark.volume_url,
+            volume_name: bookmark.volume_name,
+            volume_uuid: bookmark.volume_uuid,
+            volume_size: bookmark.volume_size,
+            volume_created: bookmark.volume_created,
+            volume_flag: bookmark.volume_flag,
+            volume_root: bookmark.volume_root,
+            localized_name: bookmark.localized_name,
+            security_extension_rw: bookmark.security_extension_rw,
+            security_extension_ro: bookmark.security_extension_ro,
+            target_flags: bookmark.target_flags,
+            username: bookmark.username,
+            folder_index: bookmark.folder_index,
+            uid: bookmark.uid,
+            creation_options: bookmark.creation_options,
+            file_ref_flag: bookmark.file_ref_flag,
+            is_bundled: false,
+            app_id: String::new(),
+            app_binary: String::new(),
+            is_executable: bookmark.is_executable,
+            source_path: String::new(),
+        };
+        loginitem_data.source_path = path.to_string();
+        loginitems_results.push(loginitem_data);
+    }
 
-            let loginitems_plist = parse_plist_file_dict(&file);
-            match loginitems_plist {
-                Ok(data) => {
-                    for (key, value) in data {
-                        let mut loginitems_data = LoginItemsData {
-                            path: Vec::new(),
-                            cnid_path: Vec::new(),
-                            created: 0,
-                            volume_path: String::new(),
-                            volume_url: String::new(),
-                            volume_name: String::new(),
-                            volume_uuid: String::new(),
-                            volume_size: 0,
-                            volume_created: 0,
-                            volume_flag: Vec::new(),
-                            volume_root: false,
-                            localized_name: String::new(),
-                            security_extension_rw: String::new(),
-                            security_extension_ro: String::new(),
-                            target_flags: Vec::new(),
-                            username: String::new(),
-                            folder_index: 0,
-                            uid: 0,
-                            creation_options: 0,
-                            is_bundled: true,
-                            app_id: String::new(),
-                            app_binary: String::new(),
-                            is_executable: false,
-                            file_ref_flag: false,
-                            source_path: String::new(),
-                        };
+    Ok(loginitems_results)
+}
 
-                        if key.starts_with("version") {
-                            continue;
-                        }
+/// Parse `LoginItems` associated with bundled apps
+pub(crate) fn loginitems_bundled_apps_path(
+    path: &str,
+) -> Result<Vec<LoginItemsData>, LoginItemError> {
+    let files_result = list_files(path);
+    let files = match files_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[loginitems] Failed to read LoginItem bundled App directory: {err:?}");
+            return Err(LoginItemError::Path);
+        }
+    };
+    let mut loginitems_vec: Vec<LoginItemsData> = Vec::new();
 
-                        if let Some(app_id) = value.into_string() {
-                            loginitems_data.app_id = app_id;
-                        } else {
-                            warn!("[loginitems] No app id associated with bundled");
-                        }
-
-                        loginitems_data.app_binary = key;
-                        loginitems_data.source_path = file.clone();
-                        loginitems_vec.push(loginitems_data);
-                    }
-                }
-                Err(err) => {
-                    warn!("[loginitems] Failed to parse plist: {file} {err:?}");
-                }
-            }
+    for file in files {
+        if !file.contains("loginitems") {
+            continue;
         }
 
-        Ok(loginitems_vec)
+        let loginitems_plist = parse_plist_file_dict(&file);
+        match loginitems_plist {
+            Ok(data) => {
+                for (key, value) in data {
+                    let mut loginitems_data = LoginItemsData {
+                        path: Vec::new(),
+                        cnid_path: Vec::new(),
+                        created: 0,
+                        volume_path: String::new(),
+                        volume_url: String::new(),
+                        volume_name: String::new(),
+                        volume_uuid: String::new(),
+                        volume_size: 0,
+                        volume_created: 0,
+                        volume_flag: Vec::new(),
+                        volume_root: false,
+                        localized_name: String::new(),
+                        security_extension_rw: String::new(),
+                        security_extension_ro: String::new(),
+                        target_flags: Vec::new(),
+                        username: String::new(),
+                        folder_index: 0,
+                        uid: 0,
+                        creation_options: 0,
+                        is_bundled: true,
+                        app_id: String::new(),
+                        app_binary: String::new(),
+                        is_executable: false,
+                        file_ref_flag: false,
+                        source_path: String::new(),
+                    };
+
+                    if key.starts_with("version") {
+                        continue;
+                    }
+
+                    if let Some(app_id) = value.into_string() {
+                        loginitems_data.app_id = app_id;
+                    } else {
+                        warn!("[loginitems] No app id associated with bundled");
+                    }
+
+                    loginitems_data.app_binary = key;
+                    loginitems_data.source_path = file.clone();
+                    loginitems_vec.push(loginitems_data);
+                }
+            }
+            Err(err) => {
+                warn!("[loginitems] Failed to parse plist: {file} {err:?}");
+            }
+        }
     }
 
-    /// Get `LoginItems` data from embedded `LoginItems` in Apps
-    pub(crate) fn loginitem_apps_system() -> Result<Vec<LoginItemsData>, LoginItemError> {
-        let default_path = "/var/db/com.apple.xpc.launchd/";
-        LoginItemsData::loginitems_bundled_apps_path(default_path)
-    }
+    Ok(loginitems_vec)
+}
+
+/// Get `LoginItems` data from embedded `LoginItems` in Apps
+pub(crate) fn loginitem_apps_system() -> Result<Vec<LoginItemsData>, LoginItemError> {
+    let default_path = "/var/db/com.apple.xpc.launchd/";
+    loginitems_bundled_apps_path(default_path)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::LoginItemsData;
+    use super::loginitem_apps_system;
+    use crate::artifacts::os::macos::loginitems::loginitem::{
+        loginitems_bundled_apps_path, parse_loginitems,
+    };
     use std::path::PathBuf;
 
     #[test]
     fn test_loginitem_apps_system() {
-        let _ = LoginItemsData::loginitem_apps_system().unwrap();
+        let _ = loginitem_apps_system().unwrap();
     }
 
     #[test]
@@ -220,9 +167,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/loginitems/bundled_app");
 
-        let data =
-            LoginItemsData::loginitems_bundled_apps_path(&test_location.display().to_string())
-                .unwrap();
+        let data = loginitems_bundled_apps_path(&test_location.display().to_string()).unwrap();
         assert_eq!(data.len(), 2);
         assert_eq!(data[0].is_bundled, true);
         assert_eq!(data[0].app_binary, "com.docker.helper");
@@ -237,7 +182,7 @@ mod tests {
     fn test_parse_loginitems() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/loginitems/backgrounditems_sierra.btm");
-        let data = LoginItemsData::parse_loginitems(&test_location.display().to_string()).unwrap();
+        let data = parse_loginitems(&test_location.display().to_string()).unwrap();
 
         assert_eq!(data.len(), 1);
         assert_eq!(data[0].path, ["Applications", "Syncthing.app"]);

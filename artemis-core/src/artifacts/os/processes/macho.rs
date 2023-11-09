@@ -1,10 +1,11 @@
 use super::error::ProcessError;
-use crate::artifacts::os::macos::macho::parser::MachoInfo;
+use crate::artifacts::os::macos::macho::parser::parse_macho;
+use common::macos::MachoInfo;
 use log::error;
 
 /// Get macho metadata for processes
 pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
-    let binary_results = MachoInfo::parse_macho(path);
+    let binary_results = parse_macho(path);
     let info = match binary_results {
         Ok(results) => results,
         Err(err) => {

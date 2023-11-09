@@ -1,8 +1,9 @@
 /**
  * Grab local macOS `Groups` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/groups`
  */
-use super::opendirectory::OpendirectoryGroups;
+use super::opendirectory::parse_groups_plist;
 use crate::filesystem::files::list_files;
+use common::macos::OpendirectoryGroups;
 use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
@@ -20,7 +21,7 @@ pub(crate) fn grab_groups() -> Vec<OpendirectoryGroups> {
         }
     };
     for group in files {
-        let opendirectoryd_users = OpendirectoryGroups::parse_groups_plist(&group);
+        let opendirectoryd_users = parse_groups_plist(&group);
         match opendirectoryd_users {
             Ok(results) => {
                 group_data.push(results);

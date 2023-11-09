@@ -34,6 +34,8 @@ glob = "0.3.1"
 quick-xml = { version = "0.31.0", default-features = false }
 xml2json-rs = "1.0.1"
 
+common = { path = "../common" }
+
 # Deno Runtime integration
 deno_core = { version = "0.225.0" }
 tokio = { version = "1.33.0" }

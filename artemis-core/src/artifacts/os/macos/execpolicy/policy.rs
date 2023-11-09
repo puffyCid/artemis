@@ -1,43 +1,8 @@
-use crate::filesystem::files::is_file;
-
 use super::error::ExecPolicyError;
+use crate::filesystem::files::is_file;
+use common::macos::ExecPolicy;
 use log::error;
 use rusqlite::{Connection, OpenFlags};
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct ExecPolicy {
-    is_signed: i64,
-    file_identifier: String,
-    bundle_identifier: String,
-    bundle_version: String,
-    team_identifier: String,
-    signing_identifier: String,
-    cdhash: String,
-    main_executable_hash: String,
-    executable_timestamp: i64,
-    file_size: i64,
-    is_library: i64,
-    is_used: i64,
-    responsible_file_identifier: String,
-    is_valid: i64,
-    is_quarantined: i64,
-    executable_measurements_v2_timestamp: i64,
-    reported_timstamp: i64,
-    pk: i64,
-    volume_uuid: String,
-    object_id: i64,
-    fs_type_name: String,
-    bundle_id: String,
-    policy_match: i64,
-    malware_result: i64,
-    flags: i64,
-    mod_time: i64,
-    policy_scan_cache_timestamp: i64,
-    revocation_check_time: i64,
-    scan_version: i64,
-    top_policy_match: i64,
-}
 
 /// Query `ExecPolicy` database
 pub(crate) fn grab_execpolicy() -> Result<Vec<ExecPolicy>, ExecPolicyError> {

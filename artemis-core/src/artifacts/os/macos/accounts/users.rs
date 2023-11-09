@@ -1,8 +1,9 @@
 /**
  * Grab local macOS `Users` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/users`
  */
-use super::opendirectory::OpendirectoryUsers;
+use super::opendirectory::parse_users_plist;
 use crate::filesystem::files::list_files;
+use common::macos::OpendirectoryUsers;
 use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
@@ -20,7 +21,7 @@ pub(crate) fn grab_users() -> Vec<OpendirectoryUsers> {
         }
     };
     for user in files {
-        let opendirectoryd_users = OpendirectoryUsers::parse_users_plist(&user);
+        let opendirectoryd_users = parse_users_plist(&user);
         match opendirectoryd_users {
             Ok(results) => user_data.push(results),
             Err(err) => {
