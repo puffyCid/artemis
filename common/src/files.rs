@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+#[cfg(target_os = "linux")]
+use crate::linux::ElfInfo;
 #[cfg(target_os = "macos")]
 use crate::macos::MachoInfo;
 #[cfg(target_os = "windows")]

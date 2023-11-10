@@ -17,7 +17,9 @@ use common::windows::PeInfo;
 use common::macos::MachoInfo;
 
 #[cfg(target_os = "linux")]
-use crate::artifacts::os::{executable::elf_metadata, linux::executable::parser::ElfInfo};
+use super::executable::elf_metadata;
+#[cfg(target_os = "linux")]
+use common::linux::ElfInfo;
 
 /// Get process listing.
 pub(crate) fn proc_list(

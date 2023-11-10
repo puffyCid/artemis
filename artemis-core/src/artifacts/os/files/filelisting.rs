@@ -33,10 +33,9 @@ use crate::artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe
 use common::windows::PeInfo;
 
 #[cfg(target_os = "linux")]
-use crate::artifacts::os::linux::{
-    artifacts::output_data,
-    executable::parser::{parse_elf_file, ElfInfo},
-};
+use crate::artifacts::os::linux::{artifacts::output_data, executable::parser::parse_elf_file};
+#[cfg(target_os = "linux")]
+use common::linux::ElfInfo;
 
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;

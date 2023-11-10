@@ -199,6 +199,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_windows_disks() {
+        let mut system = System::new();
+
+        let system_info = get_disks(&mut system);
+        assert!(system_info.len() >= 1);
+    }
+
+    #[test]
     fn test_get_cpu() {
         let mut system = System::new();
 

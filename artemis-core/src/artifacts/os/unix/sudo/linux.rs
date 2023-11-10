@@ -1,10 +1,11 @@
 use crate::{
-    artifacts::os::linux::journals::{error::JournalError, journal::Journal},
+    artifacts::os::linux::journals::{error::JournalError, journal::parse_journal_file},
     filesystem::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
 };
+use common::linux::Journal;
 
 /// Grab sudo log entries in the Journal files
 pub(crate) fn grab_sudo_logs() -> Result<Vec<Journal>, JournalError> {
@@ -21,7 +22,7 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<Journal>, JournalError> {
             continue;
         }
         if is_file(&path) {
-            let journal_entries = Journal::parse_journal_file(&path)?;
+            let journal_entries = parse_journal_file(&path)?;
             filter_logs(journal_entries, &mut sudo_logs);
             continue;
         }
@@ -33,7 +34,7 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<Journal>, JournalError> {
                     continue;
                 }
                 if is_file(&log) {
-                    let journal_entries = Journal::parse_journal_file(&log)?;
+                    let journal_entries = parse_journal_file(&log)?;
                     filter_logs(journal_entries, &mut sudo_logs);
                 }
             }
@@ -57,7 +58,8 @@ fn filter_logs(journal: Vec<Journal>, sudo_logs: &mut Vec<Journal>) {
 #[cfg(test)]
 mod tests {
     use super::{filter_logs, grab_sudo_logs};
-    use crate::artifacts::os::linux::journals::{journal::Journal, parser::grab_journal_file};
+    use crate::artifacts::os::linux::journals::parser::grab_journal_file;
+    use common::linux::Journal;
     use std::path::PathBuf;
 
     #[test]

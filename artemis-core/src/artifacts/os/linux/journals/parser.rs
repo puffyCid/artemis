@@ -1,3 +1,5 @@
+use common::linux::Journal;
+
 /**
  * Linux `Journal` files are the logs associated with the Systemd service  
  * Systemd is a popular system service that is common on most Linux distros
@@ -12,9 +14,11 @@
  * Other Parsers:
  *   `journalctl` command on Linux systems
  */
-use super::error::JournalError;
+use super::{
+    error::JournalError,
+    journal::{parse_journal, parse_journal_file},
+};
 use crate::{
-    artifacts::os::linux::journals::journal::Journal,
     filesystem::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
@@ -40,7 +44,7 @@ pub(crate) fn grab_journal(
             continue;
         }
         if is_file(&path) {
-            let _ = Journal::parse_journal(&path, output, filter, start_time);
+            let _ = parse_journal(&path, output, filter, start_time);
             continue;
         }
 
@@ -51,7 +55,7 @@ pub(crate) fn grab_journal(
                     continue;
                 }
                 if is_file(&log) {
-                    let _ = Journal::parse_journal(&log, output, filter, start_time);
+                    let _ = parse_journal(&log, output, filter, start_time);
                 }
             }
         }
@@ -66,7 +70,7 @@ pub(crate) fn grab_journal_file(path: &str) -> Result<Vec<Journal>, JournalError
         return Err(JournalError::NotJournal);
     }
 
-    Journal::parse_journal_file(path)
+    parse_journal_file(path)
 }
 
 #[cfg(test)]
