@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::shellitems::items::ShellItem,
+    artifacts::os::windows::shellitems::items::detect_shellitem,
     utils::{
         encoding::base64_encode_standard,
         nom_helper::{
@@ -12,6 +12,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use common::windows::ShellItem;
 use log::warn;
 use nom::{
     bytes::complete::{take, take_while},
@@ -162,7 +163,7 @@ fn parse_stream<'a>(
 
         // Size includes size itself
         let (item_remaining, shellitem_data) = take(item_size - adjust_size)(shell_input)?;
-        let item_result = ShellItem::detect_shellitem(shellitem_data);
+        let item_result = detect_shellitem(shellitem_data);
         let shellitem = match item_result {
             Ok((_, result)) => result,
             Err(_err) => {

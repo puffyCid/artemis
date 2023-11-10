@@ -8,10 +8,13 @@
  * Other Parsers:
  *  `https://github.com/Velocidex/velociraptor`
  */
-use super::{assist::UserAssistEntry, error::UserAssistError, registry::get_userassist_data};
+use super::{
+    assist::parse_userassist_data, error::UserAssistError, registry::get_userassist_drive,
+};
 use crate::{
     structs::artifacts::os::windows::UserAssistOptions, utils::environment::get_systemdrive,
 };
+use common::windows::UserAssistEntry;
 use log::error;
 
 /// Parse `UserAssist` based on `UserAssistOptions`
@@ -44,8 +47,8 @@ fn alt_drive_userassist(drive: &char) -> Result<Vec<UserAssistEntry>, UserAssist
 
 /// Get `UserAssist` entries for all users in NTUSER.DAT files. Then parse the `UserAssist` data
 fn parse_userassist(drive: &char) -> Result<Vec<UserAssistEntry>, UserAssistError> {
-    let entries = get_userassist_data(drive)?;
-    UserAssistEntry::parse_userassist(&entries)
+    let entries = get_userassist_drive(drive)?;
+    parse_userassist_data(&entries)
 }
 
 #[cfg(test)]

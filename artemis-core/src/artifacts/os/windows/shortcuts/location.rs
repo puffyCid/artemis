@@ -2,11 +2,11 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, Endian},
     strings::{extract_utf16_string, extract_utf8_string},
 };
+use common::windows::LocationFlag;
 use nom::{
     bytes::complete::{take, take_while},
     Needed,
 };
-use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) struct LnkLocation {
@@ -23,13 +23,6 @@ pub(crate) struct LnkLocation {
     pub(crate) common_path: String,
     pub(crate) unicode_local_path: String,
     pub(crate) unicode_common_path: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum LocationFlag {
-    VolumeIDAndLocalBasePath,
-    CommonNetworkRelativeLinkAndPathSuffix,
-    None,
 }
 
 impl LnkLocation {

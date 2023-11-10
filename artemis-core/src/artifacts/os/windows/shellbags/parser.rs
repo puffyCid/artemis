@@ -9,8 +9,7 @@
 use super::error::ShellbagError;
 use crate::{
     artifacts::os::windows::{
-        registry::helper::get_registry_keys,
-        shellitems::items::{ShellItem, ShellType},
+        registry::helper::get_registry_keys, shellitems::items::parse_encoded_shellitem,
     },
     filesystem::ntfs::raw_files::get_user_registry_files,
     structs::artifacts::os::windows::ShellbagsOptions,
@@ -19,6 +18,7 @@ use crate::{
         regex_options::create_regex,
     },
 };
+use common::windows::{ShellItem, ShellType};
 use log::error;
 use serde::Serialize;
 use serde_json::Value;
@@ -161,7 +161,7 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
                 // Vec start at 0
                 let vec_adjust = 1;
                 let bagkey = format!("{}\\{}", bagkey_vec[min_length - vec_adjust], value.value);
-                let data_result = ShellItem::parse_encoded_shellitem(&value.data);
+                let data_result = parse_encoded_shellitem(&value.data);
                 let data = match data_result {
                     Ok(result) => result,
                     Err(err) => {
@@ -296,15 +296,13 @@ fn save_shellbags(shellbag_vec: &mut Vec<Shellbag>, shell_map: &HashMap<String, 
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::{
-            shellbags::parser::{
-                alt_drive_shellbags, default_shellbags, grab_shellbags, parse_shellbags,
-                save_shellbags, update_shellbags, RegInfo, Shellbag,
-            },
-            shellitems::items::{ShellItem, ShellType},
+        artifacts::os::windows::shellbags::parser::{
+            alt_drive_shellbags, default_shellbags, grab_shellbags, parse_shellbags,
+            save_shellbags, update_shellbags, RegInfo, Shellbag,
         },
         structs::artifacts::os::windows::ShellbagsOptions,
     };
+    use common::windows::{ShellItem, ShellType};
     use std::collections::HashMap;
 
     #[test]

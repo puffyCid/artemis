@@ -1,9 +1,7 @@
-use super::{
-    beef::beef0004,
-    items::{ShellItem, ShellType},
-};
+use super::beef::beef0004;
 use crate::utils::time::fattime_utc_to_unixepoch;
 use crate::utils::uuid::format_guid_le_bytes;
+use common::windows::{ShellItem, ShellType};
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
@@ -92,10 +90,10 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::{
-        delegate::{get_delegate_shellitem, parse_delegate},
-        items::ShellType,
+    use crate::artifacts::os::windows::shellitems::delegate::{
+        get_delegate_shellitem, parse_delegate,
     };
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_delegate() {

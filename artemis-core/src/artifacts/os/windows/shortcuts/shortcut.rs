@@ -1,279 +1,219 @@
 use super::{
     extras::{
-        codepage::has_codepage,
-        console::{has_console, Console},
-        darwin::has_darwin,
-        environment::has_environment,
-        items::has_item,
-        known::has_known,
-        shim::has_shim,
+        codepage::has_codepage, console::has_console, darwin::has_darwin,
+        environment::has_environment, items::has_item, known::has_known, shim::has_shim,
         special::has_special,
     },
-    header::DataFlags,
-    location::{LnkLocation, LocationFlag},
-    network::{LnkNetwork, NetworkProviderType},
+    location::LnkLocation,
+    network::LnkNetwork,
     shellitems::parse_lnk_shellitems,
-    volume::{DriveType, LnkVolume},
+    volume::LnkVolume,
 };
-use crate::artifacts::os::windows::shortcuts::shortcut::DataFlags::{
+
+use crate::artifacts::os::windows::shortcuts::header::LnkHeader;
+use crate::artifacts::os::windows::shortcuts::{
+    extras::{property::has_property, tracker::has_tracker},
+    strings::extract_string,
+};
+use common::windows::DataFlags::{
     HasArguements, HasIconLocation, HasLinkInfo, HasName, HasRelativePath, HasTargetIdList,
     HasWorkingDirectory,
 };
-use crate::artifacts::os::windows::shortcuts::shortcut::LocationFlag::{
+use common::windows::LocationFlag::{
     CommonNetworkRelativeLinkAndPathSuffix, VolumeIDAndLocalBasePath,
 };
-use crate::artifacts::os::windows::{
-    shellitems::items::ShellItem,
-    shortcuts::{
-        extras::{property::has_property, tracker::has_tracker},
-        strings::extract_string,
-    },
-};
-use crate::{
-    artifacts::os::windows::shortcuts::header::LnkHeader,
-    filesystem::ntfs::attributes::AttributeFlags,
-};
+use common::windows::{DriveType, LocationFlag, NetworkProviderType, ShortcutInfo};
 use nom::bytes::complete::take;
-use serde::Serialize;
-use serde_json::Value;
-use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct ShortcutInfo {
-    pub(crate) source_path: String,
-    pub(crate) data_flags: Vec<DataFlags>,
-    pub(crate) attribute_flags: Vec<AttributeFlags>,
-    pub(crate) created: i64,
-    pub(crate) modified: i64,
-    pub(crate) accessed: i64,
-    pub(crate) file_size: u32,
-    pub(crate) location_flags: LocationFlag,
-    pub(crate) path: String,
-    pub(crate) drive_serial: String,
-    pub(crate) drive_type: DriveType,
-    pub(crate) volume_label: String,
-    pub(crate) network_provider: NetworkProviderType,
-    pub(crate) network_share_name: String,
-    pub(crate) network_device_name: String,
-    pub(crate) description: String,
-    pub(crate) relative_path: String,
-    pub(crate) working_directory: String,
-    pub(crate) command_line_args: String,
-    pub(crate) icon_location: String,
-    pub(crate) hostname: String,
-    pub(crate) droid_volume_id: String,
-    pub(crate) droid_file_id: String,
-    pub(crate) birth_droid_volume_id: String,
-    pub(crate) birth_droid_file_id: String,
-    pub(crate) shellitems: Vec<ShellItem>,
-    pub(crate) properties: Vec<HashMap<String, Value>>,
-    pub(crate) environment_variable: String,
-    pub(crate) console: Vec<Console>,
-    pub(crate) codepage: u32,
-    pub(crate) special_folder_id: u32,
-    pub(crate) darwin_id: String,
-    pub(crate) shim_layer: String,
-    pub(crate) known_folder: String,
+/// Parse and grab `shortcut` info from provided bytes
+pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo> {
+    let (input, header) = LnkHeader::parse_header(data)?;
+
+    let mut shortcut_info = ShortcutInfo {
+        source_path: String::new(),
+        data_flags: header.data_flags,
+        attribute_flags: header.attribute_flags,
+        created: header.created,
+        modified: header.modified,
+        accessed: header.access,
+        file_size: header.file_size,
+        location_flags: LocationFlag::None,
+        path: String::new(),
+        drive_serial: String::new(),
+        drive_type: DriveType::None,
+        volume_label: String::new(),
+        network_provider: NetworkProviderType::None,
+        network_share_name: String::new(),
+        network_device_name: String::new(),
+        description: String::new(),
+        relative_path: String::new(),
+        working_directory: String::new(),
+        command_line_args: String::new(),
+        icon_location: String::new(),
+        hostname: String::new(),
+        droid_volume_id: String::new(),
+        droid_file_id: String::new(),
+        birth_droid_volume_id: String::new(),
+        birth_droid_file_id: String::new(),
+        shellitems: Vec::new(),
+        properties: Vec::new(),
+        environment_variable: String::new(),
+        console: Vec::new(),
+        codepage: 0,
+        special_folder_id: 0,
+        darwin_id: String::new(),
+        shim_layer: String::new(),
+        known_folder: String::new(),
+    };
+
+    let (input, _) = get_shortcut_info(input, &mut shortcut_info)?;
+
+    Ok((input, shortcut_info))
 }
 
-impl ShortcutInfo {
-    /// Parse and grab `shortcut` info from provided bytes
-    pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo> {
-        let (input, header) = LnkHeader::parse_header(data)?;
+/// Parse the structure of `shortcut` data
+fn get_shortcut_info<'a>(
+    data: &'a [u8],
+    shortcut_info: &mut ShortcutInfo,
+) -> nom::IResult<&'a [u8], ()> {
+    let mut input = data;
 
-        let mut shortcut_info = ShortcutInfo {
-            source_path: String::new(),
-            data_flags: header.data_flags,
-            attribute_flags: header.attribute_flags,
-            created: header.created,
-            modified: header.modified,
-            accessed: header.access,
-            file_size: header.file_size,
-            location_flags: LocationFlag::None,
-            path: String::new(),
-            drive_serial: String::new(),
-            drive_type: DriveType::None,
-            volume_label: String::new(),
-            network_provider: NetworkProviderType::None,
-            network_share_name: String::new(),
-            network_device_name: String::new(),
-            description: String::new(),
-            relative_path: String::new(),
-            working_directory: String::new(),
-            command_line_args: String::new(),
-            icon_location: String::new(),
-            hostname: String::new(),
-            droid_volume_id: String::new(),
-            droid_file_id: String::new(),
-            birth_droid_volume_id: String::new(),
-            birth_droid_file_id: String::new(),
-            shellitems: Vec::new(),
-            properties: Vec::new(),
-            environment_variable: String::new(),
-            console: Vec::new(),
-            codepage: 0,
-            special_folder_id: 0,
-            darwin_id: String::new(),
-            shim_layer: String::new(),
-            known_folder: String::new(),
-        };
+    // Based on flags in `Shortcut` header parse other parts of the structure
+    for flags in &shortcut_info.data_flags {
+        // Two (2) structures may follow the header
+        //  TargetIDList - List of `shellitems`
+        //  LocationInfo - Where the target file the `shortcut` points to exists. Either on disk or network device (ex: network share)
+        if flags == &HasTargetIdList {
+            let (remaining_input, shellitems) = parse_lnk_shellitems(input)?;
+            shortcut_info.shellitems = shellitems;
+            input = remaining_input;
+        }
 
-        let (input, _) = ShortcutInfo::get_shortcut_info(input, &mut shortcut_info)?;
+        if flags == &HasLinkInfo {
+            let (remaining_input, location) = LnkLocation::parse_location(input)?;
+            shortcut_info.location_flags = location.flags;
+            shortcut_info.path = location.local_path;
 
-        Ok((input, shortcut_info))
+            if shortcut_info.location_flags == CommonNetworkRelativeLinkAndPathSuffix {
+                let (network_data, _) = take(location.network_share_offset)(input)?;
+                let (_, network_share) = LnkNetwork::parse_network(network_data)?;
+                shortcut_info.network_device_name = network_share.device_name;
+                shortcut_info.network_share_name = network_share.share_name;
+                shortcut_info.network_provider = network_share.provider_type;
+            } else if shortcut_info.location_flags == VolumeIDAndLocalBasePath {
+                let (volume_data, _) = take(location.volume_offset)(input)?;
+                let (_, volume) = LnkVolume::parse_volume(volume_data)?;
+                shortcut_info.volume_label = volume.volume_label;
+                shortcut_info.drive_serial = volume.drive_serial;
+                shortcut_info.drive_type = volume.drive_type;
+            }
+
+            input = remaining_input;
+        }
+
+        // After TargetIDList and LocationInfo five (5) strings may exists depending on the flags set in the header
+        if flags == &HasName {
+            let (remaining_input, description) = extract_string(input, &shortcut_info.data_flags)?;
+            input = remaining_input;
+
+            shortcut_info.description = description;
+        }
+
+        if flags == &HasRelativePath {
+            let (remaining_input, relative_path) =
+                extract_string(input, &shortcut_info.data_flags)?;
+            input = remaining_input;
+
+            shortcut_info.relative_path = relative_path;
+        }
+
+        if flags == &HasWorkingDirectory {
+            let (remaining_input, working_dir) = extract_string(input, &shortcut_info.data_flags)?;
+            input = remaining_input;
+
+            shortcut_info.working_directory = working_dir;
+        }
+
+        if flags == &HasArguements {
+            let (remaining_input, args) = extract_string(input, &shortcut_info.data_flags)?;
+            input = remaining_input;
+
+            shortcut_info.command_line_args = args;
+        }
+
+        if flags == &HasIconLocation {
+            let (remaining_input, icon_path) = extract_string(input, &shortcut_info.data_flags)?;
+            input = remaining_input;
+
+            shortcut_info.icon_location = icon_path;
+        }
     }
 
-    /// Parse the structure of `shortcut` data
-    fn get_shortcut_info<'a>(
-        data: &'a [u8],
-        shortcut_info: &mut ShortcutInfo,
-    ) -> nom::IResult<&'a [u8], ()> {
-        let mut input = data;
-
-        // Based on flags in `Shortcut` header parse other parts of the structure
-        for flags in &shortcut_info.data_flags {
-            // Two (2) structures may follow the header
-            //  TargetIDList - List of `shellitems`
-            //  LocationInfo - Where the target file the `shortcut` points to exists. Either on disk or network device (ex: network share)
-            if flags == &HasTargetIdList {
-                let (remaining_input, shellitems) = parse_lnk_shellitems(input)?;
-                shortcut_info.shellitems = shellitems;
-                input = remaining_input;
-            }
-
-            if flags == &HasLinkInfo {
-                let (remaining_input, location) = LnkLocation::parse_location(input)?;
-                shortcut_info.location_flags = location.flags;
-                shortcut_info.path = location.local_path;
-
-                if shortcut_info.location_flags == CommonNetworkRelativeLinkAndPathSuffix {
-                    let (network_data, _) = take(location.network_share_offset)(input)?;
-                    let (_, network_share) = LnkNetwork::parse_network(network_data)?;
-                    shortcut_info.network_device_name = network_share.device_name;
-                    shortcut_info.network_share_name = network_share.share_name;
-                    shortcut_info.network_provider = network_share.provider_type;
-                } else if shortcut_info.location_flags == VolumeIDAndLocalBasePath {
-                    let (volume_data, _) = take(location.volume_offset)(input)?;
-                    let (_, volume) = LnkVolume::parse_volume(volume_data)?;
-                    shortcut_info.volume_label = volume.volume_label;
-                    shortcut_info.drive_serial = volume.drive_serial;
-                    shortcut_info.drive_type = volume.drive_type;
-                }
-
-                input = remaining_input;
-            }
-
-            // After TargetIDList and LocationInfo five (5) strings may exists depending on the flags set in the header
-            if flags == &HasName {
-                let (remaining_input, description) =
-                    extract_string(input, &shortcut_info.data_flags)?;
-                input = remaining_input;
-
-                shortcut_info.description = description;
-            }
-
-            if flags == &HasRelativePath {
-                let (remaining_input, relative_path) =
-                    extract_string(input, &shortcut_info.data_flags)?;
-                input = remaining_input;
-
-                shortcut_info.relative_path = relative_path;
-            }
-
-            if flags == &HasWorkingDirectory {
-                let (remaining_input, working_dir) =
-                    extract_string(input, &shortcut_info.data_flags)?;
-                input = remaining_input;
-
-                shortcut_info.working_directory = working_dir;
-            }
-
-            if flags == &HasArguements {
-                let (remaining_input, args) = extract_string(input, &shortcut_info.data_flags)?;
-                input = remaining_input;
-
-                shortcut_info.command_line_args = args;
-            }
-
-            if flags == &HasIconLocation {
-                let (remaining_input, icon_path) =
-                    extract_string(input, &shortcut_info.data_flags)?;
-                input = remaining_input;
-
-                shortcut_info.icon_location = icon_path;
-            }
-        }
-
-        let (found_tracker, tracker) = has_tracker(input);
-        if found_tracker {
-            shortcut_info.birth_droid_file_id = tracker.birth_droid_file_id;
-            shortcut_info.birth_droid_volume_id = tracker.birth_droid_volume_id;
-            shortcut_info.droid_file_id = tracker.droid_file_id;
-            shortcut_info.droid_volume_id = tracker.droid_volume_id;
-            shortcut_info.hostname = tracker.machine_id;
-        }
-        let (found_prop, stores) = has_property(input);
-        if found_prop {
-            shortcut_info.properties = stores;
-        }
-        let (found_env, path) = has_environment(input);
-        if found_env {
-            shortcut_info.environment_variable = path;
-        }
-
-        let (found_console, console) = has_console(data);
-        if found_console {
-            shortcut_info.console = console;
-        }
-
-        let (found_page, codepage) = has_codepage(data);
-        if found_page {
-            shortcut_info.codepage = codepage;
-        }
-
-        let (found_special, special) = has_special(data);
-        if found_special {
-            shortcut_info.special_folder_id = special;
-        }
-
-        let (found_darwin, darwin) = has_darwin(data);
-        if found_darwin {
-            shortcut_info.darwin_id = darwin;
-        }
-
-        let (found_shim, shim) = has_shim(data);
-        if found_shim {
-            shortcut_info.shim_layer = shim;
-        }
-
-        let (found_known, known) = has_known(data);
-        if found_known {
-            shortcut_info.known_folder = known;
-        }
-
-        let (has_items, mut items) = has_item(data);
-        if has_items {
-            shortcut_info.shellitems.append(&mut items);
-        }
-
-        Ok((input, ()))
+    let (found_tracker, tracker) = has_tracker(input);
+    if found_tracker {
+        shortcut_info.birth_droid_file_id = tracker.birth_droid_file_id;
+        shortcut_info.birth_droid_volume_id = tracker.birth_droid_volume_id;
+        shortcut_info.droid_file_id = tracker.droid_file_id;
+        shortcut_info.droid_volume_id = tracker.droid_volume_id;
+        shortcut_info.hostname = tracker.machine_id;
     }
+    let (found_prop, stores) = has_property(input);
+    if found_prop {
+        shortcut_info.properties = stores;
+    }
+    let (found_env, path) = has_environment(input);
+    if found_env {
+        shortcut_info.environment_variable = path;
+    }
+
+    let (found_console, console) = has_console(data);
+    if found_console {
+        shortcut_info.console = console;
+    }
+
+    let (found_page, codepage) = has_codepage(data);
+    if found_page {
+        shortcut_info.codepage = codepage;
+    }
+
+    let (found_special, special) = has_special(data);
+    if found_special {
+        shortcut_info.special_folder_id = special;
+    }
+
+    let (found_darwin, darwin) = has_darwin(data);
+    if found_darwin {
+        shortcut_info.darwin_id = darwin;
+    }
+
+    let (found_shim, shim) = has_shim(data);
+    if found_shim {
+        shortcut_info.shim_layer = shim;
+    }
+
+    let (found_known, known) = has_known(data);
+    if found_known {
+        shortcut_info.known_folder = known;
+    }
+
+    let (has_items, mut items) = has_item(data);
+    if has_items {
+        shortcut_info.shellitems.append(&mut items);
+    }
+
+    Ok((input, ()))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::items::ShellType::{
-        Delegate, Directory, RootFolder,
-    };
     use crate::artifacts::os::windows::shortcuts::header::LnkHeader;
-    use crate::artifacts::os::windows::shortcuts::network::NetworkProviderType;
-    use crate::artifacts::os::windows::shortcuts::shortcut::ShortcutInfo;
-    use crate::artifacts::os::windows::{
-        shellitems::items::ShellItem,
-        shortcuts::{header::DataFlags, location::LocationFlag, volume::DriveType},
+    use crate::artifacts::os::windows::shortcuts::shortcut::{
+        get_shortcut_data, get_shortcut_info, ShortcutInfo,
     };
-    use crate::filesystem::ntfs::attributes::AttributeFlags;
-
+    use common::windows::AttributeFlags;
+    use common::windows::LocationFlag;
+    use common::windows::ShellType::{Delegate, Directory, RootFolder};
+    use common::windows::{DataFlags, DriveType, NetworkProviderType, ShellItem};
     #[test]
     fn test_get_shortcut_data() {
         let test = [
@@ -312,7 +252,7 @@ mod tests {
             47, 84, 8, 0, 0, 0, 0, 0, 0, 80, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let (_, result) = ShortcutInfo::get_shortcut_data(&test).unwrap();
+        let (_, result) = get_shortcut_data(&test).unwrap();
         assert_eq!(result.created, 1667441367);
         assert_eq!(result.modified, 1670566100);
         assert_eq!(result.accessed, 1670566252);
@@ -480,7 +420,7 @@ mod tests {
             known_folder: String::new(),
         };
 
-        let (_, _) = ShortcutInfo::get_shortcut_info(input, &mut shortcut_info).unwrap();
+        let (_, _) = get_shortcut_info(input, &mut shortcut_info).unwrap();
         assert_eq!(shortcut_info.created, 1667441367);
         assert_eq!(shortcut_info.modified, 1670566100);
         assert_eq!(shortcut_info.accessed, 1670566252);

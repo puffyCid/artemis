@@ -2,8 +2,8 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, Endian},
     strings::{extract_utf16_string, extract_utf8_string},
 };
+use common::windows::DriveType;
 use nom::bytes::complete::{take, take_while};
-use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) struct LnkVolume {
@@ -14,18 +14,6 @@ pub(crate) struct LnkVolume {
     unicode_volume_label_offset: u32,
     pub(crate) volume_label: String,
     pub(crate) unicode_volume_label: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum DriveType {
-    DriveUnknown,
-    DriveNotRootDir,
-    DriveRemovable,
-    DriveFixed,
-    DriveRemote,
-    DriveCdrom,
-    DriveRamdisk,
-    None,
 }
 
 impl LnkVolume {

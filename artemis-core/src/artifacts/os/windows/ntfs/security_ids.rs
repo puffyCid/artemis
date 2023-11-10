@@ -1,4 +1,7 @@
-use super::{error::NTFSError, parser::RawFilelist};
+use super::{
+    attributes::{get_attribute_name, get_attribute_type},
+    error::NTFSError,
+};
 use crate::{
     artifacts::os::windows::securitydescriptor::sid::grab_sid,
     filesystem::ntfs::{
@@ -96,8 +99,8 @@ impl SecurityIDs {
                         continue;
                     }
                 };
-                let attr_name = RawFilelist::get_attribute_name(&attr_data);
-                let attr_type = RawFilelist::get_attribute_type(&attr_data);
+                let attr_name = get_attribute_name(&attr_data);
+                let attr_type = get_attribute_type(&attr_data);
 
                 if attr_name == "$SII" && attr_type == "IndexRoot" {
                     let indx_root_result = attr_data.structured_value(fs);
@@ -144,8 +147,8 @@ impl SecurityIDs {
                     continue;
                 }
             };
-            let attr_name = RawFilelist::get_attribute_name(&attr_data);
-            let attr_type = RawFilelist::get_attribute_type(&attr_data);
+            let attr_name = get_attribute_name(&attr_data);
+            let attr_type = get_attribute_type(&attr_data);
 
             if attr_name != "$SII" || attr_type != "IndexAllocation" {
                 continue;
@@ -263,8 +266,8 @@ impl SecurityIDs {
                     continue;
                 }
             };
-            let attr_name = RawFilelist::get_attribute_name(&attr_data);
-            let attr_type = RawFilelist::get_attribute_type(&attr_data);
+            let attr_name = get_attribute_name(&attr_data);
+            let attr_type = get_attribute_type(&attr_data);
 
             if attr_name != "$SDS" || attr_type != "Data" {
                 continue;

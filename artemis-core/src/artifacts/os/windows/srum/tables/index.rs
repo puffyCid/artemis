@@ -1,10 +1,11 @@
 use crate::{
-    artifacts::os::windows::{ese::parser::TableDump, securitydescriptor::sid::grab_sid},
+    artifacts::os::windows::securitydescriptor::sid::grab_sid,
     utils::{
         encoding::{base64_decode_standard, base64_encode_standard},
         strings::extract_utf16_string,
     },
 };
+use common::windows::TableDump;
 use log::{error, warn};
 use std::collections::HashMap;
 

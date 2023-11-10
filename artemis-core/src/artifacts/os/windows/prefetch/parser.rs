@@ -15,26 +15,10 @@ use crate::{
     structs::artifacts::os::windows::PrefetchOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::Prefetch;
 use log::error;
-use serde::Serialize;
 
-#[derive(Debug, Serialize)]
-pub(crate) struct Prefetch {
-    pub(crate) path: String,
-    pub(crate) filename: String,
-    pub(crate) hash: String,
-    pub(crate) last_run_time: i64,
-    pub(crate) all_run_times: Vec<i64>,
-    pub(crate) run_count: u32,
-    pub(crate) size: u32,
-    pub(crate) volume_serial: Vec<String>,
-    pub(crate) volume_creation: Vec<i64>,
-    pub(crate) volume_path: Vec<String>,
-    pub(crate) accessed_files_count: u32,
-    pub(crate) accessed_directories_count: u32,
-    pub(crate) accessed_files: Vec<String>,
-    pub(crate) accessed_directories: Vec<String>,
-}
+use super::pf::parse_prefetch;
 
 /// Parse `Prefetch` based on `PrefetchOptions`
 pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, PrefetchError> {
@@ -110,7 +94,7 @@ fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
         }
     };
 
-    Prefetch::parse_prefetch(&buffer, path)
+    parse_prefetch(&buffer, path)
 }
 
 #[cfg(test)]

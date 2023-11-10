@@ -154,6 +154,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_os() {
+        use crate::artifacts::os::systeminfo::info::get_os_version;
+
         let system_info = get_os_version();
         assert_eq!(system_info.contains("Unknown"), false);
     }
@@ -161,6 +163,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_kernel_version() {
+        use crate::artifacts::os::systeminfo::info::get_win_kernel_version;
+
         let system_info = get_win_kernel_version();
         assert!(system_info != 0.0);
     }

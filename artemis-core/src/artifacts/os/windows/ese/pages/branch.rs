@@ -4,8 +4,7 @@ use crate::{
         catalog::Catalog,
         page::{PageFlags, PageHeader},
         pages::leaf::{LeafType, PageLeaf},
-        parser::TableDump,
-        tables::ColumnInfo,
+        tables::{clear_column_data, parse_row, ColumnInfo},
         tags::TagFlags,
     },
     filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
@@ -224,11 +223,11 @@ impl BranchPage {
                 if leaf_row.leaf_type != LeafType::DataDefinition {
                     continue;
                 }
-                TableDump::parse_row(leaf_row, column_info);
+                parse_row(leaf_row, column_info);
                 column_rows.push(column_info.to_vec());
 
                 // Now clear column data so when we go to next row we have no leftover data from previous row
-                TableDump::clear_column_data(column_info);
+                clear_column_data(column_info);
                 continue;
             }
 
@@ -282,9 +281,11 @@ impl BranchPage {
 
 #[cfg(test)]
 mod tests {
+    use common::windows::ColumnType;
+
     use super::BranchPage;
     use crate::{
-        artifacts::os::windows::ese::tables::{ColumnFlags, ColumnInfo, ColumnType},
+        artifacts::os::windows::ese::tables::{ColumnFlags, ColumnInfo},
         filesystem::{
             files::read_file,
             ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},

@@ -1,32 +1,8 @@
-use crate::artifacts::os::windows::{ese::parser::TableDump, srum::error::SrumError};
+use crate::artifacts::os::windows::srum::error::SrumError;
+use common::windows::{EnergyInfo, EnergyUsage, TableDump};
 use log::error;
-use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
-
-#[derive(Debug, Serialize)]
-struct EnergyInfo {
-    auto_inc_id: i32,
-    timestamp: i64,
-    app_id: String,
-    user_id: String,
-    binary_data: String,
-}
-
-#[derive(Debug, Serialize)]
-struct EnergyUsage {
-    auto_inc_id: i32,
-    timestamp: i64,
-    app_id: String,
-    user_id: String,
-    event_timestamp: i64,
-    state_transition: i32,
-    full_charged_capacity: i32,
-    designed_capacity: i32,
-    charge_level: i32,
-    cycle_count: i32,
-    configuration_hash: i64,
-}
 
 /// Parse the unknown energy table from SRUM
 pub(crate) fn parse_energy(

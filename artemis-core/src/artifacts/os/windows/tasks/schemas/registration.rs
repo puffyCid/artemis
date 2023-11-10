@@ -1,18 +1,6 @@
+use common::windows::RegistrationInfo;
 use log::error;
 use quick_xml::{events::Event, Reader};
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct RegistrationInfo {
-    uri: Option<String>,
-    sid: Option<String>,
-    source: Option<String>,
-    date: Option<String>,
-    author: Option<String>,
-    version: Option<String>,
-    description: Option<String>,
-    documentation: Option<String>,
-}
 
 /// Parse `RegistrationInfo` of Task
 pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo {

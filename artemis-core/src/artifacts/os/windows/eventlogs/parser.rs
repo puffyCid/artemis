@@ -16,17 +16,9 @@ use crate::{
     structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
     utils::{environment::get_systemdrive, time::time_now},
 };
+use common::windows::EventLogRecord;
 use evtx::EvtxParser;
 use log::error;
-use serde::Serialize;
-use serde_json::Value;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct EventLogRecord {
-    pub(crate) event_record_id: u64,
-    pub(crate) timestamp: i64,
-    pub(crate) data: Value,
-}
 
 /// Parse `EventLogs` based on `EventLogsOptions`
 pub(crate) fn grab_eventlogs(

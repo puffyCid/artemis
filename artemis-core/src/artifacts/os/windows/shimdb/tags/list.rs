@@ -2,10 +2,11 @@ use super::binary::parse_binary;
 use super::dword::parse_dword;
 use super::qword::parse_qword;
 use super::stringref::parse_stringref;
-use crate::artifacts::os::windows::shimdb::tag::{TagData, Tags};
+use crate::artifacts::os::windows::shimdb::tag::{get_tag, Tags};
 use crate::artifacts::os::windows::shimdb::tags::word::parse_word;
 use crate::utils::encoding::base64_encode_standard;
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use common::windows::TagData;
 use nom::bytes::complete::take;
 use std::collections::HashMap;
 
@@ -38,7 +39,7 @@ fn get_list_data<'a>(
 
     let min_tag_size = 2;
     while list_data.len() > min_tag_size {
-        let (sdb_data, (tag, tag_value)) = TagData::get_tag(list_data)?;
+        let (sdb_data, (tag, tag_value)) = get_tag(list_data)?;
         let (tag_data, value) = match tag {
             Tags::String => break, // strings only found in stringtable, which we parse in stringref
             Tags::Binary => parse_binary(sdb_data, &tag_value)?,
@@ -90,7 +91,7 @@ fn parse_sublist<'a>(
     let mut sublist_entries: Vec<HashMap<String, String>> = Vec::new();
     let min_tag_size = 2;
     while list_data.len() > min_tag_size {
-        let (sdb_data, (tag, tag_value)) = TagData::get_tag(list_data)?;
+        let (sdb_data, (tag, tag_value)) = get_tag(list_data)?;
 
         // Parse list data based on tag type (ex: BINARY, STRING, WORD, etc)
         let (tag_data, value) = match tag {
@@ -133,15 +134,15 @@ fn parse_sublist<'a>(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::{
         artifacts::os::windows::shimdb::{
-            tag::TagData,
+            tag::generate_tags,
             tags::list::{get_list_data, parse_list, parse_sublist},
         },
         filesystem::files::read_file,
     };
+    use common::windows::TagData;
+    use std::path::PathBuf;
 
     #[test]
     fn test_parse_list() {
@@ -150,7 +151,7 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let table_data = [];
-        let tag_values = TagData::generate_tags();
+        let tag_values = generate_tags();
 
         let (_, result) = parse_list(&buffer, &table_data, &tag_values).unwrap();
 
@@ -182,7 +183,7 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let table_data = [];
-        let tag_values = TagData::generate_tags();
+        let tag_values = generate_tags();
         let mut shim_data: Vec<TagData> = Vec::new();
 
         let (_, result) = get_list_data(&buffer, &table_data, &mut shim_data, &tag_values).unwrap();
@@ -238,7 +239,7 @@ mod tests {
             65, 80, 84, 69, 71, 82, 65, 84, 230, 240, 35, 0,
         ];
         let table_data = [];
-        let tag_values = TagData::generate_tags();
+        let tag_values = generate_tags();
 
         let (_, result) = parse_sublist(&test_data, &table_data, &tag_values).unwrap();
         assert_eq!(result.len(), 1);

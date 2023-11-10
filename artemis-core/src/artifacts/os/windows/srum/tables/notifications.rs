@@ -1,19 +1,8 @@
-use crate::artifacts::os::windows::{ese::parser::TableDump, srum::error::SrumError};
+use crate::artifacts::os::windows::srum::error::SrumError;
+use common::windows::{NotificationInfo, TableDump};
 use log::error;
-use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
-
-#[derive(Debug, Serialize)]
-struct NotificationInfo {
-    auto_inc_id: i32,
-    timestamp: i64,
-    app_id: String,
-    user_id: String,
-    notification_type: i32,
-    payload_size: i32,
-    network_type: i32,
-}
 
 /// Parse the notification table from SRUM
 pub(crate) fn parse_notification(

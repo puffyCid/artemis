@@ -1,19 +1,20 @@
 use super::jumplists::parser::grab_jumplists;
+use super::ntfs::parser::ntfs_filelist;
 use super::recyclebin::parser::grab_recycle_bin;
+use super::registry::parser::parse_registry;
 use super::search::parser::grab_search;
 use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
-    error::WinArtifactError, eventlogs::parser::grab_eventlogs, ntfs::parser::RawFilelist,
-    prefetch::parser::grab_prefetch, registry::parser::RegistryData,
+    error::WinArtifactError, eventlogs::parser::grab_eventlogs, prefetch::parser::grab_prefetch,
     shellbags::parser::grab_shellbags, shimcache::parser::grab_shimcache,
     shimdb::parser::grab_shimdb, shortcuts::parser::grab_lnk_directory, srum::parser::grab_srum,
     userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
 };
-use crate::artifacts::os::{
-    files::filelisting::FileInfo, processes::process::Processes, systeminfo::info::SystemInfo,
-};
+use crate::artifacts::os::files::filelisting::get_filelist;
+use crate::artifacts::os::processes::process::proc_list;
+use crate::artifacts::os::systeminfo::info::get_info;
 use crate::filesystem::files::Hashes;
 use crate::output::formats::{json::json_format, jsonl::jsonl_format};
 use crate::runtime::deno::filter_script;
@@ -86,7 +87,7 @@ pub(crate) fn registry(
     filter: &bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    let result = RegistryData::parse_registry(options, output, filter);
+    let result = parse_registry(options, output, filter);
     match result {
         Ok(_) => {}
         Err(err) => {
@@ -104,7 +105,7 @@ pub(crate) fn raw_filelist(
     filter: &bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
-    let result = RawFilelist::raw_filelist(options, output, filter);
+    let result = ntfs_filelist(options, output, filter);
     match result {
         Ok(_) => {}
         Err(err) => {
@@ -129,7 +130,7 @@ pub(crate) fn processes(
         sha256: options.sha256,
     };
 
-    let results = Processes::proc_list(&hashes, options.metadata);
+    let results = proc_list(&hashes, options.metadata);
     let proc_data = match results {
         Ok(data) => data,
         Err(err) => {
@@ -162,7 +163,7 @@ pub(crate) fn files(
         sha1: options.sha1.unwrap_or(false),
         sha256: options.sha256.unwrap_or(false),
     };
-    let artifact_result = FileInfo::get_filelist(
+    let artifact_result = get_filelist(
         &options.start_path,
         options.depth.unwrap_or(1).into(),
         options.metadata.unwrap_or(false),
@@ -214,7 +215,7 @@ pub(crate) fn shimdb(
 pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
-    let system_data = SystemInfo::get_info();
+    let system_data = get_info();
     let serde_data_result = serde_json::to_value(system_data);
     let serde_data = match serde_data_result {
         Ok(results) => results,

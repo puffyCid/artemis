@@ -2,28 +2,10 @@ use crate::{
     filesystem::files::{file_reader, file_too_large},
     utils::encoding::base64_encode_standard,
 };
+use common::windows::PeInfo;
 use log::error;
 use pelite::PeFile;
-use serde::Serialize;
 use std::io::{Read, Seek, SeekFrom};
-
-#[derive(Debug, Serialize, Clone)]
-pub(crate) struct PeInfo {
-    pub(crate) imports: Vec<String>,
-    pub(crate) sections: Vec<String>,
-    pub(crate) cert: String,
-    pub(crate) pdb: String,
-    pub(crate) product_version: String,
-    pub(crate) file_version: String,
-    pub(crate) product_name: String,
-    pub(crate) company_name: String,
-    pub(crate) file_description: String,
-    pub(crate) internal_name: String,
-    pub(crate) legal_copyright: String,
-    pub(crate) original_filename: String,
-    pub(crate) manifest: String,
-    pub(crate) icons: Vec<String>,
-}
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {

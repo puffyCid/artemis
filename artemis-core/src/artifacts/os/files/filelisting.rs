@@ -28,10 +28,9 @@ use crate::artifacts::os::macos::artifacts::output_data;
 use common::macos::MachoInfo;
 
 #[cfg(target_os = "windows")]
-use crate::artifacts::os::windows::{
-    artifacts::output_data,
-    pe::parser::{parse_pe_file, PeInfo},
-};
+use crate::artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file};
+#[cfg(target_os = "windows")]
+use common::windows::PeInfo;
 
 #[cfg(target_os = "linux")]
 use crate::artifacts::os::linux::{
@@ -319,14 +318,16 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, fil
 
 #[cfg(test)]
 mod tests {
+    use super::file_output;
+    use crate::artifacts::os::files::filelisting::executable_metadata;
+    use crate::artifacts::os::files::filelisting::file_metadata;
+    use crate::artifacts::os::files::filelisting::get_filelist;
     use crate::{
         artifacts::os::files::filelisting::{read_firmlinks, skip_firmlinks, user_regex, Hashes},
         structs::toml::Output,
     };
     use common::files::FileInfo;
     use walkdir::WalkDir;
-
-    use super::file_output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -350,8 +351,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_get_filelist() {
-        use crate::artifacts::os::files::filelisting::get_filelist;
-
         let start_location = "/System/Volumes/Data/Users";
         let depth = 4;
         let metadata = true;
@@ -531,8 +530,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_file_metadata() {
-        use crate::artifacts::os::files::filelisting::file_metadata;
-
         let start_path = WalkDir::new("/sbin").max_depth(1);
         let metadata = true;
         let hashes = Hashes {
@@ -552,8 +549,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_binary_metadata() {
-        use crate::artifacts::os::files::filelisting::executable_metadata;
-
         let test_path = "/bin/ls";
         let results = executable_metadata(test_path).unwrap();
 

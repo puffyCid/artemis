@@ -1,5 +1,6 @@
 use super::error::ProcessError;
-use crate::artifacts::os::windows::pe::parser::{parse_pe_file, PeInfo};
+use crate::artifacts::os::windows::pe::parser::parse_pe_file;
+use common::windows::PeInfo;
 use log::warn;
 
 /// Parse PE metadata from provided path

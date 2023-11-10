@@ -1,7 +1,6 @@
 use crate::{
     artifacts::os::windows::{
         artifacts::output_data,
-        ese::parser::TableDump,
         search::{error::SearchError, ese::SearchEntry},
     },
     structs::toml::Output,
@@ -11,6 +10,7 @@ use crate::{
         time::filetime_to_unixepoch,
     },
 };
+use common::windows::TableDump;
 use log::error;
 use std::collections::HashMap;
 

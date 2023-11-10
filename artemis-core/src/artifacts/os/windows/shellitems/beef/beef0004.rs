@@ -1,10 +1,10 @@
-use crate::artifacts::os::windows::shellitems::items::{ShellItem, ShellType};
 use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
 use crate::utils::{
     strings::{extract_ascii_utf16_string, extract_utf16_string},
     time::fattime_utc_to_unixepoch,
 };
 use byteorder::{LittleEndian, ReadBytesExt};
+use common::windows::{ShellItem, ShellType};
 use nom::Needed;
 use nom::{
     bytes::complete::{take, take_until},
@@ -96,7 +96,8 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::{beef::beef0004::parse_beef, items::ShellType};
+    use crate::artifacts::os::windows::shellitems::beef::beef0004::parse_beef;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_beef() {

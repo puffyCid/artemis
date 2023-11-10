@@ -1,5 +1,5 @@
 use crate::{
-    filesystem::ntfs::attributes::{file_attribute_flags, AttributeFlags},
+    filesystem::ntfs::attributes::file_attribute_flags,
     utils::{
         nom_helper::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
@@ -8,8 +8,8 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use common::windows::{AttributeFlags, DataFlags};
 use nom::bytes::complete::take;
-use serde::Serialize;
 use std::mem::size_of;
 
 #[derive(Debug)]
@@ -30,35 +30,6 @@ pub(crate) struct LnkHeader {
     _unknown: u16,
     _unknown2: u32,
     _unknown3: u32,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum DataFlags {
-    HasTargetIdList,
-    HasLinkInfo,
-    HasName,
-    HasRelativePath,
-    HasWorkingDirectory,
-    HasArguements,
-    HasIconLocation,
-    IsUnicode,
-    ForceNoLinkInfo,
-    HasExpString,
-    RunInSeparateProcess,
-    HasDarwinId,
-    RunAsUser,
-    HasExpIcon,
-    NoPidAlias,
-    RunWithShimLayer,
-    ForceNoLinkTrack,
-    EnableTargetMetadata,
-    DisableLinkPathTracking,
-    DisableKnownFolderTracking,
-    DisableKnownFolderAlias,
-    AllowLinkToLink,
-    UnaliasOnSave,
-    PreferEnvironmentPath,
-    KeepLocalDListForUncTarget,
 }
 
 impl LnkHeader {
@@ -232,9 +203,8 @@ impl LnkHeader {
 
 #[cfg(test)]
 mod tests {
-    use super::DataFlags;
     use crate::artifacts::os::windows::shortcuts::header::LnkHeader;
-    use crate::filesystem::ntfs::attributes::AttributeFlags;
+    use common::windows::{AttributeFlags, DataFlags};
 
     #[test]
     fn test_parser_header() {

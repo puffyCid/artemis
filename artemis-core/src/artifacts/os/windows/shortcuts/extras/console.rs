@@ -3,8 +3,8 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
     strings::extract_utf16_string,
 };
+use common::windows::{ColorFlags, Console, CursorSize, FontFamily, FontWeight};
 use nom::bytes::complete::{take, take_until};
-use serde::Serialize;
 use std::mem::size_of;
 
 /// Determine if extra Console Properties data exists in `Shortcut` data
@@ -14,67 +14,6 @@ pub(crate) fn has_console(data: &[u8]) -> (bool, Vec<Console>) {
         Ok((_, console)) => (true, console),
         Err(_err) => (false, Vec::new()),
     }
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct Console {
-    color_flags: Vec<ColorFlags>,
-    popup_fill_attributes: Vec<ColorFlags>,
-    screen_width_buffer_size: u16,
-    screen_height_buffer_size: u16,
-    window_width: u16,
-    window_height: u16,
-    window_x_coordinate: u16,
-    window_y_coordinate: u16,
-    font_size: u16,
-    font_family: FontFamily,
-    font_weight: FontWeight,
-    face_name: String,
-    cursor_size: CursorSize,
-    full_screen: u32,
-    insert_mode: u32,
-    automatic_position: u32,
-    history_buffer_size: u32,
-    number_history_buffers: u32,
-    duplicates_allowed_history: u32,
-    color_table: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-enum ColorFlags {
-    ForegroundBlue,
-    ForegroundGreen,
-    ForegroundRed,
-    ForegroundIntensity,
-    BackgroundBlue,
-    BackgroundGreen,
-    BackgroundRed,
-    BackgroundIntensity,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-enum FontFamily {
-    DontCare,
-    Roman,
-    Swiss,
-    Modern,
-    Script,
-    Decorative,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-enum FontWeight {
-    Regular,
-    Bold,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-enum CursorSize {
-    Small,
-    Normal,
-    Large,
-    Unknown,
 }
 
 /// Parse `Shortcut` Console info

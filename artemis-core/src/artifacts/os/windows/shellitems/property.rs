@@ -1,9 +1,9 @@
-use super::items::ShellItem;
-use super::items::ShellType;
 use crate::artifacts::os::windows::propertystore::parser::get_property_guid;
 use crate::utils::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::nom_helper::Endian;
 use crate::utils::strings::extract_utf8_string;
+use common::windows::ShellItem;
+use common::windows::ShellType;
 use log::error;
 use nom::bytes::complete::take;
 use std::mem::size_of;
@@ -65,10 +65,10 @@ pub(crate) fn parse_property_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::{
-        items::ShellType,
-        property::{parse_property, parse_property_drive},
+    use crate::artifacts::os::windows::shellitems::property::{
+        parse_property, parse_property_drive,
     };
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_property() {

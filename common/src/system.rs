@@ -1,6 +1,9 @@
 use serde::Serialize;
 
+#[cfg(target_os = "macos")]
 use crate::macos::MachoInfo;
+#[cfg(target_os = "windows")]
+use crate::windows::PeInfo;
 
 #[derive(Debug, Serialize)]
 pub struct SystemInfo {

@@ -7,8 +7,8 @@ use crate::utils::{
     time::filetime_to_unixepoch,
     uuid::format_guid_le_bytes,
 };
+use common::windows::{DestEntries, PinStatus};
 use nom::bytes::complete::take;
-use serde::Serialize;
 use std::mem::size_of;
 
 #[derive(Debug)]
@@ -21,31 +21,11 @@ pub(crate) struct DestList {
     pub(crate) entries: Vec<DestEntries>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub(crate) struct DestEntries {
-    pub(crate) droid_volume_id: String,
-    pub(crate) droid_file_id: String,
-    pub(crate) birth_droid_volume_id: String,
-    pub(crate) birth_droid_file_id: String,
-    pub(crate) hostname: String,
-    pub(crate) entry: u32,
-    pub(crate) modified: i64,
-    pub(crate) pin_status: PinStatus,
-    pub(crate) path: String,
-}
-
 #[derive(Debug, PartialEq)]
 pub(crate) enum DestVersion {
     Win7,
     Win10,
     Unknown,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub(crate) enum PinStatus {
-    Pinned,
-    NotPinned,
-    None,
 }
 
 /// Parse the `DestList` OLE Directory. Contains metadata about LNK data (`JumpList` entries)

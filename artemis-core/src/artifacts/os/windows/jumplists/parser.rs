@@ -13,11 +13,15 @@
  * Other parsers:
  * `https://ericzimmerman.github.io/#!index.md`
  */
-use super::{error::JumplistError, jumplist::JumplistEntry};
+use super::{
+    error::JumplistError,
+    jumplist::{get_jumplist_path, get_jumplists},
+};
 use crate::{
     filesystem::metadata::glob_paths, structs::artifacts::os::windows::JumplistsOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::JumplistEntry;
 use log::error;
 
 /// Grab `Jumplists` based on provided options
@@ -50,21 +54,22 @@ pub(crate) fn grab_jumplists(
         }
     };
 
-    JumplistEntry::get_jumplists(&glob_paths)
+    get_jumplists(&glob_paths)
 }
 
 /// Parse single `Jumplist` file. Supports both Custom and Automatic `Jumplist` files
 pub(crate) fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
-    JumplistEntry::get_jumplist_path(path)
+    get_jumplist_path(path)
 }
 
 #[cfg(test)]
 mod tests {
     use super::grab_jumplists;
     use crate::{
-        artifacts::os::windows::jumplists::{jumplist::ListType, parser::grab_jumplist_file},
+        artifacts::os::windows::jumplists::parser::grab_jumplist_file,
         structs::artifacts::os::windows::JumplistsOptions,
     };
+    use common::windows::ListType;
     use std::path::PathBuf;
 
     #[test]

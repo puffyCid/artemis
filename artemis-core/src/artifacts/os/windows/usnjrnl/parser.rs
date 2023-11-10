@@ -11,11 +11,9 @@
  * `https://f001.backblazeb2.com/file/EricZimmermanTools/MFTECmd.zip`
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{
-    error::UsnJrnlError,
-    ntfs::{parse_usnjrnl_data, UsnJrnlEntry},
-};
+use super::{error::UsnJrnlError, ntfs::parse_usnjrnl_data};
 use crate::{structs::artifacts::os::windows::UsnJrnlOptions, utils::environment::get_systemdrive};
+use common::windows::UsnJrnlEntry;
 use log::error;
 
 /// Parse `UsnJrnl` data and return list of entries

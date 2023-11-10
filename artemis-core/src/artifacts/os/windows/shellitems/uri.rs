@@ -1,11 +1,11 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::Uri;
 use crate::utils::nom_helper::{
     nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
     nom_unsigned_two_bytes, Endian,
 };
 use crate::utils::strings::{extract_ascii_utf16_string, extract_utf16_string};
 use crate::utils::time::filetime_to_unixepoch;
+use common::windows::ShellItem;
+use common::windows::ShellType::Uri;
 use nom::bytes::complete::{take, take_while};
 use std::mem::size_of;
 
@@ -67,7 +67,7 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_uri;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_uri() {

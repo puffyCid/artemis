@@ -4,3 +4,14 @@ resolver = "2"
 
 [profile.release]
 strip = true
+
+[workspace.dependencies]
+serde = { version = "1.0.191", features = ["derive"] }
+log = "0.4.20"
+serde_json = "1.0.108"
+toml = "0.8.8"
+base64 = "0.21.5"
+tokio = { version = "1.33.0", features = ["full"] }
+flate2 = "1.0.28"
+glob = "0.3.1"
+reqwest = { version = "0.11.22", features = ["json", "blocking"] }

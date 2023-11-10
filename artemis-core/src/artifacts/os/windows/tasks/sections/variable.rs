@@ -3,6 +3,7 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
     strings::extract_utf16_string,
 };
+use common::windows::{TriggerFlags, TriggerTypes, VarTriggers};
 use nom::bytes::complete::take;
 use serde::Serialize;
 
@@ -18,37 +19,7 @@ pub(crate) struct Variable {
     pub(crate) start_error: u32,
     /**Unused */
     task_flags: u32,
-    pub(crate) triggers: Vec<Triggers>,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Triggers {
-    start_date: String,
-    end_date: String,
-    start_time: String,
-    duration: u32,
-    interval_mins: u32,
-    flags: Vec<TriggerFlags>,
-    types: Vec<TriggerTypes>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum TriggerFlags {
-    HasEndDate,
-    KillAtDurationEnd,
-    Disabled,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum TriggerTypes {
-    Once,
-    Daily,
-    Weekly,
-    MonthlyDate,
-    MonthlyDow,
-    EventOnIdle,
-    EventAtSystemstart,
-    EventAtLogon,
+    pub(crate) triggers: Vec<VarTriggers>,
 }
 
 /// Parse the Variable section of the `Job` file
@@ -119,7 +90,7 @@ fn reserved_data(data: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 }
 
 /// Get `Job` triggers
-fn triggers(data: &[u8]) -> nom::IResult<&[u8], Vec<Triggers>> {
+fn triggers(data: &[u8]) -> nom::IResult<&[u8], Vec<VarTriggers>> {
     let (mut trigger_data, trigger_count) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let mut count = 0;
 
@@ -149,7 +120,7 @@ fn triggers(data: &[u8]) -> nom::IResult<&[u8], Vec<Triggers>> {
         let end_date = format!("{end_year}-{end_month}-{end_day}");
         let start_time = format!("{start_hours}:{start_mins}");
 
-        let trigger = Triggers {
+        let trigger = VarTriggers {
             start_date,
             end_date,
             start_time,

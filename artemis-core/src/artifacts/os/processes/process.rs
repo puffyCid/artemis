@@ -11,7 +11,7 @@ use sysinfo::{PidExt, Process, ProcessExt, System, SystemExt};
 #[cfg(target_os = "windows")]
 use super::pe::pe_metadata;
 #[cfg(target_os = "windows")]
-use crate::artifacts::os::windows::pe::parser::PeInfo;
+use common::windows::PeInfo;
 
 #[cfg(target_os = "macos")]
 use common::macos::MachoInfo;
@@ -137,6 +137,7 @@ fn executable_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::artifacts::os::processes::process::executable_metadata;
     use crate::{
         artifacts::os::processes::process::{proc_info, proc_list},
         filesystem::files::Hashes,
@@ -179,8 +180,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_executable_metadata() {
-        use crate::artifacts::os::processes::process::executable_metadata;
-
         let test_path = "/bin/ls";
         let results = executable_metadata(test_path).unwrap();
 

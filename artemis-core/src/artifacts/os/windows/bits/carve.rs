@@ -1,12 +1,11 @@
-use super::{
-    background::BitsInfo,
-    jobs::{JobFlags, JobInfo, JobPriority, JobState, JobType},
-};
-use crate::{
-    artifacts::os::windows::bits::files::FileInfo,
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
-};
+use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian};
+use common::windows::{BitsInfo, FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
 use nom::bytes::complete::take_until;
+
+use super::{
+    files::get_legacy_files,
+    jobs::{get_type, job_details, parse_job},
+};
 
 pub(crate) type WinBits = (Vec<BitsInfo>, Vec<JobInfo>, Vec<FileInfo>);
 
@@ -63,7 +62,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
             let (input, _) = nom_unsigned_sixteen_bytes(hit_data, Endian::Le)?;
             let (_, job_type_value) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let job_type = JobInfo::get_type(&job_type_value);
+            let job_type = get_type(&job_type_value);
 
             if job_type == JobType::Unknown {
                 job_data = input;
@@ -95,19 +94,18 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 timeout: 0,
                 target_path: String::new(),
             };
-            let (input, _) = JobInfo::parse_job(hit_data, &mut job, carve)?;
+            let (input, _) = parse_job(hit_data, &mut job, carve)?;
 
             if is_legacy {
-                let (remaining_input, file) = FileInfo::get_legacy_files(input, is_legacy, carve)?;
-                let (remaining_input, _) =
-                    JobInfo::job_details(remaining_input, &mut job, is_legacy)?;
+                let (remaining_input, file) = get_legacy_files(input, is_legacy, carve)?;
+                let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
 
                 job_data = remaining_input;
                 let carved = true;
                 bits.push(combine_file_and_job(&job, &file, carved));
                 continue;
             }
-            let remaining_input_result = JobInfo::job_details(input, &mut job, is_legacy);
+            let remaining_input_result = job_details(input, &mut job, is_legacy);
             match remaining_input_result {
                 Ok((result, _)) => job_data = result,
                 Err(_) => job_data = &[],
@@ -125,7 +123,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
     // So we scan for file data using a separate loop
     let mut file_data = data;
     while !file_data.is_empty() {
-        let scan_results = FileInfo::get_legacy_files(file_data, is_legacy, carve);
+        let scan_results = get_legacy_files(file_data, is_legacy, carve);
         let (hit_data, file) = match scan_results {
             Ok(results) => results,
             Err(_err) => {
@@ -198,13 +196,8 @@ pub(crate) fn scan_delimter<'a>(data: &'a [u8], delimter: &[u8]) -> nom::IResult
 #[cfg(test)]
 mod tests {
     use super::{carve_bits, combine_file_and_job, scan_delimter};
-    use crate::{
-        artifacts::os::windows::bits::{
-            files::FileInfo,
-            jobs::{JobFlags, JobInfo, JobPriority, JobState, JobType},
-        },
-        filesystem::files::read_file,
-    };
+    use crate::filesystem::files::read_file;
+    use common::windows::{FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
     use std::path::PathBuf;
 
     #[test]

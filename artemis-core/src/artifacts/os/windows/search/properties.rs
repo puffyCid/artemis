@@ -1,4 +1,4 @@
-use crate::artifacts::os::windows::ese::parser::TableDump;
+use common::windows::TableDump;
 use std::collections::HashMap;
 
 /**

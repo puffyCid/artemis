@@ -1,60 +1,15 @@
 use super::{
     carve::{carve_bits, WinBits},
     error::BitsError,
-    files::FileInfo,
-    jobs::{JobFlags, JobInfo, JobPriority, JobState, JobType},
+    files::get_files,
+    jobs::{get_jobs, get_legacy_jobs},
 };
 use crate::{
-    artifacts::os::windows::{
-        ese::parser::grab_ese_tables, securitydescriptor::acl::AccessControlEntry,
-    },
+    artifacts::os::windows::ese::parser::grab_ese_tables,
     filesystem::{files::is_file, ntfs::raw_files::raw_read_file},
 };
+use common::windows::{BitsInfo, WindowsBits};
 use log::error;
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct WindowsBits {
-    pub(crate) bits: Vec<BitsInfo>,
-    pub(crate) carved_jobs: Vec<JobInfo>,
-    pub(crate) carved_files: Vec<FileInfo>,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct BitsInfo {
-    pub(crate) job_id: String,
-    pub(crate) file_id: String,
-    pub(crate) owner_sid: String,
-    pub(crate) created: i64,
-    pub(crate) modified: i64,
-    pub(crate) completed: i64,
-    pub(crate) expiration: i64,
-    pub(crate) files_total: u32,
-    pub(crate) bytes_downloaded: u64,
-    pub(crate) bytes_tranferred: u64,
-    pub(crate) job_name: String,
-    pub(crate) job_description: String,
-    pub(crate) job_command: String,
-    pub(crate) job_arguements: String,
-    pub(crate) error_count: u32,
-    pub(crate) job_type: JobType,
-    pub(crate) job_state: JobState,
-    pub(crate) priority: JobPriority,
-    pub(crate) flags: JobFlags,
-    pub(crate) http_method: String,
-    pub(crate) full_path: String,
-    pub(crate) filename: String,
-    pub(crate) target_path: String,
-    pub(crate) tmp_file: String,
-    pub(crate) volume: String,
-    pub(crate) url: String,
-    pub(crate) carved: bool,
-    pub(crate) transient_error_count: u32,
-    pub(crate) acls: Vec<AccessControlEntry>,
-    pub(crate) timeout: u32,
-    pub(crate) retry_delay: u32,
-    pub(crate) additional_sids: Vec<String>,
-}
 
 /**
  * Parse modern version (Win10+) of BITS which is an ESE database by dumping the `Jobs` and `Files` tables and parsing their contents  
@@ -77,7 +32,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
         return Err(BitsError::MissingJobs);
     };
 
-    let jobs_info = JobInfo::get_jobs(jobs)?;
+    let jobs_info = get_jobs(jobs)?;
 
     let files = if let Some(values) = bits_tables.get("Files") {
         values
@@ -85,7 +40,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
         return Err(BitsError::MissingFiles);
     };
 
-    let files_info = FileInfo::get_files(files)?;
+    let files_info = get_files(files)?;
     let mut bits_info: Vec<BitsInfo> = Vec::new();
 
     for job in &jobs_info {
@@ -199,7 +154,7 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<WindowsBits, BitsEr
             return Err(BitsError::ReadFile);
         }
     };
-    let mut bits = JobInfo::get_legacy_jobs(&bits_data)?;
+    let mut bits = get_legacy_jobs(&bits_data)?;
     windows_bits.bits.append(&mut bits);
 
     if carve {

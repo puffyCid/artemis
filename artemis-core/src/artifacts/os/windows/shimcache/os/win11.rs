@@ -1,4 +1,5 @@
-use super::{shim::ShimcacheEntry, win10::win10_format};
+use super::win10::win10_format;
+use common::windows::ShimcacheEntry;
 
 /// Windows 11 `Shimcache` is the same as Windows 10 Creators format
 pub(crate) fn win11_format<'a>(

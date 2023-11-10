@@ -1,102 +1,97 @@
-use super::{header::SdbHeader, tag::TagData};
-use crate::artifacts::os::windows::shimdb::{
-    database::DatabaseData, indexes::get_indexes_data, stringtable::get_stringtable_data,
-    tags::list::parse_list,
+use super::{
+    database::{get_data, parse_db},
+    header::SdbHeader,
+    tag::{generate_tags, get_tag},
 };
+use crate::artifacts::os::windows::shimdb::{
+    indexes::get_indexes_data, stringtable::get_stringtable_data, tags::list::parse_list,
+};
+use common::windows::{DatabaseData, ShimData};
 use log::error;
-use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize)]
-pub(crate) struct ShimData {
-    pub(crate) indexes: Vec<TagData>,
-    pub(crate) db_data: DatabaseData,
-    pub(crate) sdb_path: String,
-}
+/// Parse the bytes of a sdb file
+pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
+    let (mut input, header) = SdbHeader::parse_header(data)?;
 
-impl ShimData {
-    /// Parse the bytes of a sdb file
-    pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
-        let (mut input, header) = SdbHeader::parse_header(data)?;
+    let mut shim_data = ShimData {
+        indexes: Vec::new(),
+        db_data: DatabaseData {
+            sdb_version: String::new(),
+            compile_time: 0,
+            compiler_version: String::new(),
+            name: String::new(),
+            platform: 0,
+            database_id: String::new(),
+            additional_metadata: HashMap::new(),
+            list_data: Vec::new(),
+        },
+        sdb_path: String::new(),
+    };
 
-        let mut shim_data = ShimData {
-            indexes: Vec::new(),
-            db_data: DatabaseData {
-                sdb_version: String::new(),
-                compile_time: 0,
-                compiler_version: String::new(),
-                name: String::new(),
-                platform: 0,
-                database_id: String::new(),
-                additional_metadata: HashMap::new(),
-                list_data: Vec::new(),
-            },
-            sdb_path: String::new(),
-        };
+    let tag_values = generate_tags();
+    let database_tag = 0x7001;
+    let stringtable_tag = 0x7801;
 
-        let tag_values = TagData::generate_tags();
-        let database_tag = 0x7001;
-        let stringtable_tag = 0x7801;
+    let mut database_data: Vec<u8> = Vec::new();
+    let mut stringtable_data: Vec<u8> = Vec::new();
+    let mut indexes_data: Vec<u8> = Vec::new();
 
-        let mut database_data: Vec<u8> = Vec::new();
-        let mut stringtable_data: Vec<u8> = Vec::new();
-        let mut indexes_data: Vec<u8> = Vec::new();
+    // Overview of SDB struct is three (3) "root" lists:
+    //   1. INDEXES list entries
+    //   2. DATABASE list entries
+    //   3. STRINGTABLE list
+    while !input.is_empty() {
+        let (sdb_data, (_tag, tag_value)) = get_tag(input)?;
 
-        // Overview of SDB struct is three (3) "root" lists:
-        //   1. INDEXES list entries
-        //   2. DATABASE list entries
-        //   3. STRINGTABLE list
-        while !input.is_empty() {
-            let (sdb_data, (_tag, tag_value)) = TagData::get_tag(input)?;
+        // In order to fully parse the database list we need the stringtable, store data with `database_data` until stringtable data is found
+        if tag_value == database_tag {
+            let (sdb_data, db_data) = get_data(sdb_data)?;
 
-            // In order to fully parse the database list we need the stringtable, store data with `database_data` until stringtable data is found
-            if tag_value == database_tag {
-                let (sdb_data, db_data) = DatabaseData::get_data(sdb_data)?;
+            input = sdb_data;
+            database_data = db_data;
+            continue;
+        } else if tag_value == stringtable_tag {
+            let (_sdb_data, table_data) = get_stringtable_data(sdb_data)?;
 
-                input = sdb_data;
-                database_data = db_data;
-                continue;
-            } else if tag_value == stringtable_tag {
-                let (_sdb_data, table_data) = get_stringtable_data(sdb_data)?;
+            stringtable_data = table_data;
+            //stringtable is the last data/list in a sdb file
+            break;
+        } else {
+            // indexes list mainly contains binary data
+            let (sdb_data, index_data) = get_indexes_data(sdb_data)?;
 
-                stringtable_data = table_data;
-                //stringtable is the last data/list in a sdb file
-                break;
-            } else {
-                // indexes list mainly contains binary data
-                let (sdb_data, index_data) = get_indexes_data(sdb_data)?;
-
-                indexes_data = index_data;
-                input = sdb_data;
-            }
+            indexes_data = index_data;
+            input = sdb_data;
         }
-        let index_tag_result = parse_list(&indexes_data, &stringtable_data, &tag_values);
-        match index_tag_result {
-            Ok((_, mut result)) => shim_data.indexes.append(&mut result),
-            Err(err) => {
-                error!("[shimdb] Failed to parse indexes list: {err:?}");
-            }
-        }
-
-        let db_result = DatabaseData::parse_db(&database_data, &stringtable_data, &tag_values);
-        match db_result {
-            Ok((_, mut result)) => {
-                result.sdb_version = format!("{}.{}", header.major_version, header.minor_version);
-                shim_data.db_data = result;
-            }
-            Err(err) => {
-                error!("[shimdb] Failed to parse database list: {err:?}");
-            }
-        }
-
-        Ok((data, shim_data))
     }
+    let index_tag_result = parse_list(&indexes_data, &stringtable_data, &tag_values);
+    match index_tag_result {
+        Ok((_, mut result)) => shim_data.indexes.append(&mut result),
+        Err(err) => {
+            error!("[shimdb] Failed to parse indexes list: {err:?}");
+        }
+    }
+
+    let db_result = parse_db(&database_data, &stringtable_data, &tag_values);
+    match db_result {
+        Ok((_, mut result)) => {
+            result.sdb_version = format!("{}.{}", header.major_version, header.minor_version);
+            shim_data.db_data = result;
+        }
+        Err(err) => {
+            error!("[shimdb] Failed to parse database list: {err:?}");
+        }
+    }
+
+    Ok((data, shim_data))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ShimData;
-    use crate::filesystem::files::read_file;
+    use crate::{
+        artifacts::os::windows::shimdb::shims::parse_shimdb, filesystem::files::read_file,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -105,7 +100,7 @@ mod tests {
         test_location.push("tests/test_data/windows/shimdb/win10/sysmain.sdb");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, result) = ShimData::parse_shimdb(&buffer).unwrap();
+        let (_, result) = parse_shimdb(&buffer).unwrap();
 
         assert_eq!(result.db_data.additional_metadata.len(), 0);
         assert_eq!(result.db_data.compile_time, 1451606400);
@@ -171,7 +166,7 @@ mod tests {
         test_location.push("tests/test_data/windows/shimdb/AtomicShimx86.sdb");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, result) = ShimData::parse_shimdb(&buffer).unwrap();
+        let (_, result) = parse_shimdb(&buffer).unwrap();
         assert_eq!(result.indexes.len(), 1);
         assert_eq!(result.db_data.compile_time, 1512594908);
         assert_eq!(result.db_data.sdb_version, "2.1");
@@ -202,7 +197,7 @@ mod tests {
         test_location.push("tests/test_data/windows/shimdb/T1546.011CompatDatabase.sdb");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, result) = ShimData::parse_shimdb(&buffer).unwrap();
+        let (_, result) = parse_shimdb(&buffer).unwrap();
         assert_eq!(result.indexes.len(), 1);
         assert_eq!(result.db_data.compile_time, 1451606400);
         assert_eq!(result.db_data.sdb_version, "2.3");

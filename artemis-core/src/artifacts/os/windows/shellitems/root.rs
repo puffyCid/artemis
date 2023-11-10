@@ -1,6 +1,6 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::RootFolder;
 use crate::utils::uuid::format_guid_le_bytes;
+use common::windows::ShellItem;
+use common::windows::ShellType::RootFolder;
 use nom::bytes::complete::take;
 use std::mem::size_of;
 
@@ -28,7 +28,7 @@ pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_root;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_root() {

@@ -1,59 +1,6 @@
+use common::windows::{IdleSettings, MaintenceSettings, NetworkSettings, RestartType, Settings};
 use log::error;
 use quick_xml::{events::Event, Reader};
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Settings {
-    allow_start_on_demand: Option<bool>,
-    restart_on_failure: Option<RestartType>,
-    multiple_instances_policy: Option<String>,
-    disallow_start_if_on_batteries: Option<bool>,
-    stop_if_going_on_batteries: Option<bool>,
-    allow_hard_terminate: Option<bool>,
-    start_when_available: Option<bool>,
-    newtork_profile_name: Option<String>,
-    run_only_if_network_available: Option<bool>,
-    wake_to_run: Option<bool>,
-    enabled: Option<bool>,
-    hidden: Option<bool>,
-    delete_expired_tasks_after: Option<String>,
-    idle_settings: Option<IdleSettings>,
-    network_settings: Option<NetworkSettings>,
-    execution_time_limit: Option<String>,
-    priority: Option<u8>,
-    run_only_if_idle: Option<bool>,
-    use_unified_scheduling_engine: Option<bool>,
-    disallow_start_on_remote_app_session: Option<bool>,
-    maintence_settings: Option<MaintenceSettings>,
-    volatile: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-struct RestartType {
-    interval: String,
-    count: u16,
-}
-
-#[derive(Debug, Serialize)]
-struct IdleSettings {
-    duration: Option<String>,
-    wait_timeout: Option<String>,
-    stop_on_idle_end: Option<bool>,
-    restart_on_idle: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-struct NetworkSettings {
-    name: Option<String>,
-    id: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct MaintenceSettings {
-    period: String,
-    deadline: Option<String>,
-    exclusive: Option<bool>,
-}
 
 /// Parse all Settings associated with Task
 pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {

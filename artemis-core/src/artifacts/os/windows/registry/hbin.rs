@@ -1,4 +1,4 @@
-use super::parser::{Params, RegistryEntry};
+use super::parser::Params;
 use crate::{
     artifacts::os::windows::registry::{
         cell::{get_cell_type, is_allocated, CellType},
@@ -6,6 +6,7 @@ use crate::{
     },
     utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
 };
+use common::windows::RegistryEntry;
 use nom::{bytes::complete::take, Needed};
 use serde::Serialize;
 

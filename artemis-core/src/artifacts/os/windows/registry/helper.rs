@@ -1,14 +1,11 @@
 use super::{
-    error::RegistryError,
-    hbin::HiveBin,
-    header::RegHeader,
-    keys::sk::SecurityKey,
-    parser::{Params, RegistryEntry},
+    error::RegistryError, hbin::HiveBin, header::RegHeader, keys::sk::SecurityKey, parser::Params,
 };
 use crate::filesystem::ntfs::{
     raw_files::{raw_read_by_file_ref, raw_read_file},
     setup::NtfsParser,
 };
+use common::windows::RegistryEntry;
 use log::error;
 use nom::bytes::complete::take;
 use ntfs::NtfsFileReference;

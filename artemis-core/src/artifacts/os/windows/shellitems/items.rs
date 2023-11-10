@@ -30,183 +30,141 @@ use crate::{
         nom_helper::{nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian},
     },
 };
+use common::windows::ShellItem;
 use log::error;
 use nom::{bytes::complete::take, Needed};
-use serde::Serialize;
-use serde_json::Value;
-use std::{collections::HashMap, mem::size_of};
+use std::mem::size_of;
 
-/**  Return a `ShellItem` structure containing
- * value: Generic value of the `ShellItem`, can be a directory, file, URI, or GUID
- * created: FAT timestamp, only found on directory, file `ShellItems`
- * accessed: FAT timestamp, only found on directory, file `ShellItems`
- * modified: FAT timestamp, only found on directory, file `ShellItems`
- * `mft_entry`: The MFT entry for a file or directory `ShellItem`
- * `mft_sequence`: The MFT sequence for a file or directory `ShellItem`
-*/
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct ShellItem {
-    pub(crate) value: String,
-    pub(crate) shell_type: ShellType,
-    /**FAT time */
-    pub(crate) created: i64,
-    /**FAT time */
-    pub(crate) modified: i64,
-    /**FAT time */
-    pub(crate) accessed: i64,
-    pub(crate) mft_entry: u64,
-    pub(crate) mft_sequence: u16,
-    pub(crate) stores: Vec<HashMap<String, Value>>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub(crate) enum ShellType {
-    Directory, // After applying bitwise AND 0x70
-    Network,   // After applying bitwise AND 0x70
-    Volume,    // After apply bitwise AND 0x70
-    RootFolder,
-    ControlPanel,
-    ControlPanelEntry,
-    UserPropertyView, // Can have the same id as RootFolder, but its much larger
-    Delegate,         // Similar to File type
-    Uri,
-    Variable,
-    Mtp,
-    Unknown,
-    History,
-    GameFolder,
-    _Optical, // No optical drives available to test on.
-}
-
-impl ShellItem {
-    /// Parse a base64 encoded `ShellItem`
-    pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {
-        let result = base64_decode_standard(encoded);
-        let data = match result {
-            Ok(shelldata) => shelldata,
-            Err(err) => {
-                error!("[shellitems] Could not base64 decode data: {err:?}");
-                return Err(ShellItemError::Decode);
-            }
-        };
-        ShellItem::parse_shellitem(&data)
-    }
-
-    /// Parse the raw `ShellItem` bytes
-    pub(crate) fn parse_shellitem(data: &[u8]) -> Result<ShellItem, ShellItemError> {
-        let result = ShellItem::get_shellitem(data);
-        let (_, shell_item) = match result {
-            Ok(results) => results,
-            Err(_err) => {
-                error!("[shellitems] Failed to parse ShellItem!");
-                return Err(ShellItemError::ParseItem);
-            }
-        };
-
-        Ok(shell_item)
-    }
-
-    /// Get the size of the `ShellItem` and then parse the type
-    pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
-        let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
-
-        // Size includes size itself
-        let adjust_size = 2;
-        if size < adjust_size {
-            return Err(nom::Err::Incomplete(Needed::Unknown));
+/// Parse a base64 encoded `ShellItem`
+pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {
+    let result = base64_decode_standard(encoded);
+    let data = match result {
+        Ok(shelldata) => shelldata,
+        Err(err) => {
+            error!("[shellitems] Could not base64 decode data: {err:?}");
+            return Err(ShellItemError::Decode);
         }
-        let (remaining_input, input) = take(size - adjust_size)(input)?;
-        let (_, shellitem) = ShellItem::detect_shellitem(input)?;
+    };
+    parse_shellitem(&data)
+}
 
-        // ShellItems end with 0000
-        let (remaining_input, _) = take(size_of::<u16>())(remaining_input)?;
-        Ok((remaining_input, shellitem))
+/// Parse the raw `ShellItem` bytes
+pub(crate) fn parse_shellitem(data: &[u8]) -> Result<ShellItem, ShellItemError> {
+    let result = get_shellitem(data);
+    let (_, shell_item) = match result {
+        Ok(results) => results,
+        Err(_err) => {
+            error!("[shellitems] Failed to parse ShellItem!");
+            return Err(ShellItemError::ParseItem);
+        }
+    };
+
+    Ok(shell_item)
+}
+
+/// Get the size of the `ShellItem` and then parse the type
+pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
+
+    // Size includes size itself
+    let adjust_size = 2;
+    if size < adjust_size {
+        return Err(nom::Err::Incomplete(Needed::Unknown));
     }
+    let (remaining_input, input) = take(size - adjust_size)(input)?;
+    let (_, shellitem) = detect_shellitem(input)?;
 
-    /// Based on the provided bytes determine the `ShellItem` type and parse it
-    pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
-        let (input, item_type) = nom_unsigned_one_byte(data, Endian::Le)?;
+    // ShellItems end with 0000
+    let (remaining_input, _) = take(size_of::<u16>())(remaining_input)?;
+    Ok((remaining_input, shellitem))
+}
 
-        // Determine `ShellItem` using known IDs, signatures, and expected `ShellItem` size
-        let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb2];
-        let drive_item = [0x2f, 0x23, 0x25, 0x29, 0x2a, 0x2e];
-        let delegate = 0x74;
-        let control_panel = 0x1;
-        let control_panel_entry = 0x71;
-        let network_items = [0xc3, 0x41, 0x42, 0x46, 0x47, 0x4c];
-        let ftp = 0x61;
-        let root_property = 0x1f;
-        let subroot = 0x1e;
-        let history = 0x69;
-        let history_directory = 0x65;
+/// Based on the provided bytes determine the `ShellItem` type and parse it
+pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    let (input, item_type) = nom_unsigned_one_byte(data, Endian::Le)?;
 
-        let beef0004 = [4, 0, 239, 190];
-        let drive_property = 83;
-        let root_size = 18;
-        let beef00 = [0, 239, 190];
+    // Determine `ShellItem` using known IDs, signatures, and expected `ShellItem` size
+    let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb2];
+    let drive_item = [0x2f, 0x23, 0x25, 0x29, 0x2a, 0x2e];
+    let delegate = 0x74;
+    let control_panel = 0x1;
+    let control_panel_entry = 0x71;
+    let network_items = [0xc3, 0x41, 0x42, 0x46, 0x47, 0x4c];
+    let ftp = 0x61;
+    let root_property = 0x1f;
+    let subroot = 0x1e;
+    let history = 0x69;
+    let history_directory = 0x65;
 
-        // Based on `ShellItem` type parse the bytes and return generic `ShellItem` structure
-        let (remaining_input, shellitem) =
-            if directory_items.contains(&item_type) && check_beef(input, &beef0004) {
-                parse_directory(input)?
-            } else if check_zip(data) {
-                parse_variable(data)?
-            } else if check_mtp_storage(data) {
-                get_storage_name(input)?
-            } else if check_mtp_folder(data) {
-                get_folder_name(input)?
-            } else if check_game(input) {
-                parse_game(input)?
-            } else if drive_item.contains(&item_type) {
-                let drive_size = 23;
-                if data.len() == drive_size {
-                    return parse_drive(input);
-                }
+    let beef0004 = [4, 0, 239, 190];
+    let drive_property = 83;
+    let root_size = 18;
+    let beef00 = [0, 239, 190];
 
-                if check_beef(data, &beef00) || data.len() < drive_size {
-                    return parse_root(input);
-                }
-                get_mtp_device(input)?
-            } else if item_type == control_panel {
-                parse_control_panel(input)?
-            } else if item_type == control_panel_entry {
-                parse_control_panel_entry(input)?
-            } else if item_type == subroot {
-                parse_root(input)?
-            } else if item_type == ftp {
-                parse_uri(input)?
-            } else if item_type == delegate {
-                get_delegate_shellitem(input)?
-            } else if network_items.contains(&item_type) {
-                parse_network(input)?
-            } else if item_type == root_property
-                && ((data.len() == drive_property)
-                    || (data.len() == root_size)
-                    || check_beef(input, &beef00)
-                    || check_property(input))
-            {
-                if data.len() == drive_property {
-                    return parse_property_drive(input);
-                }
+    // Based on `ShellItem` type parse the bytes and return generic `ShellItem` structure
+    let (remaining_input, shellitem) =
+        if directory_items.contains(&item_type) && check_beef(input, &beef0004) {
+            parse_directory(input)?
+        } else if check_zip(data) {
+            parse_variable(data)?
+        } else if check_mtp_storage(data) {
+            get_storage_name(input)?
+        } else if check_mtp_folder(data) {
+            get_folder_name(input)?
+        } else if check_game(input) {
+            parse_game(input)?
+        } else if drive_item.contains(&item_type) {
+            let drive_size = 23;
+            if data.len() == drive_size {
+                return parse_drive(input);
+            }
 
-                let min_propety_size = 84;
-                if input.len() > min_propety_size {
-                    return parse_property(input);
-                }
-                parse_root(input)?
-            } else if item_type == history || item_type == history_directory {
-                parse_history(input)?
-            } else {
-                parse_variable(data)?
-            };
+            if check_beef(data, &beef00) || data.len() < drive_size {
+                return parse_root(input);
+            }
+            get_mtp_device(input)?
+        } else if item_type == control_panel {
+            parse_control_panel(input)?
+        } else if item_type == control_panel_entry {
+            parse_control_panel_entry(input)?
+        } else if item_type == subroot {
+            parse_root(input)?
+        } else if item_type == ftp {
+            parse_uri(input)?
+        } else if item_type == delegate {
+            get_delegate_shellitem(input)?
+        } else if network_items.contains(&item_type) {
+            parse_network(input)?
+        } else if item_type == root_property
+            && ((data.len() == drive_property)
+                || (data.len() == root_size)
+                || check_beef(input, &beef00)
+                || check_property(input))
+        {
+            if data.len() == drive_property {
+                return parse_property_drive(input);
+            }
 
-        Ok((remaining_input, shellitem))
-    }
+            let min_propety_size = 84;
+            if input.len() > min_propety_size {
+                return parse_property(input);
+            }
+            parse_root(input)?
+        } else if item_type == history || item_type == history_directory {
+            parse_history(input)?
+        } else {
+            parse_variable(data)?
+        };
+
+    Ok((remaining_input, shellitem))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::items::{ShellItem, ShellType};
+    use crate::artifacts::os::windows::shellitems::items::{
+        detect_shellitem, get_shellitem, parse_encoded_shellitem, parse_shellitem,
+    };
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_shellitem() {
@@ -219,7 +177,7 @@ mod tests {
             188, 35, 0, 115, 0, 111, 0, 117, 0, 114, 0, 99, 0, 101, 0, 0, 0, 66, 0, 0, 0,
         ];
 
-        let result = ShellItem::parse_shellitem(&test_data).unwrap();
+        let result = parse_shellitem(&test_data).unwrap();
         assert_eq!(result.value, "source");
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
@@ -240,7 +198,7 @@ mod tests {
             188, 35, 0, 115, 0, 111, 0, 117, 0, 114, 0, 99, 0, 101, 0, 0, 0, 66, 0, 0, 0,
         ];
 
-        let (_, result) = ShellItem::get_shellitem(&test_data).unwrap();
+        let (_, result) = get_shellitem(&test_data).unwrap();
         assert_eq!(result.value, "source");
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
@@ -261,7 +219,7 @@ mod tests {
             0, 115, 0, 111, 0, 117, 0, 114, 0, 99, 0, 101, 0, 0, 0, 66, 0, 0, 0,
         ];
 
-        let (_, result) = ShellItem::detect_shellitem(&test_data).unwrap();
+        let (_, result) = detect_shellitem(&test_data).unwrap();
         assert_eq!(result.value, "source");
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
@@ -274,7 +232,7 @@ mod tests {
     #[test]
     fn test_parse_encoded_shellitem() {
         let test_data = "gAB0ABwAQ0ZTRhYAMQAAAAAAVU8UvRAAc291cmNlAAAAAHQaWV6W39NIjWcXM7zuKLrFzfrfn2dWQYlHxcdrwLZ/PgAJAAQA775VTxS9VU8UvS4AAAA6PwQAAAAMAAAAAAAAAAAAAAAAAAAAibwjAHMAbwB1AHIAYwBlAAAAQgAAAA==";
-        let result = ShellItem::parse_encoded_shellitem(&test_data).unwrap();
+        let result = parse_encoded_shellitem(&test_data).unwrap();
         assert_eq!(result.value, "source");
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);

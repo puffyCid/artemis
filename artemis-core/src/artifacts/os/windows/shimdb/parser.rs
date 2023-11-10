@@ -10,12 +10,13 @@
  * Other Parsers:
  *  `https://ericzimmerman.github.io/SDBExplorer.zip`
  */
-use super::{error::ShimdbError, shims::ShimData};
+use super::{error::ShimdbError, shims::parse_shimdb};
 use crate::{
     filesystem::files::{file_extension, list_files, read_file_custom},
     structs::artifacts::os::windows::ShimdbOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::ShimData;
 use log::error;
 
 /// Parse `Shimdb` based on `ShimdbOptions`
@@ -99,7 +100,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
             return Err(ShimdbError::ReadFile);
         }
     };
-    let shimdb_result = ShimData::parse_shimdb(&buffer);
+    let shimdb_result = parse_shimdb(&buffer);
     let mut shim_results = match shimdb_result {
         Ok((_, result)) => result,
         Err(err) => {

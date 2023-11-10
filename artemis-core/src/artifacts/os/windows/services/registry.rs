@@ -1,8 +1,8 @@
 use super::error::ServicesError;
 use crate::{
-    artifacts::os::windows::registry::{helper::get_registry_keys, parser::RegistryEntry},
-    utils::regex_options::create_regex,
+    artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
 };
+use common::windows::RegistryEntry;
 use log::error;
 
 /// Parse provided Registry file (SYSTEM) and get Services information

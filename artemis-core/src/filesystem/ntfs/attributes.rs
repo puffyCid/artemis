@@ -1,12 +1,12 @@
 use super::{raw_files::raw_read_data, sector_reader::SectorReader};
 use crate::filesystem::error::FileSystemError;
+use common::windows::AttributeFlags;
 use log::{error, warn};
 use ntfs::{
     attribute_value::NtfsAttributeValue,
     structured_values::{NtfsAttributeList, NtfsFileName},
     Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFileReference, NtfsReadSeek,
 };
-use serde::Serialize;
 use std::{fs::File, io::BufReader};
 
 /// Return FILENAME attribute data
@@ -140,25 +140,6 @@ fn read_attribute_data(
         }
     }
     Ok(all_data)
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum AttributeFlags {
-    ReadOnly,
-    Hidden,
-    System,
-    Directory,
-    Archive,
-    Device,
-    Normal,
-    Temporary,
-    SparseFile,
-    ReparsePoint,
-    Compressed,
-    Offline,
-    NotConentIndexed,
-    Encrypted,
-    Virtual,
 }
 
 /// Determine attribute flags of a file

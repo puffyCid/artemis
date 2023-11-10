@@ -5,65 +5,8 @@ use crate::{
         nom_helper::{nom_unsigned_four_bytes, Endian},
     },
 };
+use common::windows::{Action, FailureActions, ServiceError, ServiceState, ServiceType, StartMode};
 use log::error;
-use serde::Serialize;
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum StartMode {
-    Automatic,
-    Boot,
-    Disabled,
-    Manual,
-    System,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum ServiceState {
-    Stopped,
-    StartPending,
-    StopPending,
-    Running,
-    ContinuePending,
-    PausePending,
-    Paused,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum ServiceError {
-    Ignore,
-    Normal,
-    Severe,
-    Critical,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum ServiceType {
-    Adapter,
-    FileSystemDriver,
-    InteractiveProcess,
-    KernelDriver,
-    RecognizeDriver,
-    Win32OwnProcess,
-    Win32SharedProcess,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct FailureActions {
-    action: Action,
-    delay: u32,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Action {
-    None,
-    Reboot,
-    Restart,
-    RunCommand,
-    Unknown,
-}
 
 /// Get Error Control type for Service
 pub(crate) fn error_control(value: &str) -> ServiceError {

@@ -1,10 +1,8 @@
-use super::{
-    acl::{AccessControlEntry, AccessItem},
-    sid::grab_sid,
-};
+use super::{acl::parse_acl, sid::grab_sid};
 use crate::utils::nom_helper::{
     nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
 };
+use common::windows::{AccessControlEntry, AccessItem::Registry};
 use nom::bytes::complete::take;
 use serde::Serialize;
 
@@ -57,12 +55,12 @@ impl Descriptor {
 
         if sacl_offset != empty {
             let (acl_start, _) = take(sacl_offset)(data)?;
-            let (_, acl) = AccessControlEntry::parse_acl(acl_start, &AccessItem::Registry)?;
+            let (_, acl) = parse_acl(acl_start, &Registry)?;
             security_info.sacls = acl;
         }
         if dacl_offset != empty {
             let (acl_start, _) = take(dacl_offset)(data)?;
-            let (_, acl) = AccessControlEntry::parse_acl(acl_start, &AccessItem::Registry)?;
+            let (_, acl) = parse_acl(acl_start, &Registry)?;
             security_info.dacls = acl;
         }
 
@@ -148,16 +146,15 @@ impl Descriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::securitydescriptor::acl::AccessMask::{
-        EnumerateSubKeys, Execute, Notify, QueryValue, Read, ReadControl,
-    };
     use crate::artifacts::os::windows::securitydescriptor::descriptor::ControlFlags::{
         DaclAutoInherited, DaclPresent, DaclProtected, OwnerDefaulted, SaclAutoInherited,
         SaclPresent, SelfRelative,
     };
-    use crate::artifacts::os::windows::securitydescriptor::{
-        acl::AceTypes, descriptor::Descriptor,
+    use crate::artifacts::os::windows::securitydescriptor::descriptor::Descriptor;
+    use common::windows::AccessMask::{
+        EnumerateSubKeys, Execute, Notify, QueryValue, Read, ReadControl,
     };
+    use common::windows::AceTypes;
 
     #[test]
     fn test_parse_descriptor() {
