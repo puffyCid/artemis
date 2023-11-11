@@ -1,8 +1,5 @@
 use crate::{
-    filesystem::ntfs::{
-        attributes::{file_attribute_flags, AttributeFlags},
-        sector_reader::SectorReader,
-    },
+    filesystem::ntfs::{attributes::file_attribute_flags, sector_reader::SectorReader},
     utils::{
         nom_helper::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
@@ -12,10 +9,10 @@ use crate::{
     },
 };
 use byteorder::{LittleEndian, ReadBytesExt};
+use common::windows::{AttributeFlags, Reason, Source};
 use log::{error, warn};
 use nom::bytes::complete::{take, take_until, take_while};
 use ntfs::{structured_values::NtfsFileNamespace, Ntfs, NtfsError};
-use serde::Serialize;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 #[derive(Debug)]
@@ -36,40 +33,6 @@ pub(crate) struct UsnJrnlFormat {
     _name_offset: u16,
     pub(crate) name: String,
     pub(crate) full_path: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Reason {
-    Overwrite,
-    Extend,
-    Truncation,
-    NamedOverwrite,
-    NamedExtend,
-    NamedTruncation,
-    FileCreate,
-    FileDelete,
-    EAChange,
-    SecurityChange,
-    RenameOldName,
-    RenameNewName,
-    IndexableChange,
-    BasicInfoChange,
-    HardLinkChange,
-    CompressionChange,
-    EncryptionChange,
-    ObjectIDChange,
-    ReparsePointChange,
-    StreamChange,
-    TransactedChange,
-    Close,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Source {
-    DataManagement,
-    AuxiliaryData,
-    ReplicationManagement,
-    None,
 }
 
 #[derive(Clone)]
@@ -510,8 +473,8 @@ mod tests {
     use super::UsnJrnlFormat;
     use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend, Overwrite};
     use crate::artifacts::os::windows::usnjrnl::journal::Source::{DataManagement, None};
-    use crate::filesystem::ntfs::attributes::AttributeFlags::Archive;
     use crate::filesystem::ntfs::setup::setup_ntfs_parser;
+    use common::windows::AttributeFlags::Archive;
     use std::collections::HashMap;
 
     #[test]

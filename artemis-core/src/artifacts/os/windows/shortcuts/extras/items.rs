@@ -1,6 +1,5 @@
-use crate::artifacts::os::windows::{
-    shellitems::items::ShellItem, shortcuts::shellitems::parse_lnk_shellitems,
-};
+use crate::artifacts::os::windows::shortcuts::shellitems::parse_lnk_shellitems;
+use common::windows::ShellItem;
 use nom::bytes::complete::{take, take_until};
 use std::mem::size_of;
 
@@ -30,10 +29,8 @@ fn parse_item(data: &[u8]) -> nom::IResult<&[u8], Vec<ShellItem>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::{
-        shellitems::items::ShellType,
-        shortcuts::extras::items::{has_item, parse_item},
-    };
+    use crate::artifacts::os::windows::shortcuts::extras::items::{has_item, parse_item};
+    use common::windows::ShellType;
 
     #[test]
     fn test_has_item() {

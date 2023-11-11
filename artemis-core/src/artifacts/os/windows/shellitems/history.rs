@@ -1,6 +1,6 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::History;
 use crate::utils::strings::extract_utf16_string;
+use common::windows::ShellItem;
+use common::windows::ShellType::History;
 use nom::bytes::complete::take;
 use std::mem::size_of;
 
@@ -26,7 +26,7 @@ pub(crate) fn parse_history(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_history;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_history() {

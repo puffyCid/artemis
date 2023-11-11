@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::shimdb::tag::{TagData, Tags},
+    artifacts::os::windows::shimdb::tag::{get_tag, Tags},
     utils::{
         nom_helper::{nom_unsigned_four_bytes, Endian},
         strings::extract_utf16_string,
@@ -29,7 +29,7 @@ pub(crate) fn parse_stringref<'a>(
     let (string_entry, _) = take(offset - adjust_offset)(stringtable_data)?;
 
     // We should now be at the start of the STRING tag associated with the stringref
-    let (string_entry, (tag, tag_value)) = TagData::get_tag(string_entry)?;
+    let (string_entry, (tag, tag_value)) = get_tag(string_entry)?;
     if tag != Tags::String {
         warn!("[shimdb] Stringtable contained a tag other than STRING. Cannot do string lookups");
         return Ok((

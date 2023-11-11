@@ -3,9 +3,11 @@ use super::sudo::linux::grab_sudo_logs;
 #[cfg(target_os = "macos")]
 use super::sudo::macos::grab_sudo_logs;
 use super::{
-    cron::crontab,
+    cron::crontab::parse_cron,
     error::UnixArtifactError,
-    shell_history::{bash::BashHistory, python::PythonHistory, zsh::ZshHistory},
+    shell_history::{
+        bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
+    },
 };
 use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
@@ -19,7 +21,7 @@ use serde_json::Value;
 /// Get zsh history depending on target OS
 pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
-    let zsh_results = ZshHistory::get_user_zsh_history();
+    let zsh_results = get_user_zsh_history();
     let history_data = match zsh_results {
         Ok(results) => results,
         Err(err) => {
@@ -45,7 +47,7 @@ pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), Unix
 pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
-    let bash_results = BashHistory::get_user_bash_history();
+    let bash_results = get_user_bash_history();
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
@@ -71,7 +73,7 @@ pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), Uni
 pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
-    let bash_results = PythonHistory::get_user_python_history();
+    let bash_results = get_user_python_history();
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
@@ -97,7 +99,7 @@ pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), U
 pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
-    let cron_results = crontab::Cron::parse_cron();
+    let cron_results = parse_cron();
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {

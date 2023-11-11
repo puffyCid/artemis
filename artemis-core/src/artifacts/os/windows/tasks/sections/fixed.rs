@@ -2,6 +2,7 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
     uuid::format_guid_le_bytes,
 };
+use common::windows::{Flags, Priority, Status};
 use nom::bytes::complete::take;
 use serde::Serialize;
 use std::mem::size_of;
@@ -23,50 +24,6 @@ pub(crate) struct Fixed {
     pub(crate) status: Status,
     pub(crate) flags: Vec<Flags>,
     pub(crate) system_time: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Priority {
-    Normal,
-    High,
-    Idle,
-    Realtime,
-    Unknown,
-}
-
-/// Additional status codes at [Microsoft](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-error-and-success-constants)
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Status {
-    Ready,
-    Running,
-    Disabled,
-    HasNotRun,
-    NoMoreRuns,
-    NotScheduled,
-    Terminated,
-    NoValidTriggers,
-    SomeTriggersFailed,
-    BatchLogonProblem,
-    Queued,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Flags {
-    Interactive,
-    DeleteWhenDone,
-    Disabled,
-    KillOnIdleEnd,
-    StartOnlyIfIdle,
-    DontStartIfOnBatteries,
-    KillIfGoingOnBatteries,
-    RunOnlyIfDocked,
-    Hidden,
-    RunIfConnectedToInternet,
-    RestartOnIdleResume,
-    SystemRequired,
-    RunOnlyIfLoggedOn,
-    ApplicationName,
 }
 
 /// Parse the Fixed section of the `Job` file

@@ -1,18 +1,6 @@
+use common::windows::Principals;
 use log::error;
 use quick_xml::{events::Event, Reader};
-use serde::Serialize;
-
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub(crate) struct Principals {
-    user_id: Option<String>,
-    logon_type: Option<String>,
-    group_id: Option<String>,
-    display_name: Option<String>,
-    run_level: Option<String>,
-    process_token_sid_type: Option<String>,
-    required_privileges: Option<Vec<String>>,
-    id_attribute: Option<String>,
-}
 
 /// Parse Principal information for Task
 pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {

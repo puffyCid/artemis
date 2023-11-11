@@ -1,30 +1,12 @@
-use super::journal::{Reason, Source};
 use crate::{
     artifacts::os::windows::usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
     filesystem::{
         files::file_extension,
-        ntfs::{attributes::AttributeFlags, raw_files::read_attribute, setup::setup_ntfs_parser},
+        ntfs::{raw_files::read_attribute, setup::setup_ntfs_parser},
     },
 };
+use common::windows::UsnJrnlEntry;
 use log::error;
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub(crate) struct UsnJrnlEntry {
-    mft_entry: u64,
-    mft_sequence: u16,
-    parent_mft_entry: u64,
-    parent_mft_sequence: u16,
-    update_sequence_number: u64,
-    update_time: i64,
-    update_reason: Vec<Reason>,
-    update_source_flags: Source,
-    security_descriptor_id: u32,
-    file_attributes: Vec<AttributeFlags>,
-    filename: String,
-    extension: String,
-    full_path: String,
-}
 
 /// Grab `UsnJrnl` entries by reading the $J ADS attribute and parsing its data runs
 pub(crate) fn parse_usnjrnl_data(drive: &char) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {

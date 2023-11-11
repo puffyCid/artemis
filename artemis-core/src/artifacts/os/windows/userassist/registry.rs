@@ -1,9 +1,10 @@
 use super::error::UserAssistError;
 use crate::{
-    artifacts::os::windows::registry::{helper::get_registry_keys_by_ref, parser::RegistryEntry},
+    artifacts::os::windows::registry::helper::get_registry_keys_by_ref,
     filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     utils::regex_options::create_regex,
 };
+use common::windows::RegistryEntry;
 use log::error;
 
 pub(crate) struct UserAssistReg {
@@ -12,7 +13,7 @@ pub(crate) struct UserAssistReg {
 }
 
 /// Grab the `UserAssist` data from the Registry based on provided drive letter
-pub(crate) fn get_userassist_data(drive: &char) -> Result<Vec<UserAssistReg>, UserAssistError> {
+pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, UserAssistError> {
     let user_reg_results = get_user_registry_files(drive);
     let user_hives = match user_reg_results {
         Ok(result) => result,
@@ -83,7 +84,7 @@ fn filter_userassist(reg_data: &[RegistryEntry]) -> Vec<RegistryEntry> {
 
 #[cfg(test)]
 mod tests {
-    use super::get_userassist_data;
+    use super::get_userassist_drive;
     use crate::{
         artifacts::os::windows::{
             registry::helper::get_registry_keys_by_ref, userassist::registry::filter_userassist,
@@ -93,8 +94,8 @@ mod tests {
     };
 
     #[test]
-    fn test_get_userassist_data() {
-        let results = get_userassist_data(&'C').unwrap();
+    fn test_get_userassist_drive() {
+        let results = get_userassist_drive(&'C').unwrap();
         assert!(results.len() > 0);
     }
 

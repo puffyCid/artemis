@@ -1,8 +1,8 @@
-use super::items::ShellItem;
-use super::items::ShellType;
 use crate::utils::nom_helper::nom_unsigned_four_bytes;
 use crate::utils::nom_helper::Endian;
 use crate::utils::uuid::format_guid_le_bytes;
+use common::windows::ShellItem;
+use common::windows::ShellType;
 use nom::bytes::complete::take;
 use std::mem::size_of;
 
@@ -67,9 +67,8 @@ pub(crate) fn parse_control_panel_entry(data: &[u8]) -> nom::IResult<&[u8], Shel
 #[cfg(test)]
 mod tests {
     use super::parse_control_panel;
-    use crate::artifacts::os::windows::shellitems::{
-        controlpanel::parse_control_panel_entry, items::ShellType,
-    };
+    use crate::artifacts::os::windows::shellitems::controlpanel::parse_control_panel_entry;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_control_panel() {

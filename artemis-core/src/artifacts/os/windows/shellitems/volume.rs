@@ -1,8 +1,9 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::Volume;
 use crate::utils::strings::extract_utf8_string;
+use common::windows::ShellItem;
+use common::windows::ShellType::Volume;
 use nom::bytes::complete::take;
 
+/// Grab the Volume Drive
 pub(crate) fn parse_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     // Drive shellitem just contains a drive letter
     let drive = extract_utf8_string(data);
@@ -23,7 +24,8 @@ pub(crate) fn parse_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::{items::ShellType, volume::parse_drive};
+    use crate::artifacts::os::windows::shellitems::volume::parse_drive;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_root() {

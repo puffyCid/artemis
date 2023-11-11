@@ -13,20 +13,14 @@
  *  Any XML reader
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::TaskError, job::TaskJob, xml::TaskXml};
+use super::{error::TaskError, job::parse_job, xml::parse_xml};
 use crate::{
     filesystem::{files::list_files, metadata::glob_paths},
     structs::artifacts::os::windows::TasksOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::{TaskData, TaskJob, TaskXml};
 use log::{error, warn};
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub(crate) struct TaskData {
-    tasks: Vec<TaskXml>,
-    jobs: Vec<TaskJob>,
-}
 
 /// Grab Schedule Tasks based on `TaskOptions`
 pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> {
@@ -39,12 +33,12 @@ pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> 
 
 /// Grab and parse single Task Job File at provided path
 pub(crate) fn grab_task_job(path: &str) -> Result<TaskJob, TaskError> {
-    TaskJob::parse_job(path)
+    parse_job(path)
 }
 
 /// Grab and parse single Task XML File at provided path
 pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
-    TaskXml::parse_xml(path)
+    parse_xml(path)
 }
 
 /// Grab the default Tasks files. Liekly will be C:
@@ -83,7 +77,7 @@ fn alt_drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
             continue;
         }
 
-        let xml_result = TaskXml::parse_xml(&path.full_path);
+        let xml_result = parse_xml(&path.full_path);
         match xml_result {
             Ok(result) => tasks_data.tasks.push(result),
             Err(err) => {
@@ -110,7 +104,7 @@ fn alt_drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
             continue;
         }
 
-        let job_result = TaskJob::parse_job(&job);
+        let job_result = parse_job(&job);
         match job_result {
             Ok(result) => tasks_data.jobs.push(result),
             Err(err) => {

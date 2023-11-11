@@ -1,4 +1,4 @@
-use crate::artifacts::os::systeminfo::info::SystemInfo;
+use crate::artifacts::os::systeminfo::info::get_info;
 use deno_core::{error::AnyError, op2};
 use sysinfo::{System, SystemExt};
 
@@ -6,7 +6,7 @@ use sysinfo::{System, SystemExt};
 #[string]
 /// Expose pulling systeminfo to `Deno`
 pub(crate) fn get_systeminfo() -> Result<String, AnyError> {
-    let info = SystemInfo::get_info();
+    let info = get_info();
     let results = serde_json::to_string(&info)?;
     Ok(results)
 }

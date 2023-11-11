@@ -1,5 +1,6 @@
 use super::error::ProcessError;
-use crate::artifacts::os::linux::executable::parser::{parse_elf_file, ElfInfo};
+use crate::artifacts::os::linux::executable::parser::parse_elf_file;
+use common::linux::ElfInfo;
 use log::error;
 
 /// Get elf metadata for processes

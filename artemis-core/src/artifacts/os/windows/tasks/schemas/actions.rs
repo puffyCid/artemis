@@ -1,48 +1,7 @@
+use common::windows::{Actions, ComHandlerType, ExecType, Message, SendEmail};
 use log::error;
 use quick_xml::{events::Event, Reader};
-use serde::Serialize;
 use std::collections::HashMap;
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct Actions {
-    pub(crate) exec: Vec<ExecType>,
-    pub(crate) com_handler: Vec<ComHandlerType>,
-    pub(crate) send_email: Vec<SendEmail>,
-    pub(crate) show_message: Vec<Message>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct ExecType {
-    command: String,
-    arguments: Option<String>,
-    working_directory: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct ComHandlerType {
-    class_id: String,
-    data: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct SendEmail {
-    server: Option<String>,
-    subject: Option<String>,
-    to: Option<String>,
-    cc: Option<String>,
-    bcc: Option<String>,
-    reply_to: Option<String>,
-    from: String,
-    header_fields: Option<HashMap<String, String>>,
-    body: Option<String>,
-    attachment: Option<Vec<String>>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct Message {
-    title: Option<String>,
-    body: String,
-}
 
 /// Parse all Task Actions
 pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {

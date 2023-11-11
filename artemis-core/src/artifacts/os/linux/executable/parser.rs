@@ -10,18 +10,11 @@
  *   `https://lief-project.github.io/`
  */
 use crate::filesystem::files::{file_reader, file_too_large};
+use common::linux::ElfInfo;
 use elf::endian::AnyEndian;
 use elf::ElfBytes;
 use log::error;
-use serde::Serialize;
 use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
-
-#[derive(Debug, Serialize)]
-pub(crate) struct ElfInfo {
-    symbols: Vec<String>,
-    sections: Vec<String>,
-    machine_type: String,
-}
 
 /// Parse an `ELF` file at provided path
 pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseError> {

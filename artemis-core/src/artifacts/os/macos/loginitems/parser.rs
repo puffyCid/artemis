@@ -8,8 +8,12 @@
  * References:
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
-use super::{error::LoginItemError, loginitem::LoginItemsData};
+use super::{
+    error::LoginItemError,
+    loginitem::{loginitem_apps_system, parse_loginitems},
+};
 use crate::filesystem::{directory::get_user_paths, metadata::glob_paths};
+use common::macos::LoginItemsData;
 use log::error;
 use std::path::Path;
 
@@ -31,7 +35,7 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
 
         if full_path.is_file() {
             let plist_path = full_path.display().to_string();
-            let results = LoginItemsData::parse_loginitems(&plist_path);
+            let results = parse_loginitems(&plist_path);
             match results {
                 Ok(mut data) => loginitems_data.append(&mut data),
                 Err(err) => return Err(err),
@@ -56,7 +60,7 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
             continue;
         }
 
-        let results = LoginItemsData::parse_loginitems(ventura_loginitems);
+        let results = parse_loginitems(ventura_loginitems);
         match results {
             Ok(mut data) => loginitems_data.append(&mut data),
             Err(err) => {
@@ -65,7 +69,7 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
         }
     }
 
-    let mut app_loginitems = LoginItemsData::loginitem_apps_system()?;
+    let mut app_loginitems = loginitem_apps_system()?;
     loginitems_data.append(&mut app_loginitems);
 
     Ok(loginitems_data)

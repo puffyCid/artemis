@@ -1,7 +1,6 @@
-use crate::artifacts::os::files::filelisting::FileInfo;
-use crate::artifacts::os::linux::error::LinuxArtifactError;
-use crate::artifacts::os::processes::process::Processes;
-use crate::artifacts::os::systeminfo::info::SystemInfo;
+use crate::artifacts::os::files::filelisting::get_filelist;
+use crate::artifacts::os::systeminfo::info::get_info;
+use crate::artifacts::os::{linux::error::LinuxArtifactError, processes::process::proc_list};
 use crate::filesystem::files::Hashes;
 use crate::output::formats::json::json_format;
 use crate::output::formats::jsonl::jsonl_format;
@@ -29,7 +28,7 @@ pub(crate) fn processes(
         sha256: artifact.sha256,
     };
 
-    let results = Processes::proc_list(&hashes, artifact.metadata);
+    let results = proc_list(&hashes, artifact.metadata);
     let proc_data = match results {
         Ok(data) => data,
         Err(err) => {
@@ -55,7 +54,7 @@ pub(crate) fn processes(
 pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let system_data = SystemInfo::get_info();
+    let system_data = get_info();
     let serde_data_result = serde_json::to_value(system_data);
     let serde_data = match serde_data_result {
         Ok(results) => results,
@@ -80,7 +79,7 @@ pub(crate) fn files(
         sha1: artifact.sha1.unwrap_or(false),
         sha256: artifact.sha256.unwrap_or(false),
     };
-    let artifact_result = FileInfo::get_filelist(
+    let artifact_result = get_filelist(
         &artifact.start_path,
         artifact.depth.unwrap_or(1).into(),
         artifact.metadata.unwrap_or(false),

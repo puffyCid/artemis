@@ -9,7 +9,11 @@
  * Other Parsers:
  *   `https://github.com/dmgbuild/mac_alias`
  */
-use super::{bookmark::BookmarkData, error::BookmarkError};
+use super::{
+    bookmark::{parse_bookmark_data, parse_bookmark_header},
+    error::BookmarkError,
+};
+use common::macos::BookmarkData;
 use log::error;
 
 /// Parse provided bookmark data
@@ -21,7 +25,7 @@ pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError>
     }
 
     // Read first 48 bytes of bookmark header
-    let header_results = BookmarkData::parse_bookmark_header(data);
+    let header_results = parse_bookmark_header(data);
     let (bookmark_data, header) = match header_results {
         Ok((bookmark_data, header)) => (bookmark_data, header),
         Err(err) => {
@@ -38,7 +42,7 @@ pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError>
         return Err(BookmarkError::BadHeader);
     }
 
-    let data_results = BookmarkData::parse_bookmark_data(bookmark_data);
+    let data_results = parse_bookmark_data(bookmark_data);
     match data_results {
         Ok((_, bookmark_results)) => Ok(bookmark_results),
         Err(err) => {

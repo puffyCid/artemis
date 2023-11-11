@@ -1,7 +1,8 @@
 use crate::{
-    artifacts::os::windows::shellitems::items::ShellItem,
+    artifacts::os::windows::shellitems::items::detect_shellitem,
     utils::nom_helper::{nom_unsigned_two_bytes, Endian},
 };
+use common::windows::ShellItem;
 use log::error;
 use nom::{bytes::complete::take, Needed};
 
@@ -22,7 +23,7 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
             return Err(nom::Err::Incomplete(Needed::Unknown));
         }
         let (remaining_input, shellitem_data) = take(item_size - adjust_size)(shell_input)?;
-        let item_result = ShellItem::detect_shellitem(shellitem_data);
+        let item_result = detect_shellitem(shellitem_data);
         let shellitem = match item_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -41,7 +42,7 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
 #[cfg(test)]
 mod tests {
     use super::parse_lnk_shellitems;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_lnk_shellitem() {

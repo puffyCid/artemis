@@ -10,7 +10,6 @@
  * `https://ericzimmerman.github.io/#!index.md`
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::recycle::RecycleBin;
 use crate::{
     artifacts::os::windows::recyclebin::error::RecycleBinError,
     filesystem::{
@@ -20,8 +19,11 @@ use crate::{
     structs::artifacts::os::windows::RecycleBinOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::RecycleBin;
 use log::error;
 use std::path::Path;
+
+use super::recycle::parse_recycle_bin;
 
 /// Grab data in the Windows `Recycle Bin` based on options
 pub(crate) fn grab_recycle_bin(
@@ -74,7 +76,7 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
             return Err(RecycleBinError::ReadFile);
         }
     };
-    let bin_result = RecycleBin::parse_recycle_bin(&data);
+    let bin_result = parse_recycle_bin(&data);
     let mut bin = match bin_result {
         Ok((_, result)) => result,
         Err(_err) => {

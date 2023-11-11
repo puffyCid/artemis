@@ -20,17 +20,17 @@ axum = { version = "0.6.20", default-features = false, features = [
     "ws",
     "multipart",
 ] }
-tokio = { version = "1.33.0", features = ["full"] }
-log = "0.4.20"
-serde = { version = "1.0.190", features = ["derive"] }
-serde_json = "1.0.108"
+tokio = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 uuid = { version = "1.5.0", features = ["v4"] }
-toml = "0.8.8"
+toml = { workspace = true }
 futures = "0.3.29"
-flate2 = "1.0.28"
+flate2 = { workspace = true }
 rust-embed = "8.0.0"
 common = {path = "../common"}
-glob = "0.3.1"
+glob = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }

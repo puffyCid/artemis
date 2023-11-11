@@ -1,7 +1,4 @@
-use crate::{
-    artifacts::applications::firefox::{downloads::FirefoxDownloads, history::FirefoxHistory},
-    runtime::error::RuntimeError,
-};
+use crate::{artifacts::applications::firefox, runtime::error::RuntimeError};
 use deno_core::{error::AnyError, op2};
 use log::error;
 
@@ -9,7 +6,7 @@ use log::error;
 #[string]
 /// Get `Firefox` history for all users
 pub(crate) fn get_firefox_users_history() -> Result<String, AnyError> {
-    let history_results = FirefoxHistory::get_history();
+    let history_results = firefox::history::get_firefox_history();
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -25,7 +22,7 @@ pub(crate) fn get_firefox_users_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Firefox` history from provided path
 pub(crate) fn get_firefox_history(#[string] path: String) -> Result<String, AnyError> {
-    let history_results = FirefoxHistory::history_query(&path);
+    let history_results = firefox::history::history_query(&path);
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -41,7 +38,7 @@ pub(crate) fn get_firefox_history(#[string] path: String) -> Result<String, AnyE
 #[string]
 /// Get `Firefox` downloads for all users
 pub(crate) fn get_firefox_users_downloads() -> Result<String, AnyError> {
-    let downloads_results = FirefoxDownloads::get_downloads();
+    let downloads_results = firefox::downloads::get_firefox_downloads();
     let downloads = match downloads_results {
         Ok(results) => results,
         Err(err) => {
@@ -57,7 +54,7 @@ pub(crate) fn get_firefox_users_downloads() -> Result<String, AnyError> {
 #[string]
 /// Get `Firefox` downloads from provided path
 pub(crate) fn get_firefox_downloads(#[string] path: String) -> Result<String, AnyError> {
-    let downloads_results = FirefoxDownloads::downloads_query(&path);
+    let downloads_results = firefox::downloads::downloads_query(&path);
     let downloads = match downloads_results {
         Ok(results) => results,
         Err(err) => {

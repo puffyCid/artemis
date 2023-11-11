@@ -3,157 +3,154 @@ use super::{
     filemetrics::FileMetricsVersion23,
     filenames::get_accessed_files,
     header::{CompressedHeader, Header},
-    parser::Prefetch,
+    versions::version::VersionInfo,
     volume::Volume,
 };
-use crate::{
-    artifacts::os::windows::prefetch::versions::version::VersionInfo,
-    utils::compression::decompress_lzxpress_huffman,
-};
+use crate::utils::compression::decompress_lzxpress_huffman;
+use common::windows::Prefetch;
 use log::error;
 
-impl Prefetch {
-    /// Parse Prefetch files and return parsed data or error
-    pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
-        let is_compressed_results = CompressedHeader::is_compressed(data);
-        let is_compressed = match is_compressed_results {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[prefetch] Failed to check for Prefetch compression signature: {err:?}");
-                return Err(PrefetchError::Header);
-            }
-        };
-
-        let (pf_data, header) = if is_compressed {
-            // Parse header to get uncompressed size
-            let pf_data_results = CompressedHeader::parse_compressed_header(data);
-            match pf_data_results {
-                Ok((pf_data, result)) => (pf_data, result),
-                Err(err) => {
-                    error!("[prefetch] Failed to get compressed header data: {err:?}");
-                    return Err(PrefetchError::Header);
-                }
-            }
-        } else {
-            // Data is not compressed
-            return Prefetch::get_prefetch_data(data, path);
-        };
-        let huffman = 4;
-
-        let pf_data_result =
-            decompress_lzxpress_huffman(&mut pf_data.to_vec(), header.uncompressed_size, huffman);
-        let pf_data = match pf_data_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[prefetch] Could not decompress data: {err:?}");
-                return Err(PrefetchError::Decompress);
-            }
-        };
-
-        Prefetch::get_prefetch_data(&pf_data, path)
-    }
-
-    /// Get each part of the prefetch file format
-    fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
-        let results = Header::parse_header(data);
-
-        let (pf_data, header) = match results {
-            Ok((data, result)) => (data, result),
-            Err(err) => {
-                error!("[prefetch] Failed to parse header: {err:?}");
-                return Err(PrefetchError::Header);
-            }
-        };
-
-        let results = VersionInfo::get_version_info(pf_data, header.version);
-        let version = match results {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[prefetch] Failed to parse prefetch version data: {err:?}");
-                return Err(PrefetchError::Version);
-            }
-        };
-
-        // Version 23 supports Win7+
-        let results = FileMetricsVersion23::parse_file_metrics(
-            data,
-            version.file_array_offset,
-            &version.number_files,
-        );
-        let metrics = match results {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[prefetch] Failed to parse file metrics: {err:?}");
-                return Err(PrefetchError::FileMetrics);
-            }
-        };
-
-        let results = get_accessed_files(data, &metrics, version.filename_offset);
-        let filenames = match results {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[prefetch] Failed to get filenames: {err:?}");
-                return Err(PrefetchError::Filenames);
-            }
-        };
-
-        let results = Volume::parse_volume(
-            data,
-            version.volume_info_offset,
-            &version.number_volumes,
-            header.version,
-        );
-        let volumes = match results {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[prefetch] Failed to get volume info: {err:?}");
-                return Err(PrefetchError::VolumeInfo);
-            }
-        };
-
-        let mut prefetch = Prefetch {
-            path: path.to_string(),
-            filename: header.filename,
-            hash: header.pf_hash,
-            last_run_time: version.run_times.first().unwrap_or(&0).to_owned(),
-            all_run_times: version.run_times,
-            run_count: version.run_count,
-            size: header.size,
-            volume_serial: Vec::new(),
-            volume_creation: Vec::new(),
-            volume_path: Vec::new(),
-            accessed_files_count: version.number_files,
-            accessed_directories_count: 0,
-            accessed_files: filenames,
-            accessed_directories: Vec::new(),
-        };
-
-        // Loop through multiple volumes if needed
-        for mut volume in volumes {
-            prefetch
-                .volume_serial
-                .push(format!("{:X?}", volume.volume_serial));
-            prefetch.volume_creation.push(volume.volume_creation);
-            prefetch.volume_path.push(volume.volume_path);
-
-            prefetch.accessed_directories_count += volume.number_directory_strings;
-            prefetch
-                .accessed_directories
-                .append(&mut volume.directories);
+/// Parse Prefetch files and return parsed data or error
+pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
+    let is_compressed_results = CompressedHeader::is_compressed(data);
+    let is_compressed = match is_compressed_results {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[prefetch] Failed to check for Prefetch compression signature: {err:?}");
+            return Err(PrefetchError::Header);
         }
+    };
 
-        Ok(prefetch)
+    let (pf_data, header) = if is_compressed {
+        // Parse header to get uncompressed size
+        let pf_data_results = CompressedHeader::parse_compressed_header(data);
+        match pf_data_results {
+            Ok((pf_data, result)) => (pf_data, result),
+            Err(err) => {
+                error!("[prefetch] Failed to get compressed header data: {err:?}");
+                return Err(PrefetchError::Header);
+            }
+        }
+    } else {
+        // Data is not compressed
+        return get_prefetch_data(data, path);
+    };
+    let huffman = 4;
+
+    let pf_data_result =
+        decompress_lzxpress_huffman(&mut pf_data.to_vec(), header.uncompressed_size, huffman);
+    let pf_data = match pf_data_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[prefetch] Could not decompress data: {err:?}");
+            return Err(PrefetchError::Decompress);
+        }
+    };
+
+    get_prefetch_data(&pf_data, path)
+}
+
+/// Get each part of the prefetch file format
+fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
+    let results = Header::parse_header(data);
+
+    let (pf_data, header) = match results {
+        Ok((data, result)) => (data, result),
+        Err(err) => {
+            error!("[prefetch] Failed to parse header: {err:?}");
+            return Err(PrefetchError::Header);
+        }
+    };
+
+    let results = VersionInfo::get_version_info(pf_data, header.version);
+    let version = match results {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[prefetch] Failed to parse prefetch version data: {err:?}");
+            return Err(PrefetchError::Version);
+        }
+    };
+
+    // Version 23 supports Win7+
+    let results = FileMetricsVersion23::parse_file_metrics(
+        data,
+        version.file_array_offset,
+        &version.number_files,
+    );
+    let metrics = match results {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[prefetch] Failed to parse file metrics: {err:?}");
+            return Err(PrefetchError::FileMetrics);
+        }
+    };
+
+    let results = get_accessed_files(data, &metrics, version.filename_offset);
+    let filenames = match results {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[prefetch] Failed to get filenames: {err:?}");
+            return Err(PrefetchError::Filenames);
+        }
+    };
+
+    let results = Volume::parse_volume(
+        data,
+        version.volume_info_offset,
+        &version.number_volumes,
+        header.version,
+    );
+    let volumes = match results {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[prefetch] Failed to get volume info: {err:?}");
+            return Err(PrefetchError::VolumeInfo);
+        }
+    };
+
+    let mut prefetch = Prefetch {
+        path: path.to_string(),
+        filename: header.filename,
+        hash: header.pf_hash,
+        last_run_time: version.run_times.first().unwrap_or(&0).to_owned(),
+        all_run_times: version.run_times,
+        run_count: version.run_count,
+        size: header.size,
+        volume_serial: Vec::new(),
+        volume_creation: Vec::new(),
+        volume_path: Vec::new(),
+        accessed_files_count: version.number_files,
+        accessed_directories_count: 0,
+        accessed_files: filenames,
+        accessed_directories: Vec::new(),
+    };
+
+    // Loop through multiple volumes if needed
+    for mut volume in volumes {
+        prefetch
+            .volume_serial
+            .push(format!("{:X?}", volume.volume_serial));
+        prefetch.volume_creation.push(volume.volume_creation);
+        prefetch.volume_path.push(volume.volume_path);
+
+        prefetch.accessed_directories_count += volume.number_directory_strings;
+        prefetch
+            .accessed_directories
+            .append(&mut volume.directories);
     }
+
+    Ok(prefetch)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::prefetch::header::CompressedHeader,
+        artifacts::os::windows::prefetch::{
+            header::CompressedHeader,
+            pf::{get_prefetch_data, parse_prefetch},
+        },
         utils::compression::decompress_lzxpress_huffman,
     };
-
-    use super::Prefetch;
     use std::{fs, path::PathBuf};
 
     #[test]
@@ -162,7 +159,7 @@ mod tests {
         test_location.push("tests/test_data/windows/prefetch/win10/_IU14D2N.TMP-136252D4.pf");
 
         let buffer = fs::read(&test_location).unwrap();
-        let results = Prefetch::parse_prefetch(&buffer, test_location.to_str().unwrap()).unwrap();
+        let results = parse_prefetch(&buffer, test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(results.path.contains("_IU14D2N.TMP-136252D4.pf"), true);
         assert_eq!(results.filename, "_IU14D2N.TMP");
@@ -218,8 +215,7 @@ mod tests {
         test_location.push("tests/test_data/windows/prefetch/win81/CMD.EXE-AC113AA8.pf");
 
         let buffer = fs::read(&test_location).unwrap();
-        let results =
-            Prefetch::get_prefetch_data(&buffer, test_location.to_str().unwrap()).unwrap();
+        let results = get_prefetch_data(&buffer, test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");

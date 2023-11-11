@@ -33,35 +33,10 @@ use crate::{
     structs::{artifacts::os::windows::RegistryOptions, toml::Output},
     utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
+use common::windows::{RegistryData, RegistryEntry};
 use log::error;
 use regex::Regex;
-use serde::Serialize;
 use std::collections::HashMap;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct RegistryData {
-    pub(crate) registry_path: String,
-    pub(crate) registry_file: String,
-    pub(crate) registry_entries: Vec<RegistryEntry>,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub(crate) struct RegistryEntry {
-    pub(crate) path: String, // ROOT\...\CurrentVersion\Run
-    pub(crate) key: String,  // ROOT\...\CurrentVersion
-    pub(crate) name: String, // Run key
-    pub(crate) values: Vec<KeyValue>,
-    pub(crate) last_modified: i64,
-    pub(crate) depth: usize,
-    pub(crate) security_offset: i32,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub(crate) struct KeyValue {
-    pub(crate) value: String,     // Run key => Value: Vmware
-    pub(crate) data: String,      // C:\vmware.exe
-    pub(crate) data_type: String, // REG_WORD, REG_DWORD
-}
 
 /// Parameters used for determining what `Registry` data to return
 pub(crate) struct Params {
@@ -73,110 +48,185 @@ pub(crate) struct Params {
     pub(crate) filter: bool,
 }
 
-impl RegistryData {
-    /// Parse Windows `Registry` files based on provided options
-    pub(crate) fn parse_registry(
-        options: &RegistryOptions,
-        output: &mut Output,
-        filter: &bool,
-    ) -> Result<(), RegistryError> {
-        let drive = if let Some(alt_drive) = options.alt_drive {
-            alt_drive
-        } else {
-            let drive_result = get_systemdrive();
-            match drive_result {
-                Ok(result) => result,
-                Err(_err) => {
-                    error!("[registry] Could not get systemdrive");
-                    return Err(RegistryError::SystemDrive);
-                }
+/// Parse Windows `Registry` files based on provided options
+pub(crate) fn parse_registry(
+    options: &RegistryOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), RegistryError> {
+    let drive = if let Some(alt_drive) = options.alt_drive {
+        alt_drive
+    } else {
+        let drive_result = get_systemdrive();
+        match drive_result {
+            Ok(result) => result,
+            Err(_err) => {
+                error!("[registry] Could not get systemdrive");
+                return Err(RegistryError::SystemDrive);
             }
-        };
-
-        let path_regex =
-            RegistryData::user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
-        let mut params = Params {
-            start_path: String::from(""),
-            path_regex,
-            registry_list: Vec::new(),
-            key_tracker: Vec::new(),
-            offset_tracker: HashMap::new(),
-            filter: *filter,
-        };
-
-        if options.user_hives {
-            RegistryData::parse_user_hives(&drive, output, &mut params)?;
         }
+    };
 
-        if options.system_hives {
-            RegistryData::parse_default_system_hives(&drive, output, &mut params)?;
-        }
+    let path_regex = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
+    let mut params = Params {
+        start_path: String::from(""),
+        path_regex,
+        registry_list: Vec::new(),
+        key_tracker: Vec::new(),
+        offset_tracker: HashMap::new(),
+        filter: *filter,
+    };
 
-        Ok(())
+    if options.user_hives {
+        parse_user_hives(&drive, output, &mut params)?;
     }
 
-    /// Create Regex based on provided input
-    fn user_regex(input: &str) -> Result<Regex, RegistryError> {
-        let reg_result = create_regex(&input.to_lowercase());
-        match reg_result {
-            Ok(result) => Ok(result),
+    if options.system_hives {
+        parse_default_system_hives(&drive, output, &mut params)?;
+    }
+
+    Ok(())
+}
+
+/// Create Regex based on provided input
+fn user_regex(input: &str) -> Result<Regex, RegistryError> {
+    let reg_result = create_regex(&input.to_lowercase());
+    match reg_result {
+        Ok(result) => Ok(result),
+        Err(err) => {
+            error!("[registry] Bad regex: {input}, error: {err:?}");
+            Err(RegistryError::Regex)
+        }
+    }
+}
+
+/// Parse useful system hive files. Other hive files include: COMPONENTS, DEFAULT, DRIVERS, BBI, ELAM, userdiff, BCD-Template
+fn parse_default_system_hives(
+    drive: &char,
+    output: &mut Output,
+    params: &mut Params,
+) -> Result<(), RegistryError> {
+    let paths = vec![
+        format!("{drive}:\\Windows\\System32\\config\\SOFTWARE"),
+        format!("{drive}:\\Windows\\System32\\config\\SYSTEM"),
+        format!("{drive}:\\Windows\\System32\\config\\SAM"),
+        format!("{drive}:\\Windows\\System32\\config\\SECURITY"),
+    ];
+
+    for path in paths {
+        let filename = get_filename(&path);
+        let result = parse_registry_file(&path, &filename, output, params);
+        match result {
+            Ok(_) => {}
             Err(err) => {
-                error!("[registry] Bad regex: {input}, error: {err:?}");
-                Err(RegistryError::Regex)
+                error!("[registry] Could not parse System Registry file: {path}, error: {err:?}");
             }
         }
     }
+    Ok(())
+}
 
-    /// Parse useful system hive files. Other hive files include: COMPONENTS, DEFAULT, DRIVERS, BBI, ELAM, userdiff, BCD-Template
-    fn parse_default_system_hives(
-        drive: &char,
-        output: &mut Output,
-        params: &mut Params,
-    ) -> Result<(), RegistryError> {
-        let paths = vec![
-            format!("{drive}:\\Windows\\System32\\config\\SOFTWARE"),
-            format!("{drive}:\\Windows\\System32\\config\\SYSTEM"),
-            format!("{drive}:\\Windows\\System32\\config\\SAM"),
-            format!("{drive}:\\Windows\\System32\\config\\SECURITY"),
-        ];
+/// Parse a provided `Registry` file and output the results
+fn parse_registry_file(
+    path: &str,
+    filename: &str,
+    output: &mut Output,
+    params: &mut Params,
+) -> Result<(), RegistryError> {
+    let start_time = time_now();
 
-        for path in paths {
-            let filename = get_filename(&path);
-            let result = RegistryData::parse_registry_file(&path, &filename, output, params);
-            match result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!(
-                        "[registry] Could not parse System Registry file: {path}, error: {err:?}"
-                    );
-                }
-            }
+    let buffer = read_registry(path)?;
+    let reg_results = parse_raw_registry(&buffer, params);
+    let registry_entries = match reg_results {
+        Ok((_, results)) => results,
+        Err(_err) => {
+            error!("[registry] Failed to parse Registry file: {path}");
+            return Err(RegistryError::Parser);
         }
-        Ok(())
+    };
+
+    let reg_data = RegistryData {
+        registry_path: path.to_string(),
+        registry_file: filename.to_string(),
+        registry_entries,
+    };
+
+    let serde_data_result = serde_json::to_value(&reg_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!(
+                "[registry] Failed to serialize Registry file {}: {err:?}",
+                reg_data.registry_path
+            );
+            return Err(RegistryError::Serialize);
+        }
+    };
+
+    let result = output_data(&serde_data, "registry", output, &start_time, &params.filter);
+    match result {
+        Ok(_) => Ok(()),
+        Err(err) => {
+            error!("[registry] Failed to output data for {path}, error: {err:?}");
+            Err(RegistryError::Output)
+        }
     }
+}
 
-    /// Parse a provided `Registry` file and output the results
-    fn parse_registry_file(
-        path: &str,
-        filename: &str,
-        output: &mut Output,
-        params: &mut Params,
-    ) -> Result<(), RegistryError> {
-        let start_time = time_now();
+/// Parse the user `Registry` hives (NTUSER.DAT and UsrClass.dat)
+fn parse_user_hives(
+    drive: &char,
+    output: &mut Output,
+    params: &mut Params,
+) -> Result<(), RegistryError> {
+    let user_hives_results = get_user_registry_files(drive);
+    let user_hives = match user_hives_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[registry] Failed to get user registry files: {err:?}");
+            return Err(RegistryError::GetUserHives);
+        }
+    };
+    let ntfs_parser_result = setup_ntfs_parser(drive);
+    let mut ntfs_parser = match ntfs_parser_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[registry] Could not setup NTFS parser: {err:?}");
+            return Err(RegistryError::NtfsSetup);
+        }
+    };
 
-        let buffer = read_registry(path)?;
+    let start_time = time_now();
+
+    for path in user_hives {
+        let buffer_result =
+            raw_read_by_file_ref(&path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+        let buffer = match buffer_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!(
+                    "[registry] Failed to read Registry file: {}, error: {err:?}",
+                    path.full_path
+                );
+                continue;
+            }
+        };
+
         let reg_results = parse_raw_registry(&buffer, params);
         let registry_entries = match reg_results {
             Ok((_, results)) => results,
             Err(_err) => {
-                error!("[registry] Failed to parse Registry file: {path}");
-                return Err(RegistryError::Parser);
+                error!(
+                    "[registry] Failed to parse Registry file: {}",
+                    path.full_path
+                );
+                continue;
             }
         };
 
         let reg_data = RegistryData {
-            registry_path: path.to_string(),
-            registry_file: filename.to_string(),
+            registry_path: path.full_path,
+            registry_file: path.filename,
             registry_entries,
         };
 
@@ -185,111 +235,36 @@ impl RegistryData {
             Ok(results) => results,
             Err(err) => {
                 error!(
-                    "[registry] Failed to serialize Registry file {}: {err:?}",
+                    "[registry] Failed to serialize User Registry file {}: {err:?}",
                     reg_data.registry_path
                 );
-                return Err(RegistryError::Serialize);
+                continue;
             }
         };
 
         let result = output_data(&serde_data, "registry", output, &start_time, &params.filter);
         match result {
-            Ok(_) => Ok(()),
+            Ok(_) => {}
             Err(err) => {
-                error!("[registry] Failed to output data for {path}, error: {err:?}");
-                Err(RegistryError::Output)
+                error!(
+                    "[registry] Failed to output data for {}, error: {err:?}",
+                    reg_data.registry_path
+                );
             }
         }
     }
-
-    /// Parse the user `Registry` hives (NTUSER.DAT and UsrClass.dat)
-    fn parse_user_hives(
-        drive: &char,
-        output: &mut Output,
-        params: &mut Params,
-    ) -> Result<(), RegistryError> {
-        let user_hives_results = get_user_registry_files(drive);
-        let user_hives = match user_hives_results {
-            Ok(results) => results,
-            Err(err) => {
-                error!("[registry] Failed to get user registry files: {err:?}");
-                return Err(RegistryError::GetUserHives);
-            }
-        };
-        let ntfs_parser_result = setup_ntfs_parser(drive);
-        let mut ntfs_parser = match ntfs_parser_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[registry] Could not setup NTFS parser: {err:?}");
-                return Err(RegistryError::NtfsSetup);
-            }
-        };
-
-        let start_time = time_now();
-
-        for path in user_hives {
-            let buffer_result =
-                raw_read_by_file_ref(&path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
-            let buffer = match buffer_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!(
-                        "[registry] Failed to read Registry file: {}, error: {err:?}",
-                        path.full_path
-                    );
-                    continue;
-                }
-            };
-
-            let reg_results = parse_raw_registry(&buffer, params);
-            let registry_entries = match reg_results {
-                Ok((_, results)) => results,
-                Err(_err) => {
-                    error!(
-                        "[registry] Failed to parse Registry file: {}",
-                        path.full_path
-                    );
-                    continue;
-                }
-            };
-
-            let reg_data = RegistryData {
-                registry_path: path.full_path,
-                registry_file: path.filename,
-                registry_entries,
-            };
-
-            let serde_data_result = serde_json::to_value(&reg_data);
-            let serde_data = match serde_data_result {
-                Ok(results) => results,
-                Err(err) => {
-                    error!(
-                        "[registry] Failed to serialize User Registry file {}: {err:?}",
-                        reg_data.registry_path
-                    );
-                    continue;
-                }
-            };
-
-            let result = output_data(&serde_data, "registry", output, &start_time, &params.filter);
-            match result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!(
-                        "[registry] Failed to output data for {}, error: {err:?}",
-                        reg_data.registry_path
-                    );
-                }
-            }
-        }
-        Ok(())
-    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Params, RegistryData};
-    use crate::{structs::artifacts::os::windows::RegistryOptions, structs::toml::Output};
+    use super::{
+        parse_default_system_hives, parse_registry, parse_registry_file, parse_user_hives, Params,
+    };
+    use crate::{
+        artifacts::os::windows::registry::parser::user_regex,
+        structs::artifacts::os::windows::RegistryOptions, structs::toml::Output,
+    };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
 
@@ -320,7 +295,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
         };
-        RegistryData::parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives(&'C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -334,7 +309,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
         };
-        RegistryData::parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -348,7 +323,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
         };
-        RegistryData::parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives(&'C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -362,7 +337,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
         };
-        RegistryData::parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -375,7 +350,7 @@ mod tests {
             alt_drive: None,
             path_regex: None,
         };
-        RegistryData::parse_registry(&reg_options, &mut output, &false).unwrap();
+        parse_registry(&reg_options, &mut output, &false).unwrap();
     }
 
     #[test]
@@ -391,7 +366,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
         };
-        RegistryData::parse_registry_file(
+        parse_registry_file(
             &test_location.display().to_string(),
             "NTUSER.DAT",
             &mut output,
@@ -403,7 +378,7 @@ mod tests {
     #[test]
     fn test_user_regex() {
         let reg = String::from(r".*");
-        let regex = RegistryData::user_regex(&reg).unwrap();
+        let regex = user_regex(&reg).unwrap();
         assert_eq!(regex.as_str(), ".*");
     }
 }

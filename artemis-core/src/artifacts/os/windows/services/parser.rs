@@ -11,10 +11,11 @@
  * Any tool that can read the Registry
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::ServicesError, service::ServicesData};
+use super::{error::ServicesError, service::parse_services};
 use crate::{
     structs::artifacts::os::windows::ServicesOptions, utils::environment::get_systemdrive,
 };
+use common::windows::ServicesData;
 use log::error;
 
 /// Parse `Services` based on `ServicesOptions`
@@ -27,7 +28,7 @@ pub(crate) fn grab_services(options: &ServicesOptions) -> Result<Vec<ServicesDat
 
 /// Grab and parse SYSTEM file at custom path
 pub(crate) fn grab_service_file(path: &str) -> Result<Vec<ServicesData>, ServicesError> {
-    ServicesData::parse_services(path)
+    parse_services(path)
 }
 
 /// Get `Services` entries using default system drive
@@ -46,7 +47,7 @@ fn default_services() -> Result<Vec<ServicesData>, ServicesError> {
 /// Get `Services` entries on a different system drive
 fn alt_drive_services(drive: &char) -> Result<Vec<ServicesData>, ServicesError> {
     let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
-    ServicesData::parse_services(&path)
+    parse_services(&path)
 }
 
 #[cfg(test)]

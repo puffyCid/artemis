@@ -14,7 +14,7 @@
  * `https://github.com/ANSSI-FR/bits_parser` (only pre-win10 BITS files)
  */
 use super::{
-    background::{legacy_bits, parse_ese_bits, parse_legacy_bits, WindowsBits},
+    background::{legacy_bits, parse_ese_bits, parse_legacy_bits},
     error::BitsError,
 };
 use crate::{
@@ -22,6 +22,7 @@ use crate::{
     structs::artifacts::os::windows::BitsOptions,
     utils::environment::get_systemdrive,
 };
+use common::windows::WindowsBits;
 use log::error;
 
 /**

@@ -1,19 +1,17 @@
 use super::{
     beef::{beef0000, beef0019},
-    items::ShellItem,
     property::parse_property,
 };
 use crate::{
-    artifacts::os::windows::shellitems::{
-        beef::{beef0004, beef0013, beef0026},
-        items::ShellType::Variable,
-    },
+    artifacts::os::windows::shellitems::beef::{beef0004, beef0013, beef0026},
     utils::{
         nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
         strings::{extract_utf16_string, extract_utf8_string},
         uuid::format_guid_le_bytes,
     },
 };
+use common::windows::ShellItem;
+use common::windows::ShellType::Variable;
 use log::info;
 use nom::bytes::complete::{take, take_until, take_while};
 use serde_json::Value;
@@ -300,13 +298,11 @@ fn check_guid(data: &[u8]) -> nom::IResult<&[u8], (bool, String)> {
 #[cfg(test)]
 mod tests {
     use super::{get_beef_sigs, parse_variable, scan_bytes};
-    use crate::artifacts::os::windows::shellitems::{
-        items::ShellType,
-        variable::{
-            check_beef, check_game, check_guid, check_mtp_folder, check_mtp_storage,
-            check_property, check_zip, get_property, parse_ftp_uri, parse_zip,
-        },
+    use crate::artifacts::os::windows::shellitems::variable::{
+        check_beef, check_game, check_guid, check_mtp_folder, check_mtp_storage, check_property,
+        check_zip, get_property, parse_ftp_uri, parse_zip,
     };
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_variable() {

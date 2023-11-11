@@ -1,10 +1,10 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::GameFolder;
 use crate::utils::nom_helper::nom_unsigned_eight_bytes;
 use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
     uuid::format_guid_le_bytes,
 };
+use common::windows::ShellItem;
+use common::windows::ShellType::GameFolder;
 use nom::bytes::complete::take;
 use std::mem::size_of;
 

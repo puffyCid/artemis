@@ -2,11 +2,11 @@ use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, Endian},
     strings::{extract_utf16_string, extract_utf8_string},
 };
+use common::windows::NetworkProviderType;
 use nom::{
     bytes::complete::{take, take_while},
     Needed,
 };
-use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) struct LnkNetwork {
@@ -28,53 +28,6 @@ pub(crate) enum NetworkFlags {
     ValidDevice,
     ValidNetType,
     UnknownFlag,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum NetworkProviderType {
-    WnncNetAvid,
-    WnncNetDocuspace,
-    WnncNetMangsoft,
-    WnncNetSernet,
-    WnncNetRiverFront1,
-    WnncNetRiverFront2,
-    WnncNetDecorb,
-    WnncNetProtstor,
-    WnncNetFjRedir,
-    WnncNetDistinct,
-    WnncNetTwins,
-    WnncNetRdr2Sample,
-    WnncNetCsc,
-    WnncNet3In1,
-    WnncNetExtendNet,
-    WnncNetStac,
-    WnncNetFoxbat,
-    WnncNetYahoo,
-    WnncNetExifs,
-    WnncNetDav,
-    WnncNetKnoware,
-    WnncNetObjectDire,
-    WnncNetMasfax,
-    WnncNetHobNfs,
-    WnncNetShiva,
-    WnncNetIbmal,
-    WnncNetLock,
-    WnncNetTermsrv,
-    WnncNetSrt,
-    WnncNetQuincy,
-    WnncNetOpenafs,
-    WnncNetAvid1,
-    WnncNetDfs,
-    WnncNetKwnp,
-    WnncNetZenworks,
-    WnncNetDriveOnWeb,
-    WnncNetVmware,
-    WnncNetRsfx,
-    WnncNetMfiles,
-    WnncNetMsNfs,
-    WnncNetGoogle,
-    Unknown,
-    None,
 }
 
 impl LnkNetwork {

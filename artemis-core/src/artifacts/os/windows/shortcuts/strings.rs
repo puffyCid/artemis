@@ -1,8 +1,8 @@
-use super::header::DataFlags;
 use crate::utils::{
     nom_helper::{nom_unsigned_two_bytes, Endian},
     strings::{extract_utf16_string, extract_utf8_string},
 };
+use common::windows::DataFlags;
 use nom::bytes::complete::take;
 
 /// Extract strings from `shortcut` data
@@ -30,7 +30,7 @@ pub(crate) fn extract_string<'a>(
 #[cfg(test)]
 mod tests {
     use super::extract_string;
-    use crate::artifacts::os::windows::shortcuts::header::DataFlags;
+    use common::windows::DataFlags;
 
     #[test]
     fn test_extract_string() {

@@ -14,8 +14,9 @@
  * `https://github.com/EricZimmerman/LECmd`  
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::LnkError, header::LnkHeader, shortcut::ShortcutInfo};
+use super::{error::LnkError, header::LnkHeader, shortcut::get_shortcut_data};
 use crate::filesystem::files::{list_files, read_file};
+use common::windows::ShortcutInfo;
 use log::error;
 
 /// `Shortcut` files can be location anywhere. Provide a directory and parse any `lnk` (`Shortcut`) files
@@ -72,7 +73,7 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
     if !is_header {
         return Err(LnkError::NotLnkData);
     }
-    let shortcut_result = ShortcutInfo::get_shortcut_data(data);
+    let shortcut_result = get_shortcut_data(data);
     let shortcut_info = match shortcut_result {
         Ok((_, result)) => result,
         Err(_err) => {
@@ -87,17 +88,11 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
 #[cfg(test)]
 mod tests {
     use super::{grab_lnk_directory, grab_lnk_file};
-    use crate::artifacts::os::windows::shellitems::items::ShellType::{
-        Delegate, Directory, RootFolder,
-    };
     use crate::artifacts::os::windows::shortcuts::parser::parse_lnk_data;
-    use crate::artifacts::os::windows::{
-        shellitems::items::ShellItem,
-        shortcuts::{header::DataFlags, location::LocationFlag, volume::DriveType},
-    };
     use crate::filesystem::directory::{get_user_paths, is_directory};
     use crate::filesystem::files::list_files;
-    use crate::filesystem::ntfs::attributes::AttributeFlags;
+    use common::windows::ShellType::{Delegate, Directory, RootFolder};
+    use common::windows::{AttributeFlags, DataFlags, DriveType, LocationFlag, ShellItem};
     use std::path::PathBuf;
 
     #[test]

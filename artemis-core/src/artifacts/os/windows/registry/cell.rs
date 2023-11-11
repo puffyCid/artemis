@@ -3,8 +3,9 @@ use crate::utils::nom_helper::{nom_signed_four_bytes, Endian};
 use super::{
     keys::{nk::NameKey, vk::ValueKey},
     lists::{lf::Leaf, lh::HashLeaf, li::LeafItem, ri::RefItem},
-    parser::{KeyValue, Params},
+    parser::Params,
 };
+use common::windows::KeyValue;
 use log::{error, warn};
 use nom::{
     bytes::complete::take, combinator::peek, error::ErrorKind, number::complete::le_u16, Needed,

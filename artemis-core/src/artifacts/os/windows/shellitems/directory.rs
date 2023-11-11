@@ -1,6 +1,6 @@
-use super::items::ShellItem;
-use super::{beef::beef0004, items::ShellType};
+use super::beef::beef0004;
 use crate::utils::time::fattime_utc_to_unixepoch;
+use common::windows::{ShellItem, ShellType};
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
@@ -34,7 +34,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_directory;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_directory_win10() {

@@ -13,16 +13,10 @@ use crate::{
         files::list_files,
     },
 };
+use common::macos::LaunchdPlist;
 use log::{error, warn};
-use plist::Dictionary;
-use serde::Serialize;
 
-#[derive(Debug, Serialize)]
-pub(crate) struct LaunchdPlist {
-    launchd_data: Dictionary,
-    plist_path: String,
-}
-
+/// Grab `LuanchDaemons` and `LaunchAgents`
 pub(crate) fn grab_launchd() -> Result<Vec<LaunchdPlist>, LaunchdError> {
     let mut launchd = grab_launchd_daemons()?;
     let mut agents = grab_launchd_agents()?;

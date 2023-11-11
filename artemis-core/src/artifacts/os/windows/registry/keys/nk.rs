@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::windows::registry::{
         cell::{walk_registry, walk_values},
-        parser::{Params, RegistryEntry},
+        parser::Params,
     },
     utils::{
         nom_helper::{
@@ -13,6 +13,7 @@ use crate::{
         time::filetime_to_unixepoch,
     },
 };
+use common::windows::RegistryEntry;
 use log::error;
 use nom::bytes::complete::take;
 

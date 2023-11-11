@@ -1,34 +1,8 @@
-use crate::artifacts::os::windows::{ese::parser::TableDump, srum::error::SrumError};
+use crate::artifacts::os::windows::srum::error::SrumError;
+use common::windows::{NetworkConnectivityInfo, NetworkInfo, TableDump};
 use log::error;
-use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
-
-#[derive(Debug, Serialize)]
-struct NetworkInfo {
-    auto_inc_id: i32,
-    timestamp: i64,
-    app_id: String,
-    user_id: String,
-    interface_luid: i64,
-    l2_profile_id: i64,
-    l2_profile_flags: i32,
-    bytes_sent: i64,
-    bytes_recvd: i64,
-}
-
-#[derive(Debug, Serialize)]
-struct NetworkConnectivityInfo {
-    auto_inc_id: i32,
-    timestamp: i64,
-    app_id: String,
-    user_id: String,
-    interface_luid: i64,
-    l2_profile_id: i64,
-    connected_time: i32,
-    connect_start_time: i64,
-    l2_profile_flags: i32,
-}
 
 /// Parse the network table from SRUM
 pub(crate) fn parse_network(

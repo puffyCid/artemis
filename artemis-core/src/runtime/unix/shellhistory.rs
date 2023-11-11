@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::unix::shell_history::{
-        bash::BashHistory, python::PythonHistory, zsh::ZshHistory,
+        bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
     },
     runtime::error::RuntimeError,
 };
@@ -11,7 +11,7 @@ use log::error;
 #[string]
 /// Get `Bash history` for all users
 pub(crate) fn get_bash_history() -> Result<String, AnyError> {
-    let history_results = BashHistory::get_user_bash_history();
+    let history_results = get_user_bash_history();
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -27,7 +27,7 @@ pub(crate) fn get_bash_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Zsh history` for all users
 pub(crate) fn get_zsh_history() -> Result<String, AnyError> {
-    let history_results = ZshHistory::get_user_zsh_history();
+    let history_results = get_user_zsh_history();
     let history = match history_results {
         Ok(results) => results,
         Err(err) => {
@@ -43,7 +43,7 @@ pub(crate) fn get_zsh_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Python history` for all users
 pub(crate) fn get_python_history() -> Result<String, AnyError> {
-    let downloads_results = PythonHistory::get_user_python_history();
+    let downloads_results = get_user_python_history();
     let downloads = match downloads_results {
         Ok(results) => results,
         Err(err) => {

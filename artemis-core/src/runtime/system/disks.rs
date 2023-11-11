@@ -1,4 +1,4 @@
-use crate::artifacts::os::systeminfo::info::SystemInfo;
+use crate::artifacts::os::systeminfo::info::get_disks;
 use deno_core::{error::AnyError, op2};
 use sysinfo::{System, SystemExt};
 
@@ -7,7 +7,7 @@ use sysinfo::{System, SystemExt};
 /// Return disk info about the system
 pub(crate) fn js_disk_info() -> Result<String, AnyError> {
     let mut info = System::new();
-    let disks = SystemInfo::get_disks(&mut info);
+    let disks = get_disks(&mut info);
     let results = serde_json::to_string(&disks)?;
     Ok(results)
 }

@@ -1,7 +1,7 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::{Mtp, Volume};
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian};
 use crate::utils::{strings::extract_utf16_string, uuid::format_guid_le_bytes};
+use common::windows::ShellItem;
+use common::windows::ShellType::{Mtp, Volume};
 use nom::bytes::complete::take;
 use std::mem::size_of;
 
@@ -175,10 +175,10 @@ pub(crate) fn parse_mtp(data: &[u8]) -> nom::IResult<&[u8], MtpShell> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shellitems::{
-        items::ShellType,
-        mtp::{get_folder_name, get_mtp_device, get_storage_name, parse_mtp},
+    use crate::artifacts::os::windows::shellitems::mtp::{
+        get_folder_name, get_mtp_device, get_storage_name, parse_mtp,
     };
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_mtp() {

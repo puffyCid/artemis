@@ -14,23 +14,10 @@
  * Other Parsers:  
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::EseError, tables::ColumnType};
+use super::{error::EseError, tables::dump_table};
+use common::windows::TableDump;
 use log::error;
 use std::collections::HashMap;
-
-/**
- * A simple abstracted table dump from the ESE database  
- * Will auto parse non-binary column types
- */
-#[derive(Debug, Clone)]
-pub(crate) struct TableDump {
-    /**The column type. Ex: GUID, binary, text, bit, long, etc */
-    pub(crate) column_type: ColumnType,
-    /**Name of the column */
-    pub(crate) column_name: String,
-    /**Column data as a string. Empty columns have empty strings. Binary data is base64 encoded */
-    pub(crate) column_data: String,
-}
 
 /**
  * Parse and dump one (1) or more ESE tables from provided bytes
@@ -44,7 +31,7 @@ pub(crate) fn grab_ese_tables(
 
     for table in tables {
         // Dump our table
-        let table_result = TableDump::dump_table(path, table);
+        let table_result = dump_table(path, table);
         match table_result {
             Ok(result) => {
                 // Our hashmap is based on table name for the keys
@@ -63,7 +50,8 @@ pub(crate) fn grab_ese_tables(
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::ese::{parser::grab_ese_tables, tables::ColumnType};
+    use crate::artifacts::os::windows::ese::parser::grab_ese_tables;
+    use common::windows::ColumnType;
     use std::path::PathBuf;
 
     #[test]

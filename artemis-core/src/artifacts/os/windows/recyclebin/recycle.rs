@@ -6,69 +6,56 @@ use crate::{
         time::filetime_to_unixepoch,
     },
 };
+use common::windows::RecycleBin;
 use log::error;
 use nom::{
     bytes::complete::{take, take_until},
     Needed,
 };
-use serde::Serialize;
 use std::path::Path;
 
-#[derive(Debug, Serialize)]
-pub(crate) struct RecycleBin {
-    pub(crate) size: u64,
-    pub(crate) deleted: i64,
-    pub(crate) filename: String,
-    pub(crate) full_path: String,
-    pub(crate) directory: String,
-    pub(crate) sid: String,
-    pub(crate) recycle_path: String,
-}
+/// Parse the `$I` file data from the `Recycle Bin`
+pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> {
+    let (input, version) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
-impl RecycleBin {
-    /// Parse the `$I` file data from the `Recycle Bin`
-    pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> {
-        let (input, version) = nom_unsigned_eight_bytes(data, Endian::Le)?;
+    let (input, size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+    let (input, deletion) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-        let (input, size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-        let (input, deletion) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+    let full_path = if version == 1 {
+        let (_, name_data) = take_until([0, 0].as_slice())(input)?;
+        extract_utf16_string(name_data)
+    } else if version == 2 {
+        let (input, name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let utf_adjust = 2;
+        let (_, name_data) = take(name_size * utf_adjust)(input)?;
+        extract_utf16_string(name_data)
+    } else {
+        error!("[recyclebin] Got unknown recycle bin version: {version}");
+        return Err(nom::Err::Incomplete(Needed::Unknown));
+    };
 
-        let full_path = if version == 1 {
-            let (_, name_data) = take_until([0, 0].as_slice())(input)?;
-            extract_utf16_string(name_data)
-        } else if version == 2 {
-            let (input, name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let utf_adjust = 2;
-            let (_, name_data) = take(name_size * utf_adjust)(input)?;
-            extract_utf16_string(name_data)
-        } else {
-            error!("[recyclebin] Got unknown recycle bin version: {version}");
-            return Err(nom::Err::Incomplete(Needed::Unknown));
-        };
+    let mut recycle = RecycleBin {
+        size,
+        deleted: filetime_to_unixepoch(&deletion),
+        filename: get_filename(&full_path),
+        directory: String::new(),
+        full_path,
+        sid: String::new(),
+        recycle_path: String::new(),
+    };
 
-        let mut recycle = RecycleBin {
-            size,
-            deleted: filetime_to_unixepoch(&deletion),
-            filename: get_filename(&full_path),
-            directory: String::new(),
-            full_path,
-            sid: String::new(),
-            recycle_path: String::new(),
-        };
+    let dir = Path::new(&recycle.full_path).parent();
 
-        let dir = Path::new(&recycle.full_path).parent();
-
-        if let Some(path) = dir {
-            recycle.directory = path.to_str().unwrap_or_default().to_string();
-        }
-
-        Ok((input, recycle))
+    if let Some(path) = dir {
+        recycle.directory = path.to_str().unwrap_or_default().to_string();
     }
+
+    Ok((input, recycle))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::RecycleBin;
+    use crate::artifacts::os::windows::recyclebin::recycle::parse_recycle_bin;
 
     #[test]
     fn test_parse_recycle_bin() {
@@ -82,7 +69,7 @@ mod tests {
             115, 0, 116, 0, 101, 0, 109, 0, 95, 0, 115, 0, 121, 0, 115, 0, 116, 0, 101, 0, 109, 0,
             117, 0, 116, 0, 105, 0, 108, 0, 115, 0, 0, 0,
         ];
-        let (_, result) = RecycleBin::parse_recycle_bin(&test).unwrap();
+        let (_, result) = parse_recycle_bin(&test).unwrap();
 
         assert_eq!(result.deleted, 1631147228);
         assert_eq!(result.size, 0);

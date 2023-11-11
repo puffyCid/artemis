@@ -1,11 +1,12 @@
-use super::{error::AccountError, users::UserInfo};
+use super::{error::AccountError, users::parse_user_info};
 use crate::{structs::artifacts::os::windows::UserOptions, utils::environment::get_systemdrive};
+use common::windows::UserInfo;
 use log::error;
 
 /// Get Windows `Users` for based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_users(options: &UserOptions) -> Result<Vec<UserInfo>, AccountError> {
     if let Some(alt_drive) = options.alt_drive {
-        return UserInfo::parse_user_info(&alt_drive);
+        return parse_user_info(&alt_drive);
     }
     let drive_result = get_systemdrive();
     let drive = match drive_result {
@@ -16,7 +17,7 @@ pub(crate) fn grab_users(options: &UserOptions) -> Result<Vec<UserInfo>, Account
         }
     };
 
-    UserInfo::parse_user_info(&drive)
+    parse_user_info(&drive)
 }
 
 #[cfg(test)]

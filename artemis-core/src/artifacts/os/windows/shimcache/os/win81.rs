@@ -1,4 +1,3 @@
-use super::shim::ShimcacheEntry;
 use crate::utils::{
     nom_helper::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
@@ -6,6 +5,7 @@ use crate::utils::{
     strings::extract_utf16_string,
     time::filetime_to_unixepoch,
 };
+use common::windows::ShimcacheEntry;
 use log::warn;
 use nom::bytes::complete::take;
 

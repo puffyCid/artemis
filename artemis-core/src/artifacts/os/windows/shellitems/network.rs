@@ -1,6 +1,6 @@
-use super::items::ShellItem;
-use crate::artifacts::os::windows::shellitems::items::ShellType::Network;
 use crate::utils::strings::extract_utf8_string;
+use common::windows::ShellItem;
+use common::windows::ShellType::Network;
 use nom::bytes::complete::{take, take_while};
 use std::mem::size_of;
 
@@ -32,7 +32,7 @@ pub(crate) fn parse_network(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_network;
-    use crate::artifacts::os::windows::shellitems::items::ShellType;
+    use common::windows::ShellType;
 
     #[test]
     fn test_parse_network() {

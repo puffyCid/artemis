@@ -10,10 +10,11 @@
  *  `https://github.com/Velocidex/velociraptor`
  *  `https://ericzimmerman.github.io/RegistryExplorer.zip`
  */
-use super::{error::ShimcacheError, os::shim::ShimcacheEntry, registry::get_shimcache_data};
+use super::{error::ShimcacheError, os::shim::parse_shimdata, registry::get_shimcache_data};
 use crate::{
     structs::artifacts::os::windows::ShimcacheOptions, utils::environment::get_systemdrive,
 };
+use common::windows::ShimcacheEntry;
 use log::error;
 
 pub(crate) fn grab_shimcache(
@@ -50,7 +51,7 @@ fn parse_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> 
     let mut shimcache_entries = Vec::new();
 
     for entry in results {
-        let mut entries = ShimcacheEntry::parse_shimdata(&entry.shim_data, &entry.key_path)?;
+        let mut entries = parse_shimdata(&entry.shim_data, &entry.key_path)?;
         shimcache_entries.append(&mut entries);
     }
     Ok(shimcache_entries)

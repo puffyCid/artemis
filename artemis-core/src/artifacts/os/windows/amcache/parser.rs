@@ -13,40 +13,13 @@
 use super::error::AmcacheError;
 use crate::{
     artifacts::os::{
-        systeminfo::info::SystemInfo,
-        windows::registry::{helper::get_registry_keys, parser::RegistryEntry},
+        systeminfo::info::get_win_kernel_version, windows::registry::helper::get_registry_keys,
     },
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
+use common::windows::{Amcache, RegistryEntry};
 use log::error;
-use serde::Serialize;
-
-/**
- * `Amcache` is just a Registry file with plaintext entries. No additional parsing is needed
- * Each entry contains PE metadata such as size, version, original filename, SHA1 (First ~31MB), publisher
- */
-#[derive(Debug, Serialize)]
-pub(crate) struct Amcache {
-    pub(crate) first_execution: i64,
-    pub(crate) path: String,
-    pub(crate) name: String,
-    pub(crate) original_name: String,
-    pub(crate) version: String,
-    pub(crate) binary_type: String,
-    pub(crate) product_version: String,
-    pub(crate) product_name: String,
-    pub(crate) language: String,
-    pub(crate) file_id: String,
-    pub(crate) link_date: String,
-    pub(crate) path_hash: String,
-    pub(crate) program_id: String,
-    pub(crate) size: String,
-    pub(crate) publisher: String,
-    pub(crate) usn: String,
-    pub(crate) sha1: String, // Only first ~31MBs
-    pub(crate) reg_path: String,
-}
 
 /// Get Windows `Amcache` for all users based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, AmcacheError> {
@@ -76,7 +49,7 @@ fn alt_drive_amcache(drive: &char) -> Result<Vec<Amcache>, AmcacheError> {
 
 /// Based on Windows version get the path to `Amcache` file
 fn amcache_file(drive: &char) -> Result<Vec<Amcache>, AmcacheError> {
-    let kernel_version = SystemInfo::get_win_kernel_version();
+    let kernel_version = get_win_kernel_version();
     let win10 = 10240.0;
     let path = if kernel_version < win10 {
         format!("{drive}:\\Windows\\AppCompat\\Programs\\Amcache.hve")

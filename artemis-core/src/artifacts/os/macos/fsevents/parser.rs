@@ -9,8 +9,9 @@
  * Other Parsers:  
  *   `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::FsEventsError, fsevent::FsEvents};
+use super::{error::FsEventsError, fsevent::fsevents_data};
 use crate::{filesystem::files::list_files, utils::compression::decompress_gzip};
+use common::macos::FsEvents;
 use log::error;
 
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
@@ -76,7 +77,7 @@ fn get_fseventsd_legacy() -> Result<Vec<String>, FsEventsError> {
 
 /// Get `FsEvents` data from decompressed file
 fn parse_fsevents(data: &[u8]) -> nom::IResult<&[u8], Vec<FsEvents>> {
-    FsEvents::fsevents_data(data)
+    fsevents_data(data)
 }
 
 /// Get list of `FsEvents` files in a directory

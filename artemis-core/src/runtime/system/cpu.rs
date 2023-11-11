@@ -1,4 +1,4 @@
-use crate::artifacts::os::systeminfo::info::SystemInfo;
+use crate::artifacts::os::systeminfo::info::get_cpu;
 use deno_core::{error::AnyError, op2};
 use sysinfo::{System, SystemExt};
 
@@ -7,7 +7,7 @@ use sysinfo::{System, SystemExt};
 /// Return cpu info about the system
 pub(crate) fn js_cpu_info() -> Result<String, AnyError> {
     let mut info = System::new();
-    let cpu = SystemInfo::get_cpu(&mut info);
+    let cpu = get_cpu(&mut info);
     let results = serde_json::to_string(&cpu)?;
     Ok(results)
 }
