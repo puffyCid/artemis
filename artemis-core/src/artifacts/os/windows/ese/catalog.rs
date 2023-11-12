@@ -88,6 +88,7 @@ pub(crate) struct VariableData {
     pub(crate) size: u16,
 }
 
+#[derive(Debug)]
 pub(crate) struct TaggedData {
     pub(crate) column: u16,
     pub(crate) offset: u16,

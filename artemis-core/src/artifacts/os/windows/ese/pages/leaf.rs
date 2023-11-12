@@ -33,7 +33,7 @@ pub(crate) struct SpaceTree {
     pub(crate) number_pages: u32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct DataDefinition {
     /**The last fixed data. Ex: A value of three (3) means there may be fixed data for 1,2,3 values. Dependent on table */
     pub(crate) last_fixed_data: u8,

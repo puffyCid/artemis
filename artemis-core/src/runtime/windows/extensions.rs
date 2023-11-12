@@ -2,6 +2,7 @@ use super::{
     accounts::{get_alt_users, get_users},
     amcache::{get_alt_amcache, get_amcache},
     bits::{get_bits, get_bits_path},
+    ese::get_table,
     eventlogs::get_eventlogs,
     jumplists::{get_alt_jumplists, get_jumplist_file, get_jumplists},
     ntfs::{read_ads_data, read_raw_file},
@@ -82,6 +83,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_alt_recycle_bin::DECL,
         get_recycle_bin_file::DECL,
         get_sk_info::DECL,
+        get_table::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());
