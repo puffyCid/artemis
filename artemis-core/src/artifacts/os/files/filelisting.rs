@@ -511,7 +511,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_skip_firmlinks() {
-        use crate::artifacts::os::files::filelisting::skip_firmlinks;
+        use crate::artifacts::os::files::filelisting::{read_firmlinks, skip_firmlinks};
         let skip_path = WalkDir::new("/Users").max_depth(1);
         let results = read_firmlinks().unwrap();
         assert!(results.len() > 3);
