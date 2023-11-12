@@ -322,7 +322,7 @@ mod tests {
     use crate::artifacts::os::files::filelisting::file_metadata;
     use crate::artifacts::os::files::filelisting::get_filelist;
     use crate::{
-        artifacts::os::files::filelisting::{read_firmlinks, skip_firmlinks, user_regex, Hashes},
+        artifacts::os::files::filelisting::{user_regex, Hashes},
         structs::toml::Output,
     };
     use common::files::FileInfo;
@@ -501,13 +501,17 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn test_read_firmlinks() {
+        use crate::artifacts::os::files::filelisting::read_firmlinks;
         let results = read_firmlinks().unwrap();
         assert!(results.len() > 3);
     }
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn test_skip_firmlinks() {
+        use crate::artifacts::os::files::filelisting::skip_firmlinks;
         let skip_path = WalkDir::new("/Users").max_depth(1);
         let results = read_firmlinks().unwrap();
         assert!(results.len() > 3);

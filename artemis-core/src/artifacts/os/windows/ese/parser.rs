@@ -96,4 +96,11 @@ mod tests {
         assert_eq!(job[0][1].column_type, ColumnType::LongBinary);
         assert_eq!(job[0][1].column_data.len(), 1432);
     }
+
+    #[test]
+    fn test_security_database() {
+        let test = "C:\\Windows\\security\\database\\secedit.sdb";
+        let results = grab_ese_tables(test, &["SmTblSmp".to_owned()]).unwrap();
+        assert!(!results.is_empty());
+    }
 }

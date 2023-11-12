@@ -156,6 +156,7 @@ pub(crate) fn read_ese<'a>(
             )));
         }
     };
+
     let mut info = TableInfo {
         obj_id_table: 0,
         table_page: 0,
@@ -893,7 +894,13 @@ fn parse_tagged_data<'a>(
                 continue;
             }
 
-            let tag_size = next_value.offset - value.offset;
+            // Check and make sure next tag offset is lower than the bit flag
+            let tag_size = if next_value.offset > bit_flag {
+                (next_value.offset - bit_flag) - value.offset
+            } else {
+                next_value.offset - value.offset
+            };
+
             let (input, data) = take(tag_size)(tag_data_start)?;
             tag_data_start = input;
             let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;

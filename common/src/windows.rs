@@ -329,7 +329,7 @@ pub enum AccessMask {
  * A simple abstracted table dump from the ESE database  
  * Will auto parse non-binary column types
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TableDump {
     /**The column type. Ex: GUID, binary, text, bit, long, etc */
     pub column_type: ColumnType,
@@ -339,7 +339,7 @@ pub struct TableDump {
     pub column_data: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ColumnType {
     Nil,
     Bit,
