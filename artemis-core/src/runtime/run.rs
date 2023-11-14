@@ -1,5 +1,5 @@
 use crate::runtime::error::RuntimeError;
-use deno_core::error::{AnyError, JsError};
+use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
 use deno_core::{FsModuleLoader, JsRuntime, RuntimeOptions, Snapshot};
@@ -94,8 +94,29 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
             return Ok(value_error);
         }
     };
+
     // Wait for async script to return any value
-    let value = runtime.resolve_value(script_output).await?;
+    let value_result = runtime.resolve_value(script_output).await;
+    let value = match value_result {
+        Ok(result) => result,
+        Err(err) => {
+            let js_error = JsError {
+                name: Some(String::from("ExecutionFailure")),
+                message: Some(String::from("Failed to resolve JS code")),
+                stack: None,
+                cause: None,
+                exception_message: err.to_string(),
+                frames: Vec::new(),
+                source_line: None,
+                source_line_frame_index: None,
+                aggregated: None,
+            };
+            error!("[runtime] Could not resolve script: {err:?}");
+            let value_error = Value::from(js_error.to_string());
+            // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
+            return Ok(value_error);
+        }
+    };
 
     let mut scope = runtime.handle_scope();
     let local = Local::new(&mut scope, value);
@@ -107,12 +128,15 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
             return Err(RuntimeError::ScriptResult.into());
         }
     };
+
     Ok(script_value)
 }
 
 /// Handle Javascript errors
 fn get_error_class_name(e: &AnyError) -> &'static str {
-    deno_core::error::get_custom_error_class(e).unwrap_or("[runtime] script execution class error")
+    let err = custom_error("Error", e.to_string());
+    deno_core::error::get_custom_error_class(&err)
+        .unwrap_or("[runtime] script execution class error")
 }
 
 /// Create the Deno runtime worker options. Pass optional args
