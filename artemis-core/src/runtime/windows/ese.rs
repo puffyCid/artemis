@@ -1,6 +1,5 @@
-use crate::{artifacts::os::windows::ese::parser::grab_ese_tables, runtime::error::RuntimeError};
+use crate::artifacts::os::windows::ese::parser::grab_ese_tables;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]

@@ -1,8 +1,9 @@
 use crate::{
-    artifacts::os::windows::accounts::parser::grab_users,
+    artifacts::os::windows::accounts::parser::grab_users, runtime::error::RuntimeError,
     structs::artifacts::os::windows::UserOptions,
 };
 use deno_core::{error::AnyError, op2};
+use log::error;
 
 #[op2]
 #[string]
@@ -29,14 +30,7 @@ pub(crate) fn get_alt_users(#[string] drive: String) -> Result<String, AnyError>
         alt_drive: Some(drive_char.to_owned()),
     };
 
-    let users_results = grab_users(&options);
-    let users = match users_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse alt users: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let users = grab_users(&options)?;
 
     let results = serde_json::to_string(&users)?;
     Ok(results)
