@@ -820,7 +820,10 @@ mod tests {
 
     #[test]
     fn test_userassist() {
-        let options = UserAssistOptions { alt_drive: None };
+        let options = UserAssistOptions {
+            alt_drive: None,
+            resolve_descriptions: Some(true),
+        };
         let mut output = output_options("assist_temp", "json", "./tmp", false);
 
         let status = userassist(&options, &mut output, &false).unwrap();

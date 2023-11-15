@@ -1,20 +1,10 @@
-use crate::{
-    artifacts::os::windows::shortcuts::parser::grab_lnk_file, runtime::error::RuntimeError,
-};
+use crate::artifacts::os::windows::shortcuts::parser::grab_lnk_file;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 pub(crate) fn get_lnk_file(#[string] path: String) -> Result<String, AnyError> {
-    let lnk_result = grab_lnk_file(&path);
-    let lnk = match lnk_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse shortcut file {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let lnk = grab_lnk_file(&path)?;
 
     let results = serde_json::to_string(&lnk)?;
     Ok(results)

@@ -8,14 +8,7 @@ pub(crate) fn get_table(
     #[string] path: String,
     #[serde] table: Vec<String>,
 ) -> Result<String, AnyError> {
-    let ese_result = grab_ese_tables(&path, &table);
-    let ese = match ese_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse ESE file {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let ese = grab_ese_tables(&path, &table)?;
 
     let results = serde_json::to_string(&ese)?;
     Ok(results)

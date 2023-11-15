@@ -12,14 +12,7 @@ pub(crate) fn get_eventlogs(#[string] path: String) -> Result<String, AnyError> 
         error!("[runtime] Empty path to eventlog file");
         return Err(RuntimeError::ExecuteScript.into());
     }
-    let logs_results = parse_eventlogs(&path);
-    let logs = match logs_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse eventlogs: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let logs = parse_eventlogs(&path)?;
 
     let results = serde_json::to_string(&logs)?;
     Ok(results)

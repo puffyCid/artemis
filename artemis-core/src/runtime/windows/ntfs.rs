@@ -1,22 +1,11 @@
-use crate::{
-    filesystem::ntfs::raw_files::{raw_read_file, read_attribute},
-    runtime::error::RuntimeError,
-};
+use crate::filesystem::ntfs::raw_files::{raw_read_file, read_attribute};
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[buffer]
 /// Expose reading a raw file to `Deno`
 pub(crate) fn read_raw_file(#[string] path: String) -> Result<Vec<u8>, AnyError> {
-    let data_result = raw_read_file(&path);
-    let data = match data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to read file {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let data = raw_read_file(&path)?;
     Ok(data)
 }
 
@@ -27,15 +16,7 @@ pub(crate) fn read_ads_data(
     #[string] path: String,
     #[string] ads_name: String,
 ) -> Result<Vec<u8>, AnyError> {
-    let data_result = read_attribute(&path, &ads_name);
-    let data = match data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to ADS data at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
+    let data = read_attribute(&path, &ads_name)?;
     Ok(data)
 }
 

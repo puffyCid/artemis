@@ -16,14 +16,7 @@ pub(crate) fn get_srum(
         error!("[runtime] Empty SRUM table to dump");
         return Err(RuntimeError::ExecuteScript.into());
     }
-    let srum_results = grab_srum_path(&path, &table);
-    let srum = match srum_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse SRUM: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let srum = grab_srum_path(&path, &table)?;
 
     let results = serde_json::to_string(&srum)?;
     Ok(results)

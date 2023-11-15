@@ -11,14 +11,7 @@ use log::error;
 /// Expose parsing Recycle Bin at default systemdrive to Deno
 pub(crate) fn get_recycle_bin() -> Result<String, AnyError> {
     let options = RecycleBinOptions { alt_drive: None };
-    let bin_result = grab_recycle_bin(&options);
-    let bin = match bin_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse recycle bin at default path: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let bin = grab_recycle_bin(&options)?;
 
     let results = serde_json::to_string(&bin)?;
     Ok(results)

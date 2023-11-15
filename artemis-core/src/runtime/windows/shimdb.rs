@@ -11,15 +11,7 @@ use log::error;
 /// Expose parsing shimdb located on systemdrive to `Deno`
 pub(crate) fn get_shimdb() -> Result<String, AnyError> {
     let options = ShimdbOptions { alt_drive: None };
-    let shimdb_result = grab_shimdb(&options);
-
-    let shimdb = match shimdb_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse shimdb: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let shimdb = grab_shimdb(&options)?;
 
     let results = serde_json::to_string(&shimdb)?;
     Ok(results)
@@ -39,14 +31,7 @@ pub(crate) fn get_alt_shimdb(#[string] drive: String) -> Result<String, AnyError
         alt_drive: Some(drive_char),
     };
 
-    let shimdb_result = grab_shimdb(&options);
-    let shimdb = match shimdb_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse alt shimdb: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let shimdb = grab_shimdb(&options)?;
 
     let results = serde_json::to_string(&shimdb)?;
     Ok(results)
@@ -56,15 +41,7 @@ pub(crate) fn get_alt_shimdb(#[string] drive: String) -> Result<String, AnyError
 #[string]
 /// Expose parsing custom shimdb path to `Deno`
 pub(crate) fn get_custom_shimdb(#[string] paths: String) -> Result<String, AnyError> {
-    let shimdb_result = custom_shimdb_path(&paths);
-    let shimdb = match shimdb_result {
-        Ok(results) => results,
-        Err(_err) => {
-            // Parsing sdb files could fail for many reasons (ex: file is not a sdb file)
-            // Instead of cancelling the whole script, return empty result
-            return Ok(String::new());
-        }
-    };
+    let shimdb = custom_shimdb_path(&paths)?;
 
     let results = serde_json::to_string(&shimdb)?;
     Ok(results)

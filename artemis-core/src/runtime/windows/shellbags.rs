@@ -13,14 +13,7 @@ pub(crate) fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
         alt_drive: None,
         resolve_guids: resolve,
     };
-    let bags_result = grab_shellbags(&options);
-    let bags = match bags_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse shellbags: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let bags = grab_shellbags(&options)?;
 
     let results = serde_json::to_string(&bags)?;
     Ok(results)
@@ -44,14 +37,7 @@ pub(crate) fn get_alt_shellbags(
         resolve_guids: resolve,
     };
 
-    let bags_result = grab_shellbags(&options);
-    let bags = match bags_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse alt shellbags: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let bags = grab_shellbags(&options)?;
 
     let results = serde_json::to_string(&bags)?;
     Ok(results)

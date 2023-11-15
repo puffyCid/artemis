@@ -11,14 +11,7 @@ use log::error;
 /// Get Prefetch files at using default drive (typically C)
 pub(crate) fn get_prefetch() -> Result<String, AnyError> {
     let options = PrefetchOptions { alt_drive: None };
-    let pf_result = grab_prefetch(&options);
-    let pf = match pf_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse prefetch at default path: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let pf = grab_prefetch(&options)?;
 
     let results = serde_json::to_string(&pf)?;
     Ok(results)
@@ -38,14 +31,7 @@ pub(crate) fn get_alt_prefetch(#[string] drive: String) -> Result<String, AnyErr
         alt_drive: Some(drive_char),
     };
 
-    let pf_result = grab_prefetch(&options);
-    let pf = match pf_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse prefetch at alt drive {drive}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let pf = grab_prefetch(&options)?;
 
     let results = serde_json::to_string(&pf)?;
     Ok(results)
@@ -60,14 +46,7 @@ pub(crate) fn get_prefetch_path(#[string] path: String) -> Result<String, AnyErr
         return Err(RuntimeError::ExecuteScript.into());
     }
 
-    let pf_result = custom_prefetch_path(&path);
-    let pf = match pf_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse prefetch at path {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let pf = custom_prefetch_path(&path)?;
 
     let results = serde_json::to_string(&pf)?;
     Ok(results)

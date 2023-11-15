@@ -11,14 +11,7 @@ use log::error;
 /// Expose parsing Services at default systemdrive to Deno
 pub(crate) fn get_services() -> Result<String, AnyError> {
     let options = ServicesOptions { alt_drive: None };
-    let service_result = grab_services(&options);
-    let service = match service_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse services at default path: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let service = grab_services(&options)?;
 
     let results = serde_json::to_string(&service)?;
     Ok(results)
@@ -38,15 +31,7 @@ pub(crate) fn get_alt_services(#[string] drive: String) -> Result<String, AnyErr
         alt_drive: Some(drive_char),
     };
 
-    let service_result = grab_services(&options);
-    let service = match service_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse services at alt drive {drive}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
+    let service = grab_services(&options)?;
     let results = serde_json::to_string(&service)?;
     Ok(results)
 }
@@ -60,15 +45,7 @@ pub(crate) fn get_service_file(#[string] path: String) -> Result<String, AnyErro
         return Err(RuntimeError::ExecuteScript.into());
     }
 
-    let service_result = grab_service_file(&path);
-    let service = match service_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse service file at path {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
+    let service = grab_service_file(&path)?;
     let results = serde_json::to_string(&service)?;
 
     Ok(results)
