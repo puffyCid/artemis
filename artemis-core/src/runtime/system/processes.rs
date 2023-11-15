@@ -1,9 +1,5 @@
-use crate::{
-    artifacts::os::processes::process::proc_list, filesystem::files::Hashes,
-    runtime::error::RuntimeError,
-};
+use crate::{artifacts::os::processes::process::proc_list, filesystem::files::Hashes};
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
@@ -14,15 +10,7 @@ pub(crate) fn get_processes(#[string] hashes: String, metadata: bool) -> Result<
         sha1: false,
         sha256: false,
     });
-    let proc_results = proc_list(&hashes, metadata);
-    let proc = match proc_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get process listing: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
+    let proc = proc_list(&hashes, metadata)?;
     let results = serde_json::to_string(&proc)?;
     Ok(results)
 }

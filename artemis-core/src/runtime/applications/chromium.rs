@@ -1,19 +1,11 @@
-use crate::{artifacts::applications::chromium, runtime::error::RuntimeError};
+use crate::artifacts::applications::chromium;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Get `Chromium` history for all users
 pub(crate) fn get_chromium_users_history() -> Result<String, AnyError> {
-    let history_results = chromium::history::get_chromium_history();
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get chromium history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = chromium::history::get_chromium_history()?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -22,14 +14,7 @@ pub(crate) fn get_chromium_users_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Chromium` history from provided path
 pub(crate) fn get_chromium_history(#[string] path: String) -> Result<String, AnyError> {
-    let history_results = chromium::history::history_query(&path);
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get chromium history at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = chromium::history::history_query(&path)?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -38,14 +23,7 @@ pub(crate) fn get_chromium_history(#[string] path: String) -> Result<String, Any
 #[string]
 /// Get `Chromium` downloads for all users
 pub(crate) fn get_chromium_users_downloads() -> Result<String, AnyError> {
-    let downloads_results = chromium::downloads::get_chromium_downloads();
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get chromium downloads: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = chromium::downloads::get_chromium_downloads()?;
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
@@ -54,14 +32,7 @@ pub(crate) fn get_chromium_users_downloads() -> Result<String, AnyError> {
 #[string]
 /// Get `Chromium` downloads from provided path
 pub(crate) fn get_chromium_downloads(#[string] path: String) -> Result<String, AnyError> {
-    let downloads_results = chromium::downloads::downloads_query(&path);
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get chromium downloads at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = chromium::downloads::downloads_query(&path)?;
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
