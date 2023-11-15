@@ -1,21 +1,11 @@
-use crate::{
-    artifacts::os::macos::loginitems::parser::grab_loginitems, runtime::error::RuntimeError,
-};
+use crate::artifacts::os::macos::loginitems::parser::grab_loginitems;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing LoginItems to `Deno`
 pub(crate) fn get_loginitems() -> Result<String, AnyError> {
-    let loginitems_results = grab_loginitems();
-    let loginitems = match loginitems_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse loginitems: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let loginitems = grab_loginitems()?;
     let results = serde_json::to_string(&loginitems)?;
     Ok(results)
 }

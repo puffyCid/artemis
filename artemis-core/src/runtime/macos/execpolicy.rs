@@ -1,21 +1,11 @@
-use crate::{
-    artifacts::os::macos::execpolicy::policy::grab_execpolicy, runtime::error::RuntimeError,
-};
+use crate::artifacts::os::macos::execpolicy::policy::grab_execpolicy;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing ExecPolicy to `Deno`
 pub(crate) fn get_execpolicy() -> Result<String, AnyError> {
-    let policy_results = grab_execpolicy();
-    let policy = match policy_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse execpolicy: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let policy = grab_execpolicy()?;
     let results = serde_json::to_string(&policy)?;
     Ok(results)
 }

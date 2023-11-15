@@ -5,15 +5,7 @@ use deno_core::{error::AnyError, op2};
 #[string]
 /// Expose parsing elf file  to `Deno`
 pub(crate) fn get_elf(#[string] path: String) -> Result<String, AnyError> {
-    let elf_results = parse_elf_file(&path);
-    let elf_data = match elf_results {
-        Ok(results) => results,
-        Err(_err) => {
-            // Parsing elf files could fail for many reasons
-            // Instead of cancelling the whole script, return empty result
-            return Ok(String::new());
-        }
-    };
+    let elf_data = parse_elf_file(&path)?;
     let results = serde_json::to_string(&elf_data)?;
     Ok(results)
 }

@@ -1,9 +1,8 @@
 use crate::{
-    artifacts::os::windows::accounts::parser::grab_users, runtime::error::RuntimeError,
+    artifacts::os::windows::accounts::parser::grab_users,
     structs::artifacts::os::windows::UserOptions,
 };
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
@@ -11,15 +10,7 @@ use log::error;
 pub(crate) fn get_users() -> Result<String, AnyError> {
     let options = UserOptions { alt_drive: None };
 
-    let users_results = grab_users(&options);
-    let users = match users_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse users: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
+    let users = grab_users(&options)?;
     let results = serde_json::to_string(&users)?;
     Ok(results)
 }

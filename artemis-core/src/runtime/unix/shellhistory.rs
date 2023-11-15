@@ -1,24 +1,13 @@
-use crate::{
-    artifacts::os::unix::shell_history::{
-        bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
-    },
-    runtime::error::RuntimeError,
+use crate::artifacts::os::unix::shell_history::{
+    bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
 };
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Get `Bash history` for all users
 pub(crate) fn get_bash_history() -> Result<String, AnyError> {
-    let history_results = get_user_bash_history();
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get bash history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = get_user_bash_history()?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -27,14 +16,7 @@ pub(crate) fn get_bash_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Zsh history` for all users
 pub(crate) fn get_zsh_history() -> Result<String, AnyError> {
-    let history_results = get_user_zsh_history();
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get zsh history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = get_user_zsh_history()?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -43,15 +25,8 @@ pub(crate) fn get_zsh_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Python history` for all users
 pub(crate) fn get_python_history() -> Result<String, AnyError> {
-    let downloads_results = get_user_python_history();
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get python history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-    let results = serde_json::to_string(&downloads)?;
+    let history = get_user_python_history()?;
+    let results = serde_json::to_string(&history)?;
     Ok(results)
 }
 

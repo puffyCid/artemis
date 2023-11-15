@@ -18,33 +18,9 @@ use macos_unifiedlogs::{
 pub(crate) fn get_unified_log(#[string] path: String) -> Result<String, AnyError> {
     // Not ideal but for now we have to parse the Unified Log metadata each time we want to parse a log file
     // Fortunately the metadata logs are really small and are parsed very quickly
-    let strings_results = collect_strings_system();
-    let shared_strings_results = collect_shared_strings_system();
-    let timesync_data_results = collect_timesync_system();
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse UUIDText files: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse dsc files: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse timesync files: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let strings = collect_strings_system()?;
+    let shared_strings = collect_shared_strings_system()?;
+    let timesync_data = collect_timesync_system()?;
 
     let logs = parse_trace_file(&strings, &shared_strings, &timesync_data, &path)?;
 

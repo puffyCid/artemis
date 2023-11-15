@@ -1,19 +1,11 @@
-use crate::{artifacts::os::macos::emond::parser::grab_emond, runtime::error::RuntimeError};
+use crate::artifacts::os::macos::emond::parser::grab_emond;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing Emond to `Deno`
 pub(crate) fn get_emond() -> Result<String, AnyError> {
-    let emond_results = grab_emond();
-    let emond = match emond_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse emond: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let emond = grab_emond()?;
     let results = serde_json::to_string(&emond)?;
     Ok(results)
 }

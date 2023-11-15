@@ -5,15 +5,7 @@ use deno_core::{error::AnyError, op2};
 #[string]
 /// Expose parsing journal file  to `Deno`
 pub(crate) fn get_journal(#[string] path: String) -> Result<String, AnyError> {
-    let journal_results = grab_journal_file(&path);
-    let journal_data = match journal_results {
-        Ok(results) => results,
-        Err(_err) => {
-            // Parsing Journal files could fail
-            // Instead of cancelling the whole script, return empty result
-            return Ok(String::new());
-        }
-    };
+    let journal_data = grab_journal_file(&path)?;
     let results = serde_json::to_string(&journal_data)?;
     Ok(results)
 }

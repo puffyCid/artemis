@@ -1,19 +1,11 @@
-use crate::{artifacts::applications::safari, runtime::error::RuntimeError};
+use crate::artifacts::applications::safari;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Get `Safari` history for all users
 pub(crate) fn get_safari_users_history() -> Result<String, AnyError> {
-    let history_results = safari::history::get_safari_history();
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get safari history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = safari::history::get_safari_history()?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -22,14 +14,7 @@ pub(crate) fn get_safari_users_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Safari` history from provided path
 pub(crate) fn get_safari_history(#[string] path: String) -> Result<String, AnyError> {
-    let history_results = safari::history::history_query(&path);
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get safari history at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = safari::history::history_query(&path)?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -38,14 +23,7 @@ pub(crate) fn get_safari_history(#[string] path: String) -> Result<String, AnyEr
 #[string]
 /// Get `Safari` downloads for all users
 pub(crate) fn get_safari_users_downloads() -> Result<String, AnyError> {
-    let downloads_results = safari::downloads::get_safari_downloads();
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get safari downloads: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = safari::downloads::get_safari_downloads()?;
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
@@ -54,14 +32,7 @@ pub(crate) fn get_safari_users_downloads() -> Result<String, AnyError> {
 #[string]
 /// Get `Safari` downloads from provided path
 pub(crate) fn get_safari_downloads(#[string] path: String) -> Result<String, AnyError> {
-    let downloads_results = safari::downloads::downloads_query(&path);
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get safari downloads at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = safari::downloads::downloads_query(&path)?;
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
