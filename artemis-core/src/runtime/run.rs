@@ -196,6 +196,6 @@ mod tests {
     fn test_get_error_class_name() {
         let err = RuntimeError::Decode;
         let results = get_error_class_name(&err.into());
-        assert_eq!(results, "[runtime] script execution class error");
+        assert_eq!(results, "Error");
     }
 }

@@ -1,19 +1,11 @@
-use crate::{artifacts::applications::firefox, runtime::error::RuntimeError};
+use crate::artifacts::applications::firefox;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Get `Firefox` history for all users
 pub(crate) fn get_firefox_users_history() -> Result<String, AnyError> {
-    let history_results = firefox::history::get_firefox_history();
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get firefox history: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = firefox::history::get_firefox_history()?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -22,14 +14,7 @@ pub(crate) fn get_firefox_users_history() -> Result<String, AnyError> {
 #[string]
 /// Get `Firefox` history from provided path
 pub(crate) fn get_firefox_history(#[string] path: String) -> Result<String, AnyError> {
-    let history_results = firefox::history::history_query(&path);
-    let history = match history_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get firefox history at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let history = firefox::history::history_query(&path)?;
     let results = serde_json::to_string(&history)?;
     Ok(results)
 }
@@ -38,14 +23,8 @@ pub(crate) fn get_firefox_history(#[string] path: String) -> Result<String, AnyE
 #[string]
 /// Get `Firefox` downloads for all users
 pub(crate) fn get_firefox_users_downloads() -> Result<String, AnyError> {
-    let downloads_results = firefox::downloads::get_firefox_downloads();
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get firefox downloads: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = firefox::downloads::get_firefox_downloads()?;
+
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
@@ -54,14 +33,7 @@ pub(crate) fn get_firefox_users_downloads() -> Result<String, AnyError> {
 #[string]
 /// Get `Firefox` downloads from provided path
 pub(crate) fn get_firefox_downloads(#[string] path: String) -> Result<String, AnyError> {
-    let downloads_results = firefox::downloads::downloads_query(&path);
-    let downloads = match downloads_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get firefox downloads at {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let downloads = firefox::downloads::downloads_query(&path)?;
     let results = serde_json::to_string(&downloads)?;
     Ok(results)
 }
