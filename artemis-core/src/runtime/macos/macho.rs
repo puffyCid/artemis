@@ -1,21 +1,11 @@
 use crate::artifacts::os::macos::macho::parser::parse_macho;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing macho file  to `Deno`
 pub(crate) fn get_macho(#[string] path: String) -> Result<String, AnyError> {
-    let macho_results = parse_macho(&path);
-    let macho = match macho_results {
-        Ok(results) => results,
-        Err(err) => {
-            // Parsing macho files could fail for many reasons
-            // Instead of cancelling the whole script, return empty result
-            error!("[runtime] Failed to parse macho file: {err:?}");
-            return Ok(String::new());
-        }
-    };
+    let macho = parse_macho(&path)?;
     let results = serde_json::to_string(&macho)?;
     Ok(results)
 }

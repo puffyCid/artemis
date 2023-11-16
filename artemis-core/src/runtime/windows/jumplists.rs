@@ -11,14 +11,7 @@ use log::error;
 /// Expose parsing Jumplists at default systemdrive to Deno
 pub(crate) fn get_jumplists() -> Result<String, AnyError> {
     let options = JumplistsOptions { alt_drive: None };
-    let jumplist_result = grab_jumplists(&options);
-    let jumplist = match jumplist_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse jumplists at default path: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let jumplist = grab_jumplists(&options)?;
 
     let results = serde_json::to_string(&jumplist)?;
     Ok(results)

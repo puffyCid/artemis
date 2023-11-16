@@ -1,21 +1,11 @@
 use crate::artifacts::os::macos::fsevents::parser::grab_fsventsd_file;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing FsEvents to `Deno`
 pub(crate) fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
-    let fsevents_results = grab_fsventsd_file(&path);
-    let fsevents = match fsevents_results {
-        Ok(results) => results,
-        Err(err) => {
-            // A user may submit a non-fsevent file
-            // Instead of cancelling the whole script, return empty result
-            error!("[runtime] Failed to parse fsevents file: {err:?}");
-            return Ok(String::new());
-        }
-    };
+    let fsevents = grab_fsventsd_file(&path)?;
     let results = serde_json::to_string(&fsevents)?;
     Ok(results)
 }

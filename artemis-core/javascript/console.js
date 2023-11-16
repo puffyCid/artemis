@@ -6,15 +6,23 @@ class Console {
         return args.map((arg) => JSON.stringify(arg, (_, value) => typeof value === "bigint" ? value.toString() : value)).join(" ");
     }
     log = (...args) => {
-        core.print(`[runtime]: ${this.argsToMessage(...args)}\n`, false);
+        const result = this.argsToMessage(...args);
+        core.ops.js_log("info", result);
+        core.print(`[runtime]: ${result}\n`, false);
     };
     error = (...args) => {
+        const result = this.argsToMessage(...args);
+        core.ops.js_log("error", result);
         core.print(`[runtime-error]: ${this.argsToMessage(...args)}\n`, true);
     };
     info = (...args) => {
+        const result = this.argsToMessage(...args);
+        core.ops.js_log("info", result);
         core.print(`[runtime-info]: ${this.argsToMessage(...args)}\n`, true);
     };
     warn = (...args) => {
+        const result = this.argsToMessage(...args);
+        core.ops.js_log("warn", result);
         core.print(`[runtime-warn]: ${this.argsToMessage(...args)}\n`, true);
     };
     assert = (condition = false, ...args) => {

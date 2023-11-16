@@ -5,15 +5,7 @@ use deno_core::{error::AnyError, op2};
 #[string]
 /// Expose parsing pe file  to `Deno`
 pub(crate) fn get_pe(#[string] path: String) -> Result<String, AnyError> {
-    let pe_results = parse_pe_file(&path);
-    let pe = match pe_results {
-        Ok(results) => results,
-        Err(_err) => {
-            // Parsing pe files could fail for many reasons
-            // Instead of cancelling the whole script, return empty result
-            return Ok(String::new());
-        }
-    };
+    let pe = parse_pe_file(&path)?;
     let results = serde_json::to_string(&pe)?;
     Ok(results)
 }

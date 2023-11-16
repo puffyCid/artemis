@@ -11,14 +11,7 @@ use log::error;
 /// Expose parsing Schedule Tasks at default systemdrive to Deno
 pub(crate) fn get_tasks() -> Result<String, AnyError> {
     let options = TasksOptions { alt_drive: None };
-    let task_result = grab_tasks(&options);
-    let task = match task_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse tasks at default path: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let task = grab_tasks(&options)?;
 
     let results = serde_json::to_string(&task)?;
     Ok(results)

@@ -21,14 +21,16 @@ use log::error;
 pub(crate) fn grab_userassist(
     options: &UserAssistOptions,
 ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
+    let resolve = options.resolve_descriptions.unwrap_or(false);
+
     if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_userassist(&alt_drive);
+        return parse_userassist(&alt_drive, &resolve);
     }
-    default_userassist()
+    default_userassist(&resolve)
 }
 
 /// Get `UserAssist` entries using default system drive
-fn default_userassist() -> Result<Vec<UserAssistEntry>, UserAssistError> {
+fn default_userassist(resolve: &bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -37,50 +39,42 @@ fn default_userassist() -> Result<Vec<UserAssistEntry>, UserAssistError> {
             return Err(UserAssistError::DriveLetter);
         }
     };
-    parse_userassist(&drive)
-}
-
-/// Get `UserAssist` entries on a different system drive
-fn alt_drive_userassist(drive: &char) -> Result<Vec<UserAssistEntry>, UserAssistError> {
-    parse_userassist(drive)
+    parse_userassist(&drive, resolve)
 }
 
 /// Get `UserAssist` entries for all users in NTUSER.DAT files. Then parse the `UserAssist` data
-fn parse_userassist(drive: &char) -> Result<Vec<UserAssistEntry>, UserAssistError> {
+fn parse_userassist(drive: &char, resolve: &bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let entries = get_userassist_drive(drive)?;
-    parse_userassist_data(&entries)
+    parse_userassist_data(&entries, resolve)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         artifacts::os::windows::userassist::parser::{
-            alt_drive_userassist, default_userassist, grab_userassist, parse_userassist,
+            default_userassist, grab_userassist, parse_userassist,
         },
         structs::artifacts::os::windows::UserAssistOptions,
     };
 
     #[test]
     fn test_default_userassist() {
-        let results = default_userassist().unwrap();
-        assert!(results.len() > 3);
-    }
-
-    #[test]
-    fn test_alt_drive_userassist() {
-        let results = alt_drive_userassist(&'C').unwrap();
+        let results = default_userassist(&false).unwrap();
         assert!(results.len() > 3);
     }
 
     #[test]
     fn test_parse_userassist() {
-        let results = parse_userassist(&'C').unwrap();
+        let results = parse_userassist(&'C', &false).unwrap();
         assert!(results.len() > 3);
     }
 
     #[test]
     fn test_grab_userassist() {
-        let options = UserAssistOptions { alt_drive: None };
+        let options = UserAssistOptions {
+            alt_drive: None,
+            resolve_descriptions: None,
+        };
 
         let results = grab_userassist(&options).unwrap();
         assert!(results.len() > 5);

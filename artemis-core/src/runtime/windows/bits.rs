@@ -14,14 +14,7 @@ pub(crate) fn get_bits(carve: bool) -> Result<String, AnyError> {
         alt_path: None,
         carve,
     };
-    let bits_results = grab_bits(&options);
-    let bits = match bits_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse BITS: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let bits = grab_bits(&options)?;
 
     let results = serde_json::to_string(&bits)?;
     Ok(results)
@@ -36,14 +29,7 @@ pub(crate) fn get_bits_path(#[string] path: String, carve: bool) -> Result<Strin
         return Err(RuntimeError::ExecuteScript.into());
     }
 
-    let bits_results = grab_bits_path(&path, carve);
-    let bits = match bits_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse BITS file: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let bits = grab_bits_path(&path, carve)?;
 
     let results = serde_json::to_string(&bits)?;
     Ok(results)

@@ -1,6 +1,5 @@
-use crate::{artifacts::os::windows::ese::parser::grab_ese_tables, runtime::error::RuntimeError};
+use crate::artifacts::os::windows::ese::parser::grab_ese_tables;
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
@@ -8,14 +7,7 @@ pub(crate) fn get_table(
     #[string] path: String,
     #[serde] table: Vec<String>,
 ) -> Result<String, AnyError> {
-    let ese_result = grab_ese_tables(&path, &table);
-    let ese = match ese_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse ESE file {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let ese = grab_ese_tables(&path, &table)?;
 
     let results = serde_json::to_string(&ese)?;
     Ok(results)

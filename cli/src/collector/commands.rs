@@ -144,6 +144,9 @@ pub(crate) enum CommandArgs {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
+        /// Enable Folder Description lookups
+        #[arg(long)]
+        resolve_descriptions: Option<bool>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Shimcache

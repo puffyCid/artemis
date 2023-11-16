@@ -1,22 +1,13 @@
-use crate::{
-    artifacts::os::macos::launchd::launchdaemon::{grab_launchd_agents, grab_launchd_daemons},
-    runtime::error::RuntimeError,
+use crate::artifacts::os::macos::launchd::launchdaemon::{
+    grab_launchd_agents, grab_launchd_daemons,
 };
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing launchd daemons to `Deno`
 pub(crate) fn get_launchd_daemons() -> Result<String, AnyError> {
-    let launchd_results = grab_launchd_daemons();
-    let launchd = match launchd_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get launchd daemons: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let launchd = grab_launchd_daemons()?;
     let results = serde_json::to_string(&launchd)?;
     Ok(results)
 }
@@ -25,14 +16,7 @@ pub(crate) fn get_launchd_daemons() -> Result<String, AnyError> {
 #[string]
 /// Expose parsing launchd agents to `Deno`
 pub(crate) fn get_launchd_agents() -> Result<String, AnyError> {
-    let launchd_results = grab_launchd_agents();
-    let launchd = match launchd_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to get launchd agents: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let launchd = grab_launchd_agents()?;
     let results = serde_json::to_string(&launchd)?;
     Ok(results)
 }

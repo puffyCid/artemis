@@ -277,9 +277,13 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.tasks = Some(options);
             collect.artifact_name = String::from("tasks");
         }
-        CommandArgs::Userassist { alt_drive } => {
+        CommandArgs::Userassist {
+            alt_drive,
+            resolve_descriptions,
+        } => {
             let options = UserAssistOptions {
                 alt_drive: *alt_drive,
+                resolve_descriptions: *resolve_descriptions,
             };
             collect.userassist = Some(options);
             collect.artifact_name = String::from("userassist");

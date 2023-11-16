@@ -6,15 +6,7 @@ use log::error;
 #[string]
 /// Expose parsing plist file  to `Deno`
 pub(crate) fn get_plist(#[string] path: String) -> Result<String, AnyError> {
-    let plist_results = parse_plist_file(&path);
-    let plist = match plist_results {
-        Ok(results) => results,
-        Err(err) => {
-            // Parsing plist files could fail for many reasons
-            error!("[runtime] Failed to parse plist: {err:?}");
-            return Err(err.into());
-        }
-    };
+    let plist = parse_plist_file(&path)?;
     let results = serde_json::to_string(&plist)?;
     Ok(results)
 }

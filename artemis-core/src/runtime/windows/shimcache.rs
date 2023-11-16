@@ -10,16 +10,9 @@ use log::error;
 /// Expose parsing shimcache located on default drive to `Deno`
 pub(crate) fn get_shimcache() -> Result<String, AnyError> {
     let options = ShimcacheOptions { alt_drive: None };
-    let shim_results = grab_shimcache(&options);
-    let reg = match shim_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse shimcache: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let shim = grab_shimcache(&options)?;
 
-    let results = serde_json::to_string(&reg)?;
+    let results = serde_json::to_string(&shim)?;
     Ok(results)
 }
 
@@ -37,16 +30,9 @@ pub(crate) fn get_alt_shimcache(#[string] drive: String) -> Result<String, AnyEr
         alt_drive: Some(drive_char),
     };
 
-    let shim_results = grab_shimcache(&options);
-    let reg = match shim_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse shimcache: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let shim = grab_shimcache(&options)?;
 
-    let results = serde_json::to_string(&reg)?;
+    let results = serde_json::to_string(&shim)?;
     Ok(results)
 }
 

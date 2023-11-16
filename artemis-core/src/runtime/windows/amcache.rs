@@ -10,14 +10,7 @@ use log::error;
 /// Expose parsing amcache located on systemdrive to `Deno`
 pub(crate) fn get_amcache() -> Result<String, AnyError> {
     let options = AmcacheOptions { alt_drive: None };
-    let amcache_results = grab_amcache(&options);
-    let amcache = match amcache_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse amcache: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let amcache = grab_amcache(&options)?;
 
     let results = serde_json::to_string(&amcache)?;
     Ok(results)
@@ -37,14 +30,7 @@ pub(crate) fn get_alt_amcache(#[string] drive: String) -> Result<String, AnyErro
         alt_drive: Some(drive_char.to_owned()),
     };
 
-    let amcache_results = grab_amcache(&options);
-    let amcache = match amcache_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse alt amcache: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let amcache = grab_amcache(&options)?;
 
     let results = serde_json::to_string(&amcache)?;
     Ok(results)

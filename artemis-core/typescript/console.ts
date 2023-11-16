@@ -24,18 +24,26 @@ class Console {
   }
 
   log = (...args: any) => {
-    core.print(`[runtime]: ${this.argsToMessage(...args)}\n`, false);
+    const result = this.argsToMessage(...args);
+    core.ops.js_log("info", result);
+    core.print(`[runtime]: ${result}\n`, false);
   };
 
   error = (...args: any) => {
+    const result = this.argsToMessage(...args);
+    core.ops.js_log("error", result);
     core.print(`[runtime-error]: ${this.argsToMessage(...args)}\n`, true);
   };
 
   info = (...args: any) => {
+    const result = this.argsToMessage(...args);
+    core.ops.js_log("info", result);
     core.print(`[runtime-info]: ${this.argsToMessage(...args)}\n`, true);
   };
 
   warn = (...args: any) => {
+    const result = this.argsToMessage(...args);
+    core.ops.js_log("warn", result);
     core.print(`[runtime-warn]: ${this.argsToMessage(...args)}\n`, true);
   };
 

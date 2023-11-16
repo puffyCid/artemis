@@ -10,14 +10,7 @@ use log::error;
 /// Expose parsing usnjrnl located on systemdrive to `Deno`
 pub(crate) fn get_usnjrnl() -> Result<String, AnyError> {
     let options = UsnJrnlOptions { alt_drive: None };
-    let jrnl_results = grab_usnjrnl(&options);
-    let jrnl = match jrnl_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse usnjrnl: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let jrnl = grab_usnjrnl(&options)?;
 
     let results = serde_json::to_string(&jrnl)?;
     Ok(results)
@@ -37,14 +30,7 @@ pub(crate) fn get_alt_usnjrnl(#[string] drive: String) -> Result<String, AnyErro
         alt_drive: Some(drive_char.to_owned()),
     };
 
-    let jrnl_results = grab_usnjrnl(&options);
-    let jrnl = match jrnl_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse usnjrnl: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let jrnl = grab_usnjrnl(&options)?;
 
     let results = serde_json::to_string(&jrnl)?;
     Ok(results)

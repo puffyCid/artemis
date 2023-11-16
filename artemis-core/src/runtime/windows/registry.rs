@@ -1,10 +1,8 @@
 use crate::{
     artifacts::os::windows::registry::helper::{get_registry_keys, lookup_sk_info},
-    runtime::error::RuntimeError,
     utils::regex_options::create_regex,
 };
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
@@ -12,14 +10,7 @@ use log::error;
 pub(crate) fn get_registry(#[string] path: String) -> Result<String, AnyError> {
     let all = create_regex("").unwrap(); // Valid regex
     let start_root = "";
-    let reg_results = get_registry_keys(start_root, &all, &path);
-    let reg = match reg_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse registry file: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let reg = get_registry_keys(start_root, &all, &path)?;
 
     let results = serde_json::to_string(&reg)?;
     Ok(results)
@@ -29,14 +20,7 @@ pub(crate) fn get_registry(#[string] path: String) -> Result<String, AnyError> {
 #[string]
 /// Expose parsing the Security Key to `Deno`
 pub(crate) fn get_sk_info(#[string] path: String, offset: i32) -> Result<String, AnyError> {
-    let sk_result = lookup_sk_info(&path, offset);
-    let sk = match sk_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Failed to parse registry file: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let sk = lookup_sk_info(&path, offset)?;
 
     let results = serde_json::to_string(&sk)?;
     Ok(results)

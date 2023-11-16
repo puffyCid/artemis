@@ -41,6 +41,7 @@ pub struct RegistryOptions {
 #[derive(Debug, Deserialize)]
 pub struct UserAssistOptions {
     pub alt_drive: Option<char>,
+    pub resolve_descriptions: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

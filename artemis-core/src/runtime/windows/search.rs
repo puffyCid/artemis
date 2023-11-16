@@ -12,14 +12,7 @@ pub(crate) fn get_search(#[string] path: String) -> Result<String, AnyError> {
         error!("[runtime] Empty path to Search file");
         return Err(RuntimeError::ExecuteScript.into());
     }
-    let search_results = grab_search_path(&path);
-    let search = match search_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse Search: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
+    let search = grab_search_path(&path)?;
 
     let results = serde_json::to_string(&search)?;
     Ok(results)
