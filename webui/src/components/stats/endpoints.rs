@@ -1,3 +1,4 @@
+use crate::web::server::server_info;
 use common::server::EndpointOS;
 use leptos::logging::error;
 use leptos::{component, create_resource, view, IntoView, SignalGet, Transition};
@@ -10,11 +11,7 @@ pub(crate) fn Stats(
     os: EndpointOS,
     html: String,
 ) -> impl IntoView {
-    let port: u16 = 8000;
-    let count = create_resource(
-        || (),
-        move |_| async move { endpoint_stats(&os, &port).await },
-    );
+    let count = create_resource(|| (), move |_| async move { endpoint_stats(&os).await });
 
     view! {
         <div class="stat shadow">
@@ -30,8 +27,16 @@ pub(crate) fn Stats(
 }
 
 /// Request count of endpoints enrolled
-async fn endpoint_stats(os: &EndpointOS, port: &u16) -> u32 {
-    let uri = format!("http://127.0.0.1:{port}/ui/v1/endpoint_stats");
+async fn endpoint_stats(os: &EndpointOS) -> u32 {
+    let server_result = server_info().await;
+    let (server, port) = match server_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to get server IP: {err:?}");
+            return 0;
+        }
+    };
+    let uri = format!("http://{server}:{port}/ui/v1/endpoint_stats");
     let client = Client::new()
         .post(uri)
         .body(serde_json::to_string(&os).unwrap_or_default())
@@ -62,20 +67,5 @@ async fn endpoint_stats(os: &EndpointOS, port: &u16) -> u32 {
             error!("Failed to parse {os:?} endpoint count {count_str}: {err:?}");
             0
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{endpoint_stats, EndpointOS};
-    use httpmock::MockServer;
-
-    #[tokio::test]
-    async fn test_endpoint_stats() {
-        let server = MockServer::start();
-        let port = server.port();
-
-        let os = EndpointOS::All;
-        let _stats = endpoint_stats(&os, &port).await;
     }
 }

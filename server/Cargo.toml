@@ -29,9 +29,9 @@ toml = { workspace = true }
 futures = "0.3.29"
 flate2 = { workspace = true }
 rust-embed = "8.0.0"
-common = {path = "../common"}
+common = { path = "../common" }
 glob = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }
-hyper = { version = "0.14.27", features = ["full"] }
+hyper = { version = "1.0.0", features = ["full"] }
