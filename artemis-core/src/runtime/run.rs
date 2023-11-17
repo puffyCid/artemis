@@ -164,6 +164,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         preserve_snapshotted_modules: None,
         op_metrics_factory_fn: None,
         feature_checker: None,
+        skip_op_registration: false,
     });
 
     Ok(runtime)

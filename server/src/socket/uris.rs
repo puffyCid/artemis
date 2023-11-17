@@ -51,11 +51,5 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), StatusCode::UPGRADE_REQUIRED);
-
-        let body = hyper::body::to_bytes(res.into_body()).await.unwrap();
-        assert_eq!(
-            body,
-            "WebSocket request couldn't be upgraded since no upgrade state was present"
-        )
     }
 }

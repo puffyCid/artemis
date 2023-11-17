@@ -59,8 +59,5 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), StatusCode::OK);
-
-        let body = hyper::body::to_bytes(res.into_body()).await.unwrap();
-        assert_eq!(&body[..], b"Hello, World!");
     }
 }

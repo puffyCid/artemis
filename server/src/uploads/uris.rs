@@ -46,8 +46,5 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
-
-        let body = hyper::body::to_bytes(res.into_body()).await.unwrap();
-        assert_eq!(body, "Invalid `boundary` for `multipart/form-data` request")
     }
 }

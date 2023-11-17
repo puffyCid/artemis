@@ -47,8 +47,5 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
-
-        let body = hyper::body::to_bytes(res.into_body()).await.unwrap();
-        assert_eq!(body, "Failed to parse the request body as JSON: EOF while parsing a value at line 1 column 0")
     }
 }

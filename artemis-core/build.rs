@@ -35,6 +35,7 @@ fn main() {
             extensions: vec![extensions],
             compression_cb: None,
             with_runtime_cb: Default::default(),
+            skip_op_registration: false,
         },
     );
 }

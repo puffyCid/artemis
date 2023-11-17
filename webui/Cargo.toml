@@ -8,12 +8,11 @@ license = "MIT"
 
 [dependencies]
 leptos = { version = "0.5.2", features = ["csr"] }
-leptos_router = { version = "0.5.2", default-features = false, features = ["csr"] }
+leptos_router = { version = "0.5.2", default-features = false, features = [
+    "csr",
+] }
 leptos_meta = "0.5.2"
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
-
-[dev-dependencies]
-tokio = { version = "1.33.0", features = ["macros"] }
-httpmock = "0.6.8"
+web-sys = { version = "0.3.65", features = ["Location", "Window"] }

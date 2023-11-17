@@ -1,4 +1,6 @@
 mod components;
+mod web;
+
 use crate::components::{footer::Footer, menu::Menu, stats::endpoints::Stats};
 use common::server::EndpointOS;
 use leptos::{component, mount_to_body, view, IntoView};
