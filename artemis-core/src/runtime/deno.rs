@@ -33,7 +33,7 @@ pub(crate) fn filter_script(
 /// Execute raw JavaScript code
 pub(crate) fn raw_script(script: &str) -> Result<(), RuntimeError> {
     let args = [];
-    let result = if script.contains(" async ") || script.contains(" await ") {
+    let result = if script.contains("async function ") || script.contains(" await ") {
         run_async_script(script, &args)
     } else {
         run_script(script, &args)
@@ -80,7 +80,7 @@ fn decode_script(
         }
     };
 
-    let result = if script.contains(" async ") || script.contains(" await ") {
+    let result = if script.contains("async function") || script.contains(" await ") {
         run_async_script(script, args)
     } else {
         run_script(script, args)
