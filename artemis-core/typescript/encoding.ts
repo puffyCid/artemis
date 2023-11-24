@@ -53,6 +53,29 @@ class Encoding {
     bytes_to_hex_string = (data: Uint8Array) => {
         return core.ops.js_bytes_to_hex_string(data);
     };
+    /**
+     * Convert bytes to LE format GUID. Common on Windows
+     * @param data Raw bytes to convert to LE js_format_guid_be_bytes
+     * @returns GUID string
+     */
+    bytes_to_le_guid = (data: Uint8Array) => {
+        return core.ops.js_format_guid_le_bytes(data);
+    }
+    /**
+     * Convert bytes to BE GUID. Common on macOS
+     * @param data Raw bytes to convert to GE GUID
+     * @returns GUID string
+     */
+    bytes_to_be_guid = (data: Uint8Array) => {
+        return core.ops.js_format_guid_be_bytes(data);
+    }
+    /**
+     * Generate a UUID string
+     * @returns UUID string
+     */
+    generate_uuid = () => {
+        return core.ops.js_generate_uuid();
+    }
 }
 
 export const encoding = new Encoding();

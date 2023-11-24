@@ -6,7 +6,7 @@ resolver = "2"
 strip = true
 
 [workspace.dependencies]
-serde = { version = "1.0.192", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
 log = "0.4.20"
 serde_json = "1.0.108"
 toml = "0.8.8"

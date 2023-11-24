@@ -165,6 +165,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         op_metrics_factory_fn: None,
         feature_checker: None,
         skip_op_registration: false,
+        validate_import_attributes_cb: Default::default(),
     });
 
     Ok(runtime)

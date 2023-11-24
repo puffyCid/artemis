@@ -25,7 +25,7 @@ byteorder = "1.5.0"
 walkdir = "2.4.0"
 sysinfo = "0.29.10"
 home = "0.5.5"
-uuid = { version = "1.5.0", features = ["v4"] }
+uuid = { version = "1.6.1", features = ["v4"] }
 chrono = "0.4.31"
 simplelog = "0.12.1"
 zip = { version = "0.6.6", default-features = false }
@@ -37,7 +37,7 @@ xml2json-rs = "1.0.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.230.0" }
+deno_core = { version = "0.232.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
@@ -51,7 +51,7 @@ pelite = "0.10.0"
 
 # Linux Dependencies
 [target.'cfg(target_os = "linux")'.dependencies]
-elf = "0.7.3"
+elf = "0.7.4"
 ruzstd = "0.5.0"
 lz4_flex = "0.11.1"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
@@ -63,7 +63,7 @@ plist = "1.6.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.230.0" }
+deno_core = { version = "0.232.0" }
 
 # Dependencies for tests
 [dev-dependencies]
