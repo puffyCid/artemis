@@ -24,7 +24,7 @@ tokio = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-uuid = { version = "1.5.0", features = ["v4"] }
+uuid = { version = "1.6.1", features = ["v4"] }
 toml = { workspace = true }
 futures = "0.3.29"
 flate2 = { workspace = true }
@@ -34,4 +34,4 @@ glob = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }
-hyper = { version = "1.0.0", features = ["full"] }
+hyper = { version = "1.0.1", features = ["full"] }

@@ -6,7 +6,6 @@ pub(crate) fn generate_uuid() -> String {
     Uuid::new_v4().hyphenated().to_string()
 }
 
-#[cfg(target_os = "windows")]
 /// Convert little endian bytes to a UUID/GUID string
 pub(crate) fn format_guid_le_bytes(data: &[u8]) -> String {
     let guid_size = 16;
@@ -28,7 +27,6 @@ pub(crate) fn format_guid_le_bytes(data: &[u8]) -> String {
     }
 }
 
-#[cfg(target_os = "macos")]
 /// Convert big endian bytes to a UUID/GUID string
 pub(crate) fn format_guid_be_bytes(data: &[u8]) -> String {
     let guid_size = 16;
@@ -55,6 +53,8 @@ pub(crate) fn format_guid_be_bytes(data: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::generate_uuid;
+    use crate::utils::uuid::format_guid_be_bytes;
+    use crate::utils::uuid::format_guid_le_bytes;
 
     #[test]
     fn test_generate_uuid() {
@@ -66,10 +66,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_format_guid_le_bytes() {
-        use crate::utils::uuid::format_guid_le_bytes;
-
         let test_data = [
             17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
         ];
@@ -78,10 +75,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_format_bad_guid_le_bytes() {
-        use crate::utils::uuid::format_guid_le_bytes;
-
         let test_data = [17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17];
         let guid = format_guid_le_bytes(&test_data);
         assert_eq!(
@@ -91,10 +85,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn test_format_guid_be_bytes() {
-        use crate::utils::uuid::format_guid_be_bytes;
-
         let test_data = [
             118, 176, 112, 103, 44, 205, 62, 212, 191, 187, 89, 4, 99, 208, 235, 224,
         ];
@@ -103,10 +94,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn test_format_bad_guid_be_bytes() {
-        use crate::utils::uuid::format_guid_be_bytes;
-
         let test_data = [
             118, 176, 112, 103, 44, 205, 62, 212, 191, 187, 89, 4, 99, 208, 235, 224, 117,
         ];
