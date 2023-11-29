@@ -7,12 +7,12 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-leptos = { version = "0.5.2", features = ["csr"] }
-leptos_router = { version = "0.5.2", default-features = false, features = [
+leptos = { version = "0.5.3", features = ["csr"] }
+leptos_router = { version = "0.5.3", default-features = false, features = [
     "csr",
 ] }
-leptos_meta = "0.5.2"
+leptos_meta = "0.5.3"
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
-web-sys = { version = "0.3.65", features = ["Location", "Window"] }
+web-sys = { version = "0.3.66", features = ["Location", "Window"] }

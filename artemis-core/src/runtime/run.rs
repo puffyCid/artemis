@@ -166,6 +166,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         feature_checker: None,
         skip_op_registration: false,
         validate_import_attributes_cb: Default::default(),
+        import_meta_resolve_callback: Default::default(),
     });
 
     Ok(runtime)

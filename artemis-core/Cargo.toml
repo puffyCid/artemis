@@ -23,7 +23,7 @@ sha2 = "0.10.8"
 regex = "1.10.2"
 byteorder = "1.5.0"
 walkdir = "2.4.0"
-sysinfo = "0.29.10"
+sysinfo = "0.29.11"
 home = "0.5.5"
 uuid = { version = "1.6.1", features = ["v4"] }
 chrono = "0.4.31"
@@ -37,7 +37,7 @@ xml2json-rs = "1.0.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.232.0" }
+deno_core = { version = "0.233.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
@@ -63,7 +63,7 @@ plist = "1.6.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.232.0" }
+deno_core = { version = "0.233.0" }
 
 # Dependencies for tests
 [dev-dependencies]

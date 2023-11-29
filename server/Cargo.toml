@@ -8,7 +8,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.6.20", default-features = false, features = [
+axum = { version = "0.7.1", default-features = false, features = [
     "http2",
     "json",
     "matched-path",
