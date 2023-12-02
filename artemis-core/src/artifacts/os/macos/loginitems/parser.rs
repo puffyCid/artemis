@@ -60,7 +60,7 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
             continue;
         }
 
-        let results = parse_loginitems(ventura_loginitems);
+        let results = parse_loginitems(&item.full_path);
         match results {
             Ok(mut data) => loginitems_data.append(&mut data),
             Err(err) => {
