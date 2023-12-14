@@ -1440,3 +1440,14 @@ pub enum Source {
     ReplicationManagement,
     None,
 }
+
+
+pub(crate) struct WmiInfo {
+    event_filter_name: String,
+    filter_query: String,
+    event_consumer_name: String,
+    consumer_arguments: String,
+    binding_id: String,
+    consumer_type: String,
+    consumer: String
+}
