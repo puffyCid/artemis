@@ -2,12 +2,12 @@ use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 
 #[derive(Debug)]
 pub(crate) struct MapInfo {
-    seq_number: u32,
+    pub(crate) seq_number: u32,
     number_pages: u32,
-    mappings: Vec<u32>,
-    seq_number2: u32,
+    pub(crate) mappings: Vec<u32>,
+    pub(crate) seq_number2: u32,
     number_pages2: u32,
-    mappings2: Vec<u32>,
+    pub(crate) mappings2: Vec<u32>,
 }
 
 /**

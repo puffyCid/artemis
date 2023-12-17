@@ -78,7 +78,7 @@ pub(crate) struct IndexBody {
     array_key_offset: Vec<u16>,
     key_data: Vec<u16>,
     array_value_offsets: Vec<u16>,
-    value_data: Vec<String>,
+    pub(crate) value_data: Vec<String>,
 }
 
 fn parse_body(data: &[u8]) -> nom::IResult<&[u8], IndexBody> {

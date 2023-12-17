@@ -17,10 +17,10 @@ use std::mem::size_of;
 
 #[derive(Debug)]
 pub(crate) struct ClassInfo {
-    super_class_name: String,
-    class_name: String,
-    qualifiers: Vec<Qualifier>,
-    properties: Vec<Property>,
+    pub(crate) super_class_name: String,
+    pub(crate) class_name: String,
+    pub(crate) qualifiers: Vec<Qualifier>,
+    pub(crate) properties: Vec<Property>,
 }
 
 #[derive(Debug)]
@@ -70,6 +70,10 @@ pub(crate) enum CimType {
     ArrayUint16,
     ArrayUint32,
     ArrayUint64,
+    ArrayChar,
+    ArrayObject,
+    ByteRefString,
+    ByteRefUint32,
     Unknown,
     None,
 }
@@ -103,13 +107,22 @@ pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
             ErrorKind::Fail,
         )));
     }
-
     // Most significant bit is always set
     let (input, prop_value_data) = take(prop_value_size - adjust_msb)(input)?;
 
     let (_, class_name) = get_class_name(class_name_offset, prop_value_data)?;
-    let (_, super_class_name) = extract_cim_string(super_class_name_data)?;
+
+    // If the Super Class name size is 4 then there is no name because the size value also includes the 4 byte size value itself.
+    let super_class_name = if !super_class_name_data.is_empty() {
+        let (_, name) = extract_cim_string(super_class_name_data)?;
+        name
+    } else {
+        String::new()
+    };
+
+    println!("quals?");
     let (_, qualifiers) = parse_qualifier(qual_data, prop_value_data)?;
+    println!("props");
     let (_, properties) = parse_property(prop_data, prop_value_data)?;
 
     let class_info = ClassInfo {
@@ -124,6 +137,13 @@ pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
 
 /// Extract the Class name
 fn get_class_name(offset: u32, data: &[u8]) -> nom::IResult<&[u8], String> {
+    if offset as usize > data.len() {
+        println!(
+            "[wmi] offset larger than data length: {offset} vs data len: {:?}",
+            data.len()
+        );
+        return Ok((data, String::new()));
+    }
     let (mut start_data, _) = take(offset)(data)?;
     if offset == 0 {
         start_data = data;
@@ -155,6 +175,7 @@ fn parse_qualifier<'a>(
             let (_, value) = get_class_name(name_offset, value_data)?;
             value
         };
+        println!("qual name: {name}");
 
         let mut qual = Qualifier {
             name,
@@ -163,6 +184,7 @@ fn parse_qualifier<'a>(
         };
 
         let (input, value) = extract_cim_data(&qual.value_data_type, input, value_data)?;
+        println!("qual value: {value:?}");
         qual.data = value;
 
         qual_data = input;
@@ -183,6 +205,7 @@ fn parse_property<'a>(
 
     let mut props = Vec::new();
     while prop_data.len() >= min_size {
+        println!("prop data: {prop_data:?}");
         let (input, name_offset) = nom_unsigned_four_bytes(prop_data, Endian::Le)?;
         let msb_set: u32 = 0x80000000;
         let name = if name_offset > msb_set {
@@ -193,8 +216,16 @@ fn parse_property<'a>(
             value
         };
 
+        println!("prop name: {name}");
+
         let (input, prop_definition_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
         prop_data = input;
+
+        if prop_definition_offset as usize > value_data.len() {
+            println!("{prop_definition_offset}");
+            println!("{:?}", value_data.len());
+            panic!("prop offset too large?");
+        }
 
         let (input, _) = take(prop_definition_offset)(value_data)?;
 
@@ -205,8 +236,22 @@ fn parse_property<'a>(
         let (input, qual_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let adjust_size = 4;
-        let (_, qual_data) = take(qual_size - adjust_size)(input)?;
-        let (_, qualifiers) = parse_qualifier(qual_data, value_data)?;
+        let qualifiers = if qual_size > adjust_size {
+            if (qual_size - adjust_size) as usize > input.len() {
+                // println!("{qual_size}");
+                // println!("{:?}", input.len());
+                // println!("{:?}", value_data);
+                println!("qual offset too large?");
+                Vec::new()
+            } else {
+                let (_, qual_data) = take(qual_size - adjust_size)(input)?;
+                println!("parse qualifier from prop data");
+                let (_, qualifiers) = parse_qualifier(qual_data, value_data)?;
+                qualifiers
+            }
+        } else {
+            Vec::new()
+        };
 
         let prop = Property {
             name,
@@ -216,7 +261,6 @@ fn parse_property<'a>(
             data_offset,
             class_level,
         };
-
         props.push(prop);
     }
 
@@ -229,8 +273,8 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
     let (input, string_type) = nom_unsigned_one_byte(data, Endian::Le)?;
 
     if string_type != 0 {
-        println!("{data:?}");
-        panic!("hmmm got non-string type");
+        warn!("[wmi] CIM String is using unknown encoding/raw bytes. Cannot extract.");
+        return Ok((input, String::new()));
     }
 
     // CIM strings are ASCII with end of string character
@@ -286,9 +330,12 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
         0x2013 => CimType::ArrayUint32,
         0x2014 => CimType::ArraySint64,
         0x2015 => CimType::ArrayUint64,
+        0x2067 => CimType::ArrayChar,
+        0x4008 => CimType::ByteRefString,
+        0x4013 => CimType::ByteRefUint32,
+        0x200d => CimType::ArrayObject,
         _ => {
-            println!("{data_type}");
-            panic!("need to handle?:)");
+            println!("unknown cim type: {data_type}");
             CimType::Unknown
         }
     }
@@ -302,6 +349,7 @@ fn extract_cim_data<'a>(
 ) -> nom::IResult<&'a [u8], Value> {
     let cim_value;
     let remaining;
+    println!("cim type: {cim_type:?}");
     match cim_type {
         CimType::String => {
             let (input, qual_data_offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
@@ -316,7 +364,9 @@ fn extract_cim_data<'a>(
             panic!("datetime. see CIM Datetime libyal");
         }
         CimType::Unknown => {
-            panic!("unknown. what??? see libyal");
+            println!("unknown. what??? see libyal");
+            cim_value = Value::Null;
+            remaining = &[];
         }
         CimType::ArrayString => {
             // Array value is offset to array length
@@ -324,16 +374,29 @@ fn extract_cim_data<'a>(
                 nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
 
+            println!("array offset: {string_count_offset}");
+            println!("data len: {}", data.len());
             // Offset from the property value data
             let (input, _) = take(string_count_offset)(data)?;
             let (mut string_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            println!("count: {count}");
+
+            if count as usize > data.len() {
+                println!("remaining: {remaining_input:?}");
+                println!("offset start: {input:?}");
+                println!("count too large?");
+                cim_value = Value::Null;
+                //return Ok((remaining, cim_value));
+                panic!("value data: {data:?}");
+            }
 
             let mut strings = Vec::new();
             let mut string_count = 0;
             // Parse array of strings
-            while string_count < count {
+            while string_count < count && string_data.len() > 4 {
                 let (next_offset, offset) = nom_unsigned_four_bytes(string_data, Endian::Le)?;
                 let (_, string_value) = get_class_name(offset, data)?;
+                println!("array string value: {string_value}");
 
                 string_count += 1;
                 strings.push(string_value);
@@ -407,13 +470,53 @@ fn extract_cim_data<'a>(
             cim_value = Value::String(result.to_string());
             remaining = input;
         }
+        CimType::ArrayChar => {
+            // Array value is offset to array length
+            let (input, string_count_offset) =
+                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            // Offset from the property value data
+            let (input, _) = take(string_count_offset)(data)?;
+            let (mut string_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            let mut strings = Vec::new();
+            let mut string_count = 0;
+            // Parse array of chars
+            while string_count < count {
+                let (next_offset, value) = nom_unsigned_two_bytes(string_data, Endian::Le)?;
+                let string_value = char::from_digit(value as u32, 10)
+                    .unwrap_or_default()
+                    .to_string();
+
+                string_count += 1;
+                strings.push(string_value);
+                string_data = next_offset;
+            }
+            cim_value = json!(strings);
+        }
+        CimType::ArrayObject => {
+            // Array value is offset to array length
+            let (input, string_count_offset) =
+                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            // Offset from the property value data
+            let (input, _) = take(string_count_offset)(data)?;
+            let (mut object_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            panic!("{object_data:?}");
+
+            let mut objects: Vec<Value> = Vec::new();
+            let mut object_count = 0;
+        }
         CimType::Uint32 => {
             let (input, value) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             cim_value = Value::Number(value.into());
             remaining = input;
         }
         _ => {
-            panic!("{cim_type:?}");
+            println!("{remaining_input:?}");
+            panic!("odd: {cim_type:?}");
             warn!("[wmi] Unknown CIM Type: {cim_type:?}");
             let (input, _) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
@@ -427,8 +530,8 @@ fn extract_cim_data<'a>(
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_cim_data, get_cim_data_type, get_class_name, get_predefine_name, parse_class,
-        parse_qualifier,
+        extract_cim_data, extract_cim_string, get_cim_data_type, get_class_name,
+        get_predefine_name, parse_class, parse_qualifier,
     };
     use crate::{
         artifacts::os::windows::wmi::class::{parse_property, CimType},
@@ -591,5 +694,15 @@ mod tests {
 
         let (_, result) = extract_cim_data(&CimType::String, &remaining_input, &data).unwrap();
         assert_eq!(result, Value::String(String::from("25")));
+    }
+
+    #[test]
+    fn test_extract_cim_string() {
+        let data = [
+            0, 77, 83, 70, 84, 95, 68, 79, 85, 112, 108, 111, 97, 100, 85, 115, 97, 103, 101, 0,
+        ];
+
+        let (_, result) = extract_cim_string(&data).unwrap();
+        assert_eq!(result, "MSFT_DOUploadUsage");
     }
 }

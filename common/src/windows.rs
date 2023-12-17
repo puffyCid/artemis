@@ -1441,7 +1441,6 @@ pub enum Source {
     None,
 }
 
-
 pub(crate) struct WmiInfo {
     event_filter_name: String,
     filter_query: String,
@@ -1449,5 +1448,5 @@ pub(crate) struct WmiInfo {
     consumer_arguments: String,
     binding_id: String,
     consumer_type: String,
-    consumer: String
+    consumer: String,
 }

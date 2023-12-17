@@ -1,11 +1,8 @@
+use super::class::{parse_class, ClassInfo};
 use crate::utils::nom_helper::{
     nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
 };
 use nom::bytes::complete::take;
-
-use super::class::parse_class;
-
-// Store as hashmap<recordID, objectpage> instead???
 
 /// Parse Objects.data file
 pub(crate) fn parse_objects(data: &[u8]) -> nom::IResult<&[u8], Vec<ObjectPage>> {
@@ -14,7 +11,6 @@ pub(crate) fn parse_objects(data: &[u8]) -> nom::IResult<&[u8], Vec<ObjectPage>>
 
     let mut objects = Vec::new();
     while input.len() >= page_size {
-        println!("{}", input.len());
         let (remaining, page_data) = take(page_size)(input)?;
         let (remaining, mut object_page) = parse_page(page_data, remaining)?;
         input = remaining;
@@ -26,11 +22,11 @@ pub(crate) fn parse_objects(data: &[u8]) -> nom::IResult<&[u8], Vec<ObjectPage>>
 
 #[derive(Debug)]
 pub(crate) struct ObjectPage {
-    record_id: u32,
+    pub(crate) record_id: u32,
     offset: u32,
     size: u32,
     checksum: u32,
-    object_data: Vec<u8>,
+    pub(crate) object_data: Vec<u8>,
 }
 
 /// Parse the object page
@@ -44,13 +40,9 @@ fn parse_page<'a>(
 
     loop {
         let (remaining, record_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        println!("ID: {record_id}");
         let (remaining, offset) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
         let (remaining, size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
         let (remaining, checksum) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
-
-        println!("offset: {offset}");
-        println!("size: {size}");
         let page_size: u32 = 8192;
 
         // Last entry is 16 bytes of zeros
@@ -65,7 +57,6 @@ fn parse_page<'a>(
         }
 
         let (data_start, _) = take(offset)(data)?;
-
         let mut object = ObjectPage {
             record_id,
             offset,
@@ -75,17 +66,13 @@ fn parse_page<'a>(
         };
 
         if size > page_size {
-            println!("extra pages: {}", (size as f32 / page_size as f32).round());
             let (remaining_input, large_data) = take(
                 ((size as f32 / page_size as f32).round() as u32) * page_size,
             )(page_remaining)?;
 
             page_remaining = remaining_input;
-            println!("original size: {}", data_start.len());
             let mut object_page = data_start.to_vec();
             object_page.append(&mut large_data.to_vec());
-
-            println!("len: {}", object_page.len());
 
             let data_result = nom_data(&object_page, size as u64);
             match data_result {
@@ -100,14 +87,13 @@ fn parse_page<'a>(
         }
 
         objects.push(object);
-
         input = remaining;
     }
 
     Ok((page_remaining, objects))
 }
 
-pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ()> {
+pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, super_class_name_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let adjust_size = 2;
 
@@ -119,20 +105,21 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ()> {
     let adjust_class_size = 4;
     // Class size includes size itself. We already nom'd that
     let (input, class_data) = take(class_size - adjust_class_size)(input)?;
-
     let (_, class_info) = parse_class(class_data)?;
 
     // Remaining input if any is method data. Which is undocumented
 
-    Ok((input, ()))
+    Ok((input, class_info))
 }
 
 #[cfg(test)]
 mod tests {
     use super::parse_page;
     use crate::{
-        artifacts::os::windows::wmi::objects::parse_objects, filesystem::files::read_file,
+        artifacts::os::windows::wmi::objects::{parse_objects, parse_record},
+        filesystem::files::read_file,
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_page_page() {
@@ -173,6 +160,17 @@ mod tests {
         let (_, results) = parse_objects(&data).unwrap();
 
         assert!(results.len() > 10);
-        println!("{:?}", results[2102]);
+    }
+
+    #[test]
+    fn test_parse_record() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/wmi/object_record.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+
+        let (_, results) = parse_record(&data).unwrap();
+
+        assert_eq!(results.properties.len(), 3);
     }
 }
