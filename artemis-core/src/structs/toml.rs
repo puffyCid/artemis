@@ -58,7 +58,7 @@ pub struct Artifacts {
     pub execpolicy: Option<ExecPolicyOptions>,
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,
-    pub fsevents: Option<FseventsOptions>,
+    pub fseventsd: Option<FseventsOptions>,
 }
 
 #[derive(Debug, Deserialize)]

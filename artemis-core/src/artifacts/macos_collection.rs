@@ -52,7 +52,7 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "fseventsd" => {
-                let options = match &artifacts.fsevents {
+                let options = match &artifacts.fseventsd {
                     Some(result_data) => result_data,
                     _ => continue,
                 };

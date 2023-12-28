@@ -71,7 +71,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         execpolicy: None,
         loginitems: None,
         launchd: None,
-        fsevents: None,
+        fseventsd: None,
         users: None,
         groups: None,
     };
@@ -135,7 +135,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             let options = FseventsOptions {
                 alt_file: alt_file.clone(),
             };
-            collect.fsevents = Some(options);
+            collect.fseventsd = Some(options);
             collect.artifact_name = String::from("fseventsd");
         }
         CommandArgs::Execpolicy { alt_file } => {
