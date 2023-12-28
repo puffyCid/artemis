@@ -141,10 +141,10 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.amcache = Some(options);
             collect.artifact_name = String::from("amcache");
         }
-        CommandArgs::Bits { carve, alt_path } => {
+        CommandArgs::Bits { carve, alt_file } => {
             let options = BitsOptions {
                 carve: *carve,
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
             };
             collect.bits = Some(options);
             collect.artifact_name = String::from("bits");
@@ -219,9 +219,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.registry = Some(options);
             collect.artifact_name = String::from("registry");
         }
-        CommandArgs::Search { alt_path } => {
+        CommandArgs::Search { alt_file } => {
             let options = SearchOptions {
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
             };
             collect.search = Some(options);
             collect.artifact_name = String::from("search");
@@ -263,9 +263,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.shortcuts = Some(options);
             collect.artifact_name = String::from("shortcuts");
         }
-        CommandArgs::Srum { alt_path } => {
+        CommandArgs::Srum { alt_file } => {
             let options = SrumOptions {
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
             };
             collect.srum = Some(options);
             collect.artifact_name = String::from("srum");

@@ -12,12 +12,29 @@ use crate::{
         directory::{get_user_paths, is_directory},
         files::list_files,
     },
+    structs::artifacts::os::macos::LaunchdOptions,
 };
 use common::macos::LaunchdPlist;
 use log::{error, warn};
 
 /// Grab `LuanchDaemons` and `LaunchAgents`
-pub(crate) fn grab_launchd() -> Result<Vec<LaunchdPlist>, LaunchdError> {
+pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>, LaunchdError> {
+    if let Some(alt_file) = &options.alt_file {
+        let results = parse_plist_file_dict(alt_file);
+        let launchd_data = match results {
+            Ok(launchd_data_dictionary) => LaunchdPlist {
+                launchd_data: launchd_data_dictionary,
+                plist_path: alt_file.to_string(),
+            },
+            Err(err) => {
+                warn!("[launchd] Failed to parse plist file {alt_file}: {err:?}");
+                return Err(LaunchdError::Files);
+            }
+        };
+
+        return Ok(vec![launchd_data]);
+    }
+
     let mut launchd = grab_launchd_daemons()?;
     let mut agents = grab_launchd_agents()?;
     launchd.append(&mut agents);
@@ -54,7 +71,7 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
                 };
                 launchd_plist_vec.push(launchd_data);
             }
-            Err(err) => warn!("[launchd] Failed to parse plist file {data}: {err:?}",),
+            Err(err) => warn!("[launchd] Failed to parse plist file {data}: {err:?}"),
         }
     }
     Ok(launchd_plist_vec)
@@ -171,12 +188,20 @@ fn launchd_data(path: &str) -> Result<Vec<String>, LaunchdError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::macos::launchd::launchdaemon::launchd_data;
-
     use super::{
-        grab_launchd_agents, grab_launchd_daemons, system_launchd_agents, system_launchd_daemons,
-        user_launchd_agents, user_launchd_daemons,
+        grab_launchd, grab_launchd_agents, grab_launchd_daemons, system_launchd_agents,
+        system_launchd_daemons, user_launchd_agents, user_launchd_daemons,
     };
+    use crate::{
+        artifacts::os::macos::launchd::launchdaemon::launchd_data,
+        structs::artifacts::os::macos::LaunchdOptions,
+    };
+
+    #[test]
+    fn test_grab_launchd() {
+        let results = grab_launchd(&LaunchdOptions { alt_file: None }).unwrap();
+        assert!(results.len() > 5);
+    }
 
     #[test]
     fn test_grab_launchd_daemons() {

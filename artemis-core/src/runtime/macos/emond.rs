@@ -1,11 +1,20 @@
-use crate::artifacts::os::macos::emond::parser::grab_emond;
+use crate::{
+    artifacts::os::macos::emond::parser::grab_emond, structs::artifacts::os::macos::EmondOptions,
+};
 use deno_core::{error::AnyError, op2};
 
 #[op2]
 #[string]
 /// Expose parsing Emond to `Deno`
-pub(crate) fn get_emond() -> Result<String, AnyError> {
-    let emond = grab_emond()?;
+pub(crate) fn get_emond(#[string] path: String) -> Result<String, AnyError> {
+    let options = if path.is_empty() {
+        EmondOptions { alt_path: None }
+    } else {
+        EmondOptions {
+            alt_path: Some(path),
+        }
+    };
+    let emond = grab_emond(&options)?;
     let results = serde_json::to_string(&emond)?;
     Ok(results)
 }

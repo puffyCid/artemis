@@ -1,11 +1,16 @@
-use crate::artifacts::os::macos::execpolicy::policy::grab_execpolicy;
+use crate::{
+    artifacts::os::macos::execpolicy::policy::grab_execpolicy,
+    structs::artifacts::os::macos::ExecPolicyOptions,
+};
 use deno_core::{error::AnyError, op2};
 
 #[op2]
 #[string]
 /// Expose parsing ExecPolicy to `Deno`
-pub(crate) fn get_execpolicy() -> Result<String, AnyError> {
-    let policy = grab_execpolicy()?;
+pub(crate) fn get_execpolicy(#[string] path: String) -> Result<String, AnyError> {
+    let policy = grab_execpolicy(&ExecPolicyOptions {
+        alt_file: Some(path),
+    })?;
     let results = serde_json::to_string(&policy)?;
     Ok(results)
 }

@@ -192,16 +192,16 @@ pub(crate) enum CommandArgs {
         /// Try to parse deleted BITS entries
         #[arg(long)]
         carve: bool,
-        /// Alternative BITS path to use
+        /// Alternative BITS file to use
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse SRUM
     Srum {
         /// Alternative SRUM file path
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Users
@@ -215,7 +215,7 @@ pub(crate) enum CommandArgs {
     Search {
         /// Alternative Search file path
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Windows Tasks
@@ -248,25 +248,53 @@ pub(crate) enum CommandArgs {
 
     #[cfg(target_os = "macos")]
     /// Parse ExecPolicy
-    Execpolicy {},
+    Execpolicy {
+        /// Alternative file path
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Collect local users
-    Users {},
+    Users {
+        /// Alternative path to users
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Parse FsEvents entries
-    Fsevents {},
+    Fsevents {
+        /// Alternative file path
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Parse Emond persistence. Removed in Ventura
-    Emond {},
+    Emond {
+        /// Alternative path to Emond
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Parse LoginItems
-    Loginitems {},
+    Loginitems {
+        /// Alternative file path
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Parse Launch Daemons and Agents
-    Launchd {},
+    Launchd {
+        /// Alternative file path
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Collect local groups
-    Groups {},
+    Groups {
+        /// Alternative path to groups
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+    },
     #[cfg(target_os = "macos")]
     /// Collect Safari History
     Safarihistory {},
@@ -279,5 +307,8 @@ pub(crate) enum CommandArgs {
         /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume
         #[arg(long, value_delimiter = ',')]
         sources: Vec<String>,
+        /// Use a log archive path instead of local files
+        #[arg(long, default_value = None)]
+        logarchive_path: Option<String>,
     },
 }

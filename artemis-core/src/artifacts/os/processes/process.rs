@@ -6,7 +6,7 @@ use super::error::ProcessError;
 use crate::filesystem::files::{hash_file, Hashes};
 use common::system::Processes;
 use log::{info, warn};
-use sysinfo::{PidExt, Process, ProcessExt, System, SystemExt};
+use sysinfo::{Process, System};
 
 #[cfg(target_os = "windows")]
 use super::pe::pe_metadata;
@@ -55,11 +55,20 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: bool) -> Processes
         _ => String::new(),
     };
 
-    let path = process.exe().display().to_string();
+    let path_result = process.exe();
+    let path = match path_result {
+        Some(result) => result.display().to_string(),
+        None => String::new(),
+    };
+    let root_result = process.root();
+    let root = match root_result {
+        Some(result) => result.display().to_string(),
+        None => String::new(),
+    };
     let mut system_proc = Processes {
         full_path: path,
         name: process.name().to_string(),
-        path: process.root().display().to_string(),
+        path: root,
         pid: process.pid().as_u32(),
         ppid: 0,
         environment: process.environ().join(" "),
@@ -145,7 +154,7 @@ mod tests {
         filesystem::files::Hashes,
     };
     use common::system::Processes;
-    use sysinfo::{System, SystemExt};
+    use sysinfo::System;
 
     #[test]
     fn test_proc_list() {

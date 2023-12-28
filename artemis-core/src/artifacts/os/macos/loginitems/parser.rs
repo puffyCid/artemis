@@ -12,13 +12,22 @@ use super::{
     error::LoginItemError,
     loginitem::{loginitem_apps_system, parse_loginitems},
 };
-use crate::filesystem::{directory::get_user_paths, metadata::glob_paths};
+use crate::{
+    filesystem::{directory::get_user_paths, metadata::glob_paths},
+    structs::artifacts::os::macos::LoginitemsOptions,
+};
 use common::macos::LoginItemsData;
 use log::error;
 use std::path::Path;
 
 /// Parse `LoginItem` paths on macOS system
-pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
+pub(crate) fn grab_loginitems(
+    options: &LoginitemsOptions,
+) -> Result<Vec<LoginItemsData>, LoginItemError> {
+    if let Some(alt_file) = &options.alt_file {
+        return parse_loginitems(alt_file);
+    }
+
     let loginitems_path =
         "/Library/Application Support/com.apple.backgroundtaskmanagementagent/backgrounditems.btm";
 
@@ -38,7 +47,10 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
             let results = parse_loginitems(&plist_path);
             match results {
                 Ok(mut data) => loginitems_data.append(&mut data),
-                Err(err) => return Err(err),
+                Err(err) => {
+                    error!("[loginitem] Could not parse legacy loginitems: {err:?}: {plist_path}");
+                    continue;
+                }
             }
         }
     }
@@ -78,9 +90,10 @@ pub(crate) fn grab_loginitems() -> Result<Vec<LoginItemsData>, LoginItemError> {
 #[cfg(test)]
 mod tests {
     use super::grab_loginitems;
+    use crate::structs::artifacts::os::macos::LoginitemsOptions;
 
     #[test]
     fn test_grab_loginitems() {
-        let _ = grab_loginitems().unwrap();
+        let _ = grab_loginitems(&LoginitemsOptions { alt_file: None }).unwrap();
     }
 }

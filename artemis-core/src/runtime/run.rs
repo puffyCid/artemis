@@ -2,7 +2,7 @@ use crate::runtime::error::RuntimeError;
 use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
-use deno_core::{FsModuleLoader, JsRuntime, RuntimeOptions, Snapshot};
+use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions, Snapshot};
 use log::error;
 use serde_json::Value;
 use std::rc::Rc;
@@ -94,9 +94,12 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
             return Ok(value_error);
         }
     };
+    let resolve = runtime.resolve(script_output);
+    let value_result = runtime
+        .with_event_loop_promise(resolve, PollEventLoopOptions::default())
+        .await;
 
     // Wait for async script to return any value
-    let value_result = runtime.resolve_value(script_output).await;
     let value = match value_result {
         Ok(result) => result,
         Err(err) => {
@@ -167,6 +170,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         skip_op_registration: false,
         validate_import_attributes_cb: Default::default(),
         import_meta_resolve_callback: Default::default(),
+        wait_for_inspector_disconnect_callback: None,
     });
 
     Ok(runtime)

@@ -24,7 +24,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
             "loginitems" => {
-                let results = loginitems(&mut collector.output, &filter);
+                let options = match &artifacts.loginitems {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = loginitems(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected loginitems"),
                     Err(err) => {
@@ -34,7 +38,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "emond" => {
-                let results = emond(&mut collector.output, &filter);
+                let options = match &artifacts.emond {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = emond(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected emond"),
                     Err(err) => {
@@ -44,7 +52,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "fseventsd" => {
-                let results = fseventsd(&mut collector.output, &filter);
+                let options = match &artifacts.fsevents {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = fseventsd(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected fseventsd"),
                     Err(err) => {
@@ -54,7 +66,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "launchd" => {
-                let results = launchd(&mut collector.output, &filter);
+                let options = match &artifacts.launchd {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = launchd(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected launchd"),
                     Err(err) => {
@@ -64,13 +80,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "files" => {
-                let file_data = &artifacts.files;
-                let file_artifact_config = match file_data {
+                let options = match &artifacts.files {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = files(file_artifact_config, &mut collector.output, &filter);
+                let results = files(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
@@ -80,7 +95,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "users" => {
-                let results = users(&mut collector.output, &filter);
+                let options = match &artifacts.users {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = users(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
@@ -90,7 +109,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "groups" => {
-                let results = groups(&mut collector.output, &filter);
+                let options = match &artifacts.groups {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = groups(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
@@ -100,13 +123,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "processes" => {
-                let proc = &artifacts.processes;
-                let proc_artifacts = match proc {
-                    Some(result) => result,
+                let options = match &artifacts.processes {
+                    Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = processes(proc_artifacts, &mut collector.output, &filter);
+                let results = processes(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
@@ -126,7 +148,11 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "execpolicy" => {
-                let results = execpolicy(&mut collector.output, &filter);
+                let options = match &artifacts.execpolicy {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = execpolicy(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected execpolicy"),
                     Err(err) => {
@@ -136,13 +162,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "unifiedlogs" => {
-                let artifact_options = match &artifacts.unifiedlogs {
-                    Some(result) => result,
-                    None => continue,
+                let options = match &artifacts.unifiedlogs {
+                    Some(result_data) => result_data,
+                    _ => continue,
                 };
 
-                let results =
-                    unifiedlogs(&mut collector.output, &artifact_options.sources, &filter);
+                let results = unifiedlogs(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {

@@ -1,11 +1,16 @@
-use crate::artifacts::os::macos::accounts::{groups::grab_groups, users::grab_users};
+use crate::{
+    artifacts::os::macos::accounts::{groups::grab_groups, users::grab_users},
+    structs::artifacts::os::macos::{GroupsOptions, UsersOptions},
+};
 use deno_core::{error::AnyError, op2};
 
 #[op2]
 #[string]
 /// Expose parsing Users to `Deno`
-pub(crate) fn get_users() -> Result<String, AnyError> {
-    let users = grab_users();
+pub(crate) fn get_users(#[string] path: String) -> Result<String, AnyError> {
+    let users = grab_users(&UsersOptions {
+        alt_path: Some(path),
+    });
     let results = serde_json::to_string(&users)?;
     Ok(results)
 }
@@ -13,8 +18,10 @@ pub(crate) fn get_users() -> Result<String, AnyError> {
 #[op2]
 #[string]
 /// Expose parsing Groups to `Deno`
-pub(crate) fn get_groups() -> Result<String, AnyError> {
-    let groups = grab_groups();
+pub(crate) fn get_groups(#[string] path: String) -> Result<String, AnyError> {
+    let groups = grab_groups(&GroupsOptions {
+        alt_path: Some(path),
+    });
     let results = serde_json::to_string(&groups)?;
     Ok(results)
 }
@@ -33,9 +40,7 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),

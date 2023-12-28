@@ -10,12 +10,19 @@
  *   `https://github.com/Velocidex/velociraptor`
  */
 use super::{error::FsEventsError, fsevent::fsevents_data};
-use crate::{filesystem::files::list_files, utils::compression::decompress_gzip};
+use crate::{
+    filesystem::files::list_files, structs::artifacts::os::macos::FseventsOptions,
+    utils::compression::decompress_gzip,
+};
 use common::macos::FsEvents;
 use log::error;
 
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
-pub(crate) fn grab_fseventsd() -> Result<Vec<FsEvents>, FsEventsError> {
+pub(crate) fn grab_fseventsd(options: &FseventsOptions) -> Result<Vec<FsEvents>, FsEventsError> {
+    if let Some(alt_file) = &options.alt_file {
+        return grab_fsventsd_file(alt_file);
+    }
+
     let mut events = get_fseventsd()?;
     let legacy = get_fseventsd_legacy();
     if let Ok(mut results) = legacy {
@@ -108,6 +115,7 @@ mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
+        structs::artifacts::os::macos::FseventsOptions,
         utils::compression::decompress_gzip,
     };
     use std::path::PathBuf;
@@ -120,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_grab_fseventsd() {
-        let results = grab_fseventsd().unwrap();
+        let results = grab_fseventsd(&FseventsOptions { alt_file: None }).unwrap();
         assert!(results.len() > 100);
     }
 

@@ -73,13 +73,13 @@ pub struct UsnJrnlOptions {
 
 #[derive(Debug, Deserialize)]
 pub struct BitsOptions {
-    pub alt_path: Option<String>,
+    pub alt_file: Option<String>,
     pub carve: bool,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SrumOptions {
-    pub alt_path: Option<String>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,7 +89,7 @@ pub struct UserOptions {
 
 #[derive(Debug, Deserialize)]
 pub struct SearchOptions {
-    pub alt_path: Option<String>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,6 +1,5 @@
 use crate::artifacts::os::systeminfo::info::get_info;
 use deno_core::{error::AnyError, op2};
-use sysinfo::{System, SystemExt};
 
 #[op2]
 #[string]
@@ -15,43 +14,35 @@ pub(crate) fn get_systeminfo() -> Result<String, AnyError> {
 #[bigint]
 /// Return uptime of the system
 pub(crate) fn js_uptime() -> u64 {
-    System::new().uptime()
+    sysinfo::System::uptime()
 }
 
 #[op2]
 #[string]
 /// Return hostname of the system
 pub(crate) fn js_hostname() -> String {
-    System::new()
-        .host_name()
-        .unwrap_or_else(|| String::from("Unknown hostname"))
+    sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname"))
 }
 
 #[op2]
 #[string]
 /// Return OS version of the system
 pub(crate) fn js_os_version() -> String {
-    System::new()
-        .os_version()
-        .unwrap_or_else(|| String::from("Unknown OS version"))
+    sysinfo::System::os_version().unwrap_or_else(|| String::from("Unknown OS version"))
 }
 
 #[op2]
 #[string]
 /// Returns kernel version of the system
 pub(crate) fn js_kernel_version() -> String {
-    System::new()
-        .kernel_version()
-        .unwrap_or_else(|| String::from("Unknown OS version"))
+    sysinfo::System::kernel_version().unwrap_or_else(|| String::from("Unknown Kernel version"))
 }
 
 #[op2]
 #[string]
 /// Returns the platform of the system
 pub(crate) fn js_platform() -> String {
-    System::new()
-        .name()
-        .unwrap_or_else(|| String::from("Unknown platform"))
+    sysinfo::System::name().unwrap_or_else(|| String::from("Unknown platform"))
 }
 
 #[cfg(test)]
