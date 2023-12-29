@@ -8,8 +8,12 @@ use deno_core::{error::AnyError, op2};
 #[string]
 /// Expose parsing Users to `Deno`
 pub(crate) fn get_users(#[string] path: String) -> Result<String, AnyError> {
+    let mut user_path = path;
+    if user_path.is_empty() {
+        user_path = String::from("/var/db/dslocal/nodes/Default/users");
+    }
     let users = grab_users(&UsersOptions {
-        alt_path: Some(path),
+        alt_path: Some(user_path),
     });
     let results = serde_json::to_string(&users)?;
     Ok(results)
@@ -19,8 +23,12 @@ pub(crate) fn get_users(#[string] path: String) -> Result<String, AnyError> {
 #[string]
 /// Expose parsing Groups to `Deno`
 pub(crate) fn get_groups(#[string] path: String) -> Result<String, AnyError> {
+    let mut group_path = path;
+    if group_path.is_empty() {
+        group_path = String::from("/var/db/dslocal/nodes/Default/users");
+    }
     let groups = grab_groups(&GroupsOptions {
-        alt_path: Some(path),
+        alt_path: Some(group_path),
     });
     let results = serde_json::to_string(&groups)?;
     Ok(results)

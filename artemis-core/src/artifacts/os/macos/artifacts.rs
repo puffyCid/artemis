@@ -6,6 +6,7 @@ use super::{
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
     loginitems::parser::grab_loginitems,
+    sudo::logs::grab_sudo_logs,
     unified_logs::logs::grab_logs,
 };
 use crate::{
@@ -373,6 +374,32 @@ pub(crate) fn execpolicy(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse sudo logs on macOS
+pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+    let start_time = time::time_now();
+
+    let cron_results = grab_sudo_logs();
+    let cron_data = match cron_results {
+        Ok(results) => results,
+        Err(err) => {
+            warn!("[artemis-core] Artemis macOS failed to get sudo log data: {err:?}");
+            return Err(MacArtifactError::SudoLog);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            return Err(MacArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "sudologs";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output macOS artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -435,7 +462,7 @@ mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
-            processes, systeminfo, unifiedlogs, users,
+            processes, sudo_logs, systeminfo, unifiedlogs, users,
         },
         structs::{
             artifacts::os::{
@@ -581,6 +608,14 @@ mod tests {
 
         let status =
             execpolicy(&mut output, &false, &ExecPolicyOptions { alt_file: None }).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_sudo_logs() {
+        let mut output = output_options("sudologs", "local", "./tmp", false);
+
+        let status = sudo_logs(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

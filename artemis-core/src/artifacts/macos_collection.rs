@@ -4,8 +4,10 @@ use super::{
         safari_history,
     },
     os::{
-        macos::artifacts::{execpolicy, groups, processes, systeminfo, unifiedlogs, users},
-        unix::artifacts::{bash_history, cron_job, python_history, sudo_logs},
+        macos::artifacts::{
+            execpolicy, groups, processes, sudo_logs, systeminfo, unifiedlogs, users,
+        },
+        unix::artifacts::{bash_history, cron_job, python_history},
     },
     os::{macos::error::MacArtifactError, unix::artifacts::zsh_history},
 };
