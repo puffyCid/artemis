@@ -1,5 +1,3 @@
-#[cfg(target_os = "linux")]
-use super::sudo::linux::grab_sudo_logs;
 use super::{
     cron::crontab::parse_cron,
     error::UnixArtifactError,

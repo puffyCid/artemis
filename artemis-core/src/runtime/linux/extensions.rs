@@ -1,4 +1,5 @@
 use super::logons::get_logon;
+use super::sudo::get_sudologs;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
 use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
@@ -21,7 +22,12 @@ pub(crate) fn setup_extensions() -> Vec<Extension> {
 
 /// Link Rust functions to `Deno core`
 fn grab_functions() -> Vec<deno_core::OpDecl> {
-    let mut exts = vec![get_elf::DECL, get_journal::DECL, get_logon::DECL];
+    let mut exts = vec![
+        get_elf::DECL,
+        get_journal::DECL,
+        get_logon::DECL,
+        get_sudologs::DECL,
+    ];
 
     exts.append(&mut app_functions());
     exts.append(&mut unix_functions());
