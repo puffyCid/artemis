@@ -47,9 +47,7 @@ pub(crate) fn get_os_version() -> String {
 #[cfg(target_os = "windows")]
 /// Get the kernel version number
 pub(crate) fn get_win_kernel_version() -> f64 {
-    let system = System::new();
-    system
-        .kernel_version()
+    sysinfo::System::kernel_version()
         .unwrap_or_else(|| String::from("0.0"))
         .parse::<f64>()
         .unwrap_or(0.0)
