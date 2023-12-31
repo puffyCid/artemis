@@ -33,7 +33,7 @@ pub(crate) fn grab_search(
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), SearchError> {
-    let path = if let Some(alt) = &options.alt_path {
+    let path = if let Some(alt) = &options.alt_file {
         alt.to_string()
     } else {
         let systemdrive_result = get_systemdrive();
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_grab_search() {
         let mut output = output_options("search_temp", "local", "./tmp", false);
-        let options = SearchOptions { alt_path: None };
+        let options = SearchOptions { alt_file: None };
 
         let _ = grab_search(&options, &mut output, &false);
     }

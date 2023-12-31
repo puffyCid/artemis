@@ -11,7 +11,7 @@ use log::error;
 /// Expose parsing default BITS location on systemdrive to `Deno`
 pub(crate) fn get_bits(carve: bool) -> Result<String, AnyError> {
     let options = BitsOptions {
-        alt_path: None,
+        alt_file: None,
         carve,
     };
     let bits = grab_bits(&options)?;

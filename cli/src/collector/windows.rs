@@ -528,7 +528,7 @@ mod tests {
     #[test]
     fn test_run_collector_srum() {
         let command = Commands::Acquire {
-            artifact: Some(Srum { alt_path: None }),
+            artifact: Some(Srum { alt_file: None }),
             format: String::from("json"),
         };
 
@@ -541,7 +541,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Bits {
                 carve: false,
-                alt_path: None,
+                alt_file: None,
             }),
             format: String::from("json"),
         };
