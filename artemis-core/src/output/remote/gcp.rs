@@ -404,7 +404,7 @@ logging: Some(String::new())
         let session = gcp_session(&format!("http://127.0.0.1:{port}"), &result).unwrap();
         mock_me.assert();
 
-        assert_eq!(session, format!("http://127.0.0.1:{port}"))
+        assert_eq!(session, format!("http://127.0.0.1:{port}"));
     }
 
     #[test]
