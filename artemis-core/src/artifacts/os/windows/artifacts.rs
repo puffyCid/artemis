@@ -887,7 +887,7 @@ mod tests {
     #[test]
     fn test_bits() {
         let options = BitsOptions {
-            alt_path: None,
+            alt_file: None,
             carve: false,
         };
         let mut output = output_options("bits_temp", "json", "./tmp", false);
@@ -898,7 +898,7 @@ mod tests {
 
     #[test]
     fn test_srum() {
-        let options = SrumOptions { alt_path: None };
+        let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_temp", "json", "./tmp", false);
 
         let status = srum(&options, &mut output, &false).unwrap();
@@ -908,7 +908,7 @@ mod tests {
     #[test]
     #[ignore = "Takes a long time"]
     fn test_search() {
-        let options = SearchOptions { alt_path: None };
+        let options = SearchOptions { alt_file: None };
         let mut output = output_options("search_temp", "json", "./tmp", false);
 
         let status = search(&options, &mut output, &false).unwrap();

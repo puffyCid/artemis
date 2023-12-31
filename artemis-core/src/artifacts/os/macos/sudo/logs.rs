@@ -1,4 +1,4 @@
-use crate::{artifacts::os::unix::error::UnixArtifactError, filesystem::files::list_files};
+use crate::{artifacts::os::macos::error::MacArtifactError, filesystem::files::list_files};
 use log::error;
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,
@@ -12,7 +12,7 @@ use macos_unifiedlogs::{
 };
 
 /// Grab sudo log entries in the Unified Log files
-pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, UnixArtifactError> {
+pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, MacArtifactError> {
     let strings_results = collect_strings_system();
     let shared_strings_results = collect_shared_strings_system();
     let timesync_data_results = collect_timesync_system();
@@ -21,7 +21,7 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, UnixArtifactError> {
         Ok(results) => results,
         Err(err) => {
             error!("[sudologs] Failed to parse UUIDText files: {err:?}");
-            return Err(UnixArtifactError::SudoLog);
+            return Err(MacArtifactError::SudoLog);
         }
     };
 
@@ -29,7 +29,7 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, UnixArtifactError> {
         Ok(results) => results,
         Err(err) => {
             error!("[sudologs] Failed to parse dsc files: {err:?}");
-            return Err(UnixArtifactError::SudoLog);
+            return Err(MacArtifactError::SudoLog);
         }
     };
 
@@ -37,7 +37,7 @@ pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, UnixArtifactError> {
         Ok(results) => results,
         Err(err) => {
             error!("[sudologs] Failed to parse timesync files: {err:?}");
-            return Err(UnixArtifactError::SudoLog);
+            return Err(MacArtifactError::SudoLog);
         }
     };
 
@@ -74,13 +74,13 @@ fn parse_trace_file(
     shared_strings_results: &[SharedCacheStrings],
     timesync_data: &[TimesyncBoot],
     path: &str,
-) -> Result<Vec<LogData>, UnixArtifactError> {
+) -> Result<Vec<LogData>, MacArtifactError> {
     let log_result = parse_log(path);
     let log_data = match log_result {
         Ok(results) => results,
         Err(err) => {
             error!("[sudologs] Failed to parse {path} log entry: {err:?}");
-            return Err(UnixArtifactError::SudoLog);
+            return Err(MacArtifactError::SudoLog);
         }
     };
 

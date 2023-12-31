@@ -11,6 +11,7 @@ use super::{
         get_safari_downloads, get_safari_history, get_safari_users_downloads,
         get_safari_users_history,
     },
+    sudo::get_sudologs,
     unifiedlogs::get_unified_log,
 };
 use crate::runtime::{
@@ -51,6 +52,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_safari_users_downloads::DECL,
         get_safari_downloads::DECL,
         get_execpolicy::DECL,
+        get_sudologs::DECL,
     ];
 
     exts.append(&mut app_functions());

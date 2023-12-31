@@ -6,6 +6,7 @@ use super::{
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
     loginitems::parser::grab_loginitems,
+    sudo::logs::grab_sudo_logs,
     unified_logs::logs::grab_logs,
 };
 use crate::{
@@ -16,22 +17,34 @@ use crate::{
     output::formats::{json::json_format, jsonl::jsonl_format},
     runtime::deno::filter_script,
     structs::{
-        artifacts::os::{files::FileOptions, processes::ProcessOptions},
+        artifacts::os::{
+            files::FileOptions,
+            macos::{
+                EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
+                LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+            },
+            processes::ProcessOptions,
+        },
         toml::Output,
     },
     utils::time,
 };
 use log::{error, warn};
 use macos_unifiedlogs::parser::{
-    collect_shared_strings_system, collect_strings_system, collect_timesync_system,
+    collect_shared_strings, collect_shared_strings_system, collect_strings, collect_strings_system,
+    collect_timesync, collect_timesync_system,
 };
 use serde_json::Value;
 
 /// Parse macOS `LoginItems`
-pub(crate) fn loginitems(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn loginitems(
+    output: &mut Output,
+    filter: &bool,
+    options: &LoginitemsOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_loginitems();
+    let artifact_result = grab_loginitems(options);
     let result = match artifact_result {
         Ok(results) => results,
         Err(err) => {
@@ -54,10 +67,14 @@ pub(crate) fn loginitems(output: &mut Output, filter: &bool) -> Result<(), MacAr
 }
 
 /// Parse macOS `Emond`
-pub(crate) fn emond(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn emond(
+    output: &mut Output,
+    filter: &bool,
+    options: &EmondOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let results = grab_emond();
+    let results = grab_emond(options);
     let emond_data = match results {
         Ok(result) => result,
         Err(err) => {
@@ -80,10 +97,14 @@ pub(crate) fn emond(output: &mut Output, filter: &bool) -> Result<(), MacArtifac
 }
 
 /// Get macOS `Users`
-pub(crate) fn users(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn users(
+    output: &mut Output,
+    filter: &bool,
+    options: &UsersOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let users_data = grab_users();
+    let users_data = grab_users(options);
     let serde_data_result = serde_json::to_value(users_data);
     let serde_data = match serde_data_result {
         Ok(results) => results,
@@ -99,19 +120,19 @@ pub(crate) fn users(output: &mut Output, filter: &bool) -> Result<(), MacArtifac
 
 /// Get macOS `Processes`
 pub(crate) fn processes(
-    artifact: &ProcessOptions,
     output: &mut Output,
     filter: &bool,
+    options: &ProcessOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
     let hashes = Hashes {
-        md5: artifact.md5,
-        sha1: artifact.sha1,
-        sha256: artifact.sha256,
+        md5: options.md5,
+        sha1: options.sha1,
+        sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, artifact.metadata);
+    let results = proc_list(&hashes, options.metadata);
     let proc_data = match results {
         Ok(data) => data,
         Err(err) => {
@@ -152,10 +173,14 @@ pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), MacAr
 }
 
 /// Get macOS `Groups`
-pub(crate) fn groups(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn groups(
+    output: &mut Output,
+    filter: &bool,
+    options: &GroupsOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let groups_data = grab_groups();
+    let groups_data = grab_groups(options);
     let serde_data_result = serde_json::to_value(groups_data);
     let serde_data = match serde_data_result {
         Ok(results) => results,
@@ -170,10 +195,14 @@ pub(crate) fn groups(output: &mut Output, filter: &bool) -> Result<(), MacArtifa
 }
 
 /// Parse macOS `FsEvents`
-pub(crate) fn fseventsd(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn fseventsd(
+    output: &mut Output,
+    filter: &bool,
+    options: &FseventsOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_fseventsd();
+    let artifact_result = grab_fseventsd(options);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
@@ -196,10 +225,14 @@ pub(crate) fn fseventsd(output: &mut Output, filter: &bool) -> Result<(), MacArt
 }
 
 /// Parse macOS `Launchd`
-pub(crate) fn launchd(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn launchd(
+    output: &mut Output,
+    filter: &bool,
+    options: &LaunchdOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_launchd();
+    let artifact_result = grab_launchd(options);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
@@ -223,21 +256,21 @@ pub(crate) fn launchd(output: &mut Output, filter: &bool) -> Result<(), MacArtif
 
 /// Get macOS `filelist`
 pub(crate) fn files(
-    artifact: &FileOptions,
     output: &mut Output,
     filter: &bool,
+    options: &FileOptions,
 ) -> Result<(), MacArtifactError> {
     let hashes = Hashes {
-        md5: artifact.md5.unwrap_or(false),
-        sha1: artifact.sha1.unwrap_or(false),
-        sha256: artifact.sha256.unwrap_or(false),
+        md5: options.md5.unwrap_or(false),
+        sha1: options.sha1.unwrap_or(false),
+        sha256: options.sha256.unwrap_or(false),
     };
     let artifact_result = get_filelist(
-        &artifact.start_path,
-        artifact.depth.unwrap_or(1).into(),
-        artifact.metadata.unwrap_or(false),
+        &options.start_path,
+        options.depth.unwrap_or(1).into(),
+        options.metadata.unwrap_or(false),
         &hashes,
-        artifact.regex_filter.as_ref().unwrap_or(&String::new()),
+        options.regex_filter.as_ref().unwrap_or(&String::new()),
         output,
         filter,
     );
@@ -254,15 +287,26 @@ pub(crate) fn files(
 /// Get macOS `Unifiedlogs`
 pub(crate) fn unifiedlogs(
     output: &mut Output,
-    log_sources: &[String],
     filter: &bool,
+    options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
     // Need to first get the strings and timestamp data first before parsing the actual logs
-    let strings_results = collect_strings_system();
-    let shared_strings_results = collect_shared_strings_system();
-    let timesync_data_results = collect_timesync_system();
+    let (strings_results, shared_strings_results, timesync_data_results) =
+        if let Some(archive_path) = &options.logarchive_path {
+            (
+                collect_strings(archive_path),
+                collect_shared_strings(&format!("{archive_path}/dsc")),
+                collect_timesync(&format!("{archive_path}/timesync")),
+            )
+        } else {
+            (
+                collect_strings_system(),
+                collect_shared_strings_system(),
+                collect_timesync_system(),
+            )
+        };
 
     let strings = match strings_results {
         Ok(results) => results,
@@ -295,16 +339,20 @@ pub(crate) fn unifiedlogs(
         &timesync_data,
         output,
         &start_time,
-        log_sources,
+        &options.sources,
         filter,
     )
 }
 
 /// Get macOS `ExecPolicy`
-pub(crate) fn execpolicy(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn execpolicy(
+    output: &mut Output,
+    filter: &bool,
+    options: &ExecPolicyOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_execpolicy();
+    let artifact_result = grab_execpolicy(options);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
@@ -323,6 +371,32 @@ pub(crate) fn execpolicy(output: &mut Output, filter: &bool) -> Result<(), MacAr
     };
 
     let output_name = "execpolicy";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
+/// Parse sudo logs on macOS
+pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+    let start_time = time::time_now();
+
+    let cron_results = grab_sudo_logs();
+    let cron_data = match cron_results {
+        Ok(results) => results,
+        Err(err) => {
+            warn!("[artemis-core] Artemis macOS failed to get sudo log data: {err:?}");
+            return Err(MacArtifactError::SudoLog);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            return Err(MacArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "sudologs";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
@@ -388,10 +462,17 @@ mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
-            processes, systeminfo, unifiedlogs, users,
+            processes, sudo_logs, systeminfo, unifiedlogs, users,
         },
         structs::{
-            artifacts::os::{files::FileOptions, processes::ProcessOptions},
+            artifacts::os::{
+                files::FileOptions,
+                macos::{
+                    EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions,
+                    LaunchdOptions, LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+                },
+                processes::ProcessOptions,
+            },
             toml::Output,
         },
         utils::time,
@@ -418,7 +499,8 @@ mod tests {
     fn test_loginitems() {
         let mut output = output_options("loginitems_test", "local", "./tmp", false);
 
-        let status = loginitems(&mut output, &false).unwrap();
+        let status =
+            loginitems(&mut output, &false, &LoginitemsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -426,7 +508,7 @@ mod tests {
     fn test_emond() {
         let mut output = output_options("emond_test", "local", "./tmp", false);
 
-        let status = emond(&mut output, &false).unwrap();
+        let status = emond(&mut output, &false, &EmondOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -434,7 +516,7 @@ mod tests {
     fn test_users() {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
-        let status = users(&mut output, &false).unwrap();
+        let status = users(&mut output, &false, &UsersOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -442,7 +524,7 @@ mod tests {
     fn test_groups() {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
-        let status = groups(&mut output, &false).unwrap();
+        let status = groups(&mut output, &false, &GroupsOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -451,7 +533,7 @@ mod tests {
     fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 
-        let status = fseventsd(&mut output, &false).unwrap();
+        let status = fseventsd(&mut output, &false, &FseventsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -459,7 +541,7 @@ mod tests {
     fn test_launchd() {
         let mut output = output_options("launchd_test", "local", "./tmp", false);
 
-        let status = launchd(&mut output, &false).unwrap();
+        let status = launchd(&mut output, &false, &LaunchdOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -474,7 +556,7 @@ mod tests {
             metadata: true,
         };
 
-        let status = processes(&proc_config, &mut output, &false).unwrap();
+        let status = processes(&mut output, &false, &proc_config).unwrap();
         assert_eq!(status, ());
     }
 
@@ -491,7 +573,15 @@ mod tests {
         let mut output = output_options("unifiedlogs_test", "local", "./tmp", false);
         let sources = vec![String::from("Special")];
 
-        let status = unifiedlogs(&mut output, &sources, &false).unwrap();
+        let status = unifiedlogs(
+            &mut output,
+            &false,
+            &UnifiedLogsOptions {
+                sources,
+                logarchive_path: None,
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -508,7 +598,7 @@ mod tests {
             sha256: Some(false),
             regex_filter: Some(String::new()),
         };
-        let status = files(&file_config, &mut output, &false).unwrap();
+        let status = files(&mut output, &false, &file_config).unwrap();
         assert_eq!(status, ());
     }
 
@@ -516,7 +606,16 @@ mod tests {
     fn test_execpolicy() {
         let mut output = output_options("execpolicy_test", "local", "./tmp", true);
 
-        let status = execpolicy(&mut output, &false).unwrap();
+        let status =
+            execpolicy(&mut output, &false, &ExecPolicyOptions { alt_file: None }).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_sudo_logs() {
+        let mut output = output_options("sudologs", "local", "./tmp", false);
+
+        let status = sudo_logs(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

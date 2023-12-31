@@ -12,6 +12,7 @@ use crate::utils::time;
 use log::{error, warn};
 use serde_json::Value;
 
+use super::sudo::logs::grab_sudo_logs;
 use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 
 /// Get Linux `Processes`
@@ -130,6 +131,32 @@ pub(crate) fn logons(output: &mut Output, filter: &bool) -> Result<(), LinuxArti
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse sudo logs on Linux
+pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+    let start_time = time::time_now();
+
+    let cron_results = grab_sudo_logs();
+    let cron_data = match cron_results {
+        Ok(results) => results,
+        Err(err) => {
+            warn!("[artemis-core] Artemis Linux failed to get sudo log data: {err:?}");
+            return Err(LinuxArtifactError::SudoLog);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            return Err(LinuxArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "sudologs";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Linux artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -190,7 +217,7 @@ pub(crate) fn output_data(
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::linux::artifacts::{
-        files, journals, logons, output_data, processes, systeminfo,
+        files, journals, logons, output_data, processes, sudo_logs, systeminfo,
     };
     use crate::structs::artifacts::os::files::FileOptions;
     use crate::structs::artifacts::os::processes::ProcessOptions;
@@ -278,6 +305,14 @@ mod tests {
             regex_filter: Some(String::new()),
         };
         let status = files(&file_config, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_sudo_logs() {
+        let mut output = output_options("sudologs", "local", "./tmp", false);
+
+        let status = sudo_logs(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 }

@@ -9,6 +9,7 @@ pub(crate) enum LinuxArtifactError {
     File,
     Process,
     Journal,
+    SudoLog,
 }
 
 impl std::error::Error for LinuxArtifactError {}
@@ -23,6 +24,7 @@ impl fmt::Display for LinuxArtifactError {
             LinuxArtifactError::Process => write!(f, "Failed to parse Processes"),
             LinuxArtifactError::File => write!(f, "Failed to parse Files"),
             LinuxArtifactError::Journal => write!(f, "Failed to parse Journals"),
+            LinuxArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
         }
     }
 }

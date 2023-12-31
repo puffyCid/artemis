@@ -1,6 +1,6 @@
 use crate::artifacts::os::systeminfo::info::get_memory;
 use deno_core::{error::AnyError, op2};
-use sysinfo::{System, SystemExt};
+use sysinfo::System;
 
 #[op2]
 #[string]

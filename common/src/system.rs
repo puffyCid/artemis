@@ -16,7 +16,7 @@ pub struct SystemInfo {
     pub kernel_version: String,
     pub platform: String,
     pub cpu: Vec<Cpus>,
-    pub disks: Vec<Disks>,
+    pub disks: Vec<DiskDrives>,
     pub memory: Memory,
     pub performance: LoadPerformance,
 }
@@ -41,7 +41,7 @@ pub struct Cpus {
 }
 
 #[derive(Debug, Serialize)]
-pub struct Disks {
+pub struct DiskDrives {
     pub disk_type: String,
     pub file_system: String,
     pub mount_point: String,

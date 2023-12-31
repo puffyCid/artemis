@@ -1,11 +1,21 @@
-use crate::artifacts::os::macos::loginitems::parser::grab_loginitems;
+use crate::{
+    artifacts::os::macos::loginitems::parser::grab_loginitems,
+    structs::artifacts::os::macos::LoginitemsOptions,
+};
 use deno_core::{error::AnyError, op2};
 
 #[op2]
 #[string]
 /// Expose parsing LoginItems to `Deno`
-pub(crate) fn get_loginitems() -> Result<String, AnyError> {
-    let loginitems = grab_loginitems()?;
+pub(crate) fn get_loginitems(#[string] path: String) -> Result<String, AnyError> {
+    let options = if path.is_empty() {
+        LoginitemsOptions { alt_file: None }
+    } else {
+        LoginitemsOptions {
+            alt_file: Some(path),
+        }
+    };
+    let loginitems = grab_loginitems(&options)?;
     let results = serde_json::to_string(&loginitems)?;
     Ok(results)
 }
@@ -24,9 +34,7 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),

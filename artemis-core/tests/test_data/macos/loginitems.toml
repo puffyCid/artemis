@@ -11,3 +11,4 @@ output = "local"
 
 [[artifacts]]
 artifact_name = "loginitems"
+[artifacts.loginitems]

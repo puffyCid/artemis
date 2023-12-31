@@ -14,13 +14,18 @@ use crate::{
         property_list::{get_string, parse_plist_file_dict},
     },
     filesystem::files::is_file,
+    structs::artifacts::os::macos::EmondOptions,
 };
 use common::macos::EmondData;
 use log::{error, warn};
 use plist::Value;
 
 /// Parse Emond rules on macOS
-pub(crate) fn grab_emond() -> Result<Vec<EmondData>, PlistError> {
+pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, PlistError> {
+    if let Some(alt_path) = &options.alt_path {
+        return parse_emond_rules(alt_path);
+    }
+
     let paths = get_emond_rules_paths()?;
     let mut emond_data: Vec<EmondData> = Vec::new();
     for path in paths {
@@ -83,6 +88,7 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
 #[cfg(test)]
 mod tests {
     use super::{get_emond_rules_paths, grab_emond};
+    use crate::structs::artifacts::os::macos::EmondOptions;
 
     #[test]
     fn test_get_emond_rules_paths() {
@@ -91,6 +97,6 @@ mod tests {
 
     #[test]
     fn test_grab_emond() {
-        let _ = grab_emond().unwrap();
+        let _ = grab_emond(&EmondOptions { alt_path: None }).unwrap();
     }
 }

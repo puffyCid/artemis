@@ -1,90 +1,68 @@
-use common::system::{Cpus, Disks, LoadPerformance, Memory, SystemInfo, SystemInfoMetadata};
-use sysinfo::{CpuExt, DiskExt, System, SystemExt};
+use common::system::{Cpus, DiskDrives, LoadPerformance, Memory, SystemInfo, SystemInfoMetadata};
+use sysinfo::{Disks, System};
 
 /// Get Disk, CPU, Memory, and Performance info from system
 pub(crate) fn get_info() -> SystemInfo {
     let mut system = System::new();
     SystemInfo {
-        boot_time: system.boot_time(),
-        hostname: system
-            .host_name()
-            .unwrap_or_else(|| String::from("Unknown hostname")),
-        os_version: system
-            .os_version()
+        boot_time: sysinfo::System::boot_time(),
+        hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
+        os_version: sysinfo::System::os_version()
             .unwrap_or_else(|| String::from("Unknown OS version")),
-        uptime: system.uptime(),
-        kernel_version: system
-            .kernel_version()
+        uptime: sysinfo::System::uptime(),
+        kernel_version: sysinfo::System::kernel_version()
             .unwrap_or_else(|| String::from("Unknown kernel version")),
-        platform: system
-            .name()
-            .unwrap_or_else(|| String::from("Unknown system name")),
+        platform: sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name")),
         cpu: get_cpu(&mut system),
-        disks: get_disks(&mut system),
+        disks: get_disks(),
         memory: get_memory(&mut system),
-        performance: get_performance(&mut system),
+        performance: get_performance(),
     }
 }
 
 /// Get some system info
 pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
-    let mut system = System::new();
     SystemInfoMetadata {
-        hostname: system
-            .host_name()
-            .unwrap_or_else(|| String::from("Unknown hostname")),
-        os_version: system
-            .os_version()
+        hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
+        os_version: sysinfo::System::os_version()
             .unwrap_or_else(|| String::from("Unknown OS Version")),
-        platform: system
-            .name()
-            .unwrap_or_else(|| String::from("Unknown platform")),
-        kernel_version: system
-            .kernel_version()
+        platform: sysinfo::System::name().unwrap_or_else(|| String::from("Unknown platform")),
+        kernel_version: sysinfo::System::kernel_version()
             .unwrap_or_else(|| String::from("Unknown Kernel Version")),
-        performance: get_performance(&mut system),
+        performance: get_performance(),
     }
 }
 
 /// Get endpoint platform type
 pub(crate) fn get_platform() -> String {
-    let system = System::new();
-    system
-        .name()
-        .unwrap_or_else(|| String::from("Unknown system name"))
+    sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name"))
 }
 
 #[cfg(target_os = "windows")]
 /// Get the OS version number
 pub(crate) fn get_os_version() -> String {
-    let system = System::new();
-    system
-        .os_version()
-        .unwrap_or_else(|| String::from("Unknown OS Version"))
+    sysinfo::System::os_version().unwrap_or_else(|| String::from("Unknown OS Version"))
 }
 
 #[cfg(target_os = "windows")]
 /// Get the kernel version number
 pub(crate) fn get_win_kernel_version() -> f64 {
-    let system = System::new();
-    system
-        .kernel_version()
+    sysinfo::System::kernel_version()
         .unwrap_or_else(|| String::from("0.0"))
         .parse::<f64>()
         .unwrap_or(0.0)
 }
 
 /// Get Disk info from system
-pub(crate) fn get_disks(system: &mut System) -> Vec<Disks> {
-    system.refresh_disks_list();
-    let disks = system.disks();
+pub(crate) fn get_disks() -> Vec<DiskDrives> {
+    let mut disks = Disks::new_with_refreshed_list();
 
-    let mut disk_vec: Vec<Disks> = Vec::new();
-    for disk in disks {
-        let fs_type: Vec<String> = disk.file_system().iter().map(|n| n.to_string()).collect();
-        let disk_data = Disks {
+    let mut disk_vec = Vec::new();
+    for disk in &mut disks {
+        let fs_type = disk.file_system().to_str().unwrap_or_default();
+        let disk_data = DiskDrives {
             disk_type: format!("{:?}", disk.kind()),
-            file_system: fs_type.join(""),
+            file_system: fs_type.to_string(),
             mount_point: disk.mount_point().display().to_string(),
             total_space: disk.total_space(),
             available_space: disk.available_space(),
@@ -129,11 +107,12 @@ pub(crate) fn get_memory(system: &mut System) -> Memory {
 }
 
 /// Get Load Average Performance from system
-fn get_performance(system: &mut System) -> LoadPerformance {
+fn get_performance() -> LoadPerformance {
+    let load = System::load_average();
     LoadPerformance {
-        avg_one_min: system.load_average().one,
-        avg_five_min: system.load_average().five,
-        avg_fifteen_min: system.load_average().fifteen,
+        avg_one_min: load.one,
+        avg_five_min: load.five,
+        avg_fifteen_min: load.fifteen,
     }
 }
 
@@ -142,7 +121,7 @@ mod tests {
     use crate::artifacts::os::systeminfo::info::{
         get_cpu, get_disks, get_info, get_info_metadata, get_memory, get_performance, get_platform,
     };
-    use sysinfo::{System, SystemExt};
+    use sysinfo::System;
 
     #[test]
     fn test_get_info() {
@@ -172,9 +151,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_get_macos_disks() {
-        let mut system = System::new();
-
-        let system_info = get_disks(&mut system);
+        let system_info = get_disks();
         assert_eq!(system_info.len(), 2);
         assert_eq!(system_info[0].disk_type.is_empty(), false);
         assert_eq!(system_info[1].disk_type.is_empty(), false);
@@ -189,9 +166,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_windows_disks() {
-        let mut system = System::new();
-
-        let system_info = get_disks(&mut system);
+        let system_info = get_disks();
         assert!(system_info.len() >= 1);
         assert_eq!(system_info[0].disk_type.is_empty(), false);
         assert_eq!(system_info[0].mount_point.contains(":\\"), true);
@@ -201,9 +176,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_get_windows_disks() {
-        let mut system = System::new();
-
-        let system_info = get_disks(&mut system);
+        let system_info = get_disks();
         assert!(system_info.len() >= 1);
     }
 
@@ -237,9 +210,7 @@ mod tests {
 
     #[test]
     fn test_get_performance() {
-        let mut system = System::new();
-
-        let system_info = get_performance(&mut system);
+        let system_info = get_performance();
         assert!(system_info.avg_one_min >= 0.0);
         assert!(system_info.avg_five_min >= 0.0);
         assert!(system_info.avg_fifteen_min >= 0.0);

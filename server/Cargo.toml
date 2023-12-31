@@ -8,7 +8,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.1", default-features = false, features = [
+axum = { version = "0.7.2", default-features = false, features = [
     "http2",
     "json",
     "matched-path",
@@ -26,12 +26,12 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { version = "1.6.1", features = ["v4"] }
 toml = { workspace = true }
-futures = "0.3.29"
+futures = "0.3.30"
 flate2 = { workspace = true }
-rust-embed = "8.0.0"
+rust-embed = "8.1.0"
 common = { path = "../common" }
 glob = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }
-hyper = { version = "1.0.1", features = ["full"] }
+hyper = { version = "1.1.0", features = ["full"] }

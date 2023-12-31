@@ -1,3 +1,4 @@
+use super::os::linux::artifacts::{journals, logons, sudo_logs};
 use crate::artifacts::applications::artifacts::{
     chromium_downloads, chromium_history, firefox_downloads, firefox_history,
 };
@@ -8,9 +9,6 @@ use crate::runtime::deno::execute_script;
 use crate::structs::toml::ArtemisToml;
 use crate::utils::{logging::upload_logs, output::compress_final_output};
 use log::{error, info, warn};
-
-use super::os::linux::artifacts::{journals, logons};
-use super::os::unix::artifacts::sudo_logs;
 
 /// Parse the TOML collector and get Linux artifact targets
 pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxArtifactError> {

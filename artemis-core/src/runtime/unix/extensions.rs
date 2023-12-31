@@ -1,7 +1,6 @@
 use crate::runtime::unix::{
     cron::get_cron,
     shellhistory::{get_bash_history, get_python_history, get_zsh_history},
-    sudo::get_sudologs,
 };
 use deno_core::Op;
 
@@ -12,7 +11,6 @@ pub(crate) fn unix_functions() -> Vec<deno_core::OpDecl> {
         get_bash_history::DECL,
         get_zsh_history::DECL,
         get_python_history::DECL,
-        get_sudologs::DECL,
     ]
 }
 

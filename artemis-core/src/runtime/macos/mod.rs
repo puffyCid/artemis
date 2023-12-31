@@ -8,4 +8,5 @@ mod loginitems;
 mod macho;
 mod plist;
 mod safari;
+mod sudo;
 mod unifiedlogs;

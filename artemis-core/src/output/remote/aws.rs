@@ -589,7 +589,7 @@ logging: Some(String::new())
             "an id",
             &bucket,
             &creds,
-            &name,
+            name,
             first_upload,
             "plain/text",
         )
@@ -614,8 +614,10 @@ logging: Some(String::new())
             then.status(200);
         });
 
+        let bytes = 10;
+
         let bucket = Bucket::new(url, UrlStyle::VirtualHost, "blah", "us-east-1").unwrap();
-        aws_complete_multipart(&bucket, &creds, name, "myid", Vec::new(), &(10 as usize)).unwrap();
+        aws_complete_multipart(&bucket, &creds, name, "myid", Vec::new(), &bytes).unwrap();
         mock_me.assert();
     }
 

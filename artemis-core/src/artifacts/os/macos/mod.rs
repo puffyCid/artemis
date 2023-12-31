@@ -9,4 +9,5 @@ pub(crate) mod launchd;
 pub(crate) mod loginitems;
 pub(crate) mod macho;
 pub(crate) mod plist;
+pub(crate) mod sudo;
 mod unified_logs;

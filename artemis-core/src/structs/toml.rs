@@ -3,7 +3,7 @@ use crate::structs::artifacts::{
     runtime::script::JSScript,
 };
 use serde::Deserialize;
-// Target specific dependencies
+
 #[cfg(target_os = "windows")]
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
@@ -13,7 +13,10 @@ use crate::structs::artifacts::os::windows::{
 };
 
 #[cfg(target_os = "macos")]
-use crate::structs::artifacts::os::macos::UnifiedLogsOptions;
+use super::artifacts::os::macos::{
+    EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
+    LoginitemsOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
@@ -49,6 +52,14 @@ pub struct Artifacts {
     pub files: Option<FileOptions>,
     pub unifiedlogs: Option<UnifiedLogsOptions>,
     pub script: Option<JSScript>,
+    pub users: Option<UsersOptions>,
+    pub groups: Option<GroupsOptions>,
+    pub emond: Option<EmondOptions>,
+    pub execpolicy: Option<ExecPolicyOptions>,
+    pub launchd: Option<LaunchdOptions>,
+    pub loginitems: Option<LoginitemsOptions>,
+    pub fseventsd: Option<FseventsOptions>,
+    pub sudologs: Option<SudoOptions>,
 }
 
 #[derive(Debug, Deserialize)]

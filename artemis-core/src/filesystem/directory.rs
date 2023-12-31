@@ -51,12 +51,13 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     use crate::filesystem::files::file_lines;
-    use sysinfo::{System, SystemExt, UserExt};
+    use sysinfo::Users;
 
-    let mut system = System::new();
-    system.refresh_users_list();
+    let mut users = Users::new();
+    users.refresh_list();
+
     let passwd_lines = file_lines("/etc/passwd")?;
-    let mut users: Vec<String> = Vec::new();
+    let mut user_list: Vec<String> = Vec::new();
 
     for line_entry in passwd_lines {
         let entry = match line_entry {
@@ -67,7 +68,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             continue;
         }
 
-        for user in system.users() {
+        for user in users.list() {
             if !entry.contains(&format!("/{}", user.name())) {
                 continue;
             }
@@ -79,13 +80,13 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
                     continue;
                 }
                 if split.contains(&format!("/{}", user.name())) {
-                    users.push(split.to_string());
+                    user_list.push(split.to_string());
                     break;
                 }
             }
         }
     }
-    Ok(users)
+    Ok(user_list)
 }
 
 #[cfg(target_family = "unix")]

@@ -2,17 +2,21 @@
  * Grab local macOS `Groups` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/groups`
  */
 use super::opendirectory::parse_groups_plist;
-use crate::filesystem::files::list_files;
+use crate::{filesystem::files::list_files, structs::artifacts::os::macos::GroupsOptions};
 use common::macos::OpendirectoryGroups;
 use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
-pub(crate) fn grab_groups() -> Vec<OpendirectoryGroups> {
-    // Need root permissions to access files in dslocal directories
-    let opendirectory_path = "/var/db/dslocal/nodes/Default/groups";
+pub(crate) fn grab_groups(options: &GroupsOptions) -> Vec<OpendirectoryGroups> {
+    let path = if let Some(alt_path) = &options.alt_path {
+        alt_path
+    } else {
+        // Need root permissions to access files in dslocal directories
+        "/var/db/dslocal/nodes/Default/groups"
+    };
 
     let mut group_data: Vec<OpendirectoryGroups> = Vec::new();
-    let files_result = list_files(opendirectory_path);
+    let files_result = list_files(path);
     let files = match files_result {
         Ok(result) => result,
         Err(err) => {
@@ -38,11 +42,14 @@ pub(crate) fn grab_groups() -> Vec<OpendirectoryGroups> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::macos::accounts::groups::grab_groups;
+    use crate::{
+        artifacts::os::macos::accounts::groups::grab_groups,
+        structs::artifacts::os::macos::GroupsOptions,
+    };
 
     #[test]
     fn test_grab_groups() {
-        let results = grab_groups();
+        let results = grab_groups(&GroupsOptions { alt_path: None });
         assert!(results.len() > 10);
 
         for data in results {

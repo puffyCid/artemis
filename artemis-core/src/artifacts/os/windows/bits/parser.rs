@@ -30,7 +30,7 @@ use log::error;
  * The associated `BITS` file(s) is locked if the `BITS` service is running so we read the raw file to bypass the lock
  */
 pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError> {
-    let path = if let Some(alt) = &options.alt_path {
+    let path = if let Some(alt) = &options.alt_file {
         alt.to_string()
     } else {
         let systemdrive_result = get_systemdrive();
@@ -73,7 +73,7 @@ mod tests {
     #[test]
     fn test_grab_bits() {
         let options = BitsOptions {
-            alt_path: None,
+            alt_file: None,
             carve: true,
         };
         let _ = grab_bits(&options).unwrap();

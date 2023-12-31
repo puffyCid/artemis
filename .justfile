@@ -73,3 +73,7 @@ cli:
 # Just build artemis-core
 core:
   cd artemis-core && cargo build --release
+
+# Review complexity with scc
+complex:
+  scc -i rs --by-file -s complexity

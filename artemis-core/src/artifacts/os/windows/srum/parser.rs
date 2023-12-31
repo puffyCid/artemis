@@ -33,7 +33,7 @@ pub(crate) fn grab_srum(
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), SrumError> {
-    let path = if let Some(alt) = &options.alt_path {
+    let path = if let Some(alt) = &options.alt_file {
         alt.to_string()
     } else {
         let systemdrive_result = get_systemdrive();
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_grab_srum() {
-        let options = SrumOptions { alt_path: None };
+        let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_test", "local", "./tmp", false);
 
         grab_srum(&options, &mut output, &false).unwrap();

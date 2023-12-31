@@ -1,12 +1,18 @@
 use super::error::ExecPolicyError;
-use crate::filesystem::files::is_file;
+use crate::{filesystem::files::is_file, structs::artifacts::os::macos::ExecPolicyOptions};
 use common::macos::ExecPolicy;
 use log::error;
 use rusqlite::{Connection, OpenFlags};
 
 /// Query `ExecPolicy` database
-pub(crate) fn grab_execpolicy() -> Result<Vec<ExecPolicy>, ExecPolicyError> {
-    let path = "/var/db/SystemPolicyConfiguration/ExecPolicy";
+pub(crate) fn grab_execpolicy(
+    options: &ExecPolicyOptions,
+) -> Result<Vec<ExecPolicy>, ExecPolicyError> {
+    let path = if let Some(alt_file) = &options.alt_file {
+        alt_file
+    } else {
+        "/var/db/SystemPolicyConfiguration/ExecPolicy"
+    };
 
     if !is_file(path) {
         return Err(ExecPolicyError::PathError);
@@ -99,10 +105,13 @@ pub(crate) fn grab_execpolicy() -> Result<Vec<ExecPolicy>, ExecPolicyError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::macos::execpolicy::policy::grab_execpolicy;
+    use crate::{
+        artifacts::os::macos::execpolicy::policy::grab_execpolicy,
+        structs::artifacts::os::macos::ExecPolicyOptions,
+    };
 
     #[test]
     fn test_get_execpolicy() {
-        let _ = grab_execpolicy().unwrap();
+        let _ = grab_execpolicy(&ExecPolicyOptions { alt_file: None }).unwrap();
     }
 }
