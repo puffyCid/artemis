@@ -6,7 +6,7 @@ use artemis_core::{
             files::FileOptions,
             macos::{
                 EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+                LoginitemsOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
             },
             processes::ProcessOptions,
         },
@@ -74,6 +74,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         fseventsd: None,
         users: None,
         groups: None,
+        sudologs: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -121,7 +122,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         }
         CommandArgs::Firefoxhistory {} => collect.artifact_name = String::from("firefox-history"),
         CommandArgs::Cron {} => collect.artifact_name = String::from("cron"),
-        CommandArgs::Sudologs {} => collect.artifact_name = String::from("sudologs"),
         CommandArgs::Shellhistory {} => collect.artifact_name = String::from("shell_history"),
         CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
         CommandArgs::Emond { alt_path } => {
@@ -173,6 +173,13 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_path: alt_path.clone(),
             };
             collect.users = Some(options);
+            collect.artifact_name = String::from("users");
+        }
+        CommandArgs::Sudologs { logarchive_path } => {
+            let options = SudoOptions {
+                logarchive_path: logarchive_path.clone(),
+            };
+            collect.sudologs = Some(options);
             collect.artifact_name = String::from("users");
         }
         CommandArgs::Unifiedlogs {
@@ -304,7 +311,9 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Sudologs {}),
+            artifact: Some(Sudologs {
+                logarchive_path: None,
+            }),
             format: String::from("json"),
         };
 

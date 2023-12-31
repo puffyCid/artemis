@@ -9,7 +9,7 @@ pub(crate) enum LinuxArtifactError {
     File,
     Process,
     Journal,
-    SudoLog
+    SudoLog,
 }
 
 impl std::error::Error for LinuxArtifactError {}

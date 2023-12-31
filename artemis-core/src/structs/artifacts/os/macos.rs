@@ -7,6 +7,11 @@ pub struct UnifiedLogsOptions {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SudoOptions {
+    pub logarchive_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UsersOptions {
     pub alt_path: Option<String>,
 }

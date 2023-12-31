@@ -57,7 +57,7 @@ pub(crate) enum CommandArgs {
     #[cfg(target_family = "unix")]
     /// Parse Cron Jobs
     Cron {},
-    #[cfg(target_family = "unix")]
+    #[cfg(target_os = "linux")]
     /// Grab Sudo logs
     Sudologs {},
     #[cfg(target_os = "linux")]
@@ -307,6 +307,13 @@ pub(crate) enum CommandArgs {
         /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume
         #[arg(long, value_delimiter = ',')]
         sources: Vec<String>,
+        /// Use a log archive path instead of local files
+        #[arg(long, default_value = None)]
+        logarchive_path: Option<String>,
+    },
+    #[cfg(target_os = "macos")]
+    /// Parse Sudo log entries from Unified Logs
+    Sudologs {
         /// Use a log archive path instead of local files
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,

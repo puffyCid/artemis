@@ -15,7 +15,7 @@ use crate::structs::artifacts::os::windows::{
 #[cfg(target_os = "macos")]
 use super::artifacts::os::macos::{
     EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-    LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+    LoginitemsOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
 };
 
 #[derive(Debug, Deserialize)]
@@ -59,6 +59,7 @@ pub struct Artifacts {
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,
     pub fseventsd: Option<FseventsOptions>,
+    pub sudologs: Option<SudoOptions>,
 }
 
 #[derive(Debug, Deserialize)]

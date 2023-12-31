@@ -217,7 +217,7 @@ pub(crate) fn output_data(
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::linux::artifacts::{
-        files, journals, logons, output_data, processes, systeminfo, sudo_logs,
+        files, journals, logons, output_data, processes, sudo_logs, systeminfo,
     };
     use crate::structs::artifacts::os::files::FileOptions;
     use crate::structs::artifacts::os::processes::ProcessOptions;
