@@ -189,6 +189,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "artemis-server"
+version = "0.6.2"
+dependencies = [
+ "axum",
+ "common",
+ "flate2",
+ "futures",
+ "glob",
+ "hyper 1.1.0",
+ "log",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tokio",
+ "toml 0.8.8",
+ "tower",
+ "uuid",
+]
+
+[[package]]
+name = "artemis-webui"
+version = "0.6.2"
+dependencies = [
+ "common",
+ "leptos",
+ "leptos_meta",
+ "leptos_router",
+ "reqwest",
+ "serde_json",
+ "web-sys",
+]
+
+[[package]]
 name = "ascii-canvas"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -794,7 +828,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "common"
-version = "0.1.0"
+version = "0.6.2"
 dependencies = [
  "plist",
  "serde",
@@ -3716,26 +3750,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "axum",
- "common",
- "flate2",
- "futures",
- "glob",
- "hyper 1.1.0",
- "log",
- "rust-embed",
- "serde",
- "serde_json",
- "tokio",
- "toml 0.8.8",
- "tower",
- "uuid",
-]
-
-[[package]]
 name = "server_fn"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4682,19 +4696,6 @@ checksum = "50c24a44ec86bb68fbecd1b3efed7e85ea5621b39b35ef2766b66cd984f8010f"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "webui"
-version = "0.1.0"
-dependencies = [
- "common",
- "leptos",
- "leptos_meta",
- "leptos_router",
- "reqwest",
- "serde_json",
- "web-sys",
 ]
 
 [[package]]

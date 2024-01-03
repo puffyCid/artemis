@@ -1,8 +1,8 @@
-use crate::web::server::server_info;
+use crate::web::server::request_server;
 use common::server::EndpointOS;
 use leptos::logging::error;
 use leptos::{component, create_resource, view, IntoView, SignalGet, Transition};
-use reqwest::Client;
+use reqwest::Method;
 
 #[component]
 /// Calculate endpoint counts
@@ -28,23 +28,14 @@ pub(crate) fn Stats(
 
 /// Request count of endpoints enrolled
 async fn endpoint_stats(os: &EndpointOS) -> u32 {
-    let server_result = server_info().await;
-    let (server, port) = match server_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to get server IP: {err:?}");
-            return 0;
-        }
-    };
-    let uri = format!("http://{server}:{port}/ui/v1/endpoint_stats");
-    let client = Client::new()
-        .post(uri)
-        .body(serde_json::to_string(&os).unwrap_or_default())
-        .header("Content-Type", "application/json")
-        .send()
-        .await;
+    let res_result = request_server(
+        "endpoint_stats",
+        serde_json::to_string(&os).unwrap_or_default(),
+        Method::POST,
+    )
+    .await;
 
-    let res_result = match client {
+    let response = match res_result {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to make request for {os:?} endpoint count: {err:?}");
@@ -52,7 +43,7 @@ async fn endpoint_stats(os: &EndpointOS) -> u32 {
         }
     };
 
-    let res = res_result.text().await;
+    let res = response.text().await;
     let count_str = match res {
         Ok(result) => result,
         Err(err) => {

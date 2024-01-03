@@ -1,4 +1,4 @@
-use super::{endpoints::endpoint_stats, webui::webui};
+use super::{about::about, endpoints::endpoint_stats, webui::webui};
 use crate::server::ServerState;
 use axum::{
     routing::{get, post},
@@ -7,9 +7,13 @@ use axum::{
 
 /// Setup `WebUI` routes
 pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
+    // Setup pages
     let mut frontend = Router::new().route(&format!("{base}/home"), get(webui));
+    frontend = frontend.merge(Router::new().route(&format!("{base}/about"), get(webui)));
+
     frontend = frontend
         .merge(Router::new().route(&format!("{base}/endpoint_stats"), post(endpoint_stats)));
+    frontend = frontend.merge(Router::new().route(&format!("{base}/server_stats"), get(about)));
     frontend
 }
 
