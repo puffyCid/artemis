@@ -24,4 +24,5 @@ pub(crate) struct Pulse {
     pub(crate) jobs_running: u32,
     pub(crate) pulse: bool,
     pub(crate) timestamp: u64,
+    pub(crate) platform: String,
 }

@@ -17,13 +17,21 @@ pub(crate) struct EndpointInfo {
 #[derive(Debug, Deserialize)]
 pub(crate) struct Endpoint {
     pub(crate) endpoint_id: String,
+    pub(crate) platform: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-/// Static data about and endpoint that rarely changes
-pub(crate) struct EndpointStatic {
+/// Initial Enrollment data for endpoint
+pub(crate) struct EndpointEnrollment {
     pub(crate) hostname: String,
     pub(crate) platform: String,
+    pub(crate) boot_time: u64,
+    pub(crate) os_version: String,
+    pub(crate) uptime: u64,
+    pub(crate) kernel_version: String,
+    pub(crate) cpu: Vec<Cpus>,
+    pub(crate) disks: Vec<Disks>,
+    pub(crate) memory: Memory,
     pub(crate) tags: Vec<String>,
     pub(crate) notes: Vec<Notes>,
     pub(crate) checkin: u64,

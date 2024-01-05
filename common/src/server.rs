@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum EndpointOS {
     Windows,
     Darwin,
@@ -21,4 +21,21 @@ pub struct ServerInfo {
 pub struct DiskInfo {
     pub disk_usage: u64,
     pub disk_size: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EndpointRequest {
+    pub pagination: String,
+    pub filter: EndpointOS,
+    pub tags: Vec<String>,
+    pub search: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EndpointList {
+    pub os: String,
+    pub hostname: String,
+    pub version: String,
+    pub id: String,
+    pub last_pulse: u64,
 }

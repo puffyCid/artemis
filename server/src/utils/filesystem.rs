@@ -3,7 +3,7 @@ use flate2::bufread;
 use log::{error, info};
 use std::path::Path;
 use tokio::fs::{create_dir_all, read, OpenOptions};
-use tokio::io::Error;
+use tokio::io::{self, AsyncBufReadExt, BufReader, Error, Lines};
 use tokio::{fs::File, io::AsyncWriteExt};
 
 /// Check if path is a file
@@ -23,6 +23,12 @@ pub(crate) fn file_size(path: &str) -> u64 {
     }
 
     0
+}
+
+/// Provide iterator for reading lines in file
+pub(crate) async fn read_lines(path: &str) -> io::Result<Lines<BufReader<File>>> {
+    let file = File::open(path).await?;
+    Ok(BufReader::new(file).lines())
 }
 
 /// Check if path is a directory
@@ -105,7 +111,7 @@ pub(crate) async fn create_dirs(path: &str) -> Result<(), UtilServerError> {
 #[cfg(test)]
 mod tests {
     use super::read_file;
-    use crate::utils::filesystem::{create_dirs, is_directory, is_file, write_file};
+    use crate::utils::filesystem::{create_dirs, is_directory, is_file, read_lines, write_file};
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -170,5 +176,13 @@ mod tests {
     #[tokio::test]
     async fn test_create_dirs() {
         create_dirs(&"./tmp/atest").await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_read_lines() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6/heartbeat.jsonl");
+
+        let _ = read_lines(&test_location.to_str().unwrap()).await.unwrap();
     }
 }

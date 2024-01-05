@@ -60,13 +60,12 @@ pub(crate) fn verify_enrollment(data: &str, ip: &str, path: &str) -> Result<(), 
     let verify = match verify_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Failed to deserialize endpoint verification from {ip}: {err:?}");
+            println!("[server] Failed to deserialize endpoint verification from {ip}: {err:?}");
             return Err(StatusCode::BAD_REQUEST);
         }
     };
 
-    let endpoint_path = format!("{path}/{}", verify.endpoint_id);
-
+    let endpoint_path = format!("{path}/{}/{}", verify.platform, verify.endpoint_id);
     let status = is_directory(&endpoint_path);
     if !status {
         return Err(StatusCode::UNPROCESSABLE_ENTITY);
@@ -173,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_verify_enrollment() {
-        let data = r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","pulse":true,"timestamp":1111111,"jobs_running":0}"#;
+        let data = r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","pulse":true,"timestamp":1111111,"jobs_running":0,"platform": ""}"#;
         let ip = "127.0.0.1";
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

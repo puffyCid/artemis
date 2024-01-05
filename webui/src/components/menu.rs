@@ -11,7 +11,7 @@ pub(crate) fn Menu() -> impl IntoView {
                 <div class="navbar-center hidden lg:flex">
                     <ul class="menu menu-horizontal px-1">
                         <li><a href="/ui/v1/home">Home</a></li>
-                        <li><a>Endpoints</a></li>
+                        <li><a href="/ui/v1/endpoints">Endpoints</a></li>
                         <li><a>Collections</a></li>
                         <li><a>Files</a></li>
                         <li><a href="/ui/v1/about">About</a></li>

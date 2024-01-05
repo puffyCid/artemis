@@ -14,7 +14,7 @@ pub(crate) struct SystemInfo {
     pub(crate) performance: LoadPerformance,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct Cpus {
     pub(crate) frequency: u64,
     pub(crate) cpu_usage: f32,
@@ -24,7 +24,7 @@ pub(crate) struct Cpus {
     pub(crate) physical_core_count: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct Disks {
     pub(crate) disk_type: String,
     pub(crate) file_system: String,
@@ -34,7 +34,7 @@ pub(crate) struct Disks {
     pub(crate) removable: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct Memory {
     pub(crate) available_memory: u64,
     pub(crate) free_memory: u64,

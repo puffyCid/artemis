@@ -29,7 +29,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
     let storage_path = state.config.endpoint_server.storage.clone();
 
     let mut message_source = MessageSource::None;
-    let mut socket_message = String::new();
+    let mut id = String::new();
     /*
      * When a system first connects over websockets we need to determine source of message:
      * 1. MessageSource::Client - Socket connection is remote system
@@ -44,9 +44,9 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
             break;
         }
 
-        if let Continue((message, source)) = control {
-            message_source = source;
-            socket_message = message;
+        if let Continue(socket_message) = control {
+            message_source = socket_message.source;
+            id = socket_message.id;
             break;
         }
     }
@@ -61,9 +61,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
      * When client system first checks in setup an async task and channel.
      * This async task will be used to communicate with single client. This task is stored in a shared state (HashMap) to track individual clients
      */
-    if message_source == MessageSource::Client
-        && state.command.read().await.get(&socket_message).is_none()
-    {
+    if message_source == MessageSource::Client && state.command.read().await.get(&id).is_none() {
         let (client_send, mut client_recv) = mpsc::channel(50);
 
         let _send_task = tokio::spawn(async move {
@@ -81,11 +79,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
         });
 
         // Register sender associated with endpoint client. Tracked via Endpoint ID
-        state
-            .command
-            .write()
-            .await
-            .insert(socket_message.clone(), client_send);
+        state.command.write().await.insert(id.clone(), client_send);
     }
 
     /*
@@ -101,18 +95,19 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
             let control = parse_message(&message, &addr, &storage_path).await;
             // If the client disconnects from us, we need to remove from our tracker. We can no longer send commands from server
             if control.is_break() {
-                state.command.write().await.remove(&socket_message);
+                state.command.write().await.remove(&id);
                 break;
             }
 
-            if let Continue((socket_data, source)) = control {
-                if source == MessageSource::None {
+            if let Continue(socket_message) = control {
+                if socket_message.source == MessageSource::None {
                     continue;
                 }
 
                 // If the source is the Server then the socket_data contains a command to be sent the client
-                if source == MessageSource::Server {
-                    let send_result = quick_jobs(&socket_data, &state.command.read().await).await;
+                if socket_message.source == MessageSource::Server {
+                    let send_result =
+                        quick_jobs(&socket_message.id, &state.command.read().await).await;
                     if send_result.is_err() {
                         error!(
                             "[server] Could not issue quick job command: {:?}",
@@ -128,12 +123,18 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                  *
                  * At this point we just need the endpoint_id to check for collection jobs
                  */
-                let endpoint_path = format!("{storage_path}/{socket_data}");
+                let endpoint_path = format!(
+                    "{storage_path}/{}/{}",
+                    socket_message.platform, socket_message.id
+                );
                 let jobs_result = get_jobs(&endpoint_path).await;
                 let jobs = match jobs_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[server] Could not get jobs using ID {socket_data}: {err:?}");
+                        error!(
+                            "[server] Could not get jobs using ID {}: {err:?}",
+                            socket_message.id
+                        );
                         HashMap::new()
                     }
                 };
@@ -143,19 +144,22 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                 let serde_value = match serde_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[server] Could not serialize jobs for {socket_data}: {err:?}");
+                        error!(
+                            "[server] Could not serialize jobs for {}: {err:?}",
+                            socket_message.id
+                        );
                         continue;
                     }
                 };
 
                 // Get the registered socket sender associated with the registered async task for the Client.
                 // This was registered when the client first checked into the server
-                if let Some(client_send) = state.command.read().await.get(&socket_data) {
-                    // Only send message if we found the sender associated with endpoint ID
+                if let Some(client_send) = state.command.read().await.get(&socket_message.id) {
                     let send_result = client_send.send(Message::Text(serde_value)).await;
                     if send_result.is_err() {
                         error!(
-                            "[server] Could not send jobs to ID {socket_data}: {:?}",
+                            "[server] Could not send jobs to ID {}: {:?}",
+                            socket_message.id,
                             send_result.unwrap_err()
                         );
                     }
@@ -172,13 +176,24 @@ enum MessageSource {
     None,
 }
 
+struct SocketMessage {
+    id: String,
+    platform: String,
+    source: MessageSource,
+}
+
 /// Parse websocket message. Currently messages are either Server messages (commands) or client messages (heartbeat, pulse)
 async fn parse_message(
     message: &Message,
     addr: &SocketAddr,
     path: &str,
-) -> ControlFlow<(), (String, MessageSource)> {
+) -> ControlFlow<(), SocketMessage> {
     let ip = addr.ip().to_string();
+    let mut socket_message = SocketMessage {
+        id: String::new(),
+        platform: String::new(),
+        source: MessageSource::None,
+    };
     match message {
         Message::Text(data) => {
             if data.contains("\"targets\":") && ip == "127.0.0.1" {
@@ -187,19 +202,26 @@ async fn parse_message(
                     error!("[server] Could not parse the server command");
                     return ControlFlow::Break(());
                 }
+                socket_message.source = MessageSource::Server;
                 // Send the command the to targets
-                return ControlFlow::Continue((data.to_string(), MessageSource::Server));
+                return ControlFlow::Continue(socket_message);
             }
 
             if verify_enrollment(data, &ip, path).is_err() {
                 return ControlFlow::Break(());
             }
+
+            socket_message.source = MessageSource::Client;
             if data.contains("\"heartbeat\":") {
-                let id = parse_heartbeat(data, &ip, path).await;
-                return ControlFlow::Continue((id, MessageSource::Client));
+                let (id, plat) = parse_heartbeat(data, &ip, path).await;
+                socket_message.id = id;
+                socket_message.platform = plat;
+                return ControlFlow::Continue(socket_message);
             } else if data.contains("\"pulse\":") {
-                let id = parse_pulse(data, &ip, path).await;
-                return ControlFlow::Continue((id, MessageSource::Client));
+                let (id, plat) = parse_pulse(data, &ip, path).await;
+                socket_message.id = id;
+                socket_message.platform = plat;
+                return ControlFlow::Continue(socket_message);
             }
         }
         Message::Binary(_) => {
@@ -212,7 +234,7 @@ async fn parse_message(
     }
 
     // For unsupported messages return None
-    ControlFlow::Continue((String::new(), MessageSource::None))
+    ControlFlow::Continue(socket_message)
 }
 
 #[cfg(test)]
@@ -236,9 +258,9 @@ mod tests {
         let path = test_location.display().to_string();
 
         let control = parse_message(&message, &address, &path).await;
-        if let Continue((value, source)) = control {
-            assert_eq!(value, "3482136c-3176-4272-9bd7-b79f025307d6");
-            assert_eq!(source, MessageSource::Client)
+        if let Continue(socket_message) = control {
+            assert_eq!(socket_message.id, "3482136c-3176-4272-9bd7-b79f025307d6");
+            assert_eq!(socket_message.source, MessageSource::Client)
         }
     }
 }

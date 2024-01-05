@@ -1,13 +1,16 @@
 use crate::{
-    artifacts::enrollment::{EndpointInfo, EndpointStatic},
+    artifacts::{
+        enrollment::{EndpointEnrollment, EndpointInfo},
+        sockets::Heartbeat,
+    },
     filestore::error::StoreError,
     utils::{
-        filesystem::{create_dirs, write_file},
+        filesystem::{create_dirs, read_file, read_lines, write_file},
         time::time_now,
         uuid::generate_uuid,
     },
 };
-use common::server::EndpointOS;
+use common::server::{EndpointList, EndpointOS, EndpointRequest};
 use log::error;
 use serde::Serialize;
 
@@ -18,13 +21,20 @@ pub(crate) async fn create_endpoint_path(
 ) -> Result<String, StoreError> {
     let id = generate_uuid();
 
-    let data = EndpointStatic {
+    let data = EndpointEnrollment {
         hostname: endpoint.hostname.clone(),
         platform: endpoint.platform.clone(),
         tags: Vec::new(),
         notes: Vec::new(),
         checkin: time_now(),
         id,
+        boot_time: endpoint.boot_time,
+        os_version: endpoint.os_version.clone(),
+        uptime: endpoint.uptime,
+        kernel_version: endpoint.kernel_version.clone(),
+        cpu: endpoint.cpu.clone(),
+        disks: endpoint.disks.clone(),
+        memory: endpoint.memory.clone(),
     };
 
     let serde_result = serde_json::to_vec(&data);
@@ -86,7 +96,166 @@ pub(crate) async fn endpoint_count(path: &str, os: &EndpointOS) -> Result<usize,
     Ok(count.len())
 }
 
-#[derive(Debug, Serialize)]
+/// Get the most recent heartbeat for endpoint
+pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, StoreError> {
+    let enroll_path = format!("{endpoint_dir}/enroll.json");
+    let enroll = read_enroll(&enroll_path).await?;
+
+    let enroll_beat = Heartbeat {
+        endpoint_id: enroll.id,
+        heartbeat: false,
+        jobs_running: 0,
+        hostname: enroll.hostname,
+        timestamp: enroll.checkin,
+        cpu: enroll.cpu,
+        disks: enroll.disks,
+        memory: enroll.memory,
+        boot_time: enroll.boot_time,
+        os_version: enroll.os_version,
+        uptime: enroll.uptime,
+        kernel_version: enroll.kernel_version,
+        platform: enroll.platform,
+    };
+
+    let path = format!("{endpoint_dir}/heartbeat.jsonl");
+    let beat_lines = read_lines(&path).await;
+    let mut lines = match beat_lines {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not read heartbeat {path}: {err:?}. Returning enrollment data");
+            return Ok(enroll_beat);
+        }
+    };
+
+    let mut heartbeat = String::new();
+
+    while let Ok(line) = lines.next_line().await {
+        match line {
+            Some(result) => {
+                if result.is_empty() {
+                    break;
+                }
+                heartbeat = result;
+            }
+            None => break,
+        }
+    }
+
+    if heartbeat.is_empty() {
+        return Ok(enroll_beat);
+    }
+
+    let beat_result = serde_json::from_str(&heartbeat);
+    let beat: Heartbeat = match beat_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "[server] Could not serialize heartbeat {path}: {err:?}. Returning enrollment data"
+            );
+            return Ok(enroll_beat);
+        }
+    };
+
+    Ok(beat)
+}
+
+/// Get a list of enrolled endpoints
+pub(crate) async fn get_endpoints(
+    glob_pattern: &str,
+    request: &EndpointRequest,
+) -> Result<Vec<EndpointList>, StoreError> {
+    let mut globs = glob_paths(glob_pattern)?;
+    globs.sort();
+
+    let limit = 50;
+    let mut endpoint_entries = Vec::new();
+    let mut paged_found = false;
+
+    for entry in globs {
+        let enroll_path = entry.full_path;
+        let (filter_match, info) = enroll_filter(&enroll_path, request).await?;
+
+        if request.pagination.is_empty() && filter_match {
+            endpoint_entries.push(info.clone());
+        } else if enroll_path.contains(&request.pagination) {
+            paged_found = true;
+            continue;
+        }
+
+        if paged_found && filter_match {
+            endpoint_entries.push(info);
+        }
+
+        if endpoint_entries.len() == limit {
+            break;
+        }
+    }
+
+    Ok(endpoint_entries)
+}
+
+/// Filter enrollment data based on request
+async fn enroll_filter(
+    path: &str,
+    request: &EndpointRequest,
+) -> Result<(bool, EndpointList), StoreError> {
+    let enroll = read_enroll(path).await?;
+    let entry = EndpointList {
+        os: enroll.platform,
+        version: enroll.os_version,
+        id: enroll.id,
+        hostname: enroll.hostname,
+        last_pulse: 0,
+    };
+    let mut filter_match = false;
+
+    // If no filters. Just return the entry
+    if request.search.is_empty() && request.tags.is_empty() {
+        filter_match = true;
+        return Ok((filter_match, entry));
+    }
+
+    if !request.search.is_empty()
+        && (entry.hostname.contains(&request.search) || !entry.id.contains(&request.search))
+    {
+        filter_match = true;
+        return Ok((filter_match, entry));
+    }
+
+    for tag in &request.tags {
+        if enroll.tags.contains(tag) {
+            filter_match = true;
+            return Ok((filter_match, entry));
+        }
+    }
+
+    Ok((filter_match, entry))
+}
+
+/// Read the `enroll.json` file
+pub(crate) async fn read_enroll(path: &str) -> Result<EndpointEnrollment, StoreError> {
+    let enroll_result = read_file(path).await;
+    let enroll_data = match enroll_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not read original enroll file: {path}: {err:?}");
+            return Err(StoreError::ReadFile);
+        }
+    };
+
+    let enroll_beat_result = serde_json::from_slice(&enroll_data);
+    let enroll: EndpointEnrollment = match enroll_beat_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not serialize enroll file: {path}: {err:?}");
+            return Err(StoreError::ReadFile);
+        }
+    };
+
+    Ok(enroll)
+}
+
+#[derive(Debug, Serialize, Ord, PartialEq, Eq, PartialOrd)]
 pub(crate) struct GlobInfo {
     pub(crate) full_path: String,
     pub(crate) filename: String,
@@ -128,15 +297,16 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, StoreError
 
 #[cfg(test)]
 mod tests {
-    use common::server::EndpointOS;
-    use std::path::PathBuf;
-
     use super::{create_endpoint_path, create_enroll_file};
     use crate::{
         artifacts::{enrollment::EndpointInfo, systeminfo::Memory},
-        filestore::endpoints::{endpoint_count, glob_paths},
+        filestore::endpoints::{
+            endpoint_count, enroll_filter, get_endpoints, glob_paths, read_enroll, recent_heartbeat,
+        },
         utils::{config::read_config, filesystem::create_dirs},
     };
+    use common::server::{EndpointOS, EndpointRequest};
+    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_create_endpoint_path() {
@@ -200,5 +370,83 @@ mod tests {
         let _ = endpoint_count(&config.endpoint_server.storage, &EndpointOS::All)
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_recent_heartbeat() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6");
+
+        let results = recent_heartbeat(&test_location.to_str().unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(results.boot_time, 0);
+    }
+
+    #[tokio::test]
+    async fn test_enroll_filter() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6/enroll.json");
+
+        let request = EndpointRequest {
+            pagination: String::new(),
+            filter: EndpointOS::All,
+            tags: Vec::new(),
+            search: String::new(),
+        };
+
+        let path = test_location.to_str().unwrap();
+
+        let (filer_match, result) = enroll_filter(path, &request).await.unwrap();
+        assert!(filer_match);
+        assert_eq!(result.hostname, "hello");
+    }
+
+    #[tokio::test]
+    async fn test_read_enroll() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6/enroll.json");
+
+        let path = test_location.to_str().unwrap();
+
+        let result = read_enroll(path).await.unwrap();
+        assert_eq!(result.hostname, "hello");
+    }
+
+    #[tokio::test]
+    async fn test_get_endpoints_paged() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/*/enroll.json");
+
+        let request = EndpointRequest {
+            pagination: String::from("3482136c-3176-4272-9bd7-b79f025307d6"),
+            filter: EndpointOS::All,
+            tags: Vec::new(),
+            search: String::new(),
+        };
+
+        let pattern = test_location.to_str().unwrap();
+
+        let results = get_endpoints(pattern, &request).await.unwrap();
+        assert_eq!(results.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_endpoints() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/*/enroll.json");
+
+        let request = EndpointRequest {
+            pagination: String::new(),
+            filter: EndpointOS::All,
+            tags: Vec::new(),
+            search: String::new(),
+        };
+
+        let pattern = test_location.to_str().unwrap();
+
+        let results = get_endpoints(pattern, &request).await.unwrap();
+        assert_eq!(results[0].os, "linux");
     }
 }
