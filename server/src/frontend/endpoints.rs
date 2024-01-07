@@ -1,8 +1,8 @@
-use crate::filestore::endpoints::get_endpoints;
+use crate::filestore::endpoints::{get_endpoints, recent_heartbeat};
 use crate::{filestore::endpoints::endpoint_count, server::ServerState};
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
-use common::server::{EndpointList, EndpointOS, EndpointRequest};
+use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
 use log::error;
 
 /// Count number of Endpoints based on OS type
@@ -32,7 +32,6 @@ pub(crate) async fn endpoint_list(
     if data.filter == EndpointOS::All {
         pattern = format!("{}/*/*/enroll.json", storage_path);
     }
-
     let entries_result = get_endpoints(&pattern, &data).await;
     let entries = match entries_result {
         Ok(result) => result,
@@ -42,6 +41,32 @@ pub(crate) async fn endpoint_list(
         }
     };
     Ok(Json(entries))
+}
+
+/// Get heartbeat info related to endpoint
+pub(crate) async fn endpoint_info(
+    State(state): State<ServerState>,
+    data: String,
+) -> Result<Json<Heartbeat>, StatusCode> {
+    let storage_path = state.config.endpoint_server.storage;
+    let info = data.trim().split('.').collect::<Vec<_>>();
+
+    let min_size = 2;
+    if info.len() < min_size {
+        println!("[server] Did not receive enough info for endpoint lookup {data}");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    let endpoint_dir = format!("{}/{}/{}", storage_path, info[0], info[1]);
+    let entries_result = recent_heartbeat(&endpoint_dir).await;
+    let entry = match entries_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not get heartbeat info for {data}: {err:?}",);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    Ok(Json(entry))
 }
 
 #[cfg(test)]

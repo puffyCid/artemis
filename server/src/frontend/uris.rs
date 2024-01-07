@@ -1,6 +1,6 @@
 use super::{
     about::about,
-    endpoints::{endpoint_list, endpoint_stats},
+    endpoints::{endpoint_info, endpoint_list, endpoint_stats},
     webui::webui,
 };
 use crate::server::ServerState;
@@ -15,15 +15,18 @@ pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
     let mut frontend = Router::new().route(&format!("{base}/home"), get(webui));
     frontend = frontend.merge(Router::new().route(&format!("{base}/about"), get(webui)));
     frontend = frontend.merge(Router::new().route(&format!("{base}/endpoints"), get(webui)));
+    frontend = frontend.merge(Router::new().route(&format!("{base}/endpoints/info"), get(webui)));
 
     // Post requests for Endpoint info
     frontend = frontend
-        .merge(Router::new().route(&format!("{base}/endpoint_stats"), post(endpoint_stats)));
+        .merge(Router::new().route(&format!("{base}/endpoint/stats"), post(endpoint_stats)));
     frontend =
-        frontend.merge(Router::new().route(&format!("{base}/endpoint_list"), post(endpoint_list)));
+        frontend.merge(Router::new().route(&format!("{base}/endpoint/list"), post(endpoint_list)));
+    frontend =
+        frontend.merge(Router::new().route(&format!("{base}/endpoints/info"), post(endpoint_info)));
 
     // Server stats
-    frontend = frontend.merge(Router::new().route(&format!("{base}/server_stats"), get(about)));
+    frontend = frontend.merge(Router::new().route(&format!("{base}/server/stats"), get(about)));
     frontend
 }
 

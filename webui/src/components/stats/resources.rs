@@ -87,7 +87,7 @@ async fn get_info() -> ServerInfo {
         disk_info: Vec::new(),
     };
 
-    let res_result = request_server("server_stats", String::new(), Method::GET).await;
+    let res_result = request_server("server/stats", String::new(), Method::GET).await;
     let response = match res_result {
         Ok(result) => result,
         Err(err) => {

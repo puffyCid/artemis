@@ -1,4 +1,4 @@
-use super::systeminfo::{Cpus, Disks, Memory};
+use common::system::{Cpus, DiskDrives, Memory};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -10,7 +10,7 @@ pub(crate) struct EndpointInfo {
     pub(crate) kernel_version: String,
     pub(crate) platform: String,
     pub(crate) cpu: Vec<Cpus>,
-    pub(crate) disks: Vec<Disks>,
+    pub(crate) disks: Vec<DiskDrives>,
     pub(crate) memory: Memory,
 }
 
@@ -30,7 +30,7 @@ pub(crate) struct EndpointEnrollment {
     pub(crate) uptime: u64,
     pub(crate) kernel_version: String,
     pub(crate) cpu: Vec<Cpus>,
-    pub(crate) disks: Vec<Disks>,
+    pub(crate) disks: Vec<DiskDrives>,
     pub(crate) memory: Memory,
     pub(crate) tags: Vec<String>,
     pub(crate) notes: Vec<Notes>,

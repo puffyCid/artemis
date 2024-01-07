@@ -1,7 +1,5 @@
-use crate::{
-    artifacts::sockets::{Heartbeat, Pulse},
-    utils::filesystem::{append_file, write_file},
-};
+use crate::utils::filesystem::{append_file, write_file};
+use common::server::{Heartbeat, Pulse};
 use log::error;
 use serde_json::Error;
 

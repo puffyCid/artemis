@@ -78,12 +78,13 @@ pub(crate) fn verify_enrollment(data: &str, ip: &str, path: &str) -> Result<(), 
 mod tests {
     use super::verify_enrollment;
     use crate::{
-        artifacts::{enrollment::EndpointInfo, systeminfo::Memory},
+        artifacts::enrollment::EndpointInfo,
         enrollment::enroll::{enroll_endpoint, Enrollment},
         server::ServerState,
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
+    use common::system::Memory;
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
     use tokio::sync::RwLock;
 

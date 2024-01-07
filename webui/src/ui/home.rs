@@ -21,7 +21,7 @@ pub(crate) fn Home() -> impl IntoView {
 
     view! {
         <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
-        <div class="grid grid-cols-4 grid-rows-4">
+        <div class="grid grid-cols-4">
             <Menu />
             <div class="col-span-1"><Stats os=EndpointOS::All html=all /></div>
             <div class="col-span-1"><Stats os=EndpointOS::Linux html=linux/></div>

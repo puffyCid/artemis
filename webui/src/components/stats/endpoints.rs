@@ -29,7 +29,7 @@ pub(crate) fn Stats(
 /// Request count of endpoints enrolled
 async fn endpoint_stats(os: &EndpointOS) -> u32 {
     let res_result = request_server(
-        "endpoint_stats",
+        "endpoint/stats",
         serde_json::to_string(&os).unwrap_or_default(),
         Method::POST,
     )

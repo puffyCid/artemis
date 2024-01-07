@@ -37,7 +37,7 @@ xml2json-rs = "1.0.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.239.0" }
+deno_core = { version = "0.243.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
@@ -63,7 +63,7 @@ plist = "1.6.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.239.0" }
+deno_core = { version = "0.243.0" }
 
 # Dependencies for tests
 [dev-dependencies]
