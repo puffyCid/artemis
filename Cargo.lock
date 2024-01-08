@@ -213,6 +213,7 @@ dependencies = [
 name = "artemis-webui"
 version = "0.6.2"
 dependencies = [
+ "chrono",
  "common",
  "leptos",
  "leptos_meta",

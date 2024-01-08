@@ -62,6 +62,7 @@ pub(crate) struct InfoValue {
 }
 
 #[component]
+/// Get the details from queried endpoint
 pub(crate) fn GetInfo() -> impl IntoView {
     let query = use_query_map();
     // search stored as ?q=

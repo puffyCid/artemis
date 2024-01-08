@@ -46,7 +46,7 @@ pub(crate) fn Resources() -> impl IntoView {
                                 usage = disk.disk_usage;
                             }
                         }
-                        usage / (1024 * 1024 * 1024)
+                        usage / (1000 * 1000 * 1000)
                     })}
                 </Transition> GB
             </div>
@@ -59,7 +59,7 @@ pub(crate) fn Resources() -> impl IntoView {
                                 size = disk.disk_size;
                             }
                         }
-                        size / (1024 * 1024 * 1024)
+                        size / (1000 * 1000 * 1000)
                     })}
                 </Transition> GB Total Disk Size
             </div>
