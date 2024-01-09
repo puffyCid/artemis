@@ -1,5 +1,8 @@
 use crate::web::time::unixepoch_to_rfc;
-use common::{server::Heartbeat, system::Cpus};
+use common::{
+    server::Heartbeat,
+    system::{Cpus, DiskDrives},
+};
 use leptos::{component, view, IntoView};
 
 #[component]
@@ -31,7 +34,7 @@ pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
           <p class="font-semibold">Disk Size</p>
             <p>{
               let mut size = 0;
-              for disk in beat.disks {
+              for disk in &beat.disks {
                 if disk.total_space > size {
                     size = disk.total_space;
                 }
@@ -54,6 +57,7 @@ pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
         </div>
         <UptimeBootime count={beat.uptime} seconds={beat.boot_time as i64} />
         <CpuInfo cpus={beat.cpu} />
+        <DiskInfo disks={beat.disks} />
     }
 }
 
@@ -78,19 +82,83 @@ fn UptimeBootime(count: u64, seconds: i64) -> impl IntoView {
 /// Display CPU data
 fn CpuInfo(cpus: Vec<Cpus>) -> impl IntoView {
     view! {
-      <div class="m-4 rounded-lg shadow-xl join join-vertical overflow-auto flex flex-nowrap">
-        {cpus.into_iter().map(|value| view!{
-          <div class="collapse collapse-arrow join-item border-2">
-            <input type="radio" name="cpu-accordion-4" checked="checked" />
-            <div class="collapse-title font-medium">
-              {format!("Brand: {}", value.brand)}
-            </div>
-            <div class="collapse-content">
-              <p>{format!("Core: {}", value.name)}</p>
-              <p>{format!("CPU Usage: {}", value.cpu_usage)}</p>
-              <p>{format!("Vendor: {}", value.vendor_id)}</p>
-            </div>
-          </div>
+      <div class="m-4 rounded-lg shadow-xl border-2 carousel">
+        {
+          cpus.clone().into_iter().enumerate().map(|(index, value)| {
+            let mut previous = index;
+            let mut next = index + 1;
+            if index == 0 {
+              previous = cpus.len() - 1;
+            } else {
+              previous -= 1;
+            }
+
+            if next == cpus.len() {
+              next = 0;
+            }
+
+            view!{
+              <div id={format!("core{index}")} class="carousel-item relative w-full">
+                <div class="m-2 flex place-content-evenly pl-8 ml-8">
+                  <div class="stat">
+                    <div class="stat-title"> {format!("CPU Usage (Core {} of {})", index + 1 , value.physical_core_count)} </div>
+                    <div class="stat-value">
+                      {format!("{}%", value.cpu_usage as u64)}
+                    </div>
+                    <div classs="stat-desc">
+                      {value.brand}
+                    </div>
+                  </div>
+                </div>
+                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                  <a href={format!("#core{previous}")} class="btn btn-circle">{format!("<")}</a>
+                  <a href={format!("#core{next}")} class="btn btn-circle">{format!(">")}</a>
+                </div>
+              </div>
+          }
+        }).collect::<Vec<_>>()}
+      </div>
+    }
+}
+
+#[component]
+/// Display Disk data
+fn DiskInfo(disks: Vec<DiskDrives>) -> impl IntoView {
+    view! {
+      <div class="m-4 rounded-lg shadow-xl border-2 carousel">
+        {
+          disks.clone().into_iter().enumerate().map(|(index, value)| {
+            let mut previous = index;
+            let mut next = index + 1;
+            if index == 0 {
+              previous = disks.len() - 1;
+            } else {
+              previous -= 1;
+            }
+
+            if next == disks.len() {
+              next = 0;
+            }
+
+            view!{
+              <div id={format!("disk{index}")} class="carousel-item relative w-full">
+                <div class="m-2 flex place-content-evenly pl-8 ml-8">
+                  <div class="stat">
+                    <div class="stat-title"> {format!("Disk Drive {} of {}", index + 1 , disks.len())} </div>
+                    <div class="stat-value">
+                      {format!("{}GB Used", (value.total_space - value.available_space) / (1000 * 1000 * 1000))}
+                    </div>
+                    <div classs="stat-desc">
+                      {format!("Drive Size: {}GB ({})", value.total_space / (1000 * 1000 * 1000), value.mount_point)}
+                    </div>
+                  </div>
+                </div>
+                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                  <a href={format!("#disk{previous}")} class="btn btn-circle">{format!("<")}</a>
+                  <a href={format!("#disk{next}")} class="btn btn-circle">{format!(">")}</a>
+                </div>
+              </div>
+          }
         }).collect::<Vec<_>>()}
       </div>
     }
