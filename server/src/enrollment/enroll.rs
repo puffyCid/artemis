@@ -12,8 +12,8 @@ use serde_json::Error;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Enrollment {
-    enroll_key: String,
-    endpoint_info: EndpointInfo,
+    pub(crate) enroll_key: String,
+    pub(crate) endpoint_info: EndpointInfo,
 }
 
 #[derive(Debug, Serialize)]

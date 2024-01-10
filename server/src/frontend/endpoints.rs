@@ -72,12 +72,17 @@ pub(crate) async fn endpoint_info(
 #[cfg(test)]
 mod tests {
     use crate::{
+        artifacts::enrollment::EndpointInfo,
+        enrollment::enroll::{enroll_endpoint, Enrollment},
         frontend::endpoints::{endpoint_list, endpoint_stats},
         server::ServerState,
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
-    use common::server::{EndpointOS, EndpointRequest};
+    use common::{
+        server::{EndpointOS, EndpointRequest},
+        system::Memory,
+    };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
     use tokio::sync::RwLock;
 
@@ -115,10 +120,36 @@ mod tests {
 
         let data = Json(EndpointRequest {
             pagination: String::new(),
-            filter: EndpointOS::Linux,
+            filter: EndpointOS::Darwin,
             tags: Vec::new(),
             search: String::new(),
         });
+
+        let info = Enrollment {
+            enroll_key: String::from("arandomkey"),
+            endpoint_info: EndpointInfo {
+                boot_time: 0,
+                hostname: String::from("hello"),
+                os_version: String::from("test"),
+                uptime: 1,
+                kernel_version: String::from("1.1"),
+                platform: String::from("darwin"),
+                cpu: Vec::new(),
+                disks: Vec::new(),
+                memory: Memory {
+                    available_memory: 12,
+                    free_memory: 12,
+                    free_swap: 12,
+                    total_memory: 12,
+                    total_swap: 12,
+                    used_memory: 12,
+                    used_swap: 12,
+                },
+            },
+        };
+
+        let test = Json(info);
+        let _ = enroll_endpoint(test2.clone(), test).await.unwrap();
 
         let result = endpoint_list(test2, data).await.unwrap();
         assert_eq!(result.0[0].hostname, "hello");
