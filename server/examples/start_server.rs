@@ -1,4 +1,4 @@
-use server::server::start;
+use artemis_server::server::start;
 use std::{env, path::Path};
 fn main() {
     println!("Starting basic server at 127.0.0.1:8000");

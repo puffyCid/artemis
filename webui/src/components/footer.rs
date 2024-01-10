@@ -10,8 +10,8 @@ pub(crate) fn Footer() -> impl IntoView {
                     <p>MIT - Copyright (c) 2023 puffyCid</p>
                 </aside>
                 <nav class="grid-flow-col gap-4 md:place-self-center md:justify-self-end">
-                    <a>Docs</a>
-                    <a>GitHub</a>
+                    <a href="https://puffycid.github.io/artemis-api" target="_blank" rel="noopener noreferrer">Docs</a>
+                    <a href="https://github.com/puffycid/artemis" target="_blank" rel="noopener noreferrer">GitHub</a>
                 </nav>
             </footer>
         </div>

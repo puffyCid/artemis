@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "linux")]
 use crate::linux::ElfInfo;
@@ -30,7 +30,7 @@ pub struct SystemInfoMetadata {
     pub performance: LoadPerformance,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Cpus {
     pub frequency: u64,
     pub cpu_usage: f32,
@@ -40,7 +40,7 @@ pub struct Cpus {
     pub physical_core_count: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DiskDrives {
     pub disk_type: String,
     pub file_system: String,
@@ -50,7 +50,7 @@ pub struct DiskDrives {
     pub removable: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Memory {
     pub available_memory: u64,
     pub free_memory: u64,

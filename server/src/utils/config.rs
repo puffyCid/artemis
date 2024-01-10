@@ -14,7 +14,6 @@ pub(crate) struct ArtemisConfig {
 pub(crate) struct ArtemisInfo {
     pub(crate) version: String,
     pub(crate) name: String,
-    pub(crate) min_rust_version: String,
     pub(crate) target: String,
 }
 
@@ -31,7 +30,6 @@ pub(crate) fn generate_config() -> ArtemisConfig {
     let metadata = ArtemisInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         name: env!("CARGO_PKG_NAME").to_string(),
-        min_rust_version: env!("CARGO_PKG_RUST_VERSION").to_string(),
         target: std::env::var("CARGO_BUILD_TARGET").unwrap_or_default(),
     };
 

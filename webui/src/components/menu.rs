@@ -10,15 +10,19 @@ pub(crate) fn Menu() -> impl IntoView {
                 </div>
                 <div class="navbar-center hidden lg:flex">
                     <ul class="menu menu-horizontal px-1">
-                        <li><a>Endpoints</a></li>
+                        <li><a href="/ui/v1/home">Home</a></li>
+                        <li><a href="/ui/v1/endpoints">Endpoints</a></li>
                         <li><a>Collections</a></li>
                         <li><a>Files</a></li>
+                        <li><a href="/ui/v1/about">About</a></li>
                     </ul>
                 </div>
                 <div class="navbar-end">
-                    <label tabindex="0" class="btn btn-circle avatar">
-                        <img src="https://gravatar.com/avatar/41d93958de07d2d53bcaa3d3258f33633cb7728ff1d51c3982fbc0101ae5b5d8" />
-                    </label>
+                    <div tabindex="0" class="avatar">
+                        <div class="w24 rounded-full">
+                            <img src="https://gravatar.com/avatar/76e90b779ff39910179f1c39b80c4025716c8030e054a257dc7dde83ea1fc691" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

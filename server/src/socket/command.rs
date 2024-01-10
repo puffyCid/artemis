@@ -1,6 +1,6 @@
 use crate::{
     artifacts::jobs::{Command, JobType},
-    filestore::jobs::save_job,
+    filestore::{endpoints::glob_paths, jobs::save_job},
 };
 use axum::extract::ws::Message;
 use log::error;
@@ -21,10 +21,15 @@ pub(crate) async fn parse_command(data: &str, path: &str) -> Result<(), Error> {
 
     if command.job.job_type == JobType::Collection {
         for target in command.targets {
-            let endpoint_path = format!("{path}/{target}");
-            let status = save_job(command.job.clone(), &endpoint_path).await;
-            if status.is_err() {
-                error!("[server] Could not save job collection at {endpoint_path}");
+            let glob_path = glob_paths(&format!("{path}/*/{target}")).unwrap_or_default();
+            for endpoint_path in glob_path {
+                let status = save_job(command.job.clone(), &endpoint_path.full_path).await;
+                if status.is_err() {
+                    error!(
+                        "[server] Could not save job collection at {}",
+                        endpoint_path.full_path
+                    );
+                }
             }
         }
     }
