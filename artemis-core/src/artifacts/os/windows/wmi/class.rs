@@ -190,7 +190,6 @@ fn parse_qualifier<'a>(
         qual_data = input;
         quals.push(qual);
     }
-    println!("{quals:?}");
 
     Ok((qual_data, quals))
 }
@@ -205,7 +204,6 @@ fn parse_property<'a>(
 
     let mut props = Vec::new();
     while prop_data.len() >= min_size {
-        println!("prop data: {prop_data:?}");
         let (input, name_offset) = nom_unsigned_four_bytes(prop_data, Endian::Le)?;
         let msb_set: u32 = 0x80000000;
         let name = if name_offset > msb_set {
@@ -264,7 +262,6 @@ fn parse_property<'a>(
         props.push(prop);
     }
 
-    println!("{props:?}");
     Ok((prop_data, props))
 }
 
@@ -514,12 +511,34 @@ fn extract_cim_data<'a>(
             cim_value = Value::Number(value.into());
             remaining = input;
         }
+        CimType::ArraySint32 => {
+            // Array value is offset to array length
+            let (input, string_count_offset) =
+                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            // Offset from the property value data
+            let (input, _) = take(string_count_offset)(data)?;
+            let (mut cim_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            let mut signed_ints = Vec::new();
+            let mut int_count = 0;
+            // Parse array of signed integers
+            while int_count < count {
+                let (next_offset, value) = nom_signed_four_bytes(cim_data, Endian::Le)?;
+                int_count += 1;
+                signed_ints.push(value);
+                cim_data = next_offset;
+            }
+            cim_value = json!(signed_ints);
+        }
         _ => {
             println!("{remaining_input:?}");
             panic!("odd: {cim_type:?}");
             warn!("[wmi] Unknown CIM Type: {cim_type:?}");
             let (input, _) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
+            cim_value = Value::Null;
             return Ok((remaining, cim_value));
         }
     }

@@ -2,18 +2,34 @@ use super::class::{parse_class, ClassInfo};
 use crate::utils::nom_helper::{
     nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
 };
+use log::error;
 use nom::bytes::complete::take;
 
 /// Parse Objects.data file
-pub(crate) fn parse_objects(data: &[u8]) -> nom::IResult<&[u8], Vec<ObjectPage>> {
+pub(crate) fn parse_objects<'a>(
+    data: &'a [u8],
+    pages: &[u32],
+) -> nom::IResult<&'a [u8], Vec<ObjectPage>> {
     let page_size = 8192;
-    let mut input = data;
 
     let mut objects = Vec::new();
-    while input.len() >= page_size {
-        let (remaining, page_data) = take(page_size)(input)?;
-        let (remaining, mut object_page) = parse_page(page_data, remaining)?;
-        input = remaining;
+    let mut skip = 0;
+    // Loop through all pages from mappings file
+    for (index, page) in pages.iter().enumerate() {
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
+        // Skip unused pages
+        if page == &0xffffffff {
+            continue;
+        }
+        let (page_start, _) = take(page * page_size)(data)?;
+        let (_, page_data) = take(page_size)(page_start)?;
+
+        let (_, (mut object_page, additional_pages)) = parse_page(page_data, data, &index, pages)?;
+        // If we consumed additional pages. We skip equal number pages in loop.
+        skip = additional_pages;
 
         objects.append(&mut object_page);
     }
@@ -33,10 +49,14 @@ pub(crate) struct ObjectPage {
 fn parse_page<'a>(
     data: &'a [u8],
     object_remaining: &'a [u8],
-) -> nom::IResult<&'a [u8], Vec<ObjectPage>> {
+    index: &usize,
+    pages: &[u32],
+) -> nom::IResult<&'a [u8], (Vec<ObjectPage>, u32)> {
     let mut input = data;
     let mut page_remaining = object_remaining;
     let mut objects: Vec<ObjectPage> = Vec::new();
+
+    let mut additional_pages = 0;
 
     loop {
         let (remaining, record_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -49,7 +69,12 @@ fn parse_page<'a>(
         if record_id == 0 && offset == 0 && size == 0 && checksum == 0 {
             break;
         } else if offset as usize > data.len() {
-            println!("strange offset is super large??");
+            println!("data: {data:?}");
+            println!("offset: {offset}");
+            println!("data len: {}", data.len());
+            println!("remaining len: {}", input.len());
+            println!("objects count: {}", objects.len());
+            panic!("strange offset is super large??");
             break;
         } else if size as usize > page_remaining.len() && size > page_size {
             println!("size is larger than whole file. strage..?");
@@ -66,19 +91,37 @@ fn parse_page<'a>(
         };
 
         if size > page_size {
-            let (remaining_input, large_data) = take(
-                ((size as f32 / page_size as f32).round() as u32) * page_size,
-            )(page_remaining)?;
+            // Pages are 8192 bytes. Need to determine real size of data. Ex: If size = 9000 bytes, thats two pages
+            let real_size = size as f32 / page_size as f32;
 
-            page_remaining = remaining_input;
+            additional_pages = if real_size.fract() == 0.0 {
+                real_size as u32
+            } else {
+                // Already nom'd first 8192 bytes
+                let adjust_page = 1;
+                real_size.ceil() as u32 - adjust_page
+            };
+
+            let mut get_pages = 1;
             let mut object_page = data_start.to_vec();
-            object_page.append(&mut large_data.to_vec());
+
+            // Since data is too large to fit in one page. We need to grab more pages
+            while get_pages <= additional_pages {
+                let page = pages.get(index + get_pages as usize).unwrap();
+                let (data_start, _) = take(page * page_size)(page_remaining)?;
+                let (_, large_data) = take(page_size)(data_start)?;
+
+                object_page.append(&mut large_data.to_vec());
+                get_pages += 1;
+            }
 
             let data_result = nom_data(&object_page, size as u64);
             match data_result {
                 Ok((_, result)) => object.object_data = result.to_vec(),
                 Err(_err) => {
                     panic!("yikes");
+                    error!("[wmi] Failed to nom object data");
+                    break;
                 }
             }
         } else {
@@ -90,12 +133,20 @@ fn parse_page<'a>(
         input = remaining;
     }
 
-    Ok((page_remaining, objects))
+    Ok((page_remaining, (objects, additional_pages)))
 }
 
+/// Parse Object record
 pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, super_class_name_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let adjust_size = 2;
+
+    // If name size too large. Its probably an Instance block
+    if (super_class_name_size * adjust_size) as usize > input.len() {
+        println!("name size: {super_class_name_size}");
+        println!("{data:?}");
+        panic!("name too large?");
+    }
 
     // Name is UTF16 need to double name size length
     let (input, super_class_name_data) = take(super_class_name_size * adjust_size)(input)?;
@@ -103,6 +154,9 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, class_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let adjust_class_size = 4;
+    if (class_size - adjust_class_size) as usize > input.len() {
+        panic!("class too large?");
+    }
     // Class size includes size itself. We already nom'd that
     let (input, class_data) = take(class_size - adjust_class_size)(input)?;
     let (_, class_info) = parse_class(class_data)?;
@@ -116,7 +170,10 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
 mod tests {
     use super::parse_page;
     use crate::{
-        artifacts::os::windows::wmi::objects::{parse_objects, parse_record},
+        artifacts::os::windows::wmi::{
+            map::parse_map,
+            objects::{parse_objects, parse_record},
+        },
         filesystem::files::read_file,
     };
     use std::path::PathBuf;
@@ -150,14 +207,17 @@ mod tests {
             13, 255, 255, 255, 255, 69, 0, 0, 128, 0, 95, 95, 78, 65, 77, 69, 83, 80, 65, 67, 69,
             0, 0, 78, 97, 109, 101, 0, 8,
         ];
-        let (_, results) = parse_page(&data, &data).unwrap();
+        let (_, (results, _)) = parse_page(&data, &data, &0, &[]).unwrap();
         assert_eq!(results.len(), 22);
     }
 
     #[test]
     fn test_parse_objects() {
+        let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
+        let (_, results) = parse_map(&data).unwrap();
+
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
-        let (_, results) = parse_objects(&data).unwrap();
+        let (_, results) = parse_objects(&data, &results.mappings).unwrap();
 
         assert!(results.len() > 10);
     }

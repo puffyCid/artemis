@@ -73,12 +73,12 @@ fn get_namespace_classes<'a>(
     let page = pages.get(logical_page).unwrap();
     let (data, _) = take(page * page_size)(objects_data)?;
 
-    let (_, object_info) = parse_objects(data)?;
+    let (_, object_info) = parse_objects(objects_data, pages)?;
 
     for object in object_info {
         if object.record_id == record_id {
             let (_, class) = parse_record(&object.object_data).unwrap();
-            println!("class: {class:?}");
+            //println!("class: {class:?}");
         }
     }
 

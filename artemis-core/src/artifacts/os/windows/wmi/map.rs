@@ -63,6 +63,8 @@ fn parse_mapping(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
         entries += 1;
     }
 
+    //page_numbers.sort();
+
     Ok((map_input, page_numbers))
 }
 
@@ -94,6 +96,13 @@ mod tets {
         test_location.push("tests/test_data/windows/wmi/MAPPING1.MAP");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (_, results) = parse_map(&data).unwrap();
+        println!("{results:?}");
+    }
+
+    #[test]
+    fn test_parse_map_live() {
+        let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&data).unwrap();
         println!("{results:?}");
     }
