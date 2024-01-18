@@ -3,9 +3,8 @@ use crate::utils::nom_helper::{
     nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_sixteen_bytes,
     nom_unsigned_two_bytes, Endian,
 };
-use deno_core::{error::AnyError, op2, JsBuffer, ToJsBuffer};
+use deno_core::{anyhow::anyhow, error::AnyError, op2, JsBuffer, ToJsBuffer};
 use serde::Serialize;
-
 #[derive(Serialize)]
 pub(crate) struct NomUnsignedJs {
     remaining: ToJsBuffer,
@@ -25,7 +24,11 @@ pub(crate) fn js_nom_unsigned_four_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_unsigned_four_bytes(&data, endian).unwrap_or_default();
+    let results = nom_unsigned_four_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom unsigned four bytes")),
+    };
     let nom_bytes = NomUnsignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as usize,
@@ -47,7 +50,11 @@ pub(crate) fn js_nom_unsigned_eight_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_unsigned_eight_bytes(&data, endian).unwrap_or_default();
+    let results = nom_unsigned_eight_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom unsigned eight bytes")),
+    };
     let nom_bytes = NomUnsignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as usize,
@@ -69,7 +76,11 @@ pub(crate) fn js_nom_unsigned_two_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_unsigned_two_bytes(&data, endian).unwrap_or_default();
+    let results = nom_unsigned_two_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom unsigned two bytes")),
+    };
     let nom_bytes = NomUnsignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as usize,
@@ -91,7 +102,11 @@ pub(crate) fn js_nom_unsigned_one_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_unsigned_one_byte(&data, endian).unwrap_or_default();
+    let results = nom_unsigned_one_byte(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom unsigned one bytes")),
+    };
     let nom_bytes = NomUnsignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as usize,
@@ -118,7 +133,11 @@ pub(crate) fn js_nom_unsigned_sixteen_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_unsigned_sixteen_bytes(&data, endian).unwrap_or_default();
+    let results = nom_unsigned_sixteen_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom unsigned sixteen bytes")),
+    };
     let nom_bytes = NomUnsignedLargeJs {
         remaining: remaining.to_vec().into(),
         value: nommed.to_string(),
@@ -146,7 +165,11 @@ pub(crate) fn js_nom_signed_four_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_signed_four_bytes(&data, endian).unwrap_or_default();
+    let results = nom_signed_four_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom signed four bytes")),
+    };
     let nom_bytes = NomSignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as isize,
@@ -168,7 +191,11 @@ pub(crate) fn js_nom_signed_eight_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_signed_eight_bytes(&data, endian).unwrap_or_default();
+    let results = nom_signed_eight_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom signed eight bytes")),
+    };
     let nom_bytes = NomSignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as isize,
@@ -190,7 +217,11 @@ pub(crate) fn js_nom_signed_two_bytes(
         Endian::Be
     };
 
-    let (remaining, nommed) = nom_signed_two_bytes(&data, endian).unwrap_or_default();
+    let results = nom_signed_two_bytes(&data, endian);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom signed two bytes")),
+    };
     let nom_bytes = NomSignedJs {
         remaining: remaining.to_vec().into(),
         value: nommed as isize,
