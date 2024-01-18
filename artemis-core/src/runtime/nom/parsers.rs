@@ -1,4 +1,4 @@
-use deno_core::{error::AnyError, op2, JsBuffer, ToJsBuffer};
+use deno_core::{anyhow::anyhow, error::AnyError, op2, JsBuffer, ToJsBuffer};
 use nom::bytes::complete::{take, take_until, take_while};
 use serde::Serialize;
 
@@ -15,7 +15,11 @@ pub(crate) fn js_nom_take_string(
     #[string] data: String,
     #[bigint] input: usize,
 ) -> Result<String, AnyError> {
-    let (remaining, nommed) = nom_take_string(&data, input).unwrap_or_default();
+    let results = nom_take_string(&data, input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom string")),
+    };
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
         nommed,
@@ -44,7 +48,11 @@ pub(crate) fn js_nom_take_bytes(
     #[buffer] data: JsBuffer,
     #[bigint] input: usize,
 ) -> Result<NomBytesJs, AnyError> {
-    let (remaining, nommed) = nom_take_bytes(&data, input).unwrap_or_default();
+    let results = nom_take_bytes(&data, input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom bytes")),
+    };
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),
         nommed: nommed.into(),
@@ -66,7 +74,11 @@ pub(crate) fn js_nom_take_until_string(
     #[string] data: String,
     #[string] input: String,
 ) -> Result<String, AnyError> {
-    let (remaining, nommed) = nom_take_until_string(&data, &input).unwrap_or_default();
+    let results = nom_take_until_string(&data, &input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom until string")),
+    };
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
         nommed,
@@ -89,7 +101,11 @@ pub(crate) fn js_nom_take_until_bytes(
     #[buffer] data: JsBuffer,
     #[buffer] input: JsBuffer,
 ) -> Result<NomBytesJs, AnyError> {
-    let (remaining, nommed) = nom_take_until_bytes(&data, &input).unwrap_or_default();
+    let results = nom_take_until_bytes(&data, &input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom until bytes")),
+    };
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),
         nommed: nommed.into(),
@@ -111,7 +127,11 @@ pub(crate) fn js_nom_take_while_string(
     #[string] data: String,
     #[serde] input: char,
 ) -> Result<String, AnyError> {
-    let (remaining, nommed) = nom_take_while_string(&data, input).unwrap_or_default();
+    let results = nom_take_while_string(&data, input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom while string")),
+    };
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
         nommed,
@@ -134,7 +154,11 @@ pub(crate) fn js_nom_take_while_bytes(
     #[buffer] data: JsBuffer,
     input: u8,
 ) -> Result<NomBytesJs, AnyError> {
-    let (remaining, nommed) = nom_take_while_bytes(&data, input).unwrap_or_default();
+    let results = nom_take_while_bytes(&data, input);
+    let (remaining, nommed) = match results {
+        Ok(result) => result,
+        Err(_) => return Err(anyhow!("Failed to nom while bytes")),
+    };
     let nom_bytes = NomBytesJs {
         remaining: remaining.to_vec().into(),
         nommed: nommed.into(),
