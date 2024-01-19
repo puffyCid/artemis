@@ -25,9 +25,9 @@ pub(crate) struct ClassInfo {
 
 #[derive(Debug)]
 pub(crate) struct Qualifier {
-    name: String,
-    value_data_type: CimType,
-    data: Value,
+    pub(crate) name: String,
+    pub(crate) value_data_type: CimType,
+    pub(crate) data: Value,
 }
 
 #[derive(Debug)]
@@ -236,9 +236,6 @@ fn parse_property<'a>(
         let adjust_size = 4;
         let qualifiers = if qual_size > adjust_size {
             if (qual_size - adjust_size) as usize > input.len() {
-                // println!("{qual_size}");
-                // println!("{:?}", input.len());
-                // println!("{:?}", value_data);
                 println!("qual offset too large?");
                 Vec::new()
             } else {

@@ -1,7 +1,7 @@
 use super::class::{parse_class, ClassInfo};
-use crate::utils::nom_helper::{
+use crate::{utils::nom_helper::{
     nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
-};
+}, artifacts::os::windows::wmi::instance::parse_instance_record};
 use log::error;
 use nom::bytes::complete::take;
 
@@ -143,9 +143,9 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
 
     // If name size too large. Its probably an Instance block
     if (super_class_name_size * adjust_size) as usize > input.len() {
-        println!("name size: {super_class_name_size}");
-        println!("{data:?}");
-        panic!("name too large?");
+        let (input, instance_record) = parse_instance_record(data)?;
+        panic!("{instance_record:?}");
+
     }
 
     // Name is UTF16 need to double name size length

@@ -1,14 +1,8 @@
-use super::{
-    class::{parse_class, ClassInfo},
-    error::WmiError,
-    map::parse_map,
-    objects::parse_objects,
-};
+use super::{error::WmiError, map::parse_map, namespaces::gather_namespaces};
 use crate::{
-    artifacts::os::windows::wmi::{index::parse_index, objects::parse_record},
+    artifacts::os::windows::wmi::{index::parse_index, namespaces::get_namespace_classes},
     filesystem::{files::read_file, metadata::glob_paths},
 };
-use nom::bytes::complete::take;
 
 pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), WmiError> {
     let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
@@ -33,6 +27,9 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
     }
 
     let (_, index_info) = parse_index(&index).unwrap();
+
+    let (_, spaces) = gather_namespaces(&index_info, &objects, &pages).unwrap();
+
     let mut namespace_info = Vec::new();
     for entry in index_info.values() {
         for namespace in namespaces {
@@ -41,48 +38,24 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
             }
         }
     }
-    println!("{namespace_info:?}");
-    println!("{:?}", pages[2425]);
 
     for entries in namespace_info {
         for class_entry in entries {
             if class_entry.starts_with("CD_") {
-                let (_, class_info) = get_namespace_classes(class_entry, &objects, &pages).unwrap();
+                let class_result = get_namespace_classes(class_entry, &objects, &pages);
+                let class_info = match class_result {
+                    Ok((_, result)) => result,
+                    Err(err) => {
+                        println!("failed to get namespace");
+                        continue;
+                    }
+                };
                 println!("{class_info:?}");
             }
         }
     }
 
     Ok(())
-}
-
-fn get_namespace_classes<'a>(
-    class_hash: String,
-    objects_data: &'a [u8],
-    pages: &[u32],
-) -> nom::IResult<&'a [u8], ()> {
-    let class_info: Vec<&str> = class_hash.split('.').collect();
-
-    let logical_page_str = class_info.get(1).unwrap();
-    let logical_page = logical_page_str.parse::<usize>().unwrap();
-
-    let record_id_str = class_info.get(2).unwrap();
-    let record_id = record_id_str.parse::<u32>().unwrap();
-
-    let page_size = 8192;
-    let page = pages.get(logical_page).unwrap();
-    let (data, _) = take(page * page_size)(objects_data)?;
-
-    let (_, object_info) = parse_objects(objects_data, pages)?;
-
-    for object in object_info {
-        if object.record_id == record_id {
-            let (_, class) = parse_record(&object.object_data).unwrap();
-            //println!("class: {class:?}");
-        }
-    }
-
-    Ok((data, ()))
 }
 
 #[cfg(test)]
