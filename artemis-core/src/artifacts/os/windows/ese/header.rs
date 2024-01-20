@@ -326,7 +326,7 @@ impl EseHeader {
     }
 
     /**
-     * LogTime is odd, its eight (8) bytes but every byte represents part of the date time (YYYY-MM-DD HH:MM:SS)
+     * `LogTime` is odd, its eight (8) bytes but every byte represents part of the date time (YYYY-MM-DD HH:MM:SS)
      * The Year starts from 1900. Ex: A year value of zero (0) is 1900
      * Last two (2) bytes are filler
      */
@@ -349,7 +349,7 @@ impl EseHeader {
     }
 
     /**
-     * DatabaseTime is odd, its eight (8) bytes but every two (2) bytes represents part of the time (HH:MM:SS)
+     * `DatabaseTime` is odd, its eight (8) bytes but every two (2) bytes represents part of the time (HH:MM:SS)
      * First two (2) bytes are the HH
      * Second two (2) bytes are the MM
      * Third two (2) bytes are the SS

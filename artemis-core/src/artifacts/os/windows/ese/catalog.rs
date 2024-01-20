@@ -120,7 +120,7 @@ pub(crate) enum TaggedDataFlag {
 
 impl Catalog {
     /**
-     * Catalog is a metadata table (called MSysObjects table in ESE db)  
+     * Catalog is a metadata table (called `MSysObjects` table in ESE db)  
      * It contains metadata/definitions on all columns and tables in the ESE db  
      * It even contains the metadata/defintions on itself
      * The Catalog is a static table that exists at Page 4 (5 once adjusted for ESE shadow header page)  
@@ -318,10 +318,10 @@ impl Catalog {
 
     /**
      * Our fixed data is basically column data with fixed sizes
-     * Last_fixed_data represents the last column
-     * Ex: Last_fixed_data = 8, means our fixed_data contains data for columns 1-8
+     * `Last_fixed_data` represents the last column
+     * Ex: `Last_fixed_data` = 8, means our `fixed_data` contains data for columns 1-8
      * Since this is a static table we already know our column names and byte sizes
-     * obj_id_table = column one (1) (4 bytes), catalog_type = column two (2) (2 bytes), etc
+     * `obj_id_table` = column one (1) (4 bytes), `catalog_type` = column two (2) (2 bytes), etc
      */
     fn parse_fixed<'a>(
         last_fixed_data: u8,
@@ -414,8 +414,8 @@ impl Catalog {
 
     /**
      * Our variable data is basically column data with variable sizes (Ex: strings)
-     * last_variable represents the last column
-     * Ex: last_variable = 3, means our variable_data may have data for columns 1-3
+     * `last_variable` represents the last column
+     * Ex: `last_variable` = 3, means our `variable_data` may have data for columns 1-3
      * Since this is a static table we already know our column names
      */
     fn parse_variable<'a>(

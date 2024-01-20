@@ -13,6 +13,7 @@ use super::{
     search::get_search,
     services::{get_alt_services, get_service_file, get_services},
     shellbags::{get_alt_shellbags, get_shellbags},
+    shellitems::js_get_shellitem,
     shimcache::{get_alt_shimcache, get_shimcache},
     shimdb::{get_alt_shimdb, get_custom_shimdb, get_shimdb},
     shortcuts::get_lnk_file,
@@ -84,6 +85,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_recycle_bin_file::DECL,
         get_sk_info::DECL,
         get_table::DECL,
+        js_get_shellitem::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

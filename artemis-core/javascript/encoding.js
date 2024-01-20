@@ -9,6 +9,9 @@ class Encoding {
     extract_utf8_string = (data) => {
         return core.ops.js_extract_utf8_string(data);
     };
+    extract_utf16_string = (data) => {
+        return core.ops.js_extract_utf16_string(data);
+    };
     bytes_encode = (data) => {
         return core.ops.js_encode_bytes(data);
     };

@@ -111,8 +111,8 @@ fn CpuInfo(cpus: Vec<Cpus>) -> impl IntoView {
                   </div>
                 </div>
                 <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                  <a href={format!("#core{previous}")} class="btn btn-circle">{format!("<")}</a>
-                  <a href={format!("#core{next}")} class="btn btn-circle">{format!(">")}</a>
+                  <a href={format!("#core{previous}")} class="btn btn-circle">{"<"}</a>
+                  <a href={format!("#core{next}")} class="btn btn-circle">{">"}</a>
                 </div>
               </div>
           }
@@ -154,8 +154,8 @@ fn DiskInfo(disks: Vec<DiskDrives>) -> impl IntoView {
                   </div>
                 </div>
                 <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                  <a href={format!("#disk{previous}")} class="btn btn-circle">{format!("<")}</a>
-                  <a href={format!("#disk{next}")} class="btn btn-circle">{format!(">")}</a>
+                  <a href={format!("#disk{previous}")} class="btn btn-circle">{"<"}</a>
+                  <a href={format!("#disk{next}")} class="btn btn-circle">{">"}</a>
                 </div>
               </div>
           }

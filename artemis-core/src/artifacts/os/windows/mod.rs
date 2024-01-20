@@ -17,7 +17,7 @@ pub(crate) mod search;
 mod securitydescriptor;
 pub(crate) mod services;
 pub(crate) mod shellbags;
-mod shellitems;
+pub(crate) mod shellitems;
 pub(crate) mod shimcache;
 pub(crate) mod shimdb;
 pub(crate) mod shortcuts;
