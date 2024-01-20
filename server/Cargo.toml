@@ -1,5 +1,6 @@
 [package]
 name = "artemis-server"
+license = "MIT"
 edition = { workspace = true }
 version = { workspace = true }
 
