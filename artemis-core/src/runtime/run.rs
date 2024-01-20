@@ -171,6 +171,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         validate_import_attributes_cb: Default::default(),
         import_meta_resolve_callback: Default::default(),
         wait_for_inspector_disconnect_callback: None,
+        custom_module_evaluation_cb: None,
     });
 
     Ok(runtime)

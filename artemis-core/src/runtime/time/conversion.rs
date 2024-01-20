@@ -46,7 +46,7 @@ pub(crate) fn js_webkit_time_to_uniexepoch(#[bigint] webkittime: i64) -> i64 {
     webkit_time_to_unixepoch(&webkittime)
 }
 
-#[op2(fast)]
+#[op2]
 #[bigint]
 /// Expose converting WebKit time to unixepoch
 pub(crate) fn js_fat_time_to_unixepoch(#[buffer] fattime: JsBuffer) -> i64 {

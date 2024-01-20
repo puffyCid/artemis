@@ -1,4 +1,4 @@
-use crate::utils::strings::extract_utf8_string;
+use crate::utils::strings::{extract_utf16_string, extract_utf8_string};
 use deno_core::{op2, JsBuffer};
 
 #[op2]
@@ -6,6 +6,13 @@ use deno_core::{op2, JsBuffer};
 /// Attempt to extract a UTF8 string from raw bytes
 pub(crate) fn js_extract_utf8_string(#[buffer] data: JsBuffer) -> String {
     extract_utf8_string(&data)
+}
+
+#[op2]
+#[string]
+/// Attempt to extract a UTF16 string from raw bytes
+pub(crate) fn js_extract_utf16_string(#[buffer] data: JsBuffer) -> String {
+    extract_utf16_string(&data)
 }
 
 #[op2]
@@ -46,6 +53,17 @@ mod tests {
     #[test]
     fn test_js_extract_utf8_string() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdmFsdWUgPSBVaW50OEFycmF5LmZyb20oWzc5LCA4MywgODEsIDg1LCA2OSwgODIsIDg5LCA2OCwgNDYsIDY5LCA4OCwgNjksIDBdKTsKICBjb25zdCByZXN1bHQgPSBleHRyYWN0VXRmOFN0cmluZyh2YWx1ZSk7CiAgY29uc29sZS5sb2cocmVzdWx0KTsKICByZXR1cm4gcmVzdWx0Owp9Cm1haW4oKTsK";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("strings_test"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_js_extract_utf16_string() {
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL3N0cmluZ3MudHMKZnVuY3Rpb24gZXh0cmFjdFV0ZjE2U3RyaW5nKGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBlbmNvZGluZy5leHRyYWN0X3V0ZjE2X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdmFsdWUgPSBleHRyYWN0VXRmMTZTdHJpbmcoCiAgICBuZXcgVWludDhBcnJheShbCiAgICAgIDExNSwKICAgICAgMCwKICAgICAgMTE2LAogICAgICAwLAogICAgICAxMTQsCiAgICAgIDAsCiAgICAgIDEwMSwKICAgICAgMCwKICAgICAgOTcsCiAgICAgIDAsCiAgICAgIDEwOSwKICAgICAgMCwKICAgICAgNDYsCiAgICAgIDAsCiAgICAgIDk4LAogICAgICAwLAogICAgICAxMDUsCiAgICAgIDAsCiAgICAgIDExMCwKICAgICAgMCwKICAgICAgMCwKICAgICAgMAogICAgXSkKICApOwogIGNvbnNvbGUuaW5mbyh2YWx1ZSk7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("strings_test"),

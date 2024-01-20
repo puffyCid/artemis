@@ -33,7 +33,6 @@ use crate::{
 use common::windows::ShellItem;
 use log::error;
 use nom::{bytes::complete::take, Needed};
-use std::mem::size_of;
 
 /// Parse a base64 encoded `ShellItem`
 pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {
@@ -75,8 +74,11 @@ pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (_, shellitem) = detect_shellitem(input)?;
 
     // ShellItems end with 0000
-    let (remaining_input, _) = take(size_of::<u16>())(remaining_input)?;
-    Ok((remaining_input, shellitem))
+    let (end_input, end) = nom_unsigned_two_bytes(remaining_input, Endian::Le)?;
+    if end != 0 {
+        return Ok((remaining_input, shellitem));
+    }
+    Ok((end_input, shellitem))
 }
 
 /// Based on the provided bytes determine the `ShellItem` type and parse it

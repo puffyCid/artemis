@@ -5,6 +5,7 @@ use crate::utils::nom_helper::{
 };
 use deno_core::{anyhow::anyhow, error::AnyError, op2, JsBuffer, ToJsBuffer};
 use serde::Serialize;
+
 #[derive(Serialize)]
 pub(crate) struct NomUnsignedJs {
     remaining: ToJsBuffer,
