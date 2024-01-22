@@ -1,4 +1,9 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian};
+use std::collections::HashMap;
+
+use crate::{
+    artifacts::os::windows::accounts::parser::get_users,
+    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
+};
 use common::windows::{BitsInfo, FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
 use nom::bytes::complete::take_until;
 
@@ -102,7 +107,8 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
                 job_data = remaining_input;
                 let carved = true;
-                bits.push(combine_file_and_job(&job, &file, carved));
+                let users = get_users().unwrap_or_default();
+                bits.push(combine_file_and_job(&job, &file, carved, &users));
                 continue;
             }
             let remaining_input_result = job_details(input, &mut job, is_legacy);
@@ -151,11 +157,20 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 }
 
 /// The legacy BITS format has both job and file info in same structure, we combine them both here into one strcuture
-pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool) -> BitsInfo {
+pub(crate) fn combine_file_and_job(
+    job: &JobInfo,
+    file: &FileInfo,
+    carved: bool,
+    users: &HashMap<String, String>,
+) -> BitsInfo {
     BitsInfo {
         job_id: job.job_id.clone(),
         file_id: job.file_id.clone(),
         owner_sid: job.owner_sid.clone(),
+        username: users
+            .get(&job.owner_sid.clone())
+            .unwrap_or(&String::new())
+            .to_string(),
         created: job.created,
         modified: job.modified,
         completed: job.completed,
@@ -198,7 +213,7 @@ mod tests {
     use super::{carve_bits, combine_file_and_job, scan_delimter};
     use crate::filesystem::files::read_file;
     use common::windows::{FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_carve_bits() {
@@ -243,7 +258,6 @@ mod tests {
         let job = JobInfo {
             job_id: String::new(),
             file_id: String::new(),
-
             owner_sid: String::new(),
             created: 0,
             modified: 0,
@@ -280,7 +294,7 @@ mod tests {
             files_transferred: 0,
         };
 
-        let bit_info = combine_file_and_job(&job, &file, true);
+        let bit_info = combine_file_and_job(&job, &file, true, &HashMap::new());
         assert_eq!(bit_info.carved, true);
     }
 
