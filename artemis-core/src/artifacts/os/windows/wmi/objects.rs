@@ -1,9 +1,9 @@
 use super::class::{parse_class, ClassInfo};
-use crate::{utils::nom_helper::{
+use crate::utils::nom_helper::{
     nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
-}, artifacts::os::windows::wmi::instance::parse_instance_record};
+};
 use log::error;
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, error::ErrorKind};
 
 /// Parse Objects.data file
 pub(crate) fn parse_objects<'a>(
@@ -68,17 +68,6 @@ fn parse_page<'a>(
         // Last entry is 16 bytes of zeros
         if record_id == 0 && offset == 0 && size == 0 && checksum == 0 {
             break;
-        } else if offset as usize > data.len() {
-            println!("data: {data:?}");
-            println!("offset: {offset}");
-            println!("data len: {}", data.len());
-            println!("remaining len: {}", input.len());
-            println!("objects count: {}", objects.len());
-            panic!("strange offset is super large??");
-            break;
-        } else if size as usize > page_remaining.len() && size > page_size {
-            println!("size is larger than whole file. strage..?");
-            break;
         }
 
         let (data_start, _) = take(offset)(data)?;
@@ -137,15 +126,16 @@ fn parse_page<'a>(
 }
 
 /// Parse Object record
-pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
+pub(crate) fn parse_record<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u8], ClassInfo> {
     let (input, super_class_name_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let adjust_size = 2;
 
     // If name size too large. Its probably an Instance block
     if (super_class_name_size * adjust_size) as usize > input.len() {
-        let (input, instance_record) = parse_instance_record(data)?;
-        panic!("{instance_record:?}");
-
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            input,
+            ErrorKind::Fail,
+        )));
     }
 
     // Name is UTF16 need to double name size length
@@ -154,12 +144,9 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, class_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let adjust_class_size = 4;
-    if (class_size - adjust_class_size) as usize > input.len() {
-        panic!("class too large?");
-    }
     // Class size includes size itself. We already nom'd that
     let (input, class_data) = take(class_size - adjust_class_size)(input)?;
-    let (_, class_info) = parse_class(class_data)?;
+    let (_, class_info) = parse_class(class_data, hash)?;
 
     // Remaining input if any is method data. Which is undocumented
 
@@ -229,7 +216,7 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, results) = parse_record(&data).unwrap();
+        let (_, results) = parse_record(&data, &"test").unwrap();
 
         assert_eq!(results.properties.len(), 3);
     }

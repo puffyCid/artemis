@@ -1,10 +1,17 @@
 use super::{
     class::ClassInfo,
     index::IndexBody,
+    instance::InstanceRecord,
     objects::{parse_objects, parse_record},
 };
+use crate::artifacts::os::windows::wmi::instance::parse_instance_record;
 use nom::bytes::complete::take;
 use std::collections::HashMap;
+
+struct ClassInstance {
+    classes: HashMap<String, Vec<ClassInfo>>,
+    instances: Vec<InstanceRecord>,
+}
 
 /// Get all namespaces in WMI repo
 pub(crate) fn gather_namespaces<'a>(
@@ -22,13 +29,14 @@ pub(crate) fn gather_namespaces<'a>(
         }
     }
 
+    let mut tracker = HashMap::new();
     let definition =
         String::from("CD_64659AB9F8F1C4B568DB6438BAE11B26EE8F93CB5F8195E21E8C383D6C44CC41");
     for entries in namespace_info {
         for keys in entries {
             if keys.contains(&definition) {
-                let (_, class_info) = get_namespace_classes(keys, objects_data, pages)?;
-                println!("{class_info:?}");
+                let (_, class_info) =
+                    get_namespace_classes(keys, objects_data, pages, &mut tracker)?;
             }
         }
     }
@@ -40,8 +48,10 @@ pub(crate) fn get_namespace_classes<'a>(
     class_hash: String,
     objects_data: &'a [u8],
     pages: &[u32],
-) -> nom::IResult<&'a [u8], Vec<ClassInfo>> {
+    class_tracker: &mut HashMap<String, Vec<ClassInfo>>,
+) -> nom::IResult<&'a [u8], Vec<InstanceRecord>> {
     let class_info: Vec<&str> = class_hash.split('.').collect();
+    let class_def = class_info.get(0).unwrap();
 
     let logical_page_str = class_info.get(1).unwrap();
     let logical_page = logical_page_str.parse::<usize>().unwrap();
@@ -56,13 +66,22 @@ pub(crate) fn get_namespace_classes<'a>(
     let (_, object_info) = parse_objects(objects_data, pages)?;
 
     let mut classes = Vec::new();
+    let mut instances = Vec::new();
     for object in object_info {
         if object.record_id == record_id {
-            let class_result = parse_record(&object.object_data);
+            let class_result = parse_record(&object.object_data, &class_def);
             let class = match class_result {
                 Ok((_, result)) => result,
-                Err(err) => {
-                    println!("failed to parse record");
+                Err(_err) => {
+                    // If we fail, it might be because we encountered an Instance record
+                    let instance_result = parse_instance_record(&object.object_data);
+                    if instance_result.is_ok() {
+                        let (_, instance) = instance_result.unwrap();
+                        instances.push(instance);
+                        continue;
+                    }
+
+                    println!("[wmi] Failed to parse record or instance");
                     continue;
                 }
             };
@@ -70,5 +89,7 @@ pub(crate) fn get_namespace_classes<'a>(
         }
     }
 
-    Ok((data, classes))
+    class_tracker.insert(class_def.to_string(), classes.clone());
+
+    Ok((data, instances))
 }

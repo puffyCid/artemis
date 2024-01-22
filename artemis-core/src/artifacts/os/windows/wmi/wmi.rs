@@ -1,8 +1,11 @@
-use super::{error::WmiError, map::parse_map, namespaces::gather_namespaces};
+use super::{
+    error::WmiError, instance::parse_instances, map::parse_map, namespaces::gather_namespaces,
+};
 use crate::{
     artifacts::os::windows::wmi::{index::parse_index, namespaces::get_namespace_classes},
     filesystem::{files::read_file, metadata::glob_paths},
 };
+use std::collections::HashMap;
 
 pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), WmiError> {
     let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
@@ -39,20 +42,29 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
         }
     }
 
+    // loop to parse all namespaces of WMI repo
     for entries in namespace_info {
+        let mut tracker = HashMap::new();
+        let mut instances_vec = Vec::new();
+        // First get all the class data associated with namespace
         for class_entry in entries {
             if class_entry.starts_with("CD_") {
-                let class_result = get_namespace_classes(class_entry, &objects, &pages);
-                let class_info = match class_result {
+                let instance_result =
+                    get_namespace_classes(class_entry, &objects, &pages, &mut tracker);
+                let mut instances = match instance_result {
                     Ok((_, result)) => result,
                     Err(err) => {
                         println!("failed to get namespace");
                         continue;
                     }
                 };
-                println!("{class_info:?}");
+                instances_vec.append(&mut instances);
+                //println!("{class_info:?}");
             }
         }
+
+        // Now parse the Class instances associated with namespace
+        parse_instances(&tracker, &instances_vec);
     }
 
     Ok(())

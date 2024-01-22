@@ -33,7 +33,7 @@
   d. \\.\ROOT\default and \\.\ROOT\subscription r most common
 
 Consider the WQL query 'SELECT Description FROM \\.\ROOT\default\ExistingClass WHERE Name=“SomeName”'
-that fetches the property named Description from an instance of the ExistingClass class named SomeName. 
+that fetches the property named Description from an instance of the ExistingClass class named SomeName.
 
 The WMI service performs the following operations via the CIM repository to resolve the data:
 
