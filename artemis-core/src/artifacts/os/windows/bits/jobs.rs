@@ -1,6 +1,7 @@
 use super::{carve::combine_file_and_job, error::BitsError, files::get_legacy_files};
 use crate::{
     artifacts::os::windows::{
+        accounts::parser::get_users,
         bits::carve::scan_delimter,
         securitydescriptor::{acl::parse_acl, sid::grab_sid},
     },
@@ -29,7 +30,6 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
         let mut job = JobInfo {
             job_id: String::new(),
             file_id: String::new(),
-
             owner_sid: String::new(),
             created: 0,
             modified: 0,
@@ -149,7 +149,9 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
         let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
         let carved = false;
 
-        jobs.push(combine_file_and_job(&job, &file, carved));
+        let users = get_users().unwrap_or_default();
+
+        jobs.push(combine_file_and_job(&job, &file, carved, &users));
         job_count += 1;
         if job_count == number_jobs {
             break;

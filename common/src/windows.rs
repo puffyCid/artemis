@@ -102,6 +102,7 @@ pub struct BitsInfo {
     pub job_id: String,
     pub file_id: String,
     pub owner_sid: String,
+    pub username: String,
     pub created: i64,
     pub modified: i64,
     pub completed: i64,

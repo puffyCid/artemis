@@ -1,6 +1,6 @@
 #[test]
 #[cfg(target_os = "windows")]
-fn test_bits() {
+fn test_bits_parser() {
     use std::path::PathBuf;
 
     use artemis_core::core::parse_toml_file;

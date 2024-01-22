@@ -5,7 +5,7 @@ use super::{
     jobs::{get_jobs, get_legacy_jobs},
 };
 use crate::{
-    artifacts::os::windows::ese::parser::grab_ese_tables,
+    artifacts::os::windows::{accounts::parser::get_users, ese::parser::grab_ese_tables},
     filesystem::{files::is_file, ntfs::raw_files::raw_read_file},
 };
 use common::windows::{BitsInfo, WindowsBits};
@@ -42,6 +42,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
 
     let files_info = get_files(files)?;
     let mut bits_info: Vec<BitsInfo> = Vec::new();
+    let users = get_users().unwrap_or_default();
 
     for job in &jobs_info {
         for file in &files_info {
@@ -50,6 +51,10 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
                     job_id: job.job_id.clone(),
                     file_id: job.file_id.clone(),
                     owner_sid: job.owner_sid.clone(),
+                    username: users
+                        .get(&job.owner_sid.clone())
+                        .unwrap_or(&String::new())
+                        .to_string(),
                     created: job.created,
                     modified: job.modified,
                     completed: job.completed,
