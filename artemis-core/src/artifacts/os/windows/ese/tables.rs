@@ -22,10 +22,11 @@ use crate::{
         encoding::base64_encode_standard,
         nom_helper::{
             nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
-            nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_two_bytes, Endian,
         },
         strings::extract_ascii_utf16_string,
-        time::ole_automationtime_to_unixepoch,
+        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch},
         uuid::format_guid_le_bytes,
     },
 };
@@ -625,25 +626,28 @@ fn column_data_to_string<'a>(
             (input, format!("{value}"))
         }
         ColumnType::DateTime => {
-            // Supposedly a DateTime value can either be a FILETIME? or OLETIME/VARIANTTIME
-            // However, only OLETIME has been observed
+            // DateTime value can either be a FILETIME or OLETIME/VARIANTTIME
             // https://github.com/libyal/libesedb/blob/main/documentation/Extensible%20Storage%20Engine%20(ESE)%20Database%20File%20(EDB)%20format.asciidoc#61-column-type
             // https://github.com/Velocidex/go-ese/blob/master/parser/catalog.go#L165
+            // https://github.com/strozfriedberg/ese_parser/blob/main/lib/src/vartime.rs#L150
 
-            // Official Microsoft docs state only VARIANTTIME is returned
+            // Though official Microsoft docs state only VARIANTTIME is returned
             // https://learn.microsoft.com/en-us/windows/win32/extensible-storage-engine/jet-coltyp
 
-            // If FILETIME is later observed We can return both if needed via format!("{FILETIME|OLETIME}")
-            /*
-            let (_, filetime_value) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-            let filetime = filetime_to_unixepoch(&filetime_value);
-            */
-            let (input, float_data) = take(size_of::<u64>())(data)?;
-            let (_, float_value) = le_f64(float_data)?;
-            let oletime = ole_automationtime_to_unixepoch(&float_value);
+            // Appears if flags contain NotNull, then the time is FILETIME
+            if flags.contains(&ColumnFlags::NotNull) {
+                let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
+                let filetime = filetime_to_unixepoch(&filetime_data);
+                let value = format!("{filetime}");
+                (input, value)
+            } else {
+                let (input, float_data) = take(size_of::<u64>())(data)?;
+                let (_, float_value) = le_f64(float_data)?;
+                let oletime = ole_automationtime_to_unixepoch(&float_value);
 
-            let value = format!("{oletime}");
-            (input, value)
+                let value = format!("{oletime}");
+                (input, value)
+            }
         }
         ColumnType::LongBinary | ColumnType::Binary => {
             let value = if tagged_flags.contains(&TaggedDataFlag::Compressed)
@@ -1387,7 +1391,7 @@ mod tests {
             "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}",
         )
         .unwrap();
-        assert_eq!(results.len(), 1)
+        assert_eq!(results.len(), 1);
     }
 
     #[test]
