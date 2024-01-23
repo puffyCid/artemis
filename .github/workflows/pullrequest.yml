@@ -58,7 +58,7 @@ jobs:
       - name: Install trunk
         uses: jetli/trunk-action@v0.4.0
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'
@@ -72,7 +72,7 @@ jobs:
         run: sudo cargo test --no-run --release
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo cargo test --release
+        run: sudo ulimit -n 1024 && sudo cargo test --release
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
