@@ -56,8 +56,7 @@ jobs:
       - name: Install trunk
         uses: jetli/trunk-action@v0.4.0
         with:
-          # Optional version of trunk to install(eg. 'v0.16.0', 'latest')
-          version: 'latest
+          version: 'latest'
 
       - name: Fmt Check
         run: cargo fmt -- --check

@@ -38,8 +38,7 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: jetli/trunk-action@v0.4.0
         with:
-          # Optional version of trunk to install(eg. 'v0.16.0', 'latest')
-          version: 'latest
+          version: 'latest'
       # Compile WASM before compiling binary
       - if: matrix.info.os == 'windows-latest'
         run: just --shell pwsh.exe --shell-arg -c _wasm
