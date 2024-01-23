@@ -18,4 +18,4 @@ common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
 web-sys = { version = "0.3.67", features = ["Location", "Window"] }
-chrono = "0.4.31"
+chrono = "0.4.32"
