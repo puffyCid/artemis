@@ -8,6 +8,7 @@ use crate::utils::{
 use nom::bytes::complete::{take, take_while};
 use std::collections::HashMap;
 
+/// Parse and gather index entries
 pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, IndexBody>> {
     let page_size = 8192;
     let mut input = data;
@@ -27,6 +28,7 @@ pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Index
     Ok((data, page_info))
 }
 
+/// Parse Index page data
 fn parse_page(data: &[u8]) -> nom::IResult<&[u8], (IndexHeader, IndexBody)> {
     let (input, header) = parse_header(data)?;
     let (input, body) = parse_body(input)?;
@@ -81,6 +83,7 @@ pub(crate) struct IndexBody {
     pub(crate) value_data: Vec<String>,
 }
 
+/// Parse the Index body
 fn parse_body(data: &[u8]) -> nom::IResult<&[u8], IndexBody> {
     let (input, number_keys) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
@@ -164,7 +167,6 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_index(&data).unwrap();
-        println!("{results:?}");
 
         assert_eq!(results.get(&34).unwrap().value_data.len(), 46);
     }
@@ -175,6 +177,5 @@ mod tests {
         let (_, results) = parse_index(&data).unwrap();
 
         assert!(results.len() > 10);
-        println!("{:?}", results);
     }
 }

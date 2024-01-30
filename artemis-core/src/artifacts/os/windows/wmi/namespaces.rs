@@ -1,16 +1,20 @@
+use serde_json::Value;
+
 use super::{
     class::ClassInfo,
     index::IndexBody,
-    instance::InstanceRecord,
+    instance::{ClassValues, InstanceRecord},
     objects::{parse_objects, parse_record},
 };
-use crate::artifacts::os::windows::wmi::instance::parse_instance_record;
-use nom::bytes::complete::take;
+use crate::artifacts::os::windows::wmi::instance::{parse_instance_record, parse_instances};
 use std::collections::HashMap;
 
-struct ClassInstance {
-    classes: HashMap<String, Vec<ClassInfo>>,
-    instances: Vec<InstanceRecord>,
+#[derive(Debug)]
+pub(crate) struct NamespaceData {
+    pub(crate) classes: Vec<HashMap<String, Vec<ClassInfo>>>,
+    pub(crate) instances: Vec<InstanceRecord>,
+    pub(crate) namespace: String,
+    pub(crate) values: Vec<ClassValues>,
 }
 
 /// Get all namespaces in WMI repo
@@ -36,7 +40,7 @@ pub(crate) fn gather_namespaces<'a>(
         for keys in entries {
             if keys.contains(&definition) {
                 let (_, class_info) =
-                    get_namespace_classes(keys, objects_data, pages, &mut tracker)?;
+                    get_namespace_classes(&keys, objects_data, pages, &mut tracker)?;
             }
         }
     }
@@ -44,8 +48,78 @@ pub(crate) fn gather_namespaces<'a>(
     Ok((objects_data, names))
 }
 
+/// Extract Properties, Classes, and Instances from a Namespace
+pub(crate) fn extract_namespace_data(
+    namespace_vec: &Vec<Vec<String>>,
+    objects: &[u8],
+    pages: &[u32],
+    index_info: &HashMap<u32, IndexBody>,
+) -> Vec<NamespaceData> {
+    let mut spaces = Vec::new();
+    let mut full_tracker = Vec::new();
+    let mut instances_vec = Vec::new();
+
+    // loop to parse all namespaces of WMI repo
+    for entries in namespace_vec {
+        let mut tracker = HashMap::new();
+        let mut name = String::new();
+        // First get all the class data associated with namespace
+        for class_entry in entries {
+            if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
+                let instance_result =
+                    get_namespace_classes(&class_entry, objects, pages, &mut tracker);
+                let mut instances = match instance_result {
+                    Ok((_, result)) => result,
+                    Err(err) => {
+                        println!("failed to get namespace");
+                        continue;
+                    }
+                };
+                instances_vec.append(&mut instances);
+            } else if class_entry.starts_with("NS_") {
+                name = class_entry.clone();
+            }
+        }
+        full_tracker.push(tracker.clone());
+
+        //spaces.push(value);
+    }
+
+    // Now parse the Class instances associated with namespace
+    let (_, result) = parse_instances(
+        &mut full_tracker,
+        &instances_vec,
+        &index_info,
+        &objects,
+        &pages,
+    )
+    .unwrap();
+    let value = NamespaceData {
+        classes: full_tracker,
+        instances: instances_vec,
+        namespace: String::new(),
+        values: result,
+    };
+    spaces.push(value);
+    spaces
+}
+
+/// Get a single Namespace. The namespace should be SHA256 hashed without "NS_" prefix
+pub(crate) fn get_namespace(namespace: &str, index_info: &HashMap<u32, IndexBody>) -> Vec<String> {
+    let mut namespace_info = Vec::new();
+    for entry in index_info.values() {
+        if entry
+            .value_data
+            .contains(&format!("NS_{namespace}").to_uppercase())
+        {
+            namespace_info.append(&mut entry.value_data.clone());
+        }
+    }
+    namespace_info
+}
+
 pub(crate) fn get_namespace_classes<'a>(
-    class_hash: String,
+    class_hash: &str,
     objects_data: &'a [u8],
     pages: &[u32],
     class_tracker: &mut HashMap<String, Vec<ClassInfo>>,
@@ -61,9 +135,9 @@ pub(crate) fn get_namespace_classes<'a>(
 
     let page_size = 8192;
     let page = pages.get(logical_page).unwrap();
-    let (data, _) = take(page * page_size)(objects_data)?;
+    //let (data, _) = take(page * page_size)(objects_data)?;
 
-    let (_, object_info) = parse_objects(objects_data, pages)?;
+    let (_, object_info) = parse_objects(objects_data, pages, page)?;
 
     let mut classes = Vec::new();
     let mut instances = Vec::new();
@@ -91,5 +165,5 @@ pub(crate) fn get_namespace_classes<'a>(
 
     class_tracker.insert(class_def.to_string(), classes.clone());
 
-    Ok((data, instances))
+    Ok((objects_data, instances))
 }

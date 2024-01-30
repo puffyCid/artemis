@@ -1,10 +1,16 @@
 use super::{
-    error::WmiError, instance::parse_instances, map::parse_map, namespaces::gather_namespaces,
+    class::get_namespace_from_class,
+    error::WmiError,
+    index::IndexBody,
+    map::parse_map,
+    namespaces::{extract_namespace_data, gather_namespaces, NamespaceData},
 };
 use crate::{
-    artifacts::os::windows::wmi::{index::parse_index, namespaces::get_namespace_classes},
+    artifacts::os::windows::wmi::index::parse_index,
     filesystem::{files::read_file, metadata::glob_paths},
 };
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), WmiError> {
@@ -30,7 +36,6 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
     }
 
     let (_, index_info) = parse_index(&index).unwrap();
-
     let (_, spaces) = gather_namespaces(&index_info, &objects, &pages).unwrap();
 
     let mut namespace_info = Vec::new();
@@ -42,32 +47,74 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
         }
     }
 
-    // loop to parse all namespaces of WMI repo
-    for entries in namespace_info {
-        let mut tracker = HashMap::new();
-        let mut instances_vec = Vec::new();
-        // First get all the class data associated with namespace
-        for class_entry in entries {
-            if class_entry.starts_with("CD_") {
-                let instance_result =
-                    get_namespace_classes(class_entry, &objects, &pages, &mut tracker);
-                let mut instances = match instance_result {
-                    Ok((_, result)) => result,
-                    Err(err) => {
-                        println!("failed to get namespace");
-                        continue;
+    let namespace_data = extract_namespace_data(&namespace_info, &objects, &pages, &index_info);
+
+    // remove after done
+    // return namespace_data to caller and caller can get wmi_persist if they want too
+    get_wmi_persist(&namespace_data, &index_info, &objects, &pages);
+
+    Ok(())
+}
+
+pub(crate) struct WmiPersist {
+    class: String,
+    values: HashMap<String, Value>,
+    query: String,
+    sid: String,
+}
+
+/*
+ * After parsing WMI repo, extract persistence data
+ */
+pub(crate) fn get_wmi_persist(
+    namespace_data: &[NamespaceData],
+    indexes: &HashMap<u32, IndexBody>,
+    objects_data: &[u8],
+    pages: &[u32],
+) -> Result<(), WmiError> {
+    let filter_consumer_hash = hash_name("__FilterToConsumerBinding");
+    let filter_hash = hash_name("__EventFilter");
+
+    let filter_namespace = get_namespace_from_class(&filter_hash, indexes);
+    let filter_data = extract_namespace_data(&vec![filter_namespace], objects_data, pages, indexes);
+    println!("filter: {:?}", filter_data);
+    let filter_consumer_namespace = get_namespace_from_class(&filter_consumer_hash, indexes);
+    let filter_consumer_data = extract_namespace_data(
+        &vec![filter_consumer_namespace],
+        objects_data,
+        pages,
+        indexes,
+    );
+    for data in namespace_data {
+        for class in &data.values {
+            if class.super_class_name == "__EventConsumer" {
+                println!("{class:?}");
+                for filter_consumer in &filter_consumer_data {
+                    for entry in &filter_consumer.values {
+                        println!("{entry:?}");
                     }
-                };
-                instances_vec.append(&mut instances);
-                //println!("{class_info:?}");
+                }
             }
         }
-
-        // Now parse the Class instances associated with namespace
-        parse_instances(&tracker, &instances_vec);
     }
 
     Ok(())
+}
+
+/// Hash the class name for WMI lookups
+pub(crate) fn hash_name(name: &str) -> String {
+    let class = name.to_uppercase().as_bytes().to_vec();
+    let mut hash = Sha256::new();
+    let mut class_data = Vec::new();
+    // Needs to be UTF-16 (wide char)
+    for bytes in class {
+        class_data.push(bytes);
+        class_data.push(0);
+    }
+    hash.update(class_data);
+    let hash_name = hash.finalize();
+    let hash = format!("{hash_name:x}");
+    hash
 }
 
 #[cfg(test)]
@@ -79,8 +126,8 @@ mod tests {
         let namespaces = [
             String::from("NS_892f8db69c4edfbc68165c91087b7a08323f6ce5b5ef342c0f93e02a0590bfc4")
                 .to_uppercase(),
-            String::from("NS_e1dd43413ed9fd9c458d2051f082d1d739399b29035b455f09073926e5ed9870")
-                .to_uppercase(),
+            // String::from("NS_e1dd43413ed9fd9c458d2051f082d1d739399b29035b455f09073926e5ed9870")
+            //    .to_uppercase(),
         ];
         let drive = 'C';
 

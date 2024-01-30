@@ -1,10 +1,13 @@
-use crate::utils::{
-    nom_helper::{
-        nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+use crate::{
+    artifacts::os::windows::wmi::{namespaces::extract_namespace_data, wmi::hash_name},
+    utils::{
+        nom_helper::{
+            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_two_bytes, Endian,
+        },
+        strings::extract_utf8_string,
     },
-    strings::extract_utf8_string,
 };
 use log::warn;
 use nom::{
@@ -13,9 +16,13 @@ use nom::{
     number::complete::{le_f32, le_f64, le_i8},
 };
 use serde_json::{json, Value};
-use std::mem::size_of;
+use sha2::{Digest, Sha256};
+use std::{collections::HashMap, mem::size_of};
 
-use super::instance::InstanceRecord;
+use super::{
+    index::IndexBody,
+    instance::{InstanceRecord, InstanceValue},
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ClassInfo {
@@ -25,6 +32,7 @@ pub(crate) struct ClassInfo {
     pub(crate) properties: Vec<Property>,
     pub(crate) instances: Vec<InstanceRecord>,
     pub(crate) class_hash: String,
+    pub(crate) includes_parent_props: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -36,12 +44,13 @@ pub(crate) struct Qualifier {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Property {
-    name: String,
-    property_data_type: CimType,
-    property_index: u16,
-    data_offset: u32,
+    pub(crate) name: String,
+    pub(crate) property_data_type: CimType,
+    pub(crate) property_index: u16,
+    pub(crate) data_offset: u32,
     class_level: u32,
     qualifiers: Vec<Qualifier>,
+    pub(crate) instance_value: InstanceValue,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -140,6 +149,7 @@ pub(crate) fn parse_class<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u
         properties,
         instances: Vec::new(),
         class_hash: hash.to_string(),
+        includes_parent_props: false,
     };
 
     Ok((input, class_info))
@@ -157,7 +167,7 @@ fn get_class_name(offset: u32, data: &[u8]) -> nom::IResult<&[u8], String> {
 }
 
 /// Parse the Qualifier data in the class
-fn parse_qualifier<'a>(
+pub(crate) fn parse_qualifier<'a>(
     data: &'a [u8],
     value_data: &'a [u8],
 ) -> nom::IResult<&'a [u8], Vec<Qualifier>> {
@@ -242,6 +252,7 @@ fn parse_property<'a>(
             property_index,
             data_offset,
             class_level,
+            instance_value: InstanceValue::Unknown,
         };
         props.push(prop);
     }
@@ -321,6 +332,8 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
         0x4066 => CimType::ByteRefReference,
         0x4011 => CimType::ByteRefUint8,
         0x200d => CimType::ArrayObject,
+        // Seen but unsure what they are
+        0x6008 | 0x600d | 0x6012 => CimType::Unknown,
         _ => {
             println!("unknown cim type: {data_type}");
             CimType::Unknown
@@ -329,7 +342,7 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
 }
 
 /// Extract CIM data based on the type
-fn extract_cim_data<'a>(
+pub(crate) fn extract_cim_data<'a>(
     cim_type: &CimType,
     remaining_input: &'a [u8],
     data: &'a [u8],
@@ -347,7 +360,10 @@ fn extract_cim_data<'a>(
             panic!("reference. see CIM Reference libyal");
         }
         CimType::Datetime => {
-            panic!("datetime. see CIM Datetime libyal");
+            let (input, qual_data_offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            let (_, value) = get_class_name(qual_data_offset, data)?;
+            cim_value = Value::String(value);
+            remaining = input;
         }
         CimType::Unknown => {
             println!("unknown. what??? see libyal");
@@ -370,7 +386,7 @@ fn extract_cim_data<'a>(
                 println!("count too large?");
                 cim_value = Value::Null;
                 //return Ok((remaining, cim_value));
-                panic!("value data: {data:?}");
+                panic!("value data");
             }
 
             let mut strings = Vec::new();
@@ -517,6 +533,27 @@ fn extract_cim_data<'a>(
             }
             cim_value = json!(signed_ints);
         }
+        CimType::ArrayUint8 => {
+            // Array value is offset to array length
+            let (input, string_count_offset) =
+                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            // Offset from the property value data
+            let (input, _) = take(string_count_offset)(data)?;
+            let (mut cim_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            let mut signed_ints = Vec::new();
+            let mut int_count = 0;
+            // Parse array of unsigned integers
+            while int_count < count {
+                let (next_offset, value) = nom_unsigned_one_byte(cim_data, Endian::Le)?;
+                int_count += 1;
+                signed_ints.push(value);
+                cim_data = next_offset;
+            }
+            cim_value = json!(signed_ints);
+        }
         _ => {
             println!("{remaining_input:?}");
             panic!("odd: {cim_type:?}");
@@ -529,6 +566,55 @@ fn extract_cim_data<'a>(
     }
 
     Ok((remaining, cim_value))
+}
+
+/// Get a namespace containing the specified classname. The classname should be SHA256 hashed without "CD_" prefix
+pub(crate) fn get_namespace_from_class(
+    classname: &str,
+    index_info: &HashMap<u32, IndexBody>,
+) -> Vec<String> {
+    let mut namespace_info = Vec::new();
+    for entry in index_info.values() {
+        for value in &entry.value_data {
+            if value.contains(&format!("CD_{classname}").to_uppercase()) {
+                namespace_info.append(&mut entry.value_data.clone());
+            }
+        }
+    }
+    namespace_info
+}
+
+pub(crate) fn get_parent_props<'a>(
+    class_name: &str,
+    indexes: &HashMap<u32, IndexBody>,
+    objects: &[u8],
+    pages: &[u32],
+) -> Vec<Property> {
+    let hash = hash_name(class_name);
+    let namespace = get_namespace_from_class(&hash, indexes);
+    let namespace_data = extract_namespace_data(&vec![namespace], objects, pages, indexes);
+    let mut parent_props = Vec::new();
+    // Now loop and get parent props extracted from namespace
+    for entry in namespace_data {
+        for classes_vec in entry.classes {
+            for classes in classes_vec.values() {
+                for class in classes {
+                    // Only want props related to our Class name
+                    if class.class_name == class_name {
+                        parent_props = class.properties.clone();
+                        // Check if there is another super class
+                        if !class.super_class_name.is_empty() {
+                            let mut results =
+                                get_parent_props(&class.super_class_name, indexes, objects, pages);
+                            parent_props.append(&mut results);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    parent_props
 }
 
 #[cfg(test)]
