@@ -1,7 +1,5 @@
-use serde_json::Value;
-
 use super::{
-    class::ClassInfo,
+    class::{ClassInfo, Property},
     index::IndexBody,
     instance::{ClassValues, InstanceRecord},
     objects::{parse_objects, parse_record},
@@ -13,7 +11,6 @@ use std::collections::HashMap;
 pub(crate) struct NamespaceData {
     pub(crate) classes: Vec<HashMap<String, Vec<ClassInfo>>>,
     pub(crate) instances: Vec<InstanceRecord>,
-    pub(crate) namespace: String,
     pub(crate) values: Vec<ClassValues>,
 }
 
@@ -24,24 +21,23 @@ pub(crate) fn gather_namespaces<'a>(
     pages: &[u32],
 ) -> nom::IResult<&'a [u8], Vec<String>> {
     let names = Vec::new();
+    let namespace_root =
+        String::from("NS_E8C4F9926E52E9240C37C4E59745CEB61A67A77C9F6692EA4295A97E0AF583C5");
     let namespace =
         String::from("NS_FCBAF5A1255D45B1176570C0B63AA60199749700C79A11D5811D54A83A1F4EFD");
     let mut namespace_info = Vec::new();
     for entry in index.values() {
-        if entry.value_data.contains(&namespace) {
+        if entry.value_data.contains(&namespace) || entry.value_data.contains(&namespace_root) {
             namespace_info.push(entry.value_data.clone());
         }
     }
+    println!("{namespace_info:?}");
+    let mut cache_props = HashMap::new();
 
-    let mut tracker = HashMap::new();
-    let definition =
-        String::from("CD_64659AB9F8F1C4B568DB6438BAE11B26EE8F93CB5F8195E21E8C383D6C44CC41");
-    for entries in namespace_info {
-        for keys in entries {
-            if keys.contains(&definition) {
-                let (_, class_info) =
-                    get_namespace_classes(&keys, objects_data, pages, &mut tracker)?;
-            }
+    let data = extract_namespace_data(&namespace_info, objects_data, pages, index, &mut cache_props);
+    for entries in data {
+        for value in entries.values {
+            println!("{value:?}")
         }
     }
 
@@ -54,6 +50,7 @@ pub(crate) fn extract_namespace_data(
     objects: &[u8],
     pages: &[u32],
     index_info: &HashMap<u32, IndexBody>,
+    prop_cache_tracker: &mut HashMap<String, Vec<Property>>
 ) -> Vec<NamespaceData> {
     let mut spaces = Vec::new();
     let mut full_tracker = Vec::new();
@@ -62,27 +59,29 @@ pub(crate) fn extract_namespace_data(
     // loop to parse all namespaces of WMI repo
     for entries in namespace_vec {
         let mut tracker = HashMap::new();
-        let mut name = String::new();
         // First get all the class data associated with namespace
+        println!("entries len: {}", entries.len());
         for class_entry in entries {
             if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
                 let instance_result =
                     get_namespace_classes(&class_entry, objects, pages, &mut tracker);
                 let mut instances = match instance_result {
                     Ok((_, result)) => result,
-                    Err(err) => {
+                    Err(_err) => {
                         println!("failed to get namespace");
                         continue;
                     }
                 };
                 instances_vec.append(&mut instances);
-            } else if class_entry.starts_with("NS_") {
-                name = class_entry.clone();
+            } 
+        }
+
+        for classes in tracker.values() {
+            for class in classes {
+                prop_cache_tracker.insert(class.class_name.clone(), class.properties.clone());
             }
         }
         full_tracker.push(tracker.clone());
-
-        //spaces.push(value);
     }
 
     // Now parse the Class instances associated with namespace
@@ -92,12 +91,12 @@ pub(crate) fn extract_namespace_data(
         &index_info,
         &objects,
         &pages,
+        prop_cache_tracker
     )
     .unwrap();
     let value = NamespaceData {
         classes: full_tracker,
         instances: instances_vec,
-        namespace: String::new(),
         values: result,
     };
     spaces.push(value);

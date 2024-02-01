@@ -2,13 +2,15 @@ use super::{
     class::get_namespace_from_class,
     error::WmiError,
     index::IndexBody,
+    instance::ClassValues,
     map::parse_map,
     namespaces::{extract_namespace_data, gather_namespaces, NamespaceData},
 };
 use crate::{
-    artifacts::os::windows::wmi::index::parse_index,
+    artifacts::os::windows::{securitydescriptor::sid::grab_sid, wmi::index::parse_index},
     filesystem::{files::read_file, metadata::glob_paths},
 };
+use log::warn;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -36,7 +38,7 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
     }
 
     let (_, index_info) = parse_index(&index).unwrap();
-    let (_, spaces) = gather_namespaces(&index_info, &objects, &pages).unwrap();
+   //let (_, spaces) = gather_namespaces(&index_info, &objects, &pages).unwrap();
 
     let mut namespace_info = Vec::new();
     for entry in index_info.values() {
@@ -47,7 +49,9 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
         }
     }
 
-    let namespace_data = extract_namespace_data(&namespace_info, &objects, &pages, &index_info);
+    let mut cache_props = HashMap::new();
+
+    let namespace_data = extract_namespace_data(&namespace_info, &objects, &pages, &index_info, &mut cache_props);
 
     // remove after done
     // return namespace_data to caller and caller can get wmi_persist if they want too
@@ -56,11 +60,15 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
     Ok(())
 }
 
+#[derive(Debug)]
 pub(crate) struct WmiPersist {
     class: String,
     values: HashMap<String, Value>,
     query: String,
     sid: String,
+    filter: String,
+    consumer: String,
+    consumer_name: String,
 }
 
 /*
@@ -75,23 +83,53 @@ pub(crate) fn get_wmi_persist(
     let filter_consumer_hash = hash_name("__FilterToConsumerBinding");
     let filter_hash = hash_name("__EventFilter");
 
+    let mut cache_props = HashMap::new();
+
     let filter_namespace = get_namespace_from_class(&filter_hash, indexes);
-    let filter_data = extract_namespace_data(&vec![filter_namespace], objects_data, pages, indexes);
-    println!("filter: {:?}", filter_data);
+    let filter_data = extract_namespace_data(&vec![filter_namespace], objects_data, pages, indexes, &mut cache_props);
+   
     let filter_consumer_namespace = get_namespace_from_class(&filter_consumer_hash, indexes);
     let filter_consumer_data = extract_namespace_data(
         &vec![filter_consumer_namespace],
         objects_data,
         pages,
         indexes,
+        &mut cache_props
     );
+
     for data in namespace_data {
         for class in &data.values {
             if class.super_class_name == "__EventConsumer" {
-                println!("{class:?}");
+                //println!("{class:?}");
                 for filter_consumer in &filter_consumer_data {
                     for entry in &filter_consumer.values {
-                        println!("{entry:?}");
+                        if entry.class_name == "__FilterToConsumerBinding" {
+                            for event_filter in &filter_data {
+                                for event_filter_entry in &event_filter.values {
+                                    if event_filter_entry.class_name == "__EventFilter" {
+                                        let mut persist = WmiPersist {
+                                            class: String::new(),
+                                            values: HashMap::new(),
+                                            query: String::new(),
+                                            sid: String::new(),
+                                            filter: String::new(),
+                                            consumer: String::new(),
+                                            consumer_name: String::new(),
+                                        };
+                                        assemble_wmi_persist(
+                                            class,
+                                            entry,
+                                            event_filter_entry,
+                                            &mut persist,
+                                        );
+                                        if !persist.class.is_empty() {
+                                            println!("{persist:?}");
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -101,7 +139,88 @@ pub(crate) fn get_wmi_persist(
     Ok(())
 }
 
-/// Hash the class name for WMI lookups
+fn assemble_wmi_persist(
+    consumer: &ClassValues,
+    filter_consumer: &ClassValues,
+    event_filter: &ClassValues,
+    persist: &mut WmiPersist,
+) {
+    let consumer_name_opt = consumer.values.get("Name");
+    let consumer_value = match consumer_name_opt {
+        Some(result) => result,
+        None => return,
+    };
+    let consumer_name = consumer_value.to_string().replace("\"", "");
+
+    let filter_consumer_opt = filter_consumer.values.get("Consumer");
+    let filter_consumer_value = match filter_consumer_opt {
+        Some(result) => result,
+        None => return,
+    };
+
+    let filter_consumer_name = filter_consumer_value.to_string().replace("\"", "").replace("\\", "");
+    if format!("{}.Name={consumer_name}", consumer.class_name) != filter_consumer_name {
+        return;
+    }
+
+    let filter_consumer_filter_opt = filter_consumer.values.get("Filter");
+    let filter_consumer_filter_value = match filter_consumer_filter_opt {
+        Some(result) => result,
+        None => return,
+    };
+
+    let filter_consumer_filter = filter_consumer_filter_value.to_string().to_string().replace("\"", "").replace("\\", "");
+    let event_filter_opt = event_filter.values.get("Name");
+    let event_filter_value = match event_filter_opt {
+        Some(result) => result,
+        None => return,
+    };
+
+    let event_filter_name = event_filter_value.to_string().to_string().replace("\"", "");
+    if format!("__EventFilter.Name={event_filter_name}") != filter_consumer_filter {
+        return;
+    }
+
+    let event_filter_query_opt = event_filter.values.get("Query");
+    let event_filter_query_value = match event_filter_query_opt {
+        Some(result) => result,
+        None => return,
+    };
+
+    let event_filter_query = event_filter_query_value.to_string();
+
+    let event_filter_sid_opt = event_filter.values.get("CreatorSID");
+    let event_filter_sid_value = match event_filter_sid_opt {
+        Some(result) => result,
+        None => return,
+    };
+
+    let default = Vec::new();
+    let sid_data_value = event_filter_sid_value.as_array().unwrap_or(&default);
+    let mut sid_data = Vec::new();
+    for value in sid_data_value {
+        sid_data.push(value.as_u64().unwrap_or(0) as u8);
+    }
+
+    if !sid_data.is_empty() {
+        let sid_result = grab_sid(&sid_data);
+        match sid_result {
+            Ok((_, result)) => persist.sid = result,
+            Err(_err) => {
+                warn!("[wmi-persist] Could not extract SID info");
+            }
+        }
+    }
+
+    persist.consumer = filter_consumer_name;
+    persist.values = consumer.values.clone();
+    persist.class = consumer.class_name.clone();
+    persist.filter = filter_consumer_filter;
+    persist.consumer_name = consumer_name;
+    persist.query = event_filter_query;
+}
+
+/// Hash name for WMI lookups
 pub(crate) fn hash_name(name: &str) -> String {
     let class = name.to_uppercase().as_bytes().to_vec();
     let mut hash = Sha256::new();
