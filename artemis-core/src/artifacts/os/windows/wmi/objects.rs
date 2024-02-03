@@ -9,7 +9,6 @@ use nom::{bytes::complete::take, error::ErrorKind};
 pub(crate) fn parse_objects<'a>(
     data: &'a [u8],
     pages: &[u32],
-    start_page: &u32,
 ) -> nom::IResult<&'a [u8], Vec<ObjectPage>> {
     let page_size = 8192;
 
@@ -205,7 +204,7 @@ mod tests {
         let (_, results) = parse_map(&data).unwrap();
 
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
-        let (_, results) = parse_objects(&data, &results.mappings, &0).unwrap();
+        let (_, results) = parse_objects(&data, &results.mappings).unwrap();
 
         assert!(results.len() > 10);
     }

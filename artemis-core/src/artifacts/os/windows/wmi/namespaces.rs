@@ -1,10 +1,14 @@
 use super::{
     class::{ClassInfo, Property},
+    error::WmiError,
     index::IndexBody,
     instance::{ClassValues, InstanceRecord},
     objects::{parse_objects, parse_record},
+    wmi::hash_name,
 };
 use crate::artifacts::os::windows::wmi::instance::{parse_instance_record, parse_instances};
+use log::error;
+use nom::error::ErrorKind;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -14,155 +18,125 @@ pub(crate) struct NamespaceData {
     pub(crate) values: Vec<ClassValues>,
 }
 
-/// Get all namespaces in WMI repo
-pub(crate) fn gather_namespaces<'a>(
-    index: &HashMap<u32, IndexBody>,
-    objects_data: &'a [u8],
-    pages: &[u32],
-) -> nom::IResult<&'a [u8], Vec<String>> {
-    let names = Vec::new();
-    let namespace_root =
-        String::from("NS_E8C4F9926E52E9240C37C4E59745CEB61A67A77C9F6692EA4295A97E0AF583C5");
-    let namespace =
-        String::from("NS_FCBAF5A1255D45B1176570C0B63AA60199749700C79A11D5811D54A83A1F4EFD");
-    let mut namespace_info = Vec::new();
-    for entry in index.values() {
-        if entry.value_data.contains(&namespace) || entry.value_data.contains(&namespace_root) {
-            namespace_info.push(entry.value_data.clone());
-        }
-    }
-    println!("{namespace_info:?}");
-    let mut cache_props = HashMap::new();
-
-    let data = extract_namespace_data(&namespace_info, objects_data, pages, index, &mut cache_props);
-    for entries in data {
-        for value in entries.values {
-            println!("{value:?}")
-        }
-    }
-
-    Ok((objects_data, names))
-}
-
 /// Extract Properties, Classes, and Instances from a Namespace
 pub(crate) fn extract_namespace_data(
     namespace_vec: &Vec<Vec<String>>,
     objects: &[u8],
     pages: &[u32],
-    index_info: &HashMap<u32, IndexBody>,
-    prop_cache_tracker: &mut HashMap<String, Vec<Property>>
-) -> Vec<NamespaceData> {
-    let mut spaces = Vec::new();
-    let mut full_tracker = Vec::new();
-    let mut instances_vec = Vec::new();
-
+    classes: &[String],
+) -> Vec<ClassValues> {
+    let mut classes_info = Vec::new();
+    let mut instances_info = Vec::new();
     // loop to parse all namespaces of WMI repo
     for entries in namespace_vec {
-        let mut tracker = HashMap::new();
         // First get all the class data associated with namespace
-        println!("entries len: {}", entries.len());
+        let mut namespace = String::new();
         for class_entry in entries {
-            if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
-                let instance_result =
-                    get_namespace_classes(&class_entry, objects, pages, &mut tracker);
-                let mut instances = match instance_result {
+            if class_entry.starts_with("NS_") {
+                namespace = class_entry.to_string();
+                continue;
+            }
+
+            if class_entry.starts_with("CD_") || class_entry.starts_with("IL_")
+            //|| class_entry.starts_with("CI_")
+            {
+                let class_info_result = get_namespace_data(&class_entry, objects, pages, classes);
+                let (classes_result, mut instances_result) = match class_info_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        println!("failed to get namespace");
+                        println!("failed to get class info");
                         continue;
                     }
                 };
-                instances_vec.append(&mut instances);
-            } 
-        }
+                if !classes_result.is_empty() {
+                    classes_info.push(classes_result);
+                }
 
-        for classes in tracker.values() {
-            for class in classes {
-                prop_cache_tracker.insert(class.class_name.clone(), class.properties.clone());
+                instances_info.append(&mut instances_result);
             }
         }
-        full_tracker.push(tracker.clone());
     }
-
-    // Now parse the Class instances associated with namespace
-    let (_, result) = parse_instances(
-        &mut full_tracker,
-        &instances_vec,
-        &index_info,
-        &objects,
-        &pages,
-        prop_cache_tracker
-    )
-    .unwrap();
-    let value = NamespaceData {
-        classes: full_tracker,
-        instances: instances_vec,
-        values: result,
-    };
-    spaces.push(value);
-    spaces
-}
-
-/// Get a single Namespace. The namespace should be SHA256 hashed without "NS_" prefix
-pub(crate) fn get_namespace(namespace: &str, index_info: &HashMap<u32, IndexBody>) -> Vec<String> {
-    let mut namespace_info = Vec::new();
-    for entry in index_info.values() {
-        if entry
-            .value_data
-            .contains(&format!("NS_{namespace}").to_uppercase())
-        {
-            namespace_info.append(&mut entry.value_data.clone());
+    let lookup_parents = classes_info.clone();
+    println!("class len: {}", classes_info.len());
+    //println!("class info: {classes_info:?}");
+    println!("instances len: {}", instances_info.len());
+    let values_result = parse_instances(&mut classes_info, &instances_info, &lookup_parents);
+    let values = match values_result {
+        Ok((_, result)) => result,
+        Err(err) => {
+            panic!("[wmi] Failed to get WMI data for properties and instances: {err:?}");
+            Vec::new()
         }
-    }
-    namespace_info
+    };
+
+    //println!("all values: {values:?}");
+
+    values
 }
 
-pub(crate) fn get_namespace_classes<'a>(
+pub(crate) fn get_namespace_data<'a>(
     class_hash: &str,
     objects_data: &'a [u8],
     pages: &[u32],
-    class_tracker: &mut HashMap<String, Vec<ClassInfo>>,
-) -> nom::IResult<&'a [u8], Vec<InstanceRecord>> {
-    let class_info: Vec<&str> = class_hash.split('.').collect();
-    let class_def = class_info.get(0).unwrap();
+    filter_classes: &[String],
+) -> nom::IResult<&'a [u8], (HashMap<String, ClassInfo>, Vec<InstanceRecord>)> {
+    let hash_result = extract_hash_info(class_hash);
 
-    let logical_page_str = class_info.get(1).unwrap();
-    let logical_page = logical_page_str.parse::<usize>().unwrap();
+    let (hash, record_id) = match hash_result {
+        Some(result) => result,
+        None => {
+            error!("[wmi] Could not split WMI index hashs.");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
+    };
 
-    let record_id_str = class_info.get(2).unwrap();
-    let record_id = record_id_str.parse::<u32>().unwrap();
+    let (_, object_info) = parse_objects(objects_data, pages)?;
 
-    let page_size = 8192;
-    let page = pages.get(logical_page).unwrap();
-    //let (data, _) = take(page * page_size)(objects_data)?;
-
-    let (_, object_info) = parse_objects(objects_data, pages, page)?;
-
-    let mut classes = Vec::new();
+    let mut classes = HashMap::new();
     let mut instances = Vec::new();
     for object in object_info {
-        if object.record_id == record_id {
-            let class_result = parse_record(&object.object_data, &class_def);
-            let class = match class_result {
-                Ok((_, result)) => result,
-                Err(_err) => {
-                    // If we fail, it might be because we encountered an Instance record
-                    let instance_result = parse_instance_record(&object.object_data);
-                    if instance_result.is_ok() {
-                        let (_, instance) = instance_result.unwrap();
-                        instances.push(instance);
-                        continue;
-                    }
-
-                    println!("[wmi] Failed to parse record or instance");
+        if object.record_id != record_id {
+            continue;
+        }
+        let class_result = parse_record(&object.object_data, &hash);
+        let class = match class_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                // If we fail, it might be because we encountered an Instance record
+                let instance_result = parse_instance_record(&object.object_data);
+                if instance_result.is_ok() {
+                    let (_, instance) = instance_result.unwrap();
+                    // if !filter_classes.contains(&instance.hash_name) {
+                    //    continue;
+                    // }
+                    instances.push(instance);
                     continue;
                 }
-            };
-            classes.push(class);
+
+                println!("[wmi] Failed to parse record or instance");
+                continue;
+            }
+        };
+        if !filter_classes.contains(&class.class_hash)
+            && !filter_classes.contains(&hash_name(&class.super_class_name))
+        {
+            continue;
         }
+        classes.insert(class.class_hash.clone(), class);
     }
+    Ok((&[], (classes, instances)))
+}
 
-    class_tracker.insert(class_def.to_string(), classes.clone());
+fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
+    let class_info: Vec<&str> = hash.split('.').collect();
+    let mut class_def = class_info.get(0)?.to_string();
+    class_def = class_def.replace("CD_", "").replace("IL_", "");
 
-    Ok((objects_data, instances))
+    let record_id_str = class_info.get(2)?;
+    let record_id = record_id_str.parse::<u32>().unwrap();
+
+    Some((class_def, record_id))
 }

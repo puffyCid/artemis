@@ -88,6 +88,7 @@ pub(crate) enum CimType {
     ByteRefUint16,
     ByteRefSint64,
     ByteRefSint32,
+    ByteRefReal32,
     ByteRefBool,
     ByteRefDatetime,
     ByteRefUint8,
@@ -142,13 +143,17 @@ pub(crate) fn parse_class<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u
     let (_, qualifiers) = parse_qualifier(qual_data, prop_value_data)?;
     let (_, properties) = parse_property(prop_data, prop_value_data)?;
 
+    if properties.len() != number_props as usize {
+        panic!("stop!");
+    }
+
     let class_info = ClassInfo {
         super_class_name,
+        class_hash: hash_name(&class_name),
         class_name,
         qualifiers,
         properties,
         instances: Vec::new(),
-        class_hash: hash.to_string(),
         includes_parent_props: false,
     };
 
@@ -324,6 +329,7 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
         0x2015 => CimType::ArrayUint64,
         0x2067 => CimType::ArrayChar,
         0x4003 => CimType::ByteRefSint32,
+        0x4004 => CimType::ByteRefReal32,
         0x4008 => CimType::ByteRefString,
         0x4012 => CimType::ByteRefUint16,
         0x4013 => CimType::ByteRefUint32,
@@ -335,7 +341,7 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
         0x4011 => CimType::ByteRefUint8,
         0x200d => CimType::ArrayObject,
         // Seen but unsure what they are
-        0x6008 | 0x600d | 0x6012 => CimType::Unknown,
+        0x6008 | 0x600d | 0x6012 | 0x6011 => CimType::Unknown,
         _ => {
             println!("unknown cim type: {data_type}");
             CimType::Unknown
@@ -352,7 +358,7 @@ pub(crate) fn extract_cim_data<'a>(
     let cim_value;
     let remaining;
     match cim_type {
-        CimType::String | CimType::Reference | CimType::Datetime => {
+        CimType::String | CimType::Reference | CimType::Datetime | CimType::ByteRefString => {
             let (input, qual_data_offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             let (_, value) = get_class_name(qual_data_offset, data)?;
             cim_value = Value::String(value);
@@ -365,12 +371,16 @@ pub(crate) fn extract_cim_data<'a>(
         }
         CimType::ArrayString | CimType::ByteRefReference => {
             // Array value is offset to array length
-            let (input, string_count_offset) =
-                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            let (input, offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
 
+            if offset == 0 {
+                cim_value = Value::Null;
+                return Ok((remaining, cim_value));
+            }
+
             // Offset from the property value data
-            let (input, _) = take(string_count_offset)(data)?;
+            let (input, _) = take(offset)(data)?;
             let (mut string_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
             if count as usize > data.len() {
@@ -496,19 +506,23 @@ pub(crate) fn extract_cim_data<'a>(
             let mut objects: Vec<Value> = Vec::new();
             let mut object_count = 0;
         }
-        CimType::Uint32 => {
+        CimType::Uint32 | CimType::ByteRefUint32 => {
             let (input, value) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             cim_value = Value::Number(value.into());
             remaining = input;
         }
         CimType::ArraySint32 => {
             // Array value is offset to array length
-            let (input, string_count_offset) =
-                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            let (input, offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
 
+            if offset == 0 {
+                cim_value = Value::Null;
+                return Ok((remaining, cim_value));
+            }
+
             // Offset from the property value data
-            let (input, _) = take(string_count_offset)(data)?;
+            let (input, _) = take(offset)(data)?;
             let (mut cim_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
             let mut signed_ints = Vec::new();
@@ -521,6 +535,56 @@ pub(crate) fn extract_cim_data<'a>(
                 cim_data = next_offset;
             }
             cim_value = json!(signed_ints);
+        }
+        CimType::ArraySint16 => {
+            // Array value is offset to array length
+            let (input, offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            if offset == 0 {
+                cim_value = Value::Null;
+                return Ok((remaining, cim_value));
+            }
+
+            // Offset from the property value data
+            let (input, _) = take(offset)(data)?;
+            let (mut cim_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            let mut signed_ints = Vec::new();
+            let mut int_count = 0;
+            // Parse array of signed integers
+            while int_count < count {
+                let (next_offset, value) = nom_signed_two_bytes(cim_data, Endian::Le)?;
+                int_count += 1;
+                signed_ints.push(value);
+                cim_data = next_offset;
+            }
+            cim_value = json!(signed_ints);
+        }
+        CimType::ArrayUint16 => {
+            // Array value is offset to array length
+            let (input, offset) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
+            remaining = input;
+
+            if offset == 0 {
+                cim_value = Value::Null;
+                return Ok((remaining, cim_value));
+            }
+
+            // Offset from the property value data
+            let (input, _) = take(offset)(data)?;
+            let (mut cim_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            let mut unsigned_ints = Vec::new();
+            let mut int_count = 0;
+            // Parse array of unsigned integers
+            while int_count < count {
+                let (next_offset, value) = nom_unsigned_two_bytes(cim_data, Endian::Le)?;
+                int_count += 1;
+                unsigned_ints.push(value);
+                cim_data = next_offset;
+            }
+            cim_value = json!(unsigned_ints);
         }
         CimType::ArrayUint8 => {
             // Array value is offset to array length
@@ -545,8 +609,8 @@ pub(crate) fn extract_cim_data<'a>(
         }
         _ => {
             println!("{remaining_input:?}");
-            panic!("odd: {cim_type:?}");
-            warn!("[wmi] Unknown CIM Type: {cim_type:?}");
+            println!("odd: {cim_type:?}");
+            warn!("[wmi] Unsupported CIM Type: {cim_type:?}");
             let (input, _) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
             cim_value = Value::Null;
@@ -557,60 +621,67 @@ pub(crate) fn extract_cim_data<'a>(
     Ok((remaining, cim_value))
 }
 
-/// Get a namespace containing the specified classname. The classname should be SHA256 hashed without "CD_" prefix
-pub(crate) fn get_namespace_from_class(
-    classname: &str,
-    index_info: &HashMap<u32, IndexBody>,
-) -> Vec<String> {
-    let mut namespace_info = Vec::new();
-    for entry in index_info.values() {
-        for value in &entry.value_data {
-            if value.contains(&format!("CD_{classname}").to_uppercase())
-                || value.contains(&format!("CI_{classname}").to_uppercase())
-            {
-                namespace_info.append(&mut entry.value_data.clone());
-                //namespace_info.push(value.clone());
-            }
-        }
-    }
-    namespace_info
-}
-
 pub(crate) fn get_parent_props<'a>(
+    namespace_class: &str,
     class_name: &str,
-    indexes: &HashMap<u32, IndexBody>,
-    objects: &[u8],
-    pages: &[u32],
-    cache_props: &mut HashMap<String, Vec<Property>>
+    classes: &[HashMap<String, ClassInfo>],
+    parent_tracker: &mut Vec<String>,
 ) -> Vec<Property> {
-    println!("getting parent props for: {class_name}");
-    let hash = hash_name(class_name);
-    let namespace = get_namespace_from_class(&hash, indexes);
-    let namespace_data = extract_namespace_data(&vec![namespace], objects, pages, indexes, cache_props);
-    let mut parent_props = Vec::new();
-    // Now loop and get parent props extracted from namespace
-    for entry in namespace_data {
-        for classes_vec in entry.classes {
-            for classes in classes_vec.values() {
-                for class in classes {
-                    // Only want props related to our Class name
-                    if class.class_name == class_name {
-                        parent_props = class.properties.clone();
-                        // Check if there is another super class
-                        if !class.super_class_name.is_empty() && class.super_class_name != class_name {
-                            println!("getting more parents: {}", class.super_class_name);
-                            let mut results =
-                                get_parent_props(&class.super_class_name, indexes, objects, pages, cache_props);
-                            parent_props.append(&mut results);
-                            println!("total props: {}", parent_props.len());
-                        }
+    println!("getting parent props for: {namespace_class}");
+
+    // First check parent in current Namespace
+    for class in classes {
+        for (class_key, class_value) in class {
+            if class_key == namespace_class {
+                println!("parent key: {class_key}");
+                let mut parent_props = Vec::new();
+
+                if !class_value.super_class_name.is_empty()
+                    && class_value.super_class_name != class_name
+                {
+                    println!("another parent!: {}", class_value.super_class_name);
+                    // Already found this parent.
+                    // This should prevent recursive loops. (Ex: Two different parents that point to each other)
+                    // (This should not happen for normal WMI repos)
+                    if parent_tracker.contains(&class_value.super_class_name) {
+                        return class_value.properties.to_vec();
                     }
+
+                    parent_tracker.push(class_value.super_class_name.clone());
+                    let namespace: Vec<&str> = class_key.split('_').collect();
+                    let hash = format!(
+                        "NS_{}_{}",
+                        namespace[1],
+                        hash_name(&class_value.super_class_name)
+                    );
+
+                    parent_props.append(&mut get_parent_props(
+                        &hash,
+                        &class_value.super_class_name,
+                        classes,
+                        parent_tracker,
+                    ))
                 }
+                parent_props.append(&mut class_value.properties.to_vec());
+                return parent_props;
             }
         }
     }
+    println!("trying any namespace now: {class_name}");
 
-    parent_props
+    // If not found try any Namespaces
+    let hash = hash_name(class_name);
+    for class in classes {
+        for (class_key, class_value) in class {
+            if class_key.contains(&format!("_{hash}")) && !class_key.contains(&format!("NS_{hash}"))
+            {
+                println!("another parent key: {class_key}");
+                return class_value.properties.to_vec();
+            }
+        }
+    }
+    Vec::new()
+    //panic!("[wmi] could not find parent props for class: {class_name}. WMI parsing will likely fail");
 }
 
 #[cfg(test)]
