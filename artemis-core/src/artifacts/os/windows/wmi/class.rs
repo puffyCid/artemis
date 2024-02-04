@@ -1,9 +1,6 @@
-use super::{
-    index::IndexBody,
-    instance::{InstanceRecord, InstanceValue},
-};
+use super::instance::InstanceRecord;
 use crate::{
-    artifacts::os::windows::wmi::{namespaces::extract_namespace_data, wmi::hash_name},
+    artifacts::os::windows::wmi::wmi::hash_name,
     utils::{
         nom_helper::{
             nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
@@ -48,7 +45,6 @@ pub(crate) struct Property {
     pub(crate) data_offset: u32,
     class_level: u32,
     qualifiers: Vec<Qualifier>,
-    pub(crate) instance_value: InstanceValue,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -257,7 +253,6 @@ fn parse_property<'a>(
             property_index,
             data_offset,
             class_level,
-            instance_value: InstanceValue::Unknown,
         };
         props.push(prop);
     }

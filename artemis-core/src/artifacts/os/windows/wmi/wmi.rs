@@ -12,7 +12,7 @@ use crate::{
 use log::warn;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), WmiError> {
     let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
@@ -68,10 +68,10 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct WmiPersist {
     class: String,
-    values: HashMap<String, Value>,
+    values: BTreeMap<String, Value>,
     query: String,
     sid: String,
     filter: String,
@@ -83,6 +83,7 @@ pub(crate) struct WmiPersist {
  * After parsing WMI repo, extract persistence data
  */
 pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<(), WmiError> {
+    let mut persist_vec = Vec::new();
     for event_consumer in namespace_data {
         if event_consumer.super_class_name != "__EventConsumer" {
             continue;
@@ -98,7 +99,7 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<(), WmiE
                 }
                 let mut persist = WmiPersist {
                     class: String::new(),
-                    values: HashMap::new(),
+                    values: BTreeMap::new(),
                     query: String::new(),
                     sid: String::new(),
                     filter: String::new(),
@@ -107,52 +108,16 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<(), WmiE
                 };
                 assemble_wmi_persist(event_consumer, filter_consumer, event_filter, &mut persist);
                 if !persist.class.is_empty() {
-                    println!("{persist:?}");
+                    persist_vec.push(persist);
                     break;
                 }
             }
         }
     }
-    /*
-    for data in namespace_data {
-        for class in &data.values {
-            if class.super_class_name == "__EventConsumer" {
-                //println!("{class:?}");
-                for filter_consumer in &filter_consumer_data {
-                    for entry in &filter_consumer.values {
-                        if entry.class_name == "__FilterToConsumerBinding" {
-                            for event_filter in &filter_data {
-                                for event_filter_entry in &event_filter.values {
-                                    if event_filter_entry.class_name == "__EventFilter" {
-                                        let mut persist = WmiPersist {
-                                            class: String::new(),
-                                            values: HashMap::new(),
-                                            query: String::new(),
-                                            sid: String::new(),
-                                            filter: String::new(),
-                                            consumer: String::new(),
-                                            consumer_name: String::new(),
-                                        };
-                                        assemble_wmi_persist(
-                                            class,
-                                            entry,
-                                            event_filter_entry,
-                                            &mut persist,
-                                        );
-                                        if !persist.class.is_empty() {
-                                            println!("{persist:?}");
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
+
+    println!("len pre dedup: {}", persist_vec.len());
+    persist_vec.dedup();
+    println!("len post dedup: {}", persist_vec.len());
 
     Ok(())
 }
