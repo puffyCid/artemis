@@ -39,9 +39,9 @@ pub(crate) fn parse_objects<'a>(
 #[derive(Debug)]
 pub(crate) struct ObjectPage {
     pub(crate) record_id: u32,
-    offset: u32,
-    size: u32,
-    checksum: u32,
+    _offset: u32,
+    _size: u32,
+    _checksum: u32,
     pub(crate) object_data: Vec<u8>,
 }
 
@@ -53,7 +53,7 @@ fn parse_page<'a>(
     pages: &[u32],
 ) -> nom::IResult<&'a [u8], (Vec<ObjectPage>, u32)> {
     let mut input = data;
-    let mut page_remaining = object_remaining;
+    let page_remaining = object_remaining;
     let mut objects: Vec<ObjectPage> = Vec::new();
 
     let mut additional_pages = 0;
@@ -73,9 +73,9 @@ fn parse_page<'a>(
         let (data_start, _) = take(offset)(data)?;
         let mut object = ObjectPage {
             record_id,
-            offset,
-            size,
-            checksum,
+            _offset: offset,
+            _size: size,
+            _checksum: checksum,
             object_data: Vec::new(),
         };
 
@@ -96,7 +96,14 @@ fn parse_page<'a>(
 
             // Since data is too large to fit in one page. We need to grab more pages
             while get_pages <= additional_pages {
-                let page = pages.get(index + get_pages as usize).unwrap();
+                let page_opt = pages.get(index + get_pages as usize);
+                let page = match page_opt {
+                    Some(result) => result,
+                    None => {
+                        error!("[wmi] Failed to get more pages for large data");
+                        break;
+                    }
+                };
                 let (data_start, _) = take(page * page_size)(page_remaining)?;
                 let (_, large_data) = take(page_size)(data_start)?;
 
@@ -108,7 +115,6 @@ fn parse_page<'a>(
             match data_result {
                 Ok((_, result)) => object.object_data = result.to_vec(),
                 Err(_err) => {
-                    panic!("yikes");
                     error!("[wmi] Failed to nom object data");
                     break;
                 }
@@ -126,7 +132,7 @@ fn parse_page<'a>(
 }
 
 /// Parse Object record
-pub(crate) fn parse_record<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u8], ClassInfo> {
+pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, super_class_name_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let adjust_size = 2;
 
@@ -139,14 +145,14 @@ pub(crate) fn parse_record<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [
     }
 
     // Name is UTF16 need to double name size length
-    let (input, super_class_name_data) = take(super_class_name_size * adjust_size)(input)?;
-    let (input, created) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+    let (input, _super_class_name_data) = take(super_class_name_size * adjust_size)(input)?;
+    let (input, _created) = nom_unsigned_eight_bytes(input, Endian::Le)?;
     let (input, class_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let adjust_class_size = 4;
     // Class size includes size itself. We already nom'd that
     let (input, class_data) = take(class_size - adjust_class_size)(input)?;
-    let (_, class_info) = parse_class(class_data, hash)?;
+    let (_, class_info) = parse_class(class_data)?;
 
     // Remaining input if any is method data. Which is undocumented
 
@@ -216,7 +222,7 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, results) = parse_record(&data, &"test").unwrap();
+        let (_, results) = parse_record(&data).unwrap();
 
         assert_eq!(results.properties.len(), 3);
     }

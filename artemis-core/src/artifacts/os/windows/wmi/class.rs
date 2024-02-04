@@ -1,4 +1,3 @@
-use super::instance::InstanceRecord;
 use crate::{
     artifacts::os::windows::wmi::wmi::hash_name,
     utils::{
@@ -7,7 +6,7 @@ use crate::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
             nom_unsigned_two_bytes, Endian,
         },
-        strings::extract_utf8_string,
+        strings::{extract_utf16_string, extract_utf8_string},
     },
 };
 use log::warn;
@@ -17,22 +16,21 @@ use nom::{
     number::complete::{le_f32, le_f64, le_i8},
 };
 use serde_json::{json, Value};
-use std::{collections::HashMap, mem::size_of};
+use std::mem::size_of;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ClassInfo {
     pub(crate) super_class_name: String,
     pub(crate) class_name: String,
-    pub(crate) qualifiers: Vec<Qualifier>,
+    pub(crate) _qualifiers: Vec<Qualifier>,
     pub(crate) properties: Vec<Property>,
-    pub(crate) instances: Vec<InstanceRecord>,
     pub(crate) class_hash: String,
     pub(crate) includes_parent_props: bool,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Qualifier {
-    pub(crate) name: String,
+    pub(crate) _name: String,
     pub(crate) value_data_type: CimType,
     pub(crate) data: Value,
 }
@@ -41,10 +39,10 @@ pub(crate) struct Qualifier {
 pub(crate) struct Property {
     pub(crate) name: String,
     pub(crate) property_data_type: CimType,
-    pub(crate) property_index: u16,
+    pub(crate) _property_index: u16,
     pub(crate) data_offset: u32,
-    class_level: u32,
-    qualifiers: Vec<Qualifier>,
+    _class_level: u32,
+    _qualifiers: Vec<Qualifier>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -95,7 +93,7 @@ pub(crate) enum CimType {
 }
 
 /// Parse class definition information
-pub(crate) fn parse_class<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u8], ClassInfo> {
+pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let (input, _unknown) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, class_name_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, default_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -139,17 +137,12 @@ pub(crate) fn parse_class<'a>(data: &'a [u8], hash: &str) -> nom::IResult<&'a [u
     let (_, qualifiers) = parse_qualifier(qual_data, prop_value_data)?;
     let (_, properties) = parse_property(prop_data, prop_value_data)?;
 
-    if properties.len() != number_props as usize {
-        panic!("stop!");
-    }
-
     let class_info = ClassInfo {
         super_class_name,
         class_hash: hash_name(&class_name),
         class_name,
-        qualifiers,
+        _qualifiers: qualifiers,
         properties,
-        instances: Vec::new(),
         includes_parent_props: false,
     };
 
@@ -191,7 +184,7 @@ pub(crate) fn parse_qualifier<'a>(
         };
 
         let mut qual = Qualifier {
-            name,
+            _name: name,
             value_data_type: get_cim_data_type(&cim_data_type),
             data: Value::Null,
         };
@@ -249,10 +242,10 @@ fn parse_property<'a>(
         let prop = Property {
             name,
             property_data_type: get_cim_data_type(&prop_data_type),
-            qualifiers,
-            property_index,
+            _qualifiers: qualifiers,
+            _property_index: property_index,
             data_offset,
-            class_level,
+            _class_level: class_level,
         };
         props.push(prop);
     }
@@ -264,16 +257,23 @@ fn parse_property<'a>(
 fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
     let (input, string_type) = nom_unsigned_one_byte(data, Endian::Le)?;
 
-    if string_type != 0 {
-        warn!("[wmi] CIM String is using unknown encoding/raw bytes. Cannot extract.");
-        return Ok((input, String::new()));
+    let ascii = 0;
+    let utf16 = 1;
+    if string_type == ascii {
+        // CIM strings are ASCII with end of string character
+        let (input, string_data) = take_while(|b| b != 0)(input)?;
+        let value = extract_utf8_string(string_data);
+
+        return Ok((input, value));
+    } else if string_type == utf16 {
+        // CIM strings are UTF16 with end of string character
+        let value = extract_utf16_string(input);
+
+        return Ok((input, value));
     }
 
-    // CIM strings are ASCII with end of string character
-    let (input, string_data) = take_while(|b| b != 0)(input)?;
-    let value = extract_utf8_string(string_data);
-
-    Ok((input, value))
+    warn!("[wmi] CIM String is using unknown encoding/raw bytes. Cannot extract.");
+    Ok((input, String::new()))
 }
 
 /// Get predefine string names
@@ -360,7 +360,7 @@ pub(crate) fn extract_cim_data<'a>(
             remaining = input;
         }
         CimType::Unknown => {
-            println!("unknown. what??? see libyal");
+            warn!("[wmi] Got Unknown CIM Type");
             cim_value = Value::Null;
             remaining = &[];
         }
@@ -397,7 +397,9 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(strings);
         }
         CimType::Object => {
-            panic!("object. see CIM object libyal");
+            warn!("[wmi] Got Object CIM Type. This is not supported yet");
+            cim_value = Value::Null;
+            remaining = &[];
         }
         CimType::Bool => {
             let (input, value) = nom_signed_two_bytes(remaining_input, Endian::Le)?;
@@ -488,18 +490,9 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(strings);
         }
         CimType::ArrayObject => {
-            // Array value is offset to array length
-            let (input, string_count_offset) =
-                nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
-            remaining = input;
-
-            // Offset from the property value data
-            let (input, _) = take(string_count_offset)(data)?;
-            let (mut object_data, count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            panic!("{object_data:?}");
-
-            let mut objects: Vec<Value> = Vec::new();
-            let mut object_count = 0;
+            warn!("[wmi] Got ArrayObject CIM Type. This is not supported yet");
+            cim_value = Value::Null;
+            remaining = &[];
         }
         CimType::Uint32 | CimType::ByteRefUint32 => {
             let (input, value) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
@@ -603,8 +596,6 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(signed_ints);
         }
         _ => {
-            println!("{remaining_input:?}");
-            println!("odd: {cim_type:?}");
             warn!("[wmi] Unsupported CIM Type: {cim_type:?}");
             let (input, _) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
@@ -614,69 +605,6 @@ pub(crate) fn extract_cim_data<'a>(
     }
 
     Ok((remaining, cim_value))
-}
-
-pub(crate) fn get_parent_props<'a>(
-    namespace_class: &str,
-    class_name: &str,
-    classes: &[HashMap<String, ClassInfo>],
-    parent_tracker: &mut Vec<String>,
-) -> Vec<Property> {
-    println!("getting parent props for: {namespace_class}");
-
-    // First check parent in current Namespace
-    for class in classes {
-        for (class_key, class_value) in class {
-            if class_key == namespace_class {
-                println!("parent key: {class_key}");
-                let mut parent_props = Vec::new();
-
-                if !class_value.super_class_name.is_empty()
-                    && class_value.super_class_name != class_name
-                {
-                    println!("another parent!: {}", class_value.super_class_name);
-                    // Already found this parent.
-                    // This should prevent recursive loops. (Ex: Two different parents that point to each other)
-                    // (This should not happen for normal WMI repos)
-                    if parent_tracker.contains(&class_value.super_class_name) {
-                        return class_value.properties.to_vec();
-                    }
-
-                    parent_tracker.push(class_value.super_class_name.clone());
-                    let namespace: Vec<&str> = class_key.split('_').collect();
-                    let hash = format!(
-                        "NS_{}_{}",
-                        namespace[1],
-                        hash_name(&class_value.super_class_name)
-                    );
-
-                    parent_props.append(&mut get_parent_props(
-                        &hash,
-                        &class_value.super_class_name,
-                        classes,
-                        parent_tracker,
-                    ))
-                }
-                parent_props.append(&mut class_value.properties.to_vec());
-                return parent_props;
-            }
-        }
-    }
-    println!("trying any namespace now: {class_name}");
-
-    // If not found try any Namespaces
-    let hash = hash_name(class_name);
-    for class in classes {
-        for (class_key, class_value) in class {
-            if class_key.contains(&format!("_{hash}")) && !class_key.contains(&format!("NS_{hash}"))
-            {
-                println!("another parent key: {class_key}");
-                return class_value.properties.to_vec();
-            }
-        }
-    }
-    Vec::new()
-    //panic!("[wmi] could not find parent props for class: {class_name}. WMI parsing will likely fail");
 }
 
 #[cfg(test)]
@@ -699,23 +627,23 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, results) = parse_class(&data, &"test").unwrap();
+        let (_, results) = parse_class(&data).unwrap();
         assert_eq!(results.super_class_name, "MSFT_DOUsage");
         assert_eq!(results.class_name, "MSFT_DOUploadUsage");
-        assert_eq!(results.qualifiers.len(), 4);
+        assert_eq!(results._qualifiers.len(), 4);
         assert_eq!(results.properties.len(), 3);
 
-        assert_eq!(results.qualifiers[0].name, "Description");
-        assert_eq!(results.qualifiers[0].value_data_type, CimType::String);
+        assert_eq!(results._qualifiers[0]._name, "Description");
+        assert_eq!(results._qualifiers[0].value_data_type, CimType::String);
         assert_eq!(
-            results.qualifiers[0].data,
+            results._qualifiers[0].data,
             Value::String(String::from("25"))
         );
 
         assert_eq!(results.properties[1].name, "UploadRatePct");
         assert_eq!(results.properties[1].property_data_type, CimType::Uint8);
-        assert_eq!(results.properties[1].property_index, 5);
-        assert_eq!(results.properties[1].qualifiers.len(), 1);
+        assert_eq!(results.properties[1]._property_index, 5);
+        assert_eq!(results.properties[1]._qualifiers.len(), 1);
     }
 
     #[test]

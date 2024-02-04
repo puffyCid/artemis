@@ -1,42 +1,85 @@
 use super::{
-    error::WmiError,
-    index::IndexBody,
-    instance::ClassValues,
-    map::parse_map,
-    namespaces::{extract_namespace_data, NamespaceData},
+    error::WmiError, instance::ClassValues, map::parse_map, namespaces::extract_namespace_data,
 };
 use crate::{
     artifacts::os::windows::{securitydescriptor::sid::grab_sid, wmi::index::parse_index},
     filesystem::{files::read_file, metadata::glob_paths},
 };
-use log::warn;
-use serde_json::Value;
+use common::windows::WmiPersist;
+use log::{error, warn};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
-pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), WmiError> {
-    let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-    let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-    let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
+pub(crate) fn parse_wmi_repo(
+    classes: &[&str],
+    map_paths: &str,
+    objects_path: &str,
+    index_path: &str,
+) -> Result<Vec<ClassValues>, WmiError> {
+    let maps_result = glob_paths(map_paths);
+    let maps = match maps_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[wmi] Could not glob maps path {map_paths}: {err:?}");
+            return Err(WmiError::GlobMaps);
+        }
+    };
 
-    let maps = glob_paths(&map_paths).unwrap();
-    let objects = read_file(&objects_path).unwrap();
-    let index = read_file(&index_path).unwrap();
+    let objects_result = read_file(objects_path);
+    let objects = match objects_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[wmi] Could not read objects file {objects_path}: {err:?}");
+            return Err(WmiError::ReadObjects);
+        }
+    };
+
+    let index_result = read_file(index_path);
+    let index = match index_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[wmi] Could not read index file {index_path}: {err:?}");
+            return Err(WmiError::ReadIndex);
+        }
+    };
 
     let mut seq = 0;
     let mut pages = Vec::new();
 
     for map in maps {
-        let map_data = read_file(&map.full_path).unwrap();
+        let map_data_result = read_file(&map.full_path);
+        let map_data = match map_data_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[wmi] Could not read map file {}: {err:?}", map.full_path);
+                return Err(WmiError::ReadMaps);
+            }
+        };
 
-        let (_, map_info) = parse_map(&map_data).unwrap();
+        let map_info_result = parse_map(&map_data);
+        let map_info = match map_info_result {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!("[wmi] Could not parse map file {}: {err:?}", map.full_path);
+                return Err(WmiError::ParseMap);
+            }
+        };
+
+        // Need to use the map file with the highest sequence
         if map_info.seq_number2 > seq {
             seq = map_info.seq_number2;
             pages = map_info.mappings;
         }
     }
 
-    let (_, index_info) = parse_index(&index).unwrap();
+    let index_info_result = parse_index(&index);
+    let index_info = match index_info_result {
+        Ok((_, result)) => result,
+        Err(err) => {
+            error!("[wmi] Could not parse index file {index_path}: {err:?}");
+            return Err(WmiError::ParseIndex);
+        }
+    };
 
     let mut namespace_info = Vec::new();
     for entry in index_info.values() {
@@ -48,41 +91,20 @@ pub(crate) fn parse_wmi_repo(namespaces: &[String], drive: &char) -> Result<(), 
         }
     }
 
-    let classes = vec![
-        "__EventConsumer",
-        "__EventFilter",
-        "__FilterToConsumerBinding",
-    ];
-
     let mut hash_classes = Vec::new();
     for class in classes {
         hash_classes.push(hash_name(class));
     }
 
-    let namespace_data = extract_namespace_data(&namespace_info, &objects, &pages, &hash_classes);
+    let class_data = extract_namespace_data(&namespace_info, &objects, &pages, &hash_classes);
 
-    // remove after done
-    // return namespace_data to caller and caller can get wmi_persist if they want too
-    get_wmi_persist(&namespace_data);
-
-    Ok(())
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct WmiPersist {
-    class: String,
-    values: BTreeMap<String, Value>,
-    query: String,
-    sid: String,
-    filter: String,
-    consumer: String,
-    consumer_name: String,
+    Ok(class_data)
 }
 
 /*
  * After parsing WMI repo, extract persistence data
  */
-pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<(), WmiError> {
+pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiPersist>, WmiError> {
     let mut persist_vec = Vec::new();
     for event_consumer in namespace_data {
         if event_consumer.super_class_name != "__EventConsumer" {
@@ -115,11 +137,8 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<(), WmiE
         }
     }
 
-    println!("len pre dedup: {}", persist_vec.len());
     persist_vec.dedup();
-    println!("len post dedup: {}", persist_vec.len());
-
-    Ok(())
+    Ok(persist_vec)
 }
 
 fn assemble_wmi_persist(
@@ -133,7 +152,7 @@ fn assemble_wmi_persist(
         Some(result) => result,
         None => return,
     };
-    let consumer_name = consumer_value.to_string().replace("\"", "");
+    let consumer_name = consumer_value.to_string().replace('\"', "");
 
     let filter_consumer_opt = filter_consumer.values.get("Consumer");
     let filter_consumer_value = match filter_consumer_opt {
@@ -141,10 +160,7 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let filter_consumer_name = filter_consumer_value
-        .to_string()
-        .replace("\"", "")
-        .replace("\\", "");
+    let filter_consumer_name = filter_consumer_value.to_string().replace(['\"', '\\'], "");
     if format!("{}.Name={consumer_name}", consumer.class_name) != filter_consumer_name {
         return;
     }
@@ -157,16 +173,14 @@ fn assemble_wmi_persist(
 
     let filter_consumer_filter = filter_consumer_filter_value
         .to_string()
-        .to_string()
-        .replace("\"", "")
-        .replace("\\", "");
+        .replace(['\"', '\\'], "");
     let event_filter_opt = event_filter.values.get("Name");
     let event_filter_value = match event_filter_opt {
         Some(result) => result,
         None => return,
     };
 
-    let event_filter_name = event_filter_value.to_string().to_string().replace("\"", "");
+    let event_filter_name = event_filter_value.to_string().replace('\"', "");
     if format!("__EventFilter.Name={event_filter_name}") != filter_consumer_filter {
         return;
     }
@@ -222,8 +236,7 @@ pub(crate) fn hash_name(name: &str) -> String {
     }
     hash.update(class_data);
     let hash_name = hash.finalize();
-    let hash = format!("{hash_name:x}").to_uppercase();
-    hash
+    format!("{hash_name:x}").to_uppercase()
 }
 
 #[cfg(test)]
@@ -232,14 +245,18 @@ mod tests {
 
     #[test]
     fn test_parse_wmi_repo() {
-        let namespaces = [
-            String::from("NS_892f8db69c4edfbc68165c91087b7a08323f6ce5b5ef342c0f93e02a0590bfc4")
-                .to_uppercase(),
-            // String::from("NS_e1dd43413ed9fd9c458d2051f082d1d739399b29035b455f09073926e5ed9870")
-            //    .to_uppercase(),
+        let classes = vec![
+            "__EventConsumer",
+            "__EventFilter",
+            "__FilterToConsumerBinding",
         ];
         let drive = 'C';
 
-        let results = parse_wmi_repo(&namespaces, &drive).unwrap();
+        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
+        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
+        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
+        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+
+        assert!(results.len() > 3);
     }
 }

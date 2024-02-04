@@ -38,8 +38,8 @@ fn parse_page(data: &[u8]) -> nom::IResult<&[u8], (IndexHeader, IndexBody)> {
 struct IndexHeader {
     page_type: PageType,
     mapped_number: u32,
-    unknown: u32,
-    mapped_root_number: u32,
+    _unknown: u32,
+    _mapped_root_number: u32,
 }
 
 #[derive(PartialEq, Debug)]
@@ -67,8 +67,8 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], IndexHeader> {
     let header = IndexHeader {
         page_type,
         mapped_number,
-        unknown,
-        mapped_root_number,
+        _unknown: unknown,
+        _mapped_root_number: mapped_root_number,
     };
 
     Ok((input, header))

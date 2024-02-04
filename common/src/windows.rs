@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -1441,12 +1441,13 @@ pub enum Source {
     None,
 }
 
-pub(crate) struct WmiInfo {
-    event_filter_name: String,
-    filter_query: String,
-    event_consumer_name: String,
-    consumer_arguments: String,
-    binding_id: String,
-    consumer_type: String,
-    consumer: String,
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct WmiPersist {
+    pub class: String,
+    pub values: BTreeMap<String, Value>,
+    pub query: String,
+    pub sid: String,
+    pub filter: String,
+    pub consumer: String,
+    pub consumer_name: String,
 }

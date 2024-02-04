@@ -5,6 +5,7 @@ use super::registry::parser::parse_registry;
 use super::search::parser::grab_search;
 use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
+use super::wmi::parser::grab_wmi_persist;
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
     error::WinArtifactError, eventlogs::parser::grab_eventlogs, prefetch::parser::grab_prefetch,
@@ -22,7 +23,7 @@ use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
 use crate::structs::toml::Output;
 use crate::{
@@ -613,6 +614,36 @@ pub(crate) fn recycle_bin(
     };
 
     let output_name = "recyclebin";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
+/// Parse the Windows `WMI Persist` artifact
+pub(crate) fn wmi_persist(
+    options: &WmiPersistOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let wmi_result = grab_wmi_persist(options);
+    let wmi_data = match wmi_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse WMI Persistence: {err:?}");
+            return Err(WinArtifactError::WmiPersist);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(wmi_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize recycle bin: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "wmipersist";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 

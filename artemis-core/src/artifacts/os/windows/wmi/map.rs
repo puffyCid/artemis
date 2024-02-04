@@ -2,12 +2,12 @@ use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 
 #[derive(Debug)]
 pub(crate) struct MapInfo {
-    pub(crate) seq_number: u32,
-    number_pages: u32,
+    _seq_number: u32,
+    _number_pages: u32,
     pub(crate) mappings: Vec<u32>,
     pub(crate) seq_number2: u32,
-    number_pages2: u32,
-    pub(crate) mappings2: Vec<u32>,
+    _number_pages2: u32,
+    _mappings2: Vec<u32>,
 }
 
 /**
@@ -25,12 +25,12 @@ pub(crate) fn parse_map(data: &[u8]) -> nom::IResult<&[u8], MapInfo> {
     let (input, _table2) = parse_table(input)?;
 
     let info = MapInfo {
-        seq_number,
-        number_pages,
+        _seq_number: seq_number,
+        _number_pages: number_pages,
         mappings,
         seq_number2,
-        number_pages2,
-        mappings2,
+        _number_pages2: number_pages2,
+        _mappings2: mappings2,
     };
     Ok((input, info))
 }

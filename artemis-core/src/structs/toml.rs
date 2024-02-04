@@ -15,6 +15,8 @@ use crate::structs::artifacts::os::windows::{
 #[cfg(target_os = "macos")]
 use crate::structs::artifacts::os::macos::UnifiedLogsOptions;
 
+use super::artifacts::os::windows::WmiPersistOptions;
+
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
     pub system: String,
@@ -80,6 +82,7 @@ pub struct Artifacts {
     pub services: Option<ServicesOptions>,
     pub jumplists: Option<JumplistsOptions>,
     pub recyclebin: Option<RecycleBinOptions>,
+    pub wmipersist: Option<WmiPersistOptions>,
 }
 
 #[derive(Debug, Deserialize)]

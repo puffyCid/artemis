@@ -1,4 +1,4 @@
-use super::class::{CimType, ClassInfo, Property, Qualifier};
+use super::class::{CimType, ClassInfo, Property};
 use crate::{
     artifacts::os::windows::wmi::{
         class::{extract_cim_data, parse_qualifier},
@@ -19,15 +19,10 @@ use std::collections::{BTreeMap, HashMap};
 #[derive(Debug, Clone)]
 pub(crate) struct InstanceRecord {
     pub(crate) hash_name: String,
-    pub(crate) unknown_filetime: u64,
-    pub(crate) unknown_filetime2: u64,
-    pub(crate) property_values: Vec<u8>,
-    pub(crate) qualifier: Qualifier,
-    pub(crate) block_type: u8,
-    pub(crate) dynamic_properties: Vec<u8>,
-    pub(crate) values: Vec<u8>,
+    pub(crate) _unknown_filetime: u64,
+    pub(crate) _unknown_filetime2: u64,
     pub(crate) data: Vec<u8>,
-    pub(crate) class_name_offset: u32,
+    pub(crate) _class_name_offset: u32,
 }
 
 pub(crate) fn parse_instance_record(data: &[u8]) -> nom::IResult<&[u8], InstanceRecord> {
@@ -47,21 +42,12 @@ pub(crate) fn parse_instance_record(data: &[u8]) -> nom::IResult<&[u8], Instance
     let (remaining, class_name_offset) = nom_unsigned_four_bytes(block_data, Endian::Le)?;
     let (remaining, _unknown) = nom_unsigned_one_byte(remaining, Endian::Le)?;
 
-    let mut instance = InstanceRecord {
+    let instance = InstanceRecord {
         hash_name,
-        unknown_filetime,
-        unknown_filetime2,
-        property_values: Vec::new(),
-        qualifier: Qualifier {
-            name: String::new(),
-            value_data_type: CimType::Unknown,
-            data: Value::Null,
-        },
-        block_type: 0,
-        dynamic_properties: Vec::new(),
-        values: Vec::new(),
+        _unknown_filetime: unknown_filetime,
+        _unknown_filetime2: unknown_filetime2,
         data: remaining.to_vec(),
-        class_name_offset,
+        _class_name_offset: class_name_offset,
     };
 
     Ok((input, instance))
@@ -70,7 +56,7 @@ pub(crate) fn parse_instance_record(data: &[u8]) -> nom::IResult<&[u8], Instance
 #[derive(Debug)]
 pub(crate) struct ClassValues {
     pub(crate) class_name: String,
-    pub(crate) class_hash: String,
+    pub(crate) _class_hash: String,
     pub(crate) super_class_name: String,
     pub(crate) values: BTreeMap<String, Value>,
 }
@@ -84,7 +70,7 @@ pub(crate) fn parse_instances<'a>(
 
     for instance in instances {
         for class in &mut *classes {
-            for (class_key, class_value) in class.iter_mut() {
+            for (_class_key, class_value) in class.iter_mut() {
                 if class_value.class_hash != instance.hash_name {
                     continue;
                 }
@@ -140,7 +126,7 @@ fn grab_instance_data<'a>(
     }
 
     let prop_count = class_value.properties.len();
-    let (remaining, prop_bit_data) = parse_instance_props(&instance.data, &prop_count)?;
+    let (remaining, _prop_bit_data) = parse_instance_props(&instance.data, &prop_count)?;
 
     let adjust_size = 4;
     // Calculate the total property data containing offsets size
@@ -148,7 +134,7 @@ fn grab_instance_data<'a>(
     let (remaining, prop_data_offsets) = take(prop_data_size)(remaining)?;
     let (remaining, qualifier_size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
     let (remaining, qual_data) = take(qualifier_size as usize - adjust_size)(remaining)?;
-    let (_, qualifiers) = parse_qualifier(qual_data, remaining)?;
+    let (_, _qualifiers) = parse_qualifier(qual_data, remaining)?;
 
     let (mut remaining, dynamic_prop) = nom_unsigned_one_byte(remaining, Endian::Le)?;
 
@@ -161,7 +147,7 @@ fn grab_instance_data<'a>(
     let (remaining, values_size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
     let adjust_value_size = 0x7FFFFFFF;
     let size = values_size & adjust_value_size;
-    let (remaining, value_data) = take(size)(remaining)?;
+    let (_, value_data) = take(size)(remaining)?;
 
     /*
      * Right now we only support parsing WMI persistence data. Its mostly Strings, integers, and bytes
@@ -185,11 +171,10 @@ fn grab_instance_data<'a>(
     }
     let class_value = ClassValues {
         class_name: class_value.class_name.clone(),
-        class_hash: class_value.class_hash.clone(),
+        _class_hash: class_value.class_hash.clone(),
         super_class_name: class_value.super_class_name.clone(),
         values: prop_value,
     };
-    println!("value: {class_value:?}");
 
     Ok((&[], class_value))
 }
@@ -204,7 +189,7 @@ fn parse_dynamic_props(data: &[u8]) -> nom::IResult<&[u8], ()> {
         input = remaining;
         count += 1;
     }
-    return Ok((input, ()));
+    Ok((input, ()))
 }
 
 /// Get the size in bytes of the property data offsets
@@ -255,5 +240,7 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_instance_record(&data).unwrap();
+
+        println!("{results:?}");
     }
 }
