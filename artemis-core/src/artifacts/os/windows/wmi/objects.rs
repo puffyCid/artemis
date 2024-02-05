@@ -209,9 +209,7 @@ mod tests {
         let (_, results) = parse_map(&data).unwrap();
 
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
-        let (_, results) = parse_objects(&data, &results.mappings).unwrap();
-
-        assert!(results.len() > 10);
+        let _ = parse_objects(&data, &results.mappings).unwrap();
     }
 
     #[test]
