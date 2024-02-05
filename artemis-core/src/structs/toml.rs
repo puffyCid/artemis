@@ -9,13 +9,11 @@ use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
 
 #[cfg(target_os = "macos")]
 use crate::structs::artifacts::os::macos::UnifiedLogsOptions;
-
-use super::artifacts::os::windows::WmiPersistOptions;
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
