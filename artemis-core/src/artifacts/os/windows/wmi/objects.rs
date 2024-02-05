@@ -167,7 +167,7 @@ mod tests {
             map::parse_map,
             objects::{parse_objects, parse_record},
         },
-        filesystem::files::read_file,
+        filesystem::{files::read_file, metadata::glob_paths},
     };
     use std::path::PathBuf;
 
@@ -205,11 +205,23 @@ mod tests {
 
     #[test]
     fn test_parse_objects() {
-        let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
-        let (_, results) = parse_map(&data).unwrap();
+        let maps = glob_paths("C:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP").unwrap();
+        let mut seq = 0;
+        let mut pages = Vec::new();
+
+        for map in maps {
+            let map_data = read_file(&map.full_path).unwrap();
+            let (_, map_info) = parse_map(&map_data).unwrap();
+
+            // Need to use the map file with the highest sequence
+            if map_info.seq_number2 > seq {
+                seq = map_info.seq_number2;
+                pages = map_info.mappings;
+            }
+        }
 
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
-        let _ = parse_objects(&data, &results.mappings).unwrap();
+        let _ = parse_objects(&data, &pages).unwrap();
     }
 
     #[test]
