@@ -21,7 +21,7 @@ pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Index
 
         input = remaining;
         if header.page_type == PageType::Deleted || header.page_type == PageType::Unknown {
-            panic!("hmm? {:?}", header.page_type);
+            continue;
         }
         page_info.insert(header.mapped_number, body);
     }
@@ -149,7 +149,10 @@ fn parse_body(data: &[u8]) -> nom::IResult<&[u8], IndexBody> {
 #[cfg(test)]
 mod tests {
     use super::{parse_header, parse_index};
-    use crate::{artifacts::os::windows::wmi::index::PageType, filesystem::files::read_file};
+    use crate::{
+        artifacts::os::windows::wmi::index::{parse_body, PageType},
+        filesystem::files::read_file,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -169,6 +172,17 @@ mod tests {
         let (_, results) = parse_index(&data).unwrap();
 
         assert_eq!(results.get(&34).unwrap().value_data.len(), 46);
+    }
+
+    #[test]
+    fn test_parse_body() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/wmi/index_body.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (_, results) = parse_body(&data).unwrap();
+
+        assert_eq!(results.value_data.len(), 46);
     }
 
     #[test]

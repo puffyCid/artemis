@@ -10,6 +10,7 @@ use log::{error, warn};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
+/// Parse the WMI repository and return data associated with provided classes
 pub(crate) fn parse_wmi_repo(
     classes: &[&str],
     map_paths: &str,
@@ -241,15 +242,14 @@ pub(crate) fn hash_name(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_wmi_repo;
+    use super::{assemble_wmi_persist, get_wmi_persist, hash_name, parse_wmi_repo};
+    use common::windows::WmiPersist;
+    use std::collections::BTreeMap;
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_parse_wmi_repo() {
-        let classes = vec![
-            "__EventConsumer",
-            "__EventFilter",
-            "__FilterToConsumerBinding",
-        ];
+        let classes = vec!["__NAMESPACE"];
         let drive = 'C';
 
         let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
@@ -258,5 +258,80 @@ mod tests {
         let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
 
         assert!(results.len() > 3);
+    }
+
+    #[test]
+    fn test_hash_name() {
+        let name = "name";
+        let result = hash_name(name);
+        assert_eq!(
+            result,
+            "5F7920B75914FA9869AC87CF44262E78C0A9B5751CCB3610B2392617F72D95CD"
+        );
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_get_wmi_persist() {
+        let classes = vec!["__EventConsumer"];
+        let drive = 'C';
+
+        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
+        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
+        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
+        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+
+        let _ = get_wmi_persist(&results).unwrap();
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_assemble_wmi_persist() {
+        let classes = vec!["__EventConsumer"];
+        let drive = 'C';
+
+        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
+        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
+        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
+        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+
+        let mut persist_vec = Vec::new();
+        for event_consumer in &results {
+            if event_consumer.super_class_name != "__EventConsumer" {
+                continue;
+            }
+
+            for filter_consumer in &results {
+                if filter_consumer.class_name != "__FilterToConsumerBinding" {
+                    continue;
+                }
+                for event_filter in &results {
+                    if event_filter.class_name != "__EventFilter" {
+                        continue;
+                    }
+                    let mut persist = WmiPersist {
+                        class: String::new(),
+                        values: BTreeMap::new(),
+                        query: String::new(),
+                        sid: String::new(),
+                        filter: String::new(),
+                        consumer: String::new(),
+                        consumer_name: String::new(),
+                    };
+                    assemble_wmi_persist(
+                        event_consumer,
+                        filter_consumer,
+                        event_filter,
+                        &mut persist,
+                    );
+                    if !persist.class.is_empty() {
+                        persist_vec.push(persist);
+                        break;
+                    }
+                }
+            }
+        }
+
+        persist_vec.dedup();
     }
 }

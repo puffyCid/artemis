@@ -2,7 +2,7 @@ use super::class::{CimType, ClassInfo, Property};
 use crate::{
     artifacts::os::windows::wmi::{
         class::{extract_cim_data, parse_qualifier},
-        wmi::hash_name,
+        wmindows_management::hash_name,
     },
     utils::{
         nom_helper::{
@@ -25,6 +25,7 @@ pub(crate) struct InstanceRecord {
     pub(crate) _class_name_offset: u32,
 }
 
+/// Get Instance record info from data
 pub(crate) fn parse_instance_record(data: &[u8]) -> nom::IResult<&[u8], InstanceRecord> {
     let hash_size: u8 = 128;
     let (input, hash_data) = take(hash_size)(data)?;
@@ -61,6 +62,7 @@ pub(crate) struct ClassValues {
     pub(crate) values: BTreeMap<String, Value>,
 }
 
+/// Using both classes and instances match the instances data with the correct class
 pub(crate) fn parse_instances<'a>(
     classes: &mut [HashMap<String, ClassInfo>],
     instances: &'a [InstanceRecord],
@@ -89,25 +91,19 @@ pub(crate) fn parse_instances<'a>(
         }
     }
 
-    println!("values len: {}", class_values.len());
-
     Ok((&[], class_values))
 }
 
+/// Match instance data with the correct class
 fn grab_instance_data<'a>(
     instance: &'a InstanceRecord,
     class_value: &mut ClassInfo,
     lookup_parents: &[HashMap<String, ClassInfo>],
 ) -> nom::IResult<&'a [u8], ClassValues> {
-    println!("class: {}", class_value.class_name);
-
     if !class_value.super_class_name.is_empty() && !class_value.includes_parent_props {
         for parent_class in lookup_parents {
             if let Some(parent_class) = parent_class.get(&hash_name(&class_value.super_class_name))
             {
-                println!("parent props len: {}", parent_class.properties.len());
-                println!("original class info: {:?}", class_value);
-                println!("parent props: {:?}", parent_class.properties);
                 for parent in &parent_class.properties {
                     let mut has_parent = false;
                     for child_prop in &class_value.properties {
@@ -179,6 +175,7 @@ fn grab_instance_data<'a>(
     Ok((&[], class_value))
 }
 
+/// Parse dynamic property data if identified
 fn parse_dynamic_props(data: &[u8]) -> nom::IResult<&[u8], ()> {
     let (mut input, number_instances) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let mut count = 0;
@@ -217,6 +214,7 @@ fn get_prop_data_size(props: &[Property]) -> u32 {
     total_size
 }
 
+/// Determine instance property data
 fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<&'a [u8], Vec<u8>> {
     let mut bit_size = prop_count * 2;
     let align = 3;
@@ -229,18 +227,188 @@ fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<
 
 #[cfg(test)]
 mod tests {
-    use super::parse_instance_record;
-    use crate::filesystem::files::read_file;
+    use super::{
+        get_prop_data_size, grab_instance_data, parse_dynamic_props, parse_instance_props,
+        parse_instance_record, parse_instances, InstanceRecord,
+    };
+    use crate::{
+        artifacts::os::windows::wmi::{
+            class::{CimType, Property},
+            index::parse_index,
+            map::parse_map,
+            namespaces::get_classes,
+            wmindows_management::hash_name,
+        },
+        filesystem::files::read_file,
+    };
     use std::path::PathBuf;
 
     #[test]
-    fn test_parse_objects() {
+    fn test_parse_instance_record() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/wmi/instance.raw");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_instance_record(&data).unwrap();
+        assert_eq!(
+            results.hash_name,
+            "FD3BBD4C42AC2F7FEF264340A9EB78A581FE5C28561CB63EDF780B329EAC2EE4"
+        );
+    }
 
-        println!("{results:?}");
+    #[test]
+    fn test_parse_dynamic_props() {
+        let data = vec![1, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0];
+        let (results, _) = parse_dynamic_props(&data).unwrap();
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn test_get_prop_data_size() {
+        let prop = Property {
+            name: String::from("test"),
+            property_data_type: CimType::Uint8,
+            _property_index: 0,
+            data_offset: 0,
+            _class_level: 0,
+            _qualifiers: Vec::new(),
+        };
+
+        let result = get_prop_data_size(&vec![prop]);
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn test_parse_instance_props() {
+        let data = vec![1, 0, 0, 0, 1, 0, 0, 0, 1];
+        let count = 1;
+        let (_, result) = parse_instance_props(&data, &count).unwrap();
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_parse_instances() {
+        let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
+        let (_, results) = parse_map(&map_data).unwrap();
+        let object_data =
+            read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
+        let index_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR").unwrap();
+
+        let (_, index_info) = parse_index(&index_data).unwrap();
+
+        let mut namespace_info = Vec::new();
+        for entry in index_info.values() {
+            for hash in &entry.value_data {
+                if hash.starts_with(&String::from("CD_")) || hash.starts_with(&String::from("IL_"))
+                {
+                    namespace_info.push(entry.value_data.clone());
+                    break;
+                }
+            }
+        }
+
+        let classes = vec![String::from("__NAMESPACE")];
+
+        let mut hash_classes = Vec::new();
+        for class in &classes {
+            hash_classes.push(hash_name(class));
+        }
+
+        let mut classes_info = Vec::new();
+        let instances_info = Vec::new();
+        for entries in namespace_info {
+            for class_entry in entries {
+                if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
+                    let class_info_result =
+                        get_classes(&class_entry, &object_data, &results.mappings, &hash_classes);
+                    let classes_result = match class_info_result {
+                        Ok((_, result)) => result,
+                        Err(_err) => {
+                            continue;
+                        }
+                    };
+                    if !classes_result.is_empty() {
+                        classes_info.push(classes_result);
+                    }
+                }
+            }
+        }
+        let lookup_parents = classes_info.clone();
+
+        let _ = parse_instances(&mut classes_info, &instances_info, &lookup_parents).unwrap();
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_grab_instance_data() {
+        let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
+        let (_, results) = parse_map(&map_data).unwrap();
+        let object_data =
+            read_file("C:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA").unwrap();
+        let index_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR").unwrap();
+
+        let (_, index_info) = parse_index(&index_data).unwrap();
+
+        let mut namespace_info = Vec::new();
+        for entry in index_info.values() {
+            for hash in &entry.value_data {
+                if hash.starts_with(&String::from("CD_")) || hash.starts_with(&String::from("IL_"))
+                {
+                    namespace_info.push(entry.value_data.clone());
+                    break;
+                }
+            }
+        }
+
+        let classes = vec![String::from("__NAMESPACE")];
+
+        let mut hash_classes = Vec::new();
+        for class in &classes {
+            hash_classes.push(hash_name(class));
+        }
+
+        let mut classes_info = Vec::new();
+        let instances_info: Vec<InstanceRecord> = Vec::new();
+        for entries in namespace_info {
+            for class_entry in entries {
+                if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
+                    let class_info_result =
+                        get_classes(&class_entry, &object_data, &results.mappings, &hash_classes);
+                    let classes_result = match class_info_result {
+                        Ok((_, result)) => result,
+                        Err(_err) => {
+                            continue;
+                        }
+                    };
+                    if !classes_result.is_empty() {
+                        classes_info.push(classes_result);
+                    }
+                }
+            }
+        }
+        let lookup_parents = classes_info.clone();
+
+        let mut class_values = Vec::new();
+
+        for instance in instances_info {
+            for class in &mut *classes_info {
+                for (_class_key, class_value) in class.iter_mut() {
+                    if class_value.class_hash != instance.hash_name {
+                        continue;
+                    }
+
+                    let value_result = grab_instance_data(&instance, class_value, &lookup_parents);
+                    let class_value = match value_result {
+                        Ok((_, result)) => result,
+                        Err(_err) => {
+                            continue;
+                        }
+                    };
+                    class_values.push(class_value);
+                    break;
+                }
+            }
+        }
     }
 }

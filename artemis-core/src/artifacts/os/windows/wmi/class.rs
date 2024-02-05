@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::wmi::wmi::hash_name,
+    artifacts::os::windows::wmi::wmindows_management::hash_name,
     utils::{
         nom_helper::{
             nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
@@ -41,8 +41,8 @@ pub(crate) struct Property {
     pub(crate) property_data_type: CimType,
     pub(crate) _property_index: u16,
     pub(crate) data_offset: u32,
-    _class_level: u32,
-    _qualifiers: Vec<Qualifier>,
+    pub(crate) _class_level: u32,
+    pub(crate) _qualifiers: Vec<Qualifier>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -338,7 +338,7 @@ fn get_cim_data_type(data_type: &u32) -> CimType {
         // Seen but unsure what they are
         0x6008 | 0x600d | 0x6012 | 0x6011 => CimType::Unknown,
         _ => {
-            println!("unknown cim type: {data_type}");
+            warn!("unknown cim type: {data_type}");
             CimType::Unknown
         }
     }
@@ -674,7 +674,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_qualifier() {
+    fn test_parse_qualifier() {
         let data = [
             20, 0, 0, 0, 2, 8, 0, 0, 0, 33, 0, 0, 0, 7, 0, 0, 128, 1, 11, 0, 0, 0, 255, 255, 6, 0,
             0, 128, 1, 8, 0, 0, 0, 37, 0, 0, 0, 65, 0, 0, 0, 0, 8, 0, 0, 0, 79, 0, 0, 0,

@@ -35,6 +35,7 @@ pub(crate) fn parse_map(data: &[u8]) -> nom::IResult<&[u8], MapInfo> {
     Ok((input, info))
 }
 
+/// Parse header info for map data
 fn parse_header(data: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
     let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, seq_number) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -45,6 +46,7 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
     Ok((input, (seq_number, number_pages)))
 }
 
+/// Parse map data and get page numbers
 fn parse_mapping(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
     let (mut map_input, num_entries) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
@@ -63,11 +65,10 @@ fn parse_mapping(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
         entries += 1;
     }
 
-    //page_numbers.sort();
-
     Ok((map_input, page_numbers))
 }
 
+/// Get table info from map data
 fn parse_table(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
     let (mut table_input, num_entries) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
@@ -87,7 +88,11 @@ fn parse_table(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
 
 #[cfg(test)]
 mod tets {
-    use crate::{artifacts::os::windows::wmi::map::parse_map, filesystem::files::read_file};
+    use super::{parse_header, parse_mapping};
+    use crate::{
+        artifacts::os::windows::wmi::map::{parse_map, parse_table},
+        filesystem::files::read_file,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -97,13 +102,45 @@ mod tets {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_map(&data).unwrap();
-        println!("{results:?}");
+        assert_eq!(results.mappings.len(), 3293);
+    }
+
+    #[test]
+    fn test_parse_header() {
+        let test = vec![0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 4, 0, 0, 0, 1, 0, 0, 0];
+        let (_, (seq, pages)) = parse_header(&test).unwrap();
+        assert_eq!(seq, 67305985);
+        assert_eq!(pages, 1);
+    }
+
+    #[test]
+    fn test_parse_mapping() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/wmi/MAPPING1.MAP");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (input, (_, _)) = parse_header(&data).unwrap();
+        let (_, mappings) = parse_mapping(input).unwrap();
+        assert_eq!(mappings.len(), 3293);
+    }
+
+    #[test]
+    fn test_parse_table() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/wmi/MAPPING1.MAP");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (input, (_, _)) = parse_header(&data).unwrap();
+        let (input, _) = parse_mapping(input).unwrap();
+        let (_, table) = parse_table(input).unwrap();
+
+        assert_eq!(table.len(), 238);
     }
 
     #[test]
     fn test_parse_map_live() {
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&data).unwrap();
-        println!("{results:?}");
+        assert!(results.mappings.len() > 10);
     }
 }

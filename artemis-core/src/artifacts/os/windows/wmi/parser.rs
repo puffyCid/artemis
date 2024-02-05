@@ -1,6 +1,6 @@
 use super::{
     error::WmiError,
-    wmi::{get_wmi_persist, parse_wmi_repo},
+    wmindows_management::{get_wmi_persist, parse_wmi_repo},
 };
 use crate::{
     structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
@@ -8,6 +8,7 @@ use crate::{
 use common::windows::WmiPersist;
 use log::error;
 
+/// Get WMI persist data based on provided options
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
     if let Some(drive) = options.alt_drive {
         let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
@@ -57,4 +58,37 @@ pub(crate) fn parse_wmi_persist(
     let wmi_data = parse_wmi_repo(&classes, map_paths, objects_path, index_path)?;
 
     get_wmi_persist(&wmi_data)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{grab_wmi_persist, parse_wmi_persist};
+    use crate::{
+        structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
+    };
+
+    #[test]
+    fn test_grab_wmi_persist() {
+        let options = WmiPersistOptions {
+            alt_drive: None,
+            alt_dir: None,
+        };
+
+        let _ = grab_wmi_persist(&options).unwrap();
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_parse_wmi_persist() {
+        let default_drive = get_systemdrive().unwrap();
+
+        let map_paths =
+            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
+        let objects_path =
+            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
+        let index_path =
+            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
+
+        let _ = parse_wmi_persist(&map_paths, &objects_path, &index_path).unwrap();
+    }
 }

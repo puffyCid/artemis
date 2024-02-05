@@ -710,7 +710,7 @@ mod tests {
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, files, jumplists, output_data, prefetch, processes,
             raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb,
-            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl,
+            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl, wmi_persist,
         },
         structs::{
             artifacts::os::{
@@ -721,7 +721,7 @@ mod tests {
                     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
                     SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
                     ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-                    UserOptions, UsnJrnlOptions,
+                    UserOptions, UsnJrnlOptions, WmiPersistOptions,
                 },
             },
             toml::Output,
@@ -943,6 +943,19 @@ mod tests {
         let mut output = output_options("search_temp", "json", "./tmp", false);
 
         let status = search(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_wmipersist() {
+        let options = WmiPersistOptions {
+            alt_dir: None,
+            alt_drive: None,
+        };
+        let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
+
+        let status = wmi_persist(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
