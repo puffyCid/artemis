@@ -142,6 +142,7 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiP
     Ok(persist_vec)
 }
 
+/// Combine all classes related to WMI persistence data
 fn assemble_wmi_persist(
     consumer: &ClassValues,
     filter_consumer: &ClassValues,

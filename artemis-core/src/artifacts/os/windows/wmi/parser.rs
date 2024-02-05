@@ -45,6 +45,7 @@ pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPer
     parse_wmi_persist(&map_paths, &objects_path, &index_path)
 }
 
+/// Parse WMI files at provided path
 pub(crate) fn parse_wmi_persist(
     map_paths: &str,
     objects_path: &str,

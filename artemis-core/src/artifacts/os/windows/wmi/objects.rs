@@ -26,8 +26,9 @@ pub(crate) fn parse_objects<'a>(
         }
         let (page_start, _) = take(page * page_size)(data)?;
         let (_, page_data) = take(page_size)(page_start)?;
-
+        println!("parse page");
         let (_, (mut object_page, additional_pages)) = parse_page(page_data, data, &index, pages)?;
+        println!("done with page");
         // If we consumed additional pages. We skip equal number pages in loop.
         skip = additional_pages;
 
@@ -78,6 +79,7 @@ fn parse_page<'a>(
             _checksum: checksum,
             object_data: Vec::new(),
         };
+        println!("size: {size}");
 
         if size > page_size {
             // Pages are 8192 bytes. Need to determine real size of data. Ex: If size = 9000 bytes, thats two pages
