@@ -5,6 +5,7 @@ use super::registry::parser::parse_registry;
 use super::search::parser::grab_search;
 use super::services::parser::grab_services;
 use super::tasks::parser::grab_tasks;
+use super::wmi::parser::grab_wmi_persist;
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
     error::WinArtifactError, eventlogs::parser::grab_eventlogs, prefetch::parser::grab_prefetch,
@@ -22,7 +23,7 @@ use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
 use crate::structs::toml::Output;
 use crate::{
@@ -616,6 +617,36 @@ pub(crate) fn recycle_bin(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
+/// Parse the Windows `WMI Persist` artifact
+pub(crate) fn wmi_persist(
+    options: &WmiPersistOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let start_time = time::time_now();
+
+    let wmi_result = grab_wmi_persist(options);
+    let wmi_data = match wmi_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse WMI Persistence: {err:?}");
+            return Err(WinArtifactError::WmiPersist);
+        }
+    };
+
+    let serde_data_result = serde_json::to_value(wmi_data);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to serialize recycle bin: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let output_name = "wmipersist";
+    output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
 /// Output Windows artifacts
 pub(crate) fn output_data(
     serde_data: &Value,
@@ -679,7 +710,7 @@ mod tests {
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, files, jumplists, output_data, prefetch, processes,
             raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb,
-            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl,
+            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl, wmi_persist,
         },
         structs::{
             artifacts::os::{
@@ -690,7 +721,7 @@ mod tests {
                     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
                     SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
                     ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-                    UserOptions, UsnJrnlOptions,
+                    UserOptions, UsnJrnlOptions, WmiPersistOptions,
                 },
             },
             toml::Output,
@@ -912,6 +943,19 @@ mod tests {
         let mut output = output_options("search_temp", "json", "./tmp", false);
 
         let status = search(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    #[ignore = "Takes time to run"]
+    fn test_wmipersist() {
+        let options = WmiPersistOptions {
+            alt_dir: None,
+            alt_drive: None,
+        };
+        let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
+
+        let status = wmi_persist(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

@@ -6,7 +6,7 @@ use super::{
         artifacts::{
             amcache, bits, eventlogs, files, jumplists, prefetch, processes, raw_filelist,
             recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum,
-            systeminfo, tasks, userassist, users, usnjrnl,
+            systeminfo, tasks, userassist, users, usnjrnl, wmi_persist,
         },
         error::WinArtifactError,
     },
@@ -383,6 +383,20 @@ pub(crate) fn windows_collection(collector: &mut ArtemisToml) -> Result<(), WinA
                     Ok(_) => info!("Collected Recycle Bin"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse recycle bin, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "wmipersist" => {
+                let artifact = match &artifacts.wmipersist {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = wmi_persist(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected WMI Persistence"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse WMI persistence, error: {err:?}");
                         continue;
                     }
                 }

@@ -9,7 +9,7 @@ use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions,
+    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
 
 #[cfg(target_os = "macos")]
@@ -91,6 +91,7 @@ pub struct Artifacts {
     pub services: Option<ServicesOptions>,
     pub jumplists: Option<JumplistsOptions>,
     pub recyclebin: Option<RecycleBinOptions>,
+    pub wmipersist: Option<WmiPersistOptions>,
 }
 
 #[derive(Debug, Deserialize)]

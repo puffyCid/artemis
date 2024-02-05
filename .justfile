@@ -24,6 +24,9 @@ _pretest:(_wasm)
 # Test only the ESE parsing functions
 ese: (_test "artifacts::os::windows::ese")
 
+# Test only the WMI parsing functions
+wmi: (_test "artifacts::os::windows::wmi")
+
 # Test only the ShellItems parsing functions
 shellitems: (_test "artifacts::os::windows::shellitems")
 

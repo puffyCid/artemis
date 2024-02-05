@@ -111,3 +111,9 @@ pub struct JumplistsOptions {
 pub struct RecycleBinOptions {
     pub alt_drive: Option<char>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct WmiPersistOptions {
+    pub alt_drive: Option<char>,
+    pub alt_dir: Option<String>,
+}

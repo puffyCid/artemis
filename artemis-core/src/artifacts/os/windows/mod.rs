@@ -25,3 +25,4 @@ pub(crate) mod srum;
 pub(crate) mod tasks;
 pub(crate) mod userassist;
 pub(crate) mod usnjrnl;
+pub(crate) mod wmi;

@@ -10,7 +10,7 @@ use artemis_core::{
                 RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
                 ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
                 ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UserOptions,
-                UsnJrnlOptions,
+                UsnJrnlOptions, WmiPersistOptions,
             },
         },
         toml::{ArtemisToml, Artifacts, Output},
@@ -87,6 +87,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         services: None,
         jumplists: None,
         recyclebin: None,
+        wmipersist: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -301,6 +302,14 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             };
             collect.usnjrnl = Some(options);
             collect.artifact_name = String::from("usnjrnl");
+        }
+        CommandArgs::Wmipersist { alt_drive, alt_dir } => {
+            let options = WmiPersistOptions {
+                alt_drive: *alt_drive,
+                alt_dir: alt_dir.clone(),
+            };
+            collect.wmipersist = Some(options);
+            collect.artifact_name = String::from("wmipersist");
         }
     }
     collect

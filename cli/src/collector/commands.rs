@@ -245,6 +245,15 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
     },
+    #[cfg(target_os = "windows")]
+    Wmipersist {
+        /// Alternative drive letter to use
+        #[arg(long, default_value = None)]
+        alt_drive: Option<char>,
+        /// Alternative directory containing the WMI repository files
+        #[arg(long, default_value = None)]
+        alt_dir: Option<String>,
+    },
 
     #[cfg(target_os = "macos")]
     /// Parse ExecPolicy

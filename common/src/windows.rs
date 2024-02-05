@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -1440,4 +1440,15 @@ pub enum Source {
     AuxiliaryData,
     ReplicationManagement,
     None,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct WmiPersist {
+    pub class: String,
+    pub values: BTreeMap<String, Value>,
+    pub query: String,
+    pub sid: String,
+    pub filter: String,
+    pub consumer: String,
+    pub consumer_name: String,
 }
