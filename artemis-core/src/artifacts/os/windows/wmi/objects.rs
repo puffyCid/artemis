@@ -26,9 +26,7 @@ pub(crate) fn parse_objects<'a>(
         }
         let (page_start, _) = take(page * page_size)(data)?;
         let (_, page_data) = take(page_size)(page_start)?;
-        println!("parse page");
         let (_, (mut object_page, additional_pages)) = parse_page(page_data, data, &index, pages)?;
-        println!("done with page");
         // If we consumed additional pages. We skip equal number pages in loop.
         skip = additional_pages;
 
@@ -79,7 +77,6 @@ fn parse_page<'a>(
             _checksum: checksum,
             object_data: Vec::new(),
         };
-        println!("size: {size}");
 
         if size > page_size {
             // Pages are 8192 bytes. Need to determine real size of data. Ex: If size = 9000 bytes, thats two pages
@@ -96,7 +93,7 @@ fn parse_page<'a>(
             let mut get_pages = 1;
             let mut object_page = data_start.to_vec();
 
-            // Since data is too large to fit in one page. We need to grab more pages
+            // Since size is too large to fit in one page. We need to grab more pages
             while get_pages <= additional_pages {
                 let page_opt = pages.get(index + get_pages as usize);
                 let page = if let Some(result) = page_opt {
@@ -117,10 +114,38 @@ fn parse_page<'a>(
             match data_result {
                 Ok((_, result)) => object.object_data = result.to_vec(),
                 Err(_err) => {
+                    error!("[wmi] Failed to nom object large page data");
+                    break;
+                }
+            }
+        } else if size as usize > data_start.len() {
+            let get_pages = 1;
+            let mut object_page = data_start.to_vec();
+
+            // Since size is too large in current page. But smaller than default page size. We need to grab one more page
+            // Seen on Windows Server 2022 with HyperV installed. (Likely exists on any system with HyperV)
+            let page_opt = pages.get(index + get_pages as usize);
+            let page = if let Some(result) = page_opt {
+                result
+            } else {
+                error!("[wmi] Failed to get more pages for data");
+                break;
+            };
+
+            let (data_start, _) = take(page * page_size)(page_remaining)?;
+            let (_, large_data) = take(page_size)(data_start)?;
+
+            object_page.append(&mut large_data.to_vec());
+
+            let data_result = nom_data(&object_page, size as u64);
+            match data_result {
+                Ok((_, result)) => object.object_data = result.to_vec(),
+                Err(_err) => {
                     error!("[wmi] Failed to nom object data");
                     break;
                 }
             }
+            additional_pages = 1;
         } else {
             let (_, object_data) = take(size)(data_start)?;
             object.object_data = object_data.to_vec();
