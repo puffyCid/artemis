@@ -2,7 +2,7 @@ use super::class::{CimType, ClassInfo, Property};
 use crate::{
     artifacts::os::windows::wmi::{
         class::{extract_cim_data, parse_qualifier},
-        wmindows_management::hash_name,
+        windows_management::hash_name,
     },
     utils::{
         nom_helper::{
@@ -237,7 +237,7 @@ mod tests {
             index::parse_index,
             map::parse_map,
             namespaces::get_classes,
-            wmindows_management::hash_name,
+            windows_management::hash_name,
         },
         filesystem::files::read_file,
     };

@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::wmi::wmindows_management::hash_name,
+    artifacts::os::windows::wmi::windows_management::hash_name,
     utils::{
         nom_helper::{
             nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,

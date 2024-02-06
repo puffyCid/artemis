@@ -1,6 +1,20 @@
+/**
+ * Windows Management Instrumentation (WMI) is a collections of tools that allow users to manage the system.  
+ * This parser parses the WMI Repository database typically found at C:\\Windows\\System32\\wbem\\Repository.
+ * Malware can use WMI to achieve persistence on a system
+ * 
+ * References:
+ * `https://docs.velociraptor.app/blog/2022/2022-01-12-wmi-eventing`
+ * `https://redcanary.com/threat-detection-report/techniques/windows-management-instrumentation`
+ * `https://github.com/libyal/dtformats/blob/main/documentation/WMI%20repository%20file%20format.asciidoc`
+ * 
+ * Other Parsers:
+ * `https://github.com/Velocidex/velociraptor`
+ * `https://github.com/fox-it/dissect.cim`
+ */
 use super::{
     error::WmiError,
-    wmindows_management::{get_wmi_persist, parse_wmi_repo},
+    windows_management::{get_wmi_persist, parse_wmi_repo},
 };
 use crate::{
     structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,

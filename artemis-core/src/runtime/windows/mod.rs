@@ -21,3 +21,4 @@ mod srum;
 mod tasks;
 mod userassist;
 mod usnjrnl;
+mod wmi;

@@ -763,7 +763,7 @@ fn parse_fixed_data<'a>(
     let mut column = 1;
     let mut data = fixed_data;
     while &column <= last_fixed_data {
-        for (_, entry) in column_info.iter_mut().enumerate() {
+        for entry in column_info.iter_mut() {
             if entry.column_id == column as i32 {
                 let (input, column_data) =
                     nom_fixed_column(&entry.column_type, data, entry.column_space_usage)?;
@@ -810,7 +810,7 @@ fn parse_variable_data<'a>(
 
         // We have subtract previous column sizes from current size to get an accurate size
         let size = var_data.size - previous_size;
-        for (_, entry) in column_info.iter_mut().enumerate() {
+        for entry in column_info.iter_mut() {
             if entry.column_id == var_data.column as i32 {
                 let (input, column_data) = take(size)(data)?;
                 data = input;
@@ -962,7 +962,7 @@ fn parse_tagged_data<'a>(
 
     // Nearly done, need to update columns now
     for tag in full_tags {
-        for (_, entry) in column_info.iter_mut().enumerate() {
+        for entry in column_info.iter_mut() {
             if entry.column_id == tag.column as i32 {
                 entry.column_data = tag.data.clone();
                 entry.column_tagged_flags = tag.flags.clone();
@@ -975,7 +975,7 @@ fn parse_tagged_data<'a>(
 
 /// Clear column data so when we go to the next row there is no leftover data from previous row
 pub(crate) fn clear_column_data(column_info: &mut [ColumnInfo]) {
-    for (_, entry) in column_info.iter_mut().enumerate() {
+    for entry in column_info.iter_mut() {
         entry.column_data.clear();
     }
 }

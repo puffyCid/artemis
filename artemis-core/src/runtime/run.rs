@@ -164,7 +164,6 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         compiled_wasm_module_store: None,
         inspector: false,
         is_main: Default::default(),
-        preserve_snapshotted_modules: None,
         op_metrics_factory_fn: None,
         feature_checker: None,
         skip_op_registration: false,
@@ -185,7 +184,7 @@ mod tests {
     #[test]
     fn test_create_worker_options() {
         let results = create_worker_options().unwrap();
-        assert_eq!(results.extensions().len(), 2);
+        assert!(results.op_names().len() > 2);
     }
 
     #[test]

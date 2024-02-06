@@ -19,7 +19,7 @@ pub(crate) fn parse_map(data: &[u8]) -> nom::IResult<&[u8], MapInfo> {
     let (input, mappings) = parse_mapping(input)?;
     let (input, _table) = parse_table(input)?;
 
-    // Seconcd section applies to index.btr
+    // Second section applies to index.btr
     let (input, (seq_number2, number_pages2)) = parse_header(input)?;
     let (input, mappings2) = parse_mapping(input)?;
     let (input, _table2) = parse_table(input)?;

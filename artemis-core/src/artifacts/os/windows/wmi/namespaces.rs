@@ -2,7 +2,7 @@ use super::{
     class::ClassInfo,
     instance::{ClassValues, InstanceRecord},
     objects::{parse_objects, parse_record},
-    wmindows_management::hash_name,
+    windows_management::hash_name,
 };
 use crate::artifacts::os::windows::wmi::instance::{parse_instance_record, parse_instances};
 use log::{error, warn};
@@ -135,7 +135,7 @@ fn get_instances<'a>(
     let (_hash, record_id) = if let Some(result) = hash_result {
         result
     } else {
-        error!("[wmi] Could not split WMI index hashs for instances");
+        error!("[wmi] Could not split WMI index hashes for instances");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -187,7 +187,7 @@ fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
 mod tests {
     use crate::{
         artifacts::os::windows::wmi::{
-            index::parse_index, map::parse_map, wmindows_management::hash_name,
+            index::parse_index, map::parse_map, windows_management::hash_name,
         },
         filesystem::files::read_file,
     };

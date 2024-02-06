@@ -53,7 +53,7 @@ class Time {
         return core.ops.js_webkit_time_to_uniexepoch(webkittime);
     };
     /**
-     * Convert Windows FAT time byts to UnixEpoch
+     * Convert Windows FAT time bytes to UnixEpoch
      * @param fattime FAT timestamp bytes
      * @returns UnixEpoch seconds
      */
