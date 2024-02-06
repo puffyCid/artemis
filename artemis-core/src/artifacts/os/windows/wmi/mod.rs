@@ -6,4 +6,4 @@ mod map;
 mod namespaces;
 mod objects;
 pub(crate) mod parser;
-mod wmindows_management;
+mod windows_management;

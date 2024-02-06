@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nom_take_while_byts() {
+    fn test_nom_take_while_bytes() {
         let test = [0, 0, 0, 1];
         nom_take_while_bytes(&test, 0).unwrap();
     }
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nom_take_until_byts() {
+    fn test_nom_take_until_bytes() {
         let test = [0, 0, 0, 1];
         nom_take_until_bytes(&test, &[1]).unwrap();
     }

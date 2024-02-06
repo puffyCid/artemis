@@ -6,7 +6,7 @@
  * `https://winreg-kb.readthedocs.io/en/latest/sources/explorer-keys/User-assist.html`
  *
  * Other Parsers:
- *  `https://github.com/Velocidex/velociraptor`
+ * `https://github.com/Velocidex/velociraptor`
  */
 use super::{
     assist::parse_userassist_data, error::UserAssistError, registry::get_userassist_drive,

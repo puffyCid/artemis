@@ -21,6 +21,7 @@ use super::{
     tasks::{get_alt_tasks, get_task_file, get_tasks},
     userassist::{get_alt_userassist, get_userassist},
     usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
+    wmi::{get_alt_wmipersist, get_wmipersist},
 };
 use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
@@ -86,6 +87,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_sk_info::DECL,
         get_table::DECL,
         js_get_shellitem::DECL,
+        get_wmipersist::DECL,
+        get_alt_wmipersist::DECL,
     ];
     exts.append(&mut app_functions());
     exts.append(&mut system_functions());

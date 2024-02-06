@@ -100,7 +100,7 @@ fn read_attribute_data(
         // Set a max size of 2GBs. Currently will not read more than 2GBs of attribute data
         let max_size = 2147483648;
         // Walkthrough the data runs
-        for (_, data_run) in non_resident.data_runs().enumerate() {
+        for data_run in non_resident.data_runs() {
             let mut temp_run = data_run?;
 
             // We only want the non-sparse data runs
