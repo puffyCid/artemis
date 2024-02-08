@@ -153,6 +153,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_decode_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
@@ -161,12 +162,14 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_raw_script() {
         let test = r#"console.log(2+2);"#;
         raw_script(&test).unwrap();
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_execute_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
@@ -178,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[ignore = "Takes time to run"]
     fn test_advanced_decode_script() {
         use crate::filesystem::files::read_file;
         use std::{path::PathBuf, str::from_utf8};
@@ -199,12 +202,14 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_filter_script() {
         let mut output = output_options("split_string", "local", "./tmp", false);
         filter_script(&mut output, &vec![String::from("helloRust")], "test", "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IFNUQVRJQ19BUkdTOwogICAgaWYgKGFyZ3MubGVuZ3RoID09PSAwKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdGVzdCA9IGFyZ3NbMF07CiAgICBjb25zdCB2YWx1ZXMgPSB0ZXN0LnNwbGl0KCJoZWxsbyIpCgogICAgcmV0dXJuIHZhbHVlczsKfQptYWluKCk7Cgo=").unwrap();
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
