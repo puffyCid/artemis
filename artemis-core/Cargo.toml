@@ -37,7 +37,7 @@ xml2json-rs = "1.0.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.258.0" }
+deno_core = { version = "0.260.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
@@ -58,12 +58,12 @@ xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 
 # macOS Dependencies
 [target.'cfg(target_os = "macos")'.dependencies]
-macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "d062321f8b4f2897d5ff6b29a7fcbff3277fc414" }
+macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "f7b475e7d201d7dd831f9ecf3536af4d65bd1c52" }
 plist = "1.6.0"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.258.0" }
+deno_core = { version = "0.260.0" }
 
 # Dependencies for tests
 [dev-dependencies]

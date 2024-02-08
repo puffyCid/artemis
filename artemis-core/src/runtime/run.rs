@@ -64,7 +64,7 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
     Ok(script_value)
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 /// Execute the decoded async Javascript and return the data asynchronously
 pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
     let mut runtime = create_worker_options()?;
