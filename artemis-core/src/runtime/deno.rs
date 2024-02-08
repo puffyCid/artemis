@@ -153,7 +153,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_decode_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
@@ -162,14 +161,12 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_raw_script() {
         let test = r#"console.log(2+2);"#;
         raw_script(&test).unwrap();
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_execute_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
@@ -181,7 +178,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_advanced_decode_script() {
         use crate::filesystem::files::read_file;
         use std::{path::PathBuf, str::from_utf8};
