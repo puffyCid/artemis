@@ -72,7 +72,7 @@ jobs:
         run: sudo cargo test --no-run --release
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'
-        run: sudo just macos
+        run: sudo cargo test --release runtime -- --test-threads=1
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
