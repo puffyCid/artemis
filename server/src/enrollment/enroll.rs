@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_verify_enrollment() {
-        let data = r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","pulse":true,"timestamp":1111111,"jobs_running":0,"platform": ""}"#;
+        let data = r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","timestamp":1111111,"jobs_running":0,"platform": ""}"#;
         let ip = "127.0.0.1";
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

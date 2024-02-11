@@ -1,7 +1,7 @@
 use super::error::StoreError;
 use crate::{
-    artifacts::jobs::JobInfo,
-    utils::filesystem::{is_file, read_file, write_file},
+    artifacts::jobs::{JobInfo, JobType},
+    utils::filesystem::{create_dirs, is_file, read_file, write_file},
 };
 use log::error;
 use std::collections::HashMap;
@@ -95,7 +95,7 @@ pub(crate) async fn get_jobs(path: &str) -> Result<HashMap<u64, JobInfo>, StoreE
  *
  * Jobs are only updated by the endpoint
  */
-pub(crate) async fn update_job(job: JobInfo, path: &str) -> Result<(), StoreError> {
+pub(crate) async fn update_job(job: &JobInfo, path: &str) -> Result<(), StoreError> {
     let job_file = format!("{path}/jobs.json");
     let mut jobs = HashMap::new();
 
@@ -120,7 +120,7 @@ pub(crate) async fn update_job(job: JobInfo, path: &str) -> Result<(), StoreErro
         jobs = existing_jobs;
     }
 
-    jobs.insert(job.id, job);
+    jobs.insert(job.id, job.clone());
 
     let serde_result = serde_json::to_vec(&jobs);
     let value = match serde_result {
@@ -140,10 +140,40 @@ pub(crate) async fn update_job(job: JobInfo, path: &str) -> Result<(), StoreErro
     Ok(())
 }
 
+/// Cache Quick Job results
+pub(crate) async fn cache_job_results(
+    data: &[u8],
+    job_type: &JobType,
+    info: &JobInfo,
+    endpoint_path: &str,
+) -> Result<(), StoreError> {
+    update_job(info, endpoint_path).await?;
+    let job_storage = format!("{endpoint_path}/jobs");
+    let storage_result = create_dirs(&job_storage).await;
+    if storage_result.is_err() {
+        error!(
+            "[server] Could not create job storage directory: {:?}",
+            storage_result.unwrap_err()
+        );
+        return Err(StoreError::CreateDirectory);
+    }
+    let result_file = format!("{job_storage}/{job_type:?}.json");
+    let status = write_file(data, &result_file, false).await;
+    if status.is_err() {
+        error!(
+            "[server] Could not write jobs file: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StoreError::WriteFile);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::artifacts::jobs::{Action, JobInfo, JobType, Status};
-    use crate::filestore::jobs::{get_jobs, save_job, update_job};
+    use crate::filestore::jobs::{cache_job_results, get_jobs, save_job, update_job};
     use crate::utils::filesystem::create_dirs;
     use std::path::PathBuf;
 
@@ -189,7 +219,6 @@ mod tests {
     #[tokio::test]
     async fn test_update_job() {
         create_dirs("./tmp").await.unwrap();
-
         let path = "./tmp";
 
         let mut data = JobInfo {
@@ -208,6 +237,30 @@ mod tests {
 
         save_job(data.clone(), path).await.unwrap();
         data.status = Status::Finished;
-        update_job(data, path).await.unwrap();
+        update_job(&data, path).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_cache_job_results() {
+        create_dirs("./tmp/save").await.unwrap();
+        let path = "./tmp/save";
+        let data = JobInfo {
+            id: 0,
+            name: String::from("randomjob"),
+            created: 10,
+            started: 0,
+            finished: 0,
+            status: Status::NotStarted,
+            duration: 0,
+            start_time: 0,
+            action: Action::Start,
+            job_type: JobType::Processes,
+            collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="),
+        };
+
+        save_job(data.clone(), &path).await.unwrap();
+        cache_job_results(&[], &JobType::Processes, &data, &path)
+            .await
+            .unwrap();
     }
 }

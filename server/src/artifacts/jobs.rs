@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use common::system::LoadPerformance;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -52,4 +53,20 @@ pub(crate) enum JobType {
     Processes,
     Filelist,
     Script,
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct JobMetadata {
+    pub(crate) endpoint_id: String,
+    pub(crate) uuid: String,
+    pub(crate) id: u64,
+    pub(crate) artifact_name: String,
+    pub(crate) complete_time: u64,
+    pub(crate) start_time: u64,
+    pub(crate) hostname: String,
+    pub(crate) os_version: String,
+    pub(crate) platform: String,
+    pub(crate) kernel_version: String,
+    pub(crate) load_performance: LoadPerformance,
 }

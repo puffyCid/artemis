@@ -61,7 +61,7 @@ pub struct Memory {
     pub used_swap: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoadPerformance {
     pub avg_one_min: f64,
     pub avg_five_min: f64,

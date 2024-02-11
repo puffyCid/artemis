@@ -1,5 +1,5 @@
 use crate::components::host::HostDetails;
-use crate::components::infonav::Navigate;
+use crate::components::host_navigation::Navigate;
 use crate::web::server::request_server;
 use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
 use common::system::Memory;
@@ -14,7 +14,7 @@ use reqwest::Method;
 #[component]
 /// Render table of endpoints
 pub(crate) fn Enrollment() -> impl IntoView {
-    let headers = vec!["OS", "Hostname", "Version", "Last Pulse", ""];
+    let headers = vec!["OS", "Hostname", "Version", "IP", "ID", ""];
     let info = create_resource(|| {}, move |_| async move { get_endpoints().await });
 
     view! {
@@ -35,7 +35,8 @@ pub(crate) fn Enrollment() -> impl IntoView {
                           <td>{&entry.os}</td>
                           <td>{&entry.hostname}</td>
                           <td>{&entry.version}</td>
-                          <td>{entry.last_pulse}</td>
+                          <td>TODO</td>
+                          <td>{entry.id.clone()}</td>
                           <th>
                             <Form action="info" method="get">
                               <input type="hidden" name="query" value={format!("{}.{}", entry.os, entry.id)} />

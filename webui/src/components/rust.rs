@@ -13,25 +13,5 @@ pub(crate) fn RustInfo() -> impl IntoView {
                 </Transition>
             </div>
         </div>
-        <div class ="stat shadow">
-            <div class="stat-title"> Documentation </div>
-            <div class="stat-desc">
-                <Transition fallback=move || view!{<p> "Loading..."</p>}>
-                    {move ||
-                       env!("CARGO_PKG_HOMEPAGE").to_string()
-                    }
-                </Transition>
-            </div>
-        </div>
-        <div class ="stat shadow">
-            <div class="stat-title"> Github Repo </div>
-            <div class="stat-desc">
-                <Transition fallback=move || view!{<p> "Loading..."</p>}>
-                    {move ||
-                       env!("CARGO_PKG_REPOSITORY").to_string()
-                    }
-                </Transition>
-            </div>
-        </div>
     }
 }

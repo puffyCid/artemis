@@ -65,7 +65,7 @@ fn get_cron_data(path: &str) -> Result<CronFile, CronError> {
     let mut cron_contents: Vec<String> = Vec::new();
 
     // Parse each line
-    for (_, entry) in cron_reader.lines().enumerate() {
+    for entry in cron_reader.lines() {
         let line_entry = entry;
         let cron_entry = match line_entry {
             Ok(result) => result,

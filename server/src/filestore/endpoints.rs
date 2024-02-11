@@ -57,12 +57,10 @@ pub(crate) async fn create_endpoint_path(
     let enroll_file = format!("{endpoint_path}/enroll.json");
     let jobs_file = format!("{endpoint_path}/jobs.json");
     let heartbeat_file = format!("{endpoint_path}/heartbeat.jsonl");
-    let pulse_file = format!("{endpoint_path}/pulse.json");
 
     create_enroll_file(&enroll_file, &value).await?;
     create_enroll_file(&jobs_file, &[]).await?;
     create_enroll_file(&heartbeat_file, &[]).await?;
-    create_enroll_file(&pulse_file, &[]).await?;
 
     Ok(data.id)
 }
@@ -202,7 +200,7 @@ async fn enroll_filter(
         version: enroll.os_version,
         id: enroll.id,
         hostname: enroll.hostname,
-        last_pulse: 0,
+        last_heartbeat: 0,
     };
     let mut filter_match = false;
 

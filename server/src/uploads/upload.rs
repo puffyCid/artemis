@@ -63,7 +63,7 @@ async fn update_job_file(path: &str, data: &str) -> Result<(), StatusCode> {
         }
     };
 
-    let status = update_job(job, path).await;
+    let status = update_job(&job, path).await;
     if status.is_err() {
         error!(
             "[server] Could not update Job for {path}: {:?}",
