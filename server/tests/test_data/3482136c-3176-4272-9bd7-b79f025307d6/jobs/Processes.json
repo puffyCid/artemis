@@ -1,0 +1,53 @@
+{
+    "metadata": {
+        "endpoint_id": "654410a4-a7ed-4607-9ee1-36e4a74651f6",
+        "uuid": "654410a4-a7ed-4607-9ee1-36e4a74651f6",
+        "id": 0,
+        "artifact_name": "processes",
+        "complete_time": 1707705668,
+        "start_time": 1707705668,
+        "hostname": "aDev-MacBook-Pro.local",
+        "os_version": "14.0",
+        "platform": "Darwin",
+        "kernel_version": "23.0.0",
+        "load_performance": {
+            "avg_one_min": 13.90283203125,
+            "avg_five_min": 9.12646484375,
+            "avg_fifteen_min": 4.95703125
+        }
+    },
+    "job": {
+        "id": 1,
+        "name": "processes",
+        "created": 10000,
+        "started": 10001,
+        "finished": 20000,
+        "status": "Finished",
+        "collection": "adssafasdfsadfs==",
+        "duration": 10,
+        "start_time": 100,
+        "action": "Stop",
+        "job_type": "Processes"
+    },
+    "data": [
+        {
+            "full_path": "/usr/libexec/intelligentroutingd",
+            "name": "intelligentroutingd",
+            "path": "",
+            "pid": 483,
+            "ppid": 1,
+            "environment": "",
+            "status": "Runnable",
+            "arguments": "",
+            "memory_usage": 13336576,
+            "virtual_memory_usage": 34858258432,
+            "start_time": 1707692868,
+            "uid": "501",
+            "gid": "20",
+            "md5": "",
+            "sha1": "",
+            "sha256": "",
+            "binary_info": []
+        }
+    ]
+}

@@ -213,7 +213,7 @@ async fn parse_message(
             if data.contains("\"job\":") {
                 let job = parse_job(data, &ip, path).await;
                 if job.is_err() {
-                    println!(
+                    error!(
                         "[server] Could not parse the job result: {:?}",
                         job.unwrap_err()
                     );

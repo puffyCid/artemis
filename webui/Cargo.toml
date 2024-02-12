@@ -17,5 +17,5 @@ leptos_meta = "0.6.5"
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
-web-sys = { version = "0.3.67", features = ["Location", "Window"] }
-chrono = "0.4.33"
+web-sys = { version = "0.3.68", features = ["Location", "Window"] }
+chrono = "0.4.34"

@@ -1,8 +1,6 @@
-use crate::{
-    artifacts::jobs::{Command, JobType},
-    filestore::{endpoints::glob_paths, jobs::save_job},
-};
+use crate::filestore::{endpoints::glob_paths, jobs::save_job};
 use axum::extract::ws::Message;
+use common::server::{Command, JobType};
 use log::error;
 use serde_json::Error;
 use std::collections::HashMap;
@@ -19,7 +17,7 @@ pub(crate) async fn parse_command(data: &str, path: &str) -> Result<(), Error> {
         }
     };
 
-    if command.job.job_type != JobType::Collection {
+    if command.job.job_type == JobType::Collection {
         return Ok(());
     }
 

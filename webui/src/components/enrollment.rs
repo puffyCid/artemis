@@ -1,5 +1,6 @@
 use crate::components::host::HostDetails;
 use crate::components::host_navigation::Navigate;
+use crate::components::jobs::processes::{endpoint_processes, HostProcesses};
 use crate::web::server::request_server;
 use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
 use common::system::Memory;
@@ -68,7 +69,8 @@ pub(crate) fn GetInfo() -> impl IntoView {
     let query = use_query_map();
     // search stored as ?q=
     let search = move || query.get().get("query").cloned().unwrap_or_default();
-    let results = create_resource(search, endpoint_info);
+    let info_results = create_resource(search, endpoint_info);
+    let proc_results = create_resource(search, endpoint_processes);
 
     let (info, set_info) = create_signal(true);
     let (users, set_users) = create_signal(false);
@@ -83,12 +85,17 @@ pub(crate) fn GetInfo() -> impl IntoView {
         set_proc,
     };
     view! {
-      <Show when=move || {info.get()} fallback= || view!{<p> "Loading..."</p>}>
+      <Show when=move || {info.get()}>
         <Transition fallback=move || view!{<p> "Loading..."</p>}>
-          {move || results.get().map(|res| {
+          {move || info_results.get().map(|res| {
             view!{<HostDetails beat=res/>}
           })}
         </Transition>
+      </Show>
+      <Show when=move || {proc.get()}>
+          {move || proc_results.get().map(|res| {
+            view!{<HostProcesses procs=res/>}
+          })}
       </Show>
       <Navigate values />
     }
@@ -128,6 +135,7 @@ async fn get_endpoints() -> Vec<EndpointList> {
     }
 }
 
+/// Get endpoint host info
 async fn endpoint_info(data: String) -> Heartbeat {
     let beat = Heartbeat {
         endpoint_id: String::new(),

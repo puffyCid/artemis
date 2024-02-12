@@ -1,8 +1,6 @@
 use super::error::StoreError;
-use crate::{
-    artifacts::jobs::{JobInfo, JobType},
-    utils::filesystem::{create_dirs, is_file, read_file, write_file},
-};
+use crate::utils::filesystem::{create_dirs, is_file, read_file, write_file};
+use common::server::{JobInfo, JobType};
 use log::error;
 use std::collections::HashMap;
 
@@ -147,6 +145,7 @@ pub(crate) async fn cache_job_results(
     info: &JobInfo,
     endpoint_path: &str,
 ) -> Result<(), StoreError> {
+    println!("{endpoint_path}");
     update_job(info, endpoint_path).await?;
     let job_storage = format!("{endpoint_path}/jobs");
     let storage_result = create_dirs(&job_storage).await;
@@ -172,9 +171,9 @@ pub(crate) async fn cache_job_results(
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::jobs::{Action, JobInfo, JobType, Status};
     use crate::filestore::jobs::{cache_job_results, get_jobs, save_job, update_job};
     use crate::utils::filesystem::create_dirs;
+    use common::server::{Action, JobInfo, JobType, Status};
     use std::path::PathBuf;
 
     #[tokio::test]

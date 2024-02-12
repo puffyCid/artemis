@@ -1,6 +1,6 @@
 use super::{
     about::about,
-    endpoints::{endpoint_info, endpoint_list, endpoint_stats},
+    endpoints::{endpoint_info, endpoint_list, endpoint_processes, endpoint_stats},
     webui::webui,
 };
 use crate::server::ServerState;
@@ -24,6 +24,10 @@ pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
         frontend.merge(Router::new().route(&format!("{base}/endpoint/list"), post(endpoint_list)));
     frontend =
         frontend.merge(Router::new().route(&format!("{base}/endpoints/info"), post(endpoint_info)));
+    frontend = frontend.merge(Router::new().route(
+        &format!("{base}/endpoints/processes"),
+        post(endpoint_processes),
+    ));
 
     // Server stats
     frontend = frontend.merge(Router::new().route(&format!("{base}/server/stats"), get(about)));

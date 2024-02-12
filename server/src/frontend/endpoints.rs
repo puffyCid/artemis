@@ -1,8 +1,9 @@
+use crate::filestore::cache::processes::process_list;
 use crate::filestore::endpoints::{get_endpoints, recent_heartbeat};
 use crate::{filestore::endpoints::endpoint_count, server::ServerState};
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
-use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
+use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat, ProcessJob};
 use log::error;
 
 /// Count number of Endpoints based on OS type
@@ -48,15 +49,7 @@ pub(crate) async fn endpoint_info(
     State(state): State<ServerState>,
     data: String,
 ) -> Result<Json<Heartbeat>, StatusCode> {
-    let storage_path = state.config.endpoint_server.storage;
-    let info = data.trim().split('.').collect::<Vec<_>>();
-
-    let min_size = 2;
-    if info.len() < min_size {
-        println!("[server] Did not receive enough info for endpoint lookup {data}");
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
-    let endpoint_dir = format!("{}/{}/{}", storage_path, info[0], info[1]);
+    let endpoint_dir = endpoint_path(&data, &state).await?;
     let entries_result = recent_heartbeat(&endpoint_dir).await;
     let entry = match entries_result {
         Ok(result) => result,
@@ -69,12 +62,46 @@ pub(crate) async fn endpoint_info(
     Ok(Json(entry))
 }
 
+/// Get process listing for endpoint
+pub(crate) async fn endpoint_processes(
+    State(state): State<ServerState>,
+    data: String,
+) -> Result<Json<ProcessJob>, StatusCode> {
+    let endpoint_dir = endpoint_path(&data, &state).await?;
+    let entries_result = process_list(&endpoint_dir).await;
+    let entry = match entries_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not get heartbeat info for {data}: {err:?}",);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    Ok(Json(entry))
+}
+
+/// Path to endpoint storage directory
+async fn endpoint_path(data: &str, state: &ServerState) -> Result<String, StatusCode> {
+    let storage_path = &state.config.endpoint_server.storage;
+    let info = data.trim().split('.').collect::<Vec<_>>();
+
+    let min_size = 2;
+    if info.len() < min_size {
+        error!("[server] Did not receive enough info for endpoint lookup {data}");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    let endpoint_dir = format!("{}/{}/{}", storage_path, info[0], info[1]);
+    Ok(endpoint_dir)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         artifacts::enrollment::EndpointInfo,
         enrollment::enroll::{enroll_endpoint, Enrollment},
-        frontend::endpoints::{endpoint_list, endpoint_stats},
+        frontend::endpoints::{
+            endpoint_info, endpoint_list, endpoint_path, endpoint_processes, endpoint_stats,
+        },
         server::ServerState,
         utils::{config::read_config, filesystem::create_dirs},
     };
@@ -152,5 +179,62 @@ mod tests {
         let _ = enroll_endpoint(test2.clone(), test).await.unwrap();
 
         let _ = endpoint_list(test2, data).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_endpoint_path() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp/Darwin/123").await.unwrap();
+
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
+
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+
+        let result = endpoint_path("Darwin.123", &server_state).await.unwrap();
+        assert!(result.contains("123"))
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "500")]
+    async fn test_endpoint_info() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp/Darwin/123").await.unwrap();
+
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
+
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
+
+        let _ = endpoint_info(test2, "Darwin.123".to_string())
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "500")]
+    async fn test_endpoint_processes() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/server.toml");
+        create_dirs("./tmp").await.unwrap();
+
+        let config = read_config(&test_location.display().to_string())
+            .await
+            .unwrap();
+
+        let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config, command };
+        let test2 = State(server_state);
+
+        let _ = endpoint_processes(test2, "Darwin.123".to_string())
+            .await
+            .unwrap();
     }
 }
