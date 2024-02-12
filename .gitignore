@@ -5,6 +5,7 @@
 *-wal
 /.idea/
 *.org
+*.org~
 /.vscode/
 *heartbeat.jsonl
 */style

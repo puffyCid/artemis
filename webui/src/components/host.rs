@@ -12,7 +12,11 @@ pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
         <div class="px-3 py-1 m-1 gap-8 col-span-full flex">
           <div><p class="font-semibold">{beat.hostname}</p></div>
           <div class="divider divider-horizontal"></div>
-          <div><p class="font-semibold">{format!("ID: {}",beat.endpoint_id)}</p></div>
+          <div><p class="font-semibold">{format!("ID: {}", beat.endpoint_id)}</p></div>
+          <div class="divider divider-horizontal"></div>
+          <div><p class="font-semibold">{format!("Last Heartbeat: {}", beat.timestamp)}</p></div>
+          <div class="divider divider-horizontal"></div>
+          <div><p class="font-semibold">{format!("Jobs Running: {}", beat.jobs_running)}</p></div>
         </div>
         <br />
         <div class="p-8 m-4 border-2 rounded-lg col-span-full shadow-xl flex place-content-around">

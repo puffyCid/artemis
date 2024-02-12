@@ -1,7 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
-
-use serde::Serialize;
+use serde::{Serialize, Serialize};
 use serde_json::Value;
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
@@ -46,7 +45,7 @@ pub enum UacFlags {
     UseAESKeys,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PeInfo {
     pub imports: Vec<String>,
     pub sections: Vec<String>,

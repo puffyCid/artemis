@@ -1,8 +1,7 @@
+use serde::{Serialize, Serialize};
 use std::collections::HashMap;
 
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ElfInfo {
     pub symbols: Vec<String>,
     pub sections: Vec<String>,

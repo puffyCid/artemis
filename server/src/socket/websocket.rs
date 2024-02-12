@@ -1,5 +1,6 @@
 use super::command::parse_command;
-use super::heartbeat::{parse_heartbeat, parse_pulse};
+use super::heartbeat::parse_heartbeat;
+use super::jobs::parse_job;
 use crate::enrollment::enroll::verify_enrollment;
 use crate::filestore::jobs::get_jobs;
 use crate::server::ServerState;
@@ -87,7 +88,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
      * Types of websocket data:
      *  - Server commands
      *  - Client heartbeat
-     *  - Client pulse
+     *  - Client jobs
      */
     let _recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
@@ -119,7 +120,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
 
                 /*
                  * The message source should now be Client. socket_data = endpoint_id
-                 * The function `parse_message` already handles the heartbeat and pulse data
+                 * The function `parse_message` already handles the heartbeat
                  *
                  * At this point we just need the endpoint_id to check for collection jobs
                  */
@@ -182,7 +183,7 @@ struct SocketMessage {
     source: MessageSource,
 }
 
-/// Parse websocket message. Currently messages are either Server messages (commands) or client messages (heartbeat, pulse)
+/// Parse websocket message. Currently messages are either Server messages (commands) or client messages (heartbeat)
 async fn parse_message(
     message: &Message,
     addr: &SocketAddr,
@@ -199,11 +200,25 @@ async fn parse_message(
             if data.contains("\"targets\":") && ip == "127.0.0.1" {
                 let command = parse_command(data, path).await;
                 if command.is_err() {
-                    error!("[server] Could not parse the server command");
+                    error!(
+                        "[server] Could not parse the server command: {:?}",
+                        command.unwrap_err()
+                    );
                     return ControlFlow::Break(());
                 }
                 socket_message.source = MessageSource::Server;
                 // Send the command the to targets
+                return ControlFlow::Continue(socket_message);
+            }
+            if data.contains("\"job\":") {
+                let job = parse_job(data, &ip, path).await;
+                if job.is_err() {
+                    error!(
+                        "[server] Could not parse the job result: {:?}",
+                        job.unwrap_err()
+                    );
+                    return ControlFlow::Break(());
+                }
                 return ControlFlow::Continue(socket_message);
             }
 
@@ -214,11 +229,6 @@ async fn parse_message(
             socket_message.source = MessageSource::Client;
             if data.contains("\"heartbeat\":") {
                 let (id, plat) = parse_heartbeat(data, &ip, path).await;
-                socket_message.id = id;
-                socket_message.platform = plat;
-                return ControlFlow::Continue(socket_message);
-            } else if data.contains("\"pulse\":") {
-                let (id, plat) = parse_pulse(data, &ip, path).await;
                 socket_message.id = id;
                 socket_message.platform = plat;
                 return ControlFlow::Continue(socket_message);

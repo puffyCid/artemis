@@ -61,14 +61,14 @@ pub struct Memory {
     pub used_swap: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoadPerformance {
     pub avg_one_min: f64,
     pub avg_five_min: f64,
     pub avg_fifteen_min: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Processes {
     pub full_path: String,
     pub name: String,

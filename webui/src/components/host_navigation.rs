@@ -2,6 +2,7 @@ use super::enrollment::InfoValue;
 use leptos::{component, view, IntoView, SignalGet, SignalUpdate};
 
 #[component]
+/// Host navigation
 pub(crate) fn Navigate(values: InfoValue) -> impl IntoView {
     view! {
       <div class="btm-nav">

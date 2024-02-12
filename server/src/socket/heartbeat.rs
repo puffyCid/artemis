@@ -1,5 +1,5 @@
-use crate::utils::filesystem::{append_file, write_file};
-use common::server::{Heartbeat, Pulse};
+use crate::utils::filesystem::append_file;
+use common::server::Heartbeat;
 use log::error;
 use serde_json::Error;
 
@@ -32,35 +32,10 @@ pub(crate) async fn parse_heartbeat(data: &str, ip: &str, endpoint_path: &str) -
     (beat.endpoint_id, beat.platform)
 }
 
-/// Parse a pulse from a system. Pulse occurs every 30 seconds
-pub(crate) async fn parse_pulse(data: &str, ip: &str, endpoint_path: &str) -> (String, String) {
-    let pulse_result: Result<Pulse, Error> = serde_json::from_str(data);
-    let pulse = match pulse_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[server] Failed to deserialize pulse from {ip}: {err:?}");
-            return (String::new(), String::new());
-        }
-    };
-
-    let path = format!(
-        "{endpoint_path}/{}/{}/pulse.json",
-        pulse.platform, pulse.endpoint_id
-    );
-    let status = write_file(data.as_bytes(), &path, false).await;
-    if status.is_err() {
-        error!(
-            "[server] Could not update pulse.json file from {ip}: {:?}",
-            status.unwrap_err()
-        );
-    }
-    (pulse.endpoint_id, pulse.platform)
-}
-
 #[cfg(test)]
 mod tests {
     use super::parse_heartbeat;
-    use crate::{socket::heartbeat::parse_pulse, utils::filesystem::create_dirs};
+    use crate::utils::filesystem::create_dirs;
 
     #[tokio::test]
     async fn test_parse_heartbeat() {
@@ -79,27 +54,6 @@ mod tests {
         let ip = "127.0.0.1";
         let path = "./tmp2";
         let (id, plat) = parse_heartbeat(test, ip, path).await;
-        assert_eq!(id, "randomkey");
-        assert_eq!(plat, "Darwin");
-    }
-
-    #[tokio::test]
-    async fn test_parse_pulse() {
-        let test = r#"{"endpoint_id":"randomkey","pulse":true,"timestamp":1111111,"jobs_running":0, "platform":"Darwin"}"#;
-        let path = "./tmp";
-        create_dirs(path).await.unwrap();
-        let ip = "127.0.0.1";
-        let (id, plat) = parse_pulse(test, ip, path).await;
-        assert_eq!(id, "randomkey");
-        assert_eq!(plat, "Darwin");
-    }
-
-    #[tokio::test]
-    async fn test_parse_pulse_bad_path() {
-        let test = r#"{"endpoint_id":"randomkey","pulse":true,"timestamp":1111111,"jobs_running":0, "platform":"Darwin"}"#;
-        let path = "./tmp2";
-        let ip = "127.0.0.1";
-        let (id, plat) = parse_pulse(test, ip, path).await;
         assert_eq!(id, "randomkey");
         assert_eq!(plat, "Darwin");
     }

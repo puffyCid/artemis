@@ -1,8 +1,6 @@
-use crate::{
-    artifacts::jobs::{Command, JobType},
-    filestore::{endpoints::glob_paths, jobs::save_job},
-};
+use crate::filestore::{endpoints::glob_paths, jobs::save_job};
 use axum::extract::ws::Message;
+use common::server::{Command, JobType};
 use log::error;
 use serde_json::Error;
 use std::collections::HashMap;
@@ -20,16 +18,19 @@ pub(crate) async fn parse_command(data: &str, path: &str) -> Result<(), Error> {
     };
 
     if command.job.job_type == JobType::Collection {
-        for target in command.targets {
-            let glob_path = glob_paths(&format!("{path}/*/{target}")).unwrap_or_default();
-            for endpoint_path in glob_path {
-                let status = save_job(command.job.clone(), &endpoint_path.full_path).await;
-                if status.is_err() {
-                    error!(
-                        "[server] Could not save job collection at {}",
-                        endpoint_path.full_path
-                    );
-                }
+        return Ok(());
+    }
+
+    // Only Collection Jobs are saved. All other Jobs run in real time
+    for target in command.targets {
+        let glob_path = glob_paths(&format!("{path}/*/{target}")).unwrap_or_default();
+        for endpoint_path in glob_path {
+            let status = save_job(command.job.clone(), &endpoint_path.full_path).await;
+            if status.is_err() {
+                error!(
+                    "[server] Could not save job collection at {}",
+                    endpoint_path.full_path
+                );
             }
         }
     }
@@ -51,7 +52,7 @@ pub(crate) async fn quick_jobs(
         }
     };
 
-    // Cannot send collection jobs through websockets. These are picked up when the client connects via heartbeat or pulse
+    // Cannot send collection jobs through websockets. These are picked up when the client connects via heartbeat
     if command.job.job_type == JobType::Collection {
         return Ok(());
     }
