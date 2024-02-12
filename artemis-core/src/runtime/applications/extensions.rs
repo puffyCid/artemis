@@ -7,6 +7,7 @@ use crate::runtime::applications::{
         get_firefox_downloads, get_firefox_history, get_firefox_users_downloads,
         get_firefox_users_history,
     },
+    sqlite::query_sqlite,
 };
 use deno_core::Op;
 
@@ -21,6 +22,7 @@ pub(crate) fn app_functions() -> Vec<deno_core::OpDecl> {
         get_chromium_history::DECL,
         get_chromium_users_downloads::DECL,
         get_chromium_downloads::DECL,
+        query_sqlite::DECL,
     ]
 }
 
