@@ -11,13 +11,12 @@ pub(crate) struct ShimcacheReg {
 }
 
 /// Get `shimcache` entries for all `ControlSet` values
-pub(crate) fn get_shimcache_data(drive: &char) -> Result<Vec<ShimcacheReg>, ShimcacheError> {
-    let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
+pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, ShimcacheError> {
     let start_path = "";
     let regex_value =
         create_regex(r"controlset\d*\\control\\session manager\\appcompatcache").unwrap(); // Always valid
 
-    let encoded_result = get_registry_keys(start_path, &regex_value, &path);
+    let encoded_result = get_registry_keys(start_path, &regex_value, path);
     let shim_matches = match encoded_result {
         Ok(result) => result,
         Err(err) => {
@@ -48,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_get_shimcache_data() {
-        let result = get_shimcache_data(&'C').unwrap();
+        let result = get_shimcache_data("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
         assert!(result.len() > 0);
     }
 }

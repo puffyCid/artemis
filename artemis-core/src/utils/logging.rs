@@ -62,7 +62,6 @@ pub(crate) fn collection_status(
 
     let status_log = format!("{path}/status.log");
     let status_result = OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true)
         .open(status_log);

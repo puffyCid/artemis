@@ -10,35 +10,8 @@ use log::error;
 #[string]
 /// Expose parsing Jumplists at default systemdrive to Deno
 pub(crate) fn get_jumplists() -> Result<String, AnyError> {
-    let options = JumplistsOptions { alt_drive: None };
+    let options = JumplistsOptions { alt_file: None };
     let jumplist = grab_jumplists(&options)?;
-
-    let results = serde_json::to_string(&jumplist)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Jumplists at alternative drive to Deno
-pub(crate) fn get_alt_jumplists(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt jumplists drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = JumplistsOptions {
-        alt_drive: Some(drive_char),
-    };
-
-    let jumplist_result = grab_jumplists(&options);
-    let jumplist = match jumplist_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse jumplists at alt drive {drive}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
 
     let results = serde_json::to_string(&jumplist)?;
     Ok(results)
@@ -63,7 +36,6 @@ pub(crate) fn get_jumplist_file(#[string] path: String) -> Result<String, AnyErr
     };
 
     let results = serde_json::to_string(&jumplist)?;
-
     Ok(results)
 }
 
@@ -97,17 +69,6 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("jumplist_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_jumplists() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9qdW1wbGlzdHMudHMKZnVuY3Rpb24gZ2V0QWx0SnVtcGxpc3RzKGRyaXZlKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9qdW1wbGlzdHMoZHJpdmUpOwogIGNvbnN0IGp1bXAgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiBqdW1wOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QganVtcCA9IGdldEFsdEp1bXBsaXN0cygiQyIpOwogIHJldHVybiBqdW1wOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("jumplist_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

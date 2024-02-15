@@ -18,12 +18,10 @@ use nom::bytes::complete::{take, take_until};
 use std::collections::HashMap;
 
 /// Parse user account info
-pub(crate) fn parse_user_info(drive: &char) -> Result<Vec<UserInfo>, AccountError> {
-    // Account info could be found in multiple Registry files, currently only focusing on SAM
-    let path = format!("{drive}:\\Windows\\System32\\config\\SAM");
+pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError> {
     let reg = create_regex("").unwrap(); // Always valid
     let start_path = "";
-    let reg_result = get_registry_keys(start_path, &reg, &path);
+    let reg_result = get_registry_keys(start_path, &reg, path);
     let reg_data = match reg_result {
         Ok(result) => result,
         Err(err) => {
@@ -277,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_parser_user_info() {
-        let test_path = 'C';
+        let test_path = "C:\\Windows\\System32\\config\\SAM";
         let results = parse_user_info(&test_path).unwrap();
         assert!(results.len() > 2);
     }

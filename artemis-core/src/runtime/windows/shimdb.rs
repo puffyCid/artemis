@@ -1,36 +1,14 @@
 use crate::{
     artifacts::os::windows::shimdb::parser::{custom_shimdb_path, grab_shimdb},
-    runtime::error::RuntimeError,
     structs::artifacts::os::windows::ShimdbOptions,
 };
 use deno_core::{error::AnyError, op2};
-use log::error;
 
 #[op2]
 #[string]
 /// Expose parsing shimdb located on systemdrive to `Deno`
 pub(crate) fn get_shimdb() -> Result<String, AnyError> {
-    let options = ShimdbOptions { alt_drive: None };
-    let shimdb = grab_shimdb(&options)?;
-
-    let results = serde_json::to_string(&shimdb)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing shimdb located on alt drive to `Deno`
-pub(crate) fn get_alt_shimdb(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt shimdb drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = ShimdbOptions {
-        alt_drive: Some(drive_char),
-    };
-
+    let options = ShimdbOptions { alt_file: None };
     let shimdb = grab_shimdb(&options)?;
 
     let results = serde_json::to_string(&shimdb)?;
@@ -77,17 +55,6 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimdb"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_shimdb() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoaW1kYihkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGltZGIoZHJpdmUpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGltZGIoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoaW1kYihkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHNkYiA9IGdldEFsdFNoaW1kYigiQyIpOwogICAgcmV0dXJuIHNkYjsKfQptYWluKCk7Cgo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("shimdb_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

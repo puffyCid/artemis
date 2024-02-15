@@ -28,16 +28,15 @@ use log::error;
 pub(crate) fn grab_jumplists(
     options: &JumplistsOptions,
 ) -> Result<Vec<JumplistEntry>, JumplistError> {
-    let drive = if let Some(alt) = options.alt_drive {
-        alt
-    } else {
-        let systemdrive_result = get_systemdrive();
-        match systemdrive_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[jumplist] Could not get systemdrive: {err:?}");
-                return Err(JumplistError::Systemdrive);
-            }
+    if let Some(file) = &options.alt_file {
+        return grab_jumplist_file(file);
+    }
+    let systemdrive_result = get_systemdrive();
+    let drive = match systemdrive_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[jumplist] Could not get systemdrive: {err:?}");
+            return Err(JumplistError::Systemdrive);
         }
     };
 
@@ -74,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_grab_jumplists() {
-        let options = JumplistsOptions { alt_drive: None };
+        let options = JumplistsOptions { alt_file: None };
         let _ = grab_jumplists(&options).unwrap();
     }
 

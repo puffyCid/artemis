@@ -14,6 +14,5 @@ artifact_name = "registry" # Parses the whole Registry file
 [artifacts.registry]
 user_hives = true # All NTUSER.DAT and UsrClass.dat
 system_hives = true # SYSTEM, SOFTWARE, SAM, SECURITY
-alt_drive = 'C'
-alt_paths = []
+# alt_file = "C:\\Artifacts\\SYSTEM" # Optional
 path_regex = "" # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase

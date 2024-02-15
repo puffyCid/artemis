@@ -9,7 +9,7 @@ use log::error;
 #[string]
 /// Expose parsing shimcache located on default drive to `Deno`
 pub(crate) fn get_shimcache() -> Result<String, AnyError> {
-    let options = ShimcacheOptions { alt_drive: None };
+    let options = ShimcacheOptions { alt_file: None };
     let shim = grab_shimcache(&options)?;
 
     let results = serde_json::to_string(&shim)?;
@@ -18,21 +18,20 @@ pub(crate) fn get_shimcache() -> Result<String, AnyError> {
 
 #[op2]
 #[string]
-/// Expose parsing shimcache located on alt drive to `Deno`
-pub(crate) fn get_alt_shimcache(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt shimcache drive. Need drive letter");
+/// Expose parsing alt shimcache location `Deno`
+pub(crate) fn get_alt_shimcache(#[string] file: String) -> Result<String, AnyError> {
+    if file.is_empty() {
+        error!("[runtime] Failed to parse alt shimcache file");
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
     let options = ShimcacheOptions {
-        alt_drive: Some(drive_char),
+        alt_file: Some(file),
     };
 
     let shim = grab_shimcache(&options)?;
-
     let results = serde_json::to_string(&shim)?;
+
     Ok(results)
 }
 
@@ -73,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_shimcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoaW1jYWNoZShkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGltY2FjaGUoZHJpdmUpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGltY2FjaGUoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoaW1jYWNoZShkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHNoaW1jYWNoZV9lbnRyaWVzID0gZ2V0QWx0U2hpbWNhY2hlKCJDIik7CiAgICByZXR1cm4gc2hpbWNhY2hlX2VudHJpZXM7Cn0KbWFpbigpOw==";
+        let test = "bnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfc2hpbWNhY2hlKGRyaXZlKTsKICBjb25zdCByZXN1bHRzID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0czsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVzZXJzID0gZ2V0QWx0U2hpbWNhY2hlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIHVzZXJzOwp9Cm1haW4oKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimcache_alt"),

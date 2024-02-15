@@ -2,12 +2,12 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct PrefetchOptions {
-    pub alt_drive: Option<char>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct EventLogsOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,37 +27,37 @@ pub struct RawFilesOptions {
 
 #[derive(Debug, Deserialize)]
 pub struct ShimdbOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct RegistryOptions {
     pub user_hives: bool,
     pub system_hives: bool,
-    pub alt_drive: Option<char>,
     pub path_regex: Option<String>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UserAssistOptions {
-    pub alt_drive: Option<char>,
     pub resolve_descriptions: Option<bool>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ShimcacheOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ShellbagsOptions {
     pub resolve_guids: bool,
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct AmcacheOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,7 +84,7 @@ pub struct SrumOptions {
 
 #[derive(Debug, Deserialize)]
 pub struct UserOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -94,26 +94,25 @@ pub struct SearchOptions {
 
 #[derive(Debug, Deserialize)]
 pub struct TasksOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ServicesOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct JumplistsOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct RecycleBinOptions {
-    pub alt_drive: Option<char>,
+    pub alt_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct WmiPersistOptions {
-    pub alt_drive: Option<char>,
     pub alt_dir: Option<String>,
 }

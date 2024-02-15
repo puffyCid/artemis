@@ -75,7 +75,7 @@ Commands:
   help               Print this message or the help of the given subcommand(s)
 
 Options:
-      --format <FORMAT>  Output format. JSON or JSON [default: json]
+      --format <FORMAT>  Output format. JSON or JSONL [default: JSON]
   -h, --help             Print help
 
 

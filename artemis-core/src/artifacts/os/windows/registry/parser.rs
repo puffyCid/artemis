@@ -54,19 +54,6 @@ pub(crate) fn parse_registry(
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), RegistryError> {
-    let drive = if let Some(alt_drive) = options.alt_drive {
-        alt_drive
-    } else {
-        let drive_result = get_systemdrive();
-        match drive_result {
-            Ok(result) => result,
-            Err(_err) => {
-                error!("[registry] Could not get systemdrive");
-                return Err(RegistryError::SystemDrive);
-            }
-        }
-    };
-
     let path_regex = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
     let mut params = Params {
         start_path: String::from(""),
@@ -75,6 +62,20 @@ pub(crate) fn parse_registry(
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
         filter: *filter,
+    };
+
+    if let Some(path) = &options.alt_file {
+        let filename = get_filename(path);
+        return parse_registry_file(path, &filename, output, &mut params);
+    }
+
+    let drive_result = get_systemdrive();
+    let drive = match drive_result {
+        Ok(result) => result,
+        Err(_err) => {
+            error!("[registry] Could not get systemdrive");
+            return Err(RegistryError::SystemDrive);
+        }
     };
 
     if options.user_hives {
@@ -347,7 +348,7 @@ mod tests {
         let reg_options = RegistryOptions {
             user_hives: true,
             system_hives: false,
-            alt_drive: None,
+            alt_file: None,
             path_regex: None,
         };
         parse_registry(&reg_options, &mut output, &false).unwrap();

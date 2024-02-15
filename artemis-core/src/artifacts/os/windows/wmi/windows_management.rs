@@ -154,7 +154,7 @@ fn assemble_wmi_persist(
         Some(result) => result,
         None => return,
     };
-    let consumer_name = consumer_value.to_string().replace('\"', "");
+    let consumer_name = consumer_value.to_string().replace('"', "");
 
     let filter_consumer_opt = filter_consumer.values.get("Consumer");
     let filter_consumer_value = match filter_consumer_opt {
@@ -162,7 +162,7 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let filter_consumer_name = filter_consumer_value.to_string().replace(['\"', '\\'], "");
+    let filter_consumer_name = filter_consumer_value.to_string().replace(['"', '\\'], "");
     if format!("{}.Name={consumer_name}", consumer.class_name) != filter_consumer_name {
         return;
     }
@@ -182,7 +182,7 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let event_filter_name = event_filter_value.to_string().replace('\"', "");
+    let event_filter_name = event_filter_value.to_string().replace('"', "");
     if format!("__EventFilter.Name={event_filter_name}") != filter_consumer_filter {
         return;
     }
@@ -193,7 +193,7 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let event_filter_query = event_filter_query_value.to_string();
+    let event_filter_query = event_filter_query_value.to_string().replace('"', "");
 
     let event_filter_sid_opt = event_filter.values.get("CreatorSID");
     let event_filter_sid_value = match event_filter_sid_opt {

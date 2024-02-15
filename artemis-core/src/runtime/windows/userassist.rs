@@ -10,7 +10,7 @@ use log::error;
 /// Expose parsing userassist located on systemdrive to `Deno`
 pub(crate) fn get_userassist(resolve: bool) -> Result<String, AnyError> {
     let options = UserAssistOptions {
-        alt_drive: None,
+        alt_file: None,
         resolve_descriptions: Some(resolve),
     };
 
@@ -22,25 +22,24 @@ pub(crate) fn get_userassist(resolve: bool) -> Result<String, AnyError> {
 
 #[op2]
 #[string]
-/// Expose parsing userassist located on alt drive to `Deno`
+/// Expose parsing userassist located on alt file to `Deno`
 pub(crate) fn get_alt_userassist(
-    #[string] drive: String,
+    #[string] file: String,
     resolve: bool,
 ) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt userassist drive. Need drive letter");
+    if file.is_empty() {
+        error!("[runtime] Failed to parse alt userassist file");
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
     let options = UserAssistOptions {
-        alt_drive: Some(drive_char),
+        alt_file: Some(file),
         resolve_descriptions: Some(resolve),
     };
 
     let assist = grab_userassist(&options)?;
-
     let results = serde_json::to_string(&assist)?;
+
     Ok(results)
 }
 
@@ -81,7 +80,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_userassist() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3VzZXJhc3Npc3QoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdXNlcmFzc2lzdChkcml2ZSwgZmFsc2UpOwogICAgY29uc3QgYXNzaXN0X2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhc3Npc3RfYXJyYXk7Cn0KZnVuY3Rpb24gZ2V0VXNlckFsdEFzc2lzdChkcml2ZSkgewogICAgcmV0dXJuIGdldF9hbHRfdXNlcmFzc2lzdChkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGFzc2lzdCA9IGdldFVzZXJBbHRBc3Npc3QoIkMiKTsKICAgIHJldHVybiBhc3Npc3Q7Cn0KbWFpbigpOwoK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBnbG9iKHBhdHRlcm4pIHsKICBjb25zdCByZXN1bHQgPSBmcy5nbG9iKHBhdHRlcm4pOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UocmVzdWx0KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy91c2VyYXNzaXN0LnRzCmZ1bmN0aW9uIGdldEFsdFVzZXJhc3Npc3QoZHJpdmUpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfYWx0X3VzZXJhc3Npc3QoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aHMgPSBnbG9iKCJDOlxcVXNlcnNcXCpcXE5UVVNFUi5EQVQiKTsKICBpZiAocGF0aHMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIFtdOwogIH0KICBmb3IgKGNvbnN0IHBhdGggb2YgcGF0aHMpIHsKICAgIGNvbnN0IGFzc2lzdCA9IGdldEFsdFVzZXJhc3Npc3QocGF0aC5mdWxsX3BhdGgsIGZhbHNlKTsKICAgIHJldHVybiBhc3Npc3Q7CiAgfQogIHJldHVybiBbXTsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("userassist_alt"),

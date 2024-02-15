@@ -8,20 +8,12 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing wmi persist to `Deno`
-pub(crate) fn get_wmipersist(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse wmi drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-
-    let options = WmiPersistOptions {
-        alt_drive: Some(drive.chars().next().unwrap()),
-        alt_dir: None,
-    };
+pub(crate) fn get_wmipersist() -> Result<String, AnyError> {
+    let options = WmiPersistOptions { alt_dir: None };
 
     let assist = grab_wmi_persist(&options)?;
-
     let results = serde_json::to_string(&assist)?;
+
     Ok(results)
 }
 
@@ -35,7 +27,6 @@ pub(crate) fn get_alt_wmipersist(#[string] path: String) -> Result<String, AnyEr
     }
     // Get the first char from string (the drive letter)
     let options = WmiPersistOptions {
-        alt_drive: None,
         alt_dir: Some(path),
     };
 
@@ -71,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_get_wmipersist() {
-        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy93bWkudHMKZnVuY3Rpb24gZ2V0V21pUGVyc2lzdChhbHRfZHJpdmUpIHsKICBsZXQgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigiV01JUEVSU0lTVCIsIGBmYWlsZWQgZ2V0IGRyaXZlYCk7CiAgfSBlbHNlIGlmIChhbHRfZHJpdmUgIT0gdm9pZCAwKSB7CiAgICBkcml2ZSA9IGFsdF9kcml2ZTsKICB9CiAgdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF93bWlwZXJzaXN0KGRyaXZlKTsKICAgIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigiV01JUEVSU0lTVCIsIGBmYWlsZWQgdG8gcGFyc2UgV01JIHJlcG86ICR7ZXJyfWApOwogIH0KfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRXbWlQZXJzaXN0KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy93bWkudHMKZnVuY3Rpb24gZ2V0V21pUGVyc2lzdCgpIHsKICB0cnkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3dtaXBlcnNpc3QoKTsKICAgIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigiV01JUEVSU0lTVCIsIGBmYWlsZWQgdG8gcGFyc2UgV01JIHJlcG86ICR7ZXJyfWApOwogIH0KfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRXbWlQZXJzaXN0KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("wmipersist"),

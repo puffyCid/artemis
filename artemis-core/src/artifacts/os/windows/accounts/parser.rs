@@ -7,8 +7,8 @@ use log::error;
 
 /// Get Windows `Users` for based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_users(options: &UserOptions) -> Result<Vec<UserInfo>, AccountError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return parse_user_info(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        return parse_user_info(file);
     }
     let drive_result = get_systemdrive();
     let drive = match drive_result {
@@ -18,8 +18,10 @@ pub(crate) fn grab_users(options: &UserOptions) -> Result<Vec<UserInfo>, Account
             return Err(AccountError::DefaultDrive);
         }
     };
+    // Account info could be found in multiple Registry files, currently only focusing on SAM
+    let path = format!("{drive}:\\Windows\\System32\\config\\SAM");
 
-    parse_user_info(&drive)
+    parse_user_info(&path)
 }
 
 /// Get hashmap of users
@@ -32,9 +34,11 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
             return Err(AccountError::DefaultDrive);
         }
     };
+    // Account info could be found in multiple Registry files, currently only focusing on SAM
+    let path = format!("{drive}:\\Windows\\System32\\config\\SAM");
 
     let mut users = HashMap::new();
-    let entries = parse_user_info(&drive)?;
+    let entries = parse_user_info(&path)?;
 
     for entry in entries {
         users.insert(entry.sid.clone(), entry.username);
@@ -52,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_grab_users() {
-        let options = UserOptions { alt_drive: None };
+        let options = UserOptions { alt_file: None };
         let result = grab_users(&options).unwrap();
         assert!(result.len() > 2);
     }

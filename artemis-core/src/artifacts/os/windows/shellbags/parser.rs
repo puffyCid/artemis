@@ -11,14 +11,14 @@ use crate::{
     artifacts::os::windows::{
         registry::helper::get_registry_keys, shellitems::items::parse_encoded_shellitem,
     },
-    filesystem::ntfs::raw_files::get_user_registry_files,
+    filesystem::{files::get_filename, ntfs::raw_files::get_user_registry_files},
     structs::artifacts::os::windows::ShellbagsOptions,
     utils::{
         environment::{get_clsids, get_systemdrive},
         regex_options::create_regex,
     },
 };
-use common::windows::{ShellItem, ShellType};
+use common::windows::{RegistryEntry, ShellItem, ShellType};
 use log::error;
 use serde::Serialize;
 use serde_json::Value;
@@ -42,14 +42,10 @@ pub(crate) struct Shellbag {
 
 /// Get Windows `Shellbags` for all users based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>, ShellbagError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_shellbags(&alt_drive, options.resolve_guids);
+    if let Some(path) = &options.alt_file {
+        return alt_shellbags(path, options.resolve_guids);
     }
-    default_shellbags(options.resolve_guids)
-}
 
-/// Get the default driver letter and parse the `Shellbags`
-fn default_shellbags(resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -58,12 +54,45 @@ fn default_shellbags(resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError
             return Err(ShellbagError::DefaultDrive);
         }
     };
-    parse_shellbags(&drive, resolve_guids)
+
+    parse_shellbags(&drive, options.resolve_guids)
 }
 
 /// Parse `Shellbags` associated with provided alternative driver letter
-fn alt_drive_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
-    parse_shellbags(drive, resolve_guids)
+fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
+    let regex = if path.contains("UsrClass.dat") {
+        create_regex(r"local settings\\software\\microsoft\\windows\\shell\\bagmru").unwrap()
+    // Should always be valid
+    } else {
+        create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap() // Should always be valid
+    };
+
+    let clsids = if resolve_guids {
+        let clsid_results = get_clsids();
+        match clsid_results {
+            Ok(results) => results,
+            Err(_err) => HashMap::new(),
+        }
+    } else {
+        HashMap::new()
+    };
+
+    let start_path = "";
+    let shellbags_result = get_registry_keys(start_path, &regex, path);
+    let bags = match shellbags_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[shellbags] Could not parse file {path}: {err:?}");
+            return Err(ShellbagError::GetRegistryData);
+        }
+    };
+    let mut shell_map: HashMap<String, Shellbag> = HashMap::new();
+    extract_shellbags(&bags, &get_filename(path), path, &clsids, &mut shell_map);
+
+    let mut shellbags_vec: Vec<Shellbag> = Vec::new();
+    save_shellbags(&mut shellbags_vec, &shell_map);
+
+    Ok(shellbags_vec)
 }
 
 #[derive(Debug)]
@@ -140,7 +169,14 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
         };
 
         let mut shell_map: HashMap<String, Shellbag> = HashMap::new();
-
+        extract_shellbags(
+            &shellbags,
+            &hive.filename,
+            &hive.full_path,
+            &clsids,
+            &mut shell_map,
+        );
+        /*
         for entry in shellbags {
             for value in entry.values {
                 // Shellbag Registry value names should always be a number
@@ -192,11 +228,73 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
 
                 update_shellbags(&data, &mut shell_map, &clsids, &reg_info);
             }
-        }
+        }*/
 
         save_shellbags(&mut shellbags_vec, &shell_map);
     }
     Ok(shellbags_vec)
+}
+
+/// Extract `Shellbag` data from Registry data
+fn extract_shellbags(
+    shellbags: &[RegistryEntry],
+    reg_filename: &str,
+    reg_path: &str,
+    clsids: &HashMap<String, String>,
+    shell_map: &mut HashMap<String, Shellbag>,
+) {
+    for entry in shellbags {
+        for value in &entry.values {
+            // Shellbag Registry value names should always be a number
+            // Skip non-number values
+            if value.value.parse::<u32>().is_err() {
+                continue;
+            }
+            // Based on hive file, split the Registry key path and get BagMRU key
+            let (bagkey_vec, min_length) = if entry.name == "UsrClass.dat" {
+                (entry.path.splitn(6, '\\').collect::<Vec<&str>>(), 6)
+            } else {
+                (entry.path.splitn(5, '\\').collect::<Vec<&str>>(), 5)
+            };
+            if bagkey_vec.len() < min_length {
+                continue;
+            }
+
+            // Vec start at 0
+            let vec_adjust = 1;
+            let bagkey = format!("{}\\{}", bagkey_vec[min_length - vec_adjust], value.value);
+            let data_result = parse_encoded_shellitem(&value.data);
+            let data = match data_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!(
+                        "[shellbags] Could not parse bag data at {} value name: {}: {err:?}",
+                        entry.path, value.value
+                    );
+                    ShellItem {
+                        value: String::from("[Failed to parse ShellItem]"),
+                        shell_type: ShellType::Unknown,
+                        created: 0,
+                        modified: 0,
+                        accessed: 0,
+                        mft_entry: 0,
+                        mft_sequence: 0,
+                        stores: Vec::new(),
+                    }
+                }
+            };
+
+            let reg_info = RegInfo {
+                reg_path: entry.path.clone(),
+                bagkey,
+                bagmru: bagkey_vec[min_length - vec_adjust].to_string(),
+                reg_file: reg_filename.to_string(),
+                reg_file_path: reg_path.to_string(),
+            };
+
+            update_shellbags(&data, shell_map, clsids, &reg_info);
+        }
+    }
 }
 
 /**
@@ -296,34 +394,56 @@ fn save_shellbags(shellbag_vec: &mut Vec<Shellbag>, shell_map: &HashMap<String, 
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::shellbags::parser::{
-            alt_drive_shellbags, default_shellbags, grab_shellbags, parse_shellbags,
-            save_shellbags, update_shellbags, RegInfo, Shellbag,
+        artifacts::os::windows::{
+            registry::helper::get_registry_keys,
+            shellbags::parser::{
+                alt_shellbags, extract_shellbags, grab_shellbags, parse_shellbags, save_shellbags,
+                update_shellbags, RegInfo, Shellbag,
+            },
         },
+        filesystem::files::get_filename,
         structs::artifacts::os::windows::ShellbagsOptions,
+        utils::regex_options::create_regex,
     };
     use common::windows::{ShellItem, ShellType};
-    use std::collections::HashMap;
-
-    #[test]
-    fn test_default_shellbags() {
-        let _result = default_shellbags(true).unwrap();
-    }
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_grab_shellbags() {
         let options = ShellbagsOptions {
             resolve_guids: true,
-            alt_drive: None,
+            alt_file: None,
         };
 
         let _results = grab_shellbags(&options).unwrap();
     }
 
     #[test]
-    fn test_alt_drive_shellbags() {
-        let drive = 'C';
-        let _results = alt_drive_shellbags(&drive, false).unwrap();
+    fn test_alt_shellbags() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let result = alt_shellbags(test_location.to_str().unwrap(), false).unwrap();
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_extract_shellbags() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let regex = create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap();
+        let clsids = HashMap::new();
+
+        let start_path = "";
+        let bags = get_registry_keys(start_path, &regex, test_location.to_str().unwrap()).unwrap();
+        let mut shell_map: HashMap<String, Shellbag> = HashMap::new();
+        extract_shellbags(
+            &bags,
+            &get_filename(test_location.to_str().unwrap()),
+            test_location.to_str().unwrap(),
+            &clsids,
+            &mut shell_map,
+        );
+        assert_eq!(shell_map.len(), 0);
     }
 
     #[test]

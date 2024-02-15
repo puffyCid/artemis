@@ -9,7 +9,9 @@
  * `https://github.com/Velocidex/velociraptor`
  */
 use super::{
-    assist::parse_userassist_data, error::UserAssistError, registry::get_userassist_drive,
+    assist::parse_userassist_data,
+    error::UserAssistError,
+    registry::{alt_userassist, get_userassist_drive},
 };
 use crate::{
     structs::artifacts::os::windows::UserAssistOptions, utils::environment::get_systemdrive,
@@ -23,14 +25,11 @@ pub(crate) fn grab_userassist(
 ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let resolve = options.resolve_descriptions.unwrap_or(false);
 
-    if let Some(alt_drive) = options.alt_drive {
-        return parse_userassist(&alt_drive, &resolve);
+    if let Some(path) = &options.alt_file {
+        let entries = alt_userassist(path)?;
+        return parse_userassist_data(&entries, &resolve);
     }
-    default_userassist(&resolve)
-}
 
-/// Get `UserAssist` entries using default system drive
-fn default_userassist(resolve: &bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -39,7 +38,7 @@ fn default_userassist(resolve: &bool) -> Result<Vec<UserAssistEntry>, UserAssist
             return Err(UserAssistError::DriveLetter);
         }
     };
-    parse_userassist(&drive, resolve)
+    parse_userassist(&drive, &resolve)
 }
 
 /// Get `UserAssist` entries for all users in NTUSER.DAT files. Then parse the `UserAssist` data
@@ -51,17 +50,9 @@ fn parse_userassist(drive: &char, resolve: &bool) -> Result<Vec<UserAssistEntry>
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::userassist::parser::{
-            default_userassist, grab_userassist, parse_userassist,
-        },
+        artifacts::os::windows::userassist::parser::{grab_userassist, parse_userassist},
         structs::artifacts::os::windows::UserAssistOptions,
     };
-
-    #[test]
-    fn test_default_userassist() {
-        let results = default_userassist(&false).unwrap();
-        assert!(results.len() > 3);
-    }
 
     #[test]
     fn test_parse_userassist() {
@@ -72,7 +63,7 @@ mod tests {
     #[test]
     fn test_grab_userassist() {
         let options = UserAssistOptions {
-            alt_drive: None,
+            alt_file: None,
             resolve_descriptions: None,
         };
 

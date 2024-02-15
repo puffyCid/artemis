@@ -24,13 +24,7 @@ use log::error;
 
 /// Get WMI persist data based on provided options
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
-    if let Some(drive) = options.alt_drive {
-        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-
-        return parse_wmi_persist(&map_paths, &objects_path, &index_path);
-    } else if let Some(alt_dir) = &options.alt_dir {
+    if let Some(alt_dir) = &options.alt_dir {
         let mut correct_dir = alt_dir.to_string();
         if let Some(verify_dir) = correct_dir.strip_suffix('\\') {
             correct_dir = verify_dir.to_string();
@@ -84,10 +78,7 @@ mod tests {
 
     #[test]
     fn test_grab_wmi_persist() {
-        let options = WmiPersistOptions {
-            alt_drive: None,
-            alt_dir: None,
-        };
+        let options = WmiPersistOptions { alt_dir: None };
 
         let _ = grab_wmi_persist(&options).unwrap();
     }

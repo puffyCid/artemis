@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "recyclebin"
 [artifacts.recyclebin]
-alt_drive = 'C'
+# alt_file = "C:\\Artifacts\$IFA81" # Optional

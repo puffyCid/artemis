@@ -21,8 +21,8 @@ pub(crate) enum Commands {
     Acquire {
         #[command(subcommand)]
         artifact: Option<CommandArgs>,
-        /// Output format. JSON or JSON.
-        #[arg(long, default_value_t = String::from("json"))]
+        /// Output format. JSON or JSONL.
+        #[arg(long, default_value_t = String::from("JSON"))]
         format: String,
     },
 }

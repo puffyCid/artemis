@@ -70,16 +70,16 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse Prefetch
     Prefetch {
-        /// Alternative drive letter to use
+        /// Alternative Prefetch directory to use
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_dir: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse EventLogs
     Eventlogs {
-        /// Alternative drive letter to use
+        /// Alternative full path to an Event Log
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse NTFS to get filelisting
@@ -118,9 +118,9 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse ShimDatabase
     Shimdb {
-        /// Alternative drive letter to use
+        /// Alternative full path to SDB file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Registry
@@ -131,9 +131,9 @@ pub(crate) enum CommandArgs {
         /// Parse System Registry files
         #[arg(long)]
         system_hives: bool,
-        /// Alternative drive letter to use
+        /// Alternative full path to a Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
         /// Regex to only include entries that match path
         #[arg(long, default_value = None)]
         path_regex: Option<String>,
@@ -141,9 +141,9 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse Userassist
     Userassist {
-        /// Alternative drive letter to use
+        /// Alternative full path to NTUSER.DAT Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
         /// Enable Folder Description lookups
         #[arg(long)]
         resolve_descriptions: Option<bool>,
@@ -151,9 +151,9 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse Shimcache
     Shimcache {
-        /// Alternative drive letter to use
+        /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Shellbags
@@ -161,16 +161,16 @@ pub(crate) enum CommandArgs {
         /// Try to resolve GUIDs to directory names
         #[arg(long)]
         resolve_guids: bool,
-        /// Alternative drive letter to use
+        /// Alternative full path to NTUSER.DAT or UsrClass.dat Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Amcache
     Amcache {
-        /// Alternative drive letter to use
+        /// Alternative full path to Amcache.hve
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Shortcuts
@@ -206,9 +206,9 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse Users
     Users {
-        /// Alternative drive letter to use
+        /// Alternative full path to SAM Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Windows Search
@@ -220,36 +220,34 @@ pub(crate) enum CommandArgs {
     #[cfg(target_os = "windows")]
     /// Parse Windows Tasks
     Tasks {
-        /// Alternative drive letter to use
+        /// Alternative full path to Schedule Task file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Windows Services
     Services {
-        /// Alternative drive letter to use
+        /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse Jumplists
     Jumplists {
-        /// Alternative drive letter to use
+        /// Alternative full path to Jumplist file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse RecycleBin
     Recyclebin {
-        /// Alternative drive letter to use
+        /// Alternative full path to RecycleBin file
         #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
+        alt_file: Option<String>,
     },
     #[cfg(target_os = "windows")]
+    /// Parse WMI Repository
     Wmipersist {
-        /// Alternative drive letter to use
-        #[arg(long, default_value = None)]
-        alt_drive: Option<char>,
         /// Alternative directory containing the WMI repository files
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,

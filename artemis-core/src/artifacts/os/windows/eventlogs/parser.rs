@@ -26,8 +26,8 @@ pub(crate) fn grab_eventlogs(
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), EventLogsError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_eventlogs(&alt_drive, output, filter);
+    if let Some(file) = &options.alt_file {
+        return alt_eventlogs(file, output, filter);
     }
 
     default_eventlogs(output, filter)
@@ -79,13 +79,8 @@ fn default_eventlogs(output: &mut Output, filter: &bool) -> Result<(), EventLogs
 }
 
 /// Read and parse `EventLog` files at default path with alternative Drive letter. Ex: D:\
-fn alt_drive_eventlogs(
-    letter: &char,
-    output: &mut Output,
-    filter: &bool,
-) -> Result<(), EventLogsError> {
-    let path = format!("{letter}:\\Windows\\System32\\winevt\\Logs");
-    read_directory(&path, output, filter)
+fn alt_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
+    read_eventlogs(path, output, filter)
 }
 
 /// Read all files at provided path
@@ -169,9 +164,7 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        alt_drive_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs,
-    };
+    use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
     use crate::{structs::artifacts::os::windows::EventLogsOptions, structs::toml::Output};
     use std::{fs::read_dir, path::PathBuf};
 
@@ -194,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_grab_eventlogs() {
-        let options = EventLogsOptions { alt_drive: None };
+        let options = EventLogsOptions { alt_file: None };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = grab_eventlogs(&options, &mut output, &false).unwrap();
@@ -211,11 +204,11 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Parser")]
-    fn test_alt_drive_eventlogs() {
-        let drive = 'A';
+    fn test_alt_eventlogs() {
+        let path = "madeup";
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = alt_drive_eventlogs(&drive, &mut output, &false).unwrap();
+        let results = alt_eventlogs(&path, &mut output, &false).unwrap();
         assert_eq!(results, ())
     }
 

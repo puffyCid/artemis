@@ -9,7 +9,7 @@ use log::error;
 #[string]
 /// Expose parsing amcache located on systemdrive to `Deno`
 pub(crate) fn get_amcache() -> Result<String, AnyError> {
-    let options = AmcacheOptions { alt_drive: None };
+    let options = AmcacheOptions { alt_file: None };
     let amcache = grab_amcache(&options)?;
 
     let results = serde_json::to_string(&amcache)?;
@@ -18,20 +18,18 @@ pub(crate) fn get_amcache() -> Result<String, AnyError> {
 
 #[op2]
 #[string]
-/// Expose parsing amcache located on alt drive to `Deno`
-pub(crate) fn get_alt_amcache(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt amcache drive. Need drive letter");
+/// Expose parsing amcache located on alt file to `Deno`
+pub(crate) fn get_alt_amcache(#[string] file: String) -> Result<String, AnyError> {
+    if file.is_empty() {
+        error!("[runtime] Failed to parse alt amcache file");
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let drive_char = &drive.chars().next().unwrap();
     let options = AmcacheOptions {
-        alt_drive: Some(drive_char.to_owned()),
+        alt_file: Some(file),
     };
 
     let amcache = grab_amcache(&options)?;
-
     let results = serde_json::to_string(&amcache)?;
     Ok(results)
 }
@@ -73,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_amcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfYW1jYWNoZShkcml2ZSk7CiAgICBjb25zdCBhbWNhY2hlX2FycmF5ID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBhbWNhY2hlX2FycmF5Owp9CmZ1bmN0aW9uIGdldEFsdEFtY2FjaGUoZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X2FtY2FjaGUoZHJpdmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBjYWNoZSA9IGdldEFsdEFtY2FjaGUoIkMiKTsKICAgIHJldHVybiBjYWNoZTsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9hbWFjaGUudHMKZnVuY3Rpb24gZ2V0QWx0QW1jYWNoZShkcml2ZSkgewogIGNvbnN0IHJlc3VsdHMgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfYW1jYWNoZShkcml2ZSk7CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UocmVzdWx0cyk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBjYWNoZSA9IGdldEFsdEFtY2FjaGUoIkM6XFxXaW5kb3dzXFxhcHBjb21wYXRcXFByb2dyYW1zXFxBbWNhY2hlLmh2ZSIpOwogIHJldHVybiBjYWNoZTsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("amcache_alt"),

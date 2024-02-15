@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "tasks"
 [artifacts.tasks]
-alt_drive = 'C'
+# alt_file = "C:\\Artifacts\\At1.job" # Optional

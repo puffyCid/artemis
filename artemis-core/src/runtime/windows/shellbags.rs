@@ -10,7 +10,7 @@ use log::error;
 /// Expose parsing shellbags located on systemdrive to `Deno`
 pub(crate) fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
     let options = ShellbagsOptions {
-        alt_drive: None,
+        alt_file: None,
         resolve_guids: resolve,
     };
     let bags = grab_shellbags(&options)?;
@@ -21,19 +21,15 @@ pub(crate) fn get_shellbags(resolve: bool) -> Result<String, AnyError> {
 
 #[op2]
 #[string]
-/// Expose parsing shellbags located on alt drive to `Deno`
-pub(crate) fn get_alt_shellbags(
-    resolve: bool,
-    #[string] drive: String,
-) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt shellbags drive. Need drive letter");
+/// Expose parsing shellbags located on alt file to `Deno`
+pub(crate) fn get_alt_shellbags(resolve: bool, #[string] file: String) -> Result<String, AnyError> {
+    if file.is_empty() {
+        error!("[runtime] Failed to parse alt shellbags file");
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let drive_char = &drive.chars().next().unwrap();
     let options = ShellbagsOptions {
-        alt_drive: Some(drive_char.to_owned()),
+        alt_file: Some(file),
         resolve_guids: resolve,
     };
 
@@ -80,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_shellbags() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgZHJpdmUpOwogICAgY29uc3QgYmFnc19hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gYmFnc19hcnJheTsKfQpmdW5jdGlvbiBnZXRBbHRTaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgZHJpdmUpIHsKICAgIHJldHVybiBnZXRfYWx0X3NoZWxsYmFncyhyZXNvbHZlX2d1aWRzLCBkcml2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGJhZ3MgPSBnZXRBbHRTaGVsbGJhZ3ModHJ1ZSwgIkMiKTsKICAgIGNvbnN0IGJhZ3NfZXhjZXB0X2RpcmVjdG9yeSA9IFtdOwogICAgZm9yIChjb25zdCBlbnRyeSBvZiBiYWdzKXsKICAgICAgICBpZiAoZW50cnkuc2hlbGxfdHlwZSA9PSAiRGlyZWN0b3J5IikgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgYmFnc19leGNlcHRfZGlyZWN0b3J5LnB1c2goZW50cnkpOwogICAgfQogICAgcmV0dXJuIGJhZ3NfZXhjZXB0X2RpcmVjdG9yeTsKfQptYWluKCk7";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBnbG9iKHBhdHRlcm4pIHsKICBjb25zdCByZXN1bHQgPSBmcy5nbG9iKHBhdHRlcm4pOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UocmVzdWx0KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zaGVsbGJhZ3MudHMKZnVuY3Rpb24gZ2V0QWx0U2hlbGxiYWdzKHJlc29sdmVfZ3VpZHMsIGRyaXZlKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGVsbGJhZ3MoCiAgICByZXNvbHZlX2d1aWRzLAogICAgZHJpdmUKICApOwogIGNvbnN0IHJlc3VsdCA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiQzpcXFVzZXJzXFwqXFxOVFVTRVIuREFUIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBbXTsKICB9CiAgZm9yIChjb25zdCBwYXRoIG9mIHBhdGhzKSB7CiAgICBjb25zdCByZXNvbHZlX2d1aWRzID0gdHJ1ZTsKICAgIGNvbnN0IGJhZ3MgPSBnZXRBbHRTaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcywgcGF0aC5mdWxsX3BhdGgpOwogICAgcmV0dXJuIGJhZ3M7CiAgfQogIHJldHVybiBbXTsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shellbags_alt"),

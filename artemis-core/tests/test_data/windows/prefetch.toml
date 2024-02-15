@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "prefetch"
 [artifacts.prefetch]
-alt_drive = 'C'
+# alt_dir = "C:\\Artifacts" # Optional

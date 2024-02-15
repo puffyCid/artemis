@@ -12,5 +12,5 @@ output = "local"
 [[artifacts]]
 artifact_name = "userassist"
 [artifacts.userassist]
-#alt_drive = 'C' # Optional
-#resolve_descriptions = true # Optional
+# alt_file = "C:\\Artifacts\\NTUSER.DAT" # Optional
+# resolve_descriptions = true # Optional
