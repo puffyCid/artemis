@@ -65,7 +65,7 @@ pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
     parse_xml(path)
 }
 
-/// Parse Tasks at an alternative drive
+/// Parse Tasks at provided drive
 fn drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
     let path = format!("{letter}:\\Windows\\System32\\Tasks");
     // Tasks may be under nested directories. Glob everything at path

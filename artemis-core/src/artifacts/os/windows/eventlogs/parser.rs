@@ -78,7 +78,7 @@ fn default_eventlogs(output: &mut Output, filter: &bool) -> Result<(), EventLogs
     read_directory(&path, output, filter)
 }
 
-/// Read and parse `EventLog` files at default path with alternative Drive letter. Ex: D:\
+/// Read and parse `EventLog` files with alternative path
 fn alt_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
     read_eventlogs(path, output, filter)
 }

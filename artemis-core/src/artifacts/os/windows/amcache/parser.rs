@@ -38,7 +38,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
     amcache_file(&drive)
 }
 
-/// Parse `Amcache` associated with provided alternative driver letter
+/// Parse `Amcache` associated with provided alternative path
 pub(crate) fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     parse_amcache(path)
 }

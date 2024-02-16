@@ -58,7 +58,7 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
     parse_shellbags(&drive, options.resolve_guids)
 }
 
-/// Parse `Shellbags` associated with provided alternative driver letter
+/// Parse `Shellbags` associated with provided alternative path
 fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
     let regex = if path.contains("UsrClass.dat") {
         create_regex(r"local settings\\software\\microsoft\\windows\\shell\\bagmru").unwrap()

@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_get_service_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zZXJ2aWNlcyhwYXRoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VGaWxlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NlcnZpY2VfZmlsZShwYXRoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VGaWxlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("service_path"),

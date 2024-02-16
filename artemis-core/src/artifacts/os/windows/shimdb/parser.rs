@@ -42,7 +42,7 @@ pub(crate) fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
     parse_sdb_file(path)
 }
 
-/// Parse the default sdb paths on an alternative drive
+/// Parse the default sdb paths on an provide drive letter
 fn drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
     let path = format!("{drive}:\\Windows\\apppatch\\sysmain.sdb");
 

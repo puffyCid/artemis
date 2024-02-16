@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_shimcache() {
-        let test = "bnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfc2hpbWNhY2hlKGRyaXZlKTsKICBjb25zdCByZXN1bHRzID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0czsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVzZXJzID0gZ2V0QWx0U2hpbWNhY2hlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIHVzZXJzOwp9Cm1haW4oKTs=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zaGltY2FjaGUudHMKZnVuY3Rpb24gZ2V0QWx0U2hpbWNhY2hlKGRyaXZlKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGltY2FjaGUoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEFsdFNoaW1jYWNoZSgiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxjb25maWdcXFNZU1RFTSIpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimcache_alt"),
