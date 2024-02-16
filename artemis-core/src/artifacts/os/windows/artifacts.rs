@@ -749,9 +749,7 @@ mod tests {
 
     #[test]
     fn test_eventlogs() {
-        let evt = EventLogsOptions {
-            alt_drive: Some('C'),
-        };
+        let evt = EventLogsOptions { alt_file: None };
         let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 
         let status = eventlogs(&evt, &mut output, &false).unwrap();
@@ -760,7 +758,7 @@ mod tests {
 
     #[test]
     fn test_shimdb() {
-        let sdb = ShimdbOptions { alt_drive: None };
+        let sdb = ShimdbOptions { alt_file: None };
         let mut output = output_options("shimdb_temp", "json", "./tmp", false);
 
         let status = shimdb(&sdb, &mut output, &false).unwrap();
@@ -769,7 +767,7 @@ mod tests {
 
     #[test]
     fn test_prefetch() {
-        let pf = PrefetchOptions { alt_drive: None };
+        let pf = PrefetchOptions { alt_dir: None };
         let mut output = output_options("prefetch_temp", "json", "./tmp", false);
 
         let status = prefetch(&pf, &mut output, &false).unwrap();
@@ -782,7 +780,7 @@ mod tests {
             user_hives: false,
             system_hives: true,
             path_regex: None,
-            alt_drive: None,
+            alt_file: None,
         };
         let mut output = output_options("reg_temp", "json", "./tmp", true);
 
@@ -852,7 +850,7 @@ mod tests {
     #[test]
     fn test_userassist() {
         let options = UserAssistOptions {
-            alt_drive: None,
+            alt_file: None,
             resolve_descriptions: Some(true),
         };
         let mut output = output_options("assist_temp", "json", "./tmp", false);
@@ -863,7 +861,7 @@ mod tests {
 
     #[test]
     fn test_shimcache() {
-        let options = ShimcacheOptions { alt_drive: None };
+        let options = ShimcacheOptions { alt_file: None };
         let mut output = output_options("shimcache_temp", "json", "./tmp", false);
 
         let status = shimcache(&options, &mut output, &false).unwrap();
@@ -873,7 +871,7 @@ mod tests {
     #[test]
     fn test_shellbags() {
         let options = ShellbagsOptions {
-            alt_drive: None,
+            alt_file: None,
             resolve_guids: false,
         };
         let mut output = output_options("bags_temp", "json", "./tmp", false);
@@ -884,7 +882,7 @@ mod tests {
 
     #[test]
     fn test_amcache() {
-        let options = AmcacheOptions { alt_drive: None };
+        let options = AmcacheOptions { alt_file: None };
         let mut output = output_options("amcache_temp", "json", "./tmp", false);
 
         let status = amcache(&options, &mut output, &false).unwrap();
@@ -949,10 +947,7 @@ mod tests {
     #[test]
     #[ignore = "Takes time to run"]
     fn test_wmipersist() {
-        let options = WmiPersistOptions {
-            alt_dir: None,
-            alt_drive: None,
-        };
+        let options = WmiPersistOptions { alt_dir: None };
         let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
 
         let status = wmi_persist(&options, &mut output, &false).unwrap();
@@ -961,7 +956,7 @@ mod tests {
 
     #[test]
     fn test_users() {
-        let options = UserOptions { alt_drive: None };
+        let options = UserOptions { alt_file: None };
         let mut output = output_options("users_temp", "json", "./tmp", false);
 
         let status = users(&options, &mut output, &false).unwrap();
@@ -970,7 +965,7 @@ mod tests {
 
     #[test]
     fn test_tasks() {
-        let options = TasksOptions { alt_drive: None };
+        let options = TasksOptions { alt_file: None };
         let mut output = output_options("tasks_temp", "json", "./tmp", false);
 
         let status = tasks(&options, &mut output, &false).unwrap();
@@ -979,7 +974,7 @@ mod tests {
 
     #[test]
     fn test_services() {
-        let options = ServicesOptions { alt_drive: None };
+        let options = ServicesOptions { alt_file: None };
         let mut output = output_options("services_temp", "json", "./tmp", false);
 
         let status = services(&options, &mut output, &false).unwrap();
@@ -988,7 +983,7 @@ mod tests {
 
     #[test]
     fn tests_jumplists() {
-        let options = JumplistsOptions { alt_drive: None };
+        let options = JumplistsOptions { alt_file: None };
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
         let status = jumplists(&options, &mut output, &false).unwrap();
@@ -997,7 +992,7 @@ mod tests {
 
     #[test]
     fn tests_recycle_bin() {
-        let options = RecycleBinOptions { alt_drive: None };
+        let options = RecycleBinOptions { alt_file: None };
         let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
 
         let status = recycle_bin(&options, &mut output, &false).unwrap();

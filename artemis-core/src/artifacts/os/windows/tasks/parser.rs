@@ -24,11 +24,35 @@ use log::{error, warn};
 
 /// Grab Schedule Tasks based on `TaskOptions`
 pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_tasks(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        if file.ends_with(".job") {
+            let result = grab_task_job(file)?;
+            let task = TaskData {
+                jobs: vec![result],
+                tasks: Vec::new(),
+            };
+
+            return Ok(task);
+        }
+        let result = grab_task_xml(file)?;
+        let task = TaskData {
+            jobs: Vec::new(),
+            tasks: vec![result],
+        };
+
+        return Ok(task);
     }
 
-    default_tasks()
+    let drive_result = get_systemdrive();
+    let drive = match drive_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[tasks] Could not determine systemdrive: {err:?}");
+            return Err(TaskError::DriveLetter);
+        }
+    };
+
+    drive_tasks(&drive)
 }
 
 /// Grab and parse single Task Job File at provided path
@@ -41,21 +65,8 @@ pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
     parse_xml(path)
 }
 
-/// Grab the default Tasks files. Liekly will be C:
-fn default_tasks() -> Result<TaskData, TaskError> {
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[tasks] Could not determine systemdrive: {err:?}");
-            return Err(TaskError::DriveLetter);
-        }
-    };
-    alt_drive_tasks(&drive)
-}
-
-/// Parse Tasks at an alternative drive
-fn alt_drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
+/// Parse Tasks at provided drive
+fn drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
     let path = format!("{letter}:\\Windows\\System32\\Tasks");
     // Tasks may be under nested directories. Glob everything at path
     let paths_result = glob_paths(&format!("{path}\\**\\*"));
@@ -121,28 +132,22 @@ mod tests {
     use super::grab_tasks;
     use crate::artifacts::os::windows::tasks::parser::{grab_task_job, grab_task_xml};
     use crate::{
-        artifacts::os::windows::tasks::parser::{alt_drive_tasks, default_tasks},
+        artifacts::os::windows::tasks::parser::drive_tasks,
         structs::artifacts::os::windows::TasksOptions,
     };
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_tasks() {
-        let options = TasksOptions { alt_drive: None };
+        let options = TasksOptions { alt_file: None };
 
         let result = grab_tasks(&options).unwrap();
         assert!(result.tasks.len() > 10);
     }
 
     #[test]
-    fn test_default_tasks() {
-        let result = default_tasks().unwrap();
-        assert!(result.tasks.len() > 10);
-    }
-
-    #[test]
-    fn test_alt_drive_tasks() {
-        let result = alt_drive_tasks(&'C').unwrap();
+    fn test_drive_tasks() {
+        let result = drive_tasks(&'C').unwrap();
         assert!(result.tasks.len() > 10);
     }
 

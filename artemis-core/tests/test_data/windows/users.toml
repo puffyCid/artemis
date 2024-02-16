@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "users"
 [artifacts.users]
-#alt_drive = 'C' # Optional
+# alt_file = "C:\\Artifacts\\SAM" # Optional

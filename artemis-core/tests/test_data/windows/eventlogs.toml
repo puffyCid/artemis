@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "eventlogs"
 [artifacts.eventlogs]
-alt_drive = 'C'
+# alt_file = "C:\\Artifacts\\Security.evtx" # Optional

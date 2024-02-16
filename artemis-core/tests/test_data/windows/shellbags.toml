@@ -13,4 +13,4 @@ output = "local"
 artifact_name = "shellbags"
 [artifacts.shellbags]
 resolve_guids = true
-#alt_drive = 'C' # Optional
+# alt_file = "C:\\Artifacts\\UsrClass.dat" # Optional

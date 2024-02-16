@@ -10,35 +10,8 @@ use log::error;
 #[string]
 /// Expose parsing Schedule Tasks at default systemdrive to Deno
 pub(crate) fn get_tasks() -> Result<String, AnyError> {
-    let options = TasksOptions { alt_drive: None };
+    let options = TasksOptions { alt_file: None };
     let task = grab_tasks(&options)?;
-
-    let results = serde_json::to_string(&task)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Schedule Tasks at alternative drive to Deno
-pub(crate) fn get_alt_tasks(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt tasks drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = TasksOptions {
-        alt_drive: Some(drive_char),
-    };
-
-    let task_result = grab_tasks(&options);
-    let task = match task_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse tasks at alt drive {drive}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
 
     let results = serde_json::to_string(&task)?;
     Ok(results)
@@ -110,17 +83,6 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("task_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_tasks() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy90YXNrcy50cwpmdW5jdGlvbiBnZXRBbHRUYXNrcyhkcml2ZSkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdGFza3MoZHJpdmUpOwogIGNvbnN0IHRhc2tzID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gdGFza3M7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB0YXNrcyA9IGdldEFsdFRhc2tzKCJDIik7CiAgaWYgKHRhc2tzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEdvdCB0YXNrIHBhcnNpbmcgZXJyb3IhICR7dGFza3N9YCk7CiAgfQogIHJldHVybiB0YXNrczsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("task_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

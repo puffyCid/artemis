@@ -20,14 +20,9 @@ use log::error;
 pub(crate) fn grab_shimcache(
     options: &ShimcacheOptions,
 ) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_shimcache(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        return parse_shimcache(file);
     }
-    default_shimcache()
-}
-
-/// Get `Shimcache` entries using the default systemdrive
-fn default_shimcache() -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -37,17 +32,18 @@ fn default_shimcache() -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
         }
     };
 
-    parse_shimcache(&drive)
+    drive_shimcache(&drive)
 }
 
-/// Get `Shimcache` entries using an alternative drive letter
-fn alt_drive_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    parse_shimcache(drive)
+/// Get `Shimcache` entries using an alternative path
+fn drive_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
+    let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
+    parse_shimcache(&path)
 }
 
 /// Get `Shimcache` entries for all `ControlSets`. Then parse the `Shimcache` data
-fn parse_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    let results = get_shimcache_data(drive)?;
+fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
+    let results = get_shimcache_data(path)?;
     let mut shimcache_entries = Vec::new();
 
     for entry in results {
@@ -61,32 +57,26 @@ fn parse_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> 
 mod tests {
     use crate::{
         artifacts::os::windows::shimcache::parser::{
-            alt_drive_shimcache, default_shimcache, grab_shimcache, parse_shimcache,
+            drive_shimcache, grab_shimcache, parse_shimcache,
         },
         structs::artifacts::os::windows::ShimcacheOptions,
     };
 
     #[test]
-    fn test_default_shimcache() {
-        let results = default_shimcache().unwrap();
-        assert!(results.len() > 3);
-    }
-
-    #[test]
-    fn test_alt_drive_shimcache() {
-        let results = alt_drive_shimcache(&'C').unwrap();
+    fn test_drive_shimcache() {
+        let results = drive_shimcache(&'C').unwrap();
         assert!(results.len() > 3);
     }
 
     #[test]
     fn test_parse_shimcache() {
-        let results = parse_shimcache(&'C').unwrap();
+        let results = parse_shimcache("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
         assert!(results.len() > 3);
     }
 
     #[test]
     fn test_grab_shimcache() {
-        let options = ShimcacheOptions { alt_drive: None };
+        let options = ShimcacheOptions { alt_file: None };
 
         let results = grab_shimcache(&options).unwrap();
         assert!(results.len() > 5);

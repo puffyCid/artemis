@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn test_parse_shimdata() {
-        let result = get_shimcache_data(&'C').unwrap();
+        let result = get_shimcache_data("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
         assert!(result.len() > 0);
 
         for entry in result {

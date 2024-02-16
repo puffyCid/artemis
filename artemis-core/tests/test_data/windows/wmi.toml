@@ -12,5 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "wmipersist"
 [artifacts.wmipersist]
-#alt_drive = 'C' # Optional
-#alt_dir = "D:\\Evidence\\WMI" # Optional
+# alt_dir = "D:\\Artifacts" # Optional

@@ -10,35 +10,8 @@ use log::error;
 #[string]
 /// Expose parsing Recycle Bin at default systemdrive to Deno
 pub(crate) fn get_recycle_bin() -> Result<String, AnyError> {
-    let options = RecycleBinOptions { alt_drive: None };
+    let options = RecycleBinOptions { alt_file: None };
     let bin = grab_recycle_bin(&options)?;
-
-    let results = serde_json::to_string(&bin)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Recycle Bin at alternative drive to Deno
-pub(crate) fn get_alt_recycle_bin(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt recycle bin drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = RecycleBinOptions {
-        alt_drive: Some(drive_char),
-    };
-
-    let bin_result = grab_recycle_bin(&options);
-    let bin = match bin_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse recycle bin at alt drive {drive}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
-        }
-    };
 
     let results = serde_json::to_string(&bin)?;
     Ok(results)
@@ -97,17 +70,6 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("recycle_bin_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_recycle_bin() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9yZWN5Y2xlYmluLnRzCmZ1bmN0aW9uIGdldFJlY3ljbGVCaW4oZHJpdmUpIHsKICBpZiAoZHJpdmUgPT09IHZvaWQgMCkgewogICAgY29uc3QgZGF0YTIgPSBEZW5vLmNvcmUub3BzLmdldF9yZWN5Y2xlX2JpbigpOwogICAgY29uc3QgYmluMiA9IEpTT04ucGFyc2UoZGF0YTIpOwogICAgcmV0dXJuIGJpbjI7CiAgfQogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfcmVjeWNsZV9iaW4oZHJpdmUpOwogIGNvbnN0IGJpbiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIGJpbjsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGJpbiA9IGdldFJlY3ljbGVCaW4oIkMiKTsKICByZXR1cm4gYmluOwp9Cm1haW4oKTs=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("recycle_bin_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

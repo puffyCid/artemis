@@ -22,14 +22,10 @@ use super::pf::parse_prefetch;
 
 /// Parse `Prefetch` based on `PrefetchOptions`
 pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, PrefetchError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_prefetch(&alt_drive);
+    if let Some(path) = &options.alt_dir {
+        return custom_prefetch_path(path);
     }
-    default_prefetch()
-}
 
-/// Read and parse prefetch files at default Windows path. Typically C:\Windows\Prefetch
-fn default_prefetch() -> Result<Vec<Prefetch>, PrefetchError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -38,12 +34,7 @@ fn default_prefetch() -> Result<Vec<Prefetch>, PrefetchError> {
             return Err(PrefetchError::DriveLetter);
         }
     };
-    alt_drive_prefetch(&drive)
-}
-
-/// Read and parse prefetch files at default path with alternative Drive letter. Ex: D:\
-fn alt_drive_prefetch(letter: &char) -> Result<Vec<Prefetch>, PrefetchError> {
-    let path = format!("{letter}:\\Windows\\Prefetch");
+    let path = format!("{drive}:\\Windows\\Prefetch");
     read_directory(&path)
 }
 
@@ -99,7 +90,7 @@ fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{alt_drive_prefetch, custom_prefetch_path, default_prefetch, grab_prefetch};
+    use super::{custom_prefetch_path, grab_prefetch};
     use crate::{
         artifacts::os::windows::prefetch::parser::{read_directory, read_prefetch},
         structs::artifacts::os::windows::PrefetchOptions,
@@ -107,19 +98,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_default_prefetch() {
-        let _ = default_prefetch().unwrap();
-    }
-
-    #[test]
-    fn test_alt_drive_prefetch() {
-        let drive = 'C';
-        let _ = alt_drive_prefetch(&drive).unwrap();
-    }
-
-    #[test]
     fn test_grab_prefetch() {
-        let options = PrefetchOptions { alt_drive: None };
+        let options = PrefetchOptions { alt_dir: None };
         let _ = grab_prefetch(&options).unwrap();
     }
 

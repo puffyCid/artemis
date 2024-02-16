@@ -108,9 +108,9 @@ pub(crate) fn output_data(
     output: &mut Output,
     start_time: &u64,
 ) -> Result<(), RuntimeError> {
-    let output_status = if output.format == "json" {
+    let output_status = if output.format.to_lowercase() == "json" {
         json_format(serde_data, output_name, output, start_time)
-    } else if output.format == "jsonl" {
+    } else if output.format.to_lowercase() == "jsonl" {
         jsonl_format(serde_data, output_name, output, start_time)
     } else {
         error!("[runtime] Unknown formatter provided: {}", output.format);

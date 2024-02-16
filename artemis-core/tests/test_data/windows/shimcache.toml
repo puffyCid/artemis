@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "shimcache"
 [artifacts.shimcache]
-#alt_drive = 'C' # Optional
+# alt_file = "C:\\Artifacts\SYSTEM" # Optional

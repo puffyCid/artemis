@@ -10,28 +10,9 @@ use log::error;
 #[string]
 /// Expose parsing Services at default systemdrive to Deno
 pub(crate) fn get_services() -> Result<String, AnyError> {
-    let options = ServicesOptions { alt_drive: None };
+    let options = ServicesOptions { alt_file: None };
     let service = grab_services(&options)?;
 
-    let results = serde_json::to_string(&service)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Services at alternative drive to Deno
-pub(crate) fn get_alt_services(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt services drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = ServicesOptions {
-        alt_drive: Some(drive_char),
-    };
-
-    let service = grab_services(&options)?;
     let results = serde_json::to_string(&service)?;
     Ok(results)
 }
@@ -87,19 +68,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_alt_services() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRBbHRTZXJ2aWNlcyhhbHQpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfYWx0X3NlcnZpY2VzKGFsdCk7CiAgY29uc3Qgc2VydmljZXMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiBzZXJ2aWNlczsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRBbHRTZXJ2aWNlcygnQycpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("service_alt"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
     fn test_get_service_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zZXJ2aWNlcyhwYXRoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VGaWxlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NlcnZpY2VfZmlsZShwYXRoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VGaWxlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("service_path"),

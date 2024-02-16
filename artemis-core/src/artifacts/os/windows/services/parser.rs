@@ -20,8 +20,8 @@ use log::error;
 
 /// Parse `Services` based on `ServicesOptions`
 pub(crate) fn grab_services(options: &ServicesOptions) -> Result<Vec<ServicesData>, ServicesError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_services(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        return grab_service_file(file);
     }
     default_services()
 }
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_grab_services() {
-        let options = ServicesOptions { alt_drive: None };
+        let options = ServicesOptions { alt_file: None };
 
         let result = grab_services(&options).unwrap();
         assert!(result.len() > 10);

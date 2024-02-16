@@ -21,19 +21,10 @@ use log::error;
 
 /// Parse `Shimdb` based on `ShimdbOptions`
 pub(crate) fn grab_shimdb(options: &ShimdbOptions) -> Result<Vec<ShimData>, ShimdbError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_shimdb(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        let result = custom_shimdb_path(file)?;
+        return Ok(vec![result]);
     }
-    default_shimdb()
-}
-
-/// SDB files can technically exist anywhere and do not have to end in `.sdb`. Parse any custom paths provided
-pub(crate) fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
-    parse_sdb_file(path)
-}
-
-/// Parse the default sdb paths on systemdrive
-fn default_shimdb() -> Result<Vec<ShimData>, ShimdbError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -42,11 +33,17 @@ fn default_shimdb() -> Result<Vec<ShimData>, ShimdbError> {
             return Err(ShimdbError::DriveLetter);
         }
     };
-    alt_drive_shimdb(&drive)
+
+    drive_shimdb(&drive)
 }
 
-/// Parse the default sdb paths on an alternative drive
-fn alt_drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
+/// SDB files can technically exist anywhere and do not have to end in `.sdb`. Parse any custom paths provided
+pub(crate) fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
+    parse_sdb_file(path)
+}
+
+/// Parse the default sdb paths on an provide drive letter
+fn drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
     let path = format!("{drive}:\\Windows\\apppatch\\sysmain.sdb");
 
     let custom32_bit_path = format!("{drive}:\\Windows\\apppatch\\Custom");
@@ -114,29 +111,21 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        alt_drive_shimdb, custom_shimdb_path, default_shimdb, grab_shimdb, parse_sdb_file,
-    };
+    use super::{custom_shimdb_path, drive_shimdb, grab_shimdb, parse_sdb_file};
     use crate::structs::artifacts::os::windows::ShimdbOptions;
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_shimdb() {
-        let options = ShimdbOptions { alt_drive: None };
+        let options = ShimdbOptions { alt_file: None };
 
         let results = grab_shimdb(&options).unwrap();
         assert!(results.len() >= 1)
     }
 
     #[test]
-    fn test_default_shimdb() {
-        let result = default_shimdb().unwrap();
-        assert!(result.len() >= 1)
-    }
-
-    #[test]
-    fn test_alt_drive_shimdb() {
-        let result = alt_drive_shimdb(&'C').unwrap();
+    fn test_drive_shimdb() {
+        let result = drive_shimdb(&'C').unwrap();
         assert!(result.len() >= 1)
     }
 

@@ -84,8 +84,11 @@ pub(crate) fn read_text_file(path: &str) -> Result<String, FileSystemError> {
     file_read_text(path)
 }
 
-/// Return a `Lines<BufReader>` to iterate through a text file
+/// Return a `Lines<BufReader>` to iterate through a text file smaller than 2GB
 pub(crate) fn file_lines(path: &str) -> Result<Lines<BufReader<File>>, FileSystemError> {
+    if file_too_large(path) {
+        return Err(FileSystemError::LargeFile);
+    }
     let reader = file_reader(path)?;
     let buf_reader = BufReader::new(reader);
     Ok(buf_reader.lines())

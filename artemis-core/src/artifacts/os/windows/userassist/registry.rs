@@ -1,6 +1,6 @@
 use super::error::UserAssistError;
 use crate::{
-    artifacts::os::windows::registry::helper::get_registry_keys_by_ref,
+    artifacts::os::windows::registry::helper::{get_registry_keys, get_registry_keys_by_ref},
     filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     utils::regex_options::create_regex,
 };
@@ -70,6 +70,31 @@ pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, U
     Ok(userassist_data)
 }
 
+/// Parse `UserAssist` at provided path
+pub(crate) fn alt_userassist(path: &str) -> Result<Vec<UserAssistReg>, UserAssistError> {
+    let start_path = "";
+    let assist_regex =
+        create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
+            .unwrap(); // always valid
+
+    let reg_results = get_registry_keys(start_path, &assist_regex, path);
+    let reg_data = match reg_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[userassist] Could not parse {path}: {err:?}",);
+            return Err(UserAssistError::RegistryFiles);
+        }
+    };
+
+    let regs = filter_userassist(&reg_data);
+    let userassist_result = UserAssistReg {
+        regs,
+        reg_file: path.to_string(),
+    };
+
+    Ok(vec![userassist_result])
+}
+
 /// Filter Registry that only contain `Count` in the key name
 fn filter_userassist(reg_data: &[RegistryEntry]) -> Vec<RegistryEntry> {
     let mut userassist_entries: Vec<RegistryEntry> = Vec::new();
@@ -84,7 +109,9 @@ fn filter_userassist(reg_data: &[RegistryEntry]) -> Vec<RegistryEntry> {
 
 #[cfg(test)]
 mod tests {
-    use super::get_userassist_drive;
+    use std::path::PathBuf;
+
+    use super::{alt_userassist, get_userassist_drive};
     use crate::{
         artifacts::os::windows::{
             registry::helper::get_registry_keys_by_ref, userassist::registry::filter_userassist,
@@ -118,5 +145,13 @@ mod tests {
             .unwrap();
             let _results = filter_userassist(&reg_results);
         }
+    }
+
+    #[test]
+    fn test_alt_userassist() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let result = alt_userassist(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(result.len(), 1);
     }
 }

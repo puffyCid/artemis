@@ -9,7 +9,7 @@ use log::error;
 #[string]
 /// Expose parsing user info to `Deno`
 pub(crate) fn get_users() -> Result<String, AnyError> {
-    let options = UserOptions { alt_drive: None };
+    let options = UserOptions { alt_file: None };
 
     let users = grab_users(&options)?;
     let results = serde_json::to_string(&users)?;
@@ -19,19 +19,17 @@ pub(crate) fn get_users() -> Result<String, AnyError> {
 #[op2]
 #[string]
 /// Expose parsing user info on alt drive to `Deno`
-pub(crate) fn get_alt_users(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse user info. Need drive letter");
+pub(crate) fn get_alt_users(#[string] file: String) -> Result<String, AnyError> {
+    if file.is_empty() {
+        error!("[runtime] Failed to parse user info. Need full path");
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let drive_char = &drive.chars().next().unwrap();
     let options = UserOptions {
-        alt_drive: Some(drive_char.to_owned()),
+        alt_file: Some(file),
     };
 
     let users = grab_users(&options)?;
-
     let results = serde_json::to_string(&users)?;
     Ok(results)
 }
@@ -73,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_get_alt_users() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy91c2Vycy50cwpmdW5jdGlvbiBnZXRBbHRVc2Vyc1dpbihkcml2ZSkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdXNlcnMoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdXNlcnMgPSBnZXRBbHRVc2Vyc1dpbigiQyIpOwogIHJldHVybiB1c2VyczsKfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy91c2Vycy50cwpmdW5jdGlvbiBnZXRBbHRVc2Vyc1dpbihkcml2ZSkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfdXNlcnMoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdXNlcnMgPSBnZXRBbHRVc2Vyc1dpbigiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxjb25maWdcXFNBTSIpOwogIHJldHVybiB1c2VyczsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("users_alt"),

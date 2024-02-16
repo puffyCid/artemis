@@ -10,27 +10,7 @@ use log::error;
 #[string]
 /// Get Prefetch files at using default drive (typically C)
 pub(crate) fn get_prefetch() -> Result<String, AnyError> {
-    let options = PrefetchOptions { alt_drive: None };
-    let pf = grab_prefetch(&options)?;
-
-    let results = serde_json::to_string(&pf)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Get Prefetch files using alternative drive
-pub(crate) fn get_alt_prefetch(#[string] drive: String) -> Result<String, AnyError> {
-    if drive.is_empty() {
-        error!("[runtime] Failed to parse alt prefetch drive. Need drive letter");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let drive_char = drive.chars().next().unwrap();
-    let options = PrefetchOptions {
-        alt_drive: Some(drive_char),
-    };
-
+    let options = PrefetchOptions { alt_dir: None };
     let pf = grab_prefetch(&options)?;
 
     let results = serde_json::to_string(&pf)?;
@@ -82,17 +62,6 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("pf_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_prefetch() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYWx0X3ByZWZldGNoKHBhdGgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfcHJlZmV0Y2gocGF0aCk7CiAgICBjb25zdCBwZiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gcGY7Cn0KZnVuY3Rpb24gZ2V0QWx0UHJlZmV0Y2gocGF0aCkgewogICAgcmV0dXJuIGdldF9hbHRfcHJlZmV0Y2gocGF0aCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHBmID0gZ2V0QWx0UHJlZmV0Y2goIkM6XFxXaW5kb3dzXFxQcmVmZXRjaCIpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("pf_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

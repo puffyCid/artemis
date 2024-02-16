@@ -12,5 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "shimdb"
 [artifacts.shimdb]
-# Optional
-# alt_drive = 'C' 
+# alt_file = "C:\\Artifacts\\bad.sdb" # Optional 

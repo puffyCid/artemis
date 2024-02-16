@@ -29,16 +29,16 @@ use super::recycle::parse_recycle_bin;
 pub(crate) fn grab_recycle_bin(
     options: &RecycleBinOptions,
 ) -> Result<Vec<RecycleBin>, RecycleBinError> {
-    let drive = if let Some(alt) = options.alt_drive {
-        alt
-    } else {
-        let systemdrive_result = get_systemdrive();
-        match systemdrive_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[recyclebin] Could not get systemdrive: {err:?}");
-                return Err(RecycleBinError::Systemdrive);
-            }
+    if let Some(file) = &options.alt_file {
+        let result = grab_recycle_bin_path(file)?;
+        return Ok(vec![result]);
+    }
+    let systemdrive_result = get_systemdrive();
+    let drive = match systemdrive_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[recyclebin] Could not get systemdrive: {err:?}");
+            return Err(RecycleBinError::Systemdrive);
         }
     };
 
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_grab_recycle_bin() {
-        let options = RecycleBinOptions { alt_drive: None };
+        let options = RecycleBinOptions { alt_file: None };
         let _ = grab_recycle_bin(&options).unwrap();
     }
 

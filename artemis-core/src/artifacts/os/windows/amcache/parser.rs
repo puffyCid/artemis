@@ -23,14 +23,10 @@ use log::error;
 
 /// Get Windows `Amcache` for all users based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, AmcacheError> {
-    if let Some(alt_drive) = options.alt_drive {
-        return alt_drive_amcache(&alt_drive);
+    if let Some(file) = &options.alt_file {
+        return alt_amcache(file);
     }
-    default_amcache()
-}
 
-/// Get the default driver letter and parse the `Amcache`
-fn default_amcache() -> Result<Vec<Amcache>, AmcacheError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -42,9 +38,9 @@ fn default_amcache() -> Result<Vec<Amcache>, AmcacheError> {
     amcache_file(&drive)
 }
 
-/// Parse `Amcache` associated with provided alternative driver letter
-fn alt_drive_amcache(drive: &char) -> Result<Vec<Amcache>, AmcacheError> {
-    amcache_file(drive)
+/// Parse `Amcache` associated with provided alternative path
+pub(crate) fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
+    parse_amcache(path)
 }
 
 /// Based on Windows version get the path to `Amcache` file
@@ -187,8 +183,8 @@ mod tests {
     use crate::{
         artifacts::os::windows::{
             amcache::parser::{
-                adjust_id, alt_drive_amcache, amcache_file, default_amcache, extract_entry,
-                extract_old_path, grab_amcache, parse_amcache, Amcache,
+                adjust_id, alt_amcache, amcache_file, extract_entry, extract_old_path,
+                grab_amcache, parse_amcache, Amcache,
             },
             registry::helper::get_registry_keys,
         },
@@ -198,20 +194,16 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_default_amcache() {
-        let result = default_amcache().unwrap();
-        assert!(result.len() > 10);
-    }
-
-    #[test]
-    fn test_alt_drive_amcache() {
-        let result = alt_drive_amcache(&'C').unwrap();
-        assert!(result.len() > 10);
+    fn test_alt_amcache() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
+        let result = alt_amcache(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(result.len(), 4);
     }
 
     #[test]
     fn test_grab_amcache() {
-        let options = AmcacheOptions { alt_drive: None };
+        let options = AmcacheOptions { alt_file: None };
         let result = grab_amcache(&options).unwrap();
         assert!(result.len() > 10);
     }
@@ -226,8 +218,7 @@ mod tests {
     fn test_parse_amcache() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
-        let result = parse_amcache(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.len(), 4);
+        let result = parse_amcache(test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(result[0].first_execution, 1673412178);
         assert_eq!(

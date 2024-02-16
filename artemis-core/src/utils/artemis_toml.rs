@@ -7,13 +7,16 @@ impl ArtemisToml {
     // Parse the Artemis TOML collector file
     pub(crate) fn parse_artemis_toml(toml_data: &[u8]) -> Result<ArtemisToml, ArtemisError> {
         let toml_results = toml::from_str(from_utf8(toml_data).unwrap_or_default());
-        let artemis_collector: ArtemisToml = match toml_results {
+        let mut artemis_collector: ArtemisToml = match toml_results {
             Ok(results) => results,
             Err(err) => {
                 error!("[artemis-core] Artemis failed to parse TOML data. Error: {err:?}");
                 return Err(ArtemisError::BadToml);
             }
         };
+
+        // Format is always lowercase
+        artemis_collector.output.format = artemis_collector.output.format.to_lowercase();
         Ok(artemis_collector)
     }
 }
