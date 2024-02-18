@@ -12,7 +12,7 @@ pub enum ArtemisError {
     GzipDecompress,
     #[cfg(target_os = "linux")]
     ZstdDecompresss,
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     Lz4Decompresss,
     #[cfg(target_os = "linux")]
     XzDecompress,
@@ -44,7 +44,7 @@ impl fmt::Display for ArtemisError {
             ArtemisError::GzipDecompress => write!(f, "Could not decompress gzip data"),
             #[cfg(target_os = "linux")]
             ArtemisError::ZstdDecompresss => write!(f, "Could not decompress zstd data"),
-            #[cfg(target_os = "linux")]
+            #[cfg(target_family = "unix")]
             ArtemisError::Lz4Decompresss => write!(f, "Could not decompress lz4 data"),
             #[cfg(target_os = "linux")]
             ArtemisError::XzDecompress => write!(f, "Could not decompress xz data"),

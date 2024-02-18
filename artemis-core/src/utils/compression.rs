@@ -56,7 +56,7 @@ pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     Ok(data)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 /// Decompress lz4 data
 pub(crate) fn decompress_lz4(data: &[u8], decom_size: usize) -> Result<Vec<u8>, ArtemisError> {
     use lz4_flex::decompress;
@@ -381,7 +381,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     fn test_decompress_lz4() {
         use super::decompress_lz4;
 

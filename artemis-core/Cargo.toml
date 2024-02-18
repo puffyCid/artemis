@@ -60,6 +60,7 @@ xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "f7b475e7d201d7dd831f9ecf3536af4d65bd1c52" }
 plist = "1.6.0"
+lz4_flex = "0.11.2"
 
 # Dependencies at compile time
 [build-dependencies]
