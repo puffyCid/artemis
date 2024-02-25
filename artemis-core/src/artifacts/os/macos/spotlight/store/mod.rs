@@ -1,3 +1,4 @@
 pub(crate) mod db;
 mod map;
-mod property;
+mod properties;
+pub(crate) mod property;

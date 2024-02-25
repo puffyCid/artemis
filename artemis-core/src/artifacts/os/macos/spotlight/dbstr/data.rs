@@ -1,6 +1,9 @@
-use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
-    strings::extract_utf8_string,
+use crate::{
+    artifacts::os::macos::spotlight::store::property::parse_variable_size,
+    utils::{
+        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+        strings::extract_utf8_string,
+    },
 };
 use nom::bytes::complete::{take, take_while1};
 use serde::Serialize;
@@ -8,12 +11,12 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct DataProperties {
-    attribute: DataAttribute,
-    prop_type: u8,
-    name: String,
+    pub(crate) attribute: DataAttribute,
+    pub(crate) prop_type: u8,
+    pub(crate) name: String,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub(crate) enum DataAttribute {
     AttrBool,
     AttrUnknown,
@@ -38,10 +41,6 @@ pub(crate) fn parse_properties_data<'a>(
     data: &'a [u8],
     offsets: &[u32],
 ) -> nom::IResult<&'a [u8], HashMap<usize, DataProperties>> {
-    // 1. Need to determine size of variable bytes. See: ReadVarSizeNum in mac_apt (or is this just related to size, see ur old parser :)
-    // 2. Once you determine size of variable bytes get the DataAttribute and prop_type (both should be one byte each)
-    // 3. Get name/string
-
     let deleted = 1;
     let empty = 0;
     let mut props = HashMap::new();
@@ -99,6 +98,7 @@ pub(crate) fn parse_categories_data<'a>(
 pub(crate) fn parse_dbstr_data<'a>(
     data: &'a [u8],
     offsets: &[u32],
+    has_extra: &bool,
 ) -> nom::IResult<&'a [u8], HashMap<usize, Vec<u32>>> {
     let deleted = 1;
     let empty = 0;
@@ -107,13 +107,29 @@ pub(crate) fn parse_dbstr_data<'a>(
         if offset == &deleted || offset == &empty {
             continue;
         }
+
         let (data_start, _) = take(*offset)(data)?;
-        let (input, total_size) = nom_unsigned_one_byte(data_start, Endian::Le)?;
-        let (_, input) = take(total_size)(input)?;
 
-        let (input, array_size) = nom_unsigned_one_byte(input, Endian::Le)?;
-        let (_, mut array_data) = take(array_size)(input)?;
+        let (mut input, mut value) = nom_unsigned_one_byte(data_start, Endian::Le)?;
+        let mut entry_size = (value & 0x7f) as usize;
 
+        let mut bytes_read = 1;
+        while (value & 0x80) == 0x80 {
+            let (remaining_input, extra_value) = nom_unsigned_one_byte(input, Endian::Le)?;
+            input = remaining_input;
+            value = extra_value;
+            bytes_read += 1;
+            entry_size |= (value as usize & 0x7f) << (7 * bytes_read);
+        }
+
+        let (mut input, mut index_size) = parse_variable_size(input)?;
+        if *has_extra {
+            let (remaining, _) = nom_unsigned_one_byte(input, Endian::Le)?;
+            input = remaining;
+        }
+
+        index_size = 4 * (index_size / 4);
+        let (_input, mut array_data) = take(index_size)(input)?;
         let min_size = 4;
         let mut value_vec = Vec::new();
 
@@ -227,7 +243,7 @@ mod tests {
         test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
         let headers = glob_paths(test_location.to_str().unwrap()).unwrap();
         for header in headers {
-            if !header.full_path.contains("4") {
+            if !header.full_path.contains("5") && !header.full_path.contains("4") {
                 continue;
             }
 
@@ -240,8 +256,21 @@ mod tests {
             let data = header.full_path.replace("header", "data");
             let prop_data = read_file(&data).unwrap();
 
-            let (_, results) = parse_dbstr_data(&prop_data, &offsets_vec).unwrap();
-            assert_eq!(results.len(), 312);
+            let mut extra = false;
+            if header.full_path.contains("5") {
+                extra = true;
+            }
+
+            let (_, results) = parse_dbstr_data(&prop_data, &offsets_vec, &extra).unwrap();
+            if header.full_path.contains("5") {
+                assert_eq!(results.len(), 126);
+                assert_eq!(results.get(&3).unwrap().len(), 41);
+            }
+
+            if header.full_path.contains("4") {
+                assert_eq!(results.len(), 312);
+                assert_eq!(results.get(&3).unwrap().len(), 1);
+            }
         }
     }
 }

@@ -72,7 +72,7 @@ pub(crate) fn get_spotlight_meta(path: &str) -> Result<SpotlightMeta, SpotlightE
         } else if path.full_path.contains("4") {
             let indexes_path = path.full_path.replace("header", "data");
             let indexes_data = read_dbstr(&indexes_path)?;
-            let indexes_results = parse_dbstr_data(&indexes_data, &offsets);
+            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, &false);
             match indexes_results {
                 Ok((_, results)) => meta.indexes1 = results,
                 Err(_err) => {
@@ -83,7 +83,7 @@ pub(crate) fn get_spotlight_meta(path: &str) -> Result<SpotlightMeta, SpotlightE
         } else if path.full_path.contains("5") {
             let indexes_path = path.full_path.replace("header", "data");
             let indexes_data = read_dbstr(&indexes_path)?;
-            let indexes_results = parse_dbstr_data(&indexes_data, &offsets);
+            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, &true);
             match indexes_results {
                 Ok((_, results)) => meta.indexes2 = results,
                 Err(_err) => {

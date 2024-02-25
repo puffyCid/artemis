@@ -1,27 +1,39 @@
 use crate::{
-    artifacts::os::macos::spotlight::dbstr::{data::DataAttribute, meta::SpotlightMeta},
+    artifacts::os::macos::spotlight::{
+        dbstr::{data::DataAttribute, meta::SpotlightMeta},
+        store::properties::{
+            binary::extract_binary,
+            date::extract_dates,
+            float::{extract_float32, extract_float64},
+            list::extract_list,
+            multivalue::extract_multivalue,
+            string::extract_string,
+        },
+    },
     utils::{
         compression::decompress_lz4,
+        encoding::base64_encode_standard,
         nom_helper::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian,
         },
         strings::extract_utf8_string,
+        uuid::format_guid_be_bytes,
     },
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use log::error;
 use nom::{bytes::complete::take, number::complete::le_u64};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct SpotlightEntries {
-    inode: u64,
-    parent_inode: u64,
-    flags: u64,
-    store_id: u64,
-    last_updated: u64,
+    inode: usize,
+    parent_inode: usize,
+    flags: u8,
+    store_id: usize,
+    last_updated: usize,
     values: HashMap<String, SpotlightValue>,
 }
 
@@ -83,27 +95,27 @@ fn parse_all_records<'a>(
     let mut decom_data = data;
     let min_size = 4;
     while decom_data.len() > min_size {
-        let (input, record_size) = nom_unsigned_four_bytes(decom_data, Endian::Le)?;
+        let (input, mut record_size) = nom_unsigned_four_bytes(decom_data, Endian::Le)?;
+        if record_size as usize > input.len() {
+            record_size = input.len() as u32;
+            //panic!("hmm");
+            //break;
+        }
         let (input, record_data) = take(record_size)(input)?;
 
         decom_data = input;
 
         let (_, entry) = parse_record(record_data, meta)?;
-        break;
+        println!("{entry:?}");
     }
 
     Ok((decom_data, Vec::new()))
 }
 
-fn parse_record<'a>(data: &'a [u8], meta: &SpotlightMeta) -> nom::IResult<&'a [u8], ()> {
-    let entry = SpotlightEntries {
-        inode: 0,
-        parent_inode: 0,
-        flags: 0,
-        store_id: 0,
-        last_updated: 0,
-        values: HashMap::new(),
-    };
+fn parse_record<'a>(
+    data: &'a [u8],
+    meta: &SpotlightMeta,
+) -> nom::IResult<&'a [u8], SpotlightEntries> {
     let (input, inode) = parse_variable_size(data)?;
     println!("inode: {inode}");
 
@@ -119,34 +131,126 @@ fn parse_record<'a>(data: &'a [u8], meta: &SpotlightMeta) -> nom::IResult<&'a [u
     let (mut remaining_input, last_updated) = parse_variable_size(input)?;
     println!("update time: {last_updated}");
 
-    println!("{:?}", meta.props);
+    let mut meta_prop_index = 0;
+
+    let extra_data = vec![DataAttribute::AttrBinary, DataAttribute::AttrString];
+
+    let mut values = HashMap::new();
     while !remaining_input.is_empty() {
         let (input, index) = parse_variable_size(remaining_input)?;
-        println!("index: {index}");
-        let prop_opt = meta.props.get(&index);
+        meta_prop_index += index;
+        println!("index: {meta_prop_index}");
+
+        if meta_prop_index > meta.props.len() {
+            break;
+        }
+        let prop_opt = meta.props.get(&meta_prop_index);
         let props = match prop_opt {
             Some(result) => result,
             None => {
+                println!("bytes left: {}", remaining_input.len());
                 panic!("what do i do :( (no properties for {index})");
             }
         };
 
         println!("{props:?}");
-        let (input, prop_value_size) = parse_variable_size(input)?;
+        let mut spot_value = SpotlightValue {
+            attribute: props.attribute.clone(),
+            value: Value::Null,
+        };
+
+        let (var_input, prop_value_size) = parse_variable_size(input)?;
         println!("prop value size: {prop_value_size}");
 
-        if prop_value_size > remaining_input.len() {
-            break;
+        if spot_value.attribute == DataAttribute::AttrVariableSizeIntMultiValue {
+            let (input, multi_values) = extract_multivalue(input, &props.prop_type)?;
+            spot_value.value = multi_values;
+
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
         }
 
-        let (input, value_data) = take(prop_value_size)(input)?;
-        //let value = extract_utf8_string(value_data);
-        //println!("{value}");
+        if spot_value.attribute == DataAttribute::AttrFloat32 {
+            let (input, floats) = extract_float32(input, &props.prop_type)?;
+            spot_value.value = floats;
 
-        remaining_input = input;
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        if spot_value.attribute == DataAttribute::AttrFloat64 {
+            let (input, floats) = extract_float64(input, &props.prop_type)?;
+            spot_value.value = floats;
+
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        if spot_value.attribute == DataAttribute::AttrDate {
+            let (input, dates) = extract_dates(input, &props.prop_type)?;
+            spot_value.value = dates;
+
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        if spot_value.attribute == DataAttribute::AttrByte
+            && props.name != "kMDStoreAccumulatedSizes"
+        {
+            panic!("single byte!");
+        }
+
+        if spot_value.attribute == DataAttribute::AttrString {
+            let (input, string) = extract_string(var_input, &prop_value_size)?;
+            spot_value.value = string;
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        if spot_value.attribute == DataAttribute::AttrBinary {
+            let (input, binary) = extract_binary(var_input, &prop_value_size, &props.name)?;
+            spot_value.value = binary;
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        // Get lists associated with Attribute
+        if spot_value.attribute == DataAttribute::AttrList {
+            spot_value.value = extract_list(
+                &meta.categories,
+                &meta.indexes1,
+                &meta.indexes2,
+                &prop_value_size,
+                &props.prop_type,
+            );
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = var_input;
+
+            continue;
+        }
+
+        // All other property attributes are variable data
+        spot_value.value = json!(prop_value_size);
+        values.insert(props.name.clone(), spot_value);
+        remaining_input = var_input;
     }
 
-    Ok((data, ()))
+    let entry = SpotlightEntries {
+        inode,
+        parent_inode,
+        flags,
+        store_id,
+        last_updated,
+        values,
+    };
+
+    Ok((data, entry))
 }
 
 #[derive(Debug, PartialEq)]
@@ -196,14 +300,16 @@ fn get_property_types(data: &u32) -> Vec<PropertyType> {
     props
 }
 
-fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
+pub(crate) fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
     let (mut input, mut value) = nom_unsigned_one_byte(data, Endian::Le)?;
-    println!("var value: {value}");
     let mut lower_nibble = true;
     let mut extra_bytes: usize = 0;
+
     if value == 0 {
         return Ok((input, value as usize));
-    } else if (value & 0xf0) == 0xf0 {
+    }
+
+    if (value & 0xf0) == 0xf0 {
         lower_nibble = false;
         if (value & 0xf) == 0xf {
             extra_bytes = 8;
