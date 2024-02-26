@@ -19,7 +19,7 @@ pub(crate) fn extract_multivalue<'a>(
 
             multi_values.push(value);
         }
-        panic!("multi values");
+        //panic!("multi values");
         return Ok((input, json!(multi_values)));
     }
     multi_values.push(multi_number);

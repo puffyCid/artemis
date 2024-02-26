@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use plist::Dictionary;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 pub struct OpendirectoryUsers {
@@ -289,4 +292,41 @@ pub struct Section {
     pub reserved: u32,
     pub reserved2: u32,
     pub reserved3: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SpotlightEntries {
+    pub inode: usize,
+    pub parent_inode: usize,
+    pub flags: u8,
+    pub store_id: usize,
+    pub last_updated: usize,
+    pub values: HashMap<String, SpotlightValue>,
+    pub directory: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SpotlightValue {
+    pub attribute: DataAttribute,
+    pub value: Value,
+}
+
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum DataAttribute {
+    AttrBool,
+    AttrUnknown,
+    AttrVariableSizeInt,
+    AttrUnknown2,
+    AttrUnknown3,
+    AttrUnknown4,
+    AttrVariableSizeInt2,
+    AttrVariableSizeIntMultiValue,
+    AttrByte,
+    AttrFloat32,
+    AttrFloat64,
+    AttrString,
+    AttrDate,
+    AttrBinary,
+    AttrList,
+    Unknown,
 }

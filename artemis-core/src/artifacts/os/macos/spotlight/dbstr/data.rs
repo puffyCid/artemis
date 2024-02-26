@@ -5,8 +5,8 @@ use crate::{
         strings::extract_utf8_string,
     },
 };
+use common::macos::DataAttribute;
 use nom::bytes::complete::{take, take_while1};
-use serde::Serialize;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -14,26 +14,6 @@ pub(crate) struct DataProperties {
     pub(crate) attribute: DataAttribute,
     pub(crate) prop_type: u8,
     pub(crate) name: String,
-}
-
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub(crate) enum DataAttribute {
-    AttrBool,
-    AttrUnknown,
-    AttrVariableSizeInt,
-    AttrUnknown2,
-    AttrUnknown3,
-    AttrUnknown4,
-    AttrVariableSizeInt2,
-    AttrVariableSizeIntMultiValue,
-    AttrByte,
-    AttrFloat32,
-    AttrFloat64,
-    AttrString,
-    AttrDate,
-    AttrBinary,
-    AttrList,
-    Unknown,
 }
 
 /// Parse property data associated with Dbstr-1.map

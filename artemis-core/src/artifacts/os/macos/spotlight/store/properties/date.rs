@@ -2,12 +2,16 @@ use crate::{
     artifacts::os::macos::spotlight::store::property::parse_variable_size,
     utils::time::cocoatime_to_unixepoch,
 };
-use nom::{bytes::complete::take, number::complete::le_f64};
+use nom::{
+    bytes::complete::{take, take_while},
+    number::complete::le_f64,
+};
 use serde_json::{json, Value};
 use std::mem::size_of;
 
 pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<&'a [u8], Value> {
     let mut dates = Vec::new();
+    //let (input, _) = take_while(|b| b == 0)(data)?;
 
     let multiple_dates = 2;
     if (prop_type & multiple_dates) == multiple_dates {

@@ -1,8 +1,9 @@
 use crate::{
     artifacts::os::macos::spotlight::{
-        dbstr::{data::DataAttribute, meta::SpotlightMeta},
+        dbstr::meta::SpotlightMeta,
         store::properties::{
             binary::extract_binary,
+            byte::{extract_bool, extract_byte},
             date::extract_dates,
             float::{extract_float32, extract_float64},
             list::extract_list,
@@ -12,36 +13,14 @@ use crate::{
     },
     utils::{
         compression::decompress_lz4,
-        encoding::base64_encode_standard,
-        nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian,
-        },
-        strings::extract_utf8_string,
-        uuid::format_guid_be_bytes,
+        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
     },
 };
-use byteorder::{LittleEndian, ReadBytesExt};
+use common::macos::{DataAttribute, SpotlightEntries, SpotlightValue};
 use log::error;
-use nom::{bytes::complete::take, number::complete::le_u64};
-use serde::Serialize;
+use nom::bytes::complete::take;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-
-#[derive(Debug, Serialize)]
-pub(crate) struct SpotlightEntries {
-    inode: usize,
-    parent_inode: usize,
-    flags: u8,
-    store_id: usize,
-    last_updated: usize,
-    values: HashMap<String, SpotlightValue>,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct SpotlightValue {
-    attribute: DataAttribute,
-    value: Value,
-}
 
 pub(crate) fn parse_property<'a>(
     data: &'a [u8],
@@ -53,10 +32,7 @@ pub(crate) fn parse_property<'a>(
 
     // Also referred to as block_type
     let (input, property_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    println!("{property_type_data}");
-
     let property_type = get_property_types(&property_type_data);
-    println!("{property_type:?}");
 
     if !property_type.contains(&PropertyType::Lz4Compressed) {
         panic!("hmm: {property_type:?}");
@@ -64,28 +40,73 @@ pub(crate) fn parse_property<'a>(
 
     // Total uncompressed size (including the 16 previous bytes above)
     // If the value is zero the page/property is not compressed!
-    let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (mut compressed_input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let mut decom_data = Vec::new();
+    loop {
+        let (input, compress_sig) = nom_unsigned_four_bytes(compressed_input, Endian::Le)?;
+        let lz4_sig = 0x31347662;
+        // Sometimes spotlight data is already decompressed
+        let decom_sig = 0x2d347662;
+        println!("{compress_sig}");
 
-    let (input, compress_sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    println!("{compress_sig}");
+        if compress_sig == decom_sig {
+            let (input, decompress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, decom) = take(decompress_size)(input)?;
+            decom_data.append(&mut decom.to_vec());
+            let (_, check_sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            // There may be more compressed data.
+            if check_sig != lz4_sig && check_sig != decom_sig {
+                break;
+            }
+            compressed_input = input;
+            continue;
+        }
 
-    let (input, decompress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, compress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, compressed_data) = take(compress_size)(input)?;
+        if compress_sig != lz4_sig {
+            panic!("sigh: did not get lz4 sig :/");
+        }
 
-    let decompress_result = decompress_lz4(compressed_data, decompress_size as usize);
-    let mut decom_data = match decompress_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[spotlight] Failed to decompress lz4 compression: {err:?}");
-            panic!("hmm :)");
+        let (input, decompress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, compress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, compressed_data) = take(compress_size)(input)?;
+
+        let decompress_result =
+            decompress_lz4(compressed_data, decompress_size as usize, &decom_data);
+        let mut decom = match decompress_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[spotlight] Failed to decompress lz4 compression: {err:?}");
+                return Ok((input, Vec::new()));
+            }
+        };
+        decom_data.append(&mut decom);
+
+        let (_, check_sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        println!("next sig: {check_sig}");
+        // There may be more compressed data.
+        if check_sig != lz4_sig && check_sig != decom_sig {
+            break;
+        }
+
+        compressed_input = input;
+    }
+
+    if decom_data.len() != (uncompressed_size - 20) as usize {
+        println!("decom len: {}", decom_data.len());
+        println!("expected size:  {uncompressed_size}");
+        panic!("size wrong again!");
+    }
+
+    let entries_result = parse_all_records(&decom_data, meta);
+    let entries = match entries_result {
+        Ok((_, result)) => result,
+        Err(_err) => {
+            println!("[spotlight] Failed to parse all spotlight entries");
+            Vec::new()
         }
     };
 
-    //println!("{decom_data:?}");
-    let entries = parse_all_records(&decom_data, meta).unwrap();
-
-    Ok((input, Vec::new()))
+    Ok((input, entries))
 }
 
 fn parse_all_records<'a>(
@@ -94,22 +115,30 @@ fn parse_all_records<'a>(
 ) -> nom::IResult<&'a [u8], Vec<SpotlightEntries>> {
     let mut decom_data = data;
     let min_size = 4;
+    let mut entries = Vec::new();
     while decom_data.len() > min_size {
-        let (input, mut record_size) = nom_unsigned_four_bytes(decom_data, Endian::Le)?;
-        if record_size as usize > input.len() {
-            record_size = input.len() as u32;
-            //panic!("hmm");
-            //break;
+        let (input, record_size) = nom_unsigned_four_bytes(decom_data, Endian::Le)?;
+        if input.len() < record_size as usize {
+            println!("record: {record_size}");
+            println!("data: {}", input.len());
+            panic!("again!");
         }
         let (input, record_data) = take(record_size)(input)?;
 
         decom_data = input;
 
-        let (_, entry) = parse_record(record_data, meta)?;
-        println!("{entry:?}");
+        let entry_result = parse_record(record_data, meta);
+        let entry = match entry_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[spotlight] Failed to parse spotlight entry");
+                continue;
+            }
+        };
+        entries.push(entry);
     }
 
-    Ok((decom_data, Vec::new()))
+    Ok((decom_data, entries))
 }
 
 fn parse_record<'a>(
@@ -120,27 +149,17 @@ fn parse_record<'a>(
     println!("inode: {inode}");
 
     let (input, flags) = nom_unsigned_one_byte(input, Endian::Le)?;
-    println!("flags: {flags}");
-
     let (input, store_id) = parse_variable_size(input)?;
-    println!("store id: {store_id}");
-
     let (input, parent_inode) = parse_variable_size(input)?;
-    println!("parent inode: {parent_inode}");
 
     let (mut remaining_input, last_updated) = parse_variable_size(input)?;
-    println!("update time: {last_updated}");
-
     let mut meta_prop_index = 0;
-
-    let extra_data = vec![DataAttribute::AttrBinary, DataAttribute::AttrString];
 
     let mut values = HashMap::new();
     while !remaining_input.is_empty() {
         let (input, index) = parse_variable_size(remaining_input)?;
-        meta_prop_index += index;
-        println!("index: {meta_prop_index}");
 
+        meta_prop_index += index;
         if meta_prop_index > meta.props.len() {
             break;
         }
@@ -148,19 +167,19 @@ fn parse_record<'a>(
         let props = match prop_opt {
             Some(result) => result,
             None => {
-                println!("bytes left: {}", remaining_input.len());
                 panic!("what do i do :( (no properties for {index})");
             }
         };
 
-        println!("{props:?}");
         let mut spot_value = SpotlightValue {
             attribute: props.attribute.clone(),
             value: Value::Null,
         };
 
-        let (var_input, prop_value_size) = parse_variable_size(input)?;
-        println!("prop value size: {prop_value_size}");
+        println!("props: {props:?}");
+        if inode == 20645714 {
+            //panic!("{data:?}");
+        }
 
         if spot_value.attribute == DataAttribute::AttrVariableSizeIntMultiValue {
             let (input, multi_values) = extract_multivalue(input, &props.prop_type)?;
@@ -201,8 +220,24 @@ fn parse_record<'a>(
         if spot_value.attribute == DataAttribute::AttrByte
             && props.name != "kMDStoreAccumulatedSizes"
         {
-            panic!("single byte!");
+            let (input, value) = extract_byte(input)?;
+            spot_value.value = value;
+
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
         }
+
+        if spot_value.attribute == DataAttribute::AttrBool {
+            let (input, bool) = extract_bool(input)?;
+            spot_value.value = bool;
+
+            values.insert(props.name.clone(), spot_value);
+            remaining_input = input;
+            continue;
+        }
+
+        let (var_input, prop_value_size) = parse_variable_size(input)?;
 
         if spot_value.attribute == DataAttribute::AttrString {
             let (input, string) = extract_string(var_input, &prop_value_size)?;
@@ -229,6 +264,7 @@ fn parse_record<'a>(
                 &prop_value_size,
                 &props.prop_type,
             );
+
             values.insert(props.name.clone(), spot_value);
             remaining_input = var_input;
 
@@ -248,6 +284,7 @@ fn parse_record<'a>(
         store_id,
         last_updated,
         values,
+        directory: String::new(),
     };
 
     Ok((data, entry))
@@ -361,7 +398,7 @@ mod tests {
         artifacts::os::macos::spotlight::{
             dbstr::meta::get_spotlight_meta, store::property::parse_property,
         },
-        filesystem::files::read_file,
+        filesystem::{files::read_file, metadata::glob_paths},
     };
     use std::path::PathBuf;
 
@@ -373,7 +410,9 @@ mod tests {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         test_location.pop();
         test_location.push("*.header");
-        let meta = get_spotlight_meta(test_location.to_str().unwrap()).unwrap();
+        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+
+        let meta = get_spotlight_meta(&paths).unwrap();
 
         let (_, results) = parse_property(&data, &meta).unwrap();
     }

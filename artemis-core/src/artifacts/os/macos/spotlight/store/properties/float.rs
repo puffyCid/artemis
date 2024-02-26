@@ -15,14 +15,18 @@ pub(crate) fn extract_float32<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
         let num_values = multi_floats / 4;
         let mut count = 0;
         while count < num_values {
-            let (remaining, float_data) = take(size_of::<f32>())(data)?;
+            let (remaining, float_data) = take(size_of::<f32>())(input)?;
             let (_, float) = le_f32(float_data)?;
             input = remaining;
             count += 1;
 
             floats.push(float);
         }
-        panic!("multi floats32");
+        //println!("float32 count: {num_values}");
+        //println!("{floats:?}");
+        //println!("start: {data:?}");
+        //println!("remaining: {input:?}");
+        //panic!("multi floats32");
         return Ok((input, json!(floats)));
     }
     let (input, float_data) = take(size_of::<f32>())(data)?;
@@ -42,14 +46,18 @@ pub(crate) fn extract_float64<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
         let num_values = multi_floats / 8;
         let mut count = 0;
         while count < num_values {
-            let (remaining, float_data) = take(size_of::<f64>())(data)?;
+            let (remaining, float_data) = take(size_of::<f64>())(input)?;
             let (_, float) = le_f64(float_data)?;
             input = remaining;
             count += 1;
 
             floats.push(float);
         }
-        panic!("multi floats64");
+        //println!("float64 count: {num_values}");
+        //println!("{floats:?}");
+        //println!("start: {data:?}");
+        //println!("remaining: {input:?}");
+        //panic!("multi floats64");
         return Ok((input, json!(floats)));
     }
     let (input, float_data) = take(size_of::<f64>())(data)?;
