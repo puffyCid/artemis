@@ -145,7 +145,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
         /// Enable Folder Description lookups
-        #[arg(long)]
+        #[arg(long, default_value = None)]
         resolve_descriptions: Option<bool>,
     },
     #[cfg(target_os = "windows")]
@@ -324,5 +324,15 @@ pub(crate) enum CommandArgs {
         /// Use a log archive path instead of local files
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
+    },
+    #[cfg(target_os = "macos")]
+    /// Parse the Spotlight database
+    Spotlight {
+        /// Alternative path to a Spotlight database
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+        /// Include additional known Spotlight database locations
+        #[arg(long, default_value = None)]
+        include_additional: Option<bool>,
     },
 }

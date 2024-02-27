@@ -12,7 +12,7 @@ pub(crate) fn grab_spotlight(
     filter: &bool,
 ) -> Result<(), SpotlightError> {
     let paths = if let Some(alt_path) = &options.alt_path {
-        vec![alt_path.clone()]
+        vec![format!("{alt_path}/*")]
     } else {
         let mut additional_stores = &false;
         if let Some(extra) = &options.include_additional {
@@ -35,7 +35,7 @@ pub(crate) fn grab_spotlight(
     let start_time = time_now();
     for glob in paths {
         println!("glob path: {glob}");
-        let result = parse_spotlight(&glob, output, &start_time, filter);
+        let _ = parse_spotlight(&glob, output, &start_time, filter);
     }
 
     Ok(())

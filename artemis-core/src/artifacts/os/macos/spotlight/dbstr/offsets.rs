@@ -5,6 +5,7 @@ use crate::{
 use log::error;
 use nom::bytes::complete::take;
 
+/// The offsets associated with Spotlight data
 pub(crate) fn get_offsets(data: &[u8], offset_entries: &u32) -> Result<Vec<u32>, SpotlightError> {
     let offset_results = parse_offsets(data, offset_entries);
     let offsets = match offset_results {
@@ -37,12 +38,31 @@ fn parse_offsets<'a>(data: &'a [u8], offset_entries: &u32) -> nom::IResult<&'a [
 
 #[cfg(test)]
 mod tests {
-    use super::parse_offsets;
+    use super::{get_offsets, parse_offsets};
     use crate::{
         artifacts::os::macos::spotlight::dbstr::header::get_header,
         filesystem::{files::read_file, metadata::glob_paths},
     };
     use std::path::PathBuf;
+
+    #[test]
+    fn test_get_offsets() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
+        let headers = glob_paths(test_location.to_str().unwrap()).unwrap();
+        for header in headers {
+            // 3 is always empty and contains no data
+            if header.full_path.contains("3") {
+                continue;
+            }
+            let data = read_file(&header.full_path).unwrap();
+            let db_header = get_header(&data).unwrap();
+            let offsets = header.full_path.replace("header", "offsets");
+            let offset_data = read_file(&offsets).unwrap();
+            let offsets_vec = get_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            assert!(offsets_vec.len() >= 1)
+        }
+    }
 
     #[test]
     fn test_parse_offsets() {

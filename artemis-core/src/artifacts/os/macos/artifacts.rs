@@ -6,6 +6,7 @@ use super::{
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
     loginitems::parser::grab_loginitems,
+    spotlight::parser::grab_spotlight,
     sudo::logs::grab_sudo_logs,
     unified_logs::logs::grab_logs,
 };
@@ -21,7 +22,7 @@ use crate::{
             files::FileOptions,
             macos::{
                 EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+                LoginitemsOptions, SpotlightOptions, UnifiedLogsOptions, UsersOptions,
             },
             processes::ProcessOptions,
         },
@@ -48,7 +49,7 @@ pub(crate) fn loginitems(
     let result = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to parse loginitems: {err:?}");
+            error!("[artemis-core] Failed to parse loginitems: {err:?}");
             return Err(MacArtifactError::LoginItem);
         }
     };
@@ -78,7 +79,7 @@ pub(crate) fn emond(
     let emond_data = match results {
         Ok(result) => result,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to parse emond rules: {err:?}");
+            warn!("[artemis-core] Failed to parse emond rules: {err:?}");
             return Err(MacArtifactError::Emond);
         }
     };
@@ -136,7 +137,7 @@ pub(crate) fn processes(
     let proc_data = match results {
         Ok(data) => data,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to get process list: {err:?}");
+            warn!("[artemis-core] Failed to get process list: {err:?}");
             return Err(MacArtifactError::Process);
         }
     };
@@ -206,7 +207,7 @@ pub(crate) fn fseventsd(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to parse fseventsd: {err:?}");
+            error!("[artemis-core] Failed to parse fseventsd: {err:?}");
             return Err(MacArtifactError::FsEventsd);
         }
     };
@@ -236,7 +237,7 @@ pub(crate) fn launchd(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to parse launchd: {err:?}");
+            error!("[artemis-core] Failed to parse launchd: {err:?}");
             return Err(MacArtifactError::Launchd);
         }
     };
@@ -275,13 +276,12 @@ pub(crate) fn files(
         filter,
     );
     match artifact_result {
-        Ok(_) => {}
+        Ok(results) => Ok(results),
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to get file listing: {err:?}");
-            return Err(MacArtifactError::File);
+            error!("[artemis-core] Failed to get file listing: {err:?}");
+            Err(MacArtifactError::File)
         }
-    };
-    Ok(())
+    }
 }
 
 /// Get macOS `Unifiedlogs`
@@ -356,7 +356,7 @@ pub(crate) fn execpolicy(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Artemis macOS failed to query execpolicy: {err:?}");
+            error!("[artemis-core] Failed to query execpolicy: {err:?}");
             return Err(MacArtifactError::ExecPolicy);
         }
     };
@@ -378,16 +378,16 @@ pub(crate) fn execpolicy(
 pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let cron_results = grab_sudo_logs();
-    let cron_data = match cron_results {
+    let artifact_result = grab_sudo_logs();
+    let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to get sudo log data: {err:?}");
+            warn!("[artemis-core] Failed to get sudo log data: {err:?}");
             return Err(MacArtifactError::SudoLog);
         }
     };
 
-    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data_result = serde_json::to_value(results);
     let serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -398,6 +398,22 @@ pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), MacArt
 
     let output_name = "sudologs";
     output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
+/// Parse sudo logs on macOS
+pub(crate) fn spotlight(
+    output: &mut Output,
+    filter: &bool,
+    options: &SpotlightOptions,
+) -> Result<(), MacArtifactError> {
+    let artifact_result = grab_spotlight(options, output, filter);
+    match artifact_result {
+        Ok(results) => Ok(results),
+        Err(err) => {
+            warn!("[artemis-core] Failed to get spotlight data: {err:?}");
+            Err(MacArtifactError::Spotlight)
+        }
+    }
 }
 
 /// Output macOS artifacts
@@ -462,14 +478,15 @@ mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
-            processes, sudo_logs, systeminfo, unifiedlogs, users,
+            processes, spotlight, sudo_logs, systeminfo, unifiedlogs, users,
         },
         structs::{
             artifacts::os::{
                 files::FileOptions,
                 macos::{
                     EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions,
-                    LaunchdOptions, LoginitemsOptions, UnifiedLogsOptions, UsersOptions,
+                    LaunchdOptions, LoginitemsOptions, SpotlightOptions, UnifiedLogsOptions,
+                    UsersOptions,
                 },
                 processes::ProcessOptions,
             },
@@ -616,6 +633,22 @@ mod tests {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
         let status = sudo_logs(&mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_spotlight() {
+        let mut output = output_options("spotlight", "local", "./tmp", false);
+
+        let status = spotlight(
+            &mut output,
+            &false,
+            &SpotlightOptions {
+                alt_path: None,
+                include_additional: None,
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 

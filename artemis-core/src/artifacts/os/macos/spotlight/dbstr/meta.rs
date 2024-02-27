@@ -27,7 +27,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
     };
 
     for path in paths {
-        if !path.full_path.contains(".header") || path.full_path.contains("3") {
+        if !path.full_path.contains(".header") || path.full_path.contains('3') {
             continue;
         }
 
@@ -80,7 +80,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
                     return Err(SpotlightError::Indexes1);
                 }
             }
-        } else if path.full_path.contains("5") {
+        } else if path.full_path.contains("dbStr-5") {
             let indexes_path = path.full_path.replace("header", "data");
             let indexes_data = read_dbstr(&indexes_path)?;
             let indexes_results = parse_dbstr_data(&indexes_data, &offsets, &true);
@@ -100,6 +100,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
     Ok(meta)
 }
 
+/// Read the Dbstr files
 fn read_dbstr(path: &str) -> Result<Vec<u8>, SpotlightError> {
     let data_results = read_file(path);
     let data = match data_results {

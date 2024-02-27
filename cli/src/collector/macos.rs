@@ -6,7 +6,7 @@ use artemis_core::{
             files::FileOptions,
             macos::{
                 EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
+                LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
             },
             processes::ProcessOptions,
         },
@@ -75,6 +75,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         users: None,
         groups: None,
         sudologs: None,
+        spotlight: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -180,7 +181,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 logarchive_path: logarchive_path.clone(),
             };
             collect.sudologs = Some(options);
-            collect.artifact_name = String::from("users");
+            collect.artifact_name = String::from("sudologs");
         }
         CommandArgs::Unifiedlogs {
             sources,
@@ -193,6 +194,17 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.unifiedlogs = Some(options);
             collect.artifact_name = String::from("unifiedlogs");
         }
+        CommandArgs::Spotlight {
+            alt_path,
+            include_additional,
+        } => {
+            let options = SpotlightOptions {
+                alt_path: alt_path.clone(),
+                include_additional: include_additional.clone(),
+            };
+            collect.spotlight = Some(options);
+            collect.artifact_name = String::from("spotlight");
+        }
     }
     collect
 }
@@ -203,7 +215,7 @@ mod tests {
     use crate::collector::macos::CommandArgs::{
         Chromiumdownloads, Chromiumhistory, Cron, Emond, Execpolicy, Filelisting, Firefoxdownloads,
         Firefoxhistory, Fsevents, Groups, Launchd, Loginitems, Processes, Safaridownloads,
-        Safarihistory, Shellhistory, Sudologs, Systeminfo, Unifiedlogs, Users,
+        Safarihistory, Shellhistory, Spotlight, Sudologs, Systeminfo, Unifiedlogs, Users,
     };
     use artemis_core::structs::toml::Output;
     fn output() -> Output {
@@ -399,6 +411,20 @@ mod tests {
             artifact: Some(Unifiedlogs {
                 sources: vec![String::from("Special")],
                 logarchive_path: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_spotlight() {
+        let command = Commands::Acquire {
+            artifact: Some(Spotlight {
+                alt_path: None,
+                include_additional: None,
             }),
             format: String::from("json"),
         };

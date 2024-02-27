@@ -4,6 +4,7 @@ use crate::utils::{
 use nom::bytes::complete::take;
 use serde_json::{json, Value};
 
+/// Extract binary info associated with Spotlight property. This function will detect two (2) binary props and extract the data
 pub(crate) fn extract_binary<'a>(
     data: &'a [u8],
     size: &usize,
@@ -22,4 +23,24 @@ pub(crate) fn extract_binary<'a>(
     };
 
     Ok((input, json!(string)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_binary;
+    use crate::filesystem::files::read_file;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_extract_binary() {
+        let size = 2691;
+        let name = "kMDStoreProperties";
+
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/spotlight/bigsur/binary.raw");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+
+        let (_, result) = extract_binary(&data, &size, name).unwrap();
+        assert_eq!(result.as_str().unwrap().len(), 2691);
+    }
 }

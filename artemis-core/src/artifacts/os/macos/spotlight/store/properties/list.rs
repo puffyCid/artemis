@@ -1,11 +1,8 @@
-use crate::{
-    artifacts::os::macos::spotlight::store::property::parse_variable_size,
-    utils::time::cocoatime_to_unixepoch,
-};
-use nom::{bytes::complete::take, number::complete::le_f64};
+use log::warn;
 use serde_json::{json, Value};
-use std::{collections::HashMap, mem::size_of};
+use std::collections::HashMap;
 
+/// Extract list data associated with Spotlight property
 pub(crate) fn extract_list(
     categories: &HashMap<usize, String>,
     indexes1: &HashMap<usize, Vec<u32>>,
@@ -18,9 +15,9 @@ pub(crate) fn extract_list(
 
     let mut value = Value::Null;
 
-    if (prop_type & &item_kind) == item_kind {
+    if (prop_type & item_kind) == item_kind {
         value = extract_categories(categories, indexes2, list_value);
-    } else if (prop_type & &tree_kind) == tree_kind {
+    } else if (prop_type & tree_kind) == tree_kind {
         value = extract_categories(categories, indexes1, list_value);
     } else {
         let cat_option = categories.get(list_value);
@@ -29,12 +26,13 @@ pub(crate) fn extract_list(
             value = json!(cat);
             return value;
         }
-        panic!("[spotlight] Cannot determine category for attribute list.");
+        warn!("[spotlight] Cannot determine category for attribute list.");
     }
 
     value
 }
 
+/// Get categories associated with list
 fn extract_categories(
     categories: &HashMap<usize, String>,
     indexes: &HashMap<usize, Vec<u32>>,
@@ -58,4 +56,53 @@ fn extract_categories(
         category_vec.push(category_value);
     }
     json!(category_vec)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_categories, extract_list};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_extract_list() {
+        let mut indexes1 = HashMap::new();
+        indexes1.insert(1, vec![1]);
+
+        let indexes2 = indexes1.clone();
+        let mut categories = HashMap::new();
+        categories.insert(1, String::from("fakeme"));
+        let list_value = 1;
+        let prop_type = 2;
+
+        let result = extract_list(&categories, &indexes1, &indexes2, &list_value, &prop_type);
+        assert_eq!(result.as_array().unwrap()[0].as_str().unwrap(), "fakeme");
+    }
+
+    #[test]
+    fn test_extract_categories() {
+        let mut indexes1 = HashMap::new();
+        indexes1.insert(1, vec![1]);
+
+        let mut categories = HashMap::new();
+        categories.insert(1, String::from("fakeme"));
+        let list_value = 1;
+
+        let result = extract_categories(&categories, &indexes1, &list_value);
+        assert_eq!(result.as_array().unwrap()[0].as_str().unwrap(), "fakeme");
+    }
+
+    #[test]
+    fn test_extract_list_null() {
+        let mut indexes1 = HashMap::new();
+        indexes1.insert(1, vec![1]);
+
+        let indexes2 = indexes1.clone();
+        let mut categories = HashMap::new();
+        categories.insert(11, String::from("fakeme"));
+        let list_value = 1;
+        let prop_type = 77;
+
+        let result = extract_list(&categories, &indexes1, &indexes2, &list_value, &prop_type);
+        assert_eq!(result.as_null().unwrap(), ());
+    }
 }

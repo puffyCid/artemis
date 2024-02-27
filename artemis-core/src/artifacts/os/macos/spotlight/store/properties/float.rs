@@ -6,6 +6,7 @@ use nom::{
 use serde_json::{json, Value};
 use std::mem::size_of;
 
+/// Extract 32-bit floats associated with Spotlight property
 pub(crate) fn extract_float32<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<&'a [u8], Value> {
     let mut floats = Vec::new();
 
@@ -22,11 +23,7 @@ pub(crate) fn extract_float32<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
 
             floats.push(float);
         }
-        //println!("float32 count: {num_values}");
-        //println!("{floats:?}");
-        //println!("start: {data:?}");
-        //println!("remaining: {input:?}");
-        //panic!("multi floats32");
+
         return Ok((input, json!(floats)));
     }
     let (input, float_data) = take(size_of::<f32>())(data)?;
@@ -37,6 +34,7 @@ pub(crate) fn extract_float32<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
     Ok((input, json!(floats)))
 }
 
+/// Extract 64-bit floats associated with Spotlight property
 pub(crate) fn extract_float64<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<&'a [u8], Value> {
     let mut floats = Vec::new();
 
@@ -53,11 +51,7 @@ pub(crate) fn extract_float64<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
 
             floats.push(float);
         }
-        //println!("float64 count: {num_values}");
-        //println!("{floats:?}");
-        //println!("start: {data:?}");
-        //println!("remaining: {input:?}");
-        //panic!("multi floats64");
+
         return Ok((input, json!(floats)));
     }
     let (input, float_data) = take(size_of::<f64>())(data)?;
@@ -66,4 +60,28 @@ pub(crate) fn extract_float64<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResul
     floats.push(float);
 
     Ok((input, json!(floats)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_float32, extract_float64};
+
+    #[test]
+    fn test_extract_float32() {
+        let prop_type = 64;
+        let data = [1, 0, 0, 0, 0];
+        let (_, result) = extract_float32(&data, &prop_type).unwrap();
+        assert_eq!(
+            result.as_array().unwrap()[0].as_f64().unwrap(),
+            1.401298464324817e-45
+        );
+    }
+
+    #[test]
+    fn test_extract_float64() {
+        let prop_type = 64;
+        let data = [1, 0, 0, 0, 0, 0, 0, 0, 0];
+        let (_, result) = extract_float64(&data, &prop_type).unwrap();
+        assert_eq!(result.as_array().unwrap()[0].as_f64().unwrap(), 5e-324);
+    }
 }

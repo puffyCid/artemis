@@ -63,13 +63,13 @@ pub(crate) fn decompress_lz4(
     decom_size: usize,
     initial_dict: &[u8],
 ) -> Result<Vec<u8>, ArtemisError> {
-    use lz4_flex::{block::decompress_with_dict, decompress};
+    use lz4_flex::block::decompress_with_dict;
 
     let decompress_result = decompress_with_dict(data, decom_size, initial_dict);
     let decomp_data = match decompress_result {
         Ok(result) => result,
         Err(err) => {
-            println!("[compression] Could not decompress lz4 data: {err:?}");
+            error!("[compression] Could not decompress lz4 data: {err:?}");
             return Err(ArtemisError::Lz4Decompresss);
         }
     };

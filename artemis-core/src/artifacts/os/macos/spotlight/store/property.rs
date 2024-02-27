@@ -17,37 +17,25 @@ use crate::{
     },
 };
 use common::macos::{DataAttribute, SpotlightEntries, SpotlightValue};
-use log::error;
-use nom::bytes::complete::take;
+use log::{error, warn};
+use nom::{bytes::complete::take, error::ErrorKind};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+/// Parse and extract all properties associated with Spotlight data
 pub(crate) fn parse_property<'a>(
     data: &'a [u8],
     meta: &SpotlightMeta,
+    uncompressed_size: &u32,
+    dir: &str,
 ) -> nom::IResult<&'a [u8], Vec<SpotlightEntries>> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
-    let (input, page_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, used_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-    // Also referred to as block_type
-    let (input, property_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let property_type = get_property_types(&property_type_data);
-
-    if !property_type.contains(&PropertyType::Lz4Compressed) {
-        panic!("hmm: {property_type:?}");
-    }
-
-    // Total uncompressed size (including the 16 previous bytes above)
-    // If the value is zero the page/property is not compressed!
-    let (mut compressed_input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let mut compressed_input = data;
     let mut decom_data = Vec::new();
     loop {
         let (input, compress_sig) = nom_unsigned_four_bytes(compressed_input, Endian::Le)?;
         let lz4_sig = 0x31347662;
         // Sometimes spotlight data is already decompressed
         let decom_sig = 0x2d347662;
-        println!("{compress_sig}");
 
         if compress_sig == decom_sig {
             let (input, decompress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -82,7 +70,6 @@ pub(crate) fn parse_property<'a>(
         decom_data.append(&mut decom);
 
         let (_, check_sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        println!("next sig: {check_sig}");
         // There may be more compressed data.
         if check_sig != lz4_sig && check_sig != decom_sig {
             break;
@@ -92,42 +79,78 @@ pub(crate) fn parse_property<'a>(
     }
 
     if decom_data.len() != (uncompressed_size - 20) as usize {
-        println!("decom len: {}", decom_data.len());
-        println!("expected size:  {uncompressed_size}");
-        panic!("size wrong again!");
+        warn!("[spotlight] Decompressed size ({}) did not matched expected size: {}. Parsing will likely fail or be incopmlete", decom_data.len(), (uncompressed_size - 20));
     }
 
-    let entries_result = parse_all_records(&decom_data, meta);
+    let entries_result = parse_all_records(&decom_data, meta, dir);
     let entries = match entries_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            println!("[spotlight] Failed to parse all spotlight entries");
+            error!("[spotlight] Failed to parse all spotlight entries");
             Vec::new()
         }
     };
 
-    Ok((input, entries))
+    Ok((&[], entries))
 }
 
+pub(crate) struct PropertyHeader {
+    _sig: u32,
+    pub(crate) page_size: u32,
+    _used_size: u32,
+    _property_types: Vec<PropertyType>,
+    pub(crate) uncompressed_size: u32,
+}
+
+/// Extract property header info
+pub(crate) fn property_header(data: &[u8]) -> nom::IResult<&[u8], PropertyHeader> {
+    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, page_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, used_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    // Also referred to as block_type
+    let (input, property_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let property_types = get_property_types(&property_type_data);
+
+    if !property_types.contains(&PropertyType::Lz4Compressed) {
+        warn!("[spotlight] Got non-lz4 compressed data. This is unsupported!");
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            &[],
+            ErrorKind::Fail,
+        )));
+    }
+
+    // Total uncompressed size (including the 16 previous bytes above)
+    // If the value is zero the page/property is not compressed!
+    let (compressed_input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let header = PropertyHeader {
+        _sig: sig,
+        page_size,
+        _used_size: used_size,
+        _property_types: property_types,
+        uncompressed_size,
+    };
+
+    Ok((compressed_input, header))
+}
+
+/// Extract all of records associated with the property
 fn parse_all_records<'a>(
     data: &'a [u8],
     meta: &SpotlightMeta,
+    dir: &str,
 ) -> nom::IResult<&'a [u8], Vec<SpotlightEntries>> {
     let mut decom_data = data;
     let min_size = 4;
     let mut entries = Vec::new();
     while decom_data.len() > min_size {
         let (input, record_size) = nom_unsigned_four_bytes(decom_data, Endian::Le)?;
-        if input.len() < record_size as usize {
-            println!("record: {record_size}");
-            println!("data: {}", input.len());
-            panic!("again!");
-        }
         let (input, record_data) = take(record_size)(input)?;
 
         decom_data = input;
 
-        let entry_result = parse_record(record_data, meta);
+        let entry_result = parse_record(record_data, meta, dir);
         let entry = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -141,12 +164,13 @@ fn parse_all_records<'a>(
     Ok((decom_data, entries))
 }
 
+/// Parse each individual record
 fn parse_record<'a>(
     data: &'a [u8],
     meta: &SpotlightMeta,
+    dir: &str,
 ) -> nom::IResult<&'a [u8], SpotlightEntries> {
     let (input, inode) = parse_variable_size(data)?;
-    println!("inode: {inode}");
 
     let (input, flags) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, store_id) = parse_variable_size(input)?;
@@ -175,11 +199,6 @@ fn parse_record<'a>(
             attribute: props.attribute.clone(),
             value: Value::Null,
         };
-
-        println!("props: {props:?}");
-        if inode == 20645714 {
-            //panic!("{data:?}");
-        }
 
         if spot_value.attribute == DataAttribute::AttrVariableSizeIntMultiValue {
             let (input, multi_values) = extract_multivalue(input, &props.prop_type)?;
@@ -284,7 +303,7 @@ fn parse_record<'a>(
         store_id,
         last_updated,
         values,
-        directory: String::new(),
+        directory: dir.to_string(),
     };
 
     Ok((data, entry))
@@ -301,6 +320,7 @@ enum PropertyType {
     Unknown,
 }
 
+/// Determine Property type
 fn get_property_types(data: &u32) -> Vec<PropertyType> {
     let records = 0x9;
     let attr_types = 0x11;
@@ -337,6 +357,7 @@ fn get_property_types(data: &u32) -> Vec<PropertyType> {
     props
 }
 
+/// Extract variable sized property data
 pub(crate) fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
     let (mut input, mut value) = nom_unsigned_one_byte(data, Endian::Le)?;
     let mut lower_nibble = true;
@@ -384,9 +405,9 @@ pub(crate) fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
         }
 
         if lower_nibble {
-            new_value = new_value + ((value as usize) << (extra_bytes * 8));
+            new_value += (value as usize) << (extra_bytes * 8);
         }
-        return Ok((input, new_value as usize));
+        return Ok((input, new_value));
     }
 
     Ok((input, value as usize))
@@ -394,9 +415,11 @@ pub(crate) fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
 
 #[cfg(test)]
 mod tests {
+    use super::{get_property_types, parse_variable_size, property_header};
     use crate::{
         artifacts::os::macos::spotlight::{
-            dbstr::meta::get_spotlight_meta, store::property::parse_property,
+            dbstr::meta::get_spotlight_meta,
+            store::property::{parse_all_records, parse_property, parse_record, PropertyType},
         },
         filesystem::{files::read_file, metadata::glob_paths},
     };
@@ -413,7 +436,75 @@ mod tests {
         let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
 
         let meta = get_spotlight_meta(&paths).unwrap();
+        let (input, header) = property_header(&data).unwrap();
 
-        let (_, results) = parse_property(&data, &meta).unwrap();
+        let (_, results) = parse_property(input, &meta, &header.uncompressed_size, "test").unwrap();
+        assert_eq!(results.len(), 195);
+    }
+
+    #[test]
+    fn test_parse_all_records() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/spotlight/bigsur/decom.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        test_location.pop();
+        test_location.push("*.header");
+        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+
+        let meta = get_spotlight_meta(&paths).unwrap();
+
+        let (_, results) = parse_all_records(&data, &meta, "test").unwrap();
+        assert_eq!(results.len(), 195);
+    }
+
+    #[test]
+    fn test_parse_record() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("*.header");
+
+        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+        let meta = get_spotlight_meta(&paths).unwrap();
+
+        let data = [
+            243, 0, 0, 19, 144, 32, 128, 255, 243, 0, 0, 19, 143, 254, 5, 213, 170, 86, 232, 77,
+            92, 7, 2, 1, 3, 2, 35, 1, 9, 4, 0, 2, 15, 95, 67, 111, 100, 101, 83, 105, 103, 110, 97,
+            116, 117, 114, 101, 0, 18, 7, 2, 0, 0, 0, 192, 203, 201, 195, 65, 2, 0, 1, 0, 1, 4, 3,
+            0, 0, 0, 64, 12, 222, 193, 65, 1, 0, 0, 0, 128, 68, 222, 193, 65, 1, 6, 191, 93, 88,
+            225, 201, 195, 65, 1, 0, 1, 0, 3, 0, 1, 0, 1, 0, 0, 0, 128, 68, 222, 193, 65, 2, 0, 1,
+            0, 0, 0, 64, 12, 222, 193, 65, 2, 0, 0, 0, 128, 68, 222, 193, 65, 2, 0, 0, 0, 128, 68,
+            222, 193, 65, 1, 0, 0, 0, 128, 68, 222, 193, 65, 1, 0, 0, 0, 64, 12, 222, 193, 65, 4,
+            17, 95, 67, 111, 100, 101, 83, 105, 103, 110, 97, 116, 117, 114, 101, 22, 2, 0, 1, 17,
+            95, 67, 111, 100, 101, 83, 105, 103, 110, 97, 116, 117, 114, 101, 22, 2, 0,
+        ];
+
+        let (_, results) = parse_record(&data, &meta, "test").unwrap();
+        assert_eq!(results.inode, 12884906896);
+    }
+
+    #[test]
+    fn test_property_header() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/spotlight/bigsur/property.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (_, header) = property_header(&data).unwrap();
+
+        assert_eq!(header.uncompressed_size, 67070);
+        assert_eq!(header.page_size, 16384);
+    }
+
+    #[test]
+    fn test_get_property_types() {
+        let data = 9;
+        let result = get_property_types(&data);
+        assert_eq!(result[0], PropertyType::ZlibDeflateRecords);
+    }
+
+    #[test]
+    fn test_parse_variable_size() {
+        let data = [1, 0, 0, 0, 0];
+        let (_, result) = parse_variable_size(&data).unwrap();
+        assert_eq!(result, 1);
     }
 }

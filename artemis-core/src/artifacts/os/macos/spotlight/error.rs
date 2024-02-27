@@ -6,11 +6,15 @@ pub(crate) enum SpotlightError {
     ReadFile,
     Header,
     Offsets,
-    Data,
     Property,
     Category,
     Indexes1,
     Indexes2,
+    StoreHeader,
+    StoreSeek,
+    StoreRead,
+    StoreMap,
+    Serialize,
 }
 
 impl std::error::Error for SpotlightError {}
@@ -22,11 +26,15 @@ impl fmt::Display for SpotlightError {
             SpotlightError::ReadFile => write!(f, "Could not read file"),
             SpotlightError::Header => write!(f, "Could not parse dbstr header"),
             SpotlightError::Offsets => write!(f, "Could not parse dbstr offsts"),
-            SpotlightError::Data => write!(f, "Could not parse dbstr data"),
             SpotlightError::Property => write!(f, "Could not parse dbstr property"),
             SpotlightError::Category => write!(f, "Could not parse dbstr category"),
             SpotlightError::Indexes1 => write!(f, "Could not parse dbstr indexes1"),
             SpotlightError::Indexes2 => write!(f, "Could not parse dbstr indexes2"),
+            SpotlightError::StoreHeader => write!(f, "Could not parse store header"),
+            SpotlightError::StoreSeek => write!(f, "Could not seek store data"),
+            SpotlightError::StoreRead => write!(f, "Could not read store data"),
+            SpotlightError::StoreMap => write!(f, "Could not parse store map"),
+            SpotlightError::Serialize => write!(f, "Could not serialize spotlight data"),
         }
     }
 }

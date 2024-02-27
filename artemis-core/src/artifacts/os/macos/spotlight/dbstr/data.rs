@@ -89,17 +89,12 @@ pub(crate) fn parse_dbstr_data<'a>(
         }
 
         let (data_start, _) = take(*offset)(data)?;
-
         let (mut input, mut value) = nom_unsigned_one_byte(data_start, Endian::Le)?;
-        let mut entry_size = (value & 0x7f) as usize;
 
-        let mut bytes_read = 1;
         while (value & 0x80) == 0x80 {
             let (remaining_input, extra_value) = nom_unsigned_one_byte(input, Endian::Le)?;
             input = remaining_input;
             value = extra_value;
-            bytes_read += 1;
-            entry_size |= (value as usize & 0x7f) << (7 * bytes_read);
         }
 
         let (mut input, mut index_size) = parse_variable_size(input)?;
