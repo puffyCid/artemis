@@ -3,9 +3,8 @@ use crate::{
     structs::{artifacts::os::macos::SpotlightOptions, toml::Output},
     utils::time::time_now,
 };
-use log::{error, warn};
 
-/// Get users on a macOS system. Requires root
+/// Dump the Spotlight database. Requires root
 pub(crate) fn grab_spotlight(
     options: &SpotlightOptions,
     output: &mut Output,
@@ -20,13 +19,15 @@ pub(crate) fn grab_spotlight(
         }
 
         let mut default_paths = vec![String::from(
-            "/System/Volumes/Data/.Spotlight-V100/Store-V2/*/*",
+            "/System/Volumes/Data/.Spotlight-V100/Store-V*/*/*",
         )];
         if *additional_stores {
             default_paths.append(&mut vec![
-                String::from("/Users/*/Library/Caches/com.apple.helpd/index.spotlightV3/*"),
-                String::from("/Users/*/Library/Metadata/CoreSpotlight/index.spotlightV3/*"),
-                String::from("/Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*")
+                String::from("/Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*"),
+                String::from("/Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*"),
+                String::from("/Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*"),
+                String::from("/Users/*/Library/Metadata/CoreSpotlight/*/index.spotlightV*/*"),
+                String::from("/Users/*/Library/Caches/com.apple.helpd/*/index.spotlightV*/*"),
             ]);
         }
         default_paths
@@ -34,7 +35,6 @@ pub(crate) fn grab_spotlight(
 
     let start_time = time_now();
     for glob in paths {
-        println!("glob path: {glob}");
         let _ = parse_spotlight(&glob, output, &start_time, filter);
     }
 

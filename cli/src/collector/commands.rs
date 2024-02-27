@@ -145,7 +145,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
         /// Enable Folder Description lookups
-        #[arg(long, default_value = None)]
+        #[arg(long)]
         resolve_descriptions: Option<bool>,
     },
     #[cfg(target_os = "windows")]
@@ -332,7 +332,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
         /// Include additional known Spotlight database locations
-        #[arg(long, default_value = None)]
-        include_additional: Option<bool>,
+        #[arg(long)]
+        include_additional: bool,
     },
 }

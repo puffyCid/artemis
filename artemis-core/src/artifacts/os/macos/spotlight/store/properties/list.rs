@@ -40,7 +40,7 @@ fn extract_categories(
 ) -> Value {
     let value = indexes.get(list_value);
     if value.is_none() {
-        panic!("[spotlight] No value found in indexes data. Cannot determine category for Attribute list");
+        warn!("[spotlight] No value found in indexes data. Cannot determine category for Attribute list");
         return Value::Null;
     }
 

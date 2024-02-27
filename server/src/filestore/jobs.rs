@@ -145,7 +145,6 @@ pub(crate) async fn cache_job_results(
     info: &JobInfo,
     endpoint_path: &str,
 ) -> Result<(), StoreError> {
-    println!("{endpoint_path}");
     update_job(info, endpoint_path).await?;
     let job_storage = format!("{endpoint_path}/jobs");
     let storage_result = create_dirs(&job_storage).await;

@@ -44,8 +44,6 @@ pub(crate) fn parse_spotlight(
             }
         };
 
-        println!("path: {}", path.full_path);
-
         let result = parse_store(&mut store_reader, &meta, output, start_time, filter);
         if result.is_err() {
             error!(
@@ -59,7 +57,7 @@ pub(crate) fn parse_spotlight(
     Ok(())
 }
 
-/// Create a file reader and read the Spotlight database in chunks. This allows for a **little** more flexible JS scripting.
+/// Create a file reader and read the Spotlight database in blocks. This allows for a **little** more flexible JS scripting.
 pub(crate) fn parse_spotlight_reader(
     store_file: &str,
     meta: &SpotlightMeta,
@@ -84,7 +82,7 @@ pub(crate) struct StoreMeta {
     blocks: Vec<u32>,
 }
 
-/// Setup Spotlight reader by getting the minimum amount of meta data to stream the Spotlight database
+/// Setup Spotlight reader by getting the minimum amount of metadata to stream the Spotlight database
 pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, SpotlightError> {
     let paths_result = glob_paths(glob_path);
     let paths = match paths_result {

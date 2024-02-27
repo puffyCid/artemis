@@ -27,7 +27,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
     };
 
     for path in paths {
-        if !path.full_path.contains(".header") || path.full_path.contains('3') {
+        if !path.full_path.contains(".header") || path.full_path.contains("dbStr-3") {
             continue;
         }
 

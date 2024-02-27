@@ -50,7 +50,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             collector.artifacts.push(setup_artifact(arti));
 
             if !format.is_empty() {
-                collector.output.format = format.to_string();
+                collector.output.format = format.to_string().to_lowercase();
             }
         }
     }
@@ -200,7 +200,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         } => {
             let options = SpotlightOptions {
                 alt_path: alt_path.clone(),
-                include_additional: include_additional.clone(),
+                include_additional: Some(include_additional.clone()),
             };
             collect.spotlight = Some(options);
             collect.artifact_name = String::from("spotlight");
@@ -424,7 +424,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Spotlight {
                 alt_path: None,
-                include_additional: None,
+                include_additional: false,
             }),
             format: String::from("json"),
         };

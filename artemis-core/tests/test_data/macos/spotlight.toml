@@ -14,8 +14,10 @@ artifact_name = "spotlight"
 [artifacts.spotlight]
 # Optional
 # alt_path = ""
-# Include additional known Spotlight paths at 
-#   /Users/*/Library/Caches/com.apple.helpd/index.spotlightV3/
-#   /Users/*/Library/Metadata/CoreSpotlight/index.spotlightV3/
-#   /Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/
-include_additional = false
+# Include additional known Spotlight paths such as
+#     /Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*
+#     /Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*
+#     /Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*
+#     /Users/*/Library/Metadata/CoreSpotlight/*/index.spotlightV*/*
+#     /Users/*/Library/Caches/com.apple.helpd/*/index.spotlightV*/*
+include_additional = true
