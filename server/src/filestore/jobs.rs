@@ -240,8 +240,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_job_results() {
-        create_dirs("./tmp/save").await.unwrap();
-        let path = "./tmp/save";
+        create_dirs("./tmp/save2").await.unwrap();
+        let path = "./tmp/save2";
         let data = JobInfo {
             id: 0,
             name: String::from("randomjob"),
