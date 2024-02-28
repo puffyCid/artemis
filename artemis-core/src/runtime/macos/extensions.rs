@@ -11,6 +11,7 @@ use super::{
         get_safari_downloads, get_safari_history, get_safari_users_downloads,
         get_safari_users_history,
     },
+    spotlight::{get_spotlight, setup_spotlight_parser},
     sudo::get_sudologs,
     unifiedlogs::get_unified_log,
 };
@@ -53,6 +54,8 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_safari_downloads::DECL,
         get_execpolicy::DECL,
         get_sudologs::DECL,
+        get_spotlight::DECL,
+        setup_spotlight_parser::DECL,
     ];
 
     exts.append(&mut app_functions());

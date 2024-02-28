@@ -311,7 +311,7 @@ pub struct SpotlightValue {
     pub value: Value,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum DataAttribute {
     AttrBool,
     AttrUnknown,

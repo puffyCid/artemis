@@ -59,7 +59,7 @@ impl DataObject {
 
         if compress_type == &ObjectFlag::CompressedLz4 {
             let (remaining_input, decom_size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-            let decompress_result = decompress_lz4(remaining_input, decom_size as usize);
+            let decompress_result = decompress_lz4(remaining_input, decom_size as usize, &[]);
             let decompress_data = match decompress_result {
                 Ok(result) => result,
                 Err(err) => {

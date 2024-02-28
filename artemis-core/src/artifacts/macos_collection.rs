@@ -279,7 +279,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "sudologs" => {
-                let results = sudo_logs(&mut collector.output, &filter);
+                let options = match &artifacts.sudologs {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = sudo_logs(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {

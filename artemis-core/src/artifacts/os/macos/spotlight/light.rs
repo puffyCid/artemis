@@ -10,6 +10,7 @@ use crate::{
 };
 use common::macos::SpotlightEntries;
 use log::error;
+use serde::{Deserialize, Serialize};
 
 /// Parse the Spotlight database and output results
 pub(crate) fn parse_spotlight(
@@ -77,9 +78,10 @@ pub(crate) fn parse_spotlight_reader(
     Ok(entries)
 }
 
+#[derive(Deserialize, Serialize)]
 pub(crate) struct StoreMeta {
-    meta: SpotlightMeta,
-    blocks: Vec<u32>,
+    pub(crate) meta: SpotlightMeta,
+    pub(crate) blocks: Vec<u32>,
 }
 
 /// Setup Spotlight reader by getting the minimum amount of metadata to stream the Spotlight database

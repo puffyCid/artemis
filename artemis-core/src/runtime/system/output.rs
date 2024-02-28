@@ -16,7 +16,7 @@ pub(crate) fn output_results(
     let serde_data: Value = match serde_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[runtime] Failed serialize script data: {err:?}");
+            error!("[runtime] Failed deserialize script data: {err:?}");
             return Ok(failure);
         }
     };

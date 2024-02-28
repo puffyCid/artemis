@@ -8,8 +8,10 @@ use crate::{
     filesystem::{files::read_file, metadata::GlobInfo},
 };
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Deserialize, Serialize)]
 pub(crate) struct SpotlightMeta {
     pub(crate) props: HashMap<usize, DataProperties>,
     pub(crate) categories: HashMap<usize, String>,

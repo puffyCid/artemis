@@ -200,7 +200,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         } => {
             let options = SpotlightOptions {
                 alt_path: alt_path.clone(),
-                include_additional: Some(include_additional.clone()),
+                include_additional: Some(*include_additional),
             };
             collect.spotlight = Some(options);
             collect.artifact_name = String::from("spotlight");

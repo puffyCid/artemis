@@ -7,9 +7,10 @@ use crate::{
 };
 use common::macos::DataAttribute;
 use nom::bytes::complete::{take, take_while1};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct DataProperties {
     pub(crate) attribute: DataAttribute,
     pub(crate) prop_type: u8,

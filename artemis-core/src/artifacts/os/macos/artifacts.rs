@@ -22,7 +22,7 @@ use crate::{
             files::FileOptions,
             macos::{
                 EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, SpotlightOptions, UnifiedLogsOptions, UsersOptions,
+                LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
             },
             processes::ProcessOptions,
         },
@@ -375,10 +375,56 @@ pub(crate) fn execpolicy(
 }
 
 /// Parse sudo logs on macOS
-pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
+pub(crate) fn sudo_logs(
+    output: &mut Output,
+    filter: &bool,
+    options: &SudoOptions,
+) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
+    let mut path = String::from("/var/db/diagnostics/Persist");
 
-    let artifact_result = grab_sudo_logs();
+    // Need to first get the strings and timestamp data first before parsing the actual logs
+    let (strings_results, shared_strings_results, timesync_data_results) =
+        if let Some(archive_path) = &options.logarchive_path {
+            path = format!("{archive_path}/Persist");
+            (
+                collect_strings(archive_path),
+                collect_shared_strings(&format!("{archive_path}/dsc")),
+                collect_timesync(&format!("{archive_path}/timesync")),
+            )
+        } else {
+            (
+                collect_strings_system(),
+                collect_shared_strings_system(),
+                collect_timesync_system(),
+            )
+        };
+
+    let strings = match strings_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to parse UUIDText files: {err:?}");
+            return Err(MacArtifactError::UnifiedLogs);
+        }
+    };
+
+    let shared_strings = match shared_strings_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to parse dsc files: {err:?}");
+            return Err(MacArtifactError::UnifiedLogs);
+        }
+    };
+
+    let timesync_data = match timesync_data_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Failed to parse timesync files: {err:?}");
+            return Err(MacArtifactError::UnifiedLogs);
+        }
+    };
+
+    let artifact_result = grab_sudo_logs(&strings, &shared_strings, &timesync_data, &path);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
@@ -485,8 +531,8 @@ mod tests {
                 files::FileOptions,
                 macos::{
                     EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions,
-                    LaunchdOptions, LoginitemsOptions, SpotlightOptions, UnifiedLogsOptions,
-                    UsersOptions,
+                    LaunchdOptions, LoginitemsOptions, SpotlightOptions, SudoOptions,
+                    UnifiedLogsOptions, UsersOptions,
                 },
                 processes::ProcessOptions,
             },
@@ -632,7 +678,14 @@ mod tests {
     fn test_sudo_logs() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
-        let status = sudo_logs(&mut output, &false).unwrap();
+        let status = sudo_logs(
+            &mut output,
+            &false,
+            &SudoOptions {
+                logarchive_path: None,
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 

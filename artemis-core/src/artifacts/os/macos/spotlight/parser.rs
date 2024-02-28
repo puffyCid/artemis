@@ -1,3 +1,19 @@
+/**
+ * macOS `Spotlight` is an indexing service for tracking files and content.
+ * The `Spotlight` database can contain a huge amount of metadata associated with the indexed content such as:
+ * - Timestamps
+ * - Partial file content
+ * - File type and much more
+ *
+ * References:
+ * `https://forensicsandsecurity.com/papers/SpotlightMacForensicsSlides.pdf`
+ * `https://en.wikipedia.org/wiki/Spotlight_(Apple)`
+ * `https://github.com/libyal/dtformats/blob/main/documentation/Apple%20Spotlight%20store%20database%20file%20format.asciidoc`
+ *
+ * Other parsers:
+ * `https://github.com/ydkhatri/spotlight_parser`
+ * `https://github.com/ydkhatri/mac_apt`
+ */
 use super::{error::SpotlightError, light::parse_spotlight};
 use crate::{
     structs::{artifacts::os::macos::SpotlightOptions, toml::Output},
