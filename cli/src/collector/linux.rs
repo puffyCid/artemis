@@ -43,7 +43,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             collector.artifacts.push(setup_artifact(arti));
 
             if !format.is_empty() {
-                collector.output.format = format.to_string();
+                collector.output.format = format.to_string().to_lowercase();
             }
         }
     }

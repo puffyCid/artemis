@@ -2,51 +2,24 @@ use crate::{artifacts::os::macos::error::MacArtifactError, filesystem::files::li
 use log::error;
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,
-    parser::{
-        build_log, collect_shared_strings_system, collect_strings_system, collect_timesync_system,
-        parse_log,
-    },
+    parser::{build_log, parse_log},
     timesync::TimesyncBoot,
     unified_log::LogData,
     uuidtext::UUIDText,
 };
 
 /// Grab sudo log entries in the Unified Log files
-pub(crate) fn grab_sudo_logs() -> Result<Vec<LogData>, MacArtifactError> {
-    let strings_results = collect_strings_system();
-    let shared_strings_results = collect_shared_strings_system();
-    let timesync_data_results = collect_timesync_system();
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[sudologs] Failed to parse UUIDText files: {err:?}");
-            return Err(MacArtifactError::SudoLog);
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[sudologs] Failed to parse dsc files: {err:?}");
-            return Err(MacArtifactError::SudoLog);
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[sudologs] Failed to parse timesync files: {err:?}");
-            return Err(MacArtifactError::SudoLog);
-        }
-    };
-
-    let persist_logs = "/var/db/diagnostics/Persist";
-    let log_files = list_files(persist_logs).unwrap_or_default();
+pub(crate) fn grab_sudo_logs(
+    strings: &[UUIDText],
+    shared_strings: &[SharedCacheStrings],
+    timesync_data: &[TimesyncBoot],
+    path: &str,
+) -> Result<Vec<LogData>, MacArtifactError> {
+    let log_files = list_files(path).unwrap_or_default();
     let mut sudo_logs: Vec<LogData> = Vec::new();
 
     for file in log_files {
-        let logs_result = parse_trace_file(&strings, &shared_strings, &timesync_data, &file);
+        let logs_result = parse_trace_file(strings, shared_strings, timesync_data, &file);
         if logs_result.is_err() {
             continue;
         }
@@ -106,7 +79,16 @@ mod tests {
 
     #[test]
     fn test_grab_sudo_logs() {
-        grab_sudo_logs().unwrap();
+        let strings = collect_strings_system().unwrap();
+        let shared_strings = collect_shared_strings_system().unwrap();
+        let timesync_data = collect_timesync_system().unwrap();
+        grab_sudo_logs(
+            &strings,
+            &shared_strings,
+            &timesync_data,
+            &"/var/db/diagnostics/HighVolume",
+        )
+        .unwrap();
     }
 
     #[test]

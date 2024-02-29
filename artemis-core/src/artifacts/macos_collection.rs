@@ -4,12 +4,14 @@ use super::{
         safari_history,
     },
     os::{
-        macos::artifacts::{
-            execpolicy, groups, processes, sudo_logs, systeminfo, unifiedlogs, users,
+        macos::{
+            artifacts::{
+                execpolicy, groups, processes, spotlight, sudo_logs, systeminfo, unifiedlogs, users,
+            },
+            error::MacArtifactError,
         },
-        unix::artifacts::{bash_history, cron_job, python_history},
+        unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
     },
-    os::{macos::error::MacArtifactError, unix::artifacts::zsh_history},
 };
 use crate::{
     artifacts::os::macos::artifacts::{emond, files, fseventsd, launchd, loginitems},
@@ -277,7 +279,28 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "sudologs" => {
-                let results = sudo_logs(&mut collector.output, &filter);
+                let options = match &artifacts.sudologs {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = sudo_logs(&mut collector.output, &filter, options);
+                match results {
+                    Ok(_) => info!("Collected macOS sudo logs"),
+                    Err(err) => {
+                        error!(
+                            "[artemis-core] Failed to parse macOS sudo log data, error: {err:?}"
+                        );
+                        continue;
+                    }
+                }
+            }
+            "spotlight" => {
+                let options = match &artifacts.spotlight {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+                let results = spotlight(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {

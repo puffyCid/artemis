@@ -56,12 +56,16 @@ pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     Ok(data)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 /// Decompress lz4 data
-pub(crate) fn decompress_lz4(data: &[u8], decom_size: usize) -> Result<Vec<u8>, ArtemisError> {
-    use lz4_flex::decompress;
+pub(crate) fn decompress_lz4(
+    data: &[u8],
+    decom_size: usize,
+    initial_dict: &[u8],
+) -> Result<Vec<u8>, ArtemisError> {
+    use lz4_flex::block::decompress_with_dict;
 
-    let decompress_result = decompress(data, decom_size);
+    let decompress_result = decompress_with_dict(data, decom_size, initial_dict);
     let decomp_data = match decompress_result {
         Ok(result) => result,
         Err(err) => {
@@ -381,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     fn test_decompress_lz4() {
         use super::decompress_lz4;
 
@@ -403,7 +407,7 @@ mod tests {
             114, 87, 105, 110, 100, 111, 119, 47, 96, 1, 18, 99, 80, 1, 2, 20, 0, 4, 220, 0, 63,
             73, 100, 60, 101, 0, 4, 15, 216, 0, 2, 112, 53, 51, 53, 58, 50, 49, 10,
         ];
-        let result = decompress_lz4(&test_data, 514).unwrap();
+        let result = decompress_lz4(&test_data, 514, &[]).unwrap();
         assert_eq!(result.len(), 514);
     }
 

@@ -1,0 +1,23 @@
+system = "macos"
+
+[output]
+name = "spotlight_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "spotlight"
+[artifacts.spotlight]
+# Optional
+# alt_path = ""
+# Include additional known Spotlight paths such as
+#     /Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*
+#     /Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*
+#     /Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*
+#     /Users/*/Library/Metadata/CoreSpotlight/*/index.spotlightV*/*
+#     /Users/*/Library/Caches/com.apple.helpd/*/index.spotlightV*/*
+include_additional = true

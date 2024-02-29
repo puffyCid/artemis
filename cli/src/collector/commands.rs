@@ -325,4 +325,14 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
     },
+    #[cfg(target_os = "macos")]
+    /// Parse the Spotlight database
+    Spotlight {
+        /// Alternative path to a Spotlight database
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+        /// Include additional known Spotlight database locations
+        #[arg(long)]
+        include_additional: bool,
+    },
 }

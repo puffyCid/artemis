@@ -45,3 +45,9 @@ pub struct FseventsOptions {
 pub struct LoginitemsOptions {
     pub alt_file: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct SpotlightOptions {
+    pub alt_path: Option<String>,
+    pub include_additional: Option<bool>,
+}

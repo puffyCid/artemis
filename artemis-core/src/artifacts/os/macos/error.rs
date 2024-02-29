@@ -14,6 +14,7 @@ pub(crate) enum MacArtifactError {
     FilterOutput,
     Serialize,
     SudoLog,
+    Spotlight,
     Format,
 }
 
@@ -35,6 +36,7 @@ impl fmt::Display for MacArtifactError {
             MacArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             MacArtifactError::Format => write!(f, "Unknown formatter provided"),
             MacArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
+            MacArtifactError::Spotlight => write!(f, "Failed to parse spotlight"),
         }
     }
 }

@@ -145,7 +145,6 @@ pub(crate) async fn cache_job_results(
     info: &JobInfo,
     endpoint_path: &str,
 ) -> Result<(), StoreError> {
-    println!("{endpoint_path}");
     update_job(info, endpoint_path).await?;
     let job_storage = format!("{endpoint_path}/jobs");
     let storage_result = create_dirs(&job_storage).await;
@@ -241,8 +240,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_job_results() {
-        create_dirs("./tmp/save").await.unwrap();
-        let path = "./tmp/save";
+        create_dirs("./tmp/save2").await.unwrap();
+        let path = "./tmp/save2";
         let data = JobInfo {
             id: 0,
             name: String::from("randomjob"),
