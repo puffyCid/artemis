@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_command_macos() {
+    fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
         use crate::collector::linux::Commands;
 

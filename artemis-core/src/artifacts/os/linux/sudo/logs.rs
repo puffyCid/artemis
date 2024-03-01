@@ -4,20 +4,26 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
+    structs::artifacts::os::linux::SudoOptions,
 };
 use common::linux::Journal;
 
 /// Grab sudo log entries in the Journal files
-pub(crate) fn grab_sudo_logs() -> Result<Vec<Journal>, JournalError> {
-    let persist = "/var/log/journal/";
-    let tmp = "/run/systemd/journal";
-    let mut logs = list_files_directories(persist).unwrap_or_default();
-    let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
+pub(crate) fn grab_sudo_logs(options: &SudoOptions) -> Result<Vec<Journal>, JournalError> {
+    let paths = if let Some(alt_path) = &options.alt_path {
+        vec![alt_path.clone()]
+    } else {
+        let persist = "/var/log/journal/";
+        let tmp = "/run/systemd/journal";
+        let mut logs = list_files_directories(persist).unwrap_or_default();
+        let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
 
-    logs.append(&mut tmp_files);
+        logs.append(&mut tmp_files);
+        logs
+    };
 
     let mut sudo_logs: Vec<Journal> = Vec::new();
-    for path in logs {
+    for path in paths {
         if is_file(&path) && !path.ends_with("journal") {
             continue;
         }
@@ -58,13 +64,16 @@ fn filter_logs(journal: Vec<Journal>, sudo_logs: &mut Vec<Journal>) {
 #[cfg(test)]
 mod tests {
     use super::{filter_logs, grab_sudo_logs};
-    use crate::artifacts::os::linux::journals::parser::grab_journal_file;
+    use crate::{
+        artifacts::os::linux::journals::parser::grab_journal_file,
+        structs::artifacts::os::linux::SudoOptions,
+    };
     use common::linux::Journal;
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_sudo_logs() {
-        let result = grab_sudo_logs().unwrap();
+        let result = grab_sudo_logs(&SudoOptions { alt_path: None }).unwrap();
         assert!(!result.is_empty());
     }
 

@@ -18,6 +18,9 @@ use super::artifacts::os::macos::{
     LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
 };
 
+#[cfg(target_os = "linux")]
+use super::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
+
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
     pub system: String,
@@ -105,4 +108,7 @@ pub struct Artifacts {
     pub processes: Option<ProcessOptions>,
     pub files: Option<FileOptions>,
     pub script: Option<JSScript>,
+    pub journals: Option<JournalOptions>,
+    pub sudologs: Option<SudoOptions>,
+    pub logons: Option<LogonOptions>,
 }

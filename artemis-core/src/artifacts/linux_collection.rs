@@ -16,13 +16,12 @@ pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxA
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
             "files" => {
-                let file_data = &artifacts.files;
-                let file_artifact_config = match file_data {
+                let options = match &artifacts.files {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = files(file_artifact_config, &mut collector.output, &filter);
+                let results = files(options, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
@@ -42,7 +41,12 @@ pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxA
                 }
             }
             "sudologs" => {
-                let results = sudo_logs(&mut collector.output, &filter);
+                let options = match &artifacts.sudologs {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = sudo_logs(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
@@ -148,7 +152,12 @@ pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxA
                 }
             }
             "journal" => {
-                let results = journals(&mut collector.output, &filter);
+                let options = match &artifacts.journals {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = journals(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected journals"),
                     Err(err) => {
@@ -173,7 +182,12 @@ pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxA
                 }
             }
             "logon" => {
-                let results = logons(&mut collector.output, &filter);
+                let options = match &artifacts.logons {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = logons(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected logons"),
                     Err(err) => {

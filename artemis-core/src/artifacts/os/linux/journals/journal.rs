@@ -154,7 +154,7 @@ fn get_entries(
         next_entry_array_offset: 0,
     };
 
-    let limit = 100000;
+    let limit = 10000;
     // Track offsets to make sure we do not encounter infinite loops
     let mut offset_tracker: HashMap<u64, bool> = HashMap::new();
     offset_tracker.insert(offset, false);

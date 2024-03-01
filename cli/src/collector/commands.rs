@@ -59,13 +59,25 @@ pub(crate) enum CommandArgs {
     Cron {},
     #[cfg(target_os = "linux")]
     /// Grab Sudo logs
-    Sudologs {},
+    Sudologs {
+        /// Alternative Sudo log directory to use
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+    },
     #[cfg(target_os = "linux")]
     /// Parse systemd Journal files
-    Journals {},
+    Journals {
+        /// Alternative Journal log directory to use
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
+    },
     #[cfg(target_os = "linux")]
     /// Parse Logon files
-    Logons {},
+    Logons {
+        /// Alternative logon file to use
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+    },
 
     #[cfg(target_os = "windows")]
     /// Parse Prefetch
