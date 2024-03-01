@@ -57,7 +57,6 @@
 # More documentation for the advisories section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
-version = 2
 # The path where the advisory database is cloned/fetched into
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
@@ -75,8 +74,10 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    { id = "RUSTSEC-2023-0081", "reason" = "Associated with plist crate. Waiting for upstream update" },
-    { id = "RUSTSEC-2021-0153", "reason" = "Associated with evtx crate. Waiting for upstream update" },
+    # { id = "RUSTSEC-2023-0081", "reason" = "Associated with plist crate. Waiting for upstream update" },
+    # { id = "RUSTSEC-2021-0153", "reason" = "Associated with evtx crate. Waiting for upstream update" },
+    "RUSTSEC-2021-0153",
+    "RUSTSEC-2023-0081",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -98,7 +99,6 @@ ignore = [
 # More documentation for the licenses section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
 [licenses]
-version = 2
 # The lint level for crates which do not have a detectable license
 # unlicensed = "deny"
 # List of explicitly allowed licenses

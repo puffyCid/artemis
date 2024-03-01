@@ -123,13 +123,12 @@ pub(crate) fn windows_collection(collector: &mut ArtemisToml) -> Result<(), WinA
                 }
             }
             "files" => {
-                let file_data = &artifacts.files;
-                let file_artifact_config = match file_data {
+                let options = match &artifacts.files {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = files(file_artifact_config, &mut collector.output, &filter);
+                let results = files(options, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {

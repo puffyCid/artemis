@@ -2,7 +2,11 @@ use super::commands::CommandArgs;
 use artemis_core::{
     core::artemis_collection,
     structs::{
-        artifacts::os::{files::FileOptions, processes::ProcessOptions},
+        artifacts::os::{
+            files::FileOptions,
+            linux::{JournalOptions, LogonOptions, SudoOptions},
+            processes::ProcessOptions,
+        },
         toml::{ArtemisToml, Artifacts, Output},
     },
 };
@@ -59,6 +63,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         processes: None,
         files: None,
         script: None,
+        journals: None,
+        logons: None,
+        sudologs: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -106,9 +113,27 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         }
         CommandArgs::Firefoxhistory {} => collect.artifact_name = String::from("firefox-history"),
         CommandArgs::Cron {} => collect.artifact_name = String::from("cron"),
-        CommandArgs::Journals {} => collect.artifact_name = String::from("journal"),
-        CommandArgs::Logons {} => collect.artifact_name = String::from("logon"),
-        CommandArgs::Sudologs {} => collect.artifact_name = String::from("sudologs"),
+        CommandArgs::Journals { alt_path } => {
+            let options = JournalOptions {
+                alt_path: alt_path.clone(),
+            };
+            collect.journals = Some(options);
+            collect.artifact_name = String::from("journal");
+        }
+        CommandArgs::Logons { alt_file } => {
+            let options = LogonOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.logons = Some(options);
+            collect.artifact_name = String::from("logon");
+        }
+        CommandArgs::Sudologs { alt_path } => {
+            let options = SudoOptions {
+                alt_path: alt_path.clone(),
+            };
+            collect.sudologs = Some(options);
+            collect.artifact_name = String::from("sudologs");
+        }
         CommandArgs::Shellhistory {} => collect.artifact_name = String::from("shell_history"),
         CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
     }
@@ -213,7 +238,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Logons {}),
+            artifact: Some(Logons { alt_file: None }),
             format: String::from("json"),
         };
 
@@ -221,7 +246,9 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Journals {}),
+            artifact: Some(Journals {
+                alt_path: Some(String::from(".")),
+            }),
             format: String::from("json"),
         };
 
@@ -229,7 +256,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Sudologs {}),
+            artifact: Some(Sudologs { alt_path: None }),
             format: String::from("json"),
         };
 

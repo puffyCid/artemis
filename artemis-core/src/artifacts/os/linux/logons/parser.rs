@@ -12,17 +12,25 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use super::logon::{Logon, Status};
-use crate::filesystem::files::file_reader;
+use crate::{filesystem::files::file_reader, structs::artifacts::os::linux::LogonOptions};
 use log::{error, warn};
 
 /// Grab all logon data from default paths
-pub(crate) fn grab_logons() -> Vec<Logon> {
-    let paths = vec!["/var/run/utmp", "/var/log/wtmp", "/var/log/btmp"];
+pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
+    let paths = if let Some(alt_file) = &options.alt_file {
+        vec![alt_file.clone()]
+    } else {
+        vec![
+            String::from("/var/run/utmp"),
+            String::from("/var/log/wtmp"),
+            String::from("/var/log/btmp"),
+        ]
+    };
 
     let mut logons = Vec::new();
 
     for path in paths {
-        grab_logon_file(path, &mut logons);
+        grab_logon_file(&path, &mut logons);
     }
 
     logons
@@ -57,11 +65,13 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::artifacts::os::linux::LogonOptions;
+
     use super::{grab_logon_file, grab_logons};
 
     #[test]
     fn test_grab_logons() {
-        let results = grab_logons();
+        let results = grab_logons(&LogonOptions { alt_file: None });
         assert!(!results.is_empty());
     }
 

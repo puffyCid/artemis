@@ -6,6 +6,7 @@ use crate::output::formats::json::json_format;
 use crate::output::formats::jsonl::jsonl_format;
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::files::FileOptions;
+use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
 use crate::structs::artifacts::os::processes::ProcessOptions;
 use crate::structs::toml::Output;
 use crate::utils::time;
@@ -100,10 +101,14 @@ pub(crate) fn files(
 }
 
 /// Get Linux `Journals`
-pub(crate) fn journals(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+pub(crate) fn journals(
+    output: &mut Output,
+    filter: &bool,
+    options: &JournalOptions,
+) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_journal(output, &start_time, filter);
+    let artifact_result = grab_journal(output, &start_time, filter, options);
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
@@ -114,10 +119,14 @@ pub(crate) fn journals(output: &mut Output, filter: &bool) -> Result<(), LinuxAr
 }
 
 /// Get Linux `Logon` info
-pub(crate) fn logons(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+pub(crate) fn logons(
+    output: &mut Output,
+    filter: &bool,
+    options: &LogonOptions,
+) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let result = grab_logons();
+    let result = grab_logons(options);
     let serde_data_result = serde_json::to_value(result);
     let serde_data = match serde_data_result {
         Ok(results) => results,
@@ -132,10 +141,14 @@ pub(crate) fn logons(output: &mut Output, filter: &bool) -> Result<(), LinuxArti
 }
 
 /// Parse sudo logs on Linux
-pub(crate) fn sudo_logs(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
+pub(crate) fn sudo_logs(
+    output: &mut Output,
+    filter: &bool,
+    options: &SudoOptions,
+) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let cron_results = grab_sudo_logs();
+    let cron_results = grab_sudo_logs(options);
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
@@ -220,6 +233,7 @@ mod tests {
         files, journals, logons, output_data, processes, sudo_logs, systeminfo,
     };
     use crate::structs::artifacts::os::files::FileOptions;
+    use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
     use crate::structs::artifacts::os::processes::ProcessOptions;
     use crate::structs::toml::Output;
     use crate::utils::time;
@@ -279,7 +293,14 @@ mod tests {
     fn test_journals() {
         let mut output = output_options("journals_test", "local", "./tmp", false);
 
-        let status = journals(&mut output, &false).unwrap();
+        let status = journals(
+            &mut output,
+            &false,
+            &JournalOptions {
+                alt_path: Some(String::from("./tmp")),
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -287,7 +308,14 @@ mod tests {
     fn test_logons() {
         let mut output = output_options("logons_test", "local", "./tmp", false);
 
-        let status = logons(&mut output, &false).unwrap();
+        let status = logons(
+            &mut output,
+            &false,
+            &LogonOptions {
+                alt_file: Some(String::from("/var/run/utmp")),
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -312,7 +340,14 @@ mod tests {
     fn test_sudo_logs() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
-        let status = sudo_logs(&mut output, &false).unwrap();
+        let status = sudo_logs(
+            &mut output,
+            &false,
+            &SudoOptions {
+                alt_path: Some(String::from("./tmp")),
+            },
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 }

@@ -1,20 +1,29 @@
-use crate::{artifacts::os::linux::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError};
+use crate::{
+    artifacts::os::linux::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError,
+    structs::artifacts::os::linux::SudoOptions,
+};
 use deno_core::{error::AnyError, op2};
 use log::error;
 
 #[op2]
 #[string]
 /// Get `Sudo log` data
-pub(crate) fn get_sudologs() -> Result<String, AnyError> {
-    let history_results = grab_sudo_logs();
-    let history = match history_results {
+pub(crate) fn get_sudologs(#[string] path: String) -> Result<String, AnyError> {
+    let mut options = SudoOptions { alt_path: None };
+
+    if !path.is_empty() {
+        options.alt_path = Some(path);
+    }
+
+    let sudo_results = grab_sudo_logs(&options);
+    let sudo = match sudo_results {
         Ok(results) => results,
         Err(err) => {
             error!("[runtime] Failed to get sudo log data: {err:?}");
             return Err(RuntimeError::ExecuteScript.into());
         }
     };
-    let results = serde_json::to_string(&history)?;
+    let results = serde_json::to_string(&sudo)?;
     Ok(results)
 }
 

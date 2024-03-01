@@ -1,5 +1,3 @@
-use common::linux::Journal;
-
 /**
  * Linux `Journal` files are the logs associated with the Systemd service  
  * Systemd is a popular system service that is common on most Linux distros
@@ -23,23 +21,30 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    structs::toml::Output,
+    structs::{artifacts::os::linux::JournalOptions, toml::Output},
 };
+use common::linux::Journal;
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
 pub(crate) fn grab_journal(
     output: &mut Output,
     start_time: &u64,
     filter: &bool,
+    options: &JournalOptions,
 ) -> Result<(), JournalError> {
-    let persist = "/var/log/journal/";
-    let tmp = "/run/systemd/journal";
-    let mut logs = list_files_directories(persist).unwrap_or_default();
-    let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
+    let paths = if let Some(alt_path) = &options.alt_path {
+        vec![alt_path.clone()]
+    } else {
+        let persist = "/var/log/journal/";
+        let tmp = "/run/systemd/journal";
+        let mut logs = list_files_directories(persist).unwrap_or_default();
+        let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
 
-    logs.append(&mut tmp_files);
+        logs.append(&mut tmp_files);
+        logs
+    };
 
-    for path in logs {
+    for path in paths {
         if is_file(&path) && !path.ends_with("journal") {
             continue;
         }
@@ -76,7 +81,10 @@ pub(crate) fn grab_journal_file(path: &str) -> Result<Vec<Journal>, JournalError
 #[cfg(test)]
 mod tests {
     use super::grab_journal;
-    use crate::{artifacts::os::linux::journals::parser::grab_journal_file, structs::toml::Output};
+    use crate::{
+        artifacts::os::linux::journals::parser::grab_journal_file,
+        structs::{artifacts::os::linux::JournalOptions, toml::Output},
+    };
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -99,7 +107,7 @@ mod tests {
     #[test]
     fn test_grab_journal() {
         let mut output = output_options("grab_journal", "local", "./tmp", false);
-        grab_journal(&mut output, &0, &false).unwrap();
+        grab_journal(&mut output, &0, &false, &JournalOptions { alt_path: None }).unwrap();
     }
 
     #[test]
