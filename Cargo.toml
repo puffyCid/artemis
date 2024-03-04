@@ -14,13 +14,13 @@ edition = "2021"
 
 [workspace.dependencies]
 serde = { version = "1.0.197", features = ["derive"] }
-log = "0.4.20"
+log = "0.4.21"
 serde_json = "1.0.114"
 toml = "0.8.10"
-base64 = "0.21.7"
+base64 = "0.22.0"
 tokio = { version = "1.36.0", features = ["full"] }
 flate2 = "1.0.28"
 glob = "0.3.1"
 reqwest = { version = "0.11.24", features = ["json", "blocking"] }
-sysinfo = "0.30.5"
+sysinfo = "0.30.6"
 uuid = { version = "1.7.0", features = ["v4"] }
