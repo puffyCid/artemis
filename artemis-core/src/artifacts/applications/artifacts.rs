@@ -13,7 +13,7 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse macOS Safari history
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
     use super::safari::history::get_safari_history;
 
@@ -42,7 +42,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
 }
 
 /// Parse macOS Safari downloads
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
     use super::safari::downloads::get_safari_downloads;
 

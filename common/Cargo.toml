@@ -10,6 +10,6 @@ license = "MIT"
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-# macOS Dependencies
-[target.'cfg(target_os = "macos")'.dependencies]
+# Unix Dependencies
+[target.'cfg(target_family = "unix")'.dependencies]
 plist = "1.6.0"

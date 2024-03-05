@@ -152,7 +152,7 @@ pub struct SafariDownloads {
     pub user: String,
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 #[derive(Debug, Serialize)]
 pub struct SafariHistory {
     pub results: Vec<SafariHistoryEntry>,
@@ -160,7 +160,7 @@ pub struct SafariHistory {
     pub user: String,
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 #[derive(Debug, Serialize)]
 pub struct SafariHistoryEntry {
     pub id: i64,
