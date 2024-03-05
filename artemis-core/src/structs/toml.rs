@@ -12,14 +12,14 @@ use crate::structs::artifacts::os::windows::{
     UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 use super::artifacts::os::macos::{
-    EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-    LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
+    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 
-#[cfg(target_os = "linux")]
-use super::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
+#[cfg(target_family = "unix")]
+use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
@@ -45,7 +45,7 @@ pub struct Output {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,
@@ -55,15 +55,18 @@ pub struct Artifacts {
     pub files: Option<FileOptions>,
     pub unifiedlogs: Option<UnifiedLogsOptions>,
     pub script: Option<JSScript>,
-    pub users: Option<UsersOptions>,
-    pub groups: Option<GroupsOptions>,
+    pub users_macos: Option<MacosUsersOptions>,
+    pub groups_macos: Option<MacosGroupsOptions>,
     pub emond: Option<EmondOptions>,
     pub execpolicy: Option<ExecPolicyOptions>,
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,
     pub fseventsd: Option<FseventsOptions>,
-    pub sudologs: Option<SudoOptions>,
+    pub sudologs_macos: Option<MacosSudoOptions>,
     pub spotlight: Option<SpotlightOptions>,
+    pub journals: Option<JournalOptions>,
+    pub sudologs_linux: Option<LinuxSudoOptions>,
+    pub logons: Option<LogonOptions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -96,19 +99,4 @@ pub struct Artifacts {
     pub jumplists: Option<JumplistsOptions>,
     pub recyclebin: Option<RecycleBinOptions>,
     pub wmipersist: Option<WmiPersistOptions>,
-}
-
-#[derive(Debug, Deserialize)]
-#[cfg(target_os = "linux")]
-pub struct Artifacts {
-    /**Based on artifact parse one of the artifact types */
-    pub artifact_name: String,
-    /**Specify whether to filter the parsed data */
-    pub filter: Option<bool>,
-    pub processes: Option<ProcessOptions>,
-    pub files: Option<FileOptions>,
-    pub script: Option<JSScript>,
-    pub journals: Option<JournalOptions>,
-    pub sudologs: Option<SudoOptions>,
-    pub logons: Option<LogonOptions>,
 }

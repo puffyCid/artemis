@@ -6,15 +6,15 @@ pub enum ArtemisError {
     Regex,
     #[cfg(target_os = "windows")]
     Env,
-    #[cfg(target_os = "macos")]
+    #[cfg(target_family = "unix")]
     GzipReadFile,
-    #[cfg(target_os = "macos")]
+    #[cfg(target_family = "unix")]
     GzipDecompress,
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     ZstdDecompresss,
     #[cfg(target_family = "unix")]
     Lz4Decompresss,
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     XzDecompress,
     CompressCreate,
     GzipFinish,
@@ -38,15 +38,15 @@ impl fmt::Display for ArtemisError {
             ArtemisError::Regex => write!(f, "Invalid regex provided"),
             #[cfg(target_os = "windows")]
             ArtemisError::Env => write!(f, "Could not get environment variable"),
-            #[cfg(target_os = "macos")]
+            #[cfg(target_family = "unix")]
             ArtemisError::GzipReadFile => write!(f, "Could not read file"),
-            #[cfg(target_os = "macos")]
+            #[cfg(target_family = "unix")]
             ArtemisError::GzipDecompress => write!(f, "Could not decompress gzip data"),
-            #[cfg(target_os = "linux")]
+            #[cfg(target_family = "unix")]
             ArtemisError::ZstdDecompresss => write!(f, "Could not decompress zstd data"),
             #[cfg(target_family = "unix")]
             ArtemisError::Lz4Decompresss => write!(f, "Could not decompress lz4 data"),
-            #[cfg(target_os = "linux")]
+            #[cfg(target_family = "unix")]
             ArtemisError::XzDecompress => write!(f, "Could not decompress xz data"),
             ArtemisError::CompressCreate => write!(f, "Could not create file for compression"),
             ArtemisError::GzipFinish => write!(f, "Could not complete gzip compression"),

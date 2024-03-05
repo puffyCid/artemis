@@ -43,6 +43,7 @@ pub(crate) fn setup_spotlight_parser(#[string] glob_path: String) -> Result<Stri
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

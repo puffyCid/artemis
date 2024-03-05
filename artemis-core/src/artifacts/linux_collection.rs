@@ -1,4 +1,4 @@
-use super::os::linux::artifacts::{journals, logons, sudo_logs};
+use super::os::linux::artifacts::{journals, logons, sudo_logs_linux};
 use crate::artifacts::applications::artifacts::{
     chromium_downloads, chromium_history, firefox_downloads, firefox_history,
 };
@@ -41,12 +41,12 @@ pub(crate) fn linux_collection(collector: &mut ArtemisToml) -> Result<(), LinuxA
                 }
             }
             "sudologs" => {
-                let options = match &artifacts.sudologs {
+                let options = match &artifacts.sudologs_linux {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = sudo_logs(&mut collector.output, &filter, options);
+                let results = sudo_logs_linux(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {

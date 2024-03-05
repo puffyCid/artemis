@@ -1,7 +1,7 @@
 pub mod files;
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 pub mod linux;
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 pub mod macos;
 pub mod processes;
 

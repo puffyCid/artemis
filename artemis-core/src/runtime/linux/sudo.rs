@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::linux::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError,
-    structs::artifacts::os::linux::SudoOptions,
+    structs::artifacts::os::linux::LinuxSudoOptions,
 };
 use deno_core::{error::AnyError, op2};
 use log::error;
@@ -9,7 +9,7 @@ use log::error;
 #[string]
 /// Get `Sudo log` data
 pub(crate) fn get_sudologs(#[string] path: String) -> Result<String, AnyError> {
-    let mut options = SudoOptions { alt_path: None };
+    let mut options = LinuxSudoOptions { alt_path: None };
 
     if !path.is_empty() {
         options.alt_path = Some(path);
@@ -28,6 +28,7 @@ pub(crate) fn get_sudologs(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

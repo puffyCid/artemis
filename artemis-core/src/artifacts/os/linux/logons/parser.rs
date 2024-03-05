@@ -64,6 +64,7 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::structs::artifacts::os::linux::LogonOptions;
 

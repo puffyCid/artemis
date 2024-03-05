@@ -3,9 +3,9 @@ use base64::{engine::general_purpose, Engine};
 use clap::Parser;
 use log::info;
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 use crate::collector::macos::run_collector;
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 use collector::macos::Commands;
 
 #[cfg(target_os = "windows")]
@@ -13,10 +13,10 @@ use crate::collector::windows::run_collector;
 #[cfg(target_os = "windows")]
 use collector::windows::Commands;
 
-#[cfg(target_os = "linux")]
-use crate::collector::linux::run_collector;
-#[cfg(target_os = "linux")]
-use collector::linux::Commands;
+//#[cfg(target_os = "linux")]
+//use crate::collector::linux::run_collector;
+//#[cfg(target_os = "linux")]
+//use collector::linux::Commands;
 
 mod collector;
 

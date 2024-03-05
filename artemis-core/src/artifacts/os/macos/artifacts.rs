@@ -21,8 +21,9 @@ use crate::{
         artifacts::os::{
             files::FileOptions,
             macos::{
-                EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
+                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
+                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
+                SpotlightOptions, UnifiedLogsOptions,
             },
             processes::ProcessOptions,
         },
@@ -101,7 +102,7 @@ pub(crate) fn emond(
 pub(crate) fn users(
     output: &mut Output,
     filter: &bool,
-    options: &UsersOptions,
+    options: &MacosUsersOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
@@ -177,7 +178,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), MacAr
 pub(crate) fn groups(
     output: &mut Output,
     filter: &bool,
-    options: &GroupsOptions,
+    options: &MacosGroupsOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
@@ -375,10 +376,10 @@ pub(crate) fn execpolicy(
 }
 
 /// Parse sudo logs on macOS
-pub(crate) fn sudo_logs(
+pub(crate) fn sudo_logs_macos(
     output: &mut Output,
     filter: &bool,
-    options: &SudoOptions,
+    options: &MacosSudoOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
     let mut path = String::from("/var/db/diagnostics/Persist");
@@ -520,19 +521,20 @@ pub(crate) fn output_data(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
-            processes, spotlight, sudo_logs, systeminfo, unifiedlogs, users,
+            processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users,
         },
         structs::{
             artifacts::os::{
                 files::FileOptions,
                 macos::{
-                    EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions,
-                    LaunchdOptions, LoginitemsOptions, SpotlightOptions, SudoOptions,
-                    UnifiedLogsOptions, UsersOptions,
+                    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
+                    LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
+                    SpotlightOptions, UnifiedLogsOptions,
                 },
                 processes::ProcessOptions,
             },
@@ -579,7 +581,7 @@ mod tests {
     fn test_users() {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
-        let status = users(&mut output, &false, &UsersOptions { alt_path: None }).unwrap();
+        let status = users(&mut output, &false, &&MacosUsersOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -587,7 +589,7 @@ mod tests {
     fn test_groups() {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
-        let status = groups(&mut output, &false, &GroupsOptions { alt_path: None }).unwrap();
+        let status = groups(&mut output, &false, &&MacosGroupsOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -675,13 +677,13 @@ mod tests {
     }
 
     #[test]
-    fn test_sudo_logs() {
+    fn test_sudo_logs_macos() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
-        let status = sudo_logs(
+        let status = sudo_logs_macos(
             &mut output,
             &false,
-            &SudoOptions {
+            &&MacosSudoOptions {
                 logarchive_path: None,
             },
         )

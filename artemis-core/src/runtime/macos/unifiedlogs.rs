@@ -103,6 +103,7 @@ fn parse_trace_file(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::parse_trace_file;
     use crate::{

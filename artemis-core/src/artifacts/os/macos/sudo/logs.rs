@@ -69,6 +69,7 @@ fn parse_trace_file(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{filter_logs, grab_sudo_logs, parse_trace_file};
     use crate::filesystem::files::list_files;

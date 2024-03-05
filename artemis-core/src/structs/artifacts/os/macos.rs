@@ -7,17 +7,17 @@ pub struct UnifiedLogsOptions {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SudoOptions {
+pub struct MacosSudoOptions {
     pub logarchive_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UsersOptions {
+pub struct MacosUsersOptions {
     pub alt_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GroupsOptions {
+pub struct MacosGroupsOptions {
     pub alt_path: Option<String>,
 }
 

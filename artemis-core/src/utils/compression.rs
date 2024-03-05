@@ -6,7 +6,7 @@ use std::{fs::File, io::Write};
 use walkdir::WalkDir;
 use zip::{write::FileOptions, ZipWriter};
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, ArtemisError> {
     use flate2::bufread::MultiGzDecoder;
@@ -35,7 +35,7 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, ArtemisError> {
     Ok(decompress_data)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 /// Decompress zstd data
 pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     use ruzstd::StreamingDecoder;
@@ -76,7 +76,7 @@ pub(crate) fn decompress_lz4(
     Ok(decomp_data)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 /// Decompress xz data
 pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, ArtemisError> {
     use std::io::Read;
@@ -296,7 +296,7 @@ mod tests {
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[cfg(target_family = "unix")]
     fn test_decompress_gzip() {
         use crate::utils::compression::decompress_gzip;
 
@@ -319,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     fn test_decompress_zstd() {
         use super::decompress_zstd;
 
@@ -349,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     fn test_decompress_xz() {
         use super::decompress_xz;
 

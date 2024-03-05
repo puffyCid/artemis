@@ -3,9 +3,9 @@ pub mod files;
 pub mod server;
 pub mod system;
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 pub mod linux;
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 pub mod macos;
 #[cfg(target_family = "unix")]
 pub mod unix;

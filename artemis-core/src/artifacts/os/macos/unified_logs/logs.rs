@@ -188,6 +188,7 @@ fn parse_trace_files(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{grab_logs, parse_trace_files, ParseOptions, UnifiedLog};
     use crate::{structs::toml::Output, utils::time};

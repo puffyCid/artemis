@@ -6,7 +6,7 @@ use crate::output::formats::json::json_format;
 use crate::output::formats::jsonl::jsonl_format;
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::files::FileOptions;
-use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
+use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use crate::structs::artifacts::os::processes::ProcessOptions;
 use crate::structs::toml::Output;
 use crate::utils::time;
@@ -34,7 +34,7 @@ pub(crate) fn processes(
     let proc_data = match results {
         Ok(data) => data,
         Err(err) => {
-            warn!("[artemis-core] Artemis Linux failed to get process list: {err:?}");
+            warn!("[artemis-core] Failed to get process list: {err:?}");
             return Err(LinuxArtifactError::Process);
         }
     };
@@ -93,7 +93,7 @@ pub(crate) fn files(
     match artifact_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[artemis-core] Artemis Linux failed to get file listing: {err:?}");
+            error!("[artemis-core] Failed to get file listing: {err:?}");
             return Err(LinuxArtifactError::File);
         }
     };
@@ -112,7 +112,7 @@ pub(crate) fn journals(
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[artemis-core] Artemis Linux failed to get journals: {err:?}");
+            error!("[artemis-core] Failed to get journals: {err:?}");
             Err(LinuxArtifactError::Journal)
         }
     }
@@ -141,10 +141,10 @@ pub(crate) fn logons(
 }
 
 /// Parse sudo logs on Linux
-pub(crate) fn sudo_logs(
+pub(crate) fn sudo_logs_linux(
     output: &mut Output,
     filter: &bool,
-    options: &SudoOptions,
+    options: &LinuxSudoOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
@@ -152,7 +152,7 @@ pub(crate) fn sudo_logs(
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis Linux failed to get sudo log data: {err:?}");
+            warn!("[artemis-core] Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
@@ -228,12 +228,13 @@ pub(crate) fn output_data(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::artifacts::os::linux::artifacts::{
-        files, journals, logons, output_data, processes, sudo_logs, systeminfo,
+        files, journals, logons, output_data, processes, sudo_logs_linux, systeminfo,
     };
     use crate::structs::artifacts::os::files::FileOptions;
-    use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
+    use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
     use crate::structs::artifacts::os::processes::ProcessOptions;
     use crate::structs::toml::Output;
     use crate::utils::time;
@@ -337,13 +338,13 @@ mod tests {
     }
 
     #[test]
-    fn test_sudo_logs() {
+    fn test_sudo_logs_linux() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
-        let status = sudo_logs(
+        let status = sudo_logs_linux(
             &mut output,
             &false,
-            &SudoOptions {
+            &LinuxSudoOptions {
                 alt_path: Some(String::from("./tmp")),
             },
         )

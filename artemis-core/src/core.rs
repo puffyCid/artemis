@@ -8,9 +8,9 @@ use crate::{
 use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger, WriteLogger};
 
-#[cfg(target_os = "linux")]
-use crate::artifacts::linux_collection::linux_collection;
-#[cfg(target_os = "macos")]
+//#[cfg(target_family = "unix")]
+//use crate::artifacts::linux_collection::linux_collection;
+#[cfg(target_family = "unix")]
 use crate::artifacts::macos_collection::macos_collection;
 #[cfg(target_os = "windows")]
 use crate::artifacts::windows_collection::windows_collection;
@@ -77,7 +77,7 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
     }
 
     if collection.system == "macos" {
-        #[cfg(target_os = "macos")]
+        #[cfg(target_family = "unix")]
         {
             let result = macos_collection(collection);
             match result {
@@ -101,9 +101,9 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
             }
         }
     } else if collection.system == "linux" {
-        #[cfg(target_os = "linux")]
+        #[cfg(target_family = "unix")]
         {
-            let result = linux_collection(collection);
+            let result = macos_collection(collection);
             match result {
                 Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
                 Err(err) => {
