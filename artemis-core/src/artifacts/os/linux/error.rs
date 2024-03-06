@@ -6,8 +6,6 @@ pub(crate) enum LinuxArtifactError {
     FilterOutput,
     Serialize,
     Format,
-    File,
-    Process,
     Journal,
     SudoLog,
 }
@@ -21,8 +19,6 @@ impl fmt::Display for LinuxArtifactError {
             LinuxArtifactError::FilterOutput => write!(f, "Failed to filter linux data"),
             LinuxArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             LinuxArtifactError::Format => write!(f, "Unknown formatter provided"),
-            LinuxArtifactError::Process => write!(f, "Failed to parse Processes"),
-            LinuxArtifactError::File => write!(f, "Failed to parse Files"),
             LinuxArtifactError::Journal => write!(f, "Failed to parse Journals"),
             LinuxArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
         }
