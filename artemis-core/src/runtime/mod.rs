@@ -13,11 +13,11 @@ mod time;
 #[cfg(target_family = "unix")]
 mod unix;
 
-#[cfg(target_os = "macos")]
+#[cfg(target_family = "unix")]
 mod macos;
 
 #[cfg(target_os = "windows")]
 mod windows;
 
-#[cfg(target_os = "linux")]
+#[cfg(target_family = "unix")]
 mod linux;

@@ -6,7 +6,7 @@ pub struct JournalOptions {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SudoOptions {
+pub struct LinuxSudoOptions {
     pub alt_path: Option<String>,
 }
 

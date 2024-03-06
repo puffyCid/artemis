@@ -4,12 +4,12 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    structs::artifacts::os::linux::SudoOptions,
+    structs::artifacts::os::linux::LinuxSudoOptions,
 };
 use common::linux::Journal;
 
 /// Grab sudo log entries in the Journal files
-pub(crate) fn grab_sudo_logs(options: &SudoOptions) -> Result<Vec<Journal>, JournalError> {
+pub(crate) fn grab_sudo_logs(options: &LinuxSudoOptions) -> Result<Vec<Journal>, JournalError> {
     let paths = if let Some(alt_path) = &options.alt_path {
         vec![alt_path.clone()]
     } else {
@@ -62,18 +62,19 @@ fn filter_logs(journal: Vec<Journal>, sudo_logs: &mut Vec<Journal>) {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use super::{filter_logs, grab_sudo_logs};
     use crate::{
         artifacts::os::linux::journals::parser::grab_journal_file,
-        structs::artifacts::os::linux::SudoOptions,
+        structs::artifacts::os::linux::LinuxSudoOptions,
     };
     use common::linux::Journal;
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_sudo_logs() {
-        let result = grab_sudo_logs(&SudoOptions { alt_path: None }).unwrap();
+        let result = grab_sudo_logs(&LinuxSudoOptions { alt_path: None }).unwrap();
         assert!(!result.is_empty());
     }
 

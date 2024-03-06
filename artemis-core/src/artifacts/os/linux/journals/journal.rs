@@ -8,7 +8,7 @@ use super::{
     },
 };
 use crate::{
-    artifacts::os::linux::artifacts::output_data, filesystem::files::file_reader,
+    artifacts::os::macos::artifacts::output_data, filesystem::files::file_reader,
     structs::toml::Output,
 };
 use common::linux::{Facility, Journal, Priority};

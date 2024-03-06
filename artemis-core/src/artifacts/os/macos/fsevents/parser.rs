@@ -111,6 +111,7 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{

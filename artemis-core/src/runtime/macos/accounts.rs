@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::accounts::{groups::grab_groups, users::grab_users},
-    structs::artifacts::os::macos::{GroupsOptions, UsersOptions},
+    structs::artifacts::os::macos::{MacosGroupsOptions, MacosUsersOptions},
 };
 use deno_core::{error::AnyError, op2};
 
@@ -12,7 +12,7 @@ pub(crate) fn get_users(#[string] path: String) -> Result<String, AnyError> {
     if user_path.is_empty() {
         user_path = String::from("/var/db/dslocal/nodes/Default/users");
     }
-    let users = grab_users(&UsersOptions {
+    let users = grab_users(&MacosUsersOptions {
         alt_path: Some(user_path),
     });
     let results = serde_json::to_string(&users)?;
@@ -27,7 +27,7 @@ pub(crate) fn get_groups(#[string] path: String) -> Result<String, AnyError> {
     if group_path.is_empty() {
         group_path = String::from("/var/db/dslocal/nodes/Default/users");
     }
-    let groups = grab_groups(&GroupsOptions {
+    let groups = grab_groups(&MacosGroupsOptions {
         alt_path: Some(group_path),
     });
     let results = serde_json::to_string(&groups)?;
@@ -35,6 +35,7 @@ pub(crate) fn get_groups(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

@@ -4,9 +4,11 @@ use artemis_core::{
     structs::{
         artifacts::os::{
             files::FileOptions,
+            linux::{JournalOptions, LinuxSudoOptions, LogonOptions},
             macos::{
-                EmondOptions, ExecPolicyOptions, FseventsOptions, GroupsOptions, LaunchdOptions,
-                LoginitemsOptions, SpotlightOptions, SudoOptions, UnifiedLogsOptions, UsersOptions,
+                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
+                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
+                SpotlightOptions, UnifiedLogsOptions,
             },
             processes::ProcessOptions,
         },
@@ -72,10 +74,13 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         loginitems: None,
         launchd: None,
         fseventsd: None,
-        users: None,
-        groups: None,
-        sudologs: None,
+        users_macos: None,
+        groups_macos: None,
+        sudologs_macos: None,
         spotlight: None,
+        journals: None,
+        sudologs_linux: None,
+        logons: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -146,11 +151,11 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.execpolicy = Some(options);
             collect.artifact_name = String::from("execpolicy");
         }
-        CommandArgs::Groups { alt_path } => {
-            let options = GroupsOptions {
+        CommandArgs::GroupsMacos { alt_path } => {
+            let options = MacosGroupsOptions {
                 alt_path: alt_path.clone(),
             };
-            collect.groups = Some(options);
+            collect.groups_macos = Some(options);
             collect.artifact_name = String::from("groups");
         }
         CommandArgs::Launchd { alt_file } => {
@@ -167,21 +172,21 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.loginitems = Some(options);
             collect.artifact_name = String::from("loginitems");
         }
-        CommandArgs::Safaridownloads {} => collect.artifact_name = String::from("safari-downloads"),
-        CommandArgs::Safarihistory {} => collect.artifact_name = String::from("safari-history"),
-        CommandArgs::Users { alt_path } => {
-            let options = UsersOptions {
+        CommandArgs::SafariDownloads {} => collect.artifact_name = String::from("safari-downloads"),
+        CommandArgs::SafariHistory {} => collect.artifact_name = String::from("safari-history"),
+        CommandArgs::UsersMacos { alt_path } => {
+            let options = MacosUsersOptions {
                 alt_path: alt_path.clone(),
             };
-            collect.users = Some(options);
+            collect.users_macos = Some(options);
             collect.artifact_name = String::from("users");
         }
-        CommandArgs::Sudologs { logarchive_path } => {
-            let options = SudoOptions {
+        CommandArgs::SudologsMacos { logarchive_path } => {
+            let options = MacosSudoOptions {
                 logarchive_path: logarchive_path.clone(),
             };
-            collect.sudologs = Some(options);
-            collect.artifact_name = String::from("sudologs");
+            collect.sudologs_macos = Some(options);
+            collect.artifact_name = String::from("sudologs-macos");
         }
         CommandArgs::Unifiedlogs {
             sources,
@@ -205,17 +210,40 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.spotlight = Some(options);
             collect.artifact_name = String::from("spotlight");
         }
+        CommandArgs::Journals { alt_path } => {
+            let options = JournalOptions {
+                alt_path: alt_path.clone(),
+            };
+            collect.journals = Some(options);
+            collect.artifact_name = String::from("journal");
+        }
+        CommandArgs::Logons { alt_file } => {
+            let options = LogonOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.logons = Some(options);
+            collect.artifact_name = String::from("logon");
+        }
+        CommandArgs::SudologsLinux { alt_path } => {
+            let options = LinuxSudoOptions {
+                alt_path: alt_path.clone(),
+            };
+            collect.sudologs_linux = Some(options);
+            collect.artifact_name = String::from("sudologs-linux");
+        }
     }
     collect
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
     use crate::collector::macos::CommandArgs::{
         Chromiumdownloads, Chromiumhistory, Cron, Emond, Execpolicy, Filelisting, Firefoxdownloads,
-        Firefoxhistory, Fsevents, Groups, Launchd, Loginitems, Processes, Safaridownloads,
-        Safarihistory, Shellhistory, Spotlight, Sudologs, Systeminfo, Unifiedlogs, Users,
+        Firefoxhistory, Fsevents, GroupsMacos, Journals, Launchd, Loginitems, Logons, Processes,
+        SafariDownloads, SafariHistory, Shellhistory, Spotlight, SudologsLinux, SudologsMacos,
+        Systeminfo, Unifiedlogs, UsersMacos,
     };
     use artemis_core::structs::toml::Output;
     fn output() -> Output {
@@ -273,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_collector_root() {
+    fn test_run_macos_collector_root() {
         let command = Commands::Acquire {
             artifact: Some(Chromiumdownloads {}),
             format: String::from("json"),
@@ -315,7 +343,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Users { alt_path: None }),
+            artifact: Some(UsersMacos { alt_path: None }),
             format: String::from("json"),
         };
 
@@ -323,7 +351,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Sudologs {
+            artifact: Some(SudologsMacos {
                 logarchive_path: None,
             }),
             format: String::from("json"),
@@ -349,7 +377,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Groups { alt_path: None }),
+            artifact: Some(GroupsMacos { alt_path: None }),
             format: String::from("json"),
         };
 
@@ -389,7 +417,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Safaridownloads {}),
+            artifact: Some(SafariDownloads {}),
             format: String::from("json"),
         };
 
@@ -397,7 +425,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Safarihistory {}),
+            artifact: Some(SafariHistory {}),
             format: String::from("json"),
         };
 
@@ -437,5 +465,34 @@ mod tests {
     fn test_setup_artifact() {
         let result = setup_artifact(&Loginitems { alt_file: None });
         assert_eq!(result.artifact_name, "loginitems");
+    }
+
+    #[test]
+    fn test_run_linux_collector_others() {
+        let command = Commands::Acquire {
+            artifact: Some(Logons { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Journals {
+                alt_path: Some(String::from(".")),
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(SudologsLinux { alt_path: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
     }
 }

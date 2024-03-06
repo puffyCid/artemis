@@ -104,6 +104,7 @@ pub(crate) fn grab_execpolicy(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         artifacts::os::macos::execpolicy::policy::grab_execpolicy,

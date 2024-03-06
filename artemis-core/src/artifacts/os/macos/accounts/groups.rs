@@ -2,12 +2,12 @@
  * Grab local macOS `Groups` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/groups`
  */
 use super::opendirectory::parse_groups_plist;
-use crate::{filesystem::files::list_files, structs::artifacts::os::macos::GroupsOptions};
+use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosGroupsOptions};
 use common::macos::OpendirectoryGroups;
 use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
-pub(crate) fn grab_groups(options: &GroupsOptions) -> Vec<OpendirectoryGroups> {
+pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGroups> {
     let path = if let Some(alt_path) = &options.alt_path {
         alt_path
     } else {
@@ -41,15 +41,16 @@ pub(crate) fn grab_groups(options: &GroupsOptions) -> Vec<OpendirectoryGroups> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         artifacts::os::macos::accounts::groups::grab_groups,
-        structs::artifacts::os::macos::GroupsOptions,
+        structs::artifacts::os::macos::MacosGroupsOptions,
     };
 
     #[test]
     fn test_grab_groups() {
-        let results = grab_groups(&GroupsOptions { alt_path: None });
+        let results = grab_groups(&MacosGroupsOptions { alt_path: None });
         assert!(results.len() > 10);
 
         for data in results {

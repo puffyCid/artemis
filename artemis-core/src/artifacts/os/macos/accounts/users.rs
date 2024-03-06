@@ -2,12 +2,12 @@
  * Grab local macOS `Users` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/users`
  */
 use super::opendirectory::parse_users_plist;
-use crate::{filesystem::files::list_files, structs::artifacts::os::macos::UsersOptions};
+use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosUsersOptions};
 use common::macos::OpendirectoryUsers;
 use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
-pub(crate) fn grab_users(options: &UsersOptions) -> Vec<OpendirectoryUsers> {
+pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers> {
     let path = if let Some(alt_path) = &options.alt_path {
         alt_path
     } else {
@@ -40,11 +40,11 @@ pub(crate) fn grab_users(options: &UsersOptions) -> Vec<OpendirectoryUsers> {
 #[cfg(test)]
 mod tests {
     use super::grab_users;
-    use crate::structs::artifacts::os::macos::UsersOptions;
+    use crate::structs::artifacts::os::macos::MacosUsersOptions;
 
     #[test]
     fn test_grab_users() {
-        let results = grab_users(&UsersOptions { alt_path: None });
+        let results = grab_users(&MacosUsersOptions { alt_path: None });
         for data in results {
             if data.uid.len() == 1 && data.uid[0] == "0" {
                 assert_eq!(data.real_name[0], "System Administrator");

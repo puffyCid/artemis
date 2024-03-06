@@ -11,6 +11,7 @@ pub(crate) fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

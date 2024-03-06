@@ -7,14 +7,14 @@ use log::error;
 use serde_json::Value;
 use std::rc::Rc;
 
-#[cfg(target_os = "macos")]
-use super::macos::extensions::setup_extensions;
+#[cfg(target_family = "unix")]
+use super::macos::extensions::setup_macos_extensions;
 
 #[cfg(target_os = "windows")]
 use super::windows::extensions::setup_extensions;
 
-#[cfg(target_os = "linux")]
-use super::linux::extensions::setup_extensions;
+#[cfg(target_family = "unix")]
+use super::linux::extensions::setup_linux_extensions;
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
 
@@ -152,11 +152,23 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
     // Set max heap memory size to 2GB
     v8_params = v8_params.heap_limits(initial_size, max_size);
 
+    let mut extensions;
+    #[cfg(target_family = "unix")]
+    {
+        extensions = setup_macos_extensions();
+        extensions.append(&mut setup_linux_extensions());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        extensions = setup_extensions();
+    }
+
     let runtime = JsRuntime::new(RuntimeOptions {
         source_map_getter: None,
         get_error_class_fn: Some(&get_error_class_name),
         module_loader: Some(module_loader),
-        extensions: setup_extensions(),
+        extensions,
         startup_snapshot: Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
         create_params: Some(v8_params),
         v8_platform: Default::default(),

@@ -199,6 +199,7 @@ fn parse_commands(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::MachoInfo;
     use crate::{

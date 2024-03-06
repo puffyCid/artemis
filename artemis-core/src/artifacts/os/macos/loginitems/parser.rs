@@ -88,6 +88,7 @@ pub(crate) fn grab_loginitems(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::grab_loginitems;
     use crate::structs::artifacts::os::macos::LoginitemsOptions;

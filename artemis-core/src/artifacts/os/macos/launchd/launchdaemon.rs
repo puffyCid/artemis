@@ -187,6 +187,7 @@ fn launchd_data(path: &str) -> Result<Vec<String>, LaunchdError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{
         grab_launchd, grab_launchd_agents, grab_launchd_daemons, system_launchd_agents,

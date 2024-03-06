@@ -213,6 +213,7 @@ fn check_clients() -> bool {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::parse_emond_rules;
     use crate::{

@@ -1,13 +1,8 @@
-use crate::artifacts::os::files::filelisting::get_filelist;
-use crate::artifacts::os::systeminfo::info::get_info;
-use crate::artifacts::os::{linux::error::LinuxArtifactError, processes::process::proc_list};
-use crate::filesystem::files::Hashes;
+use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::output::formats::json::json_format;
 use crate::output::formats::jsonl::jsonl_format;
 use crate::runtime::deno::filter_script;
-use crate::structs::artifacts::os::files::FileOptions;
-use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
-use crate::structs::artifacts::os::processes::ProcessOptions;
+use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use crate::structs::toml::Output;
 use crate::utils::time;
 use log::{error, warn};
@@ -15,90 +10,6 @@ use serde_json::Value;
 
 use super::sudo::logs::grab_sudo_logs;
 use super::{journals::parser::grab_journal, logons::parser::grab_logons};
-
-/// Get Linux `Processes`
-pub(crate) fn processes(
-    artifact: &ProcessOptions,
-    output: &mut Output,
-    filter: &bool,
-) -> Result<(), LinuxArtifactError> {
-    let start_time = time::time_now();
-
-    let hashes = Hashes {
-        md5: artifact.md5,
-        sha1: artifact.sha1,
-        sha256: artifact.sha256,
-    };
-
-    let results = proc_list(&hashes, artifact.metadata);
-    let proc_data = match results {
-        Ok(data) => data,
-        Err(err) => {
-            warn!("[artemis-core] Artemis Linux failed to get process list: {err:?}");
-            return Err(LinuxArtifactError::Process);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(proc_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize processes: {err:?}");
-            return Err(LinuxArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "processes";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get Linux `Systeminfo`
-pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), LinuxArtifactError> {
-    let start_time = time::time_now();
-
-    let system_data = get_info();
-    let serde_data_result = serde_json::to_value(system_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize system data: {err:?}");
-            return Err(LinuxArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "systeminfo";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get Linux `filelist`
-pub(crate) fn files(
-    artifact: &FileOptions,
-    output: &mut Output,
-    filter: &bool,
-) -> Result<(), LinuxArtifactError> {
-    let hashes = Hashes {
-        md5: artifact.md5.unwrap_or(false),
-        sha1: artifact.sha1.unwrap_or(false),
-        sha256: artifact.sha256.unwrap_or(false),
-    };
-    let artifact_result = get_filelist(
-        &artifact.start_path,
-        artifact.depth.unwrap_or(1).into(),
-        artifact.metadata.unwrap_or(false),
-        &hashes,
-        artifact.regex_filter.as_ref().unwrap_or(&String::new()),
-        output,
-        filter,
-    );
-    match artifact_result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[artemis-core] Artemis Linux failed to get file listing: {err:?}");
-            return Err(LinuxArtifactError::File);
-        }
-    };
-    Ok(())
-}
 
 /// Get Linux `Journals`
 pub(crate) fn journals(
@@ -112,7 +23,7 @@ pub(crate) fn journals(
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[artemis-core] Artemis Linux failed to get journals: {err:?}");
+            error!("[artemis-core] Failed to get journals: {err:?}");
             Err(LinuxArtifactError::Journal)
         }
     }
@@ -141,10 +52,10 @@ pub(crate) fn logons(
 }
 
 /// Parse sudo logs on Linux
-pub(crate) fn sudo_logs(
+pub(crate) fn sudo_logs_linux(
     output: &mut Output,
     filter: &bool,
-    options: &SudoOptions,
+    options: &LinuxSudoOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
@@ -152,7 +63,7 @@ pub(crate) fn sudo_logs(
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis Linux failed to get sudo log data: {err:?}");
+            warn!("[artemis-core] Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
@@ -228,13 +139,10 @@ pub(crate) fn output_data(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
-    use crate::artifacts::os::linux::artifacts::{
-        files, journals, logons, output_data, processes, sudo_logs, systeminfo,
-    };
-    use crate::structs::artifacts::os::files::FileOptions;
-    use crate::structs::artifacts::os::linux::{JournalOptions, LogonOptions, SudoOptions};
-    use crate::structs::artifacts::os::processes::ProcessOptions;
+    use crate::artifacts::os::linux::artifacts::{journals, logons, output_data, sudo_logs_linux};
+    use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
     use crate::structs::toml::Output;
     use crate::utils::time;
 
@@ -263,29 +171,6 @@ mod tests {
         let name = "test";
         let data = serde_json::Value::String(String::from("test"));
         let status = output_data(&data, name, &mut output, &start_time, &&false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_processes() {
-        let mut output = output_options("processes_test", "local", "./tmp", false);
-
-        let proc_config = ProcessOptions {
-            md5: true,
-            sha1: true,
-            sha256: true,
-            metadata: true,
-        };
-
-        let status = processes(&proc_config, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_system() {
-        let mut output = output_options("system_test", "local", "./tmp", false);
-
-        let status = systeminfo(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -320,30 +205,13 @@ mod tests {
     }
 
     #[test]
-    fn test_files() {
-        let mut output = output_options("file_test", "local", "./tmp", false);
-
-        let file_config = FileOptions {
-            start_path: String::from("/"),
-            depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            regex_filter: Some(String::new()),
-        };
-        let status = files(&file_config, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_sudo_logs() {
+    fn test_sudo_logs_linux() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
-        let status = sudo_logs(
+        let status = sudo_logs_linux(
             &mut output,
             &false,
-            &SudoOptions {
+            &LinuxSudoOptions {
                 alt_path: Some(String::from("./tmp")),
             },
         )

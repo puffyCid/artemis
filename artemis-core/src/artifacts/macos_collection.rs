@@ -4,9 +4,11 @@ use super::{
         safari_history,
     },
     os::{
+        linux::artifacts::{journals, logons, sudo_logs_linux},
         macos::{
             artifacts::{
-                execpolicy, groups, processes, spotlight, sudo_logs, systeminfo, unifiedlogs, users,
+                execpolicy, groups, processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs,
+                users,
             },
             error::MacArtifactError,
         },
@@ -99,7 +101,7 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "users" => {
-                let options = match &artifacts.users {
+                let options = match &artifacts.users_macos {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
@@ -113,7 +115,7 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 }
             }
             "groups" => {
-                let options = match &artifacts.groups {
+                let options = match &artifacts.groups_macos {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
@@ -278,13 +280,13 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                     }
                 }
             }
-            "sudologs" => {
-                let options = match &artifacts.sudologs {
+            "sudologs-macos" => {
+                let options = match &artifacts.sudologs_macos {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
 
-                let results = sudo_logs(&mut collector.output, &filter, options);
+                let results = sudo_logs_macos(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
@@ -326,8 +328,56 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                     }
                 }
             }
+            // Linux
+            "journal" => {
+                let options = match &artifacts.journals {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = journals(&mut collector.output, &filter, options);
+                match results {
+                    Ok(_) => info!("Collected linux journals"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse linux journals, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "logon" => {
+                let options = match &artifacts.logons {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = logons(&mut collector.output, &filter, options);
+                match results {
+                    Ok(_) => info!("Collected linux logons"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse linux logons, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "sudologs-linux" => {
+                let options = match &artifacts.sudologs_linux {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = sudo_logs_linux(&mut collector.output, &filter, options);
+                match results {
+                    Ok(_) => info!("Collected Linux sudo logs"),
+                    Err(err) => {
+                        error!(
+                            "[artemis-core] Failed to parse Linux sudo log data, error: {err:?}"
+                        );
+                        continue;
+                    }
+                }
+            }
             _ => warn!(
-                "[artemis-core] Unsupported macOS artifact: {}",
+                "[artemis-core] Unsupported artifact: {}",
                 artifacts.artifact_name
             ),
         }

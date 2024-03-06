@@ -13,7 +13,7 @@ use super::{
     },
     spotlight::{get_spotlight, setup_spotlight_parser},
     sudo::get_sudologs,
-    unifiedlogs::get_unified_log,
+    unifiedlogs::{get_unified_log, setup_unified_log_parser},
 };
 use crate::runtime::{
     applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
@@ -25,7 +25,7 @@ use crate::runtime::{
 use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
-pub(crate) fn setup_extensions() -> Vec<Extension> {
+pub(crate) fn setup_macos_extensions() -> Vec<Extension> {
     let extensions = Extension {
         name: "artemis",
         ops: grab_functions().into(),
@@ -40,6 +40,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_launchd_daemons::DECL,
         get_launchd_agents::DECL,
         get_unified_log::DECL,
+        setup_unified_log_parser::DECL,
         get_plist::DECL,
         get_plist_data::DECL,
         get_fsevents::DECL,
@@ -75,7 +76,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
 #[cfg(test)]
 mod tests {
-    use super::{grab_functions, setup_extensions};
+    use super::{grab_functions, setup_macos_extensions};
 
     #[test]
     fn test_grab_functions() {
@@ -84,8 +85,8 @@ mod tests {
     }
 
     #[test]
-    fn test_setup_extensions() {
-        let results = setup_extensions();
+    fn test_setup_macos_extensions() {
+        let results = setup_macos_extensions();
         assert_eq!(results.len(), 1);
     }
 }

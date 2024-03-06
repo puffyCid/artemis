@@ -38,6 +38,7 @@ pub(crate) fn get_safari_downloads(#[string] path: String) -> Result<String, Any
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
