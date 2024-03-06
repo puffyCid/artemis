@@ -340,7 +340,7 @@ pub(crate) fn unifiedlogs(
         &timesync_data,
         output,
         &start_time,
-        &options.sources,
+        options,
         filter,
     )
 }

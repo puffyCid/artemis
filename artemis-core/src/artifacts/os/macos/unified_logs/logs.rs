@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::macos::{artifacts::output_data, error::MacArtifactError},
     filesystem::files::{is_file, list_files},
-    structs::toml::Output,
+    structs::{artifacts::os::macos::UnifiedLogsOptions, toml::Output},
 };
 use log::{error, info};
 use macos_unifiedlogs::{
@@ -26,7 +26,7 @@ pub(crate) fn grab_logs(
     timesync_data: &[TimesyncBoot],
     output: &mut Output,
     start_time: &u64,
-    log_sources: &[String],
+    options: &UnifiedLogsOptions,
     filter: &bool,
 ) -> Result<(), MacArtifactError> {
     // We need to persist the Oversize log entries (they contain large strings that don't fit in normal log entries)
@@ -37,7 +37,10 @@ pub(crate) fn grab_logs(
         oversize: Vec::new(),
     };
 
-    let path = "/private/var/db/diagnostics";
+    let mut path = String::from("/private/var/db/diagnostics");
+    if options.logarchive_path.is_some() {
+        path = options.logarchive_path.clone().unwrap_or_default();
+    }
 
     // Exclude missing data from returned output. Keep separate until we parse all oversize entries.
     // Then at end, go through all missing data and check all parsed oversize entries again
@@ -50,7 +53,7 @@ pub(crate) fn grab_logs(
         timesync_data,
     };
 
-    for source in log_sources {
+    for source in &options.sources {
         archive_path.push(source);
         let options = ParseOptions {
             filter: *filter,
@@ -118,7 +121,7 @@ fn parse_trace_files(
     missing_data: &mut Vec<UnifiedLogData>,
     options: &ParseOptions,
 ) -> Result<(), MacArtifactError> {
-    let exclude_missing = true;
+    let exclude_missing: bool = true;
     let files_results = list_files(&archive_path.display().to_string());
     let files = match files_results {
         Ok(result) => result,
@@ -191,7 +194,10 @@ fn parse_trace_files(
 #[cfg(target_os = "macos")]
 mod tests {
     use super::{grab_logs, parse_trace_files, ParseOptions, UnifiedLog};
-    use crate::{structs::toml::Output, utils::time};
+    use crate::{
+        structs::{artifacts::os::macos::UnifiedLogsOptions, toml::Output},
+        utils::time,
+    };
     use macos_unifiedlogs::{
         parser::{collect_shared_strings_system, collect_strings_system, collect_timesync_system},
         unified_log::UnifiedLogData,
@@ -230,7 +236,10 @@ mod tests {
             &timesync_data,
             &mut output,
             &start_time,
-            &sources,
+            &UnifiedLogsOptions {
+                logarchive_path: None,
+                sources,
+            },
             &false,
         )
         .unwrap();
