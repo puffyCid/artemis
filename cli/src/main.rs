@@ -13,11 +13,6 @@ use crate::collector::windows::run_collector;
 #[cfg(target_os = "windows")]
 use collector::windows::Commands;
 
-//#[cfg(target_os = "linux")]
-//use crate::collector::linux::run_collector;
-//#[cfg(target_os = "linux")]
-//use collector::linux::Commands;
-
 mod collector;
 
 #[derive(Parser)]
