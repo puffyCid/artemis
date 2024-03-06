@@ -151,14 +151,16 @@ pub(crate) fn loginitem_apps_system() -> Result<Vec<LoginItemsData>, LoginItemEr
 
 #[cfg(test)]
 mod tests {
-    use super::loginitem_apps_system;
     use crate::artifacts::os::macos::loginitems::loginitem::{
         loginitems_bundled_apps_path, parse_loginitems,
     };
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn test_loginitem_apps_system() {
+        use super::loginitem_apps_system;
+
         let _ = loginitem_apps_system().unwrap();
     }
 

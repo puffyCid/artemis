@@ -10,4 +10,4 @@ collection_id = 1
 output = "local"
 
 [[artifacts]]
-artifact_name = "sudologs"
+artifact_name = "sudologs-macos"

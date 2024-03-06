@@ -254,7 +254,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
-        use crate::collector::linux::Commands;
+        use crate::collector::macos::Commands;
 
         let args = Args {
             toml: None,

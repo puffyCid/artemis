@@ -186,7 +186,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 logarchive_path: logarchive_path.clone(),
             };
             collect.sudologs_macos = Some(options);
-            collect.artifact_name = String::from("sudologs");
+            collect.artifact_name = String::from("sudologs-macos");
         }
         CommandArgs::Unifiedlogs {
             sources,
@@ -229,7 +229,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_path: alt_path.clone(),
             };
             collect.sudologs_linux = Some(options);
-            collect.artifact_name = String::from("sudologs");
+            collect.artifact_name = String::from("sudologs-linux");
         }
     }
     collect
