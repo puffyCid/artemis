@@ -2,7 +2,7 @@ use super::sector_reader::SectorReader;
 use crate::{
     filesystem::ntfs::{attributes::get_attribute_data, raw_files::raw_read_data},
     utils::{
-        compression::decompress_lzxpress_huffman,
+        compression::{decompress::XpressType, xpress::api::decompress_huffman_api},
         nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
     },
 };
@@ -256,7 +256,6 @@ fn walk_offset_table<'a>(
     let mut offset_iter = array_offset.iter().peekable();
     let mut uncompressed_data = Vec::new();
     let mut decom_size = compression_unit;
-    let huffman = 4;
 
     while let Some(offset) = offset_iter.next() {
         let (offset_start, first_chunk_data) = take(offset.to_owned())(input)?;
@@ -269,10 +268,10 @@ fn walk_offset_table<'a>(
         } else {
             // If there is only one array entry then always make sure the first chunk is read (first chunk is NOT part of the array of offsets)
             if first_chunk && !first_chunk_data.is_empty() {
-                let uncompressed_result = decompress_lzxpress_huffman(
+                let uncompressed_result = decompress_huffman_api(
                     &mut first_chunk_data.to_vec(),
+                    &XpressType::XpressHuffman,
                     decom_size,
-                    huffman,
                 );
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
@@ -301,8 +300,11 @@ fn walk_offset_table<'a>(
         }
 
         if first_chunk && !first_chunk_data.is_empty() {
-            let uncompressed_result =
-                decompress_lzxpress_huffman(&mut first_chunk_data.to_vec(), decom_size, huffman);
+            let uncompressed_result = decompress_huffman_api(
+                &mut first_chunk_data.to_vec(),
+                &XpressType::XpressHuffman,
+                decom_size,
+            );
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -321,7 +323,7 @@ fn walk_offset_table<'a>(
         }
 
         let uncompressed_result =
-            decompress_lzxpress_huffman(&mut compressed_data, decom_size, huffman);
+            decompress_huffman_api(&mut compressed_data, &XpressType::XpressHuffman, decom_size);
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {

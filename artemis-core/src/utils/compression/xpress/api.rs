@@ -1,4 +1,4 @@
-use crate::utils::compression2::{decompress::XpressType, error::CompressionError};
+use crate::utils::compression::{decompress::XpressType, error::CompressionError};
 use log::error;
 use ntapi::{
     ntrtl::{RtlDecompressBufferEx, RtlGetCompressionWorkSpaceSize},
@@ -8,13 +8,14 @@ use ntapi::{
 /// Decompress LZXPRESS HUFFMAN using Windows API
 pub(crate) fn decompress_huffman_api(
     data: &mut [u8],
-    decompress_data: &mut Vec<u8>,
     xpress_format: &XpressType,
     decompress_size: u32,
-) -> Result<(), CompressionError> {
+) -> Result<Vec<u8>, CompressionError> {
     let mut buffer_workspace_size: u32 = 0;
     let mut frag_workspace_size: u32 = 0;
     let mut decom_size = 0;
+
+    let mut decompress_data = Vec::with_capacity(decompress_size as usize);
 
     let success = 0;
     let format = match xpress_format {
@@ -23,10 +24,6 @@ pub(crate) fn decompress_huffman_api(
         XpressType::Lznt => 2,
         XpressType::Default => 1,
         XpressType::None => 0,
-        XpressType::Api => {
-            error!("[compression] Provided bad format type to Huffman API");
-            return Err(CompressionError::HuffmanCompression);
-        }
     };
 
     // Make two calls to Windows APIs to decompress the data
@@ -67,7 +64,7 @@ pub(crate) fn decompress_huffman_api(
         }
         decompress_data.set_len(decom_size as usize);
 
-        Ok(())
+        Ok(decompress_data)
     }
 }
 
@@ -75,7 +72,7 @@ pub(crate) fn decompress_huffman_api(
 mod tests {
     use crate::{
         filesystem::files::read_file,
-        utils::compression2::{decompress::XpressType, xpress::api::decompress_huffman_api},
+        utils::compression::{decompress::XpressType, xpress::api::decompress_huffman_api},
     };
     use std::path::PathBuf;
 
@@ -85,14 +82,8 @@ mod tests {
         test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
 
-        let mut decom_data = Vec::with_capacity(153064);
-        decompress_huffman_api(
-            &mut bytes,
-            &mut decom_data,
-            &XpressType::XpressHuffman,
-            153064,
-        )
-        .unwrap();
+        let decom_data =
+            decompress_huffman_api(&mut bytes, &XpressType::XpressHuffman, 153064).unwrap();
         assert_eq!(decom_data.len(), 153064);
     }
 }

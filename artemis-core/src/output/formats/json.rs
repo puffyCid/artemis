@@ -3,8 +3,8 @@ use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
     utils::{
-        compression::compress_gzip_data, logging::collection_status, output::output_artifact,
-        time::time_now, uuid::generate_uuid,
+        compression::compress::compress_gzip_data, logging::collection_status,
+        output::output_artifact, time::time_now, uuid::generate_uuid,
     },
 };
 use log::{error, info};

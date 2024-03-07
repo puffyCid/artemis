@@ -6,7 +6,6 @@ use super::{
     versions::version::VersionInfo,
     volume::Volume,
 };
-use crate::utils::compression::decompress_lzxpress_huffman;
 use common::windows::Prefetch;
 use log::error;
 
@@ -21,7 +20,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         }
     };
 
-    let (pf_data, header) = if is_compressed {
+    let (mut pf_data, header) = if is_compressed {
         // Parse header to get uncompressed size
         let pf_data_results = CompressedHeader::parse_compressed_header(data);
         match pf_data_results {
@@ -37,16 +36,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
     };
     let huffman = 4;
 
-    let pf_data_result =
-        decompress_lzxpress_huffman(&mut pf_data.to_vec(), header.uncompressed_size, huffman);
-    let pf_data = match pf_data_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[prefetch] Could not decompress data: {err:?}");
-            return Err(PrefetchError::Decompress);
-        }
-    };
-
+    let pf_data = decompress_pf(&mut pf_data, &header.uncompressed_size)?;
     get_prefetch_data(&pf_data, path)
 }
 
@@ -142,23 +132,56 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     Ok(prefetch)
 }
 
+#[cfg(target_os = "windows")]
+fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
+    use crate::utils::compression::{decompress::XpressType, xpress::api::decompress_huffman_api};
+
+    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+    let pf_data = match pf_data_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[prefetch] Could not decompress data: {err:?}");
+            return Err(PrefetchError::Decompress);
+        }
+    };
+
+    Ok(pf_data)
+}
+
+#[cfg(target_family = "unix")]
+fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
+    use crate::utils::compression::decompress::{decompress_xpress, XpressType};
+
+    let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+    let pf_data = match pf_data_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[prefetch] Could not decompress data: {err:?}");
+            return Err(PrefetchError::Decompress);
+        }
+    };
+
+    Ok(pf_data)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         artifacts::os::windows::prefetch::{
             header::CompressedHeader,
-            pf::{get_prefetch_data, parse_prefetch},
+            pf::{decompress_pf, get_prefetch_data, parse_prefetch},
         },
-        utils::compression::decompress_lzxpress_huffman,
+        filesystem::files::read_file,
+        utils::compression::decompress::{decompress_xpress, XpressType},
     };
-    use std::{fs, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_parse_prefetch() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win10/_IU14D2N.TMP-136252D4.pf");
 
-        let buffer = fs::read(&test_location).unwrap();
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
         let results = parse_prefetch(&buffer, test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(results.path.contains("_IU14D2N.TMP-136252D4.pf"), true);
@@ -214,7 +237,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win81/CMD.EXE-AC113AA8.pf");
 
-        let buffer = fs::read(&test_location).unwrap();
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
         let results = get_prefetch_data(&buffer, test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
@@ -267,47 +290,72 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win11/7Z.EXE-886612C8.pf");
 
-        let buffer = fs::read(test_location).unwrap();
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
 
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header.uncompressed_size, 51060);
         let huffman = 4;
 
-        let result =
-            decompress_lzxpress_huffman(&mut data.to_vec(), header.uncompressed_size, huffman)
-                .unwrap();
+        let result = decompress_xpress(
+            &mut data.to_vec(),
+            header.uncompressed_size,
+            &XpressType::XpressHuffman,
+        )
+        .unwrap();
         assert_eq!(result.len(), 51060);
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_decompress_win10() {
+        use crate::utils::compression::xpress::api::decompress_huffman_api;
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win10/_IU14D2N.TMP-136252D4.pf");
 
-        let buffer = fs::read(test_location).unwrap();
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
 
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header.uncompressed_size, 153064);
-        let huffman = 4;
 
-        let result =
-            decompress_lzxpress_huffman(&mut data.to_vec(), header.uncompressed_size, huffman)
-                .unwrap();
+        let result = decompress_huffman_api(
+            &mut data.to_vec(),
+            &XpressType::XpressHuffman,
+            header.uncompressed_size,
+        )
+        .unwrap();
         assert_eq!(result.len(), 153064);
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[should_panic(expected = "HuffmanCompression")]
     fn test_bad_compression() {
+        use crate::utils::compression::xpress::api::decompress_huffman_api;
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/bad data/bad_compression.pf");
 
-        let buffer = fs::read(test_location).unwrap();
-        let huffman = 4;
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
 
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
-        let _result =
-            decompress_lzxpress_huffman(&mut data.to_vec(), header.uncompressed_size, huffman)
-                .unwrap();
+        let _result = decompress_huffman_api(
+            &mut data.to_vec(),
+            &XpressType::XpressHuffman,
+            header.uncompressed_size,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_decompress_pf() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
+        let mut bytes = read_file(&test_location.display().to_string()).unwrap();
+
+        let mut out: Vec<u8> = Vec::with_capacity(153064);
+
+        decompress_pf(&mut bytes, &153064).unwrap();
+        assert_eq!(out.len(), 153064);
     }
 }

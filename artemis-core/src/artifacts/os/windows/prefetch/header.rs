@@ -75,7 +75,7 @@ impl Header {
 mod tests {
     use crate::{
         artifacts::os::windows::prefetch::header::Header,
-        utils::compression::decompress_lzxpress_huffman,
+        utils::compression::decompress::{decompress_xpress, XpressType},
     };
 
     use super::CompressedHeader;
@@ -99,6 +99,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
+    fn test_parse_header_api() {
+        use crate::utils::compression::xpress::api::decompress_huffman_api;
+
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/prefetch/win11/7Z.EXE-886612C8.pf");
+
+        let buffer = fs::read(test_location).unwrap();
+
+        let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
+        assert_eq!(header._signature, 0x44d414d);
+        assert_eq!(header.uncompressed_size, 51060);
+        let huffman = 4;
+
+        let result = decompress_huffman_api(
+            &mut data.to_vec(),
+            &XpressType::XpressHuffman,
+            header.uncompressed_size,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 51060);
+
+        let (_, result) = Header::parse_header(&result).unwrap();
+        assert_eq!(result.version, 30);
+        assert_eq!(result.signature, 0x41434353); // SCCA
+        assert_eq!(result.unknown, 0);
+        assert_eq!(result.filename, "7Z.EXE");
+        assert_eq!(result.pf_hash, "886612C8");
+        assert_eq!(result.unknown_flags, 0);
+    }
+
+    #[test]
     fn test_parse_header() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win11/7Z.EXE-886612C8.pf");
@@ -110,9 +143,12 @@ mod tests {
         assert_eq!(header.uncompressed_size, 51060);
         let huffman = 4;
 
-        let result =
-            decompress_lzxpress_huffman(&mut data.to_vec(), header.uncompressed_size, huffman)
-                .unwrap();
+        let result = decompress_xpress(
+            &mut data.to_vec(),
+            header.uncompressed_size,
+            &XpressType::XpressHuffman,
+        )
+        .unwrap();
 
         assert_eq!(result.len(), 51060);
 

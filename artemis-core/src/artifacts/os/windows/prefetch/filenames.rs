@@ -29,7 +29,7 @@ mod tests {
         filenames::get_accessed_files,
         header::{CompressedHeader, Header},
     };
-    use crate::utils::compression::decompress_lzxpress_huffman;
+    use crate::utils::compression::decompress::{decompress_xpress, XpressType};
     use std::{fs, path::PathBuf};
 
     #[test]
@@ -43,9 +43,12 @@ mod tests {
         assert_eq!(header.uncompressed_size, 51060);
         let huffman = 4;
 
-        let decom_data =
-            decompress_lzxpress_huffman(&mut data.to_vec(), header.uncompressed_size, huffman)
-                .unwrap();
+        let decom_data = decompress_xpress(
+            &mut data.to_vec(),
+            header.uncompressed_size,
+            &XpressType::XpressHuffman,
+        )
+        .unwrap();
         assert_eq!(decom_data.len(), 51060);
 
         let (fileinfo_data, result) = Header::parse_header(&decom_data).unwrap();

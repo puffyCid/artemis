@@ -1,5 +1,5 @@
 // Full credit to: https://github.com/ForensicRS/frnsc-prefetch/blob/main/src/decompress/lznt.rs - MIT License - 2024-03-07
-use crate::utils::compression2::error::CompressionError;
+use crate::utils::compression::error::CompressionError;
 use std::mem;
 
 const LZNT1_COMPRESSED_FLAG: usize = 0x8000;

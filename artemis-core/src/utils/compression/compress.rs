@@ -110,7 +110,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::compress_gzip_data;
-    use crate::{filesystem::files::read_file, utils::compression2::compress::compress_output_zip};
+    use crate::{filesystem::files::read_file, utils::compression::compress::compress_output_zip};
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]

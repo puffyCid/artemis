@@ -1,5 +1,5 @@
 // Full credit to: https://github.com/ForensicRS/frnsc-prefetch/blob/main/src/decompress/lz77.rs - MIT License - 2024-03-07
-use crate::utils::compression2::error::CompressionError;
+use crate::utils::compression::error::CompressionError;
 
 /// Decompress LZ77 compressed data. Also referred to as just XPRESS compression
 pub fn decompress_lz77(in_buf: &[u8], out_buf: &mut Vec<u8>) -> Result<(), CompressionError> {
@@ -83,7 +83,7 @@ pub fn decompress_lz77(in_buf: &[u8], out_buf: &mut Vec<u8>) -> Result<(), Compr
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::compression2::xpress::lz77::decompress_lz77;
+    use crate::utils::compression::xpress::lz77::decompress_lz77;
 
     #[test]
     fn basic_lz77_decompression() {

@@ -1,6 +1,6 @@
 // Full credit to: https://github.com/ForensicRS/frnsc-prefetch/blob/main/src/decompress/xpress_huff.rs - MIT License - 2024-03-07
 
-use crate::utils::compression2::error::CompressionError;
+use crate::utils::compression::error::CompressionError;
 use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 // Inspired by https://raw.githubusercontent.com/Velocidex/go-prefetch/master/lzxpress.go
@@ -293,7 +293,7 @@ fn prefix_code_tree_decode_symbol<'a>(
 mod tests {
     use crate::{
         filesystem::files::read_file,
-        utils::compression2::xpress::huffman::decompress_xpress_huffman,
+        utils::compression::xpress::huffman::decompress_xpress_huffman,
     };
     use std::path::PathBuf;
 

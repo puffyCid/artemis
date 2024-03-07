@@ -1,6 +1,5 @@
 pub(crate) mod artemis_toml;
 pub(crate) mod compression;
-mod compression2;
 pub(crate) mod encoding;
 pub(crate) mod environment;
 mod error;
