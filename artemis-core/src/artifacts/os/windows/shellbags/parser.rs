@@ -34,6 +34,7 @@ pub(crate) struct Shellbag {
     pub(crate) mft_sequence: u16,
     pub(crate) shell_type: ShellType,
     pub(crate) resolve_path: String,
+    pub(crate) reg_modified: i64,
     pub(crate) reg_file: String,
     pub(crate) reg_path: String,
     pub(crate) reg_file_path: String,
@@ -102,6 +103,7 @@ struct RegInfo {
     bagmru: String,
     reg_file: String,
     reg_file_path: String,
+    last_modified: i64,
 }
 
 /**
@@ -176,59 +178,6 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
             &clsids,
             &mut shell_map,
         );
-        /*
-        for entry in shellbags {
-            for value in entry.values {
-                // Shellbag Registry value names should always be a number
-                // Skip non-number values
-                if value.value.parse::<u32>().is_err() {
-                    continue;
-                }
-                // Based on hive file, split the Registry key path and get BagMRU key
-                let (bagkey_vec, min_length) = if entry.name == "UsrClass.dat" {
-                    (entry.path.splitn(6, '\\').collect::<Vec<&str>>(), 6)
-                } else {
-                    (entry.path.splitn(5, '\\').collect::<Vec<&str>>(), 5)
-                };
-                if bagkey_vec.len() < min_length {
-                    continue;
-                }
-
-                // Vec start at 0
-                let vec_adjust = 1;
-                let bagkey = format!("{}\\{}", bagkey_vec[min_length - vec_adjust], value.value);
-                let data_result = parse_encoded_shellitem(&value.data);
-                let data = match data_result {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!(
-                            "[shellbags] Could not parse bag data at {} value name: {}: {err:?}",
-                            entry.path, value.value
-                        );
-                        ShellItem {
-                            value: String::from("[Failed to parse ShellItem]"),
-                            shell_type: ShellType::Unknown,
-                            created: 0,
-                            modified: 0,
-                            accessed: 0,
-                            mft_entry: 0,
-                            mft_sequence: 0,
-                            stores: Vec::new(),
-                        }
-                    }
-                };
-
-                let reg_info = RegInfo {
-                    reg_path: entry.path.clone(),
-                    bagkey,
-                    bagmru: bagkey_vec[min_length - vec_adjust].to_string(),
-                    reg_file: hive.filename.clone(),
-                    reg_file_path: hive.full_path.clone(),
-                };
-
-                update_shellbags(&data, &mut shell_map, &clsids, &reg_info);
-            }
-        }*/
 
         save_shellbags(&mut shellbags_vec, &shell_map);
     }
@@ -290,6 +239,7 @@ fn extract_shellbags(
                 bagmru: bagkey_vec[min_length - vec_adjust].to_string(),
                 reg_file: reg_filename.to_string(),
                 reg_file_path: reg_path.to_string(),
+                last_modified: entry.last_modified,
             };
 
             update_shellbags(&data, shell_map, clsids, &reg_info);
@@ -338,6 +288,7 @@ fn update_shellbags(
             mft_sequence: shell.mft_sequence,
             shell_type: shell.shell_type.clone(),
             resolve_path,
+            reg_modified: reg_info.last_modified,
             reg_file: reg_info.reg_file.clone(),
             reg_file_path: reg_info.reg_file_path.clone(),
             reg_path: reg_info.reg_path.clone(),
@@ -375,6 +326,7 @@ fn update_shellbags(
         mft_sequence: shell.mft_sequence,
         shell_type: shell.shell_type.clone(),
         resolve_path,
+        reg_modified: reg_info.last_modified,
         reg_file: reg_info.reg_file.clone(),
         reg_file_path: reg_info.reg_file_path.clone(),
         reg_path: reg_info.reg_path.clone(),
@@ -472,6 +424,7 @@ mod tests {
             bagmru: String::from("shellbags are complex"),
             reg_file: String::from("shellbags are complex"),
             reg_file_path: String::from("shellbags are complex"),
+            last_modified: 0,
         };
         update_shellbags(&item, &mut shell_map, &empty_clsids, &reg_info);
         assert_eq!(shell_map.len(), 1);
@@ -488,6 +441,7 @@ mod tests {
             mft_entry: 0,
             mft_sequence: 0,
             resolve_path: String::from("shellbags are complex"),
+            reg_modified: 0,
             reg_file: String::from("shellbags are complex"),
             reg_path: String::from("shellbags are complex"),
             reg_file_path: String::from("shellbags are complex"),
