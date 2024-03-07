@@ -311,7 +311,7 @@ impl SecurityIDs {
         let mut sids: HashMap<u32, SecurityIDs> = HashMap::new();
         // Go through the sid and offsets found in $SII
         for sid_data in security_ids {
-            // Skip any offsets larger than $SDS data. Sometimes offsets found slack space are too large
+            // Skip any offsets larger than $SDS data. Sometimes offsets found in slack space are too large
             if sid_data.sds_offset as usize > data.len() {
                 continue;
             }
@@ -329,12 +329,12 @@ impl SecurityIDs {
             let (sds_data, _sacl_offset) = nom_unsigned_four_bytes(sds_data, Endian::Le)?;
             let (_sds_data, _dacl_offset) = nom_unsigned_four_bytes(sds_data, Endian::Le)?;
 
-            if offset_sid as usize > data.len() || offset_group as usize > data.len() {
+            if offset_sid as usize > data_sid.len() || offset_group as usize > data_sid.len() {
                 continue;
             }
 
             let (_, sid_user) = SecurityIDs::parse_sid(offset_sid, data_sid)?;
-            let (_, sid_group) = SecurityIDs::parse_sid(offset_group, data_sid)?;
+            let (_, sid_group) = SecurityIDs::parse_sid(offset_group, data_sid).unwrap();
 
             // Skip not found SIDs
             if !sid_user.contains("S-1-") || !sid_group.contains("S-1-") {
