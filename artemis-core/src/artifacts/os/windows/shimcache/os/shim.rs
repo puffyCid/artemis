@@ -4,10 +4,14 @@ use super::{
 };
 use crate::{
     artifacts::os::{systeminfo::info::get_os_version, windows::shimcache::error::ShimcacheError},
-    utils::encoding::base64_decode_standard,
+    utils::{
+        encoding::base64_decode_standard,
+        nom_helper::{nom_unsigned_four_bytes, Endian},
+    },
 };
 use common::windows::ShimcacheEntry;
 use log::error;
+use nom::{bytes::complete::take, error::ErrorKind};
 
 pub(crate) fn parse_shimdata(
     shim_data: &str,
@@ -22,6 +26,7 @@ pub(crate) fn parse_shimdata(
         }
     };
 
+    /*
     let os = get_os_version();
     let entries_result = if os.starts_with("11") {
         win11_format(&binary_data, key_path)
@@ -36,8 +41,9 @@ pub(crate) fn parse_shimdata(
     } else {
         error!("[shimcache] Unknown Windows OS ({os}), cannot determine Shimcache format");
         return Err(ShimcacheError::UnknownOS);
-    };
+    };*/
 
+    let entries_result = detect_format(&binary_data, key_path);
     match entries_result {
         Ok((_, result)) => Ok(result),
         Err(_err) => {
@@ -45,6 +51,49 @@ pub(crate) fn parse_shimdata(
             Err(ShimcacheError::Parser)
         }
     }
+}
+
+fn detect_format<'a>(
+    data: &'a [u8],
+    key_path: &str,
+) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
+    let (_, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+
+    let win7_sig = 0xbadc0fee;
+    let win8_81_size = 128;
+    let win10_size = 48;
+    let win10_creator_size = 52;
+
+    let entries_result = if win7_sig == sig {
+        win7_format(data, key_path)
+    } else if win8_81_size == sig {
+        let (input, _) = take(win8_81_size)(data)?;
+        let (_, entry_sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let win8_entry = 1936994352;
+        let win81_entry = 1936994353;
+
+        if entry_sig == win8_entry {
+            win8_format(data, key_path)
+        } else if entry_sig == win81_entry {
+            win81_format(data, key_path)
+        } else {
+            error!("[shimcache] Unknown Shimcache Win8 entrytype. Sig is: {entry_sig}");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
+    } else if win10_size == sig || win10_creator_size == sig {
+        win10_format(data, key_path)
+    } else {
+        error!("[shimcache] Unknown Shimcache type. Sig is: {sig}");
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            &[],
+            ErrorKind::Fail,
+        )));
+    };
+
+    entries_result
 }
 
 #[cfg(test)]
