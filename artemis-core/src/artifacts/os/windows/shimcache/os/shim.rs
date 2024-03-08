@@ -1,9 +1,6 @@
-use super::{
-    win10::win10_format, win11::win11_format, win7::win7_format, win8::win8_format,
-    win81::win81_format,
-};
+use super::{win10::win10_format, win7::win7_format, win8::win8_format, win81::win81_format};
 use crate::{
-    artifacts::os::{systeminfo::info::get_os_version, windows::shimcache::error::ShimcacheError},
+    artifacts::os::windows::shimcache::error::ShimcacheError,
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{nom_unsigned_four_bytes, Endian},
@@ -13,6 +10,7 @@ use common::windows::ShimcacheEntry;
 use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
 
+/// Parse Windows `Shimcache` data from the Registry
 pub(crate) fn parse_shimdata(
     shim_data: &str,
     key_path: &str,
@@ -26,23 +24,6 @@ pub(crate) fn parse_shimdata(
         }
     };
 
-    /*
-    let os = get_os_version();
-    let entries_result = if os.starts_with("11") {
-        win11_format(&binary_data, key_path)
-    } else if os.starts_with("10") {
-        win10_format(&binary_data, key_path)
-    } else if os.contains("9600") {
-        win81_format(&binary_data, key_path)
-    } else if os.contains("9200") {
-        win8_format(&binary_data, key_path)
-    } else if os.contains("7601") {
-        win7_format(&binary_data, key_path)
-    } else {
-        error!("[shimcache] Unknown Windows OS ({os}), cannot determine Shimcache format");
-        return Err(ShimcacheError::UnknownOS);
-    };*/
-
     let entries_result = detect_format(&binary_data, key_path);
     match entries_result {
         Ok((_, result)) => Ok(result),
@@ -53,6 +34,7 @@ pub(crate) fn parse_shimdata(
     }
 }
 
+/// Try to detect the `Shimcache` format
 fn detect_format<'a>(
     data: &'a [u8],
     key_path: &str,
@@ -98,8 +80,12 @@ fn detect_format<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shimcache::{
-        os::shim::parse_shimdata, registry::get_shimcache_data,
+    use crate::{
+        artifacts::os::windows::shimcache::{
+            os::shim::{detect_format, parse_shimdata},
+            registry::get_shimcache_data,
+        },
+        utils::encoding::base64_decode_standard,
     };
 
     #[test]
@@ -118,6 +104,22 @@ mod tests {
         let test_data = "NAAAAEoCAAAAAAAASAAAAAUAAAAAAAAAAAAAAEEBAAAAAAAAAAAAACMAAAAjAAAAAAAAADEwdHNzXgQ34AAAAEoAQwA6AFwAVwBJAE4ARABPAFcAUwBcAHMAeQBzAHQAZQBtADMAMgBcAHcAYgBlAG0AXABXAG0AaQBBAHAAUwByAHYALgBlAHgAZQAFAUyBYoPYAYgAAAAAAgAABAAAAAEAAAABAGSGAAAAAAIAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAQAAAAIAAAAAAAAAAAAAAAQAAAACAAAAAAAAAAAAAAAACAAAAIAAABkhgAAAAgAAAIAAABkhgAAAAQAAAQAAAAAAAAAQAAAAAQAAAAAAAAAIAAAAAQAAAAAAAAAMTB0c+SeJT/qAAAAeABDADoAXABQAHIAbwBnAHIAYQBtACAARgBpAGwAZQBzACAAKAB4ADgANgApAFwATQBpAGMAcgBvAHMAbwBmAHQAXABFAGQAZwBlAFwAQQBwAHAAbABpAGMAYQB0AGkAbwBuAFwAbQBzAGUAZABnAGUALgBlAHgAZQA/dJdftBDZAWQAAAAAAgAABAAAAAAAAAABAGSGAAAAAAIAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAQAAAAIAAAAAAAAAAAAAAAQAAAACAAAAAAAAAAAAAAAACAAAAIAAABkhgAAAAgAAAIAAABkhgAA";
         let path = "test";
         let shim_data = parse_shimdata(test_data, path).unwrap();
+        assert_eq!(shim_data.len(), 2);
+        assert_eq!(shim_data[0].entry, 0);
+        assert_eq!(
+            shim_data[0].path,
+            "C:\\WINDOWS\\system32\\wbem\\WmiApSrv.exe"
+        );
+        assert_eq!(shim_data[0].last_modified, 1655591210);
+        assert_eq!(shim_data[0].key_path, "test");
+    }
+
+    #[test]
+    fn test_detect_format() {
+        let test_data = "NAAAAEoCAAAAAAAASAAAAAUAAAAAAAAAAAAAAEEBAAAAAAAAAAAAACMAAAAjAAAAAAAAADEwdHNzXgQ34AAAAEoAQwA6AFwAVwBJAE4ARABPAFcAUwBcAHMAeQBzAHQAZQBtADMAMgBcAHcAYgBlAG0AXABXAG0AaQBBAHAAUwByAHYALgBlAHgAZQAFAUyBYoPYAYgAAAAAAgAABAAAAAEAAAABAGSGAAAAAAIAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAQAAAAIAAAAAAAAAAAAAAAQAAAACAAAAAAAAAAAAAAAACAAAAIAAABkhgAAAAgAAAIAAABkhgAAAAQAAAQAAAAAAAAAQAAAAAQAAAAAAAAAIAAAAAQAAAAAAAAAMTB0c+SeJT/qAAAAeABDADoAXABQAHIAbwBnAHIAYQBtACAARgBpAGwAZQBzACAAKAB4ADgANgApAFwATQBpAGMAcgBvAHMAbwBmAHQAXABFAGQAZwBlAFwAQQBwAHAAbABpAGMAYQB0AGkAbwBuAFwAbQBzAGUAZABnAGUALgBlAHgAZQA/dJdftBDZAWQAAAAAAgAABAAAAAAAAAABAGSGAAAAAAIAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAQAAAAIAAAAAAAAAAAAAAAQAAAACAAAAAAAAAAAAAAAACAAAAIAAABkhgAAAAgAAAIAAABkhgAA";
+        let path = "test";
+        let (_, shim_data) =
+            detect_format(&base64_decode_standard(test_data).unwrap(), path).unwrap();
         assert_eq!(shim_data.len(), 2);
         assert_eq!(shim_data[0].entry, 0);
         assert_eq!(
