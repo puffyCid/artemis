@@ -1,6 +1,6 @@
 use super::header::ObjectFlag;
 use crate::utils::{
-    compression::{decompress_lz4, decompress_xz, decompress_zstd},
+    compression::decompress::{decompress_lz4, decompress_xz, decompress_zstd},
     encoding::base64_encode_standard,
     nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
     strings::extract_utf8_string,

@@ -12,7 +12,7 @@
 use super::{error::FsEventsError, fsevent::fsevents_data};
 use crate::{
     filesystem::files::list_files, structs::artifacts::os::macos::FseventsOptions,
-    utils::compression::decompress_gzip,
+    utils::compression::decompress::decompress_gzip,
 };
 use common::macos::FsEvents;
 use log::error;
@@ -117,7 +117,7 @@ mod tests {
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
         structs::artifacts::os::macos::FseventsOptions,
-        utils::compression::decompress_gzip,
+        utils::compression::decompress::decompress_gzip,
     };
     use std::path::PathBuf;
 

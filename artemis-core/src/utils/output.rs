@@ -1,4 +1,5 @@
-use super::{compression::compress_output_zip, error::ArtemisError};
+use super::error::ArtemisError;
+use crate::utils::compression::compress::compress_output_zip;
 use crate::{
     filesystem::files::list_files,
     output::{

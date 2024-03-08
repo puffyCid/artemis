@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis would fail to parse NTFS $SDS file data
+time: 2024-03-07T03:01:41.5756862-05:00

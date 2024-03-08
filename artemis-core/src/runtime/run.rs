@@ -2,7 +2,7 @@ use crate::runtime::error::RuntimeError;
 use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
-use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions, Snapshot};
+use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions};
 use log::error;
 use serde_json::Value;
 use std::rc::Rc;
@@ -25,10 +25,9 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
 
     // Scripts executed via `execute_script` are run in a global context.
     let scripts_args = format!("const STATIC_ARGS = {args:?}");
-    let _ = runtime.execute_script("script_args", scripts_args.into())?;
+    let _ = runtime.execute_script("script_args", scripts_args)?;
 
-    // Need Convert script string into a FastString: https://docs.rs/deno_core/0.180.0/deno_core/enum.FastString.html
-    let script_result = runtime.execute_script("deno", script.to_string().into());
+    let script_result = runtime.execute_script("deno", script.to_string());
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
@@ -71,9 +70,9 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
 
     // Scripts executed via `execute_script` are run in a global context.
     let scripts_args = format!("const STATIC_ARGS = {args:?}");
-    let _ = runtime.execute_script("script_args", scripts_args.into())?;
+    let _ = runtime.execute_script("script_args", scripts_args)?;
 
-    let script_result = runtime.execute_script("deno", script.to_string().into());
+    let script_result = runtime.execute_script("deno", script.to_string());
     let script_output = match script_result {
         Ok(result) => result,
         Err(err) => {
@@ -169,7 +168,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         get_error_class_fn: Some(&get_error_class_name),
         module_loader: Some(module_loader),
         extensions,
-        startup_snapshot: Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
+        startup_snapshot: Some(RUNTIME_SNAPSHOT),
         create_params: Some(v8_params),
         v8_platform: Default::default(),
         shared_array_buffer_store: Default::default(),
@@ -183,6 +182,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         import_meta_resolve_callback: Default::default(),
         wait_for_inspector_disconnect_callback: None,
         custom_module_evaluation_cb: None,
+        extension_transpiler: None,
     });
 
     Ok(runtime)

@@ -18,7 +18,7 @@ use crate::{
         setup::setup_ntfs_parser,
     },
     utils::{
-        compression::{decompress_lzxpress_huffman, decompress_seven_bit},
+        compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
         encoding::base64_encode_standard,
         nom_helper::{
             nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
@@ -713,23 +713,50 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
 
     let (input, compression_type) = nom_unsigned_one_byte(data, Endian::Le)?;
     let huffman = 0x18;
-    let decompressed_results = if compression_type == huffman {
+    let decompressed_data = if compression_type == huffman {
         let (input, decompress_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let xpress = 3;
-        decompress_lzxpress_huffman(&mut input.to_owned(), decompress_size.into(), xpress)
+        decompress_ese(&mut input.to_owned(), &(decompress_size as u32))
     } else {
         // Any other value means seven bit compression
         decompress_seven_bit(input)
     };
 
-    let decompressed_data = match decompressed_results {
-        Ok(results) => results,
+    Ok((input, decompressed_data))
+}
+
+#[cfg(target_os = "windows")]
+/// Decompress ESE data with API
+fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
+    use crate::utils::compression::xpress::api::decompress_huffman_api;
+
+    let decom_result = decompress_huffman_api(data, &XpressType::Lz77, *decom_size);
+    match decom_result {
+        Ok(result) => result,
         Err(err) => {
-            error!("[ese] Could not decompress data of type {compression_type}: {err:?}");
+            error!("[ese] Could not decompress Lz77 data with API: {err:?}. Will try manual decompression");
+            let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
+            match decom_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Could not decompress Lz77 data with API or manually: {err:?}");
+                    data.to_vec()
+                }
+            }
+        }
+    }
+}
+
+#[cfg(target_family = "unix")]
+/// Decompress ESE data
+fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
+    let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
+    match decom_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[ese] Could not decompress Lz77 data: {err:?}");
             data.to_vec()
         }
-    };
-    Ok((input, decompressed_data))
+    }
 }
 
 /// Parse the row of the table
@@ -1114,10 +1141,10 @@ mod tests {
         artifacts::os::windows::ese::{
             pages::leaf::{LeafType, PageLeaf},
             tables::{
-                clear_column_data, column_data_to_string, create_table_data, dump_table,
-                get_column_flags, get_column_type, get_decompressed_data, nom_fixed_column,
-                parse_fixed_data, parse_row, parse_tagged_data, parse_variable_data, read_ese,
-                ColumnFlags, ColumnType,
+                clear_column_data, column_data_to_string, create_table_data, decompress_ese,
+                dump_table, get_column_flags, get_column_type, get_decompressed_data,
+                nom_fixed_column, parse_fixed_data, parse_row, parse_tagged_data,
+                parse_variable_data, read_ese, ColumnFlags, ColumnType,
             },
         },
         filesystem::ntfs::{
@@ -1482,5 +1509,54 @@ mod tests {
         ];
         let (_, result) = get_decompressed_data(&test).unwrap();
         assert_eq!(result.len(), 2048);
+    }
+
+    #[test]
+    fn test_decompress_ese() {
+        let mut test = [
+            65, 0, 0, 0, 80, 0, 69, 0, 67, 0, 109, 0, 100, 0, 32, 0, 118, 0, 101, 0, 114, 0, 115,
+            0, 105, 0, 111, 0, 110, 120, 0, 49, 0, 46, 0, 52, 24, 0, 88, 81, 4, 68, 48, 26, 0, 13,
+            0, 10, 26, 0, 65, 0, 117, 0, 116, 0, 104, 24, 1, 114, 0, 58, 40, 1, 69, 56, 0, 105, 0,
+            99, 72, 0, 90, 56, 0, 109, 8, 0, 41, 2, 109, 0, 97, 136, 162, 136, 173, 26, 2, 40, 120,
+            2, 97, 138, 0, 25, 1, 122, 40, 0, 15, 1, 132, 64, 0, 103, 74, 0, 105, 0, 108, 40, 3,
+            99, 168, 2, 109, 0, 41, 58, 3, 104, 40, 3, 116, 0, 112, 248, 1, 58, 0, 47, 106, 221,
+            99, 177, 8, 0, 103, 24, 1, 185, 3, 117, 0, 98, 78, 1, 47, 238, 3, 223, 3, 47, 0, 80,
+            232, 0, 219, 6, 121, 2, 25, 0, 67, 170, 1, 251, 0, 137, 7, 108, 168, 1, 110, 152, 1,
+            57, 6, 45, 138, 0, 67, 88, 0, 92, 162, 43, 42, 0, 0, 87, 0, 73, 0, 78, 0, 68, 0, 79,
+            72, 0, 83, 120, 0, 80, 168, 2, 101, 0, 102, 24, 0, 116, 88, 3, 104, 136, 0, 105, 2, 25,
+            0, 75, 152, 0, 121, 0, 119, 184, 2, 114, 189, 42, 122, 212, 248, 1, 89, 5, 32, 24, 1,
+            101, 24, 3, 112, 0, 44, 90, 0, 73, 0, 73, 1, 25, 0, 76, 56, 1, 111, 0, 107, 170, 3,
+            103, 232, 0, 102, 104, 0, 114, 56, 0, 112, 40, 0, 255, 2, 242, 201, 0, 137, 8, 101,
+            136, 2, 240, 253, 90, 107, 32, 72, 0, 73, 10, 39, 223, 4, 16, 39, 90, 3, 29, 0, 70, 24,
+            3, 117, 8, 2, 233, 6, 50, 152, 14, 54, 56, 0, 159, 1, 38, 127, 3, 153, 1, 25, 0, 25, 1,
+            111, 232, 0, 153, 0, 153, 16, 139, 5, 47, 4, 15, 17, 65, 0, 77, 0, 85, 171, 70, 85, 95,
+            8, 1, 69, 168, 7, 84, 104, 0, 95, 24, 1, 65, 72, 0, 67, 0, 72, 88, 0, 217, 18, 51, 8,
+            0, 57, 56, 0, 49, 184, 4, 54, 8, 0, 41, 19, 46, 120, 1, 45, 152, 5, 66, 168, 0, 49, 40,
+            0, 171, 213, 174, 86, 56, 216, 0, 69, 168, 0, 112, 216, 2, 191, 6, 67, 106, 3, 97, 88,
+            3, 101, 186, 6, 121, 21, 201, 11, 50, 8, 2, 25, 7, 45, 56, 0, 53, 40, 0, 50, 248, 21,
+            169, 0, 51, 232, 0, 50, 88, 2, 58, 216, 0, 75, 22, 171, 138, 87, 93, 77, 152, 1, 100,
+            168, 6, 185, 7, 31, 2, 255, 31, 76, 8, 4, 115, 24, 4, 32, 56, 0, 99, 8, 0, 75, 9, 111,
+            2, 31, 25, 0, 69, 0, 120, 248, 1, 99, 120, 13, 116, 152, 2, 98, 138, 12, 32, 72, 2, 97,
+            40, 18, 43, 21, 87, 181, 186, 215, 175, 10, 111, 33, 249, 2, 72, 72, 2, 115, 232, 12,
+            73, 2, 31, 11, 249, 0, 70, 104, 8, 155, 3, 137, 15, 122, 74, 0, 40, 56, 4, 121, 120, 4,
+            233, 6, 41, 202, 1, 56, 200, 22, 52, 200, 2, 52, 154, 1, 86, 200, 0, 175, 33, 32, 249,
+            0, 175, 187, 245, 110, 87, 88, 0, 121, 19, 111, 184, 24, 249, 21, 15, 7, 82, 216, 6,
+            105, 22, 249, 29, 73, 0, 116, 138, 1, 49, 218, 0, 127, 10, 240, 114, 218, 0, 201, 0,
+            255, 9, 9, 48, 88, 0, 233, 1, 25, 0, 86, 168, 2, 108, 216, 1, 105, 9, 187, 25, 11, 27,
+            170, 162, 186, 189, 137, 31, 116, 120, 0, 11, 5, 73, 1, 25, 0, 35, 216, 1, 25, 3, 78,
+            232, 0, 137, 1, 89, 0, 92, 24, 2, 79, 72, 4, 85, 56, 11, 69, 0, 123, 8, 1, 49, 72, 6,
+            48, 56, 2, 57, 40, 1, 49, 40, 0, 99, 94, 109, 177, 170, 56, 4, 56, 232, 7, 49, 184, 3,
+            52, 136, 4, 100, 40, 0, 57, 40, 0, 123, 11, 102, 0, 125, 40, 2, 83, 104, 2, 185, 36,
+            97, 104, 4, 169, 2, 68, 26, 1, 68, 28, 1, 70, 136, 0, 15, 22, 4, 25, 1, 73, 7, 49, 127,
+            255, 117, 219, 216, 2, 73, 7, 57, 40, 0, 233, 6, 32, 88, 0, 73, 7, 53, 168, 1, 75, 17,
+            89, 2, 105, 218, 1, 99, 216, 1, 217, 6, 249, 21, 187, 35, 201, 30, 15, 14, 25, 1, 121,
+            28, 57, 0, 110, 104, 1, 45, 1, 25, 6, 233, 7, 25, 0, 95, 2, 172, 223, 1, 85, 117, 85,
+            188, 27, 5, 54, 170, 1, 25, 0, 203, 9, 111, 9, 255, 43, 92, 0, 36, 216, 1, 88, 24, 22,
+            69, 72, 12, 68, 234, 2, 49, 239, 2, 50, 79, 37, 244, 233, 2, 50, 239, 2, 64, 92, 24, 0,
+            79, 24, 12, 84, 104, 0, 65, 88, 23, 69, 200, 0, 255, 255, 95, 85, 73, 152, 0, 84, 88,
+            0, 73, 72, 27, 85, 72, 0, 73, 8, 1, 78, 58, 4, 201, 14, 63, 4, 15, 103,
+        ];
+        let out = decompress_ese(&mut test, &2048);
+        assert_eq!(out.len(), 2048);
     }
 }

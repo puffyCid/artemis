@@ -19,15 +19,19 @@ metadata = true
 
 [[artifacts]]
 artifact_name = "loginitems"
+[artifacts.loginitems]
 
 [[artifacts]]
 artifact_name = "emond"
+[artifacts.emond]
 
 [[artifacts]]
 artifact_name = "fseventsd"
+[artifacts.fseventsd]
 
 [[artifacts]]
 artifact_name = "launchd"
+[artifacts.launchd]
 
 [[artifacts]]
 artifact_name = "files"
@@ -42,9 +46,11 @@ regex_filter = ""
 
 [[artifacts]]
 artifact_name = "users"
+[artifacts.users]
 
 [[artifacts]]
 artifact_name = "groups"
+[artifacts.groups]
 
 [[artifacts]]
 artifact_name = "systeminfo"
@@ -76,4 +82,9 @@ artifact_name = "cron"
 [[artifacts]]
 artifact_name = "unifiedlogs"
 [artifacts.unifiedlogs]
-sources = ["Persist", "Special", "Signpost", "HighVolume"] # Option to specify the log directories (sources)
+sources = [
+    "Persist",
+    "Special",
+    "Signpost",
+    "HighVolume",
+] # Option to specify the log directories (sources)
