@@ -202,7 +202,7 @@ mod tests {
         artifacts::os::macos::fsevents::fsevent::{
             fsevents_data, fsevents_header, get_fsevent, get_fsevent_data, match_flags,
         },
-        utils::compression::decompress_gzip,
+        utils::compression::decompress::decompress_gzip,
     };
     use std::{fs, path::PathBuf};
 

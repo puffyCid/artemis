@@ -12,7 +12,7 @@ use crate::{
         },
     },
     utils::{
-        compression::decompress_lz4,
+        compression::decompress::decompress_lz4,
         nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
     },
 };
@@ -51,7 +51,8 @@ pub(crate) fn parse_property<'a>(
         }
 
         if compress_sig != lz4_sig {
-            panic!("sigh: did not get lz4 sig :/");
+            error!("[spotlight] Did not get LZ4 compression signature");
+            break;
         }
 
         let (input, decompress_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -188,11 +189,11 @@ fn parse_record<'a>(
             break;
         }
         let prop_opt = meta.props.get(&meta_prop_index);
-        let props = match prop_opt {
-            Some(result) => result,
-            None => {
-                panic!("what do i do :( (no properties for {index})");
-            }
+        let props = if let Some(result) = prop_opt {
+            result
+        } else {
+            error!("[spotlight] No properties for {index}");
+            break;
         };
 
         let mut spot_value = SpotlightValue {

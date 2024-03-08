@@ -2,11 +2,12 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
-use log::warn;
+use log::{error, warn};
 
 #[cfg(target_family = "unix")]
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
+    use crate::filesystem::files::read_file;
     use flate2::bufread::MultiGzDecoder;
     use std::io::Read;
 
@@ -159,7 +160,7 @@ mod tests {
     #[test]
     #[cfg(target_family = "unix")]
     fn test_decompress_gzip() {
-        use crate::utils::compression::decompress_gzip;
+        use crate::utils::compression::decompress::decompress_gzip;
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
