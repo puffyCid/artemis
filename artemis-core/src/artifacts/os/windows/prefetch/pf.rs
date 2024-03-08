@@ -6,6 +6,7 @@ use super::{
     versions::version::VersionInfo,
     volume::Volume,
 };
+use crate::utils::compression::decompress::{decompress_xpress, XpressType};
 use common::windows::Prefetch;
 use log::error;
 
@@ -20,7 +21,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         }
     };
 
-    let (mut pf_data, header) = if is_compressed {
+    let (pf_data, header) = if is_compressed {
         // Parse header to get uncompressed size
         let pf_data_results = CompressedHeader::parse_compressed_header(data);
         match pf_data_results {
@@ -34,9 +35,8 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         // Data is not compressed
         return get_prefetch_data(data, path);
     };
-    let huffman = 4;
 
-    let pf_data = decompress_pf(&mut pf_data, &header.uncompressed_size)?;
+    let pf_data = decompress_pf(&mut pf_data.to_vec(), &header.uncompressed_size)?;
     get_prefetch_data(&pf_data, path)
 }
 
@@ -134,14 +134,21 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
 
 #[cfg(target_os = "windows")]
 fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
-    use crate::utils::compression::{decompress::XpressType, xpress::api::decompress_huffman_api};
+    use crate::utils::compression::xpress::api::decompress_huffman_api;
 
     let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Could not decompress data: {err:?}");
-            return Err(PrefetchError::Decompress);
+            error!("[prefetch] Could not decompress data: {err:?}. Will try manual decompression");
+            let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+            match pf_data_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[prefetch] Could not decompress data: {err:?}");
+                    return Err(PrefetchError::Decompress);
+                }
+            }
         }
     };
 
@@ -150,8 +157,6 @@ fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchE
 
 #[cfg(target_family = "unix")]
 fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
-    use crate::utils::compression::decompress::{decompress_xpress, XpressType};
-
     let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
     let pf_data = match pf_data_result {
         Ok(result) => result,
@@ -294,7 +299,6 @@ mod tests {
 
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header.uncompressed_size, 51060);
-        let huffman = 4;
 
         let result = decompress_xpress(
             &mut data.to_vec(),
@@ -353,7 +357,7 @@ mod tests {
         test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
 
-        let mut out: Vec<u8> = Vec::with_capacity(153064);
+        let out: Vec<u8> = Vec::with_capacity(153064);
 
         decompress_pf(&mut bytes, &153064).unwrap();
         assert_eq!(out.len(), 153064);

@@ -244,7 +244,7 @@ fn prefix_code_tree_rebuild(input: &[u8]) -> Result<Rc<RefCell<PrefixCodeNode>>,
     });
     let mut i = 0;
     while i < 512 && symbol_info[i].length == 0 {
-        i += 1
+        i += 1;
     }
     let mut mask = 0;
     let mut bits = 1;
@@ -266,7 +266,7 @@ fn prefix_code_tree_rebuild(input: &[u8]) -> Result<Rc<RefCell<PrefixCodeNode>>,
     Ok(root)
 }
 
-fn prefix_code_tree_decode_symbol<'a>(
+fn prefix_code_tree_decode_symbol(
     bstr: &mut BitStream<'_>,
     root: Rc<RefCell<PrefixCodeNode>>,
 ) -> Result<u32, CompressionError> {

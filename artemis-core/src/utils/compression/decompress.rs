@@ -2,12 +2,7 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
-use crate::filesystem::files::read_file;
-use flate2::{write::GzEncoder, Compression};
-use log::{error, warn};
-use std::{fs::File, io::Write};
-use walkdir::WalkDir;
-use zip::{write::FileOptions, ZipWriter};
+use log::warn;
 
 #[cfg(target_family = "unix")]
 /// Decompress gzip compressed file
@@ -124,9 +119,9 @@ pub(crate) fn decompress_seven_bit(data: &[u8]) -> Vec<u8> {
 pub(crate) enum XpressType {
     XpressHuffman,
     Lz77,
-    Lznt,
-    Default,
-    None,
+    _Lznt,
+    _Default,
+    _None,
 }
 
 /// Decompress XPRESS compressed data
@@ -139,12 +134,12 @@ pub(crate) fn decompress_xpress(
     match format {
         XpressType::XpressHuffman => decompress_xpress_huffman(data, &mut decompress_data)?,
         XpressType::Lz77 => decompress_lz77(data, &mut decompress_data)?,
-        XpressType::Lznt => decompress_lznt(data, &mut decompress_data)?,
-        XpressType::Default => {
+        XpressType::_Lznt => decompress_lznt(data, &mut decompress_data)?,
+        XpressType::_Default => {
             warn!("[compression] Default type unsupported");
             return Err(CompressionError::HuffmanCompressionDefault);
         }
-        XpressType::None => {
+        XpressType::_None => {
             warn!("[compression] None type unsupported");
             return Err(CompressionError::HuffmanCompressionNone);
         }

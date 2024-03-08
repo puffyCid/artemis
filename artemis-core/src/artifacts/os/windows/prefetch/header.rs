@@ -111,7 +111,6 @@ mod tests {
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header._signature, 0x44d414d);
         assert_eq!(header.uncompressed_size, 51060);
-        let huffman = 4;
 
         let result = decompress_huffman_api(
             &mut data.to_vec(),
@@ -141,7 +140,6 @@ mod tests {
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header._signature, 0x44d414d);
         assert_eq!(header.uncompressed_size, 51060);
-        let huffman = 4;
 
         let result = decompress_xpress(
             &mut data.to_vec(),

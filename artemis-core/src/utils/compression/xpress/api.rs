@@ -21,9 +21,9 @@ pub(crate) fn decompress_huffman_api(
     let format = match xpress_format {
         XpressType::XpressHuffman => 4,
         XpressType::Lz77 => 3,
-        XpressType::Lznt => 2,
-        XpressType::Default => 1,
-        XpressType::None => 0,
+        XpressType::_Lznt => 2,
+        XpressType::_Default => 1,
+        XpressType::_None => 0,
     };
 
     // Make two calls to Windows APIs to decompress the data
