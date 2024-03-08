@@ -357,9 +357,7 @@ mod tests {
         test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
 
-        let out: Vec<u8> = Vec::with_capacity(153064);
-
-        decompress_pf(&mut bytes, &153064).unwrap();
+        let out = decompress_pf(&mut bytes, &153064).unwrap();
         assert_eq!(out.len(), 153064);
     }
 }
