@@ -145,6 +145,7 @@ pub(crate) fn read_ese<'a>(
             )));
         }
     };
+
     // Grab the ESE Catalog. Need Catalog info before we can parse other data
     let catalog_result = Catalog::grab_catalog(ntfs_file, fs, db_header.page_size);
     let catalog = match catalog_result {
@@ -267,7 +268,8 @@ pub(crate) fn read_ese<'a>(
             has_root = false;
             has_key = false;
             continue;
-        } else if key_data.is_empty() && has_key {
+        }
+        if key_data.is_empty() && has_key {
             let key_result = nom_data(page_data, tag.offset.into());
             let (key_start, _) = match key_result {
                 Ok(result) => result,
