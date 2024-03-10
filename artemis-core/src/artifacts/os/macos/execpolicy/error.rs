@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum ExecPolicyError {
+pub(crate) enum ExecPolicyError {
     PathError,
     SQLITEParseError,
     BadSQL,

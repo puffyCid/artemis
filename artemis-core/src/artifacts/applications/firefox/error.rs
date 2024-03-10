@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum FirefoxHistoryError {
+pub(crate) enum FirefoxHistoryError {
     PathError,
     SqliteParse,
     BadSQL,

@@ -2,7 +2,10 @@
 use crate::utils::compression::error::CompressionError;
 
 /// Decompress LZ77 compressed data. Also referred to as just XPRESS compression
-pub fn decompress_lz77(in_buf: &[u8], out_buf: &mut Vec<u8>) -> Result<(), CompressionError> {
+pub(crate) fn decompress_lz77(
+    in_buf: &[u8],
+    out_buf: &mut Vec<u8>,
+) -> Result<(), CompressionError> {
     let mut buffered_flags = 0;
     let mut buffered_flag_count = 0;
     let mut input_position = 0;

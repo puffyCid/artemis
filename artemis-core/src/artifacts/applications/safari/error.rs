@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum SafariError {
+pub(crate) enum SafariError {
     SqliteParse,
     BadSQL,
     Plist,

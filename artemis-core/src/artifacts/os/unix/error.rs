@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum UnixArtifactError {
+pub(crate) enum UnixArtifactError {
     Zsh,
     Bash,
     Python,

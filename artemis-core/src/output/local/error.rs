@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum LocalError {
+pub(crate) enum LocalError {
     CreateDirectory,
     CreateFile,
     WriteJson,

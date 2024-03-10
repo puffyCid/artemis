@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum ApplicationError {
+pub(crate) enum ApplicationError {
     #[cfg(target_family = "unix")]
     SafariHistory,
     #[cfg(target_family = "unix")]
