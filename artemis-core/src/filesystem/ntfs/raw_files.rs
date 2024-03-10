@@ -5,7 +5,11 @@ use super::{
     setup::setup_ntfs_parser,
 };
 use crate::{
-    filesystem::{error::FileSystemError, files::Hashes},
+    artifacts::os::systeminfo::info::get_platform,
+    filesystem::{
+        error::FileSystemError,
+        files::{read_file_custom, Hashes},
+    },
     utils::{
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
@@ -169,6 +173,14 @@ pub(crate) fn raw_hash_data(
 
 /// Read a single file by parsing the NTFS system
 pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
+    // Raw file access only works on Windows. For all other platforms redirect to normal file access
+    let platform = get_platform();
+    if platform != "Windows" {
+        // 3GB limit
+        let max_size = 3221225472;
+        return read_file_custom(path, &max_size);
+    }
+
     let min_path_len = 4;
     if path.len() < min_path_len || !path.contains(':') {
         return Err(FileSystemError::NotFile);
