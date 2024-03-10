@@ -170,6 +170,9 @@ pub(crate) enum CommandArgs {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
         alt_drive: Option<char>,
+        /// Alternative path to UsnJrnl
+        #[arg(long, default_value = None)]
+        alt_path: Option<String>,
     },
     #[cfg(target_os = "windows")]
     /// Parse BITS

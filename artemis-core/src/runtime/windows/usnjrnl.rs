@@ -9,7 +9,10 @@ use log::error;
 #[string]
 /// Expose parsing usnjrnl located on systemdrive to `Deno`
 pub(crate) fn get_usnjrnl() -> Result<String, AnyError> {
-    let options = UsnJrnlOptions { alt_drive: None };
+    let options = UsnJrnlOptions {
+        alt_drive: None,
+        alt_path: None,
+    };
     let jrnl = grab_usnjrnl(&options)?;
 
     let results = serde_json::to_string(&jrnl)?;
@@ -28,6 +31,7 @@ pub(crate) fn get_alt_usnjrnl(#[string] drive: String) -> Result<String, AnyErro
     let drive_char = &drive.chars().next().unwrap();
     let options = UsnJrnlOptions {
         alt_drive: Some(drive_char.to_owned()),
+        alt_path: None,
     };
 
     let jrnl = grab_usnjrnl(&options)?;

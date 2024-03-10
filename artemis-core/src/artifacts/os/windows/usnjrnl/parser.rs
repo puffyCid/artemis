@@ -11,7 +11,10 @@
  * `https://f001.backblazeb2.com/file/EricZimmermanTools/MFTECmd.zip`
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::UsnJrnlError, ntfs::parse_usnjrnl_data};
+use super::{
+    error::UsnJrnlError,
+    ntfs::{get_usnjrnl_path, parse_usnjrnl_data},
+};
 use crate::{structs::artifacts::os::windows::UsnJrnlOptions, utils::environment::get_systemdrive};
 use common::windows::UsnJrnlEntry;
 use log::error;
@@ -20,6 +23,9 @@ use log::error;
 pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     if let Some(alt) = options.alt_drive {
         return parse_usnjrnl_data(&alt);
+    }
+    if let Some(path) = &options.alt_path {
+        return grab_usnjrnl_path(path);
     }
     let systemdrive_result = get_systemdrive();
     let systemdrive = match systemdrive_result {
@@ -33,16 +39,35 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
     parse_usnjrnl_data(&systemdrive)
 }
 
+/// Get `UsnJrnl` data at provided path
+pub(crate) fn grab_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+    get_usnjrnl_path(path)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::grab_usnjrnl;
+    use std::path::PathBuf;
+
+    use super::{grab_usnjrnl, grab_usnjrnl_path};
     use crate::structs::artifacts::os::windows::UsnJrnlOptions;
 
     #[test]
     #[ignore = "Takes a long time"]
     fn test_grab_usnjrnl() {
-        let params = UsnJrnlOptions { alt_drive: None };
+        let params = UsnJrnlOptions {
+            alt_drive: None,
+            alt_path: None,
+        };
         let results = grab_usnjrnl(&params).unwrap();
         assert!(results.len() > 10);
+    }
+
+    #[test]
+    fn test_grab_usnjrnl_path() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
+
+        let results = grab_usnjrnl_path(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(results.len(), 1);
     }
 }

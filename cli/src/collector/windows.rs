@@ -296,9 +296,13 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.users = Some(options);
             collect.artifact_name = String::from("users");
         }
-        CommandArgs::Usnjrnl { alt_drive } => {
+        CommandArgs::Usnjrnl {
+            alt_drive,
+            alt_path,
+        } => {
             let options = UsnJrnlOptions {
                 alt_drive: *alt_drive,
+                alt_path: alt_path.clone(),
             };
             collect.usnjrnl = Some(options);
             collect.artifact_name = String::from("usnjrnl");
