@@ -1,3 +1,3 @@
 pub(crate) mod downloads;
-pub mod error;
+mod error;
 pub(crate) mod history;
