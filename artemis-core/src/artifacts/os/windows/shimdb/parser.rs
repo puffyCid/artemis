@@ -116,6 +116,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_shimdb() {
         let options = ShimdbOptions { alt_file: None };
 
@@ -124,6 +125,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_drive_shimdb() {
         let result = drive_shimdb(&'C').unwrap();
         assert!(result.len() >= 1)

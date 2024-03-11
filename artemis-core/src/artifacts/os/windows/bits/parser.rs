@@ -71,6 +71,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_bits() {
         let options = BitsOptions {
             alt_file: None,

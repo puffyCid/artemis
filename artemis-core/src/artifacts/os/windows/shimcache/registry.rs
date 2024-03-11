@@ -42,6 +42,7 @@ pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, Shimca
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::get_shimcache_data;
 

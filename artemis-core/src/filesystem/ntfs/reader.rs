@@ -91,6 +91,7 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::read_bytes;
     use crate::filesystem::{

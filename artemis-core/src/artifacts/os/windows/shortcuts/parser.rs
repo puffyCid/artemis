@@ -96,6 +96,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_recent_files() {
         let users = get_user_paths().unwrap();
         for user in users {

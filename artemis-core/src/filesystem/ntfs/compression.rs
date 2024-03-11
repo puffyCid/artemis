@@ -338,6 +338,7 @@ fn walk_offset_table<'a>(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_reparsepoint, parse_reparse, walk_offset_table};
     use crate::{

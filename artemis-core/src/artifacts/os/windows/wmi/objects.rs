@@ -231,6 +231,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_objects() {
         let maps = glob_paths("C:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP").unwrap();
         let mut seq = 0;

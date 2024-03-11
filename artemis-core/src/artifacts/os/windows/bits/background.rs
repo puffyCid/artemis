@@ -209,6 +209,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_legacy_bits() {
         let results = parse_legacy_bits(&'C', false).unwrap();
         assert_eq!(results.bits.is_empty(), true);

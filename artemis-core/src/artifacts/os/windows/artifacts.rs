@@ -705,6 +705,7 @@ pub(crate) fn output_data(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{

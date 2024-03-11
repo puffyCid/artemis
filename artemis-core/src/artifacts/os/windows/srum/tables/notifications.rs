@@ -72,6 +72,7 @@ pub(crate) fn parse_notification(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_notification;
     use crate::artifacts::os::windows::{

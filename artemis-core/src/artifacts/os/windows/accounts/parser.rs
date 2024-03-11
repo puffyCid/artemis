@@ -48,6 +48,7 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::accounts::parser::{get_users, grab_users},

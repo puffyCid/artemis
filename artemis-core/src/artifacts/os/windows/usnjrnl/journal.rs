@@ -619,6 +619,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_iterate_parents() {
         let test = 955759;
         let mut cache = HashMap::new();

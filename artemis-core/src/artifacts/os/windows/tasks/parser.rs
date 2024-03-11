@@ -138,6 +138,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_tasks() {
         let options = TasksOptions { alt_file: None };
 
@@ -146,6 +147,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_drive_tasks() {
         let result = drive_tasks(&'C').unwrap();
         assert!(result.tasks.len() > 10);

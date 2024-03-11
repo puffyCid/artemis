@@ -274,6 +274,7 @@ mod tests {
     };
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parser_user_info() {
         let test_path = "C:\\Windows\\System32\\config\\SAM";
         let results = parse_user_info(&test_path).unwrap();

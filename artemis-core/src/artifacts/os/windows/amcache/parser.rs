@@ -202,6 +202,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_amcache() {
         let options = AmcacheOptions { alt_file: None };
         let result = grab_amcache(&options).unwrap();
@@ -209,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_amcache_file() {
         let result = amcache_file(&'C').unwrap();
         assert!(result.len() > 10);

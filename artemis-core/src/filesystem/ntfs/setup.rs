@@ -54,6 +54,7 @@ fn get_ntfs(fs: &mut BufReader<SectorReader<File>>) -> Result<Ntfs, FileSystemEr
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{get_ntfs, setup_ntfs_parser};
     use crate::filesystem::ntfs::sector_reader::SectorReader;

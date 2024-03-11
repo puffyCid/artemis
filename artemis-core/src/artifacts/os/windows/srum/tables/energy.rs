@@ -138,6 +138,7 @@ pub(crate) fn parse_energy_usage(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_energy, parse_energy_usage};
     use crate::artifacts::os::windows::{

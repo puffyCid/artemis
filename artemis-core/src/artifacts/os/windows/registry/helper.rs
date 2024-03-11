@@ -144,12 +144,14 @@ mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_read_registry() {
         let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
         assert!(buffer.len() > 10000)
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_raw_registry() {
         let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
         let mut params = Params {
@@ -228,6 +230,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_registry_keys_by_ref() {
         let user_hives = get_user_registry_files(&'C').unwrap();
         let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
@@ -248,6 +251,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_read_registry_ref() {
         let user_hives = get_user_registry_files(&'C').unwrap();
         let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();

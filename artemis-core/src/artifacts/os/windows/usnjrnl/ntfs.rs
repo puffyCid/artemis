@@ -125,6 +125,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Parses the whole USNJrnl data"]
     fn test_parse_usnjrnl_data() {
         let result = parse_usnjrnl_data(&'C').unwrap();
@@ -132,6 +133,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes a long time"]
     fn test_get_data() {
         let result = get_data(&'C').unwrap();

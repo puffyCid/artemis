@@ -374,6 +374,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, f
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::ntfs::parser::{

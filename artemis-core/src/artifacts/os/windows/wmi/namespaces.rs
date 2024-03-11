@@ -185,14 +185,13 @@ fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
 
 #[cfg(test)]
 mod tests {
+    use super::{extract_hash_info, extract_namespace_data, get_classes, get_instances};
     use crate::{
         artifacts::os::windows::wmi::{
             index::parse_index, map::parse_map, windows_management::hash_name,
         },
         filesystem::files::read_file,
     };
-
-    use super::{extract_hash_info, extract_namespace_data, get_classes, get_instances};
 
     #[test]
     fn test_extract_hash_info() {
@@ -203,6 +202,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_get_classes() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
@@ -252,6 +252,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_get_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
@@ -301,6 +302,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_extract_namespace_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();

@@ -419,6 +419,7 @@ pub(crate) fn windows_collection(collector: &mut ArtemisToml) -> Result<(), WinA
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::windows_collection;
     use crate::{filesystem::files::read_file, structs::toml::ArtemisToml};

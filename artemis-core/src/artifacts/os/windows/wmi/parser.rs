@@ -70,6 +70,7 @@ pub(crate) fn parse_wmi_persist(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_wmi_persist, parse_wmi_persist};
     use crate::{

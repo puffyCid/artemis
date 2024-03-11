@@ -138,6 +138,7 @@ mod tets {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_map_live() {
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&data).unwrap();

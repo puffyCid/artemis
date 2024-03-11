@@ -54,6 +54,7 @@ fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::shimcache::parser::{

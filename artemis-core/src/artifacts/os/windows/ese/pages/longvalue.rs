@@ -227,6 +227,7 @@ mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_long_value() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\longvalue_page.raw");

@@ -121,12 +121,14 @@ mod tests {
     };
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_userassist_drive() {
         let results = get_userassist_drive(&'C').unwrap();
         assert!(results.len() > 0);
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_filter_userassist() {
         let assist_regex = create_regex("").unwrap(); // always valid
         let start_path = "ROOT\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";

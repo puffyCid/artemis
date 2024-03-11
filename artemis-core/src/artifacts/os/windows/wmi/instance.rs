@@ -287,6 +287,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_parse_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
@@ -340,6 +341,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_grab_instance_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();

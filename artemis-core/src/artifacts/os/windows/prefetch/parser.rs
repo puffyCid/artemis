@@ -98,6 +98,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_prefetch() {
         let options = PrefetchOptions { alt_dir: None };
         let _ = grab_prefetch(&options).unwrap();

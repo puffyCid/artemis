@@ -242,6 +242,7 @@ pub(crate) fn get_ads_names(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::RawFilelist;
     use crate::{

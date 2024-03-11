@@ -186,6 +186,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_eventlogs() {
         let options = EventLogsOptions { alt_file: None };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
@@ -195,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_default_eventlogs() {
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 

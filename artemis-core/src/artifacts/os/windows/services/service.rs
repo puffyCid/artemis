@@ -119,6 +119,7 @@ fn metadata(value: &KeyValue, service: &mut ServicesData) {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::services::{

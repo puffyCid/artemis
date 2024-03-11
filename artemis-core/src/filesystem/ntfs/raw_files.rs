@@ -545,6 +545,7 @@ pub(crate) fn iterate_ntfs(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{get_user_registry_files, iterate_ntfs, raw_reader, NtfsOptions};
     use crate::{

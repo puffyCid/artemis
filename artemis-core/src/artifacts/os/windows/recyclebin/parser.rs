@@ -101,6 +101,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_recycle_bin() {
         let options = RecycleBinOptions { alt_file: None };
         let _ = grab_recycle_bin(&options).unwrap();

@@ -396,6 +396,7 @@ mod tests {
     use super::SecurityIDs;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_security_ids() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',

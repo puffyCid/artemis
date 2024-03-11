@@ -1159,6 +1159,7 @@ fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::ColumnInfo;
     use crate::{

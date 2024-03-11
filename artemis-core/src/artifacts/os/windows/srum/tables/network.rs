@@ -156,6 +156,7 @@ pub(crate) fn parse_network_connectivity(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_network, parse_network_connectivity};
     use crate::artifacts::os::windows::{

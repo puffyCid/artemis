@@ -248,6 +248,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_parse_wmi_repo() {
         let classes = vec!["__NAMESPACE"];
@@ -272,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_get_wmi_persist() {
         let classes = vec!["__EventConsumer"];
@@ -286,6 +288,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_assemble_wmi_persist() {
         let classes = vec!["__EventConsumer"];
