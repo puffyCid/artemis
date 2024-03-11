@@ -99,7 +99,7 @@ pub(crate) fn emond(
 }
 
 /// Get macOS `Users`
-pub(crate) fn users(
+pub(crate) fn users_macos(
     output: &mut Output,
     filter: &bool,
     options: &MacosUsersOptions,
@@ -175,7 +175,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), MacAr
 }
 
 /// Get macOS `Groups`
-pub(crate) fn groups(
+pub(crate) fn groups_macos(
     output: &mut Output,
     filter: &bool,
     options: &MacosGroupsOptions,
@@ -525,8 +525,8 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, execpolicy, files, fseventsd, groups, launchd, loginitems, output_data,
-            processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users,
+            emond, execpolicy, files, fseventsd, groups_macos, launchd, loginitems, output_data,
+            processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users_macos,
         },
         structs::{
             artifacts::os::{
@@ -578,18 +578,20 @@ mod tests {
     }
 
     #[test]
-    fn test_users() {
+    fn test_users_macos() {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
-        let status = users(&mut output, &false, &&MacosUsersOptions { alt_path: None }).unwrap();
+        let status =
+            users_macos(&mut output, &false, &&MacosUsersOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
-    fn test_groups() {
+    fn test_groups_macos() {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
-        let status = groups(&mut output, &false, &&MacosGroupsOptions { alt_path: None }).unwrap();
+        let status =
+            groups_macos(&mut output, &false, &&MacosGroupsOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 

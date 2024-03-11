@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-
 use super::{error::AccountError, users::parse_user_info};
-use crate::{structs::artifacts::os::windows::UserOptions, utils::environment::get_systemdrive};
+use crate::{
+    structs::artifacts::os::windows::WindowsUserOptions, utils::environment::get_systemdrive,
+};
 use common::windows::UserInfo;
 use log::error;
+use std::collections::HashMap;
 
 /// Get Windows `Users` for based on optional drive, otherwise default drive letter is used
-pub(crate) fn grab_users(options: &UserOptions) -> Result<Vec<UserInfo>, AccountError> {
+pub(crate) fn grab_users(options: &WindowsUserOptions) -> Result<Vec<UserInfo>, AccountError> {
     if let Some(file) = &options.alt_file {
         return parse_user_info(file);
     }
@@ -52,12 +53,12 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
 mod tests {
     use crate::{
         artifacts::os::windows::accounts::parser::{get_users, grab_users},
-        structs::artifacts::os::windows::UserOptions,
+        structs::artifacts::os::windows::WindowsUserOptions,
     };
 
     #[test]
     fn test_grab_users() {
-        let options = UserOptions { alt_file: None };
+        let options = WindowsUserOptions { alt_file: None };
         let result = grab_users(&options).unwrap();
         assert!(result.len() > 2);
     }

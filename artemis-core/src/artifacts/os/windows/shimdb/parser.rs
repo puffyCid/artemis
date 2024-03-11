@@ -110,13 +110,13 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{custom_shimdb_path, drive_shimdb, grab_shimdb, parse_sdb_file};
     use crate::structs::artifacts::os::windows::ShimdbOptions;
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_grab_shimdb() {
         let options = ShimdbOptions { alt_file: None };
 
@@ -125,7 +125,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_drive_shimdb() {
         let result = drive_shimdb(&'C').unwrap();
         assert!(result.len() >= 1)

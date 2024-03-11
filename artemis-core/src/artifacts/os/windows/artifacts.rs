@@ -13,24 +13,17 @@ use super::{
     shimdb::parser::grab_shimdb, shortcuts::parser::grab_lnk_directory, srum::parser::grab_srum,
     userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
 };
-use crate::artifacts::os::files::filelisting::get_filelist;
-use crate::artifacts::os::processes::process::proc_list;
-use crate::artifacts::os::systeminfo::info::get_info;
-use crate::filesystem::files::Hashes;
 use crate::output::formats::{json::json_format, jsonl::jsonl_format};
 use crate::runtime::deno::filter_script;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
+    UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
 };
 use crate::structs::toml::Output;
-use crate::{
-    structs::artifacts::os::{files::FileOptions, processes::ProcessOptions},
-    utils::time,
-};
-use log::{error, warn};
+use crate::utils::time;
+use log::error;
 use serde_json::Value;
 
 /// Parse the Windows `Prefetch` artifact
@@ -117,72 +110,6 @@ pub(crate) fn raw_filelist(
     Ok(())
 }
 
-/// Get Windows `Processes`
-pub(crate) fn processes(
-    options: &ProcessOptions,
-    output: &mut Output,
-    filter: &bool,
-) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
-    let hashes = Hashes {
-        md5: options.md5,
-        sha1: options.sha1,
-        sha256: options.sha256,
-    };
-
-    let results = proc_list(&hashes, options.metadata);
-    let proc_data = match results {
-        Ok(data) => data,
-        Err(err) => {
-            warn!("[artemis-core] Artemis Windows failed to get process list: {err:?}");
-            return Err(WinArtifactError::Process);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(proc_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize processes: {err:?}");
-            return Err(WinArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "processes";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get Windows `filelist`
-pub(crate) fn files(
-    options: &FileOptions,
-    output: &mut Output,
-    filter: &bool,
-) -> Result<(), WinArtifactError> {
-    let hashes = Hashes {
-        md5: options.md5.unwrap_or(false),
-        sha1: options.sha1.unwrap_or(false),
-        sha256: options.sha256.unwrap_or(false),
-    };
-    let artifact_result = get_filelist(
-        &options.start_path,
-        options.depth.unwrap_or(1).into(),
-        options.metadata.unwrap_or(false),
-        &hashes,
-        options.regex_filter.as_ref().unwrap_or(&String::new()),
-        output,
-        filter,
-    );
-    match artifact_result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[artemis-core] Failed to get filelist: {err:?}");
-            return Err(WinArtifactError::File);
-        }
-    }
-    Ok(())
-}
-
 /// Get Windows `Shimdatabase(s)`
 pub(crate) fn shimdb(
     options: &ShimdbOptions,
@@ -209,24 +136,6 @@ pub(crate) fn shimdb(
     };
 
     let output_name = "shimdb";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get Windows `Systeminfo`
-pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
-    let system_data = get_info();
-    let serde_data_result = serde_json::to_value(system_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize system data: {err:?}");
-            return Err(WinArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "systeminfo";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
@@ -470,8 +379,8 @@ pub(crate) fn search(
 }
 
 /// Get Windows `Users` info
-pub(crate) fn users(
-    options: &UserOptions,
+pub(crate) fn users_windows(
+    options: &WindowsUserOptions,
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), WinArtifactError> {
@@ -709,9 +618,9 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, files, jumplists, output_data, prefetch, processes,
-            raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb,
-            shortcuts, srum, systeminfo, tasks, userassist, users, usnjrnl, wmi_persist,
+            amcache, bits, eventlogs, jumplists, output_data, prefetch, raw_filelist, recycle_bin,
+            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
+            userassist, users_windows, usnjrnl, wmi_persist,
         },
         structs::{
             artifacts::os::{
@@ -722,7 +631,7 @@ mod tests {
                     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
                     SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
                     ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-                    UserOptions, UsnJrnlOptions, WmiPersistOptions,
+                    UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
                 },
             },
             toml::Output,
@@ -806,45 +715,6 @@ mod tests {
         let mut output = output_options("rawfiles_temp", "json", "./tmp", false);
 
         let status = raw_filelist(&options, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_processes() {
-        let options = ProcessOptions {
-            md5: false,
-            sha1: false,
-            sha256: false,
-            metadata: false,
-        };
-        let mut output = output_options("proc_temp", "json", "./tmp", true);
-
-        let status = processes(&options, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_files() {
-        let options = FileOptions {
-            md5: None,
-            sha1: None,
-            sha256: None,
-            metadata: None,
-            start_path: String::from("C:\\"),
-            depth: None,
-            regex_filter: None,
-        };
-        let mut output = output_options("files_temp", "json", "./tmp", false);
-
-        let status = files(&options, &mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_systeminfo() {
-        let mut output = output_options("info_temp", "json", "./tmp", false);
-
-        let status = systeminfo(&mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -959,11 +829,11 @@ mod tests {
     }
 
     #[test]
-    fn test_users() {
-        let options = UserOptions { alt_file: None };
+    fn test_users_windows() {
+        let options = WindowsUserOptions { alt_file: None };
         let mut output = output_options("users_temp", "json", "./tmp", false);
 
-        let status = users(&options, &mut output, &false).unwrap();
+        let status = users_windows(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 

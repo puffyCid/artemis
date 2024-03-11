@@ -226,6 +226,7 @@ fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         get_prop_data_size, grab_instance_data, parse_dynamic_props, parse_instance_props,
@@ -287,7 +288,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_parse_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
@@ -341,7 +341,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_grab_instance_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();

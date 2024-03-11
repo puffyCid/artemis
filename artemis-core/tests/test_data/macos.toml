@@ -45,11 +45,11 @@ sha256 = false
 regex_filter = ""
 
 [[artifacts]]
-artifact_name = "users"
+artifact_name = "users-macos"
 [artifacts.users]
 
 [[artifacts]]
-artifact_name = "groups"
+artifact_name = "groups-macos"
 [artifacts.groups]
 
 [[artifacts]]

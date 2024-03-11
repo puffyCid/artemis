@@ -10,5 +10,5 @@ collection_id = 1
 output = "local"
 
 [[artifacts]]
-artifact_name = "users"
-[artifacts.users]
+artifact_name = "users-macos"
+[artifacts.users_macos]

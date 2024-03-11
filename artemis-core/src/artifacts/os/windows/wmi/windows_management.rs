@@ -242,6 +242,7 @@ pub(crate) fn hash_name(name: &str) -> String {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{assemble_wmi_persist, get_wmi_persist, hash_name, parse_wmi_repo};
     use common::windows::WmiPersist;
@@ -273,7 +274,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_get_wmi_persist() {
         let classes = vec!["__EventConsumer"];
@@ -288,7 +288,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_assemble_wmi_persist() {
         let classes = vec!["__EventConsumer"];

@@ -63,6 +63,7 @@ pub(crate) fn grab_bits_path(path: &str, carve: bool) -> Result<WindowsBits, Bit
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::bits::parser::{grab_bits, grab_bits_path},
@@ -71,7 +72,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_grab_bits() {
         let options = BitsOptions {
             alt_file: None,

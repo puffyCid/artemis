@@ -548,6 +548,7 @@ impl UsnJrnlFormat {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::UsnJrnlFormat;
     use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend, Overwrite};
@@ -619,7 +620,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_iterate_parents() {
         let test = 955759;
         let mut cache = HashMap::new();

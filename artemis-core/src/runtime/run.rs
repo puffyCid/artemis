@@ -150,13 +150,10 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
     v8_params = v8_params.heap_limits(initial_size, max_size);
 
     let mut extensions;
-    #[cfg(target_family = "unix")]
-    {
-        extensions = setup_macos_extensions();
-        extensions.append(&mut setup_linux_extensions());
-    }
 
-    extensions = setup_windows_extensions();
+    extensions = setup_macos_extensions();
+    extensions.append(&mut setup_linux_extensions());
+    extensions.append(&mut setup_windows_extensions());
 
     let runtime = JsRuntime::new(RuntimeOptions {
         source_map_getter: None,

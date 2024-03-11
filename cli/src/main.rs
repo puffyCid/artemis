@@ -8,9 +8,6 @@ use crate::collector::macos::run_collector;
 #[cfg(target_family = "unix")]
 use collector::macos::Commands;
 
-use crate::collector::windows::run_collector;
-use collector::windows::Commands;
-
 mod collector;
 
 #[derive(Parser)]

@@ -84,7 +84,7 @@ pub struct SrumOptions {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UserOptions {
+pub struct WindowsUserOptions {
     pub alt_file: Option<String>,
 }
 

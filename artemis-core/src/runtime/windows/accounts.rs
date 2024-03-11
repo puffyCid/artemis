@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::accounts::parser::grab_users, runtime::error::RuntimeError,
-    structs::artifacts::os::windows::UserOptions,
+    structs::artifacts::os::windows::WindowsUserOptions,
 };
 use deno_core::{error::AnyError, op2};
 use log::error;
@@ -9,7 +9,7 @@ use log::error;
 #[string]
 /// Expose parsing user info to `Deno`
 pub(crate) fn get_users() -> Result<String, AnyError> {
-    let options = UserOptions { alt_file: None };
+    let options = WindowsUserOptions { alt_file: None };
 
     let users = grab_users(&options)?;
     let results = serde_json::to_string(&users)?;
@@ -25,7 +25,7 @@ pub(crate) fn get_alt_users(#[string] file: String) -> Result<String, AnyError> 
         return Err(RuntimeError::ExecuteScript.into());
     }
     // Get the first char from string (the drive letter)
-    let options = UserOptions {
+    let options = WindowsUserOptions {
         alt_file: Some(file),
     };
 

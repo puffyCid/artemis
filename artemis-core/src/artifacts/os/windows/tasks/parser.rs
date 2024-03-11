@@ -128,6 +128,7 @@ fn drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_tasks;
     use crate::artifacts::os::windows::tasks::parser::{grab_task_job, grab_task_xml};
@@ -138,7 +139,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_grab_tasks() {
         let options = TasksOptions { alt_file: None };
 
@@ -147,7 +147,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_drive_tasks() {
         let result = drive_tasks(&'C').unwrap();
         assert!(result.tasks.len() > 10);

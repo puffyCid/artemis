@@ -33,6 +33,11 @@ jsonwebtoken = "9.2.0"
 rusty-s3 = "0.5.0"
 quick-xml = { version = "0.31.0", default-features = false }
 xml2json-rs = "1.0.1"
+evtx = { version = "0.8.1", default-features = false, features = [
+    "multithreading",
+] }
+ntfs = "0.4.0"
+pelite = "0.10.0"
 
 common = { path = "../common" }
 
@@ -41,12 +46,8 @@ deno_core = { version = "0.268.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
+[target.'cfg(target_os = "windows")'.dependencies]
 ntapi = "0.4.1"
-evtx = { version = "0.8.1", default-features = false, features = [
-    "multithreading",
-] }
-ntfs = "0.4.0"
-pelite = "0.10.0"
 
 # Unix Dependencies
 [target.'cfg(target_family = "unix")'.dependencies]

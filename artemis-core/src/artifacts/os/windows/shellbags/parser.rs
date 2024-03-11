@@ -344,6 +344,7 @@ fn save_shellbags(shellbag_vec: &mut Vec<Shellbag>, shell_map: &HashMap<String, 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::{
@@ -361,7 +362,6 @@ mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_grab_shellbags() {
         let options = ShellbagsOptions {
             resolve_guids: true,
@@ -400,7 +400,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_parse_shellbags() {
         let drive = 'C';
         let _results = parse_shellbags(&drive, false).unwrap();
