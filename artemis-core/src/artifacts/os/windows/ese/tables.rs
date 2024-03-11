@@ -5,17 +5,21 @@ use super::{
     tags::TagFlags,
 };
 use crate::{
-    artifacts::os::windows::ese::{
-        catalog::{TaggedData, TaggedDataFlag},
-        error::EseError,
-        page::{PageFlags, PageHeader},
-        pages::{
-            branch::BranchPage, leaf::PageLeaf, longvalue::parse_long_value, root::parse_root_page,
+    artifacts::os::{
+        systeminfo::info::get_platform,
+        windows::ese::{
+            catalog::{TaggedData, TaggedDataFlag},
+            error::EseError,
+            page::{PageFlags, PageHeader},
+            pages::{
+                branch::BranchPage, leaf::PageLeaf, longvalue::parse_long_value,
+                root::parse_root_page,
+            },
         },
     },
-    filesystem::ntfs::{
-        raw_files::raw_reader, reader::read_bytes, sector_reader::SectorReader,
-        setup::setup_ntfs_parser,
+    filesystem::{
+        files::file_reader,
+        ntfs::{raw_files::raw_reader, reader::read_bytes, setup::setup_ntfs_parser},
     },
     utils::{
         compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
@@ -38,7 +42,7 @@ use nom::{
     number::complete::{le_f32, le_f64},
 };
 use ntfs::NtfsFile;
-use std::{collections::HashMap, fs::File, io::BufReader, mem::size_of};
+use std::{collections::HashMap, io::BufReader, mem::size_of};
 
 #[derive(Debug)]
 struct TableInfo {
@@ -90,18 +94,36 @@ pub(crate) fn dump_table(
     path: &str,
     name: &str,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-    let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+    let plat = get_platform();
 
-    let reader_result = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
-    let ntfs_file = match reader_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[ese] Could not setup reader: {err:?}");
-            return Err(EseError::ReadFile);
-        }
+    // On non-Windows platforms use a normal BufReader
+    let ese_results = if plat != "Windows" {
+        let reader_result = file_reader(path);
+        let reader = match reader_result {
+            Ok(reader) => reader,
+            Err(err) => {
+                error!("[ese] Could not setup API reader: {err:?}");
+                return Err(EseError::ReadFile);
+            }
+        };
+
+        let mut buf_reader = BufReader::new(reader);
+        read_ese(None, &mut buf_reader, name)
+    } else {
+        // On Windows use a NTFS reader
+        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+
+        let reader_result = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+        let ntfs_file = match reader_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Could not setup reader: {err:?}");
+                return Err(EseError::ReadFile);
+            }
+        };
+        read_ese(Some(&ntfs_file), &mut ntfs_parser.fs, name)
     };
 
-    let ese_results = read_ese(&ntfs_file, &mut ntfs_parser.fs, name);
     let (_, tables) = match ese_results {
         Ok(results) => results,
         Err(_err) => {
@@ -114,9 +136,9 @@ pub(crate) fn dump_table(
 }
 
 // Create a reader and parse the ESE file
-pub(crate) fn read_ese<'a>(
-    ntfs_file: &NtfsFile<'_>,
-    fs: &mut BufReader<SectorReader<File>>,
+pub(crate) fn read_ese<'a, T: std::io::Seek + std::io::Read>(
+    ntfs_file: Option<&NtfsFile<'_>>,
+    fs: &mut BufReader<T>,
     name: &str,
 ) -> nom::IResult<&'a [u8], HashMap<String, Vec<Vec<TableDump>>>> {
     let header_size = 668;
@@ -1207,7 +1229,7 @@ mod tests {
         )
         .unwrap();
 
-        let (_, results) = read_ese(&ntfs_file, &mut ntfs_parser.fs, "MSysObjects").unwrap();
+        let (_, results) = read_ese(Some(&ntfs_file), &mut ntfs_parser.fs, "MSysObjects").unwrap();
         let catalog = results.get("MSysObjects").unwrap();
         assert_eq!(catalog.len(), 82);
 

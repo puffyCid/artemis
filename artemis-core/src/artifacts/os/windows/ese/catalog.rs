@@ -9,7 +9,7 @@ use crate::{
         page::PageFlags,
         pages::{branch::BranchPage, leaf::PageLeaf, root::parse_root_page},
     },
-    filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
+    filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
             nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_one_byte,
@@ -21,7 +21,7 @@ use crate::{
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
-use std::{collections::HashMap, fs::File, io::BufReader};
+use std::{collections::HashMap, io::BufReader};
 
 #[derive(Debug)]
 pub(crate) struct Catalog {
@@ -128,9 +128,9 @@ impl Catalog {
      * Before any significant parsing of the ESE db can start, we must parse the Catalog  
      * Once parsed, we return an array of `Catalog` rows
      */
-    pub(crate) fn grab_catalog(
-        ntfs_file: &NtfsFile<'_>,
-        fs: &mut BufReader<SectorReader<File>>,
+    pub(crate) fn grab_catalog<T: std::io::Seek + std::io::Read>(
+        ntfs_file: Option<&NtfsFile<'_>>,
+        fs: &mut BufReader<T>,
         page_size: u32,
     ) -> Result<Vec<Catalog>, EseError> {
         // Some documention states Catalog is acutally page four (4), but the first page of the ESE is a shadow copy of the header
@@ -160,11 +160,11 @@ impl Catalog {
     }
 
     /// Parse the components of the Catalog
-    fn parse_catalog<'a>(
+    fn parse_catalog<'a, T: std::io::Seek + std::io::Read>(
         catalog_data: &'a [u8],
         page_size: u32,
-        ntfs_file: &NtfsFile<'_>,
-        fs: &mut BufReader<SectorReader<File>>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        fs: &mut BufReader<T>,
     ) -> nom::IResult<&'a [u8], Vec<Catalog>> {
         let (page_data, catalog_page_data) = PageHeader::parse_header(catalog_data)?;
 
@@ -741,11 +741,11 @@ mod tests {
             setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(&0, 668, &reader, &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
-            Catalog::grab_catalog(&reader, &mut ntfs_parser.fs, header.page_size).unwrap();
+            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
 
         assert_eq!(results[0].name, "MSysObjects");
         assert_eq!(results[0].obj_id_table, 2);
@@ -925,11 +925,11 @@ mod tests {
             &mut ntfs_parser.fs,
         )
         .unwrap();
-        let header_bytes = read_bytes(&0, 668, &reader, &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
-            Catalog::grab_catalog(&reader, &mut ntfs_parser.fs, header.page_size).unwrap();
+            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
         assert!(results.len() > 100);
     }
 
@@ -943,13 +943,13 @@ mod tests {
             &mut ntfs_parser.fs,
         )
         .unwrap();
-        let header_bytes = read_bytes(&0, 668, &reader, &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
         if header_bytes.is_empty() {
             return;
         }
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
-            Catalog::grab_catalog(&reader, &mut ntfs_parser.fs, header.page_size).unwrap();
+            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
 
         assert!(results.len() > 10);
     }

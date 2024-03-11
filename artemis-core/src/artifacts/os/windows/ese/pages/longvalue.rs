@@ -8,23 +8,23 @@ use crate::{
         },
         tags::TagFlags,
     },
-    filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
+    filesystem::ntfs::reader::read_bytes,
 };
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use std::collections::HashMap;
-use std::{fs::File, io::BufReader};
+use std::io::BufReader;
 
 /**
  * Parse long value page into a `HashMap`  
  * long value is data too large to fit in a cell
  * Columns that have long value data can use this `HashMap` to lookup the column actual data
  */
-pub(crate) fn parse_long_value<'a>(
+pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
     page_lv_data: &'a [u8],
-    ntfs_file: &NtfsFile<'_>,
-    fs: &mut BufReader<SectorReader<File>>,
+    ntfs_file: Option<&NtfsFile<'_>>,
+    fs: &mut BufReader<T>,
 ) -> nom::IResult<&'a [u8], HashMap<Vec<u8>, Vec<u8>>> {
     let (page_data, table_page_data) = PageHeader::parse_header(page_lv_data)?;
     let mut has_root = false;
@@ -238,7 +238,7 @@ mod tests {
         let mut ntfs_parser = setup_ntfs_parser(&binding.chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let (_, results) = parse_long_value(&lv, &reader, &mut ntfs_parser.fs).unwrap();
+        let (_, results) = parse_long_value(&lv, Some(&reader), &mut ntfs_parser.fs).unwrap();
         assert_eq!(results.len(), 94);
     }
 
