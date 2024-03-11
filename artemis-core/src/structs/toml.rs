@@ -1,16 +1,14 @@
-use crate::structs::artifacts::{
-    os::{files::FileOptions, processes::ProcessOptions},
-    runtime::script::JSScript,
-};
-use serde::Deserialize;
-
-#[cfg(target_os = "windows")]
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
     UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
 };
+use crate::structs::artifacts::{
+    os::{files::FileOptions, processes::ProcessOptions},
+    runtime::script::JSScript,
+};
+use serde::Deserialize;
 
 #[cfg(target_family = "unix")]
 use super::artifacts::os::macos::{
@@ -70,7 +68,6 @@ pub struct Artifacts {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg(target_os = "windows")]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,

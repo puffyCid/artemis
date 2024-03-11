@@ -16,7 +16,6 @@ mod unix;
 #[cfg(target_family = "unix")]
 mod macos;
 
-#[cfg(target_os = "windows")]
 mod windows;
 
 #[cfg(target_family = "unix")]

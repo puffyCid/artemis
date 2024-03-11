@@ -40,6 +40,7 @@ pub(crate) fn get_alt_shellbags(resolve: bool, #[string] file: String) -> Result
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

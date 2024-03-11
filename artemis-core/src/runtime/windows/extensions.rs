@@ -32,7 +32,7 @@ use crate::runtime::{
 use deno_core::{Extension, Op};
 
 /// Include all the `Artemis` function in the `Runtime`
-pub(crate) fn setup_extensions() -> Vec<Extension> {
+pub(crate) fn setup_windows_extensions() -> Vec<Extension> {
     let extensions = Extension {
         name: "artemis",
         ops: grab_functions().into(),
@@ -99,7 +99,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
 #[cfg(test)]
 mod tests {
-    use super::{grab_functions, setup_extensions};
+    use super::{grab_functions, setup_windows_extensions};
 
     #[test]
     fn test_grab_functions() {
@@ -108,8 +108,8 @@ mod tests {
     }
 
     #[test]
-    fn test_setup_extensions() {
-        let results = setup_extensions();
+    fn test_setup_windows_extensions() {
+        let results = setup_windows_extensions();
         assert_eq!(results.len(), 1)
     }
 }

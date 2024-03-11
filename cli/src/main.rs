@@ -8,9 +8,7 @@ use crate::collector::macos::run_collector;
 #[cfg(target_family = "unix")]
 use collector::macos::Commands;
 
-#[cfg(target_os = "windows")]
 use crate::collector::windows::run_collector;
-#[cfg(target_os = "windows")]
 use collector::windows::Commands;
 
 mod collector;

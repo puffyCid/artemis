@@ -36,6 +36,7 @@ pub(crate) fn get_bits_path(#[string] path: String, carve: bool) -> Result<Strin
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

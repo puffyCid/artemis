@@ -8,7 +8,6 @@ pub(crate) mod macos;
 #[cfg(target_family = "unix")]
 pub(crate) mod unix;
 
-#[cfg(target_os = "windows")]
 pub(crate) mod windows;
 
 #[cfg(target_family = "unix")]

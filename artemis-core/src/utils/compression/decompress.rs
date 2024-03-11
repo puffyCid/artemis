@@ -91,7 +91,6 @@ pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     Ok(data)
 }
 
-#[cfg(target_os = "windows")]
 /// Decompress seven bit compression
 pub(crate) fn decompress_seven_bit(data: &[u8]) -> Vec<u8> {
     let mut decompressed_data: Vec<u8> = Vec::new();
@@ -153,7 +152,7 @@ pub(crate) fn decompress_xpress(
 mod tests {
     use crate::{
         filesystem::files::read_file,
-        utils::compression::decompress::{decompress_xpress, XpressType},
+        utils::compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
     };
     use std::path::PathBuf;
 
@@ -275,10 +274,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_decompress_seven_bit() {
-        use super::decompress_seven_bit;
-
         let test = [213, 121, 89, 62, 7];
         let result = decompress_seven_bit(&test);
         assert_eq!(result, [85, 115, 101, 114, 115]);

@@ -41,7 +41,6 @@ deno_core = { version = "0.268.0" }
 tokio = { workspace = true }
 
 # Windows Dependencies
-[target.'cfg(target_family = "windows")'.dependencies]
 ntapi = "0.4.1"
 evtx = { version = "0.8.1", default-features = false, features = [
     "multithreading",

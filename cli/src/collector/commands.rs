@@ -52,21 +52,18 @@ pub(crate) enum CommandArgs {
     /// Parse Chromium Downloads
     Chromiumdownloads {},
 
-    #[cfg(target_os = "windows")]
     /// Parse Prefetch
     Prefetch {
         /// Alternative Prefetch directory to use
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse EventLogs
     Eventlogs {
         /// Alternative full path to an Event Log
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse NTFS to get filelisting
     Rawfilelisting {
         /// Drive letter to parse
@@ -100,14 +97,12 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         filename_regex: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse ShimDatabase
     Shimdb {
         /// Alternative full path to SDB file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Registry
     Registry {
         /// Paser user Registry files
@@ -123,7 +118,6 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         path_regex: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Userassist
     Userassist {
         /// Alternative full path to NTUSER.DAT Registry file
@@ -133,14 +127,12 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         resolve_descriptions: Option<bool>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Shimcache
     Shimcache {
         /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Shellbags
     Shellbags {
         /// Try to resolve GUIDs to directory names
@@ -150,21 +142,18 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Amcache
     Amcache {
         /// Alternative full path to Amcache.hve
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Shortcuts
     Shortcuts {
         /// Path to directory containing Shortcut files
         #[arg(long)]
         path: String,
     },
-    #[cfg(target_os = "windows")]
     /// Parse UsnJrnl
     Usnjrnl {
         /// Alternative drive letter to use
@@ -174,7 +163,6 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse BITS
     Bits {
         /// Try to parse deleted BITS entries
@@ -184,56 +172,48 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse SRUM
     Srum {
         /// Alternative SRUM file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Users
     Users {
         /// Alternative full path to SAM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Windows Search
     Search {
         /// Alternative Search file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Windows Tasks
     Tasks {
         /// Alternative full path to Schedule Task file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Windows Services
     Services {
         /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse Jumplists
     Jumplists {
         /// Alternative full path to Jumplist file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse RecycleBin
     Recyclebin {
         /// Alternative full path to RecycleBin file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
     /// Parse WMI Repository
     Wmipersist {
         /// Alternative directory containing the WMI repository files

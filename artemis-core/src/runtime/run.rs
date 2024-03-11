@@ -9,9 +9,7 @@ use std::rc::Rc;
 
 #[cfg(target_family = "unix")]
 use super::macos::extensions::setup_macos_extensions;
-
-#[cfg(target_os = "windows")]
-use super::windows::extensions::setup_extensions;
+use super::windows::extensions::setup_windows_extensions;
 
 #[cfg(target_family = "unix")]
 use super::linux::extensions::setup_linux_extensions;
@@ -158,10 +156,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         extensions.append(&mut setup_linux_extensions());
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        extensions = setup_extensions();
-    }
+    extensions = setup_windows_extensions();
 
     let runtime = JsRuntime::new(RuntimeOptions {
         source_map_getter: None,

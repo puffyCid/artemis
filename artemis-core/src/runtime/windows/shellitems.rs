@@ -27,6 +27,7 @@ pub(crate) fn js_get_shellitem(#[buffer] data: JsBuffer) -> Result<JsShellitem, 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
