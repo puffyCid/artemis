@@ -45,11 +45,11 @@ pub(crate) fn grab_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnl
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
-    use std::path::PathBuf;
-
     use super::{grab_usnjrnl, grab_usnjrnl_path};
     use crate::structs::artifacts::os::windows::UsnJrnlOptions;
+    use std::path::PathBuf;
 
     #[test]
     #[ignore = "Takes a long time"]

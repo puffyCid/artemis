@@ -1,5 +1,5 @@
 use crate::{
-    filesystem::files::get_filename,
+    filesystem::{directory::get_parent_directory, files::get_filename},
     utils::{
         nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
         strings::extract_utf16_string,
@@ -12,7 +12,6 @@ use nom::{
     bytes::complete::{take, take_until},
     Needed,
 };
-use std::path::Path;
 
 /// Parse the `$I` file data from the `Recycle Bin`
 pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> {
@@ -44,11 +43,7 @@ pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> 
         recycle_path: String::new(),
     };
 
-    let dir = Path::new(&recycle.full_path).parent();
-
-    if let Some(path) = dir {
-        recycle.directory = path.to_str().unwrap_or_default().to_string();
-    }
+    recycle.directory = get_parent_directory(&recycle.full_path);
 
     Ok((input, recycle))
 }

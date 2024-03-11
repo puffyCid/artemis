@@ -1,5 +1,5 @@
 use super::{
-    accounts::{get_groups, get_users},
+    accounts::{get_groups_macos, get_users_macos},
     emond::get_emond,
     execpolicy::get_execpolicy,
     fsevents::get_fsevents,
@@ -12,7 +12,7 @@ use super::{
         get_safari_users_history,
     },
     spotlight::{get_spotlight, setup_spotlight_parser},
-    sudo::get_sudologs,
+    sudo::get_sudologs_macos,
     unifiedlogs::{get_unified_log, setup_unified_log_parser},
 };
 use crate::runtime::{
@@ -46,15 +46,15 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_fsevents::DECL,
         get_macho::DECL,
         get_loginitems::DECL,
-        get_users::DECL,
-        get_groups::DECL,
+        get_users_macos::DECL,
+        get_groups_macos::DECL,
         get_emond::DECL,
         get_safari_users_history::DECL,
         get_safari_history::DECL,
         get_safari_users_downloads::DECL,
         get_safari_downloads::DECL,
         get_execpolicy::DECL,
-        get_sudologs::DECL,
+        get_sudologs_macos::DECL,
         get_spotlight::DECL,
         setup_spotlight_parser::DECL,
     ];

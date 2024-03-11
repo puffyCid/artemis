@@ -117,13 +117,7 @@ impl RegHeader {
 #[cfg(test)]
 mod tests {
     use super::RegHeader;
-    use crate::filesystem::{
-        files::read_file,
-        ntfs::{
-            raw_files::{get_user_registry_files, raw_read_data},
-            setup::setup_ntfs_parser,
-        },
-    };
+    use crate::filesystem::files::read_file;
     use std::path::PathBuf;
 
     #[test]
@@ -196,7 +190,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_user_reg_headers() {
+        use crate::filesystem::ntfs::{
+            raw_files::{get_user_registry_files, raw_read_data},
+            setup::setup_ntfs_parser,
+        };
+
         let user_regs = get_user_registry_files(&'C').unwrap();
 
         let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();

@@ -12,9 +12,7 @@
  */
 use super::error::AmcacheError;
 use crate::{
-    artifacts::os::{
-        systeminfo::info::get_win_kernel_version, windows::registry::helper::get_registry_keys,
-    },
+    artifacts::os::windows::registry::helper::get_registry_keys,
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
@@ -45,15 +43,23 @@ pub(crate) fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
 
 /// Based on Windows version get the path to `Amcache` file
 fn amcache_file(drive: &char) -> Result<Vec<Amcache>, AmcacheError> {
-    let kernel_version = get_win_kernel_version();
-    let win10 = 10240.0;
-    let path = if kernel_version < win10 {
-        format!("{drive}:\\Windows\\AppCompat\\Programs\\Amcache.hve")
-    } else {
-        format!("{drive}:\\Windows\\appcompat\\Programs\\Amcache.hve")
-    };
+    let mut entries = Vec::new();
+    let paths = vec![
+        format!("{drive}:\\Windows\\appcompat\\Programs\\Amcache.hve"),
+        format!("{drive}:\\Windows\\AppCompat\\Programs\\Amcache.hve"),
+    ];
 
-    parse_amcache(&path)
+    for path in paths {
+        let results = parse_amcache(&path);
+        let mut amcache = match results {
+            Ok(result) => result,
+            Err(_err) => continue,
+        };
+
+        entries.append(&mut amcache);
+    }
+
+    Ok(entries)
 }
 
 /**
@@ -69,7 +75,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let amcache = match amcache_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[amcache] Could not parse Amcache file: {err:?}");
+            error!("[amcache] Could not parse Amcache file {path}: {err:?}");
             return Err(AmcacheError::GetRegistryData);
         }
     };

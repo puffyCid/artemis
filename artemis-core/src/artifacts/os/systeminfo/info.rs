@@ -38,14 +38,6 @@ pub(crate) fn get_platform() -> String {
     sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name"))
 }
 
-/// Get the kernel version number
-pub(crate) fn get_win_kernel_version() -> f64 {
-    sysinfo::System::kernel_version()
-        .unwrap_or_else(|| String::from("0.0"))
-        .parse::<f64>()
-        .unwrap_or(0.0)
-}
-
 /// Get Disk info from system
 pub(crate) fn get_disks() -> Vec<DiskDrives> {
     let mut disks = Disks::new_with_refreshed_list();
@@ -113,7 +105,6 @@ fn get_performance() -> LoadPerformance {
 mod tests {
     use crate::artifacts::os::systeminfo::info::{
         get_cpu, get_disks, get_info, get_info_metadata, get_memory, get_performance, get_platform,
-        get_win_kernel_version,
     };
     use sysinfo::System;
 
@@ -122,12 +113,6 @@ mod tests {
         let system_info = get_info();
         assert_eq!(system_info.platform.is_empty(), false);
         assert!(system_info.cpu.len() > 1);
-    }
-
-    #[test]
-    fn test_get_kernel_version() {
-        let system_info = get_win_kernel_version();
-        assert!(system_info != 0.0);
     }
 
     #[test]

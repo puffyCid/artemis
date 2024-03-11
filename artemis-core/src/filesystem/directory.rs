@@ -1,3 +1,5 @@
+use log::warn;
+
 use super::{error::FileSystemError, files::list_files_directories};
 use std::path::Path;
 
@@ -103,9 +105,28 @@ pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
     Ok(root_home.to_string())
 }
 
+/// Get the parent directory of a provided path. From: "C:\\Users\\bob\\1.txt" will return "C:\\Users\\bob"
+pub(crate) fn get_parent_directory(path: &str) -> String {
+    let entry_opt = if path.contains('\\') {
+        path.rsplit_once('\\')
+    } else {
+        path.rsplit_once('/')
+    };
+
+    if entry_opt.is_none() {
+        warn!("[artemis-core] Failed to split {path}");
+        return path.to_string();
+    }
+
+    let (directory, _) = entry_opt.unwrap_or_default();
+    directory.to_string()
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::filesystem::directory::{get_user_paths, is_directory, list_directories};
+    use crate::filesystem::directory::{
+        get_parent_directory, get_user_paths, is_directory, list_directories,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -181,5 +202,13 @@ mod tests {
         }
 
         assert!(test_data);
+    }
+
+    #[test]
+    fn test_get_filename() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/fsevents_tester.rs");
+        let result = get_parent_directory(&test_location.display().to_string());
+        assert!(result.ends_with("artemis-core/tests"));
     }
 }

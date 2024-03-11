@@ -448,12 +448,9 @@ pub(crate) fn get_flag(job_flag: &u32) -> JobFlags {
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::{
-            bits::jobs::{
-                get_flag, get_jobs, get_legacy_jobs, get_priority, get_state, get_type,
-                job_details, parse_job, parse_legacy_job,
-            },
-            ese::parser::grab_ese_tables,
+        artifacts::os::windows::bits::jobs::{
+            get_flag, get_legacy_jobs, get_priority, get_state, get_type, job_details, parse_job,
+            parse_legacy_job,
         },
         filesystem::files::read_file,
     };
@@ -589,7 +586,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_jobs() {
+        use crate::artifacts::os::windows::{bits::jobs::get_jobs, ese::parser::grab_ese_tables};
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 

@@ -1,5 +1,5 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
-use log::error;
+use log::{error, warn};
 use md5::{Digest, Md5};
 use serde::Deserialize;
 use sha1::Sha1;
@@ -315,13 +315,18 @@ fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
-    let file = Path::new(path);
-    let name_osstr = file.file_name();
-
-    let name = match name_osstr {
-        Some(result) => result.to_str().unwrap_or(""),
-        _ => "",
+    let entry_opt = if path.contains('\\') {
+        path.rsplit_once('\\')
+    } else {
+        path.rsplit_once('/')
     };
+
+    if entry_opt.is_none() {
+        warn!("[artemis-core] Failed to split {path}");
+        return path.to_string();
+    }
+
+    let (_, name) = entry_opt.unwrap_or_default();
     name.to_string()
 }
 
@@ -441,6 +446,7 @@ mod tests {
 
         assert_eq!(result, 23);
     }
+
     #[test]
     fn test_get_filename() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

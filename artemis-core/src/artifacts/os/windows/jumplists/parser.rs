@@ -62,6 +62,7 @@ pub(crate) fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, Jumpl
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_jumplists;
     use crate::{
