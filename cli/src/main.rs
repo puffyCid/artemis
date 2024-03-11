@@ -1,13 +1,9 @@
+use crate::collector::macos::run_collector;
 use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
-use log::info;
-
-#[cfg(target_family = "unix")]
-use crate::collector::macos::run_collector;
-#[cfg(target_family = "unix")]
 use collector::macos::Commands;
-
+use log::info;
 mod collector;
 
 #[derive(Parser)]

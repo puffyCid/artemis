@@ -4,7 +4,6 @@ use super::{
 };
 use log::{error, warn};
 
-#[cfg(target_family = "unix")]
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
     use crate::filesystem::files::read_file;
@@ -34,7 +33,6 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
     Ok(decompress_data)
 }
 
-#[cfg(target_family = "unix")]
 /// Decompress zstd data
 pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     use ruzstd::StreamingDecoder;
@@ -55,7 +53,6 @@ pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, CompressionError> 
     Ok(data)
 }
 
-#[cfg(target_family = "unix")]
 /// Decompress lz4 data
 pub(crate) fn decompress_lz4(
     data: &[u8],
@@ -75,7 +72,6 @@ pub(crate) fn decompress_lz4(
     Ok(decomp_data)
 }
 
-#[cfg(target_family = "unix")]
 /// Decompress xz data
 pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     use std::io::Read;

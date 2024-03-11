@@ -1,3 +1,6 @@
+use super::linux::extensions::setup_linux_extensions;
+use super::macos::extensions::setup_macos_extensions;
+use super::windows::extensions::setup_windows_extensions;
 use crate::runtime::error::RuntimeError;
 use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
@@ -6,13 +9,6 @@ use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions}
 use log::error;
 use serde_json::Value;
 use std::rc::Rc;
-
-#[cfg(target_family = "unix")]
-use super::macos::extensions::setup_macos_extensions;
-use super::windows::extensions::setup_windows_extensions;
-
-#[cfg(target_family = "unix")]
-use super::linux::extensions::setup_linux_extensions;
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
 

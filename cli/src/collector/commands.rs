@@ -220,63 +220,52 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,
     },
-
-    #[cfg(target_family = "unix")]
     /// macos: Parse ExecPolicy
     Execpolicy {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect local users
     UsersMacos {
         /// Alternative path to users
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse FsEvents entries
     Fsevents {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Emond persistence. Removed in Ventura
     Emond {
         /// Alternative path to Emond
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse LoginItems
     Loginitems {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Launch Daemons and Agents
     Launchd {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect local groups
     GroupsMacos {
         /// Alternative path to groups
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect Safari History
     SafariHistory {},
-    #[cfg(target_family = "unix")]
     /// macos: Collect Safari Downloads
     SafariDownloads {},
-    #[cfg(target_family = "unix")]
     /// macos: Parse the Unified Logs
     Unifiedlogs {
         /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume
@@ -286,14 +275,12 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Sudo log entries from Unified Logs
     SudologsMacos {
         /// Use a log archive path instead of local files
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse the Spotlight database
     Spotlight {
         /// Alternative path to a Spotlight database
@@ -303,27 +290,22 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         include_additional: bool,
     },
-    #[cfg(target_family = "unix")]
     /// unix: Parse Shellhistory
     Shellhistory {},
-    #[cfg(target_family = "unix")]
     /// unix: Parse Cron Jobs
     Cron {},
-    #[cfg(target_family = "unix")]
     /// linux: Grab Sudo logs
     SudologsLinux {
         /// Alternative Sudo log directory to use
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// linux: Parse systemd Journal files
     Journals {
         /// Alternative Journal log directory to use
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// linux: Parse Logon files
     Logons {
         /// Alternative logon file to use

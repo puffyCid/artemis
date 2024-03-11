@@ -2,9 +2,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub(crate) enum ApplicationError {
-    #[cfg(target_family = "unix")]
     SafariHistory,
-    #[cfg(target_family = "unix")]
     SafariDownloads,
     FirefoxHistory,
     FirefoxDownloads,
@@ -21,9 +19,7 @@ impl std::error::Error for ApplicationError {}
 impl fmt::Display for ApplicationError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(target_family = "unix")]
             ApplicationError::SafariHistory => write!(f, "Failed to parse Safari History"),
-            #[cfg(target_family = "unix")]
             ApplicationError::SafariDownloads => {
                 write!(f, "Failed to parse Safari Downloads")
             }

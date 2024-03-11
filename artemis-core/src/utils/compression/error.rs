@@ -2,15 +2,10 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum CompressionError {
-    #[cfg(target_family = "unix")]
     GzipReadFile,
-    #[cfg(target_family = "unix")]
     GzipDecompress,
-    #[cfg(target_family = "unix")]
     ZstdDecompresss,
-    #[cfg(target_family = "unix")]
     Lz4Decompresss,
-    #[cfg(target_family = "unix")]
     XzDecompress,
     CompressCreate,
     GzipFinish,
@@ -32,15 +27,10 @@ impl std::error::Error for CompressionError {}
 impl fmt::Display for CompressionError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(target_family = "unix")]
             CompressionError::GzipReadFile => write!(f, "Could not read file"),
-            #[cfg(target_family = "unix")]
             CompressionError::GzipDecompress => write!(f, "Could not decompress gzip data"),
-            #[cfg(target_family = "unix")]
             CompressionError::ZstdDecompresss => write!(f, "Could not decompress zstd data"),
-            #[cfg(target_family = "unix")]
             CompressionError::Lz4Decompresss => write!(f, "Could not decompress lz4 data"),
-            #[cfg(target_family = "unix")]
             CompressionError::XzDecompress => write!(f, "Could not decompress xz data"),
             CompressionError::CompressCreate => write!(f, "Could not create file for compression"),
             CompressionError::GzipFinish => write!(f, "Could not complete gzip compression"),

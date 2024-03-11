@@ -1,3 +1,8 @@
+use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
+use super::artifacts::os::macos::{
+    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
+};
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
@@ -9,15 +14,6 @@ use crate::structs::artifacts::{
     runtime::script::JSScript,
 };
 use serde::Deserialize;
-
-#[cfg(target_family = "unix")]
-use super::artifacts::os::macos::{
-    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
-};
-
-#[cfg(target_family = "unix")]
-use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
@@ -43,7 +39,6 @@ pub struct Output {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg(target_family = "unix")]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,
