@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum ChromiumHistoryError {
+pub(crate) enum ChromiumHistoryError {
     PathError,
     SQLITEParseError,
     BadSQL,

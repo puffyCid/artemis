@@ -1,25 +1,40 @@
-use super::sector_reader::SectorReader;
+use crate::filesystem::error::FileSystemError;
 use log::{error, warn};
 use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
-use std::{
-    fs::File,
-    io::{BufReader, Error, ErrorKind, SeekFrom},
-};
+use std::io::{BufReader, Error, ErrorKind, Read, Seek, SeekFrom};
 
 /**
  * Read file bytes based on offset and size
  * `offset` - Offset to start reading
  * `bytes` - Number of bytes to read
- * `file_references` - NTFS filereference. Can get via `raw_reader`
+ * `file_references` - NTFS filereference. Can get via `raw_reader`. If None (non-Windows platforms) it will use standard `BufReader`
  *
  * returns bytes read as Vec<u8>
  */
-pub(crate) fn read_bytes(
+pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
     offset: &u64,
     bytes: u64,
-    ntfs_file: &NtfsFile<'_>,
-    fs: &mut BufReader<SectorReader<File>>,
+    ntfs_file_opt: Option<&NtfsFile<'_>>,
+    fs: &mut BufReader<T>,
 ) -> Result<Vec<u8>, NtfsError> {
+    if ntfs_file_opt.is_none() {
+        let bytes_results = read_bytes_api(offset, bytes, fs);
+        let bytes_read = match bytes_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Could not read bytes via API {err:?}");
+                return Err(NtfsError::Io(Error::new(
+                    ErrorKind::InvalidData,
+                    "Could not seek to offset",
+                )));
+            }
+        };
+
+        return Ok(bytes_read);
+    }
+
+    let ntfs_file = ntfs_file_opt.unwrap();
+
     let data_name = "";
     let ntfs_data_option = ntfs_file.data(fs, data_name);
     let ntfs_data_result = match ntfs_data_option {
@@ -50,10 +65,39 @@ pub(crate) fn read_bytes(
     Ok(buff_size)
 }
 
+/// Read bytes from provided `BufReader`
+fn read_bytes_api<T: std::io::Read + std::io::Seek>(
+    offset: &u64,
+    bytes: u64,
+    reader: &mut BufReader<T>,
+) -> Result<Vec<u8>, FileSystemError> {
+    if reader.seek(SeekFrom::Start(*offset)).is_err() {
+        error!("[artemis-core] Could not seek to offset {offset} via API");
+        return Err(FileSystemError::ReadFile);
+    }
+
+    let mut buff_size = vec![0u8; bytes as usize];
+    let bytes_read = reader.read(&mut buff_size);
+    if bytes_read.is_err() {
+        error!("[artemis-core] Could not read bytes via API");
+        return Err(FileSystemError::ReadFile);
+    }
+
+    if bytes_read.unwrap_or_default() != buff_size.len() {
+        warn!("[artemis-core] Did not read expected number of bytes via API");
+    }
+
+    Ok(buff_size)
+}
+
 #[cfg(test)]
 mod tests {
     use super::read_bytes;
-    use crate::filesystem::ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser};
+    use crate::filesystem::{
+        files::file_reader,
+        ntfs::{raw_files::raw_reader, reader::read_bytes_api, setup::setup_ntfs_parser},
+    };
+    use std::{io::BufReader, path::PathBuf};
 
     #[test]
     fn test_read_bytes() {
@@ -65,7 +109,19 @@ mod tests {
         )
         .unwrap();
 
-        let bytes = read_bytes(&0, 50, &result, &mut ntfs_parser.fs).unwrap();
+        let bytes = read_bytes(&0, 50, Some(&result), &mut ntfs_parser.fs).unwrap();
+        assert_eq!(bytes.len(), 50);
+    }
+
+    #[test]
+    fn test_read_bytes_api() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let bytes = read_bytes_api(&0, 50, &mut buf_reader).unwrap();
         assert_eq!(bytes.len(), 50);
     }
 }

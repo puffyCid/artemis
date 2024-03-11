@@ -166,6 +166,85 @@ impl UsnJrnlFormat {
         Ok((remaining_input, entries))
     }
 
+    /// Parse the `UsnJrnl` but do not lookup any parent info
+    pub(crate) fn parse_usnjrnl_no_parent(data: &[u8]) -> nom::IResult<&[u8], Vec<UsnJrnlFormat>> {
+        let mut remaining_input = data;
+
+        let mut entries = Vec::new();
+        while !remaining_input.is_empty() {
+            // Nom any padding data, if we nom'd everything then we are done
+            let result = UsnJrnlFormat::nom_padding(remaining_input);
+            let input = match result {
+                Ok((usnjrnl_data, _)) => usnjrnl_data,
+                Err(_) => break,
+            };
+            if input.is_empty() {
+                break;
+            }
+
+            let (input, _major_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, _minor_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let entry_size: u8 = 6;
+            let (input, mut entry_data) = take(entry_size)(input)?;
+            let (input, mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let (input, mut parent_entry_data) = take(entry_size)(input)?;
+            let (input, parent_mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let (input, update_sequence_number) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+            let (input, usn_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+            let (input, reason) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, source) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, security_descriptor_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, name_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, name_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let offset_position = 60;
+            if name_offset != offset_position {
+                remaining_input = input;
+                continue;
+            }
+
+            // The name always follows the name offset. So we actually do not need it
+            let (input, name_data) = take(name_size)(input)?;
+            let name = extract_utf16_string(name_data);
+
+            let update_time = filetime_to_unixepoch(&usn_time);
+            let update_reason = UsnJrnlFormat::reason_flags(&reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+
+            let file_attributes = file_attribute_flags(&flags);
+            let parent_entry = parent_entry_data.read_u48::<LittleEndian>().unwrap_or(5);
+
+            let entry = UsnJrnlFormat {
+                _major_version,
+                _minor_version,
+                update_time,
+                update_reason,
+                update_source_flags,
+                security_descriptor_id,
+                file_attributes,
+                _name_size: name_size,
+                _name_offset: name_offset,
+                name,
+                mft_entry: entry_data.read_u48::<LittleEndian>().unwrap_or(0),
+                mft_sequence: mft_seq,
+                parent_mft_entry: parent_entry,
+                parent_mft_sequence: parent_mft_seq,
+                update_sequence_number,
+                full_path: String::new(),
+            };
+
+            entries.push(entry);
+
+            remaining_input = input;
+        }
+
+        Ok((remaining_input, entries))
+    }
+
     /// Nom any zero (0) padding at the end of an `UsnJrnl` entry
     /// Then scan for the version details
     fn nom_padding(data: &[u8]) -> nom::IResult<&[u8], ()> {
@@ -490,6 +569,36 @@ mod tests {
         let mut parser = setup_ntfs_parser(&'C').unwrap();
         let (_, results) =
             UsnJrnlFormat::parse_usnjrnl(&test_data, &parser.ntfs, &mut parser.fs).unwrap();
+        assert_eq!(results[0]._major_version, 2);
+        assert_eq!(results[0]._minor_version, 0);
+        assert_eq!(results[0].mft_entry, 350259);
+        assert_eq!(results[0].mft_sequence, 13);
+        assert_eq!(results[0].parent_mft_entry, 350163);
+        assert_eq!(results[0].parent_mft_sequence, 13);
+        assert_eq!(results[0].update_time, 1675039199);
+        assert_eq!(results[0].update_reason, vec![Extend, Close]);
+        assert_eq!(results[0].update_source_flags, None);
+        assert_eq!(results[0].security_descriptor_id, 0);
+        assert_eq!(results[0].file_attributes, vec![Archive]);
+        assert_eq!(results[0]._name_size, 84);
+        assert_eq!(results[0]._name_offset, 60);
+        assert_eq!(
+            results[0].name,
+            "b97f8602-d9b6-4387-a5c8-bc5c273f4333.jsonl"
+        );
+    }
+
+    #[test]
+    fn test_parse_usnjrnl_no_parent() {
+        let test_data = [
+            144, 0, 0, 0, 2, 0, 0, 0, 51, 88, 5, 0, 0, 0, 13, 0, 211, 87, 5, 0, 0, 0, 13, 0, 0, 0,
+            54, 96, 6, 0, 0, 0, 220, 174, 212, 97, 67, 52, 217, 1, 2, 0, 0, 128, 0, 0, 0, 0, 0, 0,
+            0, 0, 32, 0, 0, 0, 84, 0, 60, 0, 98, 0, 57, 0, 55, 0, 102, 0, 56, 0, 54, 0, 48, 0, 50,
+            0, 45, 0, 100, 0, 57, 0, 98, 0, 54, 0, 45, 0, 52, 0, 51, 0, 56, 0, 55, 0, 45, 0, 97, 0,
+            53, 0, 99, 0, 56, 0, 45, 0, 98, 0, 99, 0, 53, 0, 99, 0, 50, 0, 55, 0, 51, 0, 102, 0,
+            52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
+        ];
+        let (_, results) = UsnJrnlFormat::parse_usnjrnl_no_parent(&test_data).unwrap();
         assert_eq!(results[0]._major_version, 2);
         assert_eq!(results[0]._minor_version, 0);
         assert_eq!(results[0].mft_entry, 350259);

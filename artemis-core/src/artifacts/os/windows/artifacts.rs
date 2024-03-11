@@ -892,7 +892,10 @@ mod tests {
     #[test]
     #[ignore = "Takes a long time"]
     fn test_usnjrnl() {
-        let options = UsnJrnlOptions { alt_drive: None };
+        let options = UsnJrnlOptions {
+            alt_drive: None,
+            alt_path: None,
+        };
         let mut output = output_options("usn_temp", "json", "./tmp", false);
 
         let status = usnjrnl(&options, &mut output, &false).unwrap();

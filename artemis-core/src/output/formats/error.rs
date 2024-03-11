@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum FormatError {
+pub(crate) enum FormatError {
     Serialize,
     Output,
 }

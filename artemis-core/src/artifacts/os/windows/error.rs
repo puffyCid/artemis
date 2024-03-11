@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum WinArtifactError {
+pub(crate) enum WinArtifactError {
     Prefetch,
     EventLogs,
     Ntfs,

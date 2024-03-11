@@ -11,7 +11,10 @@ macro_rules! load16le {
 }
 
 /// Decompress LZNT compressed data
-pub fn decompress_lznt(in_buf: &[u8], out_buf: &mut Vec<u8>) -> Result<(), CompressionError> {
+pub(crate) fn decompress_lznt(
+    in_buf: &[u8],
+    out_buf: &mut Vec<u8>,
+) -> Result<(), CompressionError> {
     let mut out_idx: usize = 0;
     let mut in_idx: usize = 0;
 

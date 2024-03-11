@@ -24,13 +24,14 @@ pub(crate) fn win7_format<'a>(
 
     while entry < entries {
         let (input, _path_size) = nom_unsigned_two_bytes(shim_data, Endian::Le)?;
-        let (input, max_path_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (shim_input, max_path_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-        #[cfg(target_arch = "x86_64")]
-        {
-            let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+        // Assume 64-bit Shimcace be default
+        let (input, _padding) = nom_unsigned_four_bytes(shim_input, Endian::Le)?;
+        let (input, offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
+        // Its probably 64-bit if the offset is less than length
+        if offset as usize <= data.len() {
             let (input, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
             let (input, _insertion_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
             let (input, _shim_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -66,44 +67,42 @@ pub(crate) fn win7_format<'a>(
             continue;
         }
 
-        #[cfg(target_arch = "x86")]
-        {
-            let (input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        // Otherwise assume 32-bit Shimcache
+        let (input, offset) = nom_unsigned_four_bytes(shim_input, Endian::Le)?;
 
-            let (input, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-            let (input, insertion_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, shim_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, data_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, data_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            // Rest of format is raw binary data
+        let (input, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+        let (input, _insertion_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, _shim_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, _data_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, _data_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        // Rest of format is raw binary data
 
-            shim_data = input;
+        shim_data = input;
 
-            let empty_path = 0;
-            if max_path_size == empty_path {
-                let shim_entry = ShimcacheEntry {
-                    entry,
-                    path: String::new(),
-                    last_modified: 0,
-                    key_path: key_path.to_string(),
-                };
-                entry += 1;
-                shim_vec.push(shim_entry);
-                continue;
-            }
-            // Offset is from start of Shimcache data
-            let (path_start, _) = take(offset)(data)?;
-            let (_, path_data) = take(max_path_size)(path_start)?;
-
+        let empty_path = 0;
+        if max_path_size == empty_path {
             let shim_entry = ShimcacheEntry {
                 entry,
-                path: extract_utf16_string(path_data),
-                last_modified: filetime_to_unixepoch(&last_modified),
+                path: String::new(),
+                last_modified: 0,
                 key_path: key_path.to_string(),
             };
             entry += 1;
             shim_vec.push(shim_entry);
+            continue;
         }
+        // Offset is from start of Shimcache data
+        let (path_start, _) = take(offset)(data)?;
+        let (_, path_data) = take(max_path_size)(path_start)?;
+
+        let shim_entry = ShimcacheEntry {
+            entry,
+            path: extract_utf16_string(path_data),
+            last_modified: filetime_to_unixepoch(&last_modified),
+            key_path: key_path.to_string(),
+        };
+        entry += 1;
+        shim_vec.push(shim_entry);
     }
     Ok((input, shim_vec))
 }
@@ -115,7 +114,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_arch = "x86")]
     fn test_win7_32bit_format() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/shimcache/win7/win7x86.bin");
@@ -131,7 +129,7 @@ mod tests {
 
     #[test]
     #[cfg(target_arch = "x86_64")]
-    fn test_win7_32bit_format() {
+    fn test_win7_64bit_format() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/shimcache/win7/win7x64.bin");
         let buffer = read_file(&test_location.display().to_string()).unwrap();

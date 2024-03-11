@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum RemoteError {
+pub(crate) enum RemoteError {
     RemoteUrl,
     RemoteUpload,
     BadResponse,

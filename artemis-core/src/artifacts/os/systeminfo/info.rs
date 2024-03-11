@@ -39,12 +39,6 @@ pub(crate) fn get_platform() -> String {
 }
 
 #[cfg(target_os = "windows")]
-/// Get the OS version number
-pub(crate) fn get_os_version() -> String {
-    sysinfo::System::os_version().unwrap_or_else(|| String::from("Unknown OS Version"))
-}
-
-#[cfg(target_os = "windows")]
 /// Get the kernel version number
 pub(crate) fn get_win_kernel_version() -> f64 {
     sysinfo::System::kernel_version()
@@ -128,15 +122,6 @@ mod tests {
         let system_info = get_info();
         assert_eq!(system_info.platform.is_empty(), false);
         assert!(system_info.cpu.len() > 1);
-    }
-
-    #[test]
-    #[cfg(target_os = "windows")]
-    fn test_get_os() {
-        use crate::artifacts::os::systeminfo::info::get_os_version;
-
-        let system_info = get_os_version();
-        assert_eq!(system_info.contains("Unknown"), false);
     }
 
     #[test]

@@ -4,7 +4,7 @@ use nom::bytes::complete::take;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub struct MachoHeader {
+pub(crate) struct MachoHeader {
     signature: u32,
     pub cpu_type: String,
     pub cpu_subtype: String,

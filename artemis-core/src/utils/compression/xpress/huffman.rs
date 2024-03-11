@@ -6,7 +6,7 @@ use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 // Inspired by https://raw.githubusercontent.com/Velocidex/go-prefetch/master/lzxpress.go
 
 /// Decompress Huffman xpress compressed data
-pub fn decompress_xpress_huffman(
+pub(crate) fn decompress_xpress_huffman(
     in_buf: &[u8],
     out_buf: &mut Vec<u8>,
 ) -> Result<(), CompressionError> {
@@ -95,13 +95,13 @@ fn decompress_chunk(
 }
 
 struct BitStream<'a> {
-    pub source: &'a [u8],
-    pub index: usize,
-    pub mask: u32,
-    pub bits: u32,
+    pub(crate) source: &'a [u8],
+    pub(crate) index: usize,
+    pub(crate) mask: u32,
+    pub(crate) bits: u32,
 }
 impl<'a> BitStream<'a> {
-    pub fn new(source: &'a [u8], in_pos: usize) -> Self {
+    pub(crate) fn new(source: &'a [u8], in_pos: usize) -> Self {
         let mask = ((u16::from_le_bytes(source[in_pos..in_pos + 2].try_into().unwrap_or_default())
             as u32)
             << 16)
@@ -118,13 +118,13 @@ impl<'a> BitStream<'a> {
         }
     }
 
-    pub fn lookup(&self, n: u32) -> u32 {
+    pub(crate) fn lookup(&self, n: u32) -> u32 {
         if n == 0 {
             return 0;
         }
         self.mask >> (32 - n)
     }
-    pub fn skip(&mut self, n: u32) -> Result<(), CompressionError> {
+    pub(crate) fn skip(&mut self, n: u32) -> Result<(), CompressionError> {
         self.mask <<= n;
         self.bits = self.bits.saturating_sub(n);
         if self.bits < 16 {
@@ -146,17 +146,17 @@ impl<'a> BitStream<'a> {
 
 #[derive(Clone, Debug, Default)]
 struct PrefixCodeNode {
-    pub id: u32,
-    pub symbol: u32,
-    pub leaf: bool,
-    pub child: [Option<Rc<RefCell<PrefixCodeNode>>>; 2],
+    pub(crate) id: u32,
+    pub(crate) symbol: u32,
+    pub(crate) leaf: bool,
+    pub(crate) child: [Option<Rc<RefCell<PrefixCodeNode>>>; 2],
 }
 
 #[derive(Clone, Debug, Default)]
 struct PrefixCodeSymbol {
-    pub id: u32,
-    pub symbol: u32,
-    pub length: u32,
+    pub(crate) id: u32,
+    pub(crate) symbol: u32,
+    pub(crate) length: u32,
 }
 
 impl Ord for PrefixCodeSymbol {

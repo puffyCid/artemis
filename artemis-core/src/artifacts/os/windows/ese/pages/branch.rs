@@ -7,14 +7,14 @@ use crate::{
         tables::{clear_column_data, parse_row, ColumnInfo},
         tags::TagFlags,
     },
-    filesystem::ntfs::{reader::read_bytes, sector_reader::SectorReader},
+    filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
 };
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use std::collections::HashMap;
-use std::{fs::File, io::BufReader};
+use std::io::BufReader;
 
 #[derive(Debug)]
 pub(crate) struct BranchPage {
@@ -56,11 +56,11 @@ impl BranchPage {
     }
 
     /// Parse child branch pages related to catalog. Only care about tags that have data definition type
-    pub(crate) fn parse_branch_child_catalog<'a>(
+    pub(crate) fn parse_branch_child_catalog<'a, T: std::io::Seek + std::io::Read>(
         data: &'a [u8],
         page_tracker: &mut HashMap<u32, bool>,
-        ntfs_file: &NtfsFile<'_>,
-        fs: &mut BufReader<SectorReader<File>>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        fs: &mut BufReader<T>,
     ) -> nom::IResult<&'a [u8], Vec<Catalog>> {
         let (page_data, branch_page_data) = PageHeader::parse_header(data)?;
 
@@ -159,13 +159,13 @@ impl BranchPage {
     }
 
     /// Parse child branch pages related to tables. Only care about tags that have data definition type
-    pub(crate) fn parse_branch_child_table<'a>(
+    pub(crate) fn parse_branch_child_table<'a, T: std::io::Seek + std::io::Read>(
         page_branch_data: &'a [u8],
         column_info: &mut [ColumnInfo],
         column_rows: &mut Vec<Vec<ColumnInfo>>,
         page_tracker: &mut HashMap<u32, bool>,
-        ntfs_file: &NtfsFile<'_>,
-        fs: &mut BufReader<SectorReader<File>>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        fs: &mut BufReader<T>,
     ) -> nom::IResult<&'a [u8], u32> {
         let (page_data, branch_page_data) = PageHeader::parse_header(page_branch_data)?;
         // Empty pages are not part of table data
@@ -312,7 +312,7 @@ mod tests {
         let (_, results) = BranchPage::parse_branch_child_catalog(
             &test_data,
             &mut tracker,
-            &ntfs_file,
+            Some(&ntfs_file),
             &mut ntfs_parser.fs,
         )
         .unwrap();
@@ -354,7 +354,7 @@ mod tests {
             &mut info,
             &mut rows,
             &mut tracker,
-            &reader,
+            Some(&reader),
             &mut ntfs_parser.fs,
         )
         .unwrap();
