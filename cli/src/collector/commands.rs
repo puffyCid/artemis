@@ -179,7 +179,7 @@ pub(crate) enum CommandArgs {
         alt_file: Option<String>,
     },
     /// windows: Parse Users
-    Users {
+    UsersWindows {
         /// Alternative full path to SAM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,

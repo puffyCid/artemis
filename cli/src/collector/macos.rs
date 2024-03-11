@@ -412,7 +412,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.userassist = Some(options);
             collect.artifact_name = String::from("userassist");
         }
-        CommandArgs::Users { alt_file } => {
+        CommandArgs::UsersWindows { alt_file } => {
             let options = WindowsUserOptions {
                 alt_file: alt_file.clone(),
             };
@@ -442,7 +442,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
     use crate::collector::macos::CommandArgs::{
@@ -450,8 +449,8 @@ mod tests {
         Filelisting, Firefoxdownloads, Firefoxhistory, Fsevents, GroupsMacos, Journals, Jumplists,
         Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry,
         SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory, Shimcache, Shimdb,
-        Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, Users,
-        UsersMacos,
+        Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos,
+        UsersWindows,
     };
     use artemis_core::structs::toml::Output;
     fn output() -> Output {
@@ -777,7 +776,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Users { alt_file: None }),
+            artifact: Some(UsersWindows { alt_file: None }),
             format: String::from("json"),
         };
 
