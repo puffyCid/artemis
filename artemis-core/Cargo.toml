@@ -48,7 +48,7 @@ plist = "1.6.0"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.268.0" }
+deno_core = { version = "0.270.0" }
 tokio = { workspace = true }
 
 # Windows API Dependencies
@@ -57,7 +57,7 @@ ntapi = "0.4.1"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.268.0" }
+deno_core = { version = "0.270.0" }
 
 # Dependencies for tests
 [dev-dependencies]

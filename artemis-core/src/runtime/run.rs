@@ -137,6 +137,9 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 
 /// Create the Deno runtime worker options. Pass optional args
 fn create_worker_options() -> Result<JsRuntime, AnyError> {
+    // This may be required for Linux? Not 100% sure. It runs fine without it. Ref: https://github.com/denoland/deno/pull/20495. May depend on V8 version (rusty_v8)
+    //JsRuntime::init_platform(None);
+
     let module_loader = Rc::new(FsModuleLoader);
 
     let mut v8_params = CreateParams::default();
