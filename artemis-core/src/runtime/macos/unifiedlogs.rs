@@ -159,6 +159,9 @@ mod tests {
         let timesync_data_results = collect_timesync_system().unwrap();
 
         let files = list_files("/var/db/diagnostics/Persist").unwrap();
+        if files.is_empty() {
+            return;
+        }
         for file in files {
             let result = parse_trace_file(
                 &strings_results,

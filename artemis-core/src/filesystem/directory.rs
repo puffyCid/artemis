@@ -1,5 +1,4 @@
 use super::{error::FileSystemError, files::list_files_directories};
-use crate::utils::environment::get_env_value;
 use log::warn;
 use std::path::Path;
 
@@ -98,7 +97,10 @@ pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
     #[cfg(target_os = "linux")]
     let root_home = "/root";
     #[cfg(target_os = "windows")]
-    let root_home = &get_env_value("SystemRoot");
+    {
+        use crate::utils::environment::get_env_value;
+        let root_home = &get_env_value("SystemRoot");
+    }
 
     if !is_directory(root_home) {
         return Err(FileSystemError::NoRootHome);
