@@ -258,6 +258,7 @@ fn parse_user_hives(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         parse_default_system_hives, parse_registry, parse_registry_file, parse_user_hives, Params,

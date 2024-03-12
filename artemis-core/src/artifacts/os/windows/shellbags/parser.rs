@@ -344,6 +344,7 @@ fn save_shellbags(shellbag_vec: &mut Vec<Shellbag>, shell_map: &HashMap<String, 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::{

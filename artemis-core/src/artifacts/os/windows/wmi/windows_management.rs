@@ -242,12 +242,14 @@ pub(crate) fn hash_name(name: &str) -> String {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{assemble_wmi_persist, get_wmi_persist, hash_name, parse_wmi_repo};
     use common::windows::WmiPersist;
     use std::collections::BTreeMap;
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Takes time to run"]
     fn test_parse_wmi_repo() {
         let classes = vec!["__NAMESPACE"];

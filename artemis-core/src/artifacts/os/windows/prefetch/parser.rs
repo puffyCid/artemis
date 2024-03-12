@@ -89,6 +89,7 @@ fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{custom_prefetch_path, grab_prefetch};
     use crate::{

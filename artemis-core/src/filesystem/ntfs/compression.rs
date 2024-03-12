@@ -1,8 +1,10 @@
 use super::sector_reader::SectorReader;
+use crate::filesystem::error::FileSystemError;
+use crate::utils::compression::decompress::decompress_xpress;
 use crate::{
     filesystem::ntfs::{attributes::get_attribute_data, raw_files::raw_read_data},
     utils::{
-        compression::{decompress::XpressType, xpress::api::decompress_huffman_api},
+        compression::decompress::XpressType,
         nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
     },
 };
@@ -12,6 +14,9 @@ use ntfs::{
     structured_values::NtfsAttributeList, Ntfs, NtfsAttributeType, NtfsError, NtfsFileReference,
 };
 use std::{fs::File, io::BufReader};
+
+#[cfg(target_os = "windows")]
+use crate::utils::compression::xpress::api::decompress_huffman_api;
 
 /**
  * Check if the `NTFS` file is compressed using `Windows Overlay Filter` (WOF)
@@ -30,7 +35,7 @@ pub(crate) fn check_wofcompressed(
     // Skipping files that have compressed data larger than 2GB
     let max_size = 2147483648;
     if compressed_data.len() >= max_size {
-        warn!("[wofcompression] Compressed data is larger than 2GB. Skippping decompression");
+        warn!("[wofcompression] Compressed data is larger than 2GB. Skipping decompression");
         let size = compressed_data.len();
         return Ok((true, compressed_data, size as u64));
     }
@@ -68,7 +73,7 @@ pub(crate) fn check_wofcompressed(
          *   2. After the table array is the compressed data
          * The offset pointer is relative to the END of the offset table
          *
-         * We can determine the table array size by deviding the uncompressed data size by the compression unit
+         * We can determine the table array size by dividing the uncompressed data size by the compression unit
          * We then need to parse the array table and assemble the compressed data
          */
 
@@ -94,7 +99,7 @@ pub(crate) fn check_wofcompressed(
     Ok((true, uncompressed_data, compressed_data.len() as u64))
 }
 
-/// Get the compressed data and determine compresssion unit
+/// Get the compressed data and determine compression unit
 fn grab_reparsepoint(
     ntfs_ref: &NtfsFileReference,
     ntfs: &Ntfs,
@@ -268,11 +273,8 @@ fn walk_offset_table<'a>(
         } else {
             // If there is only one array entry then always make sure the first chunk is read (first chunk is NOT part of the array of offsets)
             if first_chunk && !first_chunk_data.is_empty() {
-                let uncompressed_result = decompress_huffman_api(
-                    &mut first_chunk_data.to_vec(),
-                    &XpressType::XpressHuffman,
-                    decom_size,
-                );
+                let uncompressed_result =
+                    decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
                     Err(err) => {
@@ -300,11 +302,7 @@ fn walk_offset_table<'a>(
         }
 
         if first_chunk && !first_chunk_data.is_empty() {
-            let uncompressed_result = decompress_huffman_api(
-                &mut first_chunk_data.to_vec(),
-                &XpressType::XpressHuffman,
-                decom_size,
-            );
+            let uncompressed_result = decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -322,8 +320,7 @@ fn walk_offset_table<'a>(
             continue;
         }
 
-        let uncompressed_result =
-            decompress_huffman_api(&mut compressed_data, &XpressType::XpressHuffman, decom_size);
+        let uncompressed_result = decompress_ntfs(&mut compressed_data, &decom_size);
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {
@@ -337,7 +334,45 @@ fn walk_offset_table<'a>(
     Ok((input, uncompressed_data))
 }
 
+#[cfg(target_os = "windows")]
+/// Decompress WOF compressed data on Windows systems
+fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
+    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+    let pf_data = match pf_data_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[wofcompression] Could not decompress data: {err:?}. Will try manual decompression");
+            let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+            match pf_data_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[wofcompression] Could not decompress data: {err:?}");
+                    return Err(FileSystemError::FileData);
+                }
+            }
+        }
+    };
+
+    Ok(pf_data)
+}
+
+#[cfg(target_family = "unix")]
+/// Decompress WOF compressed data on non-Windows systems
+fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
+    let ntfs_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+    let ntfs_data = match ntfs_data_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[wofcompression] Could not decompress data: {err:?}");
+            return Err(FileSystemError::FileData);
+        }
+    };
+
+    Ok(ntfs_data)
+}
+
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_reparsepoint, parse_reparse, walk_offset_table};
     use crate::{

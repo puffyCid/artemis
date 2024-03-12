@@ -51,6 +51,7 @@ fn alt_drive_services(drive: &char) -> Result<Vec<ServicesData>, ServicesError> 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::artifacts::os::windows::services::parser::{
         alt_drive_services, default_services, grab_service_file, grab_services,

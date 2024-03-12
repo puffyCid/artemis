@@ -81,15 +81,15 @@ fn detect_format<'a>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::shimcache::{
-            os::shim::{detect_format, parse_shimdata},
-            registry::get_shimcache_data,
-        },
+        artifacts::os::windows::shimcache::os::shim::{detect_format, parse_shimdata},
         utils::encoding::base64_decode_standard,
     };
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_shimdata() {
+        use crate::artifacts::os::windows::shimcache::registry::get_shimcache_data;
+
         let result = get_shimcache_data("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
         assert!(result.len() > 0);
 

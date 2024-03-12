@@ -1,12 +1,10 @@
+use super::error::ArtemisError;
+use super::regex_options::create_regex;
+use crate::artifacts::os::windows::registry::helper::get_registry_keys;
+use log::error;
 use std::collections::HashMap;
 use std::env::vars_os;
 
-#[cfg(target_os = "windows")]
-use super::error::ArtemisError;
-#[cfg(target_os = "windows")]
-use log::error;
-
-#[cfg(target_os = "windows")]
 /// Get the `SystemDrive` for Windows
 pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
     let sys_drive = get_env_value("SystemDrive");
@@ -19,12 +17,8 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
     Ok(sys_drive.chars().next().unwrap())
 }
 
-#[cfg(target_os = "windows")]
 /// Get Folder descriptions that map CLSIDs to a directory name
 pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, ArtemisError> {
-    use crate::artifacts::os::windows::registry::helper::get_registry_keys;
-    use crate::utils::regex_options::create_regex;
-
     let systemdrive = get_systemdrive()?;
     let path = format!("{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
     let reg_start = "";
@@ -52,12 +46,8 @@ pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, Artem
     Ok(folder_descriptions)
 }
 
-#[cfg(target_os = "windows")]
 /// Get Folder descriptions that map CLSIDs to a directory name
 pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
-    use crate::artifacts::os::windows::registry::helper::get_registry_keys;
-    use crate::utils::regex_options::create_regex;
-
     let systemdrive = get_systemdrive()?;
     let path = format!("{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
     let reg_start = "";

@@ -8,7 +8,7 @@ use log::error;
 #[op2]
 #[string]
 /// Get `Sudo log` data
-pub(crate) fn get_sudologs(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_sudologs_linux(#[string] path: String) -> Result<String, AnyError> {
     let mut options = LinuxSudoOptions { alt_path: None };
 
     if !path.is_empty() {
@@ -28,7 +28,6 @@ pub(crate) fn get_sudologs(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "linux")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
@@ -54,7 +53,7 @@ mod tests {
 
     #[test]
     fn test_get_sudologs() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvdW5peC9zdWRvbG9ncy50cwpmdW5jdGlvbiBnZXRNYWNvc1N1ZG9Mb2dzKCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9zdWRvbG9ncygpOwogIGNvbnN0IGxvZ19kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gbG9nX2RhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0TWFjb3NTdWRvTG9ncygpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvdW5peC9zdWRvbG9ncy50cwpmdW5jdGlvbiBnZXRNYWNvc1N1ZG9Mb2dzKCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9zdWRvbG9nc19saW51eCgpOwogIGNvbnN0IGxvZ19kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gbG9nX2RhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0TWFjb3NTdWRvTG9ncygpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("sudo_script"),

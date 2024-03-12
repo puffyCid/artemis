@@ -86,6 +86,7 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_lnk_directory, grab_lnk_file};
     use crate::artifacts::os::windows::shortcuts::parser::parse_lnk_data;

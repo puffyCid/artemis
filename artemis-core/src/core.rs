@@ -1,3 +1,4 @@
+use crate::artifacts::macos_collection::macos_collection;
 use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
@@ -7,13 +8,6 @@ use crate::{
 };
 use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger, WriteLogger};
-
-//#[cfg(target_family = "unix")]
-//use crate::artifacts::linux_collection::linux_collection;
-#[cfg(target_family = "unix")]
-use crate::artifacts::macos_collection::macos_collection;
-#[cfg(target_os = "windows")]
-use crate::artifacts::windows_collection::windows_collection;
 
 /// Parse a TOML file at provided path
 pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
@@ -76,41 +70,12 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
-    if collection.system == "macos" {
-        #[cfg(target_family = "unix")]
-        {
-            let result = macos_collection(collection);
-            match result {
-                Ok(_) => info!("[artemis-core] Core parsed macos TOML data"),
-                Err(err) => {
-                    error!("[artemis-core] Core failed to parse macos collection: {err:?}");
-                    return Err(TomlError::BadToml);
-                }
-            }
-        }
-    } else if collection.system == "windows" {
-        #[cfg(target_os = "windows")]
-        {
-            let result = windows_collection(collection);
-            match result {
-                Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
-                Err(err) => {
-                    error!("[artemis-core] Core failed to parse Windows collection: {err:?}");
-                    return Err(TomlError::BadToml);
-                }
-            }
-        }
-    } else if collection.system == "linux" {
-        #[cfg(target_family = "unix")]
-        {
-            let result = macos_collection(collection);
-            match result {
-                Ok(_) => info!("[artemis-core] Core parsed Windows TOML data"),
-                Err(err) => {
-                    error!("[artemis-core] Core failed to parse Linux collection: {err:?}");
-                    return Err(TomlError::BadToml);
-                }
-            }
+    let result = macos_collection(collection);
+    match result {
+        Ok(_) => info!("[artemis-core] Core parsed TOML data"),
+        Err(err) => {
+            error!("[artemis-core] Core failed to parse collection: {err:?}");
+            return Err(TomlError::BadToml);
         }
     }
     Ok(())

@@ -1,4 +1,6 @@
 use super::{error::FileSystemError, files::list_files_directories};
+use crate::{artifacts::os::systeminfo::info::get_platform, utils::environment::get_env_value};
+use log::warn;
 use std::path::Path;
 
 /// Check if path is a directory
@@ -89,23 +91,46 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     Ok(user_list)
 }
 
-#[cfg(target_family = "unix")]
 /// Get the path to the root user's home directory
 pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
-    #[cfg(target_os = "macos")]
-    let root_home = "/var/root";
-    #[cfg(target_os = "linux")]
-    let root_home = "/root";
+    let plat = get_platform();
 
-    if !is_directory(root_home) {
+    let root_home = if plat == "Windows" {
+        get_env_value("SystemRoot")
+    } else if plat == "Darwin" {
+        String::from("/var/root")
+    } else {
+        String::from("/root")
+    };
+
+    if !is_directory(&root_home) {
         return Err(FileSystemError::NoRootHome);
     }
-    Ok(root_home.to_string())
+    Ok(root_home)
+}
+
+/// Get the parent directory of a provided path. From: "C:\\Users\\bob\\1.txt" will return "C:\\Users\\bob"
+pub(crate) fn get_parent_directory(path: &str) -> String {
+    let entry_opt = if path.contains('/') {
+        path.rsplit_once('/')
+    } else {
+        path.rsplit_once('\\')
+    };
+
+    if entry_opt.is_none() {
+        warn!("[artemis-core] Failed to split {path}");
+        return path.to_string();
+    }
+
+    let (directory, _) = entry_opt.unwrap_or_default();
+    directory.to_string()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::filesystem::directory::{get_user_paths, is_directory, list_directories};
+    use crate::filesystem::directory::{
+        get_parent_directory, get_user_paths, is_directory, list_directories,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -181,5 +206,23 @@ mod tests {
         }
 
         assert!(test_data);
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_parent_directory() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/fsevents_tester.rs");
+        let result = get_parent_directory(&test_location.display().to_string());
+        assert!(result.ends_with("tests"));
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_get_parent_directory() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\fsevents_tester.rs");
+        let result = get_parent_directory(&test_location.display().to_string());
+        assert!(result.ends_with("tests"));
     }
 }

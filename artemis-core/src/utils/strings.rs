@@ -44,7 +44,6 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
     result
 }
 
-#[cfg(target_os = "windows")]
 /// Get UTF16 strings that have new lines
 pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
     let mut utf16_data: Vec<u16> = Vec::new();
@@ -105,7 +104,6 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
 /// Detect ASCII or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     if data.is_ascii() && data.iter().filter(|&c| *c == 0).count() <= 1 {
@@ -115,7 +113,6 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
 /// Check if either string contains the other
 pub(crate) fn strings_contains(input1: &str, input2: &str) -> bool {
     if input1.contains(input2) || input2.contains(input1) {
@@ -126,7 +123,10 @@ pub(crate) fn strings_contains(input1: &str, input2: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::strings::{extract_utf16_string, extract_utf8_string};
+    use crate::utils::strings::{
+        extract_ascii_utf16_string, extract_multiline_utf16_string, extract_utf16_string,
+        extract_utf8_string, strings_contains,
+    };
 
     #[test]
     fn test_extract_utf16_string() {
@@ -147,10 +147,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_extract_multiline_utf16_string() {
-        use crate::utils::strings::extract_multiline_utf16_string;
-
         let test_data = vec![
             79, 0, 83, 0, 81, 0, 85, 0, 69, 0, 82, 0, 89, 0, 68, 0, 46, 0, 69, 0, 88, 0, 69, 0, 0,
             0, 79, 0, 83, 0, 81, 0, 85, 0, 69, 0, 82, 0, 89, 0, 68, 0, 46, 0, 69, 0, 88, 0, 69, 0,
@@ -169,19 +166,13 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
-
     fn test_extract_ascii_utf16_string() {
-        use crate::utils::strings::extract_ascii_utf16_string;
         let test_data = vec![79, 83, 81, 85, 69, 82, 89, 68, 46, 69, 88, 69, 0];
         assert_eq!(extract_ascii_utf16_string(&test_data), "OSQUERYD.EXE")
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_strings_contains() {
-        use crate::utils::strings::strings_contains;
-
         let path1 = "a very long path";
         let path2 = "long path";
         let result = strings_contains(path1, path2);

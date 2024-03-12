@@ -1,5 +1,5 @@
 use super::logons::get_logon;
-use super::sudo::get_sudologs;
+use super::sudo::get_sudologs_linux;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
 use deno_core::{Extension, Op};
 
@@ -19,7 +19,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_elf::DECL,
         get_journal::DECL,
         get_logon::DECL,
-        get_sudologs::DECL,
+        get_sudologs_linux::DECL,
     ];
 
     exts

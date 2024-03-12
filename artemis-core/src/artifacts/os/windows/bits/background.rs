@@ -192,6 +192,7 @@ fn parse_carve(data: &[u8], is_legacy: bool) -> WinBits {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_ese_bits;
     use crate::{

@@ -52,22 +52,19 @@ pub(crate) enum CommandArgs {
     /// Parse Chromium Downloads
     Chromiumdownloads {},
 
-    #[cfg(target_os = "windows")]
     /// Parse Prefetch
     Prefetch {
         /// Alternative Prefetch directory to use
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse EventLogs
+    /// windows: Parse EventLogs
     Eventlogs {
         /// Alternative full path to an Event Log
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse NTFS to get filelisting
+    /// windows: Parse NTFS to get filelisting
     Rawfilelisting {
         /// Drive letter to parse
         #[arg(long, default_value_t = 'C')]
@@ -100,15 +97,13 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         filename_regex: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse ShimDatabase
+    /// windows: Parse ShimDatabase
     Shimdb {
         /// Alternative full path to SDB file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Registry
+    /// windows: Parse Registry
     Registry {
         /// Paser user Registry files
         #[arg(long)]
@@ -123,8 +118,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         path_regex: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Userassist
+    /// windows: Parse Userassist
     Userassist {
         /// Alternative full path to NTUSER.DAT Registry file
         #[arg(long, default_value = None)]
@@ -133,15 +127,13 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         resolve_descriptions: Option<bool>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Shimcache
+    /// windows: Parse Shimcache
     Shimcache {
         /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Shellbags
+    /// windows: Parse Shellbags
     Shellbags {
         /// Try to resolve GUIDs to directory names
         #[arg(long)]
@@ -150,22 +142,19 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Amcache
+    /// windows: Parse Amcache
     Amcache {
         /// Alternative full path to Amcache.hve
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Shortcuts
+    /// windows: Parse Shortcuts
     Shortcuts {
         /// Path to directory containing Shortcut files
         #[arg(long)]
         path: String,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse UsnJrnl
+    /// windows: Parse UsnJrnl
     Usnjrnl {
         /// Alternative drive letter to use
         #[arg(long, default_value = None)]
@@ -174,8 +163,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse BITS
+    /// windows: Parse BITS
     Bits {
         /// Try to parse deleted BITS entries
         #[arg(long)]
@@ -184,119 +172,100 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse SRUM
+    /// windows: Parse SRUM
     Srum {
         /// Alternative SRUM file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Users
-    Users {
+    /// windows: Parse Users
+    UsersWindows {
         /// Alternative full path to SAM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Windows Search
+    /// windows: Parse Windows Search
     Search {
         /// Alternative Search file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Windows Tasks
+    /// windows: Parse Windows Tasks
     Tasks {
         /// Alternative full path to Schedule Task file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Windows Services
+    /// windows: Parse Windows Services
     Services {
         /// Alternative full path to SYSTEM Registry file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse Jumplists
+    /// windows: windows: Parse Jumplists
     Jumplists {
         /// Alternative full path to Jumplist file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse RecycleBin
+    /// windows: Parse RecycleBin
     Recyclebin {
         /// Alternative full path to RecycleBin file
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_os = "windows")]
-    /// Parse WMI Repository
+    /// windows: Parse WMI Repository
     Wmipersist {
         /// Alternative directory containing the WMI repository files
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,
     },
-
-    #[cfg(target_family = "unix")]
     /// macos: Parse ExecPolicy
     Execpolicy {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect local users
     UsersMacos {
         /// Alternative path to users
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse FsEvents entries
     Fsevents {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Emond persistence. Removed in Ventura
     Emond {
         /// Alternative path to Emond
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse LoginItems
     Loginitems {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Launch Daemons and Agents
     Launchd {
         /// Alternative file path
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect local groups
     GroupsMacos {
         /// Alternative path to groups
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Collect Safari History
     SafariHistory {},
-    #[cfg(target_family = "unix")]
     /// macos: Collect Safari Downloads
     SafariDownloads {},
-    #[cfg(target_family = "unix")]
     /// macos: Parse the Unified Logs
     Unifiedlogs {
         /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume
@@ -306,14 +275,12 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse Sudo log entries from Unified Logs
     SudologsMacos {
         /// Use a log archive path instead of local files
         #[arg(long, default_value = None)]
         logarchive_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// macos: Parse the Spotlight database
     Spotlight {
         /// Alternative path to a Spotlight database
@@ -323,27 +290,22 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         include_additional: bool,
     },
-    #[cfg(target_family = "unix")]
     /// unix: Parse Shellhistory
     Shellhistory {},
-    #[cfg(target_family = "unix")]
     /// unix: Parse Cron Jobs
     Cron {},
-    #[cfg(target_family = "unix")]
     /// linux: Grab Sudo logs
     SudologsLinux {
         /// Alternative Sudo log directory to use
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// linux: Parse systemd Journal files
     Journals {
         /// Alternative Journal log directory to use
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    #[cfg(target_family = "unix")]
     /// linux: Parse Logon files
     Logons {
         /// Alternative logon file to use

@@ -131,6 +131,7 @@ pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         get_registry_keys, get_registry_keys_by_ref, parse_raw_registry, read_registry,

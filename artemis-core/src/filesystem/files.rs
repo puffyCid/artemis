@@ -1,5 +1,5 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
-use log::error;
+use log::{error, warn};
 use md5::{Digest, Md5};
 use serde::Deserialize;
 use sha1::Sha1;
@@ -113,7 +113,6 @@ pub(crate) fn file_reader(path: &str) -> Result<File, FileSystemError> {
     Ok(reader)
 }
 
-#[cfg(target_os = "windows")]
 /// Read a file that is less than the provided size in bytes
 /// Use `read_file_large` to read a file of any size or use `read_file` to use the the default size limit of 2GB
 pub(crate) fn read_file_custom(path: &str, size: &u64) -> Result<Vec<u8>, FileSystemError> {
@@ -165,7 +164,6 @@ pub(crate) struct Hashes {
     pub(crate) sha256: bool,
 }
 
-#[cfg(target_os = "windows")]
 /// Hash the data of an already read file
 pub(crate) fn hash_file_data(hashes: &Hashes, data: &[u8]) -> (String, String, String) {
     let mut md5_string = String::new();
@@ -306,7 +304,6 @@ pub(crate) fn file_too_large(path: &str) -> bool {
     true
 }
 
-#[cfg(target_os = "windows")]
 /// Check if a provided file is too large than the a custom acceptable size
 fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
     let size = get_file_size(path);
@@ -318,13 +315,18 @@ fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
-    let file = Path::new(path);
-    let name_osstr = file.file_name();
-
-    let name = match name_osstr {
-        Some(result) => result.to_str().unwrap_or(""),
-        _ => "",
+    let entry_opt = if path.contains('/') {
+        path.rsplit_once('/')
+    } else {
+        path.rsplit_once('\\')
     };
+
+    if entry_opt.is_none() {
+        warn!("[artemis-core] Failed to split {path}");
+        return path.to_string();
+    }
+
+    let (_, name) = entry_opt.unwrap_or_default();
     name.to_string()
 }
 
@@ -332,8 +334,9 @@ pub(crate) fn get_filename(path: &str) -> String {
 mod tests {
     use super::{file_too_large, is_file, list_files_directories};
     use crate::filesystem::files::{
-        file_extension, file_lines, file_read_text, file_reader, get_file_size, get_filename,
-        hash_file, list_files, read_file, read_text_file, Hashes,
+        file_extension, file_lines, file_read_text, file_reader, file_too_large_custom,
+        get_file_size, get_filename, hash_file, hash_file_data, list_files, read_file,
+        read_file_custom, read_text_file, Hashes,
     };
     use std::path::PathBuf;
 
@@ -443,10 +446,21 @@ mod tests {
 
         assert_eq!(result, 23);
     }
+
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_get_filename() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/fsevents_tester.rs");
+        let result = get_filename(&test_location.display().to_string());
+        assert_eq!(result, "fsevents_tester.rs");
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_get_filename() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\fsevents_tester.rs");
         let result = get_filename(&test_location.display().to_string());
         assert_eq!(result, "fsevents_tester.rs");
     }
@@ -494,10 +508,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
-    fn test_file_too_large_custom() {
-        use crate::filesystem::files::file_too_large_custom;
 
+    fn test_file_too_large_custom() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
 
@@ -506,10 +518,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
-    fn test_read_file_custom() {
-        use crate::filesystem::files::read_file_custom;
 
+    fn test_read_file_custom() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
 
@@ -518,10 +528,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_hash_file_data() {
-        use crate::filesystem::files::hash_file_data;
-
         let test = b"rust is nice";
         let hashes = Hashes {
             md5: true,

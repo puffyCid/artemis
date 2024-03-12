@@ -268,6 +268,7 @@ fn get_sid(data: &[u8]) -> nom::IResult<&[u8], String> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::artifacts::os::windows::accounts::users::{
         get_flags, get_sid, parse_user_data, parse_user_info, UacFlags,

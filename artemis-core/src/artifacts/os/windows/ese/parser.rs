@@ -49,6 +49,7 @@ pub(crate) fn grab_ese_tables(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::artifacts::os::windows::ese::parser::grab_ese_tables;
     use common::windows::ColumnType;

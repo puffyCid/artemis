@@ -187,6 +187,7 @@ pub(crate) fn parse_record(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_page;
     use crate::{

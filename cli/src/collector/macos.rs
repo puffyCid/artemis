@@ -11,6 +11,13 @@ use artemis_core::{
                 SpotlightOptions, UnifiedLogsOptions,
             },
             processes::ProcessOptions,
+            windows::{
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
+                WindowsUserOptions, WmiPersistOptions,
+            },
         },
         toml::{ArtemisToml, Artifacts, Output},
     },
@@ -29,7 +36,7 @@ pub(crate) enum Commands {
     },
 }
 
-/// Run the macOS collector and parse specified artifacts
+/// Run the collector and parse specified artifacts
 pub(crate) fn run_collector(command: &Commands, output: Output) {
     let mut collector = ArtemisToml {
         system: String::from("macos"),
@@ -81,6 +88,26 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         journals: None,
         sudologs_linux: None,
         logons: None,
+        eventlogs: None,
+        prefetch: None,
+        rawfiles: None,
+        shimdb: None,
+        registry: None,
+        userassist: None,
+        shimcache: None,
+        shellbags: None,
+        amcache: None,
+        shortcuts: None,
+        usnjrnl: None,
+        bits: None,
+        srum: None,
+        users_windows: None,
+        search: None,
+        tasks: None,
+        services: None,
+        jumplists: None,
+        recyclebin: None,
+        wmipersist: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -231,19 +258,199 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.sudologs_linux = Some(options);
             collect.artifact_name = String::from("sudologs-linux");
         }
+        CommandArgs::Amcache { alt_file } => {
+            let options = AmcacheOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.amcache = Some(options);
+            collect.artifact_name = String::from("amcache");
+        }
+        CommandArgs::Bits { carve, alt_file } => {
+            let options = BitsOptions {
+                carve: *carve,
+                alt_file: alt_file.clone(),
+            };
+            collect.bits = Some(options);
+            collect.artifact_name = String::from("bits");
+        }
+        CommandArgs::Eventlogs { alt_file } => {
+            let options = EventLogsOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.eventlogs = Some(options);
+            collect.artifact_name = String::from("eventlogs");
+        }
+        CommandArgs::Jumplists { alt_file } => {
+            let options = JumplistsOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.jumplists = Some(options);
+            collect.artifact_name = String::from("jumplists");
+        }
+        CommandArgs::Prefetch { alt_dir } => {
+            let options = PrefetchOptions {
+                alt_dir: alt_dir.clone(),
+            };
+            collect.prefetch = Some(options);
+            collect.artifact_name = String::from("prefetch");
+        }
+        CommandArgs::Rawfilelisting {
+            drive_letter,
+            start_path,
+            depth,
+            recover_indx,
+            md5,
+            sha1,
+            sha256,
+            metadata,
+            path_regex,
+            filename_regex,
+        } => {
+            let options = RawFilesOptions {
+                drive_letter: *drive_letter,
+                start_path: start_path.clone(),
+                depth: *depth,
+                recover_indx: *recover_indx,
+                md5: Some(*md5),
+                sha1: Some(*sha1),
+                sha256: Some(*sha256),
+                metadata: Some(*metadata),
+                path_regex: path_regex.clone(),
+                filename_regex: filename_regex.clone(),
+            };
+            collect.rawfiles = Some(options);
+            collect.artifact_name = String::from("rawfiles");
+        }
+        CommandArgs::Recyclebin { alt_file } => {
+            let options = RecycleBinOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.recyclebin = Some(options);
+            collect.artifact_name = String::from("recyclebin");
+        }
+        CommandArgs::Registry {
+            user_hives,
+            system_hives,
+            alt_file,
+            path_regex,
+        } => {
+            let options = RegistryOptions {
+                user_hives: *user_hives,
+                system_hives: *system_hives,
+                alt_file: alt_file.clone(),
+                path_regex: path_regex.clone(),
+            };
+            collect.registry = Some(options);
+            collect.artifact_name = String::from("registry");
+        }
+        CommandArgs::Search { alt_file } => {
+            let options = SearchOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.search = Some(options);
+            collect.artifact_name = String::from("search");
+        }
+        CommandArgs::Services { alt_file } => {
+            let options = ServicesOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.services = Some(options);
+            collect.artifact_name = String::from("services");
+        }
+        CommandArgs::Shellbags {
+            resolve_guids,
+            alt_file,
+        } => {
+            let options = ShellbagsOptions {
+                resolve_guids: *resolve_guids,
+                alt_file: alt_file.clone(),
+            };
+            collect.shellbags = Some(options);
+            collect.artifact_name = String::from("shellbags");
+        }
+        CommandArgs::Shimcache { alt_file } => {
+            let options = ShimcacheOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.shimcache = Some(options);
+            collect.artifact_name = String::from("shimcache");
+        }
+        CommandArgs::Shimdb { alt_file } => {
+            let options = ShimdbOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.shimdb = Some(options);
+            collect.artifact_name = String::from("shimdb");
+        }
+        CommandArgs::Shortcuts { path } => {
+            let options = ShortcutOptions { path: path.clone() };
+            collect.shortcuts = Some(options);
+            collect.artifact_name = String::from("shortcuts");
+        }
+        CommandArgs::Srum { alt_file } => {
+            let options = SrumOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.srum = Some(options);
+            collect.artifact_name = String::from("srum");
+        }
+        CommandArgs::Tasks { alt_file } => {
+            let options = TasksOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.tasks = Some(options);
+            collect.artifact_name = String::from("tasks");
+        }
+        CommandArgs::Userassist {
+            alt_file,
+            resolve_descriptions,
+        } => {
+            let options = UserAssistOptions {
+                alt_file: alt_file.clone(),
+                resolve_descriptions: *resolve_descriptions,
+            };
+            collect.userassist = Some(options);
+            collect.artifact_name = String::from("userassist");
+        }
+        CommandArgs::UsersWindows { alt_file } => {
+            let options = WindowsUserOptions {
+                alt_file: alt_file.clone(),
+            };
+            collect.users_windows = Some(options);
+            collect.artifact_name = String::from("users");
+        }
+        CommandArgs::Usnjrnl {
+            alt_drive,
+            alt_path,
+        } => {
+            let options = UsnJrnlOptions {
+                alt_drive: *alt_drive,
+                alt_path: alt_path.clone(),
+            };
+            collect.usnjrnl = Some(options);
+            collect.artifact_name = String::from("usnjrnl");
+        }
+        CommandArgs::Wmipersist { alt_dir } => {
+            let options = WmiPersistOptions {
+                alt_dir: alt_dir.clone(),
+            };
+            collect.wmipersist = Some(options);
+            collect.artifact_name = String::from("wmipersist");
+        }
     }
     collect
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
     use crate::collector::macos::CommandArgs::{
-        Chromiumdownloads, Chromiumhistory, Cron, Emond, Execpolicy, Filelisting, Firefoxdownloads,
-        Firefoxhistory, Fsevents, GroupsMacos, Journals, Launchd, Loginitems, Logons, Processes,
-        SafariDownloads, SafariHistory, Shellhistory, Spotlight, SudologsLinux, SudologsMacos,
-        Systeminfo, Unifiedlogs, UsersMacos,
+        Amcache, Bits, Chromiumdownloads, Chromiumhistory, Cron, Emond, Eventlogs, Execpolicy,
+        Filelisting, Firefoxdownloads, Firefoxhistory, Fsevents, GroupsMacos, Journals, Jumplists,
+        Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry,
+        SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory, Shimcache, Shimdb,
+        Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos,
+        UsersWindows,
     };
     use artemis_core::structs::toml::Output;
     fn output() -> Output {
@@ -494,5 +701,169 @@ mod tests {
 
         let out = output();
         run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_reg() {
+        let command = Commands::Acquire {
+            artifact: Some(Registry {
+                user_hives: true,
+                system_hives: false,
+                alt_file: None,
+                path_regex: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_eventlogs() {
+        let command = Commands::Acquire {
+            artifact: Some(Eventlogs { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_prefetch() {
+        let command = Commands::Acquire {
+            artifact: Some(Prefetch { alt_dir: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_alts() {
+        let command = Commands::Acquire {
+            artifact: Some(Services { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Shimcache { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Shimdb { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Recyclebin { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(UsersWindows { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Tasks { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+
+        let command = Commands::Acquire {
+            artifact: Some(Amcache { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_shellbags() {
+        let command = Commands::Acquire {
+            artifact: Some(Shellbags {
+                resolve_guids: false,
+                alt_file: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_srum() {
+        let command = Commands::Acquire {
+            artifact: Some(Srum { alt_file: None }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_bits() {
+        let command = Commands::Acquire {
+            artifact: Some(Bits {
+                carve: false,
+                alt_file: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_run_collector_rawfiles() {
+        let command = Commands::Acquire {
+            artifact: Some(Rawfilelisting {
+                drive_letter: 'C',
+                start_path: String::from("C:\\"),
+                depth: 1,
+                recover_indx: false,
+                md5: false,
+                sha1: false,
+                sha256: false,
+                metadata: false,
+                path_regex: None,
+                filename_regex: None,
+            }),
+            format: String::from("json"),
+        };
+
+        let out = output();
+        run_collector(&command, out);
+    }
+
+    #[test]
+    fn test_setup_artifact_windows() {
+        let result = setup_artifact(&Jumplists { alt_file: None });
+        assert_eq!(result.artifact_name, "jumplists");
     }
 }

@@ -304,6 +304,7 @@ fn get_mft_parent_reference(indx_data: &[u8]) -> nom::IResult<&[u8], (&[u8], u32
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::ntfs::{

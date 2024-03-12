@@ -548,6 +548,7 @@ impl UsnJrnlFormat {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::UsnJrnlFormat;
     use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend, Overwrite};

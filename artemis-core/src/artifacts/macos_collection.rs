@@ -7,12 +7,17 @@ use super::{
         linux::artifacts::{journals, logons, sudo_logs_linux},
         macos::{
             artifacts::{
-                execpolicy, groups, processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs,
-                users,
+                execpolicy, groups_macos, processes, spotlight, sudo_logs_macos, systeminfo,
+                unifiedlogs, users_macos,
             },
             error::MacArtifactError,
         },
         unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
+        windows::artifacts::{
+            amcache, bits, eventlogs, jumplists, prefetch, raw_filelist, recycle_bin, registry,
+            search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist,
+            users_windows, usnjrnl, wmi_persist,
+        },
     },
 };
 use crate::{
@@ -100,12 +105,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                     }
                 }
             }
-            "users" => {
+            "users-macos" => {
                 let options = match &artifacts.users_macos {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = users(&mut collector.output, &filter, options);
+                let results = users_macos(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
@@ -114,12 +119,12 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                     }
                 }
             }
-            "groups" => {
+            "groups-macos" => {
                 let options = match &artifacts.groups_macos {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = groups(&mut collector.output, &filter, options);
+                let results = groups_macos(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
@@ -376,6 +381,287 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                     }
                 }
             }
+            // Windows
+            "prefetch" => {
+                let artifact = match &artifacts.prefetch {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = prefetch(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected prefetch"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse prefetch, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "eventlogs" => {
+                let artifact = match &artifacts.eventlogs {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = eventlogs(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Eventlogs"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse Eventlogs, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "rawfiles" => {
+                let artifact = match &artifacts.rawfiles {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = raw_filelist(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Raw Filelisting"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to get raw filelisting, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "shimdb" => {
+                let artifact = match &artifacts.shimdb {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = shimdb(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected shimdb"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse shimdb, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "registry" => {
+                let artifact = match &artifacts.registry {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = registry(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected registry"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse registry, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "userassist" => {
+                let artifact = match &artifacts.userassist {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = userassist(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected userassist"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse userassist, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "shimcache" => {
+                let artifact = match &artifacts.shimcache {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = shimcache(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected shimcache"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse shimcache, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "shellbags" => {
+                let artifact = match &artifacts.shellbags {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = shellbags(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected shellbags"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse shellbags, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "amcache" => {
+                let artifact = match &artifacts.amcache {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = amcache(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected amcache"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse amcache, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "shortcuts" => {
+                let artifact = match &artifacts.shortcuts {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = shortcuts(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected shortcuts"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse shortcut files, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "usnjrnl" => {
+                let artifact = match &artifacts.usnjrnl {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = usnjrnl(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected usnjrnl"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse usnjrnl, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "bits" => {
+                let artifact = match &artifacts.bits {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = bits(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected bits"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse bits, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "srum" => {
+                let artifact = match &artifacts.srum {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = srum(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected SRUM"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse srum, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "search" => {
+                let artifact = match &artifacts.search {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = search(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected search"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse search, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "users-windows" => {
+                let artifact = match &artifacts.users_windows {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = users_windows(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Users"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse users, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "tasks" => {
+                let artifact = match &artifacts.tasks {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = tasks(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Schedule Tasks"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse schedule tasks, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "services" => {
+                let artifact = match &artifacts.services {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = services(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Services"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse services, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "jumplists" => {
+                let artifact = match &artifacts.jumplists {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = jumplists(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Jumplists"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse jumplists, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "recyclebin" => {
+                let artifact = match &artifacts.recyclebin {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = recycle_bin(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected Recycle Bin"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse recycle bin, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "wmipersist" => {
+                let artifact = match &artifacts.wmipersist {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = wmi_persist(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected WMI Persistence"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse WMI persistence, error: {err:?}");
+                        continue;
+                    }
+                }
+            }
             _ => warn!(
                 "[artemis-core] Unsupported artifact: {}",
                 artifacts.artifact_name
@@ -404,6 +690,28 @@ mod tests {
     fn test_macos_collection() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
+
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
+        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        macos_collection(&mut collector).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_windows_collection() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/quick.toml");
+
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
+        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        macos_collection(&mut collector).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_linux_collection() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/linux/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();

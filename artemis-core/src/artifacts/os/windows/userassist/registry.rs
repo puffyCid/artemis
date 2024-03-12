@@ -108,9 +108,8 @@ fn filter_userassist(reg_data: &[RegistryEntry]) -> Vec<RegistryEntry> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
-    use std::path::PathBuf;
-
     use super::{alt_userassist, get_userassist_drive};
     use crate::{
         artifacts::os::windows::{
@@ -119,6 +118,7 @@ mod tests {
         filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
         utils::regex_options::create_regex,
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_get_userassist_drive() {

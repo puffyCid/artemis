@@ -63,6 +63,7 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_id_lookup;
     use crate::artifacts::os::windows::ese::parser::grab_ese_tables;

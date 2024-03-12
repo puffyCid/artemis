@@ -211,6 +211,7 @@ pub(crate) fn file_attribute_flags(attributes: &u32) -> Vec<AttributeFlags> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         filesystem::ntfs::{

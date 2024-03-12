@@ -380,6 +380,7 @@ impl SecurityIDs {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         filesystem::ntfs::sector_reader::SectorReader,

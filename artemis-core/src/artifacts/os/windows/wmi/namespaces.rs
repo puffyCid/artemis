@@ -184,15 +184,15 @@ fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
+    use super::{extract_hash_info, extract_namespace_data, get_classes, get_instances};
     use crate::{
         artifacts::os::windows::wmi::{
             index::parse_index, map::parse_map, windows_management::hash_name,
         },
         filesystem::files::read_file,
     };
-
-    use super::{extract_hash_info, extract_namespace_data, get_classes, get_instances};
 
     #[test]
     fn test_extract_hash_info() {

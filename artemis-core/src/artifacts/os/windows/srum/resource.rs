@@ -130,6 +130,7 @@ pub(crate) fn get_srum(path: &str, tables: &[String]) -> Result<Value, SrumError
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{get_srum, parse_srum};
     use crate::structs::toml::Output;

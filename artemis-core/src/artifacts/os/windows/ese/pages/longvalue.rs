@@ -215,6 +215,7 @@ fn parse_long_value_child<'a>(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_long_value;
     use crate::{

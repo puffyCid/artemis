@@ -23,6 +23,7 @@ pub(crate) fn get_services_data(path: &str) -> Result<Vec<RegistryEntry>, Servic
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::get_services_data;
     use crate::utils::environment::get_systemdrive;

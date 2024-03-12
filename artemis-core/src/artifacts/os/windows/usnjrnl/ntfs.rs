@@ -120,11 +120,13 @@ fn get_data(drive: &char) -> Result<Vec<u8>, UsnJrnlError> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{get_data, get_usnjrnl_path, parse_usnjrnl_data};
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     #[ignore = "Parses the whole USNJrnl data"]
     fn test_parse_usnjrnl_data() {
         let result = parse_usnjrnl_data(&'C').unwrap();

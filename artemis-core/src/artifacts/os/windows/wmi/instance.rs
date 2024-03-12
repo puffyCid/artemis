@@ -226,6 +226,7 @@ fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         get_prop_data_size, grab_instance_data, parse_dynamic_props, parse_instance_props,

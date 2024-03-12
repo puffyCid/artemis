@@ -171,17 +171,17 @@ pub(crate) fn parse_file<'a>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::windows::{
-            bits::files::{get_files, get_legacy_files, parse_file},
-            ese::parser::grab_ese_tables,
-        },
+        artifacts::os::windows::bits::files::{get_legacy_files, parse_file},
         filesystem::files::read_file,
     };
     use common::windows::FileInfo;
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_files() {
+        use crate::artifacts::os::windows::{bits::files::get_files, ese::parser::grab_ese_tables};
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 

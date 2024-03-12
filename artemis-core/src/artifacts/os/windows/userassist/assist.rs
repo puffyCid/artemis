@@ -122,6 +122,7 @@ fn rot_decode(rot: &str) -> String {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::userassist::{

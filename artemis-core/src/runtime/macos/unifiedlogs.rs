@@ -103,15 +103,10 @@ fn parse_trace_file(
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
 mod tests {
-    use super::parse_trace_file;
     use crate::{
-        filesystem::files::list_files, runtime::deno::execute_script,
-        structs::artifacts::runtime::script::JSScript, structs::toml::Output,
-    };
-    use macos_unifiedlogs::parser::{
-        collect_shared_strings_system, collect_strings_system, collect_timesync_system,
+        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
+        structs::toml::Output,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -154,12 +149,20 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn test_parse_trace_file() {
+        use super::parse_trace_file;
+        use crate::filesystem::files::list_files;
+        use macos_unifiedlogs::parser::{
+            collect_shared_strings_system, collect_strings_system, collect_timesync_system,
+        };
+
         let strings_results = collect_strings_system().unwrap();
         let shared_strings_results = collect_shared_strings_system().unwrap();
         let timesync_data_results = collect_timesync_system().unwrap();
 
         let files = list_files("/var/db/diagnostics/Persist").unwrap();
+
         for file in files {
             let result = parse_trace_file(
                 &strings_results,

@@ -186,6 +186,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_parse_index_file() {
         let data = read_file("C:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR").unwrap();
         let (_, results) = parse_index(&data).unwrap();

@@ -48,6 +48,7 @@ fn parse_userassist(drive: &char, resolve: &bool) -> Result<Vec<UserAssistEntry>
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::userassist::parser::{grab_userassist, parse_userassist},

@@ -74,6 +74,7 @@ pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::srum::parser::grab_srum_path,

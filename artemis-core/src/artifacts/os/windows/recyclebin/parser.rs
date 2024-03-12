@@ -1,3 +1,4 @@
+use super::recycle::parse_recycle_bin;
 /**
  * Windows `Recycle Bin` files contain metadata about "deleted" files
  * Currently artemis parses the `$I Recycle Bin` files using the std API
@@ -13,6 +14,7 @@
 use crate::{
     artifacts::os::windows::recyclebin::error::RecycleBinError,
     filesystem::{
+        directory::get_parent_directory,
         files::{get_filename, read_file},
         metadata::glob_paths,
     },
@@ -21,9 +23,6 @@ use crate::{
 };
 use common::windows::RecycleBin;
 use log::error;
-use std::path::Path;
-
-use super::recycle::parse_recycle_bin;
 
 /// Grab data in the Windows `Recycle Bin` based on options
 pub(crate) fn grab_recycle_bin(
@@ -86,22 +85,22 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
     };
 
     bin.recycle_path = path.to_string();
-    let dir = Path::new(&path).parent();
+    bin.sid = get_filename(&get_parent_directory(&bin.recycle_path));
 
-    if let Some(path) = dir {
-        bin.sid = get_filename(path.to_str().unwrap_or_default());
-    }
     Ok(bin)
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
-    use super::{grab_recycle_bin, grab_recycle_bin_path};
-    use crate::structs::artifacts::os::windows::RecycleBinOptions;
+    use super::grab_recycle_bin_path;
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_recycle_bin() {
+        use super::grab_recycle_bin;
+        use crate::structs::artifacts::os::windows::RecycleBinOptions;
+
         let options = RecycleBinOptions { alt_file: None };
         let _ = grab_recycle_bin(&options).unwrap();
     }
@@ -109,7 +108,7 @@ mod tests {
     #[test]
     fn test_grab_recycle_bin_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/recyclebin/win10/$IWHBX3J");
+        test_location.push("tests\\test_data\\windows\\recyclebin\\win10\\$IWHBX3J");
 
         let result = grab_recycle_bin_path(&test_location.display().to_string()).unwrap();
 

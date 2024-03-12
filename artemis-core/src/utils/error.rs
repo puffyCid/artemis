@@ -4,7 +4,6 @@ use std::fmt;
 pub enum ArtemisError {
     BadToml,
     Regex,
-    #[cfg(target_os = "windows")]
     Env,
     CreateDirectory,
     LogFile,
@@ -22,7 +21,6 @@ impl fmt::Display for ArtemisError {
         match self {
             ArtemisError::BadToml => write!(f, "Failed to parse TOML data"),
             ArtemisError::Regex => write!(f, "Invalid regex provided"),
-            #[cfg(target_os = "windows")]
             ArtemisError::Env => write!(f, "Could not get environment variable"),
             ArtemisError::CreateDirectory => write!(f, "Could not create directory(ies)"),
             ArtemisError::LogFile => write!(f, "Could not create log file"),

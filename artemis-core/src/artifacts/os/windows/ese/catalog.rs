@@ -718,6 +718,7 @@ impl Catalog {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{Catalog, CatalogType};
     use crate::{

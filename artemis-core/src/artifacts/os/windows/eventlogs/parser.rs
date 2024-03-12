@@ -163,6 +163,7 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
     use crate::{structs::artifacts::os::windows::EventLogsOptions, structs::toml::Output};

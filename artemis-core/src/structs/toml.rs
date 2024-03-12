@@ -1,25 +1,19 @@
+use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
+use super::artifacts::os::macos::{
+    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
+};
+use crate::structs::artifacts::os::windows::{
+    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
+    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+    UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
+};
 use crate::structs::artifacts::{
     os::{files::FileOptions, processes::ProcessOptions},
     runtime::script::JSScript,
 };
 use serde::Deserialize;
-
-#[cfg(target_os = "windows")]
-use crate::structs::artifacts::os::windows::{
-    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
-    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UserOptions, UsnJrnlOptions, WmiPersistOptions,
-};
-
-#[cfg(target_family = "unix")]
-use super::artifacts::os::macos::{
-    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
-};
-
-#[cfg(target_family = "unix")]
-use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
@@ -45,7 +39,6 @@ pub struct Output {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg(target_family = "unix")]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,
@@ -67,32 +60,20 @@ pub struct Artifacts {
     pub journals: Option<JournalOptions>,
     pub sudologs_linux: Option<LinuxSudoOptions>,
     pub logons: Option<LogonOptions>,
-}
-
-#[derive(Debug, Deserialize)]
-#[cfg(target_os = "windows")]
-pub struct Artifacts {
-    /**Based on artifact parse one of the artifact types */
-    pub artifact_name: String,
-    /**Specify whether to filter the parsed data */
-    pub filter: Option<bool>,
     pub eventlogs: Option<EventLogsOptions>,
     pub prefetch: Option<PrefetchOptions>,
-    pub processes: Option<ProcessOptions>,
     pub rawfiles: Option<RawFilesOptions>,
-    pub files: Option<FileOptions>,
     pub shimdb: Option<ShimdbOptions>,
     pub registry: Option<RegistryOptions>,
     pub userassist: Option<UserAssistOptions>,
     pub shimcache: Option<ShimcacheOptions>,
     pub shellbags: Option<ShellbagsOptions>,
     pub amcache: Option<AmcacheOptions>,
-    pub script: Option<JSScript>,
     pub shortcuts: Option<ShortcutOptions>,
     pub usnjrnl: Option<UsnJrnlOptions>,
     pub bits: Option<BitsOptions>,
     pub srum: Option<SrumOptions>,
-    pub users: Option<UserOptions>,
+    pub users_windows: Option<WindowsUserOptions>,
     pub search: Option<SearchOptions>,
     pub tasks: Option<TasksOptions>,
     pub services: Option<ServicesOptions>,

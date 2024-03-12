@@ -1,3 +1,6 @@
+use super::linux::extensions::setup_linux_extensions;
+use super::macos::extensions::setup_macos_extensions;
+use super::windows::extensions::setup_windows_extensions;
 use crate::runtime::error::RuntimeError;
 use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
@@ -6,15 +9,6 @@ use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions}
 use log::error;
 use serde_json::Value;
 use std::rc::Rc;
-
-#[cfg(target_family = "unix")]
-use super::macos::extensions::setup_macos_extensions;
-
-#[cfg(target_os = "windows")]
-use super::windows::extensions::setup_extensions;
-
-#[cfg(target_family = "unix")]
-use super::linux::extensions::setup_linux_extensions;
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
 
@@ -143,6 +137,9 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 
 /// Create the Deno runtime worker options. Pass optional args
 fn create_worker_options() -> Result<JsRuntime, AnyError> {
+    // This may be required for Linux? Not 100% sure. It runs fine without it. Ref: https://github.com/denoland/deno/pull/20495. May depend on V8 version (rusty_v8)
+    //JsRuntime::init_platform(None);
+
     let module_loader = Rc::new(FsModuleLoader);
 
     let mut v8_params = CreateParams::default();
@@ -152,16 +149,10 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
     v8_params = v8_params.heap_limits(initial_size, max_size);
 
     let mut extensions;
-    #[cfg(target_family = "unix")]
-    {
-        extensions = setup_macos_extensions();
-        extensions.append(&mut setup_linux_extensions());
-    }
 
-    #[cfg(target_os = "windows")]
-    {
-        extensions = setup_extensions();
-    }
+    extensions = setup_macos_extensions();
+    extensions.append(&mut setup_linux_extensions());
+    extensions.append(&mut setup_windows_extensions());
 
     let runtime = JsRuntime::new(RuntimeOptions {
         source_map_getter: None,

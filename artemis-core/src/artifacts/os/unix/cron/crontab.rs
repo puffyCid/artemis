@@ -15,6 +15,8 @@ pub(crate) fn parse_cron() -> Result<Vec<CronFile>, CronError> {
 
     #[cfg(target_os = "linux")]
     let start_path = "/var/spool/cron/crontabs/";
+    #[cfg(target_os = "windows")]
+    let start_path = "";
 
     if !is_directory(start_path) {
         return Ok(Vec::new());

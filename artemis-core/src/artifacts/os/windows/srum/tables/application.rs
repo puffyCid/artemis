@@ -416,6 +416,7 @@ pub(crate) fn parse_vfu_provider(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_app_timeline, parse_application, parse_vfu_provider};
     use crate::artifacts::os::windows::{

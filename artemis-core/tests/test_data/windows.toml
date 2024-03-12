@@ -66,9 +66,9 @@ filename_regex = ""
 [[artifacts]]
 artifact_name = "registry" # Parses the whole Registry file
 [artifacts.registry]
-user_hives = true # All NTUSER.DAT and UsrClass.dat
+user_hives = true   # All NTUSER.DAT and UsrClass.dat
 system_hives = true # SYSTEM, SOFTWARE, SAM, SECURITY
-path_regex = "" # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase
+path_regex = ""     # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase
 
 [[artifacts]]
 artifact_name = "shellbags"
@@ -88,7 +88,7 @@ artifact_name = "userassist"
 [artifacts.userassist]
 
 [[artifacts]]
-artifact_name = "users"
+artifact_name = "users-windows"
 [artifacts.users]
 
 [[artifacts]]

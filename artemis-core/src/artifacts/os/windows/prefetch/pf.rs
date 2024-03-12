@@ -133,6 +133,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
 }
 
 #[cfg(target_os = "windows")]
+/// Decompress Prefetch data on Windows systems
 fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
     use crate::utils::compression::xpress::api::decompress_huffman_api;
 
@@ -156,6 +157,7 @@ fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchE
 }
 
 #[cfg(target_family = "unix")]
+/// Decompress Prefetch data on non-Windows systems
 fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
     let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
     let pf_data = match pf_data_result {

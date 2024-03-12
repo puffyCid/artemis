@@ -280,6 +280,7 @@ impl BranchPage {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use common::windows::ColumnType;
 

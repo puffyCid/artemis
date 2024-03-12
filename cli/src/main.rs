@@ -1,18 +1,9 @@
+use crate::collector::macos::run_collector;
 use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
-use log::info;
-
-#[cfg(target_family = "unix")]
-use crate::collector::macos::run_collector;
-#[cfg(target_family = "unix")]
 use collector::macos::Commands;
-
-#[cfg(target_os = "windows")]
-use crate::collector::windows::run_collector;
-#[cfg(target_os = "windows")]
-use collector::windows::Commands;
-
+use log::info;
 mod collector;
 
 #[derive(Parser)]
@@ -228,8 +219,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_args_command_windows() {
-        use crate::collector::commands::CommandArgs::Shortcuts;
-        use crate::collector::windows::Commands;
+        use crate::collector::{commands::CommandArgs::Shortcuts, macos::Commands};
         let args = Args {
             toml: None,
             decode: None,
