@@ -1,4 +1,5 @@
 use super::{error::FileSystemError, files::list_files_directories};
+use crate::{artifacts::os::systeminfo::info::get_platform, utils::environment::get_env_value};
 use log::warn;
 use std::path::Path;
 
@@ -92,17 +93,17 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
 
 /// Get the path to the root user's home directory
 pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
-    #[cfg(target_os = "macos")]
-    let root_home = "/var/root";
-    #[cfg(target_os = "linux")]
-    let root_home = "/root";
-    #[cfg(target_os = "windows")]
-    {
-        use crate::utils::environment::get_env_value;
-        let root_home = &get_env_value("SystemRoot");
-    }
+    let plat = get_platform();
 
-    if !is_directory(root_home) {
+    let root_home = if plat == "Windows" {
+        get_env_value("SystemRoot")
+    } else if plat == "Darwin" {
+        String::from("/var/root")
+    } else {
+        String::from("/root")
+    };
+
+    if !is_directory(&root_home) {
         return Err(FileSystemError::NoRootHome);
     }
     Ok(root_home.to_string())
