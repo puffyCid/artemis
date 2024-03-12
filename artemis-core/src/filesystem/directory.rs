@@ -106,7 +106,7 @@ pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
     if !is_directory(&root_home) {
         return Err(FileSystemError::NoRootHome);
     }
-    Ok(root_home.to_string())
+    Ok(root_home)
 }
 
 /// Get the parent directory of a provided path. From: "C:\\Users\\bob\\1.txt" will return "C:\\Users\\bob"
