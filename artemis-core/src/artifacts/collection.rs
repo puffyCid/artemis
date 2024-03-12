@@ -7,8 +7,8 @@ use super::{
         linux::artifacts::{journals, logons, sudo_logs_linux},
         macos::{
             artifacts::{
-                execpolicy, groups_macos, processes, spotlight, sudo_logs_macos, systeminfo,
-                unifiedlogs, users_macos,
+                emond, execpolicy, files, fseventsd, groups_macos, launchd, loginitems, processes,
+                spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users_macos,
             },
             error::MacArtifactError,
         },
@@ -21,16 +21,15 @@ use super::{
     },
 };
 use crate::{
-    artifacts::os::macos::artifacts::{emond, files, fseventsd, launchd, loginitems},
     runtime::deno::execute_script,
     structs::toml::ArtemisToml,
     utils::{logging::upload_logs, output::compress_final_output},
 };
 use log::{error, info, warn};
 
-/// Parse the TOML collector and get macOS artifact targets
-pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArtifactError> {
-    // Loop through all supported macOS artifacts
+/// Parse the TOML collector and get artifacts
+pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), MacArtifactError> {
+    // Loop through all supported artifacts
     for artifacts in &collector.artifacts {
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
@@ -250,27 +249,25 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
             "shell_history" => {
                 let results = bash_history(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected macOS bash history"),
+                    Ok(_) => info!("Collected bash history"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse macOS bash history, error: {err:?}");
+                        error!("[artemis-core] Failed to parse bash history, error: {err:?}");
                         continue;
                     }
                 }
                 let results = zsh_history(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected macOS zsh history"),
+                    Ok(_) => info!("Collected zsh history"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse macOS zsh history, error: {err:?}");
+                        error!("[artemis-core] Failed to parse zsh history, error: {err:?}");
                         continue;
                     }
                 }
                 let results = python_history(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected macOS python history"),
+                    Ok(_) => info!("Collected python history"),
                     Err(err) => {
-                        error!(
-                            "[artemis-core] Failed to parse macOS python history, error: {err:?}"
-                        );
+                        error!("[artemis-core] Failed to parse python history, error: {err:?}");
                         continue;
                     }
                 }
@@ -278,9 +275,9 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
             "cron" => {
                 let results = cron_job(&mut collector.output, &filter);
                 match results {
-                    Ok(_) => info!("Collected macOS cron"),
+                    Ok(_) => info!("Collected cron"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse macOS cron data, error: {err:?}");
+                        error!("[artemis-core] Failed to parse cron data, error: {err:?}");
                         continue;
                     }
                 }
@@ -309,11 +306,9 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
                 };
                 let results = spotlight(&mut collector.output, &filter, options);
                 match results {
-                    Ok(_) => info!("Collected macOS sudo logs"),
+                    Ok(_) => info!("Collected spotlight"),
                     Err(err) => {
-                        error!(
-                            "[artemis-core] Failed to parse macOS sudo log data, error: {err:?}"
-                        );
+                        error!("[artemis-core] Failed to parse spotlight, error: {err:?}");
                         continue;
                     }
                 }
@@ -342,9 +337,9 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
 
                 let results = journals(&mut collector.output, &filter, options);
                 match results {
-                    Ok(_) => info!("Collected linux journals"),
+                    Ok(_) => info!("Collected journals"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse linux journals, error: {err:?}");
+                        error!("[artemis-core] Failed to parse journals, error: {err:?}");
                         continue;
                     }
                 }
@@ -357,9 +352,9 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
 
                 let results = logons(&mut collector.output, &filter, options);
                 match results {
-                    Ok(_) => info!("Collected linux logons"),
+                    Ok(_) => info!("Collected logons"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse linux logons, error: {err:?}");
+                        error!("[artemis-core] Failed to parse logons, error: {err:?}");
                         continue;
                     }
                 }
@@ -682,39 +677,37 @@ pub(crate) fn macos_collection(collector: &mut ArtemisToml) -> Result<(), MacArt
 
 #[cfg(test)]
 mod tests {
-    use super::macos_collection;
+    use super::collect;
     use crate::{filesystem::files::read_file, structs::toml::ArtemisToml};
     use std::path::PathBuf;
 
     #[test]
-    fn test_macos_collection() {
+    fn test_collect() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        macos_collection(&mut collector).unwrap();
+        collect(&mut collector).unwrap();
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
-    fn test_windows_collection() {
+    fn test_windows_collect() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        macos_collection(&mut collector).unwrap();
+        collect(&mut collector).unwrap();
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
-    fn test_linux_collection() {
+    fn test_linux_collect() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        macos_collection(&mut collector).unwrap();
+        collect(&mut collector).unwrap();
     }
 }

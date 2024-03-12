@@ -402,7 +402,7 @@ pub(crate) fn users_windows(
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "users";
+    let output_name = "users-windows";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 

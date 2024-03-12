@@ -1,4 +1,4 @@
-use crate::artifacts::macos_collection::macos_collection;
+use crate::artifacts::collection::collect;
 use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
@@ -70,7 +70,7 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
-    let result = macos_collection(collection);
+    let result = collect(collection);
     match result {
         Ok(_) => info!("[artemis-core] Core parsed TOML data"),
         Err(err) => {

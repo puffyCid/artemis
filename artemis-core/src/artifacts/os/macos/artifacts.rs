@@ -116,7 +116,7 @@ pub(crate) fn users_macos(
         }
     };
 
-    let output_name = "users";
+    let output_name = "users-macos";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
@@ -192,7 +192,7 @@ pub(crate) fn groups_macos(
         }
     };
 
-    let output_name = "groups";
+    let output_name = "groups-macos";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
@@ -443,11 +443,11 @@ pub(crate) fn sudo_logs_macos(
         }
     };
 
-    let output_name = "sudologs";
+    let output_name = "sudologs-macos";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
-/// Parse sudo logs on macOS
+/// Parse spotlight on macOS
 pub(crate) fn spotlight(
     output: &mut Output,
     filter: &bool,

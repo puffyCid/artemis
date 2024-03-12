@@ -77,7 +77,7 @@ pub(crate) fn sudo_logs_linux(
         }
     };
 
-    let output_name = "sudologs";
+    let output_name = "sudologs-linux";
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
