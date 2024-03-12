@@ -82,7 +82,7 @@ mod tests {
     fn test_grab_jumplist_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push(
-            "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
+            "tests\\test_data\\windows\\jumplists\\win10\\custom\\1ced32d74a95c7bc.customDestinations-ms",
         );
 
         let result = grab_jumplist_file(&test_location.display().to_string()).unwrap();

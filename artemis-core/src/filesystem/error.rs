@@ -19,7 +19,6 @@ pub(crate) enum FileSystemError {
     FileData,
     NoDataAttributeValue,
     LargeFile,
-    #[cfg(target_family = "unix")]
     NoRootHome,
 }
 
@@ -46,7 +45,6 @@ impl fmt::Display for FileSystemError {
             FileSystemError::NoDataAttributeValue => {
                 write!(f, "Failed to get NTFS $DATA attribute")
             }
-            #[cfg(target_family = "unix")]
             FileSystemError::NoRootHome => write!(f, "Could not find root home directory"),
             FileSystemError::NoAttribute => write!(f, "No attribute for entry"),
         }

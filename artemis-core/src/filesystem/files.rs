@@ -315,10 +315,10 @@ fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
-    let entry_opt = if path.contains('\\') {
-        path.rsplit_once('\\')
-    } else {
+    let entry_opt = if path.contains('/') {
         path.rsplit_once('/')
+    } else {
+        path.rsplit_once('\\')
     };
 
     if entry_opt.is_none() {
@@ -448,9 +448,19 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_get_filename() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/fsevents_tester.rs");
+        let result = get_filename(&test_location.display().to_string());
+        assert_eq!(result, "fsevents_tester.rs");
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_get_filename() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\fsevents_tester.rs");
         let result = get_filename(&test_location.display().to_string());
         assert_eq!(result, "fsevents_tester.rs");
     }

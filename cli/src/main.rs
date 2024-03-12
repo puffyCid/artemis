@@ -219,8 +219,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_args_command_windows() {
-        use crate::collector::commands::CommandArgs::Shortcuts;
-        use crate::collector::windows::Commands;
+        use crate::collector::{commands::CommandArgs::Shortcuts, macos::Commands};
         let args = Args {
             toml: None,
             decode: None,

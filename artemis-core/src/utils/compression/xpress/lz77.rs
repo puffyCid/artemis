@@ -24,6 +24,9 @@ pub(crate) fn decompress_lz77(
         }
         buffered_flag_count -= 1;
         if (buffered_flags & (1 << buffered_flag_count)) == 0 {
+            if input_position > in_buf.len() {
+                return Err(CompressionError::Lz77BadLength);
+            }
             out_buf.push(in_buf[input_position]);
             input_position += 1;
             output_position += 1;
@@ -77,7 +80,10 @@ pub(crate) fn decompress_lz77(
             }
             match_length += 3;
             for _ in 0..match_length {
-                out_buf.push(out_buf[output_position - match_offset as usize]);
+                if (output_position - match_offset) as usize > out_buf.len() {
+                    return Err(CompressionError::Lz77BadLength);
+                }
+                out_buf.push(out_buf[(output_position - match_offset) as usize]);
                 output_position += 1;
             }
         }

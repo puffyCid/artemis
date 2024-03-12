@@ -35,7 +35,7 @@ pub(crate) fn check_wofcompressed(
     // Skipping files that have compressed data larger than 2GB
     let max_size = 2147483648;
     if compressed_data.len() >= max_size {
-        warn!("[wofcompression] Compressed data is larger than 2GB. Skippping decompression");
+        warn!("[wofcompression] Compressed data is larger than 2GB. Skipping decompression");
         let size = compressed_data.len();
         return Ok((true, compressed_data, size as u64));
     }
@@ -73,7 +73,7 @@ pub(crate) fn check_wofcompressed(
          *   2. After the table array is the compressed data
          * The offset pointer is relative to the END of the offset table
          *
-         * We can determine the table array size by deviding the uncompressed data size by the compression unit
+         * We can determine the table array size by dividing the uncompressed data size by the compression unit
          * We then need to parse the array table and assemble the compressed data
          */
 
@@ -99,7 +99,7 @@ pub(crate) fn check_wofcompressed(
     Ok((true, uncompressed_data, compressed_data.len() as u64))
 }
 
-/// Get the compressed data and determine compresssion unit
+/// Get the compressed data and determine compression unit
 fn grab_reparsepoint(
     ntfs_ref: &NtfsFileReference,
     ntfs: &Ntfs,
@@ -337,8 +337,6 @@ fn walk_offset_table<'a>(
 #[cfg(target_os = "windows")]
 /// Decompress WOF compressed data on Windows systems
 fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
-    use crate::utils::compression::xpress::api::decompress_huffman_api;
-
     let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
     let pf_data = match pf_data_result {
         Ok(result) => result,

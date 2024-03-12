@@ -91,12 +91,12 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_recycle_bin_path;
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_grab_recycle_bin() {
         use super::grab_recycle_bin;
         use crate::structs::artifacts::os::windows::RecycleBinOptions;
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn test_grab_recycle_bin_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/recyclebin/win10/$IWHBX3J");
+        test_location.push("tests\\test_data\\windows\\recyclebin\\win10\\$IWHBX3J");
 
         let result = grab_recycle_bin_path(&test_location.display().to_string()).unwrap();
 

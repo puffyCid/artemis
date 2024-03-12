@@ -31,6 +31,7 @@ pub(crate) fn get_python_history() -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
+#[cfg(target_family = "unix")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

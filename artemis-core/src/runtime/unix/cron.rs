@@ -11,6 +11,7 @@ pub(crate) fn get_cron() -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
+#[cfg(target_family = "unix")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

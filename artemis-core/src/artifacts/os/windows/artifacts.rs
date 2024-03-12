@@ -623,16 +623,12 @@ mod tests {
             userassist, users_windows, usnjrnl, wmi_persist,
         },
         structs::{
-            artifacts::os::{
-                files::FileOptions,
-                processes::ProcessOptions,
-                windows::{
-                    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions,
-                    PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
-                    SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions,
-                    ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
-                    UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
-                },
+            artifacts::os::windows::{
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
+                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
+                WindowsUserOptions, WmiPersistOptions,
             },
             toml::Output,
         },
