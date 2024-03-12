@@ -39,7 +39,6 @@ pub(crate) fn get_sudologs_macos(#[string] logarchive_path: String) -> Result<St
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

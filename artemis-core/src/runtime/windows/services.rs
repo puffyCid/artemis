@@ -33,7 +33,6 @@ pub(crate) fn get_service_file(#[string] path: String) -> Result<String, AnyErro
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

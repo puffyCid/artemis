@@ -19,7 +19,6 @@ pub(crate) fn get_search(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

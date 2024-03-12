@@ -11,7 +11,6 @@ pub(crate) fn get_journal(#[string] path: String) -> Result<String, AnyError> {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "linux")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

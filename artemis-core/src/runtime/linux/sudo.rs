@@ -28,7 +28,6 @@ pub(crate) fn get_sudologs_linux(#[string] path: String) -> Result<String, AnyEr
 }
 
 #[cfg(test)]
-#[cfg(target_os = "linux")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

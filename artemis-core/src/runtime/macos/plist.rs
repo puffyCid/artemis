@@ -29,7 +29,6 @@ pub(crate) fn get_plist_data(#[buffer] data: JsBuffer) -> Result<String, AnyErro
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

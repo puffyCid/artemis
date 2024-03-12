@@ -33,7 +33,6 @@ pub(crate) fn get_prefetch_path(#[string] path: String) -> Result<String, AnyErr
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

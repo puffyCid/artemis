@@ -35,7 +35,6 @@ pub(crate) fn get_alt_users_windows(#[string] file: String) -> Result<String, An
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

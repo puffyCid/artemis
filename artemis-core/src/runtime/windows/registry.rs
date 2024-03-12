@@ -27,7 +27,6 @@ pub(crate) fn get_sk_info(#[string] path: String, offset: i32) -> Result<String,
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,

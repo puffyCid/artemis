@@ -37,7 +37,6 @@ pub(crate) fn get_alt_wmipersist(#[string] path: String) -> Result<String, AnyEr
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
