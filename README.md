@@ -57,7 +57,7 @@ Commands:
   chromiumhistory    Parse Chromium History
   firefoxdownloads   Parse Firefox Downloads
   chromiumdownloads  Parse Chromium Downloads
-  prefetch           Parse Prefetch
+  prefetch           windows: Parse Prefetch
   eventlogs          windows: Parse EventLogs
   rawfilelisting     windows: Parse NTFS to get filelisting
   shimdb             windows: Parse ShimDatabase
