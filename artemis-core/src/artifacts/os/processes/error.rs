@@ -4,6 +4,8 @@ use std::fmt;
 pub(crate) enum ProcessError {
     Empty,
     ParseProcFile,
+    ProcessList,
+    Serialize,
 }
 
 impl std::error::Error for ProcessError {}
@@ -16,6 +18,12 @@ impl fmt::Display for ProcessError {
             }
             ProcessError::ParseProcFile => {
                 write!(f, "Failed to parse process binary")
+            }
+            ProcessError::ProcessList => {
+                write!(f, "Failed to get process listing")
+            }
+            ProcessError::Serialize => {
+                write!(f, "Failed to serialize process listing")
             }
         }
     }

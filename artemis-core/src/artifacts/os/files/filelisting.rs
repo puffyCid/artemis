@@ -9,6 +9,7 @@
  */
 use super::error::FileError;
 use crate::artifacts::os::systeminfo::info::get_platform;
+use crate::artifacts::output::output_artifact;
 use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::{files::Hashes, metadata::get_timestamps};
@@ -23,17 +24,15 @@ use std::io::{BufRead, BufReader, Error as ioError};
 use walkdir::{DirEntry, WalkDir};
 
 #[cfg(target_os = "macos")]
-use crate::artifacts::os::macos::artifacts::output_data;
-#[cfg(target_os = "macos")]
 use common::macos::MachoInfo;
 
 #[cfg(target_os = "windows")]
-use crate::artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file};
+use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 #[cfg(target_os = "windows")]
 use common::windows::PeInfo;
 
 #[cfg(target_os = "linux")]
-use crate::artifacts::os::linux::{artifacts::output_data, executable::parser::parse_elf_file};
+use crate::artifacts::os::linux::executable::parser::parse_elf_file;
 #[cfg(target_os = "linux")]
 use common::linux::ElfInfo;
 
@@ -306,12 +305,12 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, fil
         }
     };
 
-    let output_result = output_data(&serde_data, "files", output, start_time, filter);
-    match output_result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[files] Failed to output filelisting data: {err:?}");
-        }
+    let status = output_artifact(&serde_data, "files", output, start_time, filter);
+    if status.is_err() {
+        error!(
+            "[artemis-core] Could not output data: {:?}",
+            status.unwrap_err()
+        );
     }
 }
 

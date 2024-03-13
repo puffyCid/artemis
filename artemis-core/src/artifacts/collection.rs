@@ -3,15 +3,16 @@ use super::{
         chromium_downloads, chromium_history, firefox_downloads, firefox_history, safari_downloads,
         safari_history,
     },
+    error::CollectionError,
     os::{
+        files::artifact::filelisting,
         linux::artifacts::{journals, logons, sudo_logs_linux},
-        macos::{
-            artifacts::{
-                emond, execpolicy, files, fseventsd, groups_macos, launchd, loginitems, processes,
-                spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users_macos,
-            },
-            error::MacArtifactError,
+        macos::artifacts::{
+            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
+            sudo_logs_macos, unifiedlogs, users_macos,
         },
+        processes::artifact::processes,
+        systeminfo::artifact::systeminfo,
         unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
         windows::artifacts::{
             amcache, bits, eventlogs, jumplists, prefetch, raw_filelist, recycle_bin, registry,
@@ -28,7 +29,7 @@ use crate::{
 use log::{error, info, warn};
 
 /// Parse the TOML collector and get artifacts
-pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), MacArtifactError> {
+pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
     // Loop through all supported artifacts
     for artifacts in &collector.artifacts {
         let filter = artifacts.filter.unwrap_or(false);
@@ -95,11 +96,11 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), MacArtifactErro
                     _ => continue,
                 };
 
-                let results = files(&mut collector.output, &filter, options);
+                let results = filelisting(&mut collector.output, &filter, options);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
-                        error!("[artemis-core] Failed to parse file listing, error: {err:?}");
+                        error!("[artemis-core] Failed to parse filelisting, error: {err:?}");
                         continue;
                     }
                 }

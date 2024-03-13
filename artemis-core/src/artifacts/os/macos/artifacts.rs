@@ -11,21 +11,12 @@ use super::{
     unified_logs::logs::grab_logs,
 };
 use crate::{
-    artifacts::os::{
-        files::filelisting::get_filelist, processes::process::proc_list, systeminfo::info::get_info,
-    },
-    filesystem::files::Hashes,
-    output::formats::{json::json_format, jsonl::jsonl_format},
-    runtime::deno::filter_script,
+    artifacts::output::output_artifact,
     structs::{
-        artifacts::os::{
-            files::FileOptions,
-            macos::{
-                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
-                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
-                SpotlightOptions, UnifiedLogsOptions,
-            },
-            processes::ProcessOptions,
+        artifacts::os::macos::{
+            EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+            MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
+            UnifiedLogsOptions,
         },
         toml::Output,
     },
@@ -120,60 +111,6 @@ pub(crate) fn users_macos(
     output_data(&serde_data, output_name, output, &start_time, filter)
 }
 
-/// Get macOS `Processes`
-pub(crate) fn processes(
-    output: &mut Output,
-    filter: &bool,
-    options: &ProcessOptions,
-) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
-    let hashes = Hashes {
-        md5: options.md5,
-        sha1: options.sha1,
-        sha256: options.sha256,
-    };
-
-    let results = proc_list(&hashes, options.metadata);
-    let proc_data = match results {
-        Ok(data) => data,
-        Err(err) => {
-            warn!("[artemis-core] Failed to get process list: {err:?}");
-            return Err(MacArtifactError::Process);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(proc_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize processes: {err:?}");
-            return Err(MacArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "processes";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get macOS `Systeminfo`
-pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
-    let system_data = get_info();
-    let serde_data_result = serde_json::to_value(system_data);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize system data: {err:?}");
-            return Err(MacArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "systeminfo";
-    output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
 /// Get macOS `Groups`
 pub(crate) fn groups_macos(
     output: &mut Output,
@@ -254,35 +191,6 @@ pub(crate) fn launchd(
 
     let output_name = "launchd";
     output_data(&serde_data, output_name, output, &start_time, filter)
-}
-
-/// Get macOS `filelist`
-pub(crate) fn files(
-    output: &mut Output,
-    filter: &bool,
-    options: &FileOptions,
-) -> Result<(), MacArtifactError> {
-    let hashes = Hashes {
-        md5: options.md5.unwrap_or(false),
-        sha1: options.sha1.unwrap_or(false),
-        sha256: options.sha256.unwrap_or(false),
-    };
-    let artifact_result = get_filelist(
-        &options.start_path,
-        options.depth.unwrap_or(1).into(),
-        options.metadata.unwrap_or(false),
-        &hashes,
-        options.regex_filter.as_ref().unwrap_or(&String::new()),
-        output,
-        filter,
-    );
-    match artifact_result {
-        Ok(results) => Ok(results),
-        Err(err) => {
-            error!("[artemis-core] Failed to get file listing: {err:?}");
-            Err(MacArtifactError::File)
-        }
-    }
 }
 
 /// Get macOS `Unifiedlogs`
@@ -471,51 +379,13 @@ pub(crate) fn output_data(
     start_time: &u64,
     filter: &bool,
 ) -> Result<(), MacArtifactError> {
-    if *filter {
-        if let Some(script) = &output.filter_script.clone() {
-            let args = vec![serde_data.to_string(), output_name.to_string()];
-            if let Some(name) = &output.filter_name.clone() {
-                let filter_result = filter_script(output, &args, name, script);
-                return match filter_result {
-                    Ok(_) => Ok(()),
-                    Err(err) => {
-                        error!(
-                            "[artemis-core] Could not apply filter script to macos data: {err:?}"
-                        );
-                        Err(MacArtifactError::FilterOutput)
-                    }
-                };
-            }
-            let filter_result = filter_script(output, &args, "UnknownFilterName", script);
-            return match filter_result {
-                Ok(_) => Ok(()),
-                Err(err) => {
-                    error!(
-                    "[artemis-core] Could not apply unknown filter script to macos data: {err:?}"
-                );
-                    Err(MacArtifactError::FilterOutput)
-                }
-            };
-        }
-    }
-
-    let output_status = if output.format == "json" {
-        json_format(serde_data, output_name, output, start_time)
-    } else if output.format == "jsonl" {
-        jsonl_format(serde_data, output_name, output, start_time)
-    } else {
+    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    if status.is_err() {
         error!(
-            "[artemis-core] Unknown formatter provided: {}",
-            output.format
+            "[artemis-core] Could not output data: {:?}",
+            status.unwrap_err()
         );
-        return Err(MacArtifactError::Format);
-    };
-    match output_status {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[artemis-core] Could not output data: {err:?}");
-            return Err(MacArtifactError::Output);
-        }
+        return Err(MacArtifactError::Output);
     }
     Ok(())
 }
@@ -525,18 +395,14 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, execpolicy, files, fseventsd, groups_macos, launchd, loginitems, output_data,
-            processes, spotlight, sudo_logs_macos, systeminfo, unifiedlogs, users_macos,
+            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, output_data,
+            spotlight, sudo_logs_macos, unifiedlogs, users_macos,
         },
         structs::{
-            artifacts::os::{
-                files::FileOptions,
-                macos::{
-                    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
-                    LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
-                    SpotlightOptions, UnifiedLogsOptions,
-                },
-                processes::ProcessOptions,
+            artifacts::os::macos::{
+                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
+                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
+                SpotlightOptions, UnifiedLogsOptions,
             },
             toml::Output,
         },
@@ -613,29 +479,6 @@ mod tests {
     }
 
     #[test]
-    fn test_processes() {
-        let mut output = output_options("processes_test", "local", "./tmp", false);
-
-        let proc_config = ProcessOptions {
-            md5: true,
-            sha1: true,
-            sha256: true,
-            metadata: true,
-        };
-
-        let status = processes(&mut output, &false, &proc_config).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_system() {
-        let mut output = output_options("system_test", "local", "./tmp", false);
-
-        let status = systeminfo(&mut output, &false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
     fn test_unifiedlogs() {
         let mut output = output_options("unifiedlogs_test", "local", "./tmp", false);
         let sources = vec![String::from("Special")];
@@ -649,23 +492,6 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_files() {
-        let mut output = output_options("file_test", "local", "./tmp", false);
-
-        let file_config = FileOptions {
-            start_path: String::from("/"),
-            depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            regex_filter: Some(String::new()),
-        };
-        let status = files(&mut output, &false, &file_config).unwrap();
         assert_eq!(status, ());
     }
 

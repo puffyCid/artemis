@@ -59,19 +59,43 @@ Commands:
   chromiumhistory    Parse Chromium History
   firefoxdownloads   Parse Firefox Downloads
   chromiumdownloads  Parse Chromium Downloads
-  shellhistory       Parse Shellhistory
-  cron               Parse Cron Jobs
-  sudologs           Grab Sudo logs
-  execpolicy         Parse ExecPolicy
-  users              Collect local users
-  fsevents           Parse FsEvents entries
-  emond              Parse Emond persistence. Removed in Ventura
-  loginitems         Parse LoginItems
-  launchd            Parse Launch Daemons and Agents
-  groups             Collect local groups
-  safarihistory      Collect Safari History
-  safaridownloads    Collect Safari Downloads
-  unifiedlogs        Parse the Unified Logs
+  prefetch           Parse Prefetch
+  eventlogs          windows: Parse EventLogs
+  rawfilelisting     windows: Parse NTFS to get filelisting
+  shimdb             windows: Parse ShimDatabase
+  registry           windows: Parse Registry
+  userassist         windows: Parse Userassist
+  shimcache          windows: Parse Shimcache
+  shellbags          windows: Parse Shellbags
+  amcache            windows: Parse Amcache
+  shortcuts          windows: Parse Shortcuts
+  usnjrnl            windows: Parse UsnJrnl
+  bits               windows: Parse BITS
+  srum               windows: Parse SRUM
+  users-windows      windows: Parse Users
+  search             windows: Parse Windows Search
+  tasks              windows: Parse Windows Tasks
+  services           windows: Parse Windows Services
+  jumplists          windows: windows: Parse Jumplists
+  recyclebin         windows: Parse RecycleBin
+  wmipersist         windows: Parse WMI Repository
+  execpolicy         macos: Parse ExecPolicy
+  users-macos        macos: Collect local users
+  fsevents           macos: Parse FsEvents entries
+  emond              macos: Parse Emond persistence. Removed in Ventura
+  loginitems         macos: Parse LoginItems
+  launchd            macos: Parse Launch Daemons and Agents
+  groups-macos       macos: Collect local groups
+  safari-history     macos: Collect Safari History
+  safari-downloads   macos: Collect Safari Downloads
+  unifiedlogs        macos: Parse the Unified Logs
+  sudologs-macos     macos: Parse Sudo log entries from Unified Logs
+  spotlight          macos: Parse the Spotlight database
+  shellhistory       unix: Parse Shellhistory
+  cron               unix: Parse Cron Jobs
+  sudologs-linux     linux: Grab Sudo logs
+  journals           linux: Parse systemd Journal files
+  logons             linux: Parse Logon files
   help               Print this message or the help of the given subcommand(s)
 
 Options:

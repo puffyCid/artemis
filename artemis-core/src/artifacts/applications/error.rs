@@ -10,8 +10,6 @@ pub(crate) enum ApplicationError {
     ChromiumDownloads,
     Output,
     Serialize,
-    Format,
-    FilterOutput,
 }
 
 impl std::error::Error for ApplicationError {}
@@ -36,11 +34,9 @@ impl fmt::Display for ApplicationError {
                 write!(f, "Failed to parse Chromium Downloads")
             }
             ApplicationError::Output => write!(f, "Failed to output data"),
-            ApplicationError::FilterOutput => write!(f, "Failed to filter data"),
             ApplicationError::Serialize => {
                 write!(f, "Artemis failed serialize artifact data")
             }
-            ApplicationError::Format => write!(f, "Unknown formatter provided"),
         }
     }
 }

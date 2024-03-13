@@ -1,8 +1,8 @@
-use crate::collector::macos::run_collector;
+use crate::collector::system::run_collector;
 use artemis_core::structs::toml::Output;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
-use collector::macos::Commands;
+use collector::system::Commands;
 use log::info;
 mod collector;
 
@@ -193,7 +193,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_parse_args_command_macos() {
         use crate::collector::commands::CommandArgs::Filelisting;
-        use crate::collector::macos::Commands;
+        use crate::collector::system::Commands;
 
         let args = Args {
             toml: None,
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_args_command_windows() {
-        use crate::collector::{commands::CommandArgs::Shortcuts, macos::Commands};
+        use crate::collector::{commands::CommandArgs::Shortcuts, system::Commands};
         let args = Args {
             toml: None,
             decode: None,
@@ -239,7 +239,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
-        use crate::collector::macos::Commands;
+        use crate::collector::system::Commands;
 
         let args = Args {
             toml: None,

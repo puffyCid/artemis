@@ -1,4 +1,4 @@
-use super::{error::ArtemisError, output::output_artifact, uuid::generate_uuid};
+use super::{error::ArtemisError, output::final_output, uuid::generate_uuid};
 use crate::{
     filesystem::files::{get_filename, list_files, read_file},
     structs::toml::Output,
@@ -114,7 +114,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
                 continue;
             }
         };
-        output_artifact(&log_data, output, &get_filename(&log))?;
+        final_output(&log_data, output, &get_filename(&log))?;
         let _ = remove_file(&log);
     }
 

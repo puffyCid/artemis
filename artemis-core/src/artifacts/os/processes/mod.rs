@@ -6,4 +6,5 @@ mod macho;
 #[cfg(target_os = "windows")]
 mod pe;
 
+pub(crate) mod artifact;
 pub(crate) mod process;

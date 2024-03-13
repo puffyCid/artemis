@@ -38,8 +38,15 @@ pub(crate) enum Commands {
 
 /// Run the collector and parse specified artifacts
 pub(crate) fn run_collector(command: &Commands, output: Output) {
+    #[cfg(target_os = "macos")]
+    let system = String::from("macos");
+    #[cfg(target_os = "linux")]
+    let system = String::from("linux");
+    #[cfg(target_os = "windows")]
+    let system = String::from("windows");
+
     let mut collector = ArtemisToml {
-        system: String::from("macos"),
+        system,
         output,
         artifacts: Vec::new(),
     };
@@ -67,7 +74,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
     artemis_collection(&mut collector).unwrap();
 }
 
-/// Setup any artifact options. Only a few have options on macOS
+/// Setup any artifact options
 fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
     let mut collect = Artifacts {
         artifact_name: String::new(),
@@ -444,7 +451,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 #[cfg(test)]
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
-    use crate::collector::macos::CommandArgs::{
+    use crate::collector::system::CommandArgs::{
         Amcache, Bits, Chromiumdownloads, Chromiumhistory, Cron, Emond, Eventlogs, Execpolicy,
         Filelisting, Firefoxdownloads, Firefoxhistory, Fsevents, GroupsMacos, Journals, Jumplists,
         Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry,

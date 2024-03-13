@@ -7,7 +7,7 @@ use super::{
     run::{run_async_script, run_script},
 };
 use crate::{
-    output::formats::{json::json_format, jsonl::jsonl_format},
+    artifacts::output::output_artifact,
     structs::{artifacts::runtime::script::JSScript, toml::Output},
     utils::{encoding::base64_decode_standard, time},
 };
@@ -108,20 +108,15 @@ pub(crate) fn output_data(
     output: &mut Output,
     start_time: &u64,
 ) -> Result<(), RuntimeError> {
-    let output_status = if output.format.to_lowercase() == "json" {
-        json_format(serde_data, output_name, output, start_time)
-    } else if output.format.to_lowercase() == "jsonl" {
-        jsonl_format(serde_data, output_name, output, start_time)
-    } else {
-        error!("[runtime] Unknown formatter provided: {}", output.format);
-        return Err(RuntimeError::Format);
-    };
-    match output_status {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[runtime] Could not output data: {err:?}");
-            return Err(RuntimeError::Output);
-        }
+    // We must never filter a script. Otherwise this would cause an infinite loop!
+    let filter = false;
+    let status = output_artifact(serde_data, output_name, output, start_time, &filter);
+    if status.is_err() {
+        error!(
+            "[artemis-core] Could not output data: {:?}",
+            status.unwrap_err()
+        );
+        return Err(RuntimeError::Output);
     }
     Ok(())
 }

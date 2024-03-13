@@ -4,7 +4,7 @@ use crate::{
     structs::toml::Output,
     utils::{
         compression::compress::compress_gzip_data, logging::collection_status,
-        output::output_artifact, time::time_now, uuid::generate_uuid,
+        output::final_output, time::time_now, uuid::generate_uuid,
     },
 };
 use log::{error, info};
@@ -101,7 +101,7 @@ fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(),
         data.to_vec()
     };
 
-    let output_result = output_artifact(&output_data, output, output_name);
+    let output_result = final_output(&output_data, output, output_name);
     match output_result {
         Ok(_) => info!("[artemis-core] {output_name} jsonl output success"),
         Err(err) => {

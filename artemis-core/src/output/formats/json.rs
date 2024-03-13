@@ -4,7 +4,7 @@ use crate::{
     structs::toml::Output,
     utils::{
         compression::compress::compress_gzip_data, logging::collection_status,
-        output::output_artifact, time::time_now, uuid::generate_uuid,
+        output::final_output, time::time_now, uuid::generate_uuid,
     },
 };
 use log::{error, info};
@@ -61,7 +61,7 @@ pub(crate) fn json_format(
     };
 
     let uuid = generate_uuid();
-    let output_result = output_artifact(&output_data, output, &uuid);
+    let output_result = final_output(&output_data, output, &uuid);
     match output_result {
         Ok(_) => info!("[artemis-core] {} json output success", output_name),
         Err(err) => {

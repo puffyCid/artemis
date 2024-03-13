@@ -12,7 +12,7 @@ use log::{error, warn};
 use std::fs::{remove_dir, remove_file};
 
 /// Output artifact data based on output type
-pub(crate) fn output_artifact(
+pub(crate) fn final_output(
     artifact_data: &[u8],
     output: &Output,
     output_name: &str,
@@ -118,12 +118,12 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
 
 #[cfg(test)]
 mod tests {
-    use super::{compress_final_output, output_artifact};
+    use super::{compress_final_output, final_output};
     use crate::structs::toml::Output;
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]
-    fn test_output_artifact() {
+    fn test_final_output() {
         let output = Output {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
@@ -141,7 +141,7 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        let result = output_artifact(test.as_bytes(), &output, name).unwrap();
+        let result = final_output(test.as_bytes(), &output, name).unwrap();
         assert_eq!(result, ());
     }
 

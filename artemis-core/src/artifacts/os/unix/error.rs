@@ -8,8 +8,6 @@ pub(crate) enum UnixArtifactError {
     Cron,
     Serialize,
     Output,
-    FilterOutput,
-    Format,
 }
 
 impl std::error::Error for UnixArtifactError {}
@@ -23,8 +21,6 @@ impl fmt::Display for UnixArtifactError {
             UnixArtifactError::Cron => write!(f, "Failed to parse cron data"),
             UnixArtifactError::Serialize => write!(f, "Failed to serialize unix data"),
             UnixArtifactError::Output => write!(f, "Failed to output unix data"),
-            UnixArtifactError::FilterOutput => write!(f, "Failed to filter unix data"),
-            UnixArtifactError::Format => write!(f, "Unknown format provided"),
         }
     }
 }

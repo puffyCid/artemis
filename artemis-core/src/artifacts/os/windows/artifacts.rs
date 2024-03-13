@@ -13,8 +13,7 @@ use super::{
     shimdb::parser::grab_shimdb, shortcuts::parser::grab_lnk_directory, srum::parser::grab_srum,
     userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
 };
-use crate::output::formats::{json::json_format, jsonl::jsonl_format};
-use crate::runtime::deno::filter_script;
+use crate::artifacts::output::output_artifact;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
@@ -564,51 +563,13 @@ pub(crate) fn output_data(
     start_time: &u64,
     filter: &bool,
 ) -> Result<(), WinArtifactError> {
-    if *filter {
-        if let Some(script) = &output.filter_script.clone() {
-            let args = vec![serde_data.to_string(), output_name.to_string()];
-            if let Some(name) = &output.filter_name.clone() {
-                let filter_result = filter_script(output, &args, name, script);
-                return match filter_result {
-                    Ok(_) => Ok(()),
-                    Err(err) => {
-                        error!(
-                            "[artemis-core] Could not apply filter script to windows data: {err:?}"
-                        );
-                        Err(WinArtifactError::FilterOutput)
-                    }
-                };
-            }
-            let filter_result = filter_script(output, &args, "UnknownFilterName", script);
-            return match filter_result {
-                Ok(_) => Ok(()),
-                Err(err) => {
-                    error!(
-                        "[artemis-core] Could not apply unknown filter script to windows data: {err:?}"
-                    );
-                    Err(WinArtifactError::FilterOutput)
-                }
-            };
-        }
-    }
-
-    let output_status = if output.format == "json" {
-        json_format(serde_data, output_name, output, start_time)
-    } else if output.format == "jsonl" {
-        jsonl_format(serde_data, output_name, output, start_time)
-    } else {
+    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    if status.is_err() {
         error!(
-            "[artemis-core] Unknown formatter provided: {}",
-            output.format
+            "[artemis-core] Could not output data: {:?}",
+            status.unwrap_err()
         );
-        return Err(WinArtifactError::Format);
-    };
-    match output_status {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[artemis-core] Could not output data: {err:?}");
-            return Err(WinArtifactError::Output);
-        }
+        return Err(WinArtifactError::Output);
     }
     Ok(())
 }
