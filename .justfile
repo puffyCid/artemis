@@ -76,7 +76,7 @@ nextest:(_wasm)
 cli:
   cd cli && cargo build --release
 
-# Just build artemis-core
+# Just build core library
 core:
   cd artemis-core && cargo build --release
 

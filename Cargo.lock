@@ -135,57 +135,10 @@ checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 name = "artemis"
 version = "0.7.0"
 dependencies = [
- "artemis-core",
  "base64 0.22.0",
  "clap",
+ "core",
  "log",
-]
-
-[[package]]
-name = "artemis-core"
-version = "0.7.0"
-dependencies = [
- "base64 0.22.0",
- "byteorder",
- "chrono",
- "common",
- "criterion",
- "deno_core",
- "elf",
- "evtx",
- "flate2",
- "glob",
- "home",
- "httpmock",
- "jsonwebtoken",
- "log",
- "lz4_flex",
- "macos-unifiedlogs",
- "md-5",
- "nom",
- "ntapi",
- "ntfs",
- "pelite",
- "plist",
- "quick-xml 0.31.0",
- "regex",
- "reqwest",
- "rusqlite",
- "rusty-s3",
- "ruzstd",
- "serde",
- "serde_json",
- "sha-1",
- "sha2",
- "simplelog",
- "sysinfo",
- "tokio",
- "toml",
- "uuid",
- "walkdir",
- "xml2json-rs",
- "xz2",
- "zip",
 ]
 
 [[package]]
@@ -936,6 +889,53 @@ name = "cooked-waker"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "147be55d677052dabc6b22252d5dd0fd4c29c8c27aa4f2fbef0f94aa003b406f"
+
+[[package]]
+name = "core"
+version = "0.7.0"
+dependencies = [
+ "base64 0.22.0",
+ "byteorder",
+ "chrono",
+ "common",
+ "criterion",
+ "deno_core",
+ "elf",
+ "evtx",
+ "flate2",
+ "glob",
+ "home",
+ "httpmock",
+ "jsonwebtoken",
+ "log",
+ "lz4_flex",
+ "macos-unifiedlogs",
+ "md-5",
+ "nom",
+ "ntapi",
+ "ntfs",
+ "pelite",
+ "plist",
+ "quick-xml 0.31.0",
+ "regex",
+ "reqwest",
+ "rusqlite",
+ "rusty-s3",
+ "ruzstd",
+ "serde",
+ "serde_json",
+ "sha-1",
+ "sha2",
+ "simplelog",
+ "sysinfo",
+ "tokio",
+ "toml",
+ "uuid",
+ "walkdir",
+ "xml2json-rs",
+ "xz2",
+ "zip",
+]
 
 [[package]]
 name = "core-foundation"

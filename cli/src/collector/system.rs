@@ -1,5 +1,6 @@
 use super::commands::CommandArgs;
-use artemis_core::{
+use clap::{arg, Subcommand};
+use core::{
     core::artemis_collection,
     structs::{
         artifacts::os::{
@@ -22,7 +23,6 @@ use artemis_core::{
         toml::{ArtemisToml, Artifacts, Output},
     },
 };
-use clap::{arg, Subcommand};
 
 #[derive(Subcommand)]
 pub(crate) enum Commands {
@@ -459,7 +459,7 @@ mod tests {
         Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos,
         UsersWindows,
     };
-    use artemis_core::structs::toml::Output;
+    use core::structs::toml::Output;
     fn output() -> Output {
         let out = Output {
             name: String::from("local_collector"),

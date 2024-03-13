@@ -1,0 +1,15 @@
+system = "linux"
+
+[output]
+name = "sudolog_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "sudologs-linux"
+[artifacts.sudologs_linux]
+# alt_path = ""
