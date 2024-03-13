@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "serayuzgur.crates",
+        "denoland.vscode-deno",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "bradlc.vscode-tailwindcss",
+        "eamodio.gitlens",
+    ]
+}

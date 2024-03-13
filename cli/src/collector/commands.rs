@@ -52,7 +52,7 @@ pub(crate) enum CommandArgs {
     /// Parse Chromium Downloads
     Chromiumdownloads {},
 
-    /// Parse Prefetch
+    /// windows: Parse Prefetch
     Prefetch {
         /// Alternative Prefetch directory to use
         #[arg(long, default_value = None)]
