@@ -1,8 +1,8 @@
-use crate::collector::macos::run_collector;
-use artemis_core::structs::toml::Output;
+use crate::collector::system::run_collector;
 use base64::{engine::general_purpose, Engine};
 use clap::Parser;
-use collector::macos::Commands;
+use collector::system::Commands;
+use core::structs::toml::Output;
 use log::info;
 mod collector;
 
@@ -36,7 +36,7 @@ fn parse_args(args: &Args) {
 
     if let Some(toml) = &args.toml {
         if !toml.is_empty() {
-            let collection_results = artemis_core::core::parse_toml_file(toml);
+            let collection_results = core::core::parse_toml_file(toml);
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -57,7 +57,7 @@ fn parse_args(args: &Args) {
                     return;
                 }
             };
-            let collection_results = artemis_core::core::parse_toml_data(&toml_data);
+            let collection_results = core::core::parse_toml_data(&toml_data);
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -68,7 +68,7 @@ fn parse_args(args: &Args) {
         }
     } else if let Some(js) = &args.javascript {
         if !js.is_empty() {
-            let collection_results = artemis_core::core::parse_js_file(js);
+            let collection_results = core::core::parse_js_file(js);
             match collection_results {
                 Ok(_) => info!("[artemis] JavaScript execution success"),
                 Err(err) => {
@@ -193,7 +193,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_parse_args_command_macos() {
         use crate::collector::commands::CommandArgs::Filelisting;
-        use crate::collector::macos::Commands;
+        use crate::collector::system::Commands;
 
         let args = Args {
             toml: None,
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_args_command_windows() {
-        use crate::collector::{commands::CommandArgs::Shortcuts, macos::Commands};
+        use crate::collector::{commands::CommandArgs::Shortcuts, system::Commands};
         let args = Args {
             toml: None,
             decode: None,
@@ -239,7 +239,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
-        use crate::collector::macos::Commands;
+        use crate::collector::system::Commands;
 
         let args = Args {
             toml: None,
