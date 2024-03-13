@@ -15,8 +15,6 @@ Notable features _so far_:
 - Output to JSON or JSONL file(s)
 - Can output results to local system or upload to cloud services.
 - Embedded JavaScript runtime via [Deno](https://deno.land/)
-- Can be used as a library
-- MIT license
 
 Checkout the online guide at https://puffycid.github.io/artemis-api for indepth
 walkthrough on using artemis
