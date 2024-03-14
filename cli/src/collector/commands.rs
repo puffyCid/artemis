@@ -202,7 +202,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    /// windows: windows: Parse Jumplists
+    /// windows: Parse Jumplists
     Jumplists {
         /// Alternative full path to Jumplist file
         #[arg(long, default_value = None)]

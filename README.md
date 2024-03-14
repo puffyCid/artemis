@@ -74,7 +74,7 @@ Commands:
   search             windows: Parse Windows Search
   tasks              windows: Parse Windows Tasks
   services           windows: Parse Windows Services
-  jumplists          windows: windows: Parse Jumplists
+  jumplists          windows: Parse Jumplists
   recyclebin         windows: Parse RecycleBin
   wmipersist         windows: Parse WMI Repository
   execpolicy         macos: Parse ExecPolicy
