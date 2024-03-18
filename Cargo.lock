@@ -133,7 +133,7 @@ checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
 name = "artemis"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "base64 0.22.0",
  "clap",
@@ -143,7 +143,7 @@ dependencies = [
 
 [[package]]
 name = "artemis-server"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "axum",
  "common",
@@ -164,7 +164,7 @@ dependencies = [
 
 [[package]]
 name = "artemis-webui"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "chrono",
  "common",
@@ -820,7 +820,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "common"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "plist",
  "serde",
@@ -892,7 +892,7 @@ checksum = "147be55d677052dabc6b22252d5dd0fd4c29c8c27aa4f2fbef0f94aa003b406f"
 
 [[package]]
 name = "core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "base64 0.22.0",
  "byteorder",
