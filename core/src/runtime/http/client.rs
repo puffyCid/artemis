@@ -1,8 +1,10 @@
 use crate::utils::strings::extract_utf8_string;
 use deno_core::{error::AnyError, op2, JsBuffer};
 use log::error;
-use reqwest::Client;
-use serde::Serialize;
+use nom::AsBytes;
+use reqwest::{redirect::Policy, Client, ClientBuilder};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Serialize)]
@@ -14,6 +16,16 @@ pub(crate) struct ClientResponse {
     body: Vec<u8>,
 }
 
+#[derive(Deserialize)]
+struct ClientRequest {
+    url: String,
+    status: u16,
+    headers: HashMap<String, String>,
+    body: JsBuffer,
+    body_type: String,
+    follow_redirects: bool,
+}
+
 #[op2(async)]
 #[string]
 /// Make a HTTP request to target URL using specified protocol, headers, and body
@@ -22,8 +34,22 @@ pub(crate) async fn js_request(
     #[string] protocol: String,
     #[serde] headers: HashMap<String, String>,
     #[buffer] body: JsBuffer,
+    #[string] body_type: String,
+    #[string] follow_redirects: String,
 ) -> Result<String, AnyError> {
-    let client = Client::new();
+    let client = if follow_redirects == "disable" {
+        let client_res = ClientBuilder::new().redirect(Policy::none()).build();
+        match client_res {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[runtime] Could not create client: {err:?}");
+                return Err(AnyError::msg("Failed to create HTTP client"));
+            }
+        }
+    } else {
+        Client::new()
+    };
+
     let mut builder = match protocol.as_str() {
         "GET" => client.get(url),
         "POST" => client.post(url),
@@ -44,7 +70,19 @@ pub(crate) async fn js_request(
         format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
     );
 
-    builder = builder.body(body.to_vec());
+    if body_type == "form" {
+        let form_data_result = serde_json::from_slice(body.as_bytes());
+        let form_data: HashMap<String, Value> = match form_data_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[runtime] Could not deserialize form data: {err}");
+                return Err(AnyError::msg("failed to extract form data"));
+            }
+        };
+        builder = builder.form(&form_data);
+    } else {
+        builder = builder.body(body.to_vec());
+    }
 
     let res_result = builder.send().await?;
 

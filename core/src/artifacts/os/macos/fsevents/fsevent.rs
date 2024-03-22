@@ -3,6 +3,7 @@ use crate::utils::{
     strings::extract_utf8_string,
 };
 use common::macos::FsEvents;
+use log::warn;
 use nom::bytes::complete::{take, take_while};
 use std::mem::size_of;
 
@@ -20,13 +21,17 @@ pub(crate) fn fsevents_data(data: &[u8]) -> nom::IResult<&[u8], Vec<FsEvents>> {
     let mut input = data;
     let disk_loggerv1 = 0x444c5331; // DLS1
     let disk_loggerv2 = 0x444c5332; // DLS2
-
+    let disk_loggerv3 = 0x444c5333; // DLS3
+    let versions = vec![disk_loggerv1, disk_loggerv2, disk_loggerv3];
     // Loop through all the `FsEvent` data
     while !input.is_empty() {
         // Parse header to get `FsEvent` stream size
         let (fsevents_data, fsevents_header) = fsevents_header(input)?;
-        if fsevents_header.signature != disk_loggerv1 && fsevents_header.signature != disk_loggerv2
-        {
+        if !versions.contains(&fsevents_header.signature) {
+            warn!(
+                "[fsevents] Got unknown header: {}",
+                fsevents_header.signature
+            );
             break;
         }
 
@@ -106,6 +111,13 @@ fn get_fsevent_data<'a>(data: &'a [u8], sig: &u32) -> nom::IResult<&'a [u8], FsE
         let (input, fsevent_node) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         fsevent_data.node = fsevent_node;
+
+        // Version 3 has another 4 bytes. Seems to alway be 0
+        let disk_loggvrv3 = 0x444c5333;
+        if sig == &disk_loggvrv3 {
+            let (input, _) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            return Ok((input, fsevent_data));
+        }
         return Ok((input, fsevent_data));
     }
 
@@ -264,5 +276,17 @@ mod tests {
         let (input, results) = get_fsevent(input, header.signature).unwrap();
         assert_eq!(results.len(), 736);
         assert_eq!(input.len(), 0);
+    }
+
+    #[test]
+    fn test_fsevents_data_version3() {
+        let test = [
+            51, 83, 76, 68, 149, 147, 40, 64, 64, 0, 0, 0, 46, 68, 111, 99, 117, 109, 101, 110,
+            116, 82, 101, 118, 105, 115, 105, 111, 110, 115, 45, 86, 49, 48, 48, 47, 46, 99, 115,
+            0, 95, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 234, 121, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let (results, data) = fsevents_data(&test).unwrap();
+        assert_eq!(results.len(), 0);
+        assert_eq!(data.len(), 1);
     }
 }
