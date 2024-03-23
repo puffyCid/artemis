@@ -1,5 +1,5 @@
 /**
- * Amcache stores metadata related to execution of Windows applications.  
+ * Amcache stores metadata offten related to execution of Windows applications.  
  * Data is stored in the Amcache.hve Registry file. It also contains other metadata such as OS, hardware, and application info
  *
  * References:  
@@ -83,7 +83,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let mut amcache_vec: Vec<Amcache> = Vec::new();
     for entry in amcache {
         let mut amcache_entry = Amcache {
-            first_execution: entry.last_modified,
+            last_modified: entry.last_modified,
             path: String::new(),
             name: String::new(),
             original_name: String::new(),

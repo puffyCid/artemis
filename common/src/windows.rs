@@ -69,7 +69,7 @@ pub struct PeInfo {
  */
 #[derive(Debug, Serialize)]
 pub struct Amcache {
-    pub first_execution: i64,
+    pub last_modified: i64,
     pub path: String,
     pub name: String,
     pub original_name: String,
