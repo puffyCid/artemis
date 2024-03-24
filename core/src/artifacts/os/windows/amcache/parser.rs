@@ -227,7 +227,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
         let result = parse_amcache(test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(result[0].first_execution, 1673412178);
+        assert_eq!(result[0].last_modified, 1673412178);
         assert_eq!(
             result[0].path,
             "C:\\Users\\bob\\Documents\\artemis-core\\target\\release\\examples\\artemis_core.exe"
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(result[0].sha1, "8c55942db046700a0ccddea067e3a6e3cc259424");
         assert_eq!(result[0].reg_path, "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\File\\8195d9c8-2089-11ea-824e-806e6f6e6963\\20000667bc");
 
-        assert_eq!(result[3].first_execution, 1673413026);
+        assert_eq!(result[3].last_modified, 1673413026);
         assert_eq!(
             result[3].path,
             "c:\\program files (x86)\\microsoft\\edge\\application\\msedge.exe"
@@ -291,7 +291,7 @@ mod tests {
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let mut amcache_entry = Amcache {
-                first_execution: entry.last_modified,
+                last_modified: entry.last_modified,
                 path: String::new(),
                 name: String::new(),
                 original_name: String::new(),
@@ -340,7 +340,7 @@ mod tests {
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let mut amcache_entry = Amcache {
-                first_execution: entry.last_modified,
+                last_modified: entry.last_modified,
                 path: String::new(),
                 name: String::new(),
                 original_name: String::new(),
