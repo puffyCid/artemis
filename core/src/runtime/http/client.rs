@@ -3,7 +3,7 @@ use deno_core::{error::AnyError, op2, JsBuffer};
 use log::error;
 use nom::AsBytes;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -14,16 +14,6 @@ pub(crate) struct ClientResponse {
     headers: HashMap<String, String>,
     content_length: u64,
     body: Vec<u8>,
-}
-
-#[derive(Deserialize)]
-struct ClientRequest {
-    url: String,
-    status: u16,
-    headers: HashMap<String, String>,
-    body: JsBuffer,
-    body_type: String,
-    follow_redirects: bool,
 }
 
 #[op2(async)]
