@@ -84,7 +84,6 @@ pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 /// Based on the provided bytes determine the `ShellItem` type and parse it
 pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, item_type) = nom_unsigned_one_byte(data, Endian::Le)?;
-
     // Determine `ShellItem` using known IDs, signatures, and expected `ShellItem` size
     let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb2];
     let drive_item = [0x2f, 0x23, 0x25, 0x29, 0x2a, 0x2e];
@@ -107,6 +106,8 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (remaining_input, shellitem) =
         if directory_items.contains(&item_type) && check_beef(input, &beef0004) {
             parse_directory(input)?
+        } else if item_type == ftp {
+            parse_uri(input)?
         } else if check_zip(data) {
             parse_variable(data)?
         } else if check_mtp_storage(data) {
@@ -131,8 +132,6 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
             parse_control_panel_entry(input)?
         } else if item_type == subroot {
             parse_root(input)?
-        } else if item_type == ftp {
-            parse_uri(input)?
         } else if item_type == delegate {
             get_delegate_shellitem(input)?
         } else if network_items.contains(&item_type) {

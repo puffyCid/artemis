@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis would parse a URI shellitem as a ZIP shellitem
+time: 2024-03-26T00:14:41.4436819-04:00
