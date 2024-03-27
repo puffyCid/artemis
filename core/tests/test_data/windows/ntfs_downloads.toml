@@ -14,7 +14,7 @@ artifact_name = "rawfiles"
 [artifacts.rawfiles]
 drive_letter = 'C'
 start_path = "C:\\Users"
-depth = 20
+depth = 5
 recover_indx = false
 md5 = false
 sha1 = false
