@@ -2,8 +2,8 @@ use crate::utils::strings::extract_utf8_string;
 use deno_core::{error::AnyError, op2, JsBuffer};
 use log::error;
 use nom::AsBytes;
-use reqwest::{redirect::Policy, Client, ClientBuilder};
-use serde::Serialize;
+use reqwest::{redirect::Policy, ClientBuilder};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -16,41 +16,65 @@ pub(crate) struct ClientResponse {
     body: Vec<u8>,
 }
 
+#[derive(Deserialize)]
+struct ClientRequest {
+    url: String,
+    protocol: String,
+    headers: HashMap<String, String>,
+    body_type: String,
+    follow_redirects: bool,
+    verify_ssl: bool,
+}
+
 #[op2(async)]
 #[string]
 /// Make a HTTP request to target URL using specified protocol, headers, and body
 pub(crate) async fn js_request(
-    #[string] url: String,
-    #[string] protocol: String,
-    #[serde] headers: HashMap<String, String>,
+    #[string] js_request: String,
     #[buffer] body: JsBuffer,
-    #[string] body_type: String,
-    #[string] follow_redirects: String,
 ) -> Result<String, AnyError> {
-    let client = if follow_redirects == "disable" {
-        let client_res = ClientBuilder::new().redirect(Policy::none()).build();
-        match client_res {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[runtime] Could not create client: {err:?}");
-                return Err(AnyError::msg("Failed to create HTTP client"));
-            }
+    let request_result = serde_json::from_str(&js_request);
+    let request: ClientRequest = match request_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not parse request: {err:?}");
+            return Err(AnyError::msg(format!("Failed to parse request {err:?}")));
         }
-    } else {
-        Client::new()
     };
 
-    let mut builder = match protocol.as_str() {
-        "GET" => client.get(url),
-        "POST" => client.post(url),
+    let client_res = if !request.follow_redirects {
+        ClientBuilder::new()
+            .redirect(Policy::none())
+            .danger_accept_invalid_certs(!request.verify_ssl)
+            .build()
+    } else {
+        ClientBuilder::new()
+            .danger_accept_invalid_certs(!request.verify_ssl)
+            .build()
+    };
+
+    let client = match client_res {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not create client: {err:?}");
+            return Err(AnyError::msg("Failed to create HTTP client"));
+        }
+    };
+
+    let mut builder = match request.protocol.as_str() {
+        "GET" => client.get(request.url),
+        "POST" => client.post(request.url),
         _ => {
-            error!("[runtime] Unsupported protocol selected: {protocol}");
+            error!(
+                "[runtime] Unsupported protocol selected: {}",
+                request.protocol
+            );
             return Err(AnyError::msg("unsupported protocol"));
         }
     };
 
     // Add the headers
-    for (key, value) in headers {
+    for (key, value) in request.headers {
         builder = builder.header(key, value);
     }
 
@@ -60,7 +84,7 @@ pub(crate) async fn js_request(
         format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
     );
 
-    if body_type == "form" {
+    if request.body_type == "form" {
         let form_data_result = serde_json::from_slice(body.as_bytes());
         let form_data: HashMap<String, Value> = match form_data_result {
             Ok(result) => result,
@@ -129,7 +153,7 @@ mod tests {
         let server = MockServer::start();
         let port = server.port();
 
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2h0dHAvY2xpZW50LnRzCmFzeW5jIGZ1bmN0aW9uIHJlcXVlc3QoCiAgdXJsLAogIHByb3RvY29sLAogIGJvZHkgPSBuZXcgQXJyYXlCdWZmZXIoMCksCiAgaGVhZGVycyA9IHsgIkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiB9LAopIHsKICBjb25zdCByZXN1bHQgPSBhd2FpdCBodHRwLnNlbmQodXJsLCBwcm90b2NvbCwgaGVhZGVycywgYm9keSk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zdCByZXMgPSBKU09OLnBhcnNlKHJlc3VsdCk7CiAgcmV0dXJuIHJlczsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2J5dGVzLnRzCmZ1bmN0aW9uIGVuY29kZUJ5dGVzKGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBlbmNvZGluZy5ieXRlc19lbmNvZGUoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL3N0cmluZ3MudHMKZnVuY3Rpb24gZXh0cmFjdFV0ZjhTdHJpbmcoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGVuY29kaW5nLmV4dHJhY3RfdXRmOF9zdHJpbmcoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVybCA9ICJodHRwOi8vMTI3LjAuMC4xOlJFUExBQ0VQT1JUL3VzZXItYWdlbnQiOwogIGNvbnN0IGJvZHkgPSAiIjsKICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KHVybCwgIkdFVCIsIC8qIEdFVCAqLyBlbmNvZGVCeXRlcyhib2R5KSk7CiAgY29uc29sZS5sb2coSlNPTi5wYXJzZShleHRyYWN0VXRmOFN0cmluZyhuZXcgVWludDhBcnJheShyZXMuYm9keSkpKSk7CiAgcmV0dXJuIHJlczsKfQptYWluKCk7Cg==";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2h0dHAvY2xpZW50LnRzCmFzeW5jIGZ1bmN0aW9uIHJlcXVlc3QoCiAgcmVxdWVzdCwKICBib2R5ID0gbmV3IEFycmF5QnVmZmVyKDApLAopIHsKICBjb25zdCByZXN1bHQgPSBhd2FpdCBodHRwLnNlbmQoSlNPTi5zdHJpbmdpZnkocmVxdWVzdCksIGJvZHkpOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc3QgcmVzID0gSlNPTi5wYXJzZShyZXN1bHQpOwogIHJldHVybiByZXM7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9ieXRlcy50cwpmdW5jdGlvbiBlbmNvZGVCeXRlcyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuYnl0ZXNfZW5jb2RlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9zdHJpbmdzLnRzCmZ1bmN0aW9uIGV4dHJhY3RVdGY4U3RyaW5nKGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBlbmNvZGluZy5leHRyYWN0X3V0Zjhfc3RyaW5nKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIG1haW4udHMKYXN5bmMgZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB1cmwgPSAiaHR0cDovLzEyNy4wLjAuMTpSRVBMQUNFUE9SVC91c2VyLWFnZW50IjsKICBjb25zdCBib2R5ID0gIiI7CiAgY29uc3QganNfcmVxdWVzdCA9IHsKICAgIHVybDogdXJsLAogICAgcHJvdG9jb2w6ICJHRVQiLAogICAgaGVhZGVyczogeyAiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iIH0sCiAgICBib2R5X3R5cGU6ICIiLAogICAgZm9sbG93X3JlZGlyZWN0czogdHJ1ZSwKICAgIHZlcmlmeV9zc2w6IHRydWUsCiAgfQogIGNvbnN0IHJlcyA9IGF3YWl0IHJlcXVlc3QoanNfcmVxdWVzdCwgZW5jb2RlQnl0ZXMoYm9keSkpOwogIGNvbnNvbGUubG9nKEpTT04ucGFyc2UoZXh0cmFjdFV0ZjhTdHJpbmcobmV3IFVpbnQ4QXJyYXkocmVzLmJvZHkpKSkpOwogIHJldHVybiByZXM7Cn0KbWFpbigpOwo=";
         let data = base64_decode_standard(&test).unwrap();
         let temp_script = extract_utf8_string(&data).replace("REPLACEPORT", &format!("{port}"));
         let update_script = base64_encode_standard(temp_script.as_bytes());

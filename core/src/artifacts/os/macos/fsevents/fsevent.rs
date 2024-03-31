@@ -22,7 +22,7 @@ pub(crate) fn fsevents_data(data: &[u8]) -> nom::IResult<&[u8], Vec<FsEvents>> {
     let disk_loggerv1 = 0x444c5331; // DLS1
     let disk_loggerv2 = 0x444c5332; // DLS2
     let disk_loggerv3 = 0x444c5333; // DLS3
-    let versions = vec![disk_loggerv1, disk_loggerv2, disk_loggerv3];
+    let versions = [disk_loggerv1, disk_loggerv2, disk_loggerv3];
     // Loop through all the `FsEvent` data
     while !input.is_empty() {
         // Parse header to get `FsEvent` stream size
