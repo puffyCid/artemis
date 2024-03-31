@@ -6,7 +6,7 @@ use super::error::ProcessError;
 use crate::filesystem::files::{hash_file, Hashes};
 use common::system::Processes;
 use log::{info, warn};
-use sysinfo::{Process, System};
+use sysinfo::{Process, ProcessRefreshKind, System};
 
 #[cfg(target_os = "windows")]
 use super::pe::pe_metadata;
@@ -29,7 +29,7 @@ pub(crate) fn proc_list(
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
 
-    proc.refresh_processes();
+    proc.refresh_processes_specifics(ProcessRefreshKind::everything());
     if proc.processes().is_empty() {
         return Err(ProcessError::Empty);
     }

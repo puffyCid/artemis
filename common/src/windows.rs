@@ -69,7 +69,7 @@ pub struct PeInfo {
  */
 #[derive(Debug, Serialize)]
 pub struct Amcache {
-    pub first_execution: i64,
+    pub last_modified: i64,
     pub path: String,
     pub name: String,
     pub original_name: String,
@@ -1117,7 +1117,7 @@ pub struct Settings {
     pub stop_if_going_on_batteries: Option<bool>,
     pub allow_hard_terminate: Option<bool>,
     pub start_when_available: Option<bool>,
-    pub newtork_profile_name: Option<String>,
+    pub network_profile_name: Option<String>,
     pub run_only_if_network_available: Option<bool>,
     pub wake_to_run: Option<bool>,
     pub enabled: Option<bool>,
@@ -1130,7 +1130,7 @@ pub struct Settings {
     pub run_only_if_idle: Option<bool>,
     pub use_unified_scheduling_engine: Option<bool>,
     pub disallow_start_on_remote_app_session: Option<bool>,
-    pub maintence_settings: Option<MaintenceSettings>,
+    pub maintenance_settings: Option<MaintenanceSettings>,
     pub volatile: Option<bool>,
 }
 
@@ -1155,7 +1155,7 @@ pub struct NetworkSettings {
 }
 
 #[derive(Debug, Serialize)]
-pub struct MaintenceSettings {
+pub struct MaintenanceSettings {
     pub period: String,
     pub deadline: Option<String>,
     pub exclusive: Option<bool>,

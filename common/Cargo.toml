@@ -9,4 +9,4 @@ license = "MIT"
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-plist = "1.6.0"
+plist = "1.6.1"

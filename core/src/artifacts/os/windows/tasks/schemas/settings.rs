@@ -1,4 +1,4 @@
-use common::windows::{IdleSettings, MaintenceSettings, NetworkSettings, RestartType, Settings};
+use common::windows::{IdleSettings, MaintenanceSettings, NetworkSettings, RestartType, Settings};
 use log::error;
 use quick_xml::{events::Event, Reader};
 
@@ -12,7 +12,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
         stop_if_going_on_batteries: None,
         allow_hard_terminate: None,
         start_when_available: None,
-        newtork_profile_name: None,
+        network_profile_name: None,
         run_only_if_network_available: None,
         wake_to_run: None,
         enabled: None,
@@ -25,7 +25,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
         run_only_if_idle: None,
         use_unified_scheduling_engine: None,
         disallow_start_on_remote_app_session: None,
-        maintence_settings: None,
+        maintenance_settings: None,
         volatile: None,
     };
 
@@ -120,7 +120,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
                     );
                 }
                 b"NetworkProfileName" => {
-                    info.newtork_profile_name =
+                    info.network_profile_name =
                         Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
                 b"DeleteExpiredTaskAfter" => {
@@ -143,7 +143,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
                 b"RestartOnFailure" => process_restart(&mut info, reader),
                 b"IdleSettings" => process_idle(&mut info, reader),
                 b"NetworkSettings" => process_network(&mut info, reader),
-                b"MaintenanceSettings" => process_maintence(&mut info, reader),
+                b"MaintenanceSettings" => process_maintenance(&mut info, reader),
                 _ => break,
             },
             _ => (),
@@ -266,9 +266,9 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     info.network_settings = Some(net);
 }
 
-/// Parse `MaintenceSettings`
-fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
-    let mut main = MaintenceSettings {
+/// Parse `MaintenanceSettings`
+fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
+    let mut main = MaintenanceSettings {
         period: String::new(),
         deadline: None,
         exclusive: None,
@@ -276,7 +276,7 @@ fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read MaintenceSettings xml data: {err:?}");
+                error!("[tasks] Could not read MaintenanceSettings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -303,14 +303,14 @@ fn process_maintence(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             _ => (),
         }
     }
-    info.maintence_settings = Some(main);
+    info.maintenance_settings = Some(main);
 }
 
 #[cfg(test)]
 mod tests {
     use super::parse_settings;
     use crate::artifacts::os::windows::tasks::schemas::settings::{
-        process_idle, process_maintence, process_network, process_restart, Settings,
+        process_idle, process_maintenance, process_network, process_restart, Settings,
     };
     use quick_xml::Reader;
 
@@ -355,7 +355,7 @@ mod tests {
             stop_if_going_on_batteries: None,
             allow_hard_terminate: None,
             start_when_available: None,
-            newtork_profile_name: None,
+            network_profile_name: None,
             run_only_if_network_available: None,
             wake_to_run: None,
             enabled: None,
@@ -368,7 +368,7 @@ mod tests {
             run_only_if_idle: None,
             use_unified_scheduling_engine: None,
             disallow_start_on_remote_app_session: None,
-            maintence_settings: None,
+            maintenance_settings: None,
             volatile: None,
         };
         process_restart(&mut info, &mut reader);
@@ -392,7 +392,7 @@ mod tests {
             stop_if_going_on_batteries: None,
             allow_hard_terminate: None,
             start_when_available: None,
-            newtork_profile_name: None,
+            network_profile_name: None,
             run_only_if_network_available: None,
             wake_to_run: None,
             enabled: None,
@@ -405,7 +405,7 @@ mod tests {
             run_only_if_idle: None,
             use_unified_scheduling_engine: None,
             disallow_start_on_remote_app_session: None,
-            maintence_settings: None,
+            maintenance_settings: None,
             volatile: None,
         };
         process_idle(&mut info, &mut reader);
@@ -430,7 +430,7 @@ mod tests {
             stop_if_going_on_batteries: None,
             allow_hard_terminate: None,
             start_when_available: None,
-            newtork_profile_name: None,
+            network_profile_name: None,
             run_only_if_network_available: None,
             wake_to_run: None,
             enabled: None,
@@ -443,7 +443,7 @@ mod tests {
             run_only_if_idle: None,
             use_unified_scheduling_engine: None,
             disallow_start_on_remote_app_session: None,
-            maintence_settings: None,
+            maintenance_settings: None,
             volatile: None,
         };
         process_network(&mut info, &mut reader);
@@ -469,7 +469,7 @@ mod tests {
             stop_if_going_on_batteries: None,
             allow_hard_terminate: None,
             start_when_available: None,
-            newtork_profile_name: None,
+            network_profile_name: None,
             run_only_if_network_available: None,
             wake_to_run: None,
             enabled: None,
@@ -482,10 +482,10 @@ mod tests {
             run_only_if_idle: None,
             use_unified_scheduling_engine: None,
             disallow_start_on_remote_app_session: None,
-            maintence_settings: None,
+            maintenance_settings: None,
             volatile: None,
         };
-        process_maintence(&mut info, &mut reader);
-        assert_eq!(info.maintence_settings.unwrap().deadline.unwrap(), "Now");
+        process_maintenance(&mut info, &mut reader);
+        assert_eq!(info.maintenance_settings.unwrap().deadline.unwrap(), "Now");
     }
 }

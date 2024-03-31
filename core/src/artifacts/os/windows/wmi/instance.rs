@@ -152,7 +152,7 @@ fn grab_instance_data<'a>(
      *     The "Connection" property points to MSFT_CliConnection via the Qualifier
      * class_name: "MSFT_CliAlias", qualifiers: [], properties: [Property { name: "Connection", property_data_type: Object, property_index: 0, data_offset: 0, class_level: 0, qualifiers: [Qualifier { name: "type", value_data_type: String, data: String("object:MSFT_CliConnection") }], instance_value: Initialized, value: Null]
      */
-    let unsupported_types = vec![CimType::Object, CimType::ArrayObject];
+    let unsupported_types = [CimType::Object, CimType::ArrayObject];
 
     // Now get the values for each instance property
     let mut prop_value = BTreeMap::new();
@@ -192,9 +192,9 @@ fn parse_dynamic_props(data: &[u8]) -> nom::IResult<&[u8], ()> {
 /// Get the size in bytes of the property data offsets
 fn get_prop_data_size(props: &[Property]) -> u32 {
     let mut total_size = 0;
-    let eight_bytes = vec![CimType::Uint64, CimType::Sint64, CimType::Real64];
-    let two_bytes = vec![CimType::Uint16, CimType::Sint16, CimType::Bool];
-    let one_byte = vec![CimType::Uint8, CimType::Sint8];
+    let eight_bytes = [CimType::Uint64, CimType::Sint64, CimType::Real64];
+    let two_bytes = [CimType::Uint16, CimType::Sint16, CimType::Bool];
+    let one_byte = [CimType::Uint8, CimType::Sint8];
 
     for prop in props {
         let size = if eight_bytes.contains(&prop.property_data_type) {
