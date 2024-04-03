@@ -8,7 +8,7 @@ use crate::runtime::encoding::{
 use deno_core::Op;
 
 /// Link Rust encoding functions to `Deno core` to provide access to encoding/decoding functions
-pub(crate) fn enocoding_runtime() -> Vec<deno_core::OpDecl> {
+pub(crate) fn enocoding_functions() -> Vec<deno_core::OpDecl> {
     vec![
         js_base64_decode::DECL,
         js_base64_encode::DECL,
@@ -25,11 +25,11 @@ pub(crate) fn enocoding_runtime() -> Vec<deno_core::OpDecl> {
 
 #[cfg(test)]
 mod tests {
-    use super::enocoding_runtime;
+    use super::enocoding_functions;
 
     #[test]
-    fn test_enocoding_runtime() {
-        let results = enocoding_runtime();
+    fn test_enocoding_functions() {
+        let results = enocoding_functions();
         assert!(results.len() > 1)
     }
 }

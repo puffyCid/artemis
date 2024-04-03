@@ -17,7 +17,7 @@ sysinfo = { workspace = true }
 flate2 = { workspace = true }
 glob = { workspace = true }
 
-axum = { version = "0.7.4", default-features = false, features = [
+axum = { version = "0.7.5", default-features = false, features = [
     "http2",
     "json",
     "matched-path",

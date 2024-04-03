@@ -26,7 +26,7 @@ regex = "1.10.4"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.9"
-chrono = "0.4.35"
+chrono = "0.4.37"
 simplelog = "0.12.2"
 zip = { version = "0.6.6", default-features = false }
 jsonwebtoken = "9.3.0"
@@ -40,7 +40,7 @@ ntfs = "0.4.0"
 pelite = "0.10.0"
 elf = "0.7.4"
 ruzstd = "0.6.0"
-lz4_flex = "0.11.2"
+lz4_flex = "0.11.3"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "315da6f59b4995bbcc053fcf100ebae9869a186b" }
 plist = "1.6.1"
@@ -48,7 +48,7 @@ plist = "1.6.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.271.0" }
+deno_core = { version = "0.272.0" }
 tokio = { workspace = true }
 
 # Windows API Dependencies
@@ -57,7 +57,7 @@ ntapi = "0.4.1"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.271.0" }
+deno_core = { version = "0.272.0" }
 
 # Dependencies for tests
 [dev-dependencies]
