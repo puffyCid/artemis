@@ -20,6 +20,8 @@ pub enum CompressionError {
     HuffmanCompression,
     HuffmanCompressionNone,
     HuffmanCompressionDefault,
+    ZlibDecompress,
+    ZlibBadWbits,
 }
 
 impl std::error::Error for CompressionError {}
@@ -50,6 +52,10 @@ impl fmt::Display for CompressionError {
             }
             CompressionError::HuffmanCompressionNone => {
                 write!(f, "Huffman none not supported")
+            }
+            CompressionError::ZlibDecompress => write!(f, "Failed to decompress zlib"),
+            CompressionError::ZlibBadWbits => {
+                write!(f, "Provide bad wbit value. Should be between 9-15")
             }
         }
     }

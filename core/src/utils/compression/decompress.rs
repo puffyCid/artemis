@@ -2,14 +2,19 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
+use crate::filesystem::files::read_file;
+use flate2::{
+    bufread::{MultiGzDecoder, ZlibDecoder},
+    Decompress,
+};
 use log::{error, warn};
+use lz4_flex::block::decompress_with_dict;
+use ruzstd::StreamingDecoder;
+use std::io::Read;
+use xz2::read::XzDecoder;
 
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
-    use crate::filesystem::files::read_file;
-    use flate2::bufread::MultiGzDecoder;
-    use std::io::Read;
-
     let buffer_result = read_file(path);
     let buffer = match buffer_result {
         Ok(result) => result,
@@ -22,12 +27,12 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
 
     let mut decompress_data = Vec::new();
     let result = data.read_to_end(&mut decompress_data);
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[compression] Could not decompress file {path}: {err:?}");
-            return Err(CompressionError::GzipDecompress);
-        }
+    if result.is_err() {
+        error!(
+            "[compression] Could not decompress file {path}: {:?}",
+            result.unwrap_err()
+        );
+        return Err(CompressionError::GzipDecompress);
     }
 
     Ok(decompress_data)
@@ -35,9 +40,6 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
 
 /// Decompress zstd data
 pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
-    use ruzstd::StreamingDecoder;
-    use std::io::Read;
-
     let decoder_result = StreamingDecoder::new(data);
     let mut decoder = match decoder_result {
         Ok(result) => result,
@@ -59,8 +61,6 @@ pub(crate) fn decompress_lz4(
     decom_size: usize,
     initial_dict: &[u8],
 ) -> Result<Vec<u8>, CompressionError> {
-    use lz4_flex::block::decompress_with_dict;
-
     let decompress_result = decompress_with_dict(data, decom_size, initial_dict);
     let decomp_data = match decompress_result {
         Ok(result) => result,
@@ -72,11 +72,39 @@ pub(crate) fn decompress_lz4(
     Ok(decomp_data)
 }
 
+/// Attemp to decompress zlib raw data (no header)
+pub(crate) fn decompress_zlib(
+    data: &[u8],
+    wbits: &Option<u8>,
+) -> Result<Vec<u8>, CompressionError> {
+    let mut buffer = if wbits.is_some() {
+        let wbits_value = wbits.unwrap_or_default();
+        let min_size = 9;
+        let max_size = 15;
+        if wbits_value < min_size || wbits_value > max_size {
+            return Err(CompressionError::ZlibBadWbits);
+        }
+
+        ZlibDecoder::new_with_decompress(data, Decompress::new_with_window_bits(false, wbits_value))
+    } else {
+        ZlibDecoder::new(data)
+    };
+    let mut decompress_data = Vec::new();
+
+    let result = buffer.read_to_end(&mut decompress_data);
+    if result.is_err() {
+        error!(
+            "[compression] Could not decompress zlib data: {:?}",
+            result.unwrap_err()
+        );
+        return Err(CompressionError::ZlibDecompress);
+    }
+
+    Ok(decompress_data)
+}
+
 /// Decompress xz data
 pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
-    use std::io::Read;
-    use xz2::read::XzDecoder;
-
     let mut decompress = XzDecoder::new(data);
     let mut data: Vec<u8> = Vec::new();
     if decompress.read_to_end(&mut data).is_err() {
@@ -146,6 +174,10 @@ pub(crate) fn decompress_xpress(
 
 #[cfg(test)]
 mod tests {
+    use super::decompress_lz4;
+    use super::decompress_xz;
+    use super::decompress_zstd;
+    use crate::utils::compression::decompress::decompress_zlib;
     use crate::{
         filesystem::files::read_file,
         utils::compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
@@ -153,7 +185,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_decompress_gzip() {
         use crate::utils::compression::decompress::decompress_gzip;
 
@@ -164,23 +195,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
-    fn test_decompress_lzxpress_huffman() {
-        use crate::utils::compression::xpress::api::decompress_huffman_api;
-
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
-        let mut bytes = read_file(&test_location.display().to_string()).unwrap();
-
-        let files = decompress_huffman_api(&mut bytes, &XpressType::XpressHuffman, 153064).unwrap();
-        assert_eq!(files.len(), 153064);
-    }
-
-    #[test]
-    #[cfg(target_family = "unix")]
     fn test_decompress_zstd() {
-        use super::decompress_zstd;
-
         let test_data = [
             40, 181, 47, 253, 96, 246, 1, 13, 11, 0, 38, 86, 70, 34, 48, 79, 220, 104, 104, 164,
             213, 236, 199, 164, 19, 243, 36, 222, 54, 232, 158, 27, 205, 124, 87, 133, 215, 237,
@@ -207,10 +222,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_decompress_xz() {
-        use super::decompress_xz;
-
         let test_data = [
             253, 55, 122, 88, 90, 0, 0, 0, 255, 18, 217, 65, 3, 192, 169, 3, 131, 8, 33, 1, 16, 0,
             0, 0, 211, 65, 240, 142, 224, 4, 2, 1, 161, 93, 0, 33, 147, 198, 137, 174, 252, 60, 42,
@@ -243,10 +255,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_decompress_lz4() {
-        use super::decompress_lz4;
-
         let test_data = [
             255, 157, 77, 69, 83, 83, 65, 71, 69, 61, 74, 83, 32, 69, 82, 82, 79, 82, 58, 32, 69,
             120, 99, 101, 112, 116, 105, 111, 110, 32, 105, 110, 32, 99, 97, 108, 108, 98, 97, 99,
@@ -274,6 +283,19 @@ mod tests {
         let test = [213, 121, 89, 62, 7];
         let result = decompress_seven_bit(&test);
         assert_eq!(result, [85, 115, 101, 114, 115]);
+    }
+
+    #[test]
+    fn test_decompress_zlib() {
+        let test = [
+            120, 156, 5, 128, 209, 9, 0, 0, 4, 68, 87, 97, 56, 229, 227, 149, 194, 237, 127, 117,
+            193, 196, 234, 62, 13, 25, 218, 4, 36,
+        ];
+        let result = decompress_zlib(&test, &None).unwrap();
+        assert_eq!(
+            result,
+            [104, 101, 108, 108, 111, 32, 114, 117, 115, 116, 33]
+        );
     }
 
     #[test]

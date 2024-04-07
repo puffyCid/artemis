@@ -1,7 +1,4 @@
-use crate::{
-    runtime::error::RuntimeError,
-    utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
-};
+use crate::utils::{encoding::base64_encode_standard, strings::extract_utf16_string};
 use deno_core::{error::AnyError, op2};
 use log::error;
 use rusqlite::{
@@ -18,9 +15,9 @@ pub(crate) fn query_sqlite(
     #[string] query: String,
 ) -> Result<String, AnyError> {
     // Bypass SQLITE file lock
-    let downloads_file = format!("file:{path}?immutable=1");
+    let sqlite_file = format!("file:{path}?immutable=1");
     let connection = Connection::open_with_flags(
-        downloads_file,
+        sqlite_file,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
     );
     let conn = match connection {
@@ -50,13 +47,10 @@ pub(crate) fn query_sqlite(
             return Err(err.into());
         }
     };
-    if query_data.next().is_err() {
-        error!("[runtime] Failed to get sqlite data from {path}");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
+
     let mut data = Vec::new();
     // Loop through all results
-    while let Some(row) = query_data.next().unwrap() {
+    while let Some(row) = query_data.next()? {
         let mut json_data = serde_json::map::Map::new();
         for column in 0..columns {
             let column_name = row

@@ -16,11 +16,11 @@ use super::{
     unifiedlogs::{get_unified_log, setup_unified_log_parser},
 };
 use crate::runtime::{
-    applications::extensions::app_functions, encoding::extensions::enocoding_runtime,
-    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
-    http::extensions::http_functions, nom::extensions::nom_functions,
-    system::extensions::system_functions, time::extensions::time_functions,
-    unix::extensions::unix_functions,
+    applications::extensions::app_functions, compression::extensions::compression_functions,
+    encoding::extensions::enocoding_functions, environment::extensions::env_runtime,
+    filesystem::extensions::fs_runtime, http::extensions::http_functions,
+    nom::extensions::nom_functions, system::extensions::system_functions,
+    time::extensions::time_functions, unix::extensions::unix_functions,
 };
 use deno_core::{Extension, Op};
 
@@ -65,11 +65,12 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
 
     exts.append(&mut fs_runtime());
     exts.append(&mut env_runtime());
-    exts.append(&mut enocoding_runtime());
+    exts.append(&mut enocoding_functions());
 
     exts.append(&mut nom_functions());
     exts.append(&mut time_functions());
     exts.append(&mut http_functions());
+    exts.append(&mut compression_functions());
 
     exts
 }

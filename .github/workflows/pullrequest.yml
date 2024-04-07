@@ -27,7 +27,7 @@ jobs:
             }
     runs-on: ${{ matrix.info.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Set up Rust toolchain
@@ -37,7 +37,7 @@ jobs:
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
       - name: Setup NodeJS toolchain
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
       - name: Install TailwindCSS
         run: npm install -D tailwindcss
       - name: Install DaisyUI
@@ -48,7 +48,7 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2.5.0
+        uses: Swatinem/rust-cache@v2.7.3
         with:
           save-if: false
       - name: Fmt Check
@@ -56,9 +56,9 @@ jobs:
       - name: Install just runner
         uses: taiki-e/install-action@just
       - name: Install trunk
-        uses: jetli/trunk-action@v0.4.0
+        uses: jetli/trunk-action@v0.5.0
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'
