@@ -19,7 +19,7 @@ jobs:
             }
     runs-on: ${{ matrix.info.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run audit action to view any security issues
         uses: rustsec/audit-check@v1.4.1
         with:
