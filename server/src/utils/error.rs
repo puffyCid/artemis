@@ -18,7 +18,7 @@ impl fmt::Display for UtilServerError {
             UtilServerError::NotFile => write!(f, "Not a file"),
             UtilServerError::ReadFile => write!(f, "Could not read file"),
             UtilServerError::CreateDirectory => write!(f, "Could not create directory"),
-            UtilServerError::GzipDecompress => write!(f, "Could decompress data"),
+            UtilServerError::GzipDecompress => write!(f, "Could not decompress data"),
         }
     }
 }

@@ -1,8 +1,10 @@
 [package]
 name = "core"
+license = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }
-license = "MIT"
+homepage = { workspace = true }
+repository = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -33,7 +35,7 @@ jsonwebtoken = "9.3.0"
 rusty-s3 = "0.5.0"
 quick-xml = { version = "0.31.0", default-features = false }
 xml2json-rs = "1.0.1"
-evtx = { version = "0.8.1", default-features = false, features = [
+evtx = { version = "0.8.2", default-features = false, features = [
     "multithreading",
 ] }
 ntfs = "0.4.0"

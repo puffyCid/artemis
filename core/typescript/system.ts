@@ -67,7 +67,7 @@ class System {
      * @param args Args to pass to command
      * @returns Execution results
      */
-    execute = (command: string, args: Record<number, string>) => {
+    execute = (command: string, args: string[]) => {
         return core.ops.js_command(command, args);
     };
 }

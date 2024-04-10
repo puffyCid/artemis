@@ -2,7 +2,7 @@ use crate::utils::strings::extract_utf8_string;
 use deno_core::{error::AnyError, op2};
 use log::warn;
 use serde::Serialize;
-use std::{collections::HashMap, process::Command};
+use std::process::Command;
 
 #[derive(Serialize)]
 pub(crate) struct CommandResult {
@@ -16,10 +16,10 @@ pub(crate) struct CommandResult {
 /// Expose command execution to the JS Runtime
 pub(crate) fn js_command(
     #[string] command: String,
-    #[serde] args: HashMap<String, String>,
+    #[serde] args: Vec<String>,
 ) -> Result<String, AnyError> {
     let mut comm_args = Vec::new();
-    for value in args.into_values() {
+    for value in args {
         comm_args.push(value);
     }
 
@@ -66,7 +66,7 @@ mod tests {
     #[cfg(target_family = "unix")]
     #[test]
     fn test_js_command() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGNvbW1fYXJncyA9IHt9OwogIGZvciAobGV0IGFyZyA9IDA7IGFyZyA8IGFyZ3MubGVuZ3RoOyBhcmcrKykgewogICAgY29tbV9hcmdzW2FyZ10gPSBhcmdzW2FyZ107CiAgfQogIGNvbnN0IGRhdGEgPSBzeXN0ZW0uZXhlY3V0ZShjb21tYW5kLCBjb21tX2FyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICBjb25zdCByZXN1bHQgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBjb21tYW5kID0gImxzIjsKICBjb25zdCBhcmdzID0gWyItbCIsICItaCIsICItYSJdOwogIGNvbnN0IHJlc3VsdHMgPSBleGVjdXRlQ29tbWFuZChjb21tYW5kLCBhcmdzKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBzeXN0ZW0uZXhlY3V0ZShjb21tYW5kLCBhcmdzKTsKICBpZiAoZGF0YSBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm4gZGF0YTsKICB9CiAgY29uc3QgcmVzdWx0ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgY29tbWFuZCA9ICJscyI7CiAgY29uc3QgYXJncyA9IFsiLWwiLCAiLWgiLCAiLWEiXTsKICBjb25zdCByZXN1bHRzID0gZXhlY3V0ZUNvbW1hbmQoY29tbWFuZCwgYXJncyk7CiAgcmV0dXJuIHJlc3VsdHM7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("command"),
@@ -78,7 +78,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     #[test]
     fn test_js_command() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGNvbW1fYXJncyA9IHt9OwogIGZvciAobGV0IGFyZyA9IDA7IGFyZyA8IGFyZ3MubGVuZ3RoOyBhcmcrKykgewogICAgY29tbV9hcmdzW2FyZ10gPSBhcmdzW2FyZ107CiAgfQogIGNvbnN0IGRhdGEgPSBzeXN0ZW0uZXhlY3V0ZShjb21tYW5kLCBjb21tX2FyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICBjb25zdCByZXN1bHQgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBjb21tYW5kID0gImRpciI7CiAgY29uc3QgYXJncyA9IFtdOwogIGNvbnN0IHJlc3VsdHMgPSBleGVjdXRlQ29tbWFuZChjb21tYW5kLCBhcmdzKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBzeXN0ZW0uZXhlY3V0ZShjb21tYW5kLCBhcmdzKTsKICBpZiAoZGF0YSBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm4gZGF0YTsKICB9CiAgY29uc3QgcmVzdWx0ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgY29tbWFuZCA9ICJkaXIiOwogIGNvbnN0IGFyZ3MgPSBbXTsKICBjb25zdCByZXN1bHRzID0gZXhlY3V0ZUNvbW1hbmQoY29tbWFuZCwgYXJncyk7CiAgcmV0dXJuIHJlc3VsdHM7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("command"),
