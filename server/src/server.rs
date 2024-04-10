@@ -1,11 +1,9 @@
 use crate::{
     routes,
-    utils::{
-        config::{read_config, ArtemisConfig},
-        filesystem::create_dirs,
-    },
+    utils::{config::read_config, filesystem::create_dirs},
 };
 use axum::extract::ws::Message;
+use common::server::ArtemisConfig;
 use log::error;
 use std::{
     collections::HashMap,

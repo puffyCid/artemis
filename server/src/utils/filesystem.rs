@@ -99,7 +99,7 @@ pub(crate) async fn create_dirs(path: &str) -> Result<(), UtilServerError> {
     let result = create_dir_all(path).await;
     if result.is_err() {
         error!(
-            "[server] Failed to directory {path}: {:?}",
+            "[server] Failed to create directory {path}: {:?}",
             result.unwrap_err()
         );
         return Err(UtilServerError::CreateDirectory);

@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::enrollment::{EndpointEnrollment, EndpointInfo},
+    artifacts::enrollment::EndpointEnrollment,
     filestore::error::StoreError,
     utils::{
         filesystem::{create_dirs, read_file, read_lines, write_file},
@@ -7,7 +7,7 @@ use crate::{
         uuid::generate_uuid,
     },
 };
-use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
+use common::server::{EndpointInfo, EndpointList, EndpointOS, EndpointRequest, Heartbeat};
 use log::error;
 use serde::Serialize;
 
@@ -294,14 +294,13 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, StoreError
 mod tests {
     use super::{create_endpoint_path, create_enroll_file};
     use crate::{
-        artifacts::enrollment::EndpointInfo,
         filestore::endpoints::{
             endpoint_count, enroll_filter, get_endpoints, glob_paths, read_enroll, recent_heartbeat,
         },
         utils::{config::read_config, filesystem::create_dirs},
     };
     use common::{
-        server::{EndpointOS, EndpointRequest},
+        server::{EndpointInfo, EndpointOS, EndpointRequest},
         system::Memory,
     };
     use std::path::PathBuf;

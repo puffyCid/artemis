@@ -1,33 +1,18 @@
 use crate::{
-    artifacts::enrollment::{Endpoint, EndpointInfo},
-    filestore::endpoints::create_endpoint_path,
-    server::ServerState,
-    utils::filesystem::is_directory,
+    artifacts::enrollment::Endpoint, filestore::endpoints::create_endpoint_path,
+    server::ServerState, utils::filesystem::is_directory,
 };
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
+use common::server::{EnrollSystem, EnrollmentResponse};
 use log::error;
-use serde::{Deserialize, Serialize};
 use serde_json::Error;
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct Enrollment {
-    pub(crate) enroll_key: String,
-    pub(crate) endpoint_info: EndpointInfo,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Enrolled {
-    pub(crate) endpoint_id: String,
-    //Base64 TOML client config */
-    pub(crate) client_config: String,
-}
 
 /// Enroll an endpoint
 pub(crate) async fn enroll_endpoint(
     State(state): State<ServerState>,
-    Json(data): Json<Enrollment>,
-) -> Result<Json<Enrolled>, StatusCode> {
+    Json(data): Json<EnrollSystem>,
+) -> Result<Json<EnrollmentResponse>, StatusCode> {
     let key = data.enroll_key;
 
     // Check to make sure the endpoint contains the correct enrollment key
@@ -46,10 +31,7 @@ pub(crate) async fn enroll_endpoint(
         }
     };
 
-    let enrolled = Enrolled {
-        endpoint_id,
-        client_config: String::new(),
-    };
+    let enrolled = EnrollmentResponse { endpoint_id };
 
     Ok(Json(enrolled))
 }
@@ -78,19 +60,21 @@ pub(crate) fn verify_enrollment(data: &str, ip: &str, path: &str) -> Result<(), 
 mod tests {
     use super::verify_enrollment;
     use crate::{
-        artifacts::enrollment::EndpointInfo,
-        enrollment::enroll::{enroll_endpoint, Enrollment},
+        enrollment::enroll::enroll_endpoint,
         server::ServerState,
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
-    use common::system::Memory;
+    use common::{
+        server::{EndpointInfo, EnrollSystem},
+        system::Memory,
+    };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
     use tokio::sync::RwLock;
 
     #[tokio::test]
     async fn test_enroll_endpoint() {
-        let info = Enrollment {
+        let info = EnrollSystem {
             enroll_key: String::from("arandomkey"),
             endpoint_info: EndpointInfo {
                 boot_time: 0,
@@ -132,7 +116,7 @@ mod tests {
     #[tokio::test]
     #[should_panic(expected = "400")]
     async fn test_enroll_endpoint_bad() {
-        let info = Enrollment {
+        let info = EnrollSystem {
             enroll_key: String::from("bad"),
             endpoint_info: EndpointInfo {
                 boot_time: 0,

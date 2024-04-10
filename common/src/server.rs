@@ -134,3 +134,52 @@ pub struct ProcessJob {
     pub job: JobInfo,
     pub data: Vec<Processes>,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ArtemisConfig {
+    pub metadata: ArtemisInfo,
+    pub enroll_key: String,
+    pub endpoint_id: String,
+    pub endpoint_server: EndpointServer,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ArtemisInfo {
+    pub version: String,
+    pub name: String,
+    pub target: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EndpointServer {
+    pub address: String,
+    pub port: u16,
+    pub cert: String,
+    pub storage: String,
+    pub verify_ssl: bool,
+    pub version: u8,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EnrollmentResponse {
+    pub endpoint_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EndpointInfo {
+    pub boot_time: u64,
+    pub hostname: String,
+    pub os_version: String,
+    pub uptime: u64,
+    pub kernel_version: String,
+    pub platform: String,
+    pub cpu: Vec<Cpus>,
+    pub disks: Vec<DiskDrives>,
+    pub memory: Memory,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EnrollSystem {
+    pub enroll_key: String,
+    pub endpoint_info: EndpointInfo,
+}

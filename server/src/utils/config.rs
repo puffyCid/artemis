@@ -1,29 +1,7 @@
 use super::{error::UtilServerError, filesystem::read_file, uuid::generate_uuid};
+use common::server::{ArtemisConfig, ArtemisInfo, EndpointServer};
 use log::error;
-use serde::Deserialize;
 use std::str::from_utf8;
-
-#[derive(Debug, Deserialize, Clone)]
-pub(crate) struct ArtemisConfig {
-    pub(crate) metadata: ArtemisInfo,
-    pub(crate) enroll_key: String,
-    pub(crate) endpoint_server: EndpointServer,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub(crate) struct ArtemisInfo {
-    pub(crate) version: String,
-    pub(crate) name: String,
-    pub(crate) target: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub(crate) struct EndpointServer {
-    pub(crate) address: String,
-    pub(crate) port: u16,
-    pub(crate) cert: String,
-    pub(crate) storage: String,
-}
 
 /// Generate a server TOML config file
 pub(crate) fn generate_config() -> ArtemisConfig {
@@ -38,11 +16,14 @@ pub(crate) fn generate_config() -> ArtemisConfig {
         port: 8443,
         cert: String::new(),
         storage: String::new(),
+        verify_ssl: true,
+        version: 1,
     };
 
     ArtemisConfig {
         metadata,
         enroll_key: generate_uuid(),
+        endpoint_id: String::new(),
         endpoint_server,
     }
 }

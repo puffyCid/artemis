@@ -97,8 +97,7 @@ async fn endpoint_path(data: &str, state: &ServerState) -> Result<String, Status
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::enrollment::EndpointInfo,
-        enrollment::enroll::{enroll_endpoint, Enrollment},
+        enrollment::enroll::enroll_endpoint,
         frontend::endpoints::{
             endpoint_info, endpoint_list, endpoint_path, endpoint_processes, endpoint_stats,
         },
@@ -107,7 +106,7 @@ mod tests {
     };
     use axum::{extract::State, Json};
     use common::{
-        server::{EndpointOS, EndpointRequest},
+        server::{EndpointInfo, EndpointOS, EndpointRequest, EnrollSystem},
         system::Memory,
     };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -152,7 +151,7 @@ mod tests {
             search: String::new(),
         });
 
-        let info = Enrollment {
+        let info = EnrollSystem {
             enroll_key: String::from("arandomkey"),
             endpoint_info: EndpointInfo {
                 boot_time: 0,

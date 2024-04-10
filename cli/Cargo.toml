@@ -1,8 +1,10 @@
 [package]
 name = "artemis"
+license = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }
-license = "MIT"
+homepage = { workspace = true }
+repository = { workspace = true }
 
 [dependencies]
 base64 = { workspace = true }

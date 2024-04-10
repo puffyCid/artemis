@@ -1,6 +1,6 @@
 [package]
 name = "artemis-webui"
-license = "MIT"
+license = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }
 homepage = { workspace = true }

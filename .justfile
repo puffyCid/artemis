@@ -51,6 +51,12 @@ linux: (_test "artifacts::os::linux")
 # Test all the Unix artifacts
 unix: (_test "artifacts::os::unix")
 
+# Spawn single client and attempt to connect to server
+client:
+  cd client && cargo build --release --examples
+  cd target/release/examples && ./start_client ../../../client/tests/test_data/client.toml
+  
+
 # Compile WASM and server code then start the server
 server:(_wasm)
   cd server && cargo build --release --examples

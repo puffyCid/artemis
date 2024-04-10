@@ -2,7 +2,7 @@ use crate::utils::strings::extract_utf8_string;
 use deno_core::{error::AnyError, op2};
 use log::warn;
 use serde::Serialize;
-use std::{collections::HashMap, process::Command};
+use std::process::Command;
 
 #[derive(Serialize)]
 pub(crate) struct CommandResult {
@@ -16,10 +16,10 @@ pub(crate) struct CommandResult {
 /// Expose command execution to the JS Runtime
 pub(crate) fn js_command(
     #[string] command: String,
-    #[serde] args: HashMap<String, String>,
+    #[serde] args: Vec<String>,
 ) -> Result<String, AnyError> {
     let mut comm_args = Vec::new();
-    for value in args.into_values() {
+    for value in args {
         comm_args.push(value);
     }
 
