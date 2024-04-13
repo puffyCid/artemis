@@ -1,9 +1,8 @@
 use crate::runtime::compression::decompress::js_decompress_zlib;
-use deno_core::Op;
 
 /// Link Rust compression functions to `Deno core`
 pub(crate) fn compression_functions() -> Vec<deno_core::OpDecl> {
-    vec![js_decompress_zlib::DECL]
+    vec![js_decompress_zlib()]
 }
 
 #[cfg(test)]
