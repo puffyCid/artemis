@@ -7,7 +7,7 @@ use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
 use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions};
 use log::error;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::rc::Rc;
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
@@ -37,8 +37,8 @@ pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, A
                 aggregated: None,
             };
             error!("[runtime] Could not execute script: {err:?}");
-            let value_error = Value::from(js_error.to_string());
-            // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
+            let value_error = json!(js_error);
+            // Instead of erroring in Rust and cancelling the script. Let JavaScript handle the errors
             return Ok(value_error);
         }
     };
@@ -82,8 +82,8 @@ pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Va
                 aggregated: None,
             };
             error!("[runtime] Could not execute script: {err:?}");
-            let value_error = Value::from(js_error.to_string());
-            // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
+            let value_error = json!(js_error);
+            // Instead of erroring in Rust and cancelling the script. Let JavaScript handle the errors
             return Ok(value_error);
         }
     };

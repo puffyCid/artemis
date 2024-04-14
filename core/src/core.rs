@@ -7,6 +7,7 @@ use crate::{
     utils::logging::create_log_file,
 };
 use log::{error, info, LevelFilter};
+use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
 
 /// Parse a TOML file at provided path
@@ -45,7 +46,7 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
 }
 
 /// Execute a JavaScript file at provided path
-pub fn parse_js_file(path: &str) -> Result<(), TomlError> {
+pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
     let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
     let code_result = read_text_file(path);
     let script = match code_result {
@@ -61,7 +62,7 @@ pub fn parse_js_file(path: &str) -> Result<(), TomlError> {
         return Err(TomlError::BadJs);
     }
 
-    Ok(())
+    Ok(script_result.unwrap_or_default())
 }
 
 /// Based on target system collect data based on TOML config

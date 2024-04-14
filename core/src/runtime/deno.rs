@@ -31,7 +31,7 @@ pub(crate) fn filter_script(
 }
 
 /// Execute raw JavaScript code
-pub(crate) fn raw_script(script: &str) -> Result<(), RuntimeError> {
+pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     let args = [];
     let result = if script.contains("async function ") || script.contains(" await ") {
         run_async_script(script, &args)
@@ -39,8 +39,8 @@ pub(crate) fn raw_script(script: &str) -> Result<(), RuntimeError> {
         run_script(script, &args)
     };
 
-    match result {
-        Ok(_result) => {}
+   let status = match result {
+        Ok(result) => result,
         Err(err) => {
             error!(
                 "[runtime] Could not execute javascript: {}",
@@ -50,7 +50,7 @@ pub(crate) fn raw_script(script: &str) -> Result<(), RuntimeError> {
         }
     };
 
-    Ok(())
+    Ok(status)
 }
 
 /// Base64 decode the Javascript string and execute using Deno runtime and output the returned value
