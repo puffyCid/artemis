@@ -1,4 +1,8 @@
-use crate::{output::formats::{json::raw_json, jsonl::raw_jsonl}, runtime::deno::output_data, structs::toml::Output};
+use crate::{
+    output::formats::{json::raw_json, jsonl::raw_jsonl},
+    runtime::deno::output_data,
+    structs::toml::Output,
+};
 use deno_core::{error::AnyError, op2};
 use log::error;
 use serde_json::Value;
@@ -66,7 +70,7 @@ pub(crate) fn raw_dump(
     };
 
     if output.format == "jsonl" {
-       raw_jsonl(&serde_data, &output_name, &mut output)?;
+        raw_jsonl(&serde_data, &output_name, &mut output)?;
     } else if output.format == "json" {
         raw_json(&serde_data, &output_name, &mut output)?;
     } else {
@@ -132,5 +136,4 @@ mod tests {
         };
         execute_script(&mut output, &script).unwrap();
     }
-
 }

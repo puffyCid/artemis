@@ -39,7 +39,7 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
         run_script(script, &args)
     };
 
-   let status = match result {
+    let status = match result {
         Ok(result) => result,
         Err(err) => {
             error!(
