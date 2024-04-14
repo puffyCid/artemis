@@ -1,7 +1,7 @@
 use super::logons::get_logon;
 use super::sudo::get_sudologs_linux;
 use crate::runtime::linux::{executable::get_elf, journal::get_journal};
-use deno_core::{Extension, Op};
+use deno_core::Extension;
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_linux_extensions() -> Vec<Extension> {
@@ -15,12 +15,7 @@ pub(crate) fn setup_linux_extensions() -> Vec<Extension> {
 
 /// Link Rust functions to `Deno core`
 fn grab_functions() -> Vec<deno_core::OpDecl> {
-    let exts = vec![
-        get_elf::DECL,
-        get_journal::DECL,
-        get_logon::DECL,
-        get_sudologs_linux::DECL,
-    ];
+    let exts = vec![get_elf(), get_journal(), get_logon(), get_sudologs_linux()];
 
     exts
 }

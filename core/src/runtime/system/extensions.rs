@@ -4,30 +4,30 @@ use crate::runtime::system::{
     disks::js_disk_info,
     logging::js_log,
     memory::js_memory_info,
-    output::output_results,
+    output::{output_results, raw_dump},
     processes::get_processes,
     systeminfo::{
         get_systeminfo, js_hostname, js_kernel_version, js_os_version, js_platform, js_uptime,
     },
 };
-use deno_core::Op;
 
 /// Link Rust functions to `Deno core`
 pub(crate) fn system_functions() -> Vec<deno_core::OpDecl> {
     vec![
-        get_processes::DECL,
-        get_systeminfo::DECL,
-        output_results::DECL,
-        js_uptime::DECL,
-        js_hostname::DECL,
-        js_os_version::DECL,
-        js_kernel_version::DECL,
-        js_platform::DECL,
-        js_cpu_info::DECL,
-        js_disk_info::DECL,
-        js_memory_info::DECL,
-        js_command::DECL,
-        js_log::DECL,
+        get_processes(),
+        get_systeminfo(),
+        output_results(),
+        raw_dump(),
+        js_uptime(),
+        js_hostname(),
+        js_os_version(),
+        js_kernel_version(),
+        js_platform(),
+        js_cpu_info(),
+        js_disk_info(),
+        js_memory_info(),
+        js_command(),
+        js_log(),
     ]
 }
 

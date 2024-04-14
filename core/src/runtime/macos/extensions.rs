@@ -22,7 +22,7 @@ use crate::runtime::{
     nom::extensions::nom_functions, system::extensions::system_functions,
     time::extensions::time_functions, unix::extensions::unix_functions,
 };
-use deno_core::{Extension, Op};
+use deno_core::Extension;
 
 /// Include all the `Artemis` function in the `Runtime`
 pub(crate) fn setup_macos_extensions() -> Vec<Extension> {
@@ -37,26 +37,26 @@ pub(crate) fn setup_macos_extensions() -> Vec<Extension> {
 /// Link Rust functions to `Deno core`
 fn grab_functions() -> Vec<deno_core::OpDecl> {
     let mut exts = vec![
-        get_launchd_daemons::DECL,
-        get_launchd_agents::DECL,
-        get_unified_log::DECL,
-        setup_unified_log_parser::DECL,
-        get_plist::DECL,
-        get_plist_data::DECL,
-        get_fsevents::DECL,
-        get_macho::DECL,
-        get_loginitems::DECL,
-        get_users_macos::DECL,
-        get_groups_macos::DECL,
-        get_emond::DECL,
-        get_safari_users_history::DECL,
-        get_safari_history::DECL,
-        get_safari_users_downloads::DECL,
-        get_safari_downloads::DECL,
-        get_execpolicy::DECL,
-        get_sudologs_macos::DECL,
-        get_spotlight::DECL,
-        setup_spotlight_parser::DECL,
+        get_launchd_daemons(),
+        get_launchd_agents(),
+        get_unified_log(),
+        setup_unified_log_parser(),
+        get_plist(),
+        get_plist_data(),
+        get_fsevents(),
+        get_macho(),
+        get_loginitems(),
+        get_users_macos(),
+        get_groups_macos(),
+        get_emond(),
+        get_safari_users_history(),
+        get_safari_history(),
+        get_safari_users_downloads(),
+        get_safari_downloads(),
+        get_execpolicy(),
+        get_sudologs_macos(),
+        get_spotlight(),
+        setup_spotlight_parser(),
     ];
 
     exts.append(&mut app_functions());

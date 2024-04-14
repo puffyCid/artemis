@@ -10,7 +10,7 @@ use crate::{
 use log::{error, info};
 use serde_json::{json, Value};
 
-/// Output to `json` format
+/// Output to `json` format with some metdata
 pub(crate) fn json_format(
     serde_data: &Value,
     output_name: &str,
@@ -37,7 +37,16 @@ pub(crate) fn json_format(
 
     collection_output["data"] = serde_data.clone();
 
-    let serde_collection_results = serde_json::to_string(&collection_output);
+    raw_json(&collection_output, output_name, output)
+}
+
+/// Output to `json` format
+pub(crate) fn raw_json(
+    serde_data: &Value,
+    output_name: &str,
+    output: &mut Output,
+) -> Result<(), FormatError> {
+    let serde_collection_results = serde_json::to_string(serde_data);
     let serde_collection = match serde_collection_results {
         Ok(results) => results,
         Err(err) => {
@@ -78,8 +87,10 @@ pub(crate) fn json_format(
 mod tests {
     use crate::{output::formats::json::json_format, structs::toml::Output, utils::time::time_now};
 
+    use super::raw_json;
+
     #[test]
-    fn test_output_data() {
+    fn test_json_format() {
         let mut output = Output {
             name: String::from("format_test"),
             directory: String::from("./tmp"),
@@ -99,5 +110,27 @@ mod tests {
         let name = "test";
         let data = serde_json::Value::String(String::from("test"));
         json_format(&data, name, &mut output, &start_time).unwrap();
+    }
+
+    #[test]
+    fn test_raw_json() {
+        let mut output = Output {
+            name: String::from("format_test_raw"),
+            directory: String::from("./tmp"),
+            format: String::from("json"),
+            compress: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("json"),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        };
+
+        let name = "test";
+        let data = serde_json::Value::String(String::from("test123"));
+        raw_json(&data, name, &mut output).unwrap();
     }
 }
