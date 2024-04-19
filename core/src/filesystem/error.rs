@@ -20,6 +20,10 @@ pub(crate) enum FileSystemError {
     NoDataAttributeValue,
     LargeFile,
     NoRootHome,
+    WriteFile,
+    CompressFile,
+    CompressedBytes,
+    AcquireFile,
 }
 
 impl std::error::Error for FileSystemError {}
@@ -47,6 +51,10 @@ impl fmt::Display for FileSystemError {
             }
             FileSystemError::NoRootHome => write!(f, "Could not find root home directory"),
             FileSystemError::NoAttribute => write!(f, "No attribute for entry"),
+            FileSystemError::WriteFile => write!(f, "Cannot write acquire file"),
+            FileSystemError::CompressFile => write!(f, "Cannot compress acquire file"),
+            FileSystemError::CompressedBytes => write!(f, "Cannot compress all bytes"),
+            FileSystemError::AcquireFile => write!(f, "Could not finish file acquisition"),
         }
     }
 }

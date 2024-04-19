@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::fs::symlink_metadata;
 use std::{fs::Metadata, io::Error};
 
-// Timestamps containing number of seconds since UNIX-EPOCH
+// Timestamps containing number of seconds since UNIXEPOCH
 pub(crate) struct StandardTimestamps {
     pub(crate) created: i64,
     pub(crate) modified: i64,

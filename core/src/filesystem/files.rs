@@ -1,11 +1,13 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
+use crate::output::files::local::{AcquireAction, AcquireFileApi};
+use crate::structs::toml::Output;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use serde::Deserialize;
 use sha1::Sha1;
 use sha2::Sha256;
 use std::fs::read_to_string;
-use std::io::{BufRead, BufReader, Lines};
+use std::io::{BufRead, BufReader, Lines, Write};
 use std::{
     fs::{read, read_dir, File},
     io::{copy, Read},
@@ -120,6 +122,88 @@ pub(crate) fn read_file_custom(path: &str, size: &u64) -> Result<Vec<u8>, FileSy
         return Err(FileSystemError::LargeFile);
     }
     file_read(path)
+}
+
+pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemError> {
+    let mut acquire = AcquireFileApi {
+        path: path.to_string(),
+        filename: get_filename(path),
+        output,
+        md5: String::new(),
+    };
+    let bytes_limit = 1024 * 1024 * 64;
+
+    let reader_result = acquire.reader();
+    let mut reader = match reader_result {
+        Ok(result) => result,
+        Err(_err) => {
+            return Err(FileSystemError::ReadFile);
+        }
+    };
+
+    let compressor_result = acquire.compressor();
+    let mut compressor = match compressor_result {
+        Ok(result) => result,
+        Err(_err) => {
+            return Err(FileSystemError::CompressFile);
+        }
+    };
+
+    let mut buf = vec![0; bytes_limit];
+    let mut md5 = Md5::new();
+
+    loop {
+        let bytes_read = reader.read(&mut buf);
+        if bytes_read.is_err() {
+            error!(
+                "[artemis-core] Failed to read all bytes from file {path}: {:?}",
+                bytes_read.unwrap_err()
+            );
+            return Err(FileSystemError::ReadFile);
+        }
+
+        let bytes = bytes_read.unwrap_or_default();
+
+        if bytes == 0 {
+            break;
+        }
+
+        if bytes < bytes_limit {
+            buf = buf[0..bytes].to_vec();
+        }
+        let _ = copy(&mut buf.as_slice(), &mut md5);
+
+        let bytes_written = compressor.write_all(&buf);
+        if bytes_written.is_err() {
+            error!(
+                "[artemis-core] Failed to compress all bytes from file {path}: {:?}",
+                bytes_written.unwrap_err()
+            );
+            return Err(FileSystemError::CompressFile);
+        }
+    }
+
+    let compress_file = compressor.finish();
+    if compress_file.is_err() {
+        error!(
+            "[artemis-core] Could not finish compression: {:?}",
+            compress_file.unwrap_err()
+        );
+        return Err(FileSystemError::CompressedBytes);
+    }
+    let hash = md5.finalize();
+    acquire.md5 = format!("{hash:x}");
+
+    let status = acquire.finish();
+    if status.is_err() {
+        error!(
+            "[artemis-core] Could not finish file acquisition: {:?}",
+            status.unwrap_err()
+        );
+        return Err(FileSystemError::AcquireFile);
+    }
+
+    Ok(())
 }
 
 /// Read a file into memory
@@ -332,11 +416,14 @@ pub(crate) fn get_filename(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{file_too_large, is_file, list_files_directories};
-    use crate::filesystem::files::{
-        file_extension, file_lines, file_read_text, file_reader, file_too_large_custom,
-        get_file_size, get_filename, hash_file, hash_file_data, list_files, read_file,
-        read_file_custom, read_text_file, Hashes,
+    use super::{acquire_file, file_too_large, is_file, list_files_directories};
+    use crate::{
+        filesystem::files::{
+            file_extension, file_lines, file_read_text, file_reader, file_too_large_custom,
+            get_file_size, get_filename, hash_file, hash_file_data, list_files, read_file,
+            read_file_custom, read_text_file, Hashes,
+        },
+        structs::toml::Output,
     };
     use std::path::PathBuf;
 
@@ -375,6 +462,29 @@ mod tests {
             results.next().unwrap().unwrap().to_string(),
             "sudo cp /.fseventsd ~/Desktop/"
         );
+    }
+
+    #[test]
+    fn test_acquire_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/unix/bash/bash_history");
+
+        let out = Output {
+            name: String::from("acquire_file"),
+            directory: String::from("./tmp"),
+            format: String::from(""),
+            compress: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("local"),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        };
+
+        acquire_file(&test_location.display().to_string(), out).unwrap();
     }
 
     #[test]
