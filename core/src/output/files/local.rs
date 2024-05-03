@@ -6,12 +6,12 @@ use crate::{
     },
     output::local::output::local_output,
     structs::toml::Output,
-    utils::compression::compress::compress_output_zip,
+    utils::{compression::compress::compress_output_zip, uuid::generate_uuid},
 };
 use flate2::{write::GzEncoder, Compression};
 use log::error;
 use serde::Serialize;
-use std::fs::{create_dir_all, remove_file, File, OpenOptions};
+use std::fs::{create_dir_all, remove_dir, remove_file, File, OpenOptions};
 
 pub(crate) struct AcquireFileApi {
     pub(crate) path: String,
@@ -32,13 +32,14 @@ struct AcquireMetadata {
     md5: String,
 }
 
-pub(crate) trait AcquireAction {
+pub(crate) trait AcquireActionLocal {
     fn reader(&self) -> Result<File, AcquireError>;
     fn compressor(&self) -> Result<GzEncoder<File>, AcquireError>;
     fn finish(&self) -> Result<(), AcquireError>;
 }
 
-impl AcquireAction for AcquireFileApi {
+impl AcquireActionLocal for AcquireFileApi {
+    /// Create a reader for user to read acquired file
     fn reader(&self) -> Result<File, AcquireError> {
         let reader_result = file_reader(&self.path);
         let reader = match reader_result {
@@ -55,6 +56,7 @@ impl AcquireAction for AcquireFileApi {
         Ok(reader)
     }
 
+    /// Compress the acquired file
     fn compressor(&self) -> Result<GzEncoder<File>, AcquireError> {
         let output_path = format!("{}/{}", &self.output.directory, &self.output.name);
 
@@ -82,6 +84,7 @@ impl AcquireAction for AcquireFileApi {
         Ok(GzEncoder::new(writer, Compression::default()))
     }
 
+    /// Finish the file acquision by grabbing file metadata and compressing everything
     fn finish(&self) -> Result<(), AcquireError> {
         let timestamps_result = get_timestamps(&self.path);
         let timestamps = match timestamps_result {
@@ -129,7 +132,7 @@ impl AcquireAction for AcquireFileApi {
         }
 
         let directory = format!("{}/{}", &self.output.directory, &self.output.name);
-        let zip_name = format!("{}/{}", &self.output.directory, &self.output.name);
+        let zip_name = format!("{}/{}", &self.output.directory, &generate_uuid());
 
         let zip_out = compress_output_zip(&directory, &zip_name);
         if zip_out.is_err() {
@@ -153,8 +156,17 @@ impl AcquireAction for AcquireFileApi {
         let acq_file_json = format!("{directory}/{}-metadata.json", &self.filename);
         let status = remove_file(acq_file_json);
         if status.is_err() {
-            println!(
+            error!(
                 "[artemis-core] Failed to remove acquired file metadata: {:?}",
+                status.unwrap_err()
+            );
+            return Err(AcquireError::Cleanup);
+        }
+
+        let status = remove_dir(directory);
+        if status.is_err() {
+            error!(
+                "[artemis-core] Failed to remove output directory name: {:?}",
                 status.unwrap_err()
             );
             return Err(AcquireError::Cleanup);

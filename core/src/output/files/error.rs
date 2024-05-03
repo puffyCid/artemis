@@ -9,6 +9,11 @@ pub(crate) enum AcquireError {
     Metadata,
     ZipOutput,
     Cleanup,
+    MaxAttempts,
+    GcpStatus,
+    GcpSetup,
+    GcpToken,
+    GcpSession,
 }
 
 impl std::error::Error for AcquireError {}
@@ -23,6 +28,11 @@ impl fmt::Display for AcquireError {
             AcquireError::Metadata => write!(f, "Could not get metadata for acquired file"),
             AcquireError::ZipOutput => write!(f, "Could not zip acquired file"),
             AcquireError::Cleanup => write!(f, "Could not cleanup file acquisition"),
+            AcquireError::MaxAttempts => write!(f, "Reached max upload attempts"),
+            AcquireError::GcpStatus => write!(f, "No upload status response"),
+            AcquireError::GcpSetup => write!(f, "Could not setup GCP upload"),
+            AcquireError::GcpToken => write!(f, "Could not create GCP token"),
+            AcquireError::GcpSession => write!(f, "Could not create GCP session"),
         }
     }
 }
