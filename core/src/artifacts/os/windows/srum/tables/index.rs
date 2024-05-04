@@ -20,9 +20,9 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
         let mut blob = Vec::new();
         for column in rows {
             if column.column_name == "IdType" {
-                col_type = column.column_data.clone();
+                col_type.clone_from(&column.column_data);
             } else if column.column_name == "IdIndex" {
-                id = column.column_data.clone();
+                id.clone_from(&column.column_data);
             } else if column.column_name == "IdBlob" {
                 let decode_results = base64_decode_standard(&column.column_data);
                 blob = match decode_results {

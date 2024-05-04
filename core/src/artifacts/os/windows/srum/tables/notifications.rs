@@ -31,17 +31,17 @@ pub(crate) fn parse_notification(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        notif.app_id = value.clone();
+                        notif.app_id.clone_from(value);
                         continue;
                     }
-                    notif.app_id = column.column_data.clone();
+                    notif.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        notif.user_id = value.clone();
+                        notif.user_id.clone_from(value);
                         continue;
                     }
-                    notif.user_id = column.column_data.clone();
+                    notif.user_id.clone_from(&column.column_data);
                 }
                 "NotificationType" => {
                     notif.notification_type = column.column_data.parse::<i32>().unwrap_or_default();

@@ -116,7 +116,7 @@ pub(crate) fn ntfs_filelist(
         start_path_depth += 1;
     }
     // restore original start path
-    start_path = rawfile_params.start_path.clone();
+    start_path.clone_from(&rawfile_params.start_path);
 
     // Before parsing the NTFS data, grab Windows SIDs so we can map files to User and Group SIDs
     let sids = SecurityIDs::get_security_ids(&root_dir, &mut ntfs_parser.fs, &ntfs_parser.ntfs)?;

@@ -1,6 +1,7 @@
 use leptos::{component, view, IntoView, Transition};
 
 #[component]
+/// Rust page
 pub(crate) fn RustInfo() -> impl IntoView {
     view! {
         <div class ="stat shadow">

@@ -130,7 +130,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                     }
 
                     loginitems_data.app_binary = key;
-                    loginitems_data.source_path = file.clone();
+                    loginitems_data.source_path.clone_from(&file);
                     loginitems_vec.push(loginitems_data);
                 }
             }

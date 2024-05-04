@@ -7,6 +7,7 @@ use leptos::{component, view, IntoView};
 use leptos_meta::Stylesheet;
 
 #[component]
+/// List endpoints page
 pub(crate) fn Endpoints() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
@@ -19,6 +20,7 @@ pub(crate) fn Endpoints() -> impl IntoView {
 }
 
 #[component]
+/// Endpoint info page
 pub(crate) fn EndpointInfo() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/tailwind.css"/>

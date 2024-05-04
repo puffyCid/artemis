@@ -57,13 +57,13 @@ pub(crate) fn parse_index_gthr(
                         }
                     }
                 }
-                "FileName" => entry.entry = column.column_data.clone(),
+                "FileName" => entry.entry.clone_from(&column.column_data),
                 _ => continue,
             }
         }
 
         if let Some(props) = lookups.get(&entry.document_id.to_string()) {
-            entry.properties = props.clone();
+            entry.properties.clone_from(props);
         }
 
         entries.push(entry);
@@ -152,13 +152,13 @@ pub(crate) fn parse_index_gthr_path(
                         }
                     }
                 }
-                "FileName" => entry.entry = column.column_data.clone(),
+                "FileName" => entry.entry.clone_from(&column.column_data),
                 _ => continue,
             }
         }
 
         if let Some(props) = lookups.get(&entry.document_id.to_string()) {
-            entry.properties = props.clone();
+            entry.properties.clone_from(props);
         }
 
         entries.push(entry);

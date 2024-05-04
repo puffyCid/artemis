@@ -8,6 +8,7 @@ use leptos::{component, view, IntoView};
 use leptos_meta::Stylesheet;
 
 #[component]
+/// Acount page
 pub(crate) fn About() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/tailwind.css"/>

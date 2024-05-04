@@ -557,7 +557,7 @@ pub(crate) fn read_ese<'a, T: std::io::Seek + std::io::Read>(
                     col.append(&mut final_prefix);
 
                     if key == &col {
-                        column.column_data = value.clone();
+                        column.column_data.clone_from(value);
                         break;
                     }
                 }
@@ -1015,8 +1015,8 @@ fn parse_tagged_data<'a>(
     for tag in full_tags {
         for entry in column_info.iter_mut() {
             if entry.column_id == tag.column as i32 {
-                entry.column_data = tag.data.clone();
-                entry.column_tagged_flags = tag.flags.clone();
+                entry.column_data.clone_from(&tag.data);
+                entry.column_tagged_flags.clone_from(&tag.flags);
             }
         }
     }

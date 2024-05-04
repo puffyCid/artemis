@@ -220,7 +220,7 @@ fn assemble_wmi_persist(
 
     persist.consumer = filter_consumer_name;
     persist.values = consumer.values.clone();
-    persist.class = consumer.class_name.clone();
+    persist.class.clone_from(&consumer.class_name);
     persist.filter = filter_consumer_filter;
     persist.consumer_name = consumer_name;
     persist.query = event_filter_query;

@@ -1,6 +1,7 @@
 use leptos::{component, view, IntoView};
 
 #[component]
+/// Menu page
 pub(crate) fn Menu() -> impl IntoView {
     view! {
         <div class="col-span-full">
