@@ -86,7 +86,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
     fn test_js_acquire_file_gcp() {
         let server = MockServer::start();
         let port = server.port();
