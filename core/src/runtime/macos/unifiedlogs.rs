@@ -1,5 +1,5 @@
 use crate::runtime::error::RuntimeError;
-use deno_core::{error::AnyError, op2, JsBuffer, ToJsBuffer};
+use deno_core::{error::AnyError, op2, JsBuffer};
 use log::error;
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,
@@ -48,9 +48,9 @@ struct UnifiedLogMeta {
 }
 
 #[op2]
-#[serde]
+#[buffer]
 /// Expose setting up UnifiedLog parser to `Deno`
-pub(crate) fn setup_unified_log_parser(#[string] path: String) -> Result<ToJsBuffer, AnyError> {
+pub(crate) fn setup_unified_log_parser(#[string] path: String) -> Result<Vec<u8>, AnyError> {
     let (uuid, shared, timesync) = if path.is_empty() {
         (
             collect_strings_system()?,
@@ -139,7 +139,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "test"]
     fn test_setup_unified_log_parser() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL21hY29zL2Vycm9ycy50cwp2YXIgTWFjb3NFcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsKfTsKCi8vIC4uLy4uL2FydGVtaXMtYXBpL3NyYy9tYWNvcy91bmlmaWVkbG9ncy50cwpmdW5jdGlvbiBnZXRVbmlmaWVkTG9nKHBhdGgsIG1ldGEpIHsKICB0cnkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3VuaWZpZWRfbG9nKHBhdGgsIG1ldGEpOwogICAgY29uc3QgbG9nX2RhdGEgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIGxvZ19kYXRhOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBNYWNvc0Vycm9yKCJVTklGSUVETE9HUyIsIGBmYWlsZWQgdG8gcGFyc2UgJHtwYXRofTogJHtlcnJ9YCk7CiAgfQp9CmZ1bmN0aW9uIHNldHVwVW5pZmllZExvZ1BhcnNlcihwYXRoKSB7CiAgaWYgKHBhdGggPT09IHZvaWQgMCkgewogICAgcGF0aCA9ICIiOwogIH0KICB0cnkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuc2V0dXBfdW5pZmllZF9sb2dfcGFyc2VyKHBhdGgpOwogICAgcmV0dXJuIGRhdGE7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IE1hY29zRXJyb3IoIlVOSUZJRURMT0dTIiwgYGZhaWxlZCB0byBwYXJzZSAke3BhdGh9OiAke2Vycn1gKTsKICB9Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UyID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgY29uc3RydWN0b3IobmFtZSwgbWVzc2FnZSkgewogICAgc3VwZXIoKTsKICAgIHRoaXMubmFtZSA9IG5hbWU7CiAgICB0aGlzLm1lc3NhZ2UgPSBtZXNzYWdlOwogIH0KfTsKCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZXJyb3JzLnRzCnZhciBGaWxlRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZTIgewp9OwoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgdHJ5IHsKICAgIGNvbnN0IHJlc3VsdCA9IGF3YWl0IGZzLnJlYWREaXIocGF0aCk7CiAgICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShyZXN1bHQpOwogICAgcmV0dXJuIGRhdGE7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IEZpbGVFcnJvcigKICAgICAgIlJFQURfRElSIiwKICAgICAgYGZhaWxlZCB0byByZWFkIGRpcmVjdG9yeSAke3BhdGh9OiAke2Vycn1gCiAgICApOwogIH0KfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IG1ldGEgPSBzZXR1cFVuaWZpZWRMb2dQYXJzZXIoKTsKICBpZiAobWV0YSBpbnN0YW5jZW9mIE1hY29zRXJyb3IpIHsKICAgIGNvbnNvbGUubG9nKG1ldGEpOwogICAgcmV0dXJuOwogIH0KfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
