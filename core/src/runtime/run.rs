@@ -12,8 +12,9 @@ use std::rc::Rc;
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
 
+#[tokio::main]
 /// Execute the decoded Javascript and return a `serde_json` Value
-pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
+pub(crate) async fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
     let mut runtime = create_worker_options()?;
 
     // Scripts executed via `execute_script` are run in a global context.
