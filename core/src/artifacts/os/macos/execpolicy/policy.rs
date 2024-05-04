@@ -37,7 +37,7 @@ pub(crate) fn grab_execpolicy(
     let mut stmt = match statement {
         Ok(query) => query,
         Err(err) => {
-            error!("[execpolicy] Failed to compose ExecPolicy SQL query {err:?}");
+            panic!("[execpolicy] Failed to compose ExecPolicy SQL query {err:?}");
             return Err(ExecPolicyError::BadSQL);
         }
     };
