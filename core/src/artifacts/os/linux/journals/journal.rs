@@ -126,7 +126,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         entries.entries.append(&mut entry_array.entries);
         offset = entry_array.next_entry_array_offset;
 
-        if offset_tracker.get(&offset).is_some() {
+        if offset_tracker.contains_key(&offset) {
             error!("[journal] Found recursive offset. Exiting now");
             break;
         }
@@ -176,7 +176,7 @@ fn get_entries(
         };
         entries.entries.append(&mut entry_array.entries);
         offset = entry_array.next_entry_array_offset;
-        if offset_tracker.get(&offset).is_some() {
+        if offset_tracker.contains_key(&offset) {
             error!("[journal] Found recursive offset. Exiting now");
             break;
         }
