@@ -56,7 +56,9 @@ pub(crate) fn decompress_huffman_api(
             data.as_mut_ptr(),
             data.len() as u32,
             &mut decom_size,
-            frag_data_size.as_mut_ptr().cast::<std::ffi::c_void>(),
+            frag_data_size
+                .as_mut_ptr()
+                .cast::<ntapi::winapi::ctypes::c_void>(),
         );
         if status != success {
             error!("[compression] Failed to decompress data: {status}");

@@ -5,6 +5,7 @@ use leptos::{component, create_resource, view, IntoView, SignalGet, Transition};
 use reqwest::Method;
 
 #[component]
+/// Resources page
 pub(crate) fn Resources() -> impl IntoView {
     let info = create_resource(|| {}, move |_| async move { get_info().await });
     view! {

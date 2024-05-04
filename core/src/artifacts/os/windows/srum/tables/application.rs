@@ -43,17 +43,17 @@ pub(crate) fn parse_application(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        app.app_id = value.clone();
+                        app.app_id.clone_from(value);
                         continue;
                     }
-                    app.app_id = column.column_data.clone();
+                    app.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        app.user_id = value.clone();
+                        app.user_id.clone_from(value);
                         continue;
                     }
-                    app.user_id = column.column_data.clone();
+                    app.user_id.clone_from(&column.column_data);
                 }
                 "ForegroundCycleTime" => {
                     app.foreground_cycle_time =
@@ -193,17 +193,17 @@ pub(crate) fn parse_app_timeline(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.app_id = value.clone();
+                        energy.app_id.clone_from(value);
                         continue;
                     }
-                    energy.app_id = column.column_data.clone();
+                    energy.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.user_id = value.clone();
+                        energy.user_id.clone_from(value);
                         continue;
                     }
-                    energy.user_id = column.column_data.clone();
+                    energy.user_id.clone_from(&column.column_data);
                 }
                 "Flags" => energy.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "EndTime" => {
@@ -379,24 +379,24 @@ pub(crate) fn parse_vfu_provider(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        app.app_id = value.clone();
+                        app.app_id.clone_from(value);
                         continue;
                     }
-                    app.app_id = column.column_data.clone();
+                    app.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        app.user_id = value.clone();
+                        app.user_id.clone_from(value);
                         continue;
                     }
-                    app.user_id = column.column_data.clone();
+                    app.user_id.clone_from(&column.column_data);
                 }
                 "Flags" => app.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "StartTime" => {
                     app.start_time = column.column_data.parse::<i64>().unwrap_or_default();
                 }
                 "EndTime" => app.end_time = column.column_data.parse::<i64>().unwrap_or_default(),
-                "Usage" => app.usage = column.column_data.clone(),
+                "Usage" => app.usage.clone_from(&column.column_data),
                 _ => continue,
             }
         }

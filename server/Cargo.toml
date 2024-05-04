@@ -19,7 +19,7 @@ sysinfo = { workspace = true }
 flate2 = { workspace = true }
 glob = { workspace = true }
 
-axum = { version = "0.7.4", default-features = false, features = [
+axum = { version = "0.7.5", default-features = false, features = [
     "http2",
     "json",
     "matched-path",
@@ -37,4 +37,4 @@ common = { path = "../common" }
 
 [dev-dependencies]
 tower = { version = "0.4.13", features = ["util"] }
-hyper = { version = "1.2.0", features = ["full"] }
+hyper = { version = "1.3.1", features = ["full"] }

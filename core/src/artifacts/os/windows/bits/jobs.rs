@@ -55,7 +55,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
         // Only two (2) columns in BITS table (as of Win11)
         for column in rows {
             if column.column_name == "Id" {
-                job.job_id = column.column_data.clone();
+                job.job_id.clone_from(&column.column_data);
             }
 
             if column.column_name == "Blob" {

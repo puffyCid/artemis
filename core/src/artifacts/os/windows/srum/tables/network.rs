@@ -33,17 +33,17 @@ pub(crate) fn parse_network(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        network.app_id = value.clone();
+                        network.app_id.clone_from(value);
                         continue;
                     }
-                    network.app_id = column.column_data.clone();
+                    network.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        network.user_id = value.clone();
+                        network.user_id.clone_from(value);
                         continue;
                     }
-                    network.user_id = column.column_data.clone();
+                    network.user_id.clone_from(&column.column_data);
                 }
                 "InterfaceLuid" => {
                     network.interface_luid = column.column_data.parse::<i64>().unwrap_or_default();
@@ -108,17 +108,17 @@ pub(crate) fn parse_network_connectivity(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        network.app_id = value.clone();
+                        network.app_id.clone_from(value);
                         continue;
                     }
-                    network.app_id = column.column_data.clone();
+                    network.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        network.user_id = value.clone();
+                        network.user_id.clone_from(value);
                         continue;
                     }
-                    network.user_id = column.column_data.clone();
+                    network.user_id.clone_from(&column.column_data);
                 }
                 "InterfaceLuid" => {
                     network.interface_luid = column.column_data.parse::<i64>().unwrap_or_default();

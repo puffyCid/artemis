@@ -1,6 +1,7 @@
 use leptos::{component, view, IntoView};
 
 #[component]
+/// Foooter page
 pub(crate) fn Footer() -> impl IntoView {
     view! {
         <div class="col-span-full fixed bottom-0 min-w-full">

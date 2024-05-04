@@ -29,19 +29,19 @@ pub(crate) fn parse_energy(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.app_id = value.clone();
+                        energy.app_id.clone_from(value);
                         continue;
                     }
-                    energy.app_id = column.column_data.clone();
+                    energy.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.user_id = value.clone();
+                        energy.user_id.clone_from(value);
                         continue;
                     }
-                    energy.user_id = column.column_data.clone();
+                    energy.user_id.clone_from(&column.column_data);
                 }
-                "BinaryData" => energy.binary_data = column.column_data.clone(),
+                "BinaryData" => energy.binary_data.clone_from(&column.column_data),
                 _ => continue,
             }
         }
@@ -89,17 +89,17 @@ pub(crate) fn parse_energy_usage(
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.app_id = value.clone();
+                        energy.app_id.clone_from(value);
                         continue;
                     }
-                    energy.app_id = column.column_data.clone();
+                    energy.app_id.clone_from(&column.column_data);
                 }
                 "UserId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
-                        energy.user_id = value.clone();
+                        energy.user_id.clone_from(value);
                         continue;
                     }
-                    energy.user_id = column.column_data.clone();
+                    energy.user_id.clone_from(&column.column_data);
                 }
                 "EventTimestamp" => {
                     energy.event_timestamp = column.column_data.parse::<i64>().unwrap();

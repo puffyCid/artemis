@@ -33,7 +33,7 @@ pub(crate) fn get_files(column_rows: &[Vec<TableDump>]) -> Result<Vec<FileInfo>,
         // Only two (2) columns in BITS table (as of Win11)
         for column in rows {
             if column.column_name == "Id" {
-                file.file_id = column.column_data.clone();
+                file.file_id.clone_from(&column.column_data);
             }
 
             if column.column_name == "Blob" {

@@ -72,7 +72,7 @@ struct StandardDataRecord {
     _data_length: u32,
     /**Data type: STRING, four (4) bytes, true, false, URL, UUID, etc */
     data_type: u32,
-    /**The actual `Bookmark` data. Based on data_type */
+    /**The actual `Bookmark` data. Based on `data_type` */
     record_data: Vec<u8>,
     /**Record type associated with TOC entry */
     record_type: u32,

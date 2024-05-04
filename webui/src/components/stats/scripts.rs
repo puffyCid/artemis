@@ -1,6 +1,7 @@
 use leptos::{component, view, IntoView};
 
 #[component]
+/// Scripts page
 pub(crate) fn Scripts() -> impl IntoView {
     view! {
         <div class ="stat shadow">

@@ -90,7 +90,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
                 }
             };
 
-            info.username = value.clone();
+            info.username.clone_from(&value);
 
             // Loop through user info in the "V" key
             for (key_info, value_info) in &sid_info {

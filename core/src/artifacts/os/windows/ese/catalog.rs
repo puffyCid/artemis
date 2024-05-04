@@ -31,11 +31,11 @@ pub(crate) struct Catalog {
     pub(crate) catalog_type: CatalogType,
     /**Fixed data */
     pub(crate) id: i32,
-    /** Fixed data - Column only if the catalog_type is Column, otherwise father data page (FDP) */
+    /** Fixed data - Column only if the `catalog_type` is Column, otherwise father data page (FDP) */
     pub(crate) column_or_father_data_page: i32,
     /**Fixed data */
     pub(crate) space_usage: i32,
-    /**Fixed data - If catalog_type is Column then these are columns flags */
+    /**Fixed data - If `catalog_type` is Column then these are columns flags */
     pub(crate) flags: i32,
     /**Fixed data */
     pub(crate) pages_or_locale: i32,

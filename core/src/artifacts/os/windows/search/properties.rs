@@ -16,7 +16,7 @@ pub(crate) fn parse_prop_id_lookup(
         let mut props = HashMap::new();
         for column in rows {
             if column.column_name == "WorkID" {
-                id = column.column_data.clone();
+                id.clone_from(&column.column_data);
                 continue;
             }
 
