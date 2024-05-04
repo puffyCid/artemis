@@ -36,7 +36,7 @@ pub(crate) fn output_results(
     let empty_start = 0;
     let status = output_data(&serde_data, &output_name, &mut output, &empty_start);
     if status.is_err() {
-        error!("[runtime] Failed could not output script data:");
+        error!("[runtime] Failed could not output script data");
         return Err(status.unwrap_err().into());
     }
 

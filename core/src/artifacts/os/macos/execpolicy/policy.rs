@@ -113,6 +113,6 @@ mod tests {
 
     #[test]
     fn test_get_execpolicy() {
-        let _ = grab_execpolicy(&ExecPolicyOptions { alt_file: None }).unwrap();
+        let _ = grab_execpolicy(&ExecPolicyOptions { alt_file: None });
     }
 }

@@ -18,39 +18,19 @@ struct UploadResponse {
 
 /// Upload data to Google Cloud Storage Bucket using signed JWT tokens
 pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result<(), RemoteError> {
-    // Grab URL which should include the target bucket
-    let gcp_url = if let Some(url) = &output.url {
-        url
-    } else {
-        return Err(RemoteError::RemoteUrl);
-    };
-    // Grab service account key info (base64 encoded)
-    let api_key = if let Some(key) = &output.api_key {
-        key
-    } else {
-        return Err(RemoteError::RemoteApiKey);
-    };
-
-    let gcp_output = if filename.ends_with(".log") {
-        format!("{}%2F{}%2F{filename}", output.directory, output.name)
-    } else {
-        format!(
-            "{}%2F{}%2F{filename}.{}",
-            output.directory, output.name, output.format
-        )
-    };
-    let header_value = "application/json-seq";
-
-    let client = Client::new();
+    let setup = setup_gcp_upload(output, filename)?;
     // Full URL to target bucket and make upload resumable
-    let session = &format!("{gcp_url}/o?uploadType=resumable&name={gcp_output}");
+    let session = &format!("{}/o?uploadType=resumable&name={}", setup.url, setup.output);
 
     // Create the signed JWT token
-    let token = create_jwt_gcp(api_key)?;
+    let token = create_jwt_gcp(&setup.api_key)?;
     // Create the upload session
     let session_uri = gcp_session(session, &token)?;
 
+    let client = Client::new();
     let mut builder = client.put(&session_uri);
+
+    let header_value = "application/json-seq";
     builder = builder.header("Content-Type", header_value);
     builder = builder.header("Content-Length", data.len());
 
@@ -95,8 +75,46 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
     Ok(())
 }
 
+pub(crate) struct GcpSetup {
+    pub(crate) url: String,
+    pub(crate) api_key: String,
+    pub(crate) output: String,
+}
+
+/// Setup the GCP upload process
+pub(crate) fn setup_gcp_upload(output: &Output, filename: &str) -> Result<GcpSetup, RemoteError> {
+    // Grab URL which should include the target bucket
+    let gcp_url = if let Some(url) = &output.url {
+        url
+    } else {
+        return Err(RemoteError::RemoteUrl);
+    };
+    // Grab service account key info (base64 encoded)
+    let api_key = if let Some(key) = &output.api_key {
+        key
+    } else {
+        return Err(RemoteError::RemoteApiKey);
+    };
+
+    let gcp_output = if filename.ends_with(".log") {
+        format!("{}%2F{}%2F{filename}", output.directory, output.name)
+    } else {
+        format!(
+            "{}%2F{}%2F{filename}.{}",
+            output.directory, output.name, output.format
+        )
+    };
+
+    let setup = GcpSetup {
+        url: gcp_url.to_string(),
+        api_key: api_key.to_string(),
+        output: gcp_output,
+    };
+    Ok(setup)
+}
+
 /// Create a resumable upload session
-fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError> {
+pub(crate) fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError> {
     let client = Client::new();
     let mut builder = client.post(url).bearer_auth(token);
     builder = builder.header("Content-Length", 0);
@@ -144,12 +162,11 @@ fn gcp_resume_upload(
         return Err(RemoteError::MaxAttempts);
     }
     let client = Client::new();
-    let status = gcp_get_upload_status(session_uri, output_data.len())?;
+    let status = gcp_get_upload_status(session_uri, &format!("{}", output_data.len()))?;
     let complete = -1;
     if status == complete {
         return Ok(());
     }
-
     let data_remaining = output_data.len() - status as usize;
 
     let mut builder = client.put(session_uri);
@@ -192,7 +209,7 @@ fn gcp_resume_upload(
 }
 
 /// Check the GCP upload status. A value of -1 means we are done
-fn gcp_get_upload_status(url: &str, upload_size: usize) -> Result<isize, RemoteError> {
+pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isize, RemoteError> {
     let client = Client::new();
     let mut builder = client.put(url);
     builder = builder.header("Content-Length", 0);
@@ -270,7 +287,7 @@ struct JwtToken {
 }
 
 /// Create a signed JWT token for remote uploads using service account
-fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
+pub(crate) fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
     let priv_key_result = base64_decode_standard(key);
     let priv_key = match priv_key_result {
         Ok(result) => result,
@@ -323,7 +340,7 @@ fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{create_jwt_gcp, gcp_get_upload_status, gcp_resume_upload};
+    use super::{create_jwt_gcp, gcp_get_upload_status, gcp_resume_upload, setup_gcp_upload};
     use crate::{
         output::remote::gcp::{gcp_session, gcp_upload},
         structs::toml::Output,
@@ -382,6 +399,18 @@ logging: Some(String::new())
         gcp_upload(test.as_bytes(), &output, name).unwrap();
         mock_me.assert();
         mock_me_put.assert();
+    }
+
+    #[test]
+    fn test_setup_gcp_upload() {
+        let server = MockServer::start();
+        let port = server.port();
+        let output = output_options("gcp_upload_test", "gcp", "tmp", false, port);
+
+        let setup = setup_gcp_upload(&output, "name").unwrap();
+        assert!(setup
+            .api_key
+            .starts_with("ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiA"))
     }
 
     #[test]
@@ -462,7 +491,7 @@ logging: Some(String::new())
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
 
-        let size = gcp_get_upload_status(&format!("http://127.0.0.1:{port}"), 10).unwrap();
+        let size = gcp_get_upload_status(&format!("http://127.0.0.1:{port}"), "10").unwrap();
         mock_me.assert();
 
         assert_eq!(size, 5);
@@ -478,7 +507,7 @@ logging: Some(String::new())
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
 
-        let size = gcp_get_upload_status(&format!("http://127.0.0.1:{port}"), 10).unwrap();
+        let size = gcp_get_upload_status(&format!("http://127.0.0.1:{port}"), "10").unwrap();
         mock_me.assert();
 
         assert_eq!(size, -1);

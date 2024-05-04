@@ -13,7 +13,7 @@ use super::{
     },
     spotlight::{get_spotlight, setup_spotlight_parser},
     sudo::get_sudologs_macos,
-    unifiedlogs::{get_unified_log, setup_unified_log_parser},
+    unifiedlogs::get_unified_log,
 };
 use crate::runtime::{
     applications::extensions::app_functions, compression::extensions::compression_functions,
@@ -40,7 +40,6 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_launchd_daemons(),
         get_launchd_agents(),
         get_unified_log(),
-        setup_unified_log_parser(),
         get_plist(),
         get_plist_data(),
         get_fsevents(),
