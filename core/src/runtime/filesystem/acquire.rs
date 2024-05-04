@@ -86,7 +86,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "test"]
     fn test_js_acquire_file_gcp() {
         let server = MockServer::start();
         let port = server.port();
