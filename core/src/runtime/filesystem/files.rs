@@ -14,7 +14,7 @@ pub(crate) fn js_stat(#[string] path: String) -> Result<String, AnyError> {
     let timestamps = get_timestamps(&path)?;
     let meta = get_metadata(&path)?;
 
-    let info = JsFileInfo {
+    let mut info = JsFileInfo {
         filename: get_filename(&path),
         extension: file_extension(&path),
         directory: Path::new(&path)
@@ -36,6 +36,15 @@ pub(crate) fn js_stat(#[string] path: String) -> Result<String, AnyError> {
         is_directory: meta.is_dir(),
         is_symlink: meta.is_symlink(),
     };
+
+    #[cfg(target_family = "unix")]
+    {
+        use std::os::unix::prelude::MetadataExt;
+        info.inode = meta.ino();
+        info.mode = meta.mode();
+        info.uid = meta.uid();
+        info.gid = meta.gid();
+    }
 
     let data = serde_json::to_string(&info)?;
 
