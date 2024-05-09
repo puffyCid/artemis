@@ -6,7 +6,7 @@ resolver = "2"
 strip = true
 
 [workspace.package]
-version = "0.8.0"
+version = "0.9.0"
 homepage = "https://puffycid.github.io/artemis-api"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
