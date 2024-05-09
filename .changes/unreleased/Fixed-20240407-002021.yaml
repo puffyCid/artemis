@@ -1,3 +1,0 @@
-kind: Fixed
-body: Issue where artemis-api would not return all sqlite results
-time: 2024-04-07T00:20:21.422687-04:00
