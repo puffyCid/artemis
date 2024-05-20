@@ -46,8 +46,8 @@ pub(crate) fn parse_index_gthr(
                         }
 
                         // Sometimes the last modified data is just ********
-                        let asterick = 0x2a;
-                        if time_data[0] == asterick {
+                        let asterisk = 0x2a;
+                        if time_data[0] == asterisk {
                             continue;
                         }
 
@@ -68,7 +68,7 @@ pub(crate) fn parse_index_gthr(
 
         entries.push(entry);
 
-        // We set a limit just in case a system has indexed alot of data
+        // We set a limit just in case a system has indexed a lot of data
         if entries.len() == limit {
             let serde_data_result = serde_json::to_value(&entries);
             let serde_data = match serde_data_result {
@@ -141,8 +141,8 @@ pub(crate) fn parse_index_gthr_path(
                         }
 
                         // Sometimes the last modified data is just ********
-                        let asterick = 0x2a;
-                        if time_data[0] == asterick {
+                        let asterisk = 0x2a;
+                        if time_data[0] == asterisk {
                             continue;
                         }
 

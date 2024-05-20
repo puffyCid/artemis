@@ -71,12 +71,8 @@ pub(crate) fn grab_search(
          */
         return parse_search_sqlite(&win11, output, filter);
     }
-    let tables = vec![
-        String::from("SystemIndex_Gthr"),
-        String::from("SystemIndex_PropertyStore"),
-    ];
 
-    parse_search(&path, &tables, output, filter)
+    parse_search(&path, output, filter)
 }
 
 /// Parse a provided Windows `Search` file and return its contents

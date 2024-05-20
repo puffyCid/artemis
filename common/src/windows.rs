@@ -339,7 +339,7 @@ pub struct TableDump {
     pub column_data: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ColumnType {
     Nil,
     Bit,

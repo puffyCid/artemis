@@ -42,18 +42,19 @@ use nom::{
     number::complete::{le_f32, le_f64},
 };
 use ntfs::NtfsFile;
+use serde::Deserialize;
 use std::{collections::HashMap, io::BufReader, mem::size_of};
 
-#[derive(Debug)]
-struct TableInfo {
-    obj_id_table: i32,
-    table_page: i32,
-    table_name: String,
-    column_info: Vec<ColumnInfo>,
-    long_value_page: i32,
+#[derive(Debug, Deserialize)]
+pub(crate) struct TableInfo {
+    pub(crate) obj_id_table: i32,
+    pub(crate) table_page: i32,
+    pub(crate) table_name: String,
+    pub(crate) column_info: Vec<ColumnInfo>,
+    pub(crate) long_value_page: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub(crate) struct ColumnInfo {
     pub(crate) column_type: ColumnType,
     pub(crate) column_name: String,
@@ -65,7 +66,7 @@ pub(crate) struct ColumnInfo {
     pub(crate) column_tagged_flags: Vec<TaggedDataFlag>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub(crate) enum ColumnFlags {
     NotNull,
     Version,
@@ -571,8 +572,51 @@ pub(crate) fn read_ese<'a, T: std::io::Seek + std::io::Read>(
     Ok((&[], table_data))
 }
 
+/// Get table info from provided catalog
+pub(crate) fn table_info(catalog: &[Catalog], name: &str) -> TableInfo {
+    let mut info = TableInfo {
+        obj_id_table: 0,
+        table_page: 0,
+        table_name: String::new(),
+        column_info: Vec::new(),
+        long_value_page: 0,
+    };
+    // Get metadata from Catalog associated with the table we want
+    for entry in catalog {
+        if entry.name == name {
+            info.table_name = entry.name.clone();
+            info.obj_id_table = entry.obj_id_table;
+            info.table_page = entry.column_or_father_data_page;
+            continue;
+        }
+
+        if entry.obj_id_table == info.obj_id_table
+            && !info.table_name.is_empty()
+            && entry.catalog_type == CatalogType::Column
+        {
+            let column_info = ColumnInfo {
+                column_type: get_column_type(&entry.column_or_father_data_page),
+                column_name: entry.name.clone(),
+                column_data: Vec::new(),
+                column_id: entry.id,
+                column_flags: get_column_flags(&entry.flags),
+                column_space_usage: entry.space_usage,
+                column_tagged_flags: Vec::new(),
+            };
+
+            info.column_info.push(column_info);
+        } else if entry.obj_id_table == info.obj_id_table
+            && !info.table_name.is_empty()
+            && entry.catalog_type == CatalogType::LongValue
+        {
+            info.long_value_page = entry.column_or_father_data_page;
+        }
+    }
+    info
+}
+
 /// Create hashmap that represents our table data
-fn create_table_data(
+pub(crate) fn create_table_data(
     column_rows: &[Vec<ColumnInfo>],
     table_name: &str,
 ) -> HashMap<String, Vec<Vec<TableDump>>> {
@@ -1063,7 +1107,7 @@ fn nom_fixed_column<'a>(
 }
 
 /// Get the column type. Determines what kind of data is stored in the column
-fn get_column_type(column: &i32) -> ColumnType {
+pub(crate) fn get_column_type(column: &i32) -> ColumnType {
     match column {
         0 => ColumnType::Nil,
         1 => ColumnType::Bit,
@@ -1088,7 +1132,7 @@ fn get_column_type(column: &i32) -> ColumnType {
 }
 
 /// Get flags associated with the column
-fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
+pub(crate) fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
     let not_null = 0x1;
     let version = 0x2;
     let increment = 0x4;

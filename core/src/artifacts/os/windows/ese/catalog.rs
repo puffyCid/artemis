@@ -21,9 +21,10 @@ use crate::{
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::BufReader};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Catalog {
     /**Fixed data */
     pub(crate) obj_id_table: i32,
@@ -96,7 +97,7 @@ pub(crate) struct TaggedData {
     pub(crate) data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum CatalogType {
     Table,
     Column,
@@ -108,13 +109,13 @@ pub(crate) enum CatalogType {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub(crate) enum TaggedDataFlag {
     Variable,
     Compressed,
     LongValue,
     MultiValue,
-    MultiValueSizeDefintion,
+    MultiValueSizeDefinition,
     Unknown,
 }
 
@@ -696,7 +697,7 @@ impl Catalog {
         let compressed = 2;
         let long_value = 4;
         let multi_value = 8;
-        let mutli_value_size = 16;
+        let multi_value_size = 16;
         let mut flags_data = Vec::new();
         if (flags & variable) == variable {
             flags_data.push(TaggedDataFlag::Variable);
@@ -710,8 +711,8 @@ impl Catalog {
         if (flags & multi_value) == multi_value {
             flags_data.push(TaggedDataFlag::MultiValue);
         }
-        if (flags & mutli_value_size) == mutli_value_size {
-            flags_data.push(TaggedDataFlag::MultiValueSizeDefintion);
+        if (flags & multi_value_size) == multi_value_size {
+            flags_data.push(TaggedDataFlag::MultiValueSizeDefinition);
         }
         flags_data
     }

@@ -128,7 +128,7 @@ impl BranchPage {
                 warn!("[ese] Found a catalog branch child recursively pointing to same page {}. Exiting early", branch.child_page);
                 return Ok((data, catalog_rows));
             }
-            // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
+            // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
             page_tracker.insert(branch.child_page, true);
 
             let adjust_page = 1;
@@ -239,7 +239,7 @@ impl BranchPage {
                 warn!("[ese] Found a table branch child recursively pointing to same page {}. Exiting early", branch.child_page);
                 return Ok((page_branch_data, 0));
             }
-            // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
+            // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
             page_tracker.insert(branch.child_page, true);
 
             let adjust_page = 1;
@@ -277,13 +277,101 @@ impl BranchPage {
         }
         Ok((page_branch_data, branch_page_data.next_page_number))
     }
+
+    /// Parse child branch pages related to tables and return page numbers
+    pub(crate) fn parse_branch_child_page<'a, T: std::io::Seek + std::io::Read>(
+        page_branch_data: &'a [u8],
+        pages: &mut Vec<u32>,
+        page_tracker: &mut HashMap<u32, bool>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        fs: &mut BufReader<T>,
+    ) -> nom::IResult<&'a [u8], ()> {
+        let (page_data, branch_page_data) = PageHeader::parse_header(page_branch_data)?;
+        // Empty pages are not part of table data
+        if branch_page_data.page_flags.contains(&PageFlags::Empty) {
+            return Ok((page_branch_data, ()));
+        }
+
+        let mut has_root = false;
+        if branch_page_data.page_flags.contains(&PageFlags::Root) {
+            let (_, _root_page) = parse_root_page(page_data)?;
+            has_root = true;
+        }
+
+        let mut key_data: Vec<u8> = Vec::new();
+        let mut has_key = true;
+        for tag in branch_page_data.page_tags {
+            // Defunct tags are not used
+            if tag.flags.contains(&TagFlags::Defunct) {
+                continue;
+            }
+            // If first tag is Root, we already parsed that
+            if has_root {
+                has_root = false;
+                has_key = false;
+                continue;
+            } else if key_data.is_empty() && has_key {
+                let (key_start, _) = take(tag.offset)(page_data)?;
+                let (_, page_key_data) = take(tag.value_size)(key_start)?;
+                key_data = page_key_data.to_vec();
+                continue;
+            }
+
+            if branch_page_data.page_flags.contains(&PageFlags::Leaf) {
+                continue;
+            }
+
+            let (branch_start, _) = take(tag.offset)(page_data)?;
+            let (_, branch_data) = take(tag.value_size)(branch_start)?;
+            let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
+
+            if let Some(_page) = page_tracker.get(&branch.child_page) {
+                warn!("[ese] Found a table branch child recursively pointing to same page {}. Exiting early", branch.child_page);
+                return Ok((page_branch_data, ()));
+            }
+            // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
+            page_tracker.insert(branch.child_page, true);
+            pages.push(branch.child_page);
+
+            let adjust_page = 1;
+            let branch_start = (branch.child_page + adjust_page) as usize * page_branch_data.len();
+
+            // Now get the child page
+            let child_result = read_bytes(
+                &(branch_start as u64),
+                page_branch_data.len() as u64,
+                ntfs_file,
+                fs,
+            );
+            let child_data = match child_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ese] Failed to read bytes for child data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
+
+            let result = BranchPage::parse_branch_child_page(
+                &child_data,
+                pages,
+                page_tracker,
+                ntfs_file,
+                fs,
+            );
+            if result.is_err() {
+                error!("[ese] Failed to parse branch child table");
+            }
+        }
+        Ok((page_branch_data, ()))
+    }
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use common::windows::ColumnType;
-
     use super::BranchPage;
     use crate::{
         artifacts::os::windows::ese::tables::{ColumnFlags, ColumnInfo},
@@ -292,6 +380,7 @@ mod tests {
             ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
         },
     };
+    use common::windows::ColumnType;
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
@@ -366,6 +455,34 @@ mod tests {
         assert_eq!(rows[4][0].column_data, [56, 0, 0, 0]);
         assert_eq!(rows[9][0].column_data, [61, 0, 0, 0]);
         assert_eq!(last_page, 607);
+    }
+
+    #[test]
+    fn test_parse_branch_child_page() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\branch_child_search.raw");
+        let test_data = read_file(test_location.to_str().unwrap()).unwrap();
+        let mut tracker = HashMap::new();
+        let mut pages = Vec::new();
+        let mut ntfs_parser =
+            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+
+        let reader = raw_reader(
+            test_location.to_str().unwrap(),
+            &ntfs_parser.ntfs,
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
+        BranchPage::parse_branch_child_page(
+            &test_data,
+            &mut pages,
+            &mut tracker,
+            Some(&reader),
+            &mut ntfs_parser.fs,
+        )
+        .unwrap();
+
+        assert_eq!(pages.len(), 0);
     }
 
     #[test]
