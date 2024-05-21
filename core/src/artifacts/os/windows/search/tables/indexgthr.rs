@@ -170,7 +170,11 @@ pub(crate) fn parse_index_gthr_path(
 mod tests {
     use super::{parse_index_gthr, parse_index_gthr_path};
     use crate::{
-        artifacts::os::windows::ese::parser::grab_ese_tables, filesystem::files::is_file,
+        artifacts::os::windows::{
+            ese::{helper::get_page_data, tables::table_info},
+            search::ese::{search_catalog, search_pages},
+        },
+        filesystem::files::is_file,
         structs::toml::Output,
     };
     use std::collections::HashMap;
@@ -202,11 +206,42 @@ mod tests {
         }
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        let table = vec![String::from("SystemIndex_Gthr")];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SystemIndex_Gthr").unwrap();
+        let catalog = search_catalog(test_path).unwrap();
 
-        parse_index_gthr(&ids, &HashMap::new(), &mut output, &0, &false).unwrap();
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+
+        let page_limit = 5;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows = get_page_data(
+                test_path,
+                &gather_chunk,
+                &mut gather_table,
+                "SystemIndex_Gthr",
+            )
+            .unwrap();
+
+            parse_index_gthr(
+                &gather_rows.get("SystemIndex_Gthr").unwrap(),
+                &HashMap::new(),
+                &mut output,
+                &0,
+                &false,
+            )
+            .unwrap();
+            break;
+        }
     }
 
     #[test]
@@ -218,12 +253,42 @@ mod tests {
             return;
         }
 
-        let table = vec![String::from("SystemIndex_Gthr")];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SystemIndex_Gthr").unwrap();
-        let mut entries = Vec::new();
+        let catalog = search_catalog(test_path).unwrap();
 
-        parse_index_gthr_path(&ids, &HashMap::new(), &mut entries).unwrap();
-        assert!(entries.len() > 20);
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+
+        let page_limit = 5;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows = get_page_data(
+                test_path,
+                &gather_chunk,
+                &mut gather_table,
+                "SystemIndex_Gthr",
+            )
+            .unwrap();
+
+            let mut entries = Vec::new();
+
+            parse_index_gthr_path(
+                &gather_rows.get("SystemIndex_Gthr").unwrap(),
+                &HashMap::new(),
+                &mut entries,
+            )
+            .unwrap();
+            assert!(entries.len() > 20);
+            break;
+        }
     }
 }

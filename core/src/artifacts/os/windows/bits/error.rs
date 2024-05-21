@@ -6,8 +6,6 @@ pub(crate) enum BitsError {
     Systemdrive,
     ParseEse,
     ParseLegacyBits,
-    MissingJobs,
-    MissingFiles,
 }
 
 impl std::error::Error for BitsError {}
@@ -19,8 +17,6 @@ impl fmt::Display for BitsError {
             BitsError::Systemdrive => write!(f, "Failed to get systemdrive"),
             BitsError::ParseEse => write!(f, "Failed to parse ESE db"),
             BitsError::ParseLegacyBits => write!(f, "Failed to parse legacy BITS format"),
-            BitsError::MissingJobs => write!(f, "No Jobs table in ESE db"),
-            BitsError::MissingFiles => write!(f, "No Files table in ESE db"),
         }
     }
 }

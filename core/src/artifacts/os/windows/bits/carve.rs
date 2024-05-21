@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use crate::{
-    artifacts::os::windows::accounts::parser::get_users,
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
-};
+use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian};
 use common::windows::{BitsInfo, FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
 use nom::bytes::complete::take_until;
 
@@ -58,7 +53,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
     // Start by scanning for known job delimiters
     for job in job_delimiters {
         while !job_data.is_empty() {
-            let scan_results = scan_delimter(job_data, &job);
+            let scan_results = scan_delimiter(job_data, &job);
             // If no hits move on to next delimiter
             let hit_data = match scan_results {
                 Ok((input, _)) => input,
@@ -85,7 +80,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 job_name: String::new(),
                 job_description: String::new(),
                 job_command: String::new(),
-                job_arguements: String::new(),
+                job_arguments: String::new(),
                 error_count: 0,
                 job_type: JobType::Unknown,
                 job_state: JobState::Unknown,
@@ -107,8 +102,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
                 job_data = remaining_input;
                 let carved = true;
-                let users = get_users().unwrap_or_default();
-                bits.push(combine_file_and_job(&job, &file, carved, &users));
+                bits.push(combine_file_and_job(&job, &file, carved));
                 continue;
             }
             let remaining_input_result = job_details(input, &mut job, is_legacy);
@@ -133,13 +127,13 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
         let (hit_data, file) = match scan_results {
             Ok(results) => results,
             Err(_err) => {
-                // Before we break because of parsing error, check one more time for the file delimter
+                // Before we break because of parsing error, check one more time for the file delimiter
                 // If we find another delimiter, keep trying to parse the data
                 let (check_data, _) = nom_unsigned_sixteen_bytes(file_data, Endian::Le)?;
                 let file_delimiter = [
                     228, 207, 158, 81, 70, 217, 151, 67, 183, 62, 38, 133, 19, 5, 26, 178,
                 ];
-                let scan_results = scan_delimter(check_data, &file_delimiter);
+                let scan_results = scan_delimiter(check_data, &file_delimiter);
                 match scan_results {
                     Ok((input, _)) => file_data = input,
                     Err(_err) => break,
@@ -156,31 +150,22 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
     Ok((data, (bits, jobs, files)))
 }
 
-/// The legacy BITS format has both job and file info in same structure, we combine them both here into one strcuture
-pub(crate) fn combine_file_and_job(
-    job: &JobInfo,
-    file: &FileInfo,
-    carved: bool,
-    users: &HashMap<String, String>,
-) -> BitsInfo {
+/// The legacy BITS format has both job and file info in same structure, we combine them both here into one structure
+pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool) -> BitsInfo {
     BitsInfo {
         job_id: job.job_id.clone(),
         file_id: job.file_id.clone(),
         owner_sid: job.owner_sid.clone(),
-        username: users
-            .get(&job.owner_sid.clone())
-            .unwrap_or(&String::new())
-            .to_string(),
         created: job.created,
         modified: job.modified,
         completed: job.completed,
         files_total: file.files_transferred,
         bytes_downloaded: file.download_bytes_size,
-        bytes_tranferred: file.trasfer_bytes_size,
+        bytes_transferred: file.transfer_bytes_size,
         job_name: job.job_name.clone(),
         job_description: job.job_description.clone(),
         job_command: job.job_command.clone(),
-        job_arguements: job.job_arguements.clone(),
+        job_arguments: job.job_arguments.clone(),
         error_count: job.error_count,
         job_type: job.job_type.clone(),
         job_state: job.job_state.clone(),
@@ -203,17 +188,17 @@ pub(crate) fn combine_file_and_job(
     }
 }
 
-pub(crate) fn scan_delimter<'a>(data: &'a [u8], delimter: &[u8]) -> nom::IResult<&'a [u8], ()> {
-    let (input, _) = take_until(delimter)(data)?;
+pub(crate) fn scan_delimiter<'a>(data: &'a [u8], delimiter: &[u8]) -> nom::IResult<&'a [u8], ()> {
+    let (input, _) = take_until(delimiter)(data)?;
     Ok((input, ()))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{carve_bits, combine_file_and_job, scan_delimter};
+    use super::{carve_bits, combine_file_and_job, scan_delimiter};
     use crate::filesystem::files::read_file;
     use common::windows::{FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
-    use std::{collections::HashMap, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_carve_bits() {
@@ -266,7 +251,7 @@ mod tests {
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
-            job_arguements: String::new(),
+            job_arguments: String::new(),
             error_count: 0,
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
@@ -290,23 +275,23 @@ mod tests {
             volume: String::new(),
             url: String::new(),
             download_bytes_size: 0,
-            trasfer_bytes_size: 0,
+            transfer_bytes_size: 0,
             files_transferred: 0,
         };
 
-        let bit_info = combine_file_and_job(&job, &file, true, &HashMap::new());
+        let bit_info = combine_file_and_job(&job, &file, true);
         assert_eq!(bit_info.carved, true);
     }
 
     #[test]
-    fn test_scan_delimter() {
+    fn test_scan_delimiter() {
         let file_delimiter = [
             228, 207, 158, 81, 70, 217, 151, 67, 183, 62, 38, 133, 19, 5, 26, 178,
         ];
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let (scan_results, _) = scan_delimter(&data, &file_delimiter).unwrap();
+        let (scan_results, _) = scan_delimiter(&data, &file_delimiter).unwrap();
 
         assert_eq!(scan_results.len(), 769801);
     }

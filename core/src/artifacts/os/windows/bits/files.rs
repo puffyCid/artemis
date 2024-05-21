@@ -23,7 +23,7 @@ pub(crate) fn get_files(column_rows: &[Vec<TableDump>]) -> Result<Vec<FileInfo>,
             file_id: String::new(),
             url: String::new(),
             download_bytes_size: 0,
-            trasfer_bytes_size: 0,
+            transfer_bytes_size: 0,
             full_path: String::new(),
             tmp_fullpath: String::new(),
             drive: String::new(),
@@ -62,7 +62,7 @@ pub(crate) fn get_legacy_files(
         file_id: String::new(),
         url: String::new(),
         download_bytes_size: 0,
-        trasfer_bytes_size: 0,
+        transfer_bytes_size: 0,
         full_path: String::new(),
         tmp_fullpath: String::new(),
         drive: String::new(),
@@ -145,7 +145,7 @@ pub(crate) fn parse_file<'a>(
     let (input, _unknown) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     file_info.download_bytes_size = downloaded;
-    file_info.trasfer_bytes_size = total;
+    file_info.transfer_bytes_size = total;
 
     // Scan until we get to the drive size. When carving BITs entries extra data may be found before the drive letter size
     let drive_size = [4, 0, 0, 0];
@@ -180,16 +180,14 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_files() {
-        use crate::artifacts::os::windows::{bits::files::get_files, ese::parser::grab_ese_tables};
+        use crate::artifacts::os::windows::bits::{background::get_bits_ese, files::get_files};
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
-        let tables = vec![String::from("Files")];
-        let bits_tables = grab_ese_tables(test_location.to_str().unwrap(), &tables).unwrap();
-        let files = bits_tables.get("Files").unwrap();
+        let files = get_bits_ese(test_location.to_str().unwrap(), "Files").unwrap();
 
-        let files_info = get_files(files).unwrap();
+        let files_info = get_files(&files).unwrap();
         assert_eq!(files_info.len(), 1);
     }
 
@@ -203,7 +201,7 @@ mod tests {
             file_id: String::new(),
             url: String::new(),
             download_bytes_size: 0,
-            trasfer_bytes_size: 0,
+            transfer_bytes_size: 0,
             full_path: String::new(),
             tmp_fullpath: String::new(),
             drive: String::new(),
@@ -218,7 +216,7 @@ mod tests {
         );
         assert_eq!(file.url, "http://edgedl.me.gvt1.com/edgedl/release2/chrome_component/i73exzs4s3qvwnxxzwp6zdbtbe_372/lmelglejhemejginpboagddgdfbepgmp_372_all_ZZ_djv5ss66g7sivnpz6ljtwr2zji.crx3");
 
-        assert_eq!(file.trasfer_bytes_size, 4782);
+        assert_eq!(file.transfer_bytes_size, 4782);
     }
 
     #[test]
@@ -231,6 +229,6 @@ mod tests {
         assert_eq!(results.filename, "430ce39a-f827-4af6-95ea-5dd495961bfc");
         assert_eq!(results.url, "http://msedge.b.tlu.dl.delivery.mp.microsoft.com/filestreamingservice/files/430ce39a-f827-4af6-95ea-5dd495961bfc?P1=1679310325&P2=404&P3=2&P4=gIq04pKnGxAu0CYD7Z4dp926m9RhFlNWKA0S4DwXLFl0EewHwxdBHjfUgBRBgDQ2jSNekEq%2bRjDo7DvXMwXvcA%3d%3d");
 
-        assert_eq!(results.trasfer_bytes_size, 3226443);
+        assert_eq!(results.transfer_bytes_size, 3226443);
     }
 }

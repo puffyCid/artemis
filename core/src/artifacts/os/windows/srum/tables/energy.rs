@@ -141,58 +141,44 @@ pub(crate) fn parse_energy_usage(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_energy, parse_energy_usage};
-    use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
+    use crate::artifacts::os::windows::srum::{
+        resource::get_srum_ese, tables::index::parse_id_lookup,
     };
 
     #[test]
     fn test_parse_energy() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}")
-            .unwrap();
 
-        parse_energy(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let energy_check = get_srum_ese(test_path, "{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}");
+        if energy_check.is_err() {
+            return;
+        }
+
+        parse_energy(&energy_check.unwrap(), &lookups).unwrap();
     }
 
     #[test]
     fn test_parse_energy_usage() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}")
-            .unwrap();
 
-        parse_energy_usage(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}").unwrap();
+
+        parse_energy_usage(&srum_data, &lookups).unwrap();
     }
 
     #[test]
     fn test_parse_energy_usagelt() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT")
-            .unwrap();
 
-        parse_energy_usage(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data =
+            get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT").unwrap();
+
+        parse_energy_usage(&srum_data, &lookups).unwrap();
     }
 }

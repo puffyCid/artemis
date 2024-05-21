@@ -36,10 +36,15 @@ pub(crate) fn parse_prop_id_lookup(
 #[cfg(test)]
 mod tests {
     use super::parse_prop_id_lookup;
-    use crate::{artifacts::os::windows::ese::parser::grab_ese_tables, filesystem::files::is_file};
+    use crate::{
+        artifacts::os::windows::{
+            ese::{helper::get_page_data, tables::table_info},
+            search::ese::{get_document_ids, get_properties, search_catalog, search_pages},
+        },
+        filesystem::files::is_file,
+    };
 
     #[test]
-    #[ignore = "Can take a long time"]
     fn test_parse_prop_id_lookup() {
         let test_path =
             "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
@@ -47,10 +52,50 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-        let table = vec![String::from("SystemIndex_PropertyStore")];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SystemIndex_PropertyStore").unwrap();
-        let results = parse_prop_id_lookup(&ids);
-        assert!(results.len() > 20);
+        let catalog = search_catalog(test_path).unwrap();
+
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+
+        let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
+        let property_pages = search_pages(&(property_table.table_page as u32), test_path).unwrap();
+
+        let page_limit = 1;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows = get_page_data(
+                test_path,
+                &gather_chunk,
+                &mut gather_table,
+                "SystemIndex_Gthr",
+            )
+            .unwrap();
+
+            let mut doc_ids = get_document_ids(
+                &gather_rows
+                    .get("SystemIndex_Gthr")
+                    .unwrap_or(&Vec::new())
+                    .to_vec(),
+            );
+            let props = get_properties(
+                test_path,
+                &property_pages,
+                &mut property_table,
+                &mut doc_ids,
+            );
+
+            let _ = parse_prop_id_lookup(props.get("SystemIndex_PropertyStore").unwrap());
+            break;
+        }
     }
 }

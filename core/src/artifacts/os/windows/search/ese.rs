@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::ese::{
+        catalog::Catalog,
         helper::{get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data},
-        parser::grab_ese_tables,
         tables::{table_info, TableInfo},
     },
     structs::toml::Output,
@@ -32,36 +32,15 @@ pub(crate) fn parse_search(
     filter: &bool,
 ) -> Result<(), SearchError> {
     let start_time = time_now();
-    let catalog_result = get_catalog_info(path);
-    let catalog = match catalog_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[search] Failed to parse {path} catalog: {err:?}");
-            return Err(SearchError::ParseEse);
-        }
-    };
+    let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let pages_result = get_all_pages(path, &(gather_table.table_page as u32));
-    let gather_pages = match pages_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[search] Failed to get SystemIndex_Gthr pages at {path}: {err:?}");
-            return Err(SearchError::ParseEse);
-        }
-    };
+    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let pages_result = get_all_pages(path, &(property_table.table_page as u32));
-    let property_pages = match pages_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[search] Failed to get SystemIndex_PropertyStore pages at {path}: {err:?}");
-            return Err(SearchError::ParseEse);
-        }
-    };
+    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
 
-    let page_limit = 30;
+    let page_limit = 200;
     let mut gather_chunk = Vec::new();
     let last_page = 0;
     for gather_page in gather_pages {
@@ -88,13 +67,13 @@ pub(crate) fn parse_search(
             &gather_rows
                 .get("SystemIndex_Gthr")
                 .unwrap_or(&Vec::new())
-                .to_vec(),
+                .clone(),
         );
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
         gather_chunk = Vec::new();
     }
 
@@ -113,19 +92,20 @@ pub(crate) fn parse_search(
             &gather_rows
                 .get("SystemIndex_Gthr")
                 .unwrap_or(&Vec::new())
-                .to_vec(),
+                .clone(),
         );
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
     }
 
     Ok(())
 }
 
-fn get_document_ids(entries: &Vec<Vec<TableDump>>) -> HashMap<String, bool> {
+/// Get `DocumentIDs` from the Search database
+pub(crate) fn get_document_ids(entries: &Vec<Vec<TableDump>>) -> HashMap<String, bool> {
     let mut values = HashMap::new();
     for row in entries {
         for column in row {
@@ -140,14 +120,15 @@ fn get_document_ids(entries: &Vec<Vec<TableDump>>) -> HashMap<String, bool> {
     values
 }
 
-fn get_properties(
+/// Get properties for the Search database entries
+pub(crate) fn get_properties(
     path: &str,
     property_pages: &[u32],
     table: &mut TableInfo,
     doc_ids: &mut HashMap<String, bool>,
 ) -> HashMap<String, Vec<Vec<TableDump>>> {
     let last_page = 0;
-    let page_limit = 80;
+    let page_limit = 300;
     let mut property_chunk = Vec::new();
 
     let mut property_total_rows =
@@ -158,7 +139,7 @@ fn get_properties(
             continue;
         }
 
-        property_chunk.push(property_page.clone());
+        property_chunk.push(*property_page);
         if property_chunk.len() != page_limit {
             continue;
         }
@@ -188,7 +169,7 @@ fn get_properties(
                 &mut property_rows
                     .get("SystemIndex_PropertyStore")
                     .unwrap_or(&Vec::new())
-                    .to_vec(),
+                    .clone(),
             );
 
         if doc_ids.is_empty() {
@@ -224,13 +205,14 @@ fn get_properties(
                 &mut property_rows
                     .get("SystemIndex_PropertyStore")
                     .unwrap_or(&Vec::new())
-                    .to_vec(),
+                    .clone(),
             );
     }
 
     property_total_rows
 }
 
+/// Process all the Search entries
 fn process_search(
     properties: &HashMap<String, Vec<Vec<TableDump>>>,
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
@@ -252,58 +234,158 @@ fn process_search(
         warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
         return Err(SearchError::ParseEse);
     };
-    let _ = parse_index_gthr(entries, &props, output, &start_time, filter);
+    let _ = parse_index_gthr(entries, &props, output, start_time, filter);
 
     Ok(())
+}
+
+/// Get the ESE Catalog
+pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
+    let catalog_result = get_catalog_info(path);
+    let catalog = match catalog_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[search] Failed to parse {path} catalog: {err:?}");
+            return Err(SearchError::ParseEse);
+        }
+    };
+
+    Ok(catalog)
+}
+
+/// Get all pages for the provided table
+pub(crate) fn search_pages(table_page: &u32, path: &str) -> Result<Vec<u32>, SearchError> {
+    let pages_result = get_all_pages(path, table_page);
+    let pages = match pages_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[search] Failed to get search pages at {path}: {err:?}");
+            return Err(SearchError::ParseEse);
+        }
+    };
+
+    Ok(pages)
 }
 
 /// Parse Windows `Search` at provided path
 pub(crate) fn parse_search_path(
     path: &str,
-    tables: &[String],
+    page_limit: &u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
-    let table_results = grab_ese_tables(path, tables);
-    let table_data = match table_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[search] Failed to parse {path} ESE file: {err:?}");
-            return Err(SearchError::ParseEse);
-        }
-    };
+    let catalog = search_catalog(path)?;
 
-    let indexes = if let Some(values) = table_data.get("SystemIndex_PropertyStore") {
-        values
-    } else {
-        warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results");
-        return Err(SearchError::MissingIndexes);
-    };
+    let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
 
-    // Grab hashmap that tracks the unique Search entry and their properties
-    let props = parse_prop_id_lookup(indexes);
-    let mut entries: Vec<SearchEntry> = Vec::new();
-    for table in tables {
-        let search_table = if let Some(values) = table_data.get(table) {
-            values
-        } else {
-            warn!("[search] Could not get table {table} from ESE results");
+    let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
+    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
+
+    let mut gather_chunk = Vec::new();
+    let last_page = 0;
+
+    let mut search_entries: Vec<SearchEntry> = Vec::new();
+
+    for gather_page in gather_pages {
+        if gather_page == last_page {
             continue;
+        }
+
+        gather_chunk.push(gather_page);
+        if gather_chunk.len() != (*page_limit as usize) {
+            continue;
+        }
+
+        let rows_results =
+            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+        let gather_rows = match rows_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[search] Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
+                continue;
+            }
         };
 
-        // There are lots of tables in Windows Search, but the most interesting one is SystemIndex_Gthr
-        match table.as_str() {
-            "SystemIndex_Gthr" => {
-                let _ = parse_index_gthr_path(search_table, &props, &mut entries);
-            }
-            _ => continue,
-        }
+        let mut doc_ids = get_document_ids(
+            &gather_rows
+                .get("SystemIndex_Gthr")
+                .unwrap_or(&Vec::new())
+                .clone(),
+        );
+
+        let property_rows =
+            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+
+        let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
+            values
+        } else {
+            warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong");
+            return Err(SearchError::MissingIndexes);
+        };
+
+        let props = parse_prop_id_lookup(indexes);
+        let entries = if let Some(values) = gather_rows.get("SystemIndex_Gthr") {
+            values
+        } else {
+            warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
+            return Err(SearchError::ParseEse);
+        };
+
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries);
     }
-    Ok(entries)
+
+    if !gather_chunk.is_empty() {
+        let rows_results =
+            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+        let gather_rows = match rows_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[search] Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
+                return Ok(search_entries);
+            }
+        };
+
+        let mut doc_ids = get_document_ids(
+            &gather_rows
+                .get("SystemIndex_Gthr")
+                .unwrap_or(&Vec::new())
+                .clone(),
+        );
+
+        let property_rows =
+            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+
+        let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
+            values
+        } else {
+            warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong");
+            return Err(SearchError::MissingIndexes);
+        };
+
+        let props = parse_prop_id_lookup(indexes);
+        let entries = if let Some(values) = gather_rows.get("SystemIndex_Gthr") {
+            values
+        } else {
+            warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
+            return Err(SearchError::ParseEse);
+        };
+
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries);
+    }
+
+    Ok(search_entries)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_search, parse_search_path};
-    use crate::{filesystem::files::is_file, structs::toml::Output};
+    use super::{
+        get_document_ids, get_properties, parse_search, parse_search_path, process_search,
+        search_catalog, search_pages,
+    };
+    use crate::{
+        artifacts::os::windows::ese::{helper::get_page_data, tables::table_info},
+        filesystem::files::is_file,
+        structs::toml::Output,
+    };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -337,6 +419,170 @@ mod tests {
     }
 
     #[test]
+    fn test_search_catalog() {
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(test_path) {
+            return;
+        }
+
+        search_catalog(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_search_pages() {
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(test_path) {
+            return;
+        }
+
+        search_pages(&1, test_path).unwrap();
+    }
+
+    #[test]
+    fn test_get_document_ids() {
+        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(path) {
+            return;
+        }
+
+        let catalog = search_catalog(path).unwrap();
+
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+
+        let page_limit = 5;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows =
+                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+
+            let doc_ids = get_document_ids(
+                &gather_rows
+                    .get("SystemIndex_Gthr")
+                    .unwrap_or(&Vec::new())
+                    .to_vec(),
+            );
+
+            assert!(!doc_ids.is_empty());
+
+            break;
+        }
+    }
+
+    #[test]
+    fn test_get_properties() {
+        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(path) {
+            return;
+        }
+
+        let catalog = search_catalog(path).unwrap();
+
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+
+        let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
+        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+
+        let page_limit = 1;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows =
+                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+
+            let mut doc_ids = get_document_ids(
+                &gather_rows
+                    .get("SystemIndex_Gthr")
+                    .unwrap_or(&Vec::new())
+                    .to_vec(),
+            );
+
+            let property_rows =
+                get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+
+            assert!(!property_rows.is_empty());
+
+            break;
+        }
+    }
+
+    #[test]
+    fn test_process_search() {
+        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        // Some versions of Windows 11 do not use ESE for Windows Search
+        if !is_file(path) {
+            return;
+        }
+
+        let catalog = search_catalog(path).unwrap();
+
+        let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
+        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+
+        let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
+        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+
+        let page_limit = 5;
+        let mut gather_chunk = Vec::new();
+        let last_page = 0;
+
+        let mut output = output_options("search_temp", "local", "./tmp", false);
+
+        for gather_page in gather_pages {
+            if gather_page == last_page {
+                continue;
+            }
+
+            gather_chunk.push(gather_page);
+            if gather_chunk.len() != page_limit {
+                continue;
+            }
+
+            let gather_rows =
+                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+
+            let mut doc_ids = get_document_ids(
+                &gather_rows
+                    .get("SystemIndex_Gthr")
+                    .unwrap_or(&Vec::new())
+                    .to_vec(),
+            );
+
+            let property_rows =
+                get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+
+            let _ = process_search(&property_rows, &gather_rows, &mut output, &0, &false).unwrap();
+            break;
+        }
+    }
+
+    #[test]
     #[ignore = "Can take a long time"]
     fn test_parse_search_path() {
         let test_path =
@@ -346,12 +592,7 @@ mod tests {
             return;
         }
 
-        let table = vec![
-            String::from("SystemIndex_Gthr"),
-            String::from("SystemIndex_PropertyStore"),
-        ];
-
-        let results = parse_search_path(test_path, &table).unwrap();
+        let results = parse_search_path(test_path, &50).unwrap();
         assert!(results.len() > 20);
     }
 }

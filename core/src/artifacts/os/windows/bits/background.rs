@@ -5,67 +5,46 @@ use super::{
     jobs::{get_jobs, get_legacy_jobs},
 };
 use crate::{
-    artifacts::os::windows::{accounts::parser::get_users, ese::parser::grab_ese_tables},
+    artifacts::os::windows::ese::{
+        helper::{get_all_pages, get_catalog_info, get_page_data},
+        tables::table_info,
+    },
     filesystem::{files::is_file, ntfs::raw_files::raw_read_file},
 };
-use common::windows::{BitsInfo, WindowsBits};
+use common::windows::{BitsInfo, TableDump, WindowsBits};
 use log::error;
 
 /**
  * Parse modern version (Win10+) of BITS which is an ESE database by dumping the `Jobs` and `Files` tables and parsing their contents  
  */
 pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
-    let tables = vec![String::from("Jobs"), String::from("Files")];
     // Dump the Jobs and Files tables from the BITS database
-    let ese_results = grab_ese_tables(bits_path, &tables);
-    let bits_tables = match ese_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[bits] Failed to parse ESE file: {err:?}");
-            return Err(BitsError::ParseEse);
-        }
-    };
+    let files = get_bits_ese(bits_path, "Files")?;
+    let jobs_info = get_bits_ese(bits_path, "Jobs")?;
 
-    let jobs = if let Some(values) = bits_tables.get("Jobs") {
-        values
-    } else {
-        return Err(BitsError::MissingJobs);
-    };
+    let jobs = get_jobs(&jobs_info)?;
 
-    let jobs_info = get_jobs(jobs)?;
-
-    let files = if let Some(values) = bits_tables.get("Files") {
-        values
-    } else {
-        return Err(BitsError::MissingFiles);
-    };
-
-    let files_info = get_files(files)?;
+    let files_info = get_files(&files)?;
     let mut bits_info: Vec<BitsInfo> = Vec::new();
-    let users = get_users().unwrap_or_default();
 
-    for job in &jobs_info {
+    for job in &jobs {
         for file in &files_info {
             if job.file_id == file.file_id {
                 let bit_info = BitsInfo {
                     job_id: job.job_id.clone(),
                     file_id: job.file_id.clone(),
                     owner_sid: job.owner_sid.clone(),
-                    username: users
-                        .get(&job.owner_sid.clone())
-                        .unwrap_or(&String::new())
-                        .to_string(),
                     created: job.created,
                     modified: job.modified,
                     completed: job.completed,
                     expiration: job.expiration,
                     files_total: file.files_transferred,
                     bytes_downloaded: file.download_bytes_size,
-                    bytes_tranferred: file.trasfer_bytes_size,
+                    bytes_transferred: file.transfer_bytes_size,
                     job_name: job.job_name.clone(),
                     job_description: job.job_description.clone(),
                     job_command: job.job_command.clone(),
-                    job_arguements: job.job_arguements.clone(),
+                    job_arguments: job.job_arguments.clone(),
                     error_count: job.error_count,
                     job_type: job.job_type.clone(),
                     job_state: job.job_state.clone(),
@@ -112,6 +91,39 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
         }
     }
     Ok(windows_bits)
+}
+
+/// Extract BITs info from ESE database
+pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>>, BitsError> {
+    let catalog_result = get_catalog_info(path);
+    let catalog = match catalog_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[bits] Failed to parse {path} catalog: {err:?}");
+            return Err(BitsError::ParseEse);
+        }
+    };
+
+    let mut info = table_info(&catalog, table);
+    let pages_result = get_all_pages(path, &(info.table_page as u32));
+    let pages = match pages_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[bits] Failed to get {table} pages at {path}: {err:?}");
+            return Err(BitsError::ParseEse);
+        }
+    };
+
+    let rows_results = get_page_data(path, &pages, &mut info, table);
+    let table_rows = match rows_results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[bits] Failed to parse {table} table at {path}: {err:?}");
+            return Err(BitsError::ParseEse);
+        }
+    };
+
+    Ok(table_rows.get(table).unwrap_or(&Vec::new()).clone())
 }
 
 /**
@@ -196,7 +208,9 @@ fn parse_carve(data: &[u8], is_legacy: bool) -> WinBits {
 mod tests {
     use super::parse_ese_bits;
     use crate::{
-        artifacts::os::windows::bits::background::{legacy_bits, parse_carve, parse_legacy_bits},
+        artifacts::os::windows::bits::background::{
+            get_bits_ese, legacy_bits, parse_carve, parse_legacy_bits,
+        },
         filesystem::files::read_file,
     };
     use std::path::PathBuf;
@@ -207,6 +221,14 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
         let results = parse_ese_bits(test_location.to_str().unwrap(), false).unwrap();
         assert_eq!(results.bits.len(), 1);
+    }
+
+    #[test]
+    fn test_get_bits_ese() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let results = get_bits_ese(test_location.to_str().unwrap(), "Files").unwrap();
+        assert_eq!(results.len(), 1);
     }
 
     #[test]

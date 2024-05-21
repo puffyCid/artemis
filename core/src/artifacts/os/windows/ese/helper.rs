@@ -1,3 +1,19 @@
+/**
+ * Extensible Storage Engine (`ESE`) is an open source database format used by various Windows applications  
+ * Such as: Windows Search (Pre-Win11), Windows Catalog files, BITS, SRUM, Windows Updates, and lots more  
+ *
+ * Its an extremely complex format, currently we focus on providing the ability to dump table rows which contains the data of interest  
+ * Often `ESE` files are locked so we use the NTFS parser to read the files (`raw_read_file`)
+ *
+ * References:  
+ * `https://github.com/libyal/libesedb/blob/main/documentation/Extensible%20Storage%20Engine%20(ESE)%20Database%20File%20(EDB)%20format.asciidoc`
+ * `https://github.com/Velocidex/go-ese`
+ * `https://techcommunity.microsoft.com/t5/ask-the-directory-services-team/ese-deep-dive-part-1-the-anatomy-of-an-ese-database/ba-p/400496`
+ * `https://github.com/microsoft/Extensible-Storage-Engine`
+ *
+ * Other Parsers:  
+ * `https://github.com/Velocidex/velociraptor`
+ */
 use super::{
     catalog::Catalog,
     error::EseError,
@@ -92,6 +108,7 @@ pub(crate) fn get_page_data(
     total_rows.insert(name.to_string(), Vec::new());
 
     let page_size;
+    let last_page = 0;
     let mut rows = if plat != "Windows" {
         let reader = setup_ese_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
@@ -99,6 +116,9 @@ pub(crate) fn get_page_data(
         page_size = ese_page_size(None, &mut buf_reader)?;
         let mut rows = Vec::new();
         for page in pages {
+            if page == &last_page {
+                continue;
+            }
             let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
             rows.append(&mut page_rows);
         }
@@ -111,6 +131,9 @@ pub(crate) fn get_page_data(
         let mut rows = Vec::new();
 
         for page in pages {
+            if page == &last_page {
+                continue;
+            }
             let mut page_rows = page_data(
                 page,
                 Some(&ntfs_file),
@@ -131,11 +154,11 @@ pub(crate) fn get_page_data(
         )?
     };
 
-    if let Some(mut values) = rows.get_mut(name) {
+    if let Some(values) = rows.get_mut(name) {
         total_rows
             .entry(name.to_string())
             .or_insert(Vec::new())
-            .append(&mut values);
+            .append(values);
     }
 
     Ok(total_rows)
@@ -202,7 +225,7 @@ pub(crate) fn get_filtered_page_data(
                     continue;
                 }
 
-                if let Some(_) = column_values.get(&columns.column_data) {
+                if column_values.get(&columns.column_data).is_some() {
                     total_rows
                         .entry(name.to_string())
                         .or_insert(Vec::new())
@@ -300,7 +323,7 @@ fn setup_ese_reader_windows<'a>(
     fs: &mut BufReader<SectorReader<File>>,
     path: &str,
 ) -> Result<NtfsFile<'a>, EseError> {
-    let reader_result = raw_reader(path, &ntfs_file, fs);
+    let reader_result = raw_reader(path, ntfs_file, fs);
     let ntfs_file = match reader_result {
         Ok(result) => result,
         Err(err) => {
@@ -327,7 +350,7 @@ fn setup_ese_reader(path: &str) -> Result<File, EseError> {
 }
 
 /// Determine page size for ESE database
-fn ese_page_size<'a, T: std::io::Seek + std::io::Read>(
+fn ese_page_size<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
 ) -> Result<u32, EseError> {
@@ -356,7 +379,7 @@ fn ese_page_size<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Get array of pages
-fn get_pages<'a, T: std::io::Seek + std::io::Read>(
+fn get_pages<T: std::io::Seek + std::io::Read>(
     first_page: &u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -396,9 +419,7 @@ fn get_pages<'a, T: std::io::Seek + std::io::Read>(
     }
 
     let mut pages = Vec::new();
-    pages.push(first_page.clone());
-    let mut has_key = true;
-    let mut key_data: Vec<u8> = Vec::new();
+    pages.push(*first_page);
 
     for tag in table_page_data.page_tags {
         // Defunct tags are not used
@@ -408,31 +429,8 @@ fn get_pages<'a, T: std::io::Seek + std::io::Read>(
         // First tag is Root, we already parsed that
         if has_root {
             has_root = false;
-            has_key = false;
             continue;
         }
-
-        /*
-        if key_data.is_empty() && has_key {
-            let key_result = nom_data(page_data, tag.offset.into());
-            let (key_start, _) = match key_result {
-                Ok(result) => result,
-                Err(_err) => {
-                    error!("[ese] Failed to get key data");
-                    return Err(EseError::ParseEse);
-                }
-            };
-            let page_key_data_result = nom_data(key_start, tag.value_size.into());
-            let (_, page_key_data) = match page_key_data_result {
-                Ok(result) => result,
-                Err(_err) => {
-                    error!("[ese] Failed to get page key data");
-                    return Err(EseError::ParseEse);
-                }
-            };
-            key_data = page_key_data.to_vec();
-            continue;
-        }*/
 
         if table_page_data.page_flags.contains(&PageFlags::Leaf) {
             continue;
@@ -496,7 +494,7 @@ fn get_pages<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Start parsing the page data to get rows
-fn page_data<'a, T: std::io::Seek + std::io::Read>(
+fn page_data<T: std::io::Seek + std::io::Read>(
     page: &u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -620,7 +618,7 @@ fn page_data<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Extract row data into generic ESE `TableDump`
-fn row_data<'a, T: std::io::Seek + std::io::Read>(
+fn row_data<T: std::io::Seek + std::io::Read>(
     rows: &mut Vec<Vec<ColumnInfo>>,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -629,7 +627,7 @@ fn row_data<'a, T: std::io::Seek + std::io::Read>(
     name: &str,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
     if info.long_value_page == 0 {
-        let table_data = create_table_data(&rows, name);
+        let table_data = create_table_data(rows, name);
         return Ok(table_data);
     }
 
@@ -689,7 +687,7 @@ fn row_data<'a, T: std::io::Seek + std::io::Read>(
     }
 
     // Finally done, now just need to create an abstracted table dump where we parse non-binary column data
-    let table_data = create_table_data(&rows, name);
+    let table_data = create_table_data(rows, name);
 
     Ok(table_data)
 }
@@ -916,24 +914,21 @@ mod tests {
 
         let catalog = get_catalog_info(test_location.to_str().unwrap()).unwrap();
 
-        let pages = get_all_pages(
-            test_location.to_str().unwrap(),
-            &(catalog[0].column_or_father_data_page as u32),
-        )
-        .unwrap();
-
         let mut info = TableInfo {
-            obj_id_table: catalog[0].obj_id_table,
-            table_page: catalog[0].column_or_father_data_page,
+            obj_id_table: 0,
+            table_page: 0,
             table_name: String::new(),
             column_info: Vec::new(),
             long_value_page: 0,
         };
         // Get metadata from Catalog associated with the table we want
         for entry in &catalog {
-            if entry.name != "Jobs" {
-                continue;
+            if entry.name == "Jobs" {
+                info.table_name = entry.name.clone();
+                info.table_page = entry.column_or_father_data_page;
+                info.obj_id_table = entry.obj_id_table;
             }
+
             if entry.obj_id_table == info.obj_id_table
                 && !info.table_name.is_empty()
                 && entry.catalog_type == CatalogType::Column
@@ -957,13 +952,13 @@ mod tests {
             }
         }
 
-        let results = get_page_data(
-            test_location.to_str().unwrap(),
-            &pages,
-            &mut info,
-            &catalog[0].name,
-        )
-        .unwrap();
+        let pages =
+            get_all_pages(test_location.to_str().unwrap(), &(info.table_page as u32)).unwrap();
+
+        let name = info.table_name.clone();
+
+        let results =
+            get_page_data(test_location.to_str().unwrap(), &pages, &mut info, &name).unwrap();
         let job = results.get("Jobs").unwrap();
         assert_eq!(job[0][0].column_name, "Id");
         assert_eq!(job[0][0].column_type, ColumnType::Guid);

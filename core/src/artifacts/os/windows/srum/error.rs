@@ -4,7 +4,6 @@ use std::fmt;
 pub(crate) enum SrumError {
     Systemdrive,
     ParseEse,
-    MissingIndexes,
     Serialize,
     NoTable,
 }
@@ -16,7 +15,6 @@ impl fmt::Display for SrumError {
         match self {
             SrumError::Systemdrive => write!(f, "Failed to get systemdrive"),
             SrumError::ParseEse => write!(f, "Failed to parse ESE db"),
-            SrumError::MissingIndexes => write!(f, "Failed to find Indexes from SRUM"),
             SrumError::NoTable => write!(f, "Provided table(s) not found"),
             SrumError::Serialize => write!(f, "Failed to serialize SRUM data"),
         }

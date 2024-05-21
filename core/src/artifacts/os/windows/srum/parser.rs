@@ -47,20 +47,7 @@ pub(crate) fn grab_srum(
         format!("{systemdrive}:\\Windows\\System32\\sru\\SRUDB.dat")
     };
 
-    let tables = vec![
-        String::from("{5C8CF1C7-7257-4F13-B223-970EF5939312}"),
-        String::from("{973F5D5C-1D90-4944-BE8E-24B94231A174}"),
-        String::from("{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}"),
-        String::from("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}"),
-        String::from("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}"),
-        String::from("{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}"),
-        String::from("{DD6636C4-8929-4683-974E-22C046A43763}"),
-        String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}"),
-        String::from("{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT"),
-        String::from("SruDbIdMapTable"),
-    ];
-
-    parse_srum(&path, &tables, output, filter)
+    parse_srum(&path, output, filter)
 }
 
 /**
@@ -68,9 +55,7 @@ pub(crate) fn grab_srum(
  * We then dump a single provided table associated with `SRUM` along with the `SruDbIdMapTable` index
  */
 pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError> {
-    let tables = vec![table.to_string(), String::from("SruDbIdMapTable")];
-
-    get_srum(path, &tables)
+    get_srum(path, table)
 }
 
 #[cfg(test)]

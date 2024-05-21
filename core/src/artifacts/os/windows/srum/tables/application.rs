@@ -1,4 +1,4 @@
-use crate::artifacts::os::windows::srum::error::SrumError;
+use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_unixepoch};
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -393,9 +393,15 @@ pub(crate) fn parse_vfu_provider(
                 }
                 "Flags" => app.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "StartTime" => {
-                    app.start_time = column.column_data.parse::<i64>().unwrap_or_default();
+                    app.start_time = filetime_to_unixepoch(
+                        &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
+                    );
                 }
-                "EndTime" => app.end_time = column.column_data.parse::<i64>().unwrap_or_default(),
+                "EndTime" => {
+                    app.end_time = filetime_to_unixepoch(
+                        &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
+                    );
+                }
                 "Usage" => app.usage.clone_from(&column.column_data),
                 _ => continue,
             }
@@ -407,7 +413,7 @@ pub(crate) fn parse_vfu_provider(
     let serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM appication vfu table: {err:?}");
+            error!("[srum] Failed to serialize SRUM application vfu table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
@@ -419,61 +425,43 @@ pub(crate) fn parse_vfu_provider(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_app_timeline, parse_application, parse_vfu_provider};
-    use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
+    use crate::artifacts::os::windows::srum::{
+        resource::get_srum_ese, tables::index::parse_id_lookup,
     };
 
     #[test]
     fn test_parse_app_timeline() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{5C8CF1C7-7257-4F13-B223-970EF5939312}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{5C8CF1C7-7257-4F13-B223-970EF5939312}")
-            .unwrap();
 
-        let (results, _) = parse_app_timeline(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
+
+        let (results, _) = parse_app_timeline(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 
     #[test]
     fn test_parse_application() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}")
-            .unwrap();
 
-        let (results, _) = parse_application(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}").unwrap();
+
+        let (results, _) = parse_application(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 
     #[test]
     fn test_parse_vfu_provider() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}")
-            .unwrap();
 
-        let (results, _) = parse_vfu_provider(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}").unwrap();
+
+        let (results, _) = parse_vfu_provider(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 }
