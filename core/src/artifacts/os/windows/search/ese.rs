@@ -40,7 +40,7 @@ pub(crate) fn parse_search(
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
     let property_pages = search_pages(&(property_table.table_page as u32), path)?;
 
-    let page_limit = 200;
+    let page_limit = 400;
     let mut gather_chunk = Vec::new();
     let last_page = 0;
     for gather_page in gather_pages {
