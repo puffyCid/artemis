@@ -144,7 +144,10 @@ pub(crate) fn create_table_data(
             if let Ok((_, value)) = result {
                 dump.column_data = value;
             } else {
-                warn!("[ese] Could not transform column data to string for table");
+                warn!(
+                    "[ese] Could not transform column {} data to string for table: {table_name}",
+                    column.column_name
+                );
                 dump.column_data = base64_encode_standard(&column.column_data);
             }
             table_dump.push(dump);
