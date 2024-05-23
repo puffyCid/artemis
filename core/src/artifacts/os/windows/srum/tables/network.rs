@@ -159,41 +159,29 @@ pub(crate) fn parse_network_connectivity(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_network, parse_network_connectivity};
-    use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
+    use crate::artifacts::os::windows::srum::{
+        resource::get_srum_ese, tables::index::parse_id_lookup,
     };
 
     #[test]
     fn test_parse_network() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{973F5D5C-1D90-4944-BE8E-24B94231A174}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let network = test_data
-            .get("{973F5D5C-1D90-4944-BE8E-24B94231A174}")
-            .unwrap();
 
-        parse_network(&network, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{973F5D5C-1D90-4944-BE8E-24B94231A174}").unwrap();
+
+        parse_network(&srum_data, &lookups).unwrap();
     }
 
     #[test]
     fn test_parse_network_connectivity() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{DD6636C4-8929-4683-974E-22C046A43763}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let network = test_data
-            .get("{DD6636C4-8929-4683-974E-22C046A43763}")
-            .unwrap();
 
-        parse_network_connectivity(&network, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{DD6636C4-8929-4683-974E-22C046A43763}").unwrap();
+
+        parse_network_connectivity(&srum_data, &lookups).unwrap();
     }
 }

@@ -1,8 +1,7 @@
 use super::{carve::combine_file_and_job, error::BitsError, files::get_legacy_files};
 use crate::{
     artifacts::os::windows::{
-        accounts::parser::get_users,
-        bits::carve::scan_delimter,
+        bits::carve::scan_delimiter,
         securitydescriptor::{acl::parse_acl, sid::grab_sid},
     },
     utils::{
@@ -38,7 +37,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
-            job_arguements: String::new(),
+            job_arguments: String::new(),
             error_count: 0,
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
@@ -127,7 +126,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
-            job_arguements: String::new(),
+            job_arguments: String::new(),
             error_count: 0,
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
@@ -149,9 +148,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
         let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
         let carved = false;
 
-        let users = get_users().unwrap_or_default();
-
-        jobs.push(combine_file_and_job(&job, &file, carved, &users));
+        jobs.push(combine_file_and_job(&job, &file, carved));
         job_count += 1;
         if job_count == number_jobs {
             break;
@@ -193,7 +190,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
         // For legacy BITS scan data for known job delimiters, footer signifies the end of the job
         for job in job_delimiters {
             if !remaining_input.is_empty() {
-                let scan_results = scan_delimter(remaining_input, &job);
+                let scan_results = scan_delimiter(remaining_input, &job);
                 // If no hits move on to next delimiter
                 let hit_data = match scan_results {
                     Ok((input, _)) => input,
@@ -270,7 +267,7 @@ pub(crate) fn parse_job<'a>(
     job_info.job_name = job_name;
     job_info.job_description = description;
     job_info.job_command = cmd;
-    job_info.job_arguements = args;
+    job_info.job_arguments = args;
     job_info.owner_sid = sid;
     job_info.flags = get_flag(&job_flag);
     job_info.acls = acls;
@@ -313,7 +310,7 @@ pub(crate) fn job_details<'a>(
         let (remaining_input, _count) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (remaining_input, file_id_data) = take(size_of::<u128>())(remaining_input)?;
         // Delimiter repeats again
-        let (remaining_input, _delimilter_data) =
+        let (remaining_input, _delimiter_data) =
             nom_unsigned_sixteen_bytes(remaining_input, Endian::Le)?;
         input = remaining_input;
         job_info.file_id = format_guid_le_bytes(file_id_data);
@@ -501,7 +498,7 @@ mod tests {
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
-            job_arguements: String::new(),
+            job_arguments: String::new(),
             error_count: 0,
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
@@ -545,7 +542,7 @@ mod tests {
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
-            job_arguements: String::new(),
+            job_arguments: String::new(),
             error_count: 0,
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
@@ -588,16 +585,14 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_jobs() {
-        use crate::artifacts::os::windows::{bits::jobs::get_jobs, ese::parser::grab_ese_tables};
+        use crate::artifacts::os::windows::bits::{background::get_bits_ese, jobs::get_jobs};
 
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
 
-        let tables = vec![String::from("Jobs")];
-        let bits_tables = grab_ese_tables(test_location.to_str().unwrap(), &tables).unwrap();
-        let jobs = bits_tables.get("Jobs").unwrap();
+        let jobs = get_bits_ese(test_location.to_str().unwrap(), "Jobs").unwrap();
 
-        let jobs_info = get_jobs(jobs).unwrap();
+        let jobs_info = get_jobs(&jobs).unwrap();
         assert_eq!(jobs_info.len(), 1);
     }
 

@@ -75,24 +75,18 @@ pub(crate) fn parse_notification(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::parse_notification;
-    use crate::artifacts::os::windows::{
-        ese::parser::grab_ese_tables, srum::tables::index::parse_id_lookup,
+    use crate::artifacts::os::windows::srum::{
+        resource::get_srum_ese, tables::index::parse_id_lookup,
     };
 
     #[test]
     fn test_parse_notification() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let table = vec![
-            String::from("SruDbIdMapTable"),
-            String::from("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}"),
-        ];
-        let test_data = grab_ese_tables(test_path, &table).unwrap();
-        let ids = test_data.get("SruDbIdMapTable").unwrap();
-        let id_results = parse_id_lookup(&ids);
-        let energy = test_data
-            .get("{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}")
-            .unwrap();
 
-        parse_notification(&energy, &id_results).unwrap();
+        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let lookups = parse_id_lookup(&indexes);
+        let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}").unwrap();
+
+        parse_notification(&srum_data, &lookups).unwrap();
     }
 }

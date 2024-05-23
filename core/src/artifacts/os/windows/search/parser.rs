@@ -71,22 +71,17 @@ pub(crate) fn grab_search(
          */
         return parse_search_sqlite(&win11, output, filter);
     }
-    let tables = vec![
-        String::from("SystemIndex_Gthr"),
-        String::from("SystemIndex_PropertyStore"),
-    ];
 
-    parse_search(&path, &tables, output, filter)
+    parse_search(&path, output, filter)
 }
 
 /// Parse a provided Windows `Search` file and return its contents
-pub(crate) fn grab_search_path(path: &str) -> Result<Vec<SearchEntry>, SearchError> {
+pub(crate) fn grab_search_path(
+    path: &str,
+    page_limit: &u32,
+) -> Result<Vec<SearchEntry>, SearchError> {
     let result = if path.ends_with(".edb") {
-        let tables = vec![
-            String::from("SystemIndex_Gthr"),
-            String::from("SystemIndex_PropertyStore"),
-        ];
-        parse_search_path(path, &tables)?
+        parse_search_path(path, page_limit)?
     } else if path.ends_with(".db") {
         parse_search_sqlite_path(path)?
     } else {
@@ -138,7 +133,7 @@ mod tests {
             return;
         }
 
-        let results = grab_search_path(test_path).unwrap();
+        let results = grab_search_path(test_path, &50).unwrap();
         assert!(results.len() > 20);
     }
 }

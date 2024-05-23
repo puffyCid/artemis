@@ -12,8 +12,8 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
-            nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
+            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
         },
         strings::extract_utf8_string,
     },
@@ -21,9 +21,10 @@ use crate::{
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::BufReader};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Catalog {
     /**Fixed data */
     pub(crate) obj_id_table: i32,
@@ -49,6 +50,8 @@ pub(crate) struct Catalog {
     pub(crate) key_most: u16,
     /**Fixed data */
     pub(crate) lv_chunk_max: i32,
+    /*Fixed data */
+    pub(crate) father_data_page_last_set_time: i64,
     /**Variable data */
     pub(crate) name: String,
     /**Variable data */
@@ -96,7 +99,7 @@ pub(crate) struct TaggedData {
     pub(crate) data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum CatalogType {
     Table,
     Column,
@@ -108,13 +111,13 @@ pub(crate) enum CatalogType {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub(crate) enum TaggedDataFlag {
     Variable,
     Compressed,
     LongValue,
     MultiValue,
-    MultiValueSizeDefintion,
+    MultiValueSizeDefinition,
     Unknown,
 }
 
@@ -292,6 +295,7 @@ impl Catalog {
             space_hints: Vec::new(),
             space_deferred_lv_hints: Vec::new(),
             local_name: Vec::new(),
+            father_data_page_last_set_time: 0,
         };
 
         if leaf_row.leaf_type != LeafType::DataDefinition {
@@ -401,8 +405,14 @@ impl Catalog {
                     catalog.lv_chunk_max = lv_chunk_max;
                     data = input;
                 }
+                13 => {
+                    let (input, father_data_page_last_set_time) =
+                        nom_signed_eight_bytes(data, Endian::Le)?;
+                    catalog.father_data_page_last_set_time = father_data_page_last_set_time;
+                    data = input;
+                }
                 _ => {
-                    warn!("[ese] Unknown fixed data value {column}");
+                    warn!("[ese] Catalog Unknown fixed data value {column}");
                     break;
                 }
             }
@@ -696,7 +706,7 @@ impl Catalog {
         let compressed = 2;
         let long_value = 4;
         let multi_value = 8;
-        let mutli_value_size = 16;
+        let multi_value_size = 16;
         let mut flags_data = Vec::new();
         if (flags & variable) == variable {
             flags_data.push(TaggedDataFlag::Variable);
@@ -710,8 +720,8 @@ impl Catalog {
         if (flags & multi_value) == multi_value {
             flags_data.push(TaggedDataFlag::MultiValue);
         }
-        if (flags & mutli_value_size) == mutli_value_size {
-            flags_data.push(TaggedDataFlag::MultiValueSizeDefintion);
+        if (flags & multi_value_size) == multi_value_size {
+            flags_data.push(TaggedDataFlag::MultiValueSizeDefinition);
         }
         flags_data
     }
@@ -792,6 +802,7 @@ mod tests {
             space_hints: Vec::new(),
             space_deferred_lv_hints: Vec::new(),
             local_name: Vec::new(),
+            father_data_page_last_set_time: 0,
         };
         let fixed_col = 8;
         let (_, _) = Catalog::parse_fixed(fixed_col, &test, &mut catalog).unwrap();
@@ -838,6 +849,7 @@ mod tests {
             space_hints: Vec::new(),
             space_deferred_lv_hints: Vec::new(),
             local_name: Vec::new(),
+            father_data_page_last_set_time: 0,
         };
         let variable_column = 128;
         let (_, _) = Catalog::parse_variable(variable_column, &test, &mut catalog).unwrap();
@@ -877,6 +889,7 @@ mod tests {
             space_hints: Vec::new(),
             space_deferred_lv_hints: Vec::new(),
             local_name: Vec::new(),
+            father_data_page_last_set_time: 0,
         };
         let (_, _) = Catalog::parse_tagged(&test, &mut catalog).unwrap();
 
