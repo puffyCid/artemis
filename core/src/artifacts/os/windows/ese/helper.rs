@@ -693,6 +693,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         dump_table_columns, get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data,
