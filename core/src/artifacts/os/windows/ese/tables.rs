@@ -558,15 +558,87 @@ fn parse_tagged_data<'a>(
 
     // Nearly done, need to update columns now
     for tag in full_tags {
+        let mut data = tag.data;
+        if tag.flags.contains(&TaggedDataFlag::MultiValue) {
+            let value_result = parse_multivalue_data(&data, &tag.flags);
+            let input = if let Ok((_, result)) = value_result {
+                result
+            } else {
+                warn!("[ese] Could not extract multivalue data");
+                data
+            };
+            data = input;
+        }
         for entry in column_info.iter_mut() {
             if entry.column_id == tag.column as i32 {
-                entry.column_data.clone_from(&tag.data);
+                entry.column_data.clone_from(&data);
                 entry.column_tagged_flags.clone_from(&tag.flags);
             }
         }
     }
 
     Ok((tagged_data, ()))
+}
+
+fn parse_multivalue_data<'a>(
+    tag_data: &'a [u8],
+    flags: &[TaggedDataFlag],
+) -> nom::IResult<&'a [u8], Vec<u8>> {
+    let mut data = tag_data;
+    let mut offsets_sizes = Vec::new();
+
+    if flags.contains(&TaggedDataFlag::LongValue) {
+        return Ok((data, data.to_vec()));
+    }
+
+    let mut multi_data = Vec::new();
+    if flags.contains(&TaggedDataFlag::MultiValue) {
+        let (input, offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
+        data = input;
+        let adjust = 1;
+
+        // determine the number of offsets. We already got the first one
+        let mut offset_count = (offset / 2) - adjust;
+        if offset_count as usize > data.len() {
+            warn!("[ese] Multivalue offset count too large");
+            return Ok((data, multi_data));
+        }
+        offsets_sizes.push(offset);
+        while offset_count != 0 {
+            let (input, offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
+            offsets_sizes.push(offset);
+            data = input;
+
+            offset_count -= adjust;
+        }
+
+        let mut peek_offsets = offsets_sizes.iter().peekable();
+
+        while let Some(value) = peek_offsets.next() {
+            // Need to subtract the current offset from next offset to get data size
+            let size = if let Some(next_offset) = peek_offsets.peek() {
+                *next_offset - value
+            } else {
+                // remaining data is used for size
+                data.len() as u16
+            };
+            if size as usize > data.len() {
+                warn!("[ese] Multivalue offset length too large");
+                return Ok((data, multi_data));
+            }
+            let (input, value_data) = take(size)(data)?;
+            data = input;
+
+            if flags.contains(&TaggedDataFlag::Compressed) {
+                let (_, mut decom_data) = get_decompressed_data(value_data)?;
+                multi_data.append(&mut decom_data);
+                continue;
+            }
+
+            multi_data.append(&mut value_data.to_vec());
+        }
+    }
+    Ok((data, multi_data))
 }
 
 /// Clear column data so when we go to the next row there is no leftover data from previous row
@@ -707,12 +779,13 @@ pub(crate) fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
 mod tests {
     use super::ColumnInfo;
     use crate::artifacts::os::windows::ese::{
+        catalog::TaggedDataFlag,
         pages::leaf::{LeafType, PageLeaf},
         tables::{
             clear_column_data, column_data_to_string, create_table_data, decompress_ese,
             get_column_flags, get_column_type, get_decompressed_data, nom_fixed_column,
-            parse_fixed_data, parse_row, parse_tagged_data, parse_variable_data, ColumnFlags,
-            ColumnType,
+            parse_fixed_data, parse_multivalue_data, parse_row, parse_tagged_data,
+            parse_variable_data, ColumnFlags, ColumnType,
         },
     };
     use serde_json::json;
@@ -882,6 +955,33 @@ mod tests {
         let test = 4096;
         let flags = get_column_flags(&test);
         assert_eq!(flags, vec![ColumnFlags::Compressed]);
+    }
+
+    #[test]
+    fn test_parse_multivalue_data() {
+        let flags = vec![TaggedDataFlag::MultiValue, TaggedDataFlag::Compressed];
+        let test = [
+            8, 0, 19, 0, 51, 0, 121, 0, 20, 215, 180, 155, 252, 190, 207, 65, 49, 24, 0, 87, 0,
+            105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32, 0, 76, 0, 84,
+            0, 83, 0, 66, 0, 0, 0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0,
+            49, 0, 48, 0, 44, 0, 32, 0, 118, 0, 101, 0, 114, 0, 115, 0, 105, 0, 111, 0, 110, 0, 32,
+            0, 49, 0, 57, 0, 48, 0, 51, 0, 32, 0, 97, 0, 110, 0, 100, 0, 32, 0, 108, 0, 97, 0, 116,
+            0, 101, 0, 114, 0, 0, 0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0,
+            49, 0, 49, 0, 0, 0,
+        ];
+        let (_, data) = parse_multivalue_data(&test, &flags).unwrap();
+        assert_eq!(
+            data,
+            vec![
+                87, 105, 110, 100, 111, 119, 115, 32, 49, 48, 0, 87, 0, 105, 0, 110, 0, 100, 0,
+                111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32, 0, 76, 0, 84, 0, 83, 0, 66, 0, 0,
+                0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 44,
+                0, 32, 0, 118, 0, 101, 0, 114, 0, 115, 0, 105, 0, 111, 0, 110, 0, 32, 0, 49, 0, 57,
+                0, 48, 0, 51, 0, 32, 0, 97, 0, 110, 0, 100, 0, 32, 0, 108, 0, 97, 0, 116, 0, 101,
+                0, 114, 0, 0, 0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49,
+                0, 49, 0, 0, 0
+            ]
+        );
     }
 
     #[test]
