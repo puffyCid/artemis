@@ -84,7 +84,9 @@ pub(crate) async fn endpoint_count(path: &str, os: &EndpointOS) -> Result<usize,
     let count = match os {
         EndpointOS::All => glob_paths(&format!("{path}/*/*/enroll.json"))?,
         EndpointOS::Linux => glob_paths(&format!("{path}/Linux/*/enroll.json"))?,
-        EndpointOS::Darwin => glob_paths(&format!("{path}/Darwin/*/enroll.json"))?,
+        EndpointOS::MacOS | EndpointOS::Darwin => {
+            glob_paths(&format!("{path}/Darwin/*/enroll.json"))?
+        }
         EndpointOS::Windows => glob_paths(&format!("{path}/Windows/*/enroll.json"))?,
     };
 
@@ -162,7 +164,7 @@ pub(crate) async fn get_endpoints(
     let mut globs = glob_paths(glob_pattern)?;
     globs.sort();
 
-    let limit = 50;
+    let limit = request.count;
     let mut endpoint_entries = Vec::new();
     let mut paged_found = false;
 
@@ -172,7 +174,8 @@ pub(crate) async fn get_endpoints(
 
         if request.pagination.is_empty() && filter_match {
             endpoint_entries.push(info.clone());
-        } else if enroll_path.contains(&request.pagination) {
+        } else if enroll_path.contains(&request.pagination) && !paged_found {
+            // Found last Endpoint from previous request, now start returning them
             paged_found = true;
             continue;
         }
@@ -181,7 +184,7 @@ pub(crate) async fn get_endpoints(
             endpoint_entries.push(info);
         }
 
-        if endpoint_entries.len() == limit {
+        if endpoint_entries.len() == limit as usize {
             break;
         }
     }
@@ -195,6 +198,20 @@ async fn enroll_filter(
     request: &EndpointRequest,
 ) -> Result<(bool, EndpointList), StoreError> {
     let enroll = read_enroll(path).await?;
+    let mut filter_match = false;
+
+    if !request.search.is_empty() && format!("{:?}", enroll).contains(&request.search) {
+        filter_match = true;
+        let entry = EndpointList {
+            os: enroll.platform,
+            version: enroll.os_version,
+            id: enroll.id,
+            hostname: enroll.hostname,
+            last_heartbeat: 0,
+        };
+        return Ok((filter_match, entry));
+    }
+
     let entry = EndpointList {
         os: enroll.platform,
         version: enroll.os_version,
@@ -202,26 +219,23 @@ async fn enroll_filter(
         hostname: enroll.hostname,
         last_heartbeat: 0,
     };
-    let mut filter_match = false;
 
     // If no filters. Just return the entry
-    if request.search.is_empty() && request.tags.is_empty() {
-        filter_match = true;
-        return Ok((filter_match, entry));
-    }
-
-    if !request.search.is_empty()
-        && (entry.hostname.contains(&request.search) || !entry.id.contains(&request.search))
-    {
+    if request.search.is_empty() && request.tags.is_empty() && request.filter == EndpointOS::All {
         filter_match = true;
         return Ok((filter_match, entry));
     }
 
     for tag in &request.tags {
-        if enroll.tags.contains(tag) {
+        if enroll.tags.contains(tag) && entry.os == format!("{:?}", request.filter) {
             filter_match = true;
             return Ok((filter_match, entry));
         }
+    }
+
+    if entry.os == format!("{:?}", request.filter) {
+        filter_match = true;
+        return Ok((filter_match, entry));
     }
 
     Ok((filter_match, entry))
@@ -391,6 +405,7 @@ mod tests {
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 2,
         };
 
         let path = test_location.to_str().unwrap();
@@ -421,6 +436,7 @@ mod tests {
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 2,
         };
 
         let pattern = test_location.to_str().unwrap();
@@ -439,6 +455,7 @@ mod tests {
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 10,
         };
 
         let pattern = test_location.to_str().unwrap();

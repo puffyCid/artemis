@@ -25,7 +25,7 @@ pub async fn get_ip(win: &Window) -> Result<String, JsValue> {
 /// Get server port
 pub async fn get_port(win: &Window) -> Result<String, JsValue> {
     let server_port = win.location().port()?;
-    Ok(server_port)
+    Ok(String::from("8000"))
 }
 
 /// Compose and send a request to the server

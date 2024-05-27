@@ -13,7 +13,9 @@ leptos = { version = "0.6.11", features = ["csr"] }
 leptos_router = { version = "0.6.11", default-features = false, features = [
     "csr",
 ] }
-leptos_meta = "0.6.11"
+leptos_meta = { version = "0.6.11", features = ["csr"] }
+leptos-use = { version = "0.10.10", default-features = false }
+
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }

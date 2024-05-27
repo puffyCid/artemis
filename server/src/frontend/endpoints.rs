@@ -30,6 +30,8 @@ pub(crate) async fn endpoint_list(
 ) -> Result<Json<Vec<EndpointList>>, StatusCode> {
     let storage_path = state.config.endpoint_server.storage;
     let mut pattern = format!("{}/{:?}/*/enroll.json", storage_path, data.filter);
+
+    // If Filter is all replace pattern with wildcard. Otherwise use filter
     if data.filter == EndpointOS::All {
         pattern = format!("{}/*/*/enroll.json", storage_path);
     }
@@ -146,9 +148,10 @@ mod tests {
 
         let data = Json(EndpointRequest {
             pagination: String::new(),
-            filter: EndpointOS::Darwin,
+            filter: EndpointOS::MacOS,
             tags: Vec::new(),
             search: String::new(),
+            count: 0,
         });
 
         let info = EnrollSystem {

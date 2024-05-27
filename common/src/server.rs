@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum EndpointOS {
     Windows,
+    MacOS,
     Darwin,
     Linux,
     All,
@@ -26,15 +27,16 @@ pub struct DiskInfo {
     pub disk_size: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct EndpointRequest {
     pub pagination: String,
     pub filter: EndpointOS,
     pub tags: Vec<String>,
     pub search: String,
+    pub count: u16,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialEq, Eq, PartialOrd)]
 pub struct EndpointList {
     pub os: String,
     pub hostname: String,
