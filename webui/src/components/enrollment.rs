@@ -15,7 +15,7 @@ use reqwest::Method;
 #[component]
 /// Render table of endpoints
 pub(crate) fn Enrollment() -> impl IntoView {
-    let headers = vec!["Platform", "Hostname", "Version", "IP", "ID", ""];
+    let headers = vec!["Platform", "Hostname", "Version", "IP", ""];
     let request = EndpointRequest {
         offset: 0,
         filter: EndpointOS::All,
@@ -29,73 +29,139 @@ pub(crate) fn Enrollment() -> impl IntoView {
 
     view! {
         <div class="overflow-x-auto col-span-full">
-          <SearchEndpoints request_set request_get info/>
-          <table class="table table-zebra">
-            // Table Header
-            <thead>
-              <tr>
-              {headers.into_iter().map(|entry| view!{
-                <Show when=move || {entry == "Hostname"}>
-                  // Hostname column is sortable
-                  <th class="cursor-pointer" on:click=move |_| {
-                    sort_table(asc_ord.get(), &set_ord, &info, entry);
-                  }>
-                    <p class="flex items-center justify-between gap-2 leading-none">
-                      {entry}
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                      stroke="currentColor" aria-hidden="true" class="w-4 h-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"></path>
-                      </svg>
-                    </p>
-                  </th>
-                </Show>
-                <Show when=move || {entry == "Platform"}>
-                 <th class="dropdown">
-                   <p tabindex="0" role="button" class="flex items-center justify-between gap-2 leading-none">
-                    {entry}
-                   </p>
-                   <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a on:click=move |_| {filter_endpoints("Darwin", request_set, &info)}>macOS</a></li>
-                    <li><a on:click=move |_| {filter_endpoints("Windows", request_set, &info)}>Windows</a></li>
-                    <li><a on:click=move |_| {filter_endpoints("Linux", request_set, &info)}>Linux</a></li>
-                    <li><a on:click=move |_| {filter_endpoints("All", request_set, &info)}>All</a></li>
-                   </ul>
-                  </th>
-                </Show>
-                <Show when=move || {entry != "Platform" && entry != "Hostname"}>
-                 <th>
-                   <p class="flex items-center justify-between gap-2 leading-none">
-                    {entry}
-                   </p>
-                  </th>
+            <SearchEndpoints request_set request_get info/>
+            <table class="table table-zebra">
+                // Table Header
+                <thead>
+                    <tr>
+                        {headers
+                            .into_iter()
+                            .map(|entry| {
+                                view! {
+                                    <Show when=move || { entry == "Hostname" }>
+                                        // Hostname column is sortable
+                                        <th
+                                            class="cursor-pointer"
+                                            on:click=move |_| {
+                                                sort_table(asc_ord.get(), &set_ord, &info, entry);
+                                            }
+                                        >
 
-                </Show>
-              }).collect::<Vec<_>>()}
-              </tr>
-            </thead>
-            // Table Rows
-            <tbody>
-              <Transition fallback=move || view!{<tr><th>Loading...</th></tr>}>
-                {move || info.get().map(|res| {
-                    res.into_iter().map(|entry| view!{
-                        <tr>
-                          <PlatformIcon platform=entry.os.clone() />
-                          <td>{&entry.hostname}</td>
-                          <td>{&entry.version}</td>
-                          <td>TODO</td>
-                          <td>{entry.id.clone()}</td>
-                          <th>
-                            <Form action="info" method="get">
-                              <input type="hidden" name="query" value={format!("{}.{}", entry.os, entry.id)} />
-                              <input type="submit" class="btn btn-ghost btn-sm" value="info"/>
-                            </Form>
-                          </th>
-                        </tr>
-                    }).collect::<Vec<_>>()
-                })}
-              </Transition>
-            </tbody>
-          </table>
+                                            <p class="flex items-center justify-between gap-2 leading-none">
+                                                {entry}
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke-width="2"
+                                                    stroke="currentColor"
+                                                    aria-hidden="true"
+                                                    class="w-4 h-4"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+                                                    ></path>
+                                                </svg>
+                                            </p>
+                                        </th>
+                                    </Show>
+                                    <Show when=move || { entry == "Platform" }>
+                                        <th class="dropdown">
+                                            <p
+                                                tabindex="0"
+                                                role="button"
+                                                class="flex items-center justify-between gap-2 leading-none"
+                                            >
+                                                {entry}
+                                            </p>
+                                            <ul
+                                                tabindex="0"
+                                                class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                                            >
+                                                <li>
+                                                    <a on:click=move |_| {
+                                                        filter_endpoints("Darwin", request_set, &info)
+                                                    }>macOS</a>
+                                                </li>
+                                                <li>
+                                                    <a on:click=move |_| {
+                                                        filter_endpoints("Windows", request_set, &info)
+                                                    }>Windows</a>
+                                                </li>
+                                                <li>
+                                                    <a on:click=move |_| {
+                                                        filter_endpoints("Linux", request_set, &info)
+                                                    }>Linux</a>
+                                                </li>
+                                                <li>
+                                                    <a on:click=move |_| {
+                                                        filter_endpoints("All", request_set, &info)
+                                                    }>All</a>
+                                                </li>
+                                            </ul>
+                                        </th>
+                                    </Show>
+                                    <Show when=move || {
+                                        entry != "Platform" && entry != "Hostname"
+                                    }>
+                                        <th>
+                                            <p class="flex items-center justify-between gap-2 leading-none">
+                                                {entry}
+                                            </p>
+                                        </th>
+
+                                    </Show>
+                                }
+                            })
+                            .collect::<Vec<_>>()}
+                    </tr>
+                </thead>
+                // Table Rows
+                <tbody>
+                    <Transition fallback=move || {
+                        view! {
+                            <tr>
+                                <th>Loading...</th>
+                            </tr>
+                        }
+                    }>
+                        {move || {
+                            info.get()
+                                .map(|res| {
+                                    res.into_iter()
+                                        .map(|entry| {
+                                            view! {
+                                                <tr>
+                                                    <PlatformIcon platform=entry.os.clone()/>
+                                                    <td>{&entry.hostname}</td>
+                                                    <td>{&entry.version}</td>
+                                                    <td>TODO</td>
+                                                    <th>
+                                                        <Form action="info" method="get">
+                                                            <input
+                                                                type="hidden"
+                                                                name="query"
+                                                                value=format!("{}.{}", entry.os, entry.id)
+                                                            />
+                                                            <input
+                                                                type="submit"
+                                                                class="btn btn-ghost btn-sm"
+                                                                value="Info"
+                                                            />
+                                                        </Form>
+                                                    </th>
+                                                </tr>
+                                            }
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                        }}
+
+                    </Transition>
+                </tbody>
+            </table>
         </div>
     }
 }
@@ -116,30 +182,22 @@ fn PlatformIcon(platform: String) -> impl IntoView {
         let windows = String::from(
             r#"<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L10,11.9V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L10,20.09V13.1L20,13.25Z" /></svg>"#,
         );
-        return view! {
-          <td inner_html=windows></td>
-        };
+        return view! { <td inner_html=windows></td> };
     } else if platform == "Darwin" {
         let macos = String::from(
             r#"<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z" /></svg>"#,
         );
-        return view! {
-          <td inner_html=macos></td>
-        };
+        return view! { <td inner_html=macos></td> };
     } else if platform == "Linux" {
         let linux = String::from(
             r#"<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24"><path d="M19,16C19,17.72 18.37,19.3 17.34,20.5C17.75,20.89 18,21.41 18,22H6C6,21.41 6.25,20.89 6.66,20.5C5.63,19.3 5,17.72 5,16H3C3,14.75 3.57,13.64 4.46,12.91L4.47,12.89C6,11.81 7,10 7,8V7A5,5 0 0,1 12,2A5,5 0 0,1 17,7V8C17,10 18,11.81 19.53,12.89L19.54,12.91C20.43,13.64 21,14.75 21,16H19M16,16A4,4 0 0,0 12,12A4,4 0 0,0 8,16A4,4 0 0,0 12,20A4,4 0 0,0 16,16M10,9L12,10.5L14,9L12,7.5L10,9M10,5A1,1 0 0,0 9,6A1,1 0 0,0 10,7A1,1 0 0,0 11,6A1,1 0 0,0 10,5M14,5A1,1 0 0,0 13,6A1,1 0 0,0 14,7A1,1 0 0,0 15,6A1,1 0 0,0 14,5Z" /></svg>"#,
         );
-        return view! {
-          <td inner_html=linux></td>
-        };
+        return view! { <td inner_html=linux></td> };
     }
     let all = String::from(
         r#"<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z" /></svg>"#,
     );
-    view! {
-      <td inner_html=all></td>
-    }
+    view! { <td inner_html=all></td> }
 }
 
 #[component]
@@ -165,24 +223,72 @@ fn SearchEndpoints(
     };
 
     view! {
-      <div class="grid grid-cols-4 p-2 gap-2">
-       <form on:submit=search_submit>
-          <label class="input input-sm input-bordered flex items-center gap-2">
-            <input type="text" class="grow" node_ref=search_form placeholder="Search Endpoints" />
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70"><path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd" /></svg>
-          </label>
-        </form>
-        <div class="dropdown">
-          <div tabindex="0" role="button" class="btn btn-sm">"Limit: " {move || request_get.get().count}</div>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-            {counts.into_iter().map(|count| view!{
-              <li><a on:click=move|_| {request_set.update(|request| request.count = count)}>{count}</a></li>
-            }).collect::<Vec<_>>()}
-          </ul>
+        <div class="grid grid-cols-4 p-2 gap-2">
+            <form on:submit=search_submit>
+                <label class="input input-sm input-bordered flex items-center gap-2">
+                    <input
+                        type="text"
+                        class="grow"
+                        node_ref=search_form
+                        placeholder="Search Endpoints"
+                    />
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        class="w-4 h-4 opacity-70"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                            clip-rule="evenodd"
+                        ></path>
+                    </svg>
+                </label>
+            </form>
+            <div class="dropdown">
+                <div tabindex="0" role="button" class="btn btn-sm">
+                    "Limit: "
+                    {move || request_get.get().count}
+                </div>
+                <ul
+                    tabindex="0"
+                    class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                >
+                    {counts
+                        .into_iter()
+                        .map(|count| {
+                            view! {
+                                <li>
+                                    <a on:click=move |_| {
+                                        request_set.update(|request| request.count = count)
+                                    }>{count}</a>
+                                </li>
+                            }
+                        })
+                        .collect::<Vec<_>>()}
+                </ul>
+            </div>
+            <button
+                class="join-item btn btn-sm btn-outline"
+                disabled=previous_disabled
+                on:click=move |_| {
+                    if request_get.get().offset > 0 {
+                        request_set.update(|request| request.offset -= request.count)
+                    }
+                }
+            >
+
+                Previous
+            </button>
+            <button
+                class="join-item btn btn-sm btn-outline"
+                disabled=next_disabled
+                on:click=move |_| { request_set.update(|request| request.offset += request.count) }
+            >
+                Next
+            </button>
         </div>
-        <button class="join-item btn btn-sm btn-outline" disabled=previous_disabled on:click=move|_| {if request_get.get().offset > 0{ request_set.update(|request| request.offset-= request.count)}}>Previous</button>
-        <button class="join-item btn btn-sm btn-outline" disabled=next_disabled on:click=move|_| {request_set.update(|request| request.offset+= request.count)}>Next</button>
-      </div>
     }
 }
 
@@ -228,19 +334,33 @@ pub(crate) fn GetInfo() -> impl IntoView {
         set_proc,
     };
     view! {
-      <Show when=move || {info.get()}>
-        <Transition fallback=move || view!{<p> "Loading..."</p>}>
-          {move || info_results.get().map(|res| {
-            view!{<HostDetails beat=res/>}
-          })}
-        </Transition>
-      </Show>
-      <Show when=move || {proc.get()}>
-          {move || proc_results.get().map(|res| {
-            view!{<HostProcesses procs=res/>}
-          })}
-      </Show>
-      <Navigate values />
+        <Show when=move || { info.get() }>
+            <Transition fallback=move || {
+                view! { <p>"Loading..."</p> }
+            }>
+                {move || {
+                    info_results
+                        .get()
+                        .map(|res| {
+                            view! { <HostDetails beat=res/> }
+                        })
+                }}
+
+            </Transition>
+        </Show>
+        <Show when=move || {
+            proc.get()
+        }>
+            {move || {
+                proc_results
+                    .get()
+                    .map(|res| {
+                        view! { <HostProcesses procs=res/> }
+                    })
+            }}
+
+        </Show>
+        <Navigate values/>
     }
 }
 
