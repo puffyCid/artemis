@@ -166,27 +166,28 @@ pub(crate) async fn get_endpoints(
 
     let limit = request.count;
     let mut endpoint_entries = Vec::new();
-    let mut paged_found = false;
+    let mut offset_count = 0;
 
+    let start = 0;
     for entry in globs {
-        let enroll_path = entry.full_path;
-        let (filter_match, info) = enroll_filter(&enroll_path, request).await?;
-
-        if request.pagination.is_empty() && filter_match {
-            endpoint_entries.push(info.clone());
-        } else if enroll_path.contains(&request.pagination) && !paged_found {
-            // Found last Endpoint from previous request, now start returning them
-            paged_found = true;
-            continue;
-        }
-
-        if paged_found && filter_match {
-            endpoint_entries.push(info);
-        }
-
         if endpoint_entries.len() == limit as usize {
             break;
         }
+
+        let enroll_path = entry.full_path;
+        let (filter_match, info) = enroll_filter(&enroll_path, request).await?;
+
+        if request.offset <= start && filter_match {
+            endpoint_entries.push(info.clone());
+            continue;
+        }
+
+        if offset_count >= request.offset && filter_match {
+            endpoint_entries.push(info);
+            continue;
+        }
+
+        offset_count += 1;
     }
 
     Ok(endpoint_entries)
@@ -401,7 +402,7 @@ mod tests {
         test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::new(),
+            offset: 0,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
@@ -432,7 +433,7 @@ mod tests {
         test_location.push("tests/test_data/*/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::from("3482136c-3176-4272-9bd7-b79f025307d6"),
+            offset: 1,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
@@ -451,7 +452,7 @@ mod tests {
         test_location.push("tests/test_data/*/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::new(),
+            offset: 0,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),

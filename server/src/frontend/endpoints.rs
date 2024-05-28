@@ -147,7 +147,7 @@ mod tests {
         let test2 = State(server_state);
 
         let data = Json(EndpointRequest {
-            pagination: String::new(),
+            offset: 0,
             filter: EndpointOS::MacOS,
             tags: Vec::new(),
             search: String::new(),

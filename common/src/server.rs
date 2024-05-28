@@ -29,11 +29,11 @@ pub struct DiskInfo {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct EndpointRequest {
-    pub pagination: String,
+    pub offset: i32,
     pub filter: EndpointOS,
     pub tags: Vec<String>,
     pub search: String,
-    pub count: u16,
+    pub count: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialEq, Eq, PartialOrd)]

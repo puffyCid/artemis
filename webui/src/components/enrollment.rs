@@ -6,8 +6,8 @@ use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
 use common::system::Memory;
 use leptos::logging::error;
 use leptos::{
-    component, create_resource, create_signal, view, IntoView, ReadSignal, Resource, Show,
-    SignalGet, SignalSet, SignalUpdate, Transition, WriteSignal,
+    component, create_node_ref, create_resource, create_signal, html, view, IntoView, NodeRef,
+    ReadSignal, Resource, Show, SignalGet, SignalSet, SignalUpdate, Transition, WriteSignal,
 };
 use leptos_router::{use_query_map, Form};
 use reqwest::Method;
@@ -17,7 +17,7 @@ use reqwest::Method;
 pub(crate) fn Enrollment() -> impl IntoView {
     let headers = vec!["Platform", "Hostname", "Version", "IP", "ID", ""];
     let request = EndpointRequest {
-        pagination: String::new(),
+        offset: 0,
         filter: EndpointOS::All,
         tags: Vec::new(),
         search: String::new(),
@@ -29,6 +29,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
 
     view! {
         <div class="overflow-x-auto col-span-full">
+          <SearchEndpoints request_set request_get info/>
           <table class="table table-zebra">
             // Table Header
             <thead>
@@ -36,7 +37,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
               {headers.into_iter().map(|entry| view!{
                 <Show when=move || {entry == "Hostname"}>
                   // Hostname column is sortable
-                  <th class="cursor-pointer border-y" on:click=move |_| {
+                  <th class="cursor-pointer" on:click=move |_| {
                     sort_table(asc_ord.get(), &set_ord, &info, entry);
                   }>
                     <p class="flex items-center justify-between gap-2 leading-none">
@@ -49,7 +50,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
                   </th>
                 </Show>
                 <Show when=move || {entry == "Platform"}>
-                 <th class="border-y dropdown">
+                 <th class="dropdown">
                    <p tabindex="0" role="button" class="flex items-center justify-between gap-2 leading-none">
                     {entry}
                    </p>
@@ -62,7 +63,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
                   </th>
                 </Show>
                 <Show when=move || {entry != "Platform" && entry != "Hostname"}>
-                 <th class="border-y">
+                 <th>
                    <p class="flex items-center justify-between gap-2 leading-none">
                     {entry}
                    </p>
@@ -78,7 +79,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
                 {move || info.get().map(|res| {
                     res.into_iter().map(|entry| view!{
                         <tr>
-                        <PlatformIcon platform=entry.os.clone() />
+                          <PlatformIcon platform=entry.os.clone() />
                           <td>{&entry.hostname}</td>
                           <td>{&entry.version}</td>
                           <td>TODO</td>
@@ -141,6 +142,50 @@ fn PlatformIcon(platform: String) -> impl IntoView {
     }
 }
 
+#[component]
+/// Search for specific endpoints
+fn SearchEndpoints(
+    request_set: WriteSignal<EndpointRequest>,
+    request_get: ReadSignal<EndpointRequest>,
+    info: Resource<EndpointRequest, Vec<EndpointList>>,
+) -> impl IntoView {
+    let counts = [20, 50, 100];
+    let search_form: NodeRef<html::Input> = create_node_ref();
+
+    let search_submit = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        let value = search_form.get().unwrap().value();
+        request_set.update(|request| request.search = value);
+    };
+
+    let previous_disabled = move || request_get.get().offset <= 0;
+    let next_disabled = move || {
+        request_get.get().offset > info.get().unwrap_or(Vec::new()).len() as i32
+            || request_get.get().count > info.get().unwrap_or(Vec::new()).len() as i32
+    };
+
+    view! {
+      <div class="grid grid-cols-4 p-2 gap-2">
+       <form on:submit=search_submit>
+          <label class="input input-sm input-bordered flex items-center gap-2">
+            <input type="text" class="grow" node_ref=search_form placeholder="Search Endpoints" />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70"><path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd" /></svg>
+          </label>
+        </form>
+        <div class="dropdown">
+          <div tabindex="0" role="button" class="btn btn-sm">"Limit: " {move || request_get.get().count}</div>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            {counts.into_iter().map(|count| view!{
+              <li><a on:click=move|_| {request_set.update(|request| request.count = count)}>{count}</a></li>
+            }).collect::<Vec<_>>()}
+          </ul>
+        </div>
+        <button class="join-item btn btn-sm btn-outline" disabled=previous_disabled on:click=move|_| {if request_get.get().offset > 0{ request_set.update(|request| request.offset-= request.count)}}>Previous</button>
+        <button class="join-item btn btn-sm btn-outline" disabled=next_disabled on:click=move|_| {request_set.update(|request| request.offset+= request.count)}>Next</button>
+      </div>
+    }
+}
+
 /// Get endpoints based on platform filter
 fn filter_endpoints(
     platform: &str,
@@ -158,7 +203,6 @@ fn filter_endpoints(
     };
 
     request.update(|body| body.filter = filter);
-
     info.refetch();
 }
 
