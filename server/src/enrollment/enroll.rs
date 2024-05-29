@@ -95,6 +95,7 @@ mod tests {
                     used_memory: 12,
                     used_swap: 12,
                 },
+                artemis_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
         let test = Json(info);
@@ -138,6 +139,7 @@ mod tests {
                     used_memory: 12,
                     used_swap: 12,
                 },
+                artemis_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
         let test = Json(info);

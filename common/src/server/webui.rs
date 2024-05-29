@@ -41,4 +41,5 @@ pub struct EndpointList {
     pub id: String,
     pub last_heartbeat: u64,
     pub ip: String,
+    pub artemis_version: String,
 }

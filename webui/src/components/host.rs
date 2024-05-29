@@ -36,7 +36,7 @@ pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
       <div class="p-8 m-4 border-2 rounded-lg col-span-full shadow-xl flex place-content-around">
         <div>
           <p class="font-semibold">Memory</p>
-          <p>{beat.memory.total_memory / (1024 * 1024 * 1024)} GB</p>
+          <p>{format!("{} GB", beat.memory.total_memory / (1024 * 1024 * 1024))}</p>
         </div>
         <div>
           <p class="font-semibold">CPU Usage</p>
@@ -63,7 +63,7 @@ pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
                     }
                 }
                 size / (1000 * 1000 * 1000)
-            } GB
+            } " GB"
           </p>
         </div>
         <div>
@@ -185,14 +185,14 @@ fn DiskInfo(disks: Vec<DiskDrives>) -> impl IntoView {
                         </div>
                         <div class="stat-value">
                           {format!(
-                              "{}GB Used",
+                              "{} GB Used",
                               (value.total_space - value.available_space) / (1000 * 1000 * 1000),
                           )}
 
                         </div>
                         <div classs="stat-desc">
                           {format!(
-                              "Drive Size: {}GB ({})",
+                              "Drive Size: {} GB ({})",
                               value.total_space / (1000 * 1000 * 1000),
                               value.mount_point,
                           )}

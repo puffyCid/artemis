@@ -24,6 +24,7 @@ pub(crate) struct EndpointInfo {
     pub(crate) notes: Vec<Notes>,
     pub(crate) checkin: u64,
     pub(crate) id: String,
+    pub(crate) artemis_version: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

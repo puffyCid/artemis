@@ -17,4 +17,5 @@ pub struct Heartbeat {
     pub uptime: u64,
     pub kernel_version: String,
     pub platform: String,
+    pub artemis_version: String,
 }

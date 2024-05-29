@@ -1,4 +1,4 @@
-use crate::web::server::request_server;
+use crate::web::{server::request_server, time::unixepoch_to_rfc};
 use common::server::jobs::ProcessJob;
 use leptos::{component, logging::error, view, IntoView};
 use reqwest::Method;
@@ -10,10 +10,10 @@ pub(crate) fn HostProcesses(procs: Option<ProcessJob>) -> impl IntoView {
         return view! { <div>"No processes"</div> };
     }
     let proc_data = procs.unwrap();
-    let headers = vec!["Path", "Name", "PID", "PPID", "Start Time", ""];
+    let headers = vec!["Path", "Name", "PID", "PPID", "Start Time"];
 
     view! {
-      <div class="overflow-x-auto col-span-full">
+      <div class="col-span-full">
         <table class="table table-zebra">
           // Table Header
           <thead>
@@ -33,8 +33,7 @@ pub(crate) fn HostProcesses(procs: Option<ProcessJob>) -> impl IntoView {
                         <td>{res.name}</td>
                         <td>{res.pid}</td>
                         <td>{res.ppid}</td>
-                        <td>{res.start_time}</td>
-                        <th>Details</th>
+                        <td>{unixepoch_to_rfc(res.start_time as i64)}</td>
                       </tr>
                     }
                 })

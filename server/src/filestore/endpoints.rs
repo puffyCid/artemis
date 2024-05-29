@@ -35,6 +35,7 @@ pub(crate) async fn create_endpoint_path(
         cpu: endpoint.cpu.clone(),
         disks: endpoint.disks.clone(),
         memory: endpoint.memory.clone(),
+        artemis_version: endpoint.artemis_version.clone(),
     };
 
     let serde_result = serde_json::to_vec(&data);
@@ -116,6 +117,7 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
         uptime: enroll.uptime,
         kernel_version: enroll.kernel_version,
         platform: enroll.platform,
+        artemis_version: enroll.artemis_version,
     };
 
     let path = format!("{endpoint_dir}/heartbeat.jsonl");
@@ -214,6 +216,7 @@ async fn enroll_filter(
             hostname: enroll.hostname,
             last_heartbeat: 0,
             ip: enroll.ip,
+            artemis_version: enroll.artemis_version,
         };
         return Ok((filter_match, entry));
     }
@@ -225,6 +228,7 @@ async fn enroll_filter(
         hostname: enroll.hostname,
         last_heartbeat: 0,
         ip: enroll.ip,
+        artemis_version: enroll.artemis_version,
     };
 
     // If no filters. Just return the entry
@@ -349,6 +353,7 @@ mod tests {
                 used_memory: 111,
                 used_swap: 111,
             },
+            artemis_version: env!("CARGO_PKG_VERSION").to_string(),
         };
 
         let result = create_endpoint_path(path, &data).await.unwrap();

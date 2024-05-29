@@ -10,7 +10,7 @@ pub(crate) fn Resources() -> impl IntoView {
     let info = create_resource(|| {}, move |_| async move { get_info().await });
     view! {
       <div class="stat shadow">
-        <div class="stat-title">Server CPU Usage</div>
+        <div class="stat-title">System CPU Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
@@ -28,22 +28,22 @@ pub(crate) fn Resources() -> impl IntoView {
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">Server Memory Usage</div>
+        <div class="stat-title">System Memory Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
           }>{move || info.get().map(|res| { res.memory_used / (1024 * 1024 * 1024) })}</Transition>
-          GB
+          " GB"
         </div>
         <div classs="stat-desc">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
           }>{move || info.get().map(|res| { res.total_memory / (1024 * 1024 * 1024) })}</Transition>
-          GB of Total Memory
+          " GB of Total Memory"
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">Server Disk Usage</div>
+        <div class="stat-title">System Disk Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
@@ -62,7 +62,7 @@ pub(crate) fn Resources() -> impl IntoView {
             }}
 
           </Transition>
-          GB
+          " GB"
         </div>
         <div classs="stat-desc">
           <Transition fallback=move || {
@@ -82,11 +82,11 @@ pub(crate) fn Resources() -> impl IntoView {
             }}
 
           </Transition>
-          GB Total Disk Size
+          " GB Total Disk Size"
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">Server Uptime</div>
+        <div class="stat-title">System Uptime</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }

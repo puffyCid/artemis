@@ -18,6 +18,7 @@ pub struct Enrollment {
     pub cpu: Vec<Cpus>,
     pub disks: Vec<DiskDrives>,
     pub memory: Memory,
+    pub artemis_version: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

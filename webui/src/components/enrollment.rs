@@ -16,7 +16,7 @@ use reqwest::Method;
 #[component]
 /// Render table of endpoints
 pub(crate) fn Enrollment() -> impl IntoView {
-    let headers = vec!["Platform", "Hostname", "Version", "IP"];
+    let headers = vec!["Platform", "Hostname", "Version", "IP", "Artemis"];
     let request = EndpointRequest {
         offset: 0,
         filter: EndpointOS::All,
@@ -143,11 +143,13 @@ pub(crate) fn Enrollment() -> impl IntoView {
                                               entry.id,
                                           )
                                         >
+
                                           {&entry.hostname}
                                         </a>
                                       </td>
                                       <td>{&entry.version}</td>
                                       <td>{&entry.ip}</td>
+                                      <td>{&entry.artemis_version}</td>
                                     </tr>
                                   }
                               })
@@ -430,6 +432,7 @@ async fn endpoint_info(data: String) -> Heartbeat {
         uptime: 0,
         kernel_version: String::new(),
         platform: String::new(),
+        artemis_version: String::from("0.9.0"),
     };
     let res_result = request_server("endpoints/info", data, Method::POST).await;
     let response = match res_result {
