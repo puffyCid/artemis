@@ -11,11 +11,11 @@ use leptos_meta::Stylesheet;
 pub(crate) fn Endpoints() -> impl IntoView {
     view! {
       <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
-      <div>
+      <div class="grid">
         <Menu/>
         <Enrollment/>
+        <Footer/>
       </div>
-      <Footer/>
     }
 }
 

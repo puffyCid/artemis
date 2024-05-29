@@ -5,7 +5,7 @@ use leptos::{component, view, IntoView};
 pub(crate) fn Footer() -> impl IntoView {
     view! {
       <div class="col-span-full fixed bottom-0 min-w-full">
-        <section class=""></section>
+        <section></section>
         <footer class="footer items-center p-4 bg-neutral text-neutral-content">
           <aside class="items-center grid-flow-col">
             <p>MIT - Copyright (c) 2023 puffyCid</p>

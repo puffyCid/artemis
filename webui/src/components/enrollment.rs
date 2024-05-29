@@ -10,13 +10,13 @@ use leptos::{
     component, create_node_ref, create_resource, create_signal, html, view, IntoView, NodeRef,
     ReadSignal, Resource, Show, SignalGet, SignalSet, SignalUpdate, Transition, WriteSignal,
 };
-use leptos_router::{use_query_map, Form};
+use leptos_router::use_query_map;
 use reqwest::Method;
 
 #[component]
 /// Render table of endpoints
 pub(crate) fn Enrollment() -> impl IntoView {
-    let headers = vec!["Platform", "Hostname", "Version", "IP", ""];
+    let headers = vec!["Platform", "Hostname", "Version", "IP"];
     let request = EndpointRequest {
         offset: 0,
         filter: EndpointOS::All,
@@ -29,7 +29,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
     let info = create_resource(move || request_get.get(), request_endpoints);
 
     view! {
-      <div class="overflow-x-auto col-span-full m-2">
+      <div class="col-span-full m-2 mb-14">
         <SearchEndpoints request_set request_get info/>
         <table class="table table-zebra border">
           // Table Header
@@ -134,23 +134,20 @@ pub(crate) fn Enrollment() -> impl IntoView {
                                   view! {
                                     <tr>
                                       <PlatformIcon platform=entry.os.clone()/>
-                                      <td>{&entry.hostname}</td>
+                                      <td>
+                                        <a
+                                          class="link link-primary no-underline"
+                                          href=format!(
+                                              "/ui/v1/endpoints/info?query={}.{}",
+                                              entry.os,
+                                              entry.id,
+                                          )
+                                        >
+                                          {&entry.hostname}
+                                        </a>
+                                      </td>
                                       <td>{&entry.version}</td>
                                       <td>{&entry.ip}</td>
-                                      <th>
-                                        <Form action="info" method="get">
-                                          <input
-                                            type="hidden"
-                                            name="query"
-                                            value=format!("{}.{}", entry.os, entry.id)
-                                          />
-                                          <input
-                                            type="submit"
-                                            class="btn btn-ghost btn-sm"
-                                            value="Info"
-                                          />
-                                        </Form>
-                                      </th>
                                     </tr>
                                   }
                               })
@@ -167,10 +164,8 @@ pub(crate) fn Enrollment() -> impl IntoView {
 
 pub(crate) struct InfoValue {
     pub(crate) info: ReadSignal<bool>,
-    pub(crate) users: ReadSignal<bool>,
     pub(crate) proc: ReadSignal<bool>,
     pub(crate) set_info: WriteSignal<bool>,
-    pub(crate) set_users: WriteSignal<bool>,
     pub(crate) set_proc: WriteSignal<bool>,
 }
 
@@ -316,15 +311,12 @@ pub(crate) fn GetInfo() -> impl IntoView {
     let proc_results = create_resource(search, endpoint_processes);
 
     let (info, set_info) = create_signal(true);
-    let (users, set_users) = create_signal(false);
     let (proc, set_proc) = create_signal(false);
 
     let values = InfoValue {
         info,
-        users,
         proc,
         set_info,
-        set_users,
         set_proc,
     };
     view! {

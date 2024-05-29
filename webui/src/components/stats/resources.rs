@@ -86,11 +86,11 @@ pub(crate) fn Resources() -> impl IntoView {
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">Server Uptime in Seconds</div>
+        <div class="stat-title">Server Uptime</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
-          }>{move || info.get().map(|res| { res.uptime })}</Transition>
+          }>{move || info.get().map(|res| { calculate_uptime(&res.uptime) })}</Transition>
         </div>
       </div>
     }
@@ -123,4 +123,33 @@ async fn get_info() -> ServerInfo {
             info
         }
     }
+}
+
+/// Determine system uptime
+pub(crate) fn calculate_uptime(uptime: &u64) -> String {
+    let mins = 60;
+    let hours = 3600;
+    let days = 86400;
+    let months = 2628003;
+    let years = 31536000;
+
+    let mut value = format!("{uptime} seconds");
+
+    if uptime >= &mins {
+        value = format!("{} mins", uptime / mins)
+    }
+    if uptime >= &hours {
+        value = format!("{} hours", uptime / hours)
+    }
+    if uptime >= &days {
+        value = format!("{} days", uptime / days)
+    }
+    if uptime >= &months {
+        value = format!("{} months", uptime / months)
+    }
+    if uptime >= &years {
+        value = format!("{} years", uptime / years)
+    }
+
+    value
 }

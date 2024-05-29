@@ -1,4 +1,4 @@
-use crate::web::time::unixepoch_to_rfc;
+use crate::{components::stats::resources::calculate_uptime, web::time::unixepoch_to_rfc};
 use common::{
     server::heartbeat::Heartbeat,
     system::{Cpus, DiskDrives},
@@ -91,8 +91,8 @@ fn UptimeBootime(count: u64, seconds: i64) -> impl IntoView {
     view! {
       <div class="p-8 m-4 border-2 rounded-lg flex shadow-xl place-content-evenly">
         <div>
-          <p class="font-semibold">Uptime in Seconds</p>
-          <p>{count}</p>
+          <p class="font-semibold">Uptime</p>
+          <p>{calculate_uptime(&count)}</p>
         </div>
         <div>
           <p class="font-semibold">Boot Time</p>
