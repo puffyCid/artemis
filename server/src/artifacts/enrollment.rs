@@ -8,9 +8,10 @@ pub(crate) struct Endpoint {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-/// Initial Enrollment data for endpoint
-pub(crate) struct EndpointEnrollment {
+/// Initial data for endpoint
+pub(crate) struct EndpointInfo {
     pub(crate) hostname: String,
+    pub(crate) ip: String,
     pub(crate) platform: String,
     pub(crate) boot_time: u64,
     pub(crate) os_version: String,

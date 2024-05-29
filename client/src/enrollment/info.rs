@@ -1,13 +1,11 @@
-use common::{
-    server::EndpointInfo,
-    system::{Cpus, DiskDrives, Memory},
-};
+use common::server::enrollment::Enrollment;
+use common::system::{Cpus, DiskDrives, Memory};
 use sysinfo::{Disks, System};
 
 /// Collect system info for enrollment request
-pub(crate) fn gather_info() -> EndpointInfo {
+pub(crate) fn gather_info() -> Enrollment {
     let mut system = System::new();
-    EndpointInfo {
+    Enrollment {
         boot_time: System::boot_time(),
         hostname: System::host_name().unwrap_or_default(),
         os_version: System::os_version().unwrap_or_default(),
@@ -17,6 +15,7 @@ pub(crate) fn gather_info() -> EndpointInfo {
         cpu: get_cpu(&mut system),
         disks: get_disks(),
         memory: get_memory(&mut system),
+        ip: String::new(),
     }
 }
 

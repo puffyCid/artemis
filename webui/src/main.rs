@@ -19,13 +19,13 @@ fn main() {
 /// Setup the WebAssembly Application
 fn App() -> impl IntoView {
     view! {
-        <Router>
-            <Routes>
-                <Route path="/ui/v1/about" view=About/>
-                <Route path="/ui/v1/home" view=Home/>
-                <Route path="/ui/v1/endpoints" view=Endpoints/>
-                <Route path="/ui/v1/endpoints/info" view=EndpointInfo/>
-            </Routes>
-        </Router>
+      <Router>
+        <Routes>
+          <Route path="/ui/v1/about" view=About/>
+          <Route path="/ui/v1/home" view=Home/>
+          <Route path="/ui/v1/endpoints" view=Endpoints/>
+          <Route path="/ui/v1/endpoints/info" view=EndpointInfo/>
+        </Routes>
+      </Router>
     }
 }

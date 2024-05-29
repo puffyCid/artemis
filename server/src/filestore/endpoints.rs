@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::enrollment::EndpointEnrollment,
+    artifacts::enrollment::EndpointInfo,
     filestore::error::StoreError,
     utils::{
         filesystem::{create_dirs, read_file, read_lines, write_file},
@@ -7,19 +7,22 @@ use crate::{
         uuid::generate_uuid,
     },
 };
-use common::server::{EndpointInfo, EndpointList, EndpointOS, EndpointRequest, Heartbeat};
+use common::server::enrollment::Enrollment;
+use common::server::heartbeat::Heartbeat;
+use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
 use log::error;
 use serde::Serialize;
 
 /// Create the endpoint storage directory and generate an ID
 pub(crate) async fn create_endpoint_path(
     path: &str,
-    endpoint: &EndpointInfo,
+    endpoint: &Enrollment,
 ) -> Result<String, StoreError> {
     let id = generate_uuid();
 
-    let data = EndpointEnrollment {
+    let data = EndpointInfo {
         hostname: endpoint.hostname.clone(),
+        ip: endpoint.ip.clone(),
         platform: endpoint.platform.clone(),
         tags: Vec::new(),
         notes: Vec::new(),
@@ -102,6 +105,7 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
         endpoint_id: enroll.id,
         heartbeat: false,
         jobs_running: 0,
+        ip: enroll.ip,
         hostname: enroll.hostname,
         timestamp: enroll.checkin,
         cpu: enroll.cpu,
@@ -209,6 +213,7 @@ async fn enroll_filter(
             id: enroll.id,
             hostname: enroll.hostname,
             last_heartbeat: 0,
+            ip: enroll.ip,
         };
         return Ok((filter_match, entry));
     }
@@ -219,6 +224,7 @@ async fn enroll_filter(
         id: enroll.id,
         hostname: enroll.hostname,
         last_heartbeat: 0,
+        ip: enroll.ip,
     };
 
     // If no filters. Just return the entry
@@ -243,7 +249,7 @@ async fn enroll_filter(
 }
 
 /// Read the `enroll.json` file
-pub(crate) async fn read_enroll(path: &str) -> Result<EndpointEnrollment, StoreError> {
+pub(crate) async fn read_enroll(path: &str) -> Result<EndpointInfo, StoreError> {
     let enroll_result = read_file(path).await;
     let enroll_data = match enroll_result {
         Ok(result) => result,
@@ -254,7 +260,7 @@ pub(crate) async fn read_enroll(path: &str) -> Result<EndpointEnrollment, StoreE
     };
 
     let enroll_beat_result = serde_json::from_slice(&enroll_data);
-    let enroll: EndpointEnrollment = match enroll_beat_result {
+    let enroll: EndpointInfo = match enroll_beat_result {
         Ok(result) => result,
         Err(err) => {
             error!("[server] Could not serialize enroll file: {path}: {err:?}");
@@ -314,8 +320,9 @@ mod tests {
         },
         utils::{config::read_config, filesystem::create_dirs},
     };
+    use common::server::enrollment::Enrollment;
     use common::{
-        server::{EndpointInfo, EndpointOS, EndpointRequest},
+        server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
     use std::path::PathBuf;
@@ -323,9 +330,10 @@ mod tests {
     #[tokio::test]
     async fn test_create_endpoint_path() {
         let path = "./tmp";
-        let data = EndpointInfo {
+        let data = Enrollment {
             boot_time: 1111,
             hostname: String::from("hello"),
+            ip: String::from("127.0.0.1"),
             os_version: String::from("12.1"),
             uptime: 100,
             kernel_version: String::from("12.11"),

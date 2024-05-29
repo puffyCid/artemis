@@ -1,6 +1,6 @@
 use super::error::StoreError;
 use crate::utils::filesystem::{create_dirs, is_file, read_file, write_file};
-use common::server::{JobInfo, JobType};
+use common::server::jobs::{JobInfo, JobType};
 use log::error;
 use std::collections::HashMap;
 
@@ -172,7 +172,7 @@ pub(crate) async fn cache_job_results(
 mod tests {
     use crate::filestore::jobs::{cache_job_results, get_jobs, save_job, update_job};
     use crate::utils::filesystem::create_dirs;
-    use common::server::{Action, JobInfo, JobType, Status};
+    use common::server::jobs::{Action, JobInfo, JobType, Status};
     use std::path::PathBuf;
 
     #[tokio::test]

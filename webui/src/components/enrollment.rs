@@ -2,7 +2,8 @@ use crate::components::host::HostDetails;
 use crate::components::host_navigation::Navigate;
 use crate::components::jobs::processes::{endpoint_processes, HostProcesses};
 use crate::web::server::request_server;
-use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat};
+use common::server::heartbeat::Heartbeat;
+use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
 use common::system::Memory;
 use leptos::logging::error;
 use leptos::{
@@ -28,141 +29,139 @@ pub(crate) fn Enrollment() -> impl IntoView {
     let info = create_resource(move || request_get.get(), request_endpoints);
 
     view! {
-        <div class="overflow-x-auto col-span-full">
-            <SearchEndpoints request_set request_get info/>
-            <table class="table table-zebra">
-                // Table Header
-                <thead>
-                    <tr>
-                        {headers
-                            .into_iter()
-                            .map(|entry| {
-                                view! {
-                                    <Show when=move || { entry == "Hostname" }>
-                                        // Hostname column is sortable
-                                        <th
-                                            class="cursor-pointer"
-                                            on:click=move |_| {
-                                                sort_table(asc_ord.get(), &set_ord, &info, entry);
-                                            }
-                                        >
+      <div class="overflow-x-auto col-span-full m-2">
+        <SearchEndpoints request_set request_get info/>
+        <table class="table table-zebra border">
+          // Table Header
+          <thead>
+            <tr>
+              {headers
+                  .into_iter()
+                  .map(|entry| {
+                      view! {
+                        <Show when=move || { entry == "Hostname" }>
+                          // Hostname column is sortable
+                          <th
+                            class="cursor-pointer"
+                            on:click=move |_| {
+                                sort_table(asc_ord.get(), &set_ord, &info, entry);
+                            }
+                          >
 
-                                            <p class="flex items-center justify-between gap-2 leading-none">
-                                                {entry}
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke-width="2"
-                                                    stroke="currentColor"
-                                                    aria-hidden="true"
-                                                    class="w-4 h-4"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
-                                                    ></path>
-                                                </svg>
-                                            </p>
-                                        </th>
-                                    </Show>
-                                    <Show when=move || { entry == "Platform" }>
-                                        <th class="dropdown">
-                                            <p
-                                                tabindex="0"
-                                                role="button"
-                                                class="flex items-center justify-between gap-2 leading-none"
-                                            >
-                                                {entry}
-                                            </p>
-                                            <ul
-                                                tabindex="0"
-                                                class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-                                            >
-                                                <li>
-                                                    <a on:click=move |_| {
-                                                        filter_endpoints("Darwin", request_set, &info)
-                                                    }>macOS</a>
-                                                </li>
-                                                <li>
-                                                    <a on:click=move |_| {
-                                                        filter_endpoints("Windows", request_set, &info)
-                                                    }>Windows</a>
-                                                </li>
-                                                <li>
-                                                    <a on:click=move |_| {
-                                                        filter_endpoints("Linux", request_set, &info)
-                                                    }>Linux</a>
-                                                </li>
-                                                <li>
-                                                    <a on:click=move |_| {
-                                                        filter_endpoints("All", request_set, &info)
-                                                    }>All</a>
-                                                </li>
-                                            </ul>
-                                        </th>
-                                    </Show>
-                                    <Show when=move || {
-                                        entry != "Platform" && entry != "Hostname"
-                                    }>
-                                        <th>
-                                            <p class="flex items-center justify-between gap-2 leading-none">
-                                                {entry}
-                                            </p>
-                                        </th>
+                            <p class="flex items-center justify-between gap-2 leading-none">
+                              {entry}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                                class="w-4 h-4"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+                                ></path>
+                              </svg>
+                            </p>
+                          </th>
+                        </Show>
+                        <Show when=move || { entry == "Platform" }>
+                          <th class="dropdown">
+                            <p
+                              tabindex="0"
+                              role="button"
+                              class="flex items-center justify-between gap-2 leading-none"
+                            >
+                              {entry}
+                            </p>
+                            <ul
+                              tabindex="0"
+                              class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                            >
+                              <li>
+                                <a on:click=move |_| {
+                                    filter_endpoints("Darwin", request_set, &info)
+                                }>macOS</a>
+                              </li>
+                              <li>
+                                <a on:click=move |_| {
+                                    filter_endpoints("Windows", request_set, &info)
+                                }>Windows</a>
+                              </li>
+                              <li>
+                                <a on:click=move |_| {
+                                    filter_endpoints("Linux", request_set, &info)
+                                }>Linux</a>
+                              </li>
+                              <li>
+                                <a on:click=move |_| {
+                                    filter_endpoints("All", request_set, &info)
+                                }>All</a>
+                              </li>
+                            </ul>
+                          </th>
+                        </Show>
+                        <Show when=move || { entry != "Platform" && entry != "Hostname" }>
+                          <th>
+                            <p class="flex items-center justify-between gap-2 leading-none">
+                              {entry}
+                            </p>
+                          </th>
 
-                                    </Show>
-                                }
-                            })
-                            .collect::<Vec<_>>()}
-                    </tr>
-                </thead>
-                // Table Rows
-                <tbody>
-                    <Transition fallback=move || {
-                        view! {
-                            <tr>
-                                <th>Loading...</th>
-                            </tr>
-                        }
-                    }>
-                        {move || {
-                            info.get()
-                                .map(|res| {
-                                    res.into_iter()
-                                        .map(|entry| {
-                                            view! {
-                                                <tr>
-                                                    <PlatformIcon platform=entry.os.clone()/>
-                                                    <td>{&entry.hostname}</td>
-                                                    <td>{&entry.version}</td>
-                                                    <td>TODO</td>
-                                                    <th>
-                                                        <Form action="info" method="get">
-                                                            <input
-                                                                type="hidden"
-                                                                name="query"
-                                                                value=format!("{}.{}", entry.os, entry.id)
-                                                            />
-                                                            <input
-                                                                type="submit"
-                                                                class="btn btn-ghost btn-sm"
-                                                                value="Info"
-                                                            />
-                                                        </Form>
-                                                    </th>
-                                                </tr>
-                                            }
-                                        })
-                                        .collect::<Vec<_>>()
-                                })
-                        }}
+                        </Show>
+                      }
+                  })
+                  .collect::<Vec<_>>()}
+            </tr>
+          </thead>
+          // Table Rows
+          <tbody>
+            <Transition fallback=move || {
+                view! {
+                  <tr>
+                    <th>Loading...</th>
+                  </tr>
+                }
+            }>
+              {move || {
+                  info.get()
+                      .map(|res| {
+                          res.into_iter()
+                              .map(|entry| {
+                                  view! {
+                                    <tr>
+                                      <PlatformIcon platform=entry.os.clone()/>
+                                      <td>{&entry.hostname}</td>
+                                      <td>{&entry.version}</td>
+                                      <td>{&entry.ip}</td>
+                                      <th>
+                                        <Form action="info" method="get">
+                                          <input
+                                            type="hidden"
+                                            name="query"
+                                            value=format!("{}.{}", entry.os, entry.id)
+                                          />
+                                          <input
+                                            type="submit"
+                                            class="btn btn-ghost btn-sm"
+                                            value="Info"
+                                          />
+                                        </Form>
+                                      </th>
+                                    </tr>
+                                  }
+                              })
+                              .collect::<Vec<_>>()
+                      })
+              }}
 
-                    </Transition>
-                </tbody>
-            </table>
-        </div>
+            </Transition>
+          </tbody>
+        </table>
+      </div>
     }
 }
 
@@ -218,77 +217,72 @@ fn SearchEndpoints(
 
     let previous_disabled = move || request_get.get().offset <= 0;
     let next_disabled = move || {
-        request_get.get().offset > info.get().unwrap_or(Vec::new()).len() as i32
-            || request_get.get().count > info.get().unwrap_or(Vec::new()).len() as i32
+        request_get.get().offset > info.get().unwrap_or_default().len() as i32
+            || request_get.get().count > info.get().unwrap_or_default().len() as i32
     };
 
     view! {
-        <div class="grid grid-cols-4 p-2 gap-2">
-            <form on:submit=search_submit>
-                <label class="input input-sm input-bordered flex items-center gap-2">
-                    <input
-                        type="text"
-                        class="grow"
-                        node_ref=search_form
-                        placeholder="Search Endpoints"
-                    />
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        class="w-4 h-4 opacity-70"
-                    >
-                        <path
-                            fill-rule="evenodd"
-                            d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-                            clip-rule="evenodd"
-                        ></path>
-                    </svg>
-                </label>
-            </form>
-            <div class="dropdown">
-                <div tabindex="0" role="button" class="btn btn-sm">
-                    "Limit: "
-                    {move || request_get.get().count}
-                </div>
-                <ul
-                    tabindex="0"
-                    class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-                >
-                    {counts
-                        .into_iter()
-                        .map(|count| {
-                            view! {
-                                <li>
-                                    <a on:click=move |_| {
-                                        request_set.update(|request| request.count = count)
-                                    }>{count}</a>
-                                </li>
-                            }
-                        })
-                        .collect::<Vec<_>>()}
-                </ul>
-            </div>
-            <button
-                class="join-item btn btn-sm btn-outline"
-                disabled=previous_disabled
-                on:click=move |_| {
-                    if request_get.get().offset > 0 {
-                        request_set.update(|request| request.offset -= request.count)
+      <div class="grid grid-cols-4 p-2 gap-2">
+        <form on:submit=search_submit>
+          <label class="input input-sm input-bordered flex items-center gap-2">
+            <input type="text" class="grow" node_ref=search_form placeholder="Search Endpoints"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              class="w-4 h-4 opacity-70"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </label>
+        </form>
+        <div class="dropdown">
+          <div tabindex="0" role="button" class="btn btn-sm">
+            "Limit: "
+            {move || request_get.get().count}
+          </div>
+          <ul
+            tabindex="0"
+            class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+          >
+            {counts
+                .into_iter()
+                .map(|count| {
+                    view! {
+                      <li>
+                        <a on:click=move |_| {
+                            request_set.update(|request| request.count = count)
+                        }>{count}</a>
+                      </li>
                     }
-                }
-            >
-
-                Previous
-            </button>
-            <button
-                class="join-item btn btn-sm btn-outline"
-                disabled=next_disabled
-                on:click=move |_| { request_set.update(|request| request.offset += request.count) }
-            >
-                Next
-            </button>
+                })
+                .collect::<Vec<_>>()}
+          </ul>
         </div>
+        <button
+          class="join-item btn btn-sm btn-outline"
+          disabled=previous_disabled
+          on:click=move |_| {
+              if request_get.get().offset > 0 {
+                  request_set.update(|request| request.offset -= request.count)
+              }
+          }
+        >
+
+          Previous
+        </button>
+        <button
+          class="join-item btn btn-sm btn-outline"
+          disabled=next_disabled
+          on:click=move |_| { request_set.update(|request| request.offset += request.count) }
+        >
+          Next
+        </button>
+      </div>
     }
 }
 
@@ -334,33 +328,33 @@ pub(crate) fn GetInfo() -> impl IntoView {
         set_proc,
     };
     view! {
-        <Show when=move || { info.get() }>
-            <Transition fallback=move || {
-                view! { <p>"Loading..."</p> }
-            }>
-                {move || {
-                    info_results
-                        .get()
-                        .map(|res| {
-                            view! { <HostDetails beat=res/> }
-                        })
-                }}
-
-            </Transition>
-        </Show>
-        <Show when=move || {
-            proc.get()
+      <Show when=move || { info.get() }>
+        <Transition fallback=move || {
+            view! { <p>"Loading..."</p> }
         }>
-            {move || {
-                proc_results
-                    .get()
-                    .map(|res| {
-                        view! { <HostProcesses procs=res/> }
-                    })
-            }}
+          {move || {
+              info_results
+                  .get()
+                  .map(|res| {
+                      view! { <HostDetails beat=res/> }
+                  })
+          }}
 
-        </Show>
-        <Navigate values/>
+        </Transition>
+      </Show>
+      <Show when=move || {
+          proc.get()
+      }>
+        {move || {
+            proc_results
+                .get()
+                .map(|res| {
+                    view! { <HostProcesses procs=res/> }
+                })
+        }}
+
+      </Show>
+      <Navigate values/>
     }
 }
 
@@ -439,6 +433,7 @@ async fn endpoint_info(data: String) -> Heartbeat {
             used_swap: 0,
         },
         boot_time: 0,
+        ip: String::from("127.0.0.1"),
         os_version: String::new(),
         uptime: 0,
         kernel_version: String::new(),

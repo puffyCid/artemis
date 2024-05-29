@@ -3,7 +3,7 @@ use super::{
     error::FileSystemError,
     files::{read_file, write_file},
 };
-use common::server::ArtemisConfig;
+use common::server::config::ArtemisConfig;
 use log::error;
 use std::str::from_utf8;
 

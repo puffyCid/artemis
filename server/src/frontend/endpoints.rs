@@ -3,7 +3,9 @@ use crate::filestore::endpoints::{get_endpoints, recent_heartbeat};
 use crate::{filestore::endpoints::endpoint_count, server::ServerState};
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
-use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat, ProcessJob};
+use common::server::heartbeat::Heartbeat;
+use common::server::jobs::ProcessJob;
+use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
 use log::error;
 
 /// Count number of Endpoints based on OS type
@@ -107,8 +109,9 @@ mod tests {
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
+    use common::server::enrollment::{EnrollSystem, Enrollment};
     use common::{
-        server::{EndpointInfo, EndpointOS, EndpointRequest, EnrollSystem},
+        server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -156,9 +159,10 @@ mod tests {
 
         let info = EnrollSystem {
             enroll_key: String::from("arandomkey"),
-            endpoint_info: EndpointInfo {
+            enrollment_info: Enrollment {
                 boot_time: 0,
                 hostname: String::from("hello"),
+                ip: String::from("127.0.0.1"),
                 os_version: String::from("test"),
                 uptime: 1,
                 kernel_version: String::from("1.1"),

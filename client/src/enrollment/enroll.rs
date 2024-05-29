@@ -1,6 +1,7 @@
 use super::{error::EnrollError, info::gather_info};
 use crate::filesystem::config::create_layout;
-use common::server::{ArtemisConfig, EnrollSystem, EnrollmentResponse};
+use common::server::config::ArtemisConfig;
+use common::server::enrollment::{EnrollSystem, EnrollmentResponse};
 use log::error;
 use reqwest::{
     header::{HeaderMap, CONTENT_TYPE, USER_AGENT},
@@ -25,7 +26,7 @@ pub(crate) async fn enroll_client(config: &mut ArtemisConfig) -> Result<(), Enro
     let endpoint_info = gather_info();
     let enroll_info = EnrollSystem {
         enroll_key: config.enroll_key.clone(),
-        endpoint_info,
+        enrollment_info: endpoint_info,
     };
 
     let data_result = serde_json::to_vec(&enroll_info);
@@ -109,7 +110,7 @@ mod tests {
         },
         filesystem::config::read_config,
     };
-    use common::server::EnrollSystem;
+    use common::server::enrollment::EnrollSystem;
     use httpmock::{Method::POST, MockServer};
     use reqwest::{
         header::{HeaderMap, CONTENT_TYPE, USER_AGENT},
@@ -213,7 +214,7 @@ mod tests {
         let endpoint_info = gather_info();
         let enroll_info = EnrollSystem {
             enroll_key: config.enroll_key.clone(),
-            endpoint_info,
+            enrollment_info: endpoint_info,
         };
 
         let data = serde_json::to_vec(&enroll_info).unwrap();

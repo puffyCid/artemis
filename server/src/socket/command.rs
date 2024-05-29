@@ -1,6 +1,6 @@
 use crate::filestore::{endpoints::glob_paths, jobs::save_job};
 use axum::extract::ws::Message;
-use common::server::{Command, JobType};
+use common::server::jobs::{Command, JobType};
 use log::error;
 use serde_json::Error;
 use std::collections::HashMap;

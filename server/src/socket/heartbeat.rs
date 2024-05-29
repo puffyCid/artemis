@@ -1,5 +1,5 @@
 use crate::utils::filesystem::append_file;
-use common::server::Heartbeat;
+use common::server::heartbeat::Heartbeat;
 use log::error;
 use serde_json::Error;
 
