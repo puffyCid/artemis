@@ -10,7 +10,7 @@ pub struct Command {
     pub job: JobInfo,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct JobInfo {
     pub id: u64,
     pub name: String,
@@ -55,7 +55,7 @@ pub enum JobType {
     Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct JobMetadata {
     pub endpoint_id: String,
     pub uuid: String,
@@ -70,7 +70,7 @@ pub struct JobMetadata {
     pub load_performance: LoadPerformance,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ProcessJob {
     pub metadata: JobMetadata,
     pub job: JobInfo,

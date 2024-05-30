@@ -164,13 +164,6 @@ pub(crate) fn Enrollment() -> impl IntoView {
     }
 }
 
-pub(crate) struct InfoValue {
-    pub(crate) info: ReadSignal<bool>,
-    pub(crate) proc: ReadSignal<bool>,
-    pub(crate) set_info: WriteSignal<bool>,
-    pub(crate) set_proc: WriteSignal<bool>,
-}
-
 #[component]
 /// Return the platform icon for a table row
 fn PlatformIcon(platform: String) -> impl IntoView {
@@ -209,14 +202,15 @@ fn SearchEndpoints(
     let search_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
         let value = search_form.get().unwrap().value();
-        request_set.update(|request| request.search = value);
+        let mut status = request_get.get();
+        status.search = value;
+        status.offset = 0;
+        request_set.set(status);
     };
 
     let previous_disabled = move || request_get.get().offset <= 0;
-    let next_disabled = move || {
-        request_get.get().offset > info.get().unwrap_or_default().len() as i32
-            || request_get.get().count > info.get().unwrap_or_default().len() as i32
-    };
+    let next_disabled =
+        move || request_get.get().count > info.get().unwrap_or_default().len() as i32;
 
     view! {
       <div class="grid grid-cols-4 p-2 gap-2">
@@ -301,6 +295,13 @@ fn filter_endpoints(
 
     request.update(|body| body.filter = filter);
     info.refetch();
+}
+
+pub(crate) struct InfoValue {
+    pub(crate) info: ReadSignal<bool>,
+    pub(crate) proc: ReadSignal<bool>,
+    pub(crate) set_info: WriteSignal<bool>,
+    pub(crate) set_proc: WriteSignal<bool>,
 }
 
 #[component]
