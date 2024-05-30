@@ -17,7 +17,7 @@ struct EndpointProcesses {
 
 #[component]
 /// Display process listing info
-pub(crate) fn HostProcesses(procs: Option<ProcessJob>) -> impl IntoView {
+pub(crate) fn EndpointProcesses(procs: Option<ProcessJob>) -> impl IntoView {
     if procs.is_none() {
         return view! { <div>"No processes"</div> };
     }
@@ -50,7 +50,7 @@ pub(crate) fn HostProcesses(procs: Option<ProcessJob>) -> impl IntoView {
                           when=move || {
                               entry == "Path" || entry == "Name" || entry == "Start Time"
                           }
-
+                          // Non-sortable columns
                           fallback=move || {
                               view! {
                                 <th>

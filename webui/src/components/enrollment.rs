@@ -1,6 +1,6 @@
-use crate::components::host::HostDetails;
+use crate::components::host::EndpointDetails;
 use crate::components::host_navigation::Navigate;
-use crate::components::jobs::processes::{endpoint_processes, HostProcesses};
+use crate::components::jobs::processes::{endpoint_processes, EndpointProcesses};
 use crate::web::server::request_server;
 use common::server::heartbeat::Heartbeat;
 use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
@@ -331,7 +331,7 @@ pub(crate) fn GetInfo() -> impl IntoView {
               info_results
                   .get()
                   .map(|res| {
-                      view! { <HostDetails beat=res/> }
+                      view! { <EndpointDetails beat=res/> }
                   })
           }}
 
@@ -344,7 +344,7 @@ pub(crate) fn GetInfo() -> impl IntoView {
             proc_results
                 .get()
                 .map(|res| {
-                    view! { <HostProcesses procs=res/> }
+                    view! { <EndpointProcesses procs=res/> }
                 })
         }}
 

@@ -7,7 +7,7 @@ use leptos::{component, view, IntoView};
 
 #[component]
 /// Render host details from Heartbeat
-pub(crate) fn HostDetails(beat: Heartbeat) -> impl IntoView {
+pub(crate) fn EndpointDetails(beat: Heartbeat) -> impl IntoView {
     view! {
       <div class="px-3 py-1 m-1 gap-8 col-span-full flex">
         <div>
