@@ -35,7 +35,7 @@ pub(crate) fn Resources() -> impl IntoView {
           }>{move || info.get().map(|res| { res.memory_used / (1024 * 1024 * 1024) })}</Transition>
           " GB"
         </div>
-        <div classs="stat-desc">
+        <div class="stat-desc">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
           }>{move || info.get().map(|res| { res.total_memory / (1024 * 1024 * 1024) })}</Transition>
@@ -64,7 +64,7 @@ pub(crate) fn Resources() -> impl IntoView {
           </Transition>
           " GB"
         </div>
-        <div classs="stat-desc">
+        <div class="stat-desc">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
           }>

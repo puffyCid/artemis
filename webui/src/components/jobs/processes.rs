@@ -36,9 +36,9 @@ pub(crate) fn EndpointProcesses(procs: Option<ProcessJob>) -> impl IntoView {
     let (asc_ord, set_ord) = create_signal(true);
 
     view! {
-      <div class="col-span-full m-2 mb-14">
+      <div class="col-span-full m-2 mb-16">
         <SearchProcesses proc_set proc_get info/>
-        <table class="table table-zebra border">
+        <table class="table border">
           // Table Header
           <thead>
             <tr>
@@ -50,6 +50,7 @@ pub(crate) fn EndpointProcesses(procs: Option<ProcessJob>) -> impl IntoView {
                           when=move || {
                               entry == "Path" || entry == "Name" || entry == "Start Time"
                           }
+
                           // Non-sortable columns
                           fallback=move || {
                               view! {
@@ -109,15 +110,7 @@ pub(crate) fn EndpointProcesses(procs: Option<ProcessJob>) -> impl IntoView {
                   .map(|res| {
                       res.into_iter()
                           .map(|entry| {
-                              view! {
-                                <tr>
-                                  <td>{entry.full_path}</td>
-                                  <td>{entry.name}</td>
-                                  <td>{entry.pid}</td>
-                                  <td>{entry.ppid}</td>
-                                  <td>{unixepoch_to_rfc(entry.start_time as i64)}</td>
-                                </tr>
-                              }
+                              view! { <ProcessInfo proc=entry/> }
                           })
                           .collect::<Vec<_>>()
                   })}
@@ -213,6 +206,103 @@ fn SearchProcesses(
           Next
         </button>
       </div>
+    }
+}
+
+#[component]
+fn ProcessInfo(proc: Processes) -> impl IntoView {
+    let (view_status, set_status) = create_signal(true);
+
+    let headers = vec!["Key", "Value"];
+
+    view! {
+      <tr>
+        <td class="cursor-pointer" on:click=move |_| set_status.set(!view_status.get())>
+          {proc.full_path.clone()}
+        </td>
+        <td>{proc.name.clone()}</td>
+        <td>{proc.pid}</td>
+        <td>{proc.ppid}</td>
+        <td>{unixepoch_to_rfc(proc.start_time as i64)}</td>
+      </tr>
+      <tr class:hidden=move || view_status.get()>
+        <td colspan="5">
+          <div class="overflow-x">
+            <table class="table table-zebra border m-2 w-full overflow-scroll">
+              <thead>
+                <tr>
+                  {headers
+                      .into_iter()
+                      .map(|entry| {
+                          view! {
+                            <th>
+                              <p class="flex items-center justify-between gap-2 leading-none">
+                                {entry}
+                              </p>
+                            </th>
+                          }
+                      })
+                      .collect::<Vec<_>>()}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>"Full Path"</td>
+                  <td>{proc.full_path}</td>
+                </tr>
+                <tr>
+                  <td>"Name"</td>
+                  <td>{proc.name}</td>
+                </tr>
+                <tr>
+                  <td>"Path"</td>
+                  <td>{proc.path}</td>
+                </tr>
+                <tr>
+                  <td>"Process ID"</td>
+                  <td>{proc.pid}</td>
+                </tr>
+                <tr>
+                  <td>"Parent Process ID"</td>
+                  <td>{proc.ppid}</td>
+                </tr>
+                <tr>
+                  <td>"Environment"</td>
+                  <td>{proc.environment}</td>
+                </tr>
+                <tr>
+                  <td>"Status"</td>
+                  <td>{proc.status}</td>
+                </tr>
+                <tr>
+                  <td>"Arguments"</td>
+                  <td class="break-all">{proc.arguments}</td>
+                </tr>
+                <tr>
+                  <td>"Memory Usage (Bytes)"</td>
+                  <td>{proc.memory_usage}</td>
+                </tr>
+                <tr>
+                  <td>"Virtual Memory Usage (Bytes)"</td>
+                  <td>{proc.virtual_memory_usage}</td>
+                </tr>
+                <tr>
+                  <td>"User ID"</td>
+                  <td>{proc.uid}</td>
+                </tr>
+                <tr>
+                  <td>"Group ID"</td>
+                  <td>{proc.gid}</td>
+                </tr>
+                <tr>
+                  <td>"Start Time"</td>
+                  <td>{unixepoch_to_rfc(proc.start_time as i64)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
     }
 }
 

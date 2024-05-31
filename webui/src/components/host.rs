@@ -136,7 +136,7 @@ fn CpuInfo(cpus: Vec<Cpus>) -> impl IntoView {
 
                         </div>
                         <div class="stat-value">{format!("{}%", value.cpu_usage as u64)}</div>
-                        <div classs="stat-desc">{value.brand}</div>
+                        <div class="stat-desc">{value.brand}</div>
                       </div>
                     </div>
                     <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
@@ -190,7 +190,7 @@ fn DiskInfo(disks: Vec<DiskDrives>) -> impl IntoView {
                           )}
 
                         </div>
-                        <div classs="stat-desc">
+                        <div class="stat-desc">
                           {format!(
                               "Drive Size: {} GB ({})",
                               value.total_space / (1000 * 1000 * 1000),
