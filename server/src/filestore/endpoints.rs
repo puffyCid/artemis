@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::enrollment::EndpointEnrollment,
+    artifacts::enrollment::EndpointInfo,
     filestore::error::StoreError,
     utils::{
         filesystem::{create_dirs, read_file, read_lines, write_file},
@@ -7,19 +7,22 @@ use crate::{
         uuid::generate_uuid,
     },
 };
-use common::server::{EndpointInfo, EndpointList, EndpointOS, EndpointRequest, Heartbeat};
+use common::server::enrollment::Enrollment;
+use common::server::heartbeat::Heartbeat;
+use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
 use log::error;
 use serde::Serialize;
 
 /// Create the endpoint storage directory and generate an ID
 pub(crate) async fn create_endpoint_path(
     path: &str,
-    endpoint: &EndpointInfo,
+    endpoint: &Enrollment,
 ) -> Result<String, StoreError> {
     let id = generate_uuid();
 
-    let data = EndpointEnrollment {
+    let data = EndpointInfo {
         hostname: endpoint.hostname.clone(),
+        ip: endpoint.ip.clone(),
         platform: endpoint.platform.clone(),
         tags: Vec::new(),
         notes: Vec::new(),
@@ -32,6 +35,7 @@ pub(crate) async fn create_endpoint_path(
         cpu: endpoint.cpu.clone(),
         disks: endpoint.disks.clone(),
         memory: endpoint.memory.clone(),
+        artemis_version: endpoint.artemis_version.clone(),
     };
 
     let serde_result = serde_json::to_vec(&data);
@@ -84,7 +88,9 @@ pub(crate) async fn endpoint_count(path: &str, os: &EndpointOS) -> Result<usize,
     let count = match os {
         EndpointOS::All => glob_paths(&format!("{path}/*/*/enroll.json"))?,
         EndpointOS::Linux => glob_paths(&format!("{path}/Linux/*/enroll.json"))?,
-        EndpointOS::Darwin => glob_paths(&format!("{path}/Darwin/*/enroll.json"))?,
+        EndpointOS::MacOS | EndpointOS::Darwin => {
+            glob_paths(&format!("{path}/Darwin/*/enroll.json"))?
+        }
         EndpointOS::Windows => glob_paths(&format!("{path}/Windows/*/enroll.json"))?,
     };
 
@@ -100,6 +106,7 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
         endpoint_id: enroll.id,
         heartbeat: false,
         jobs_running: 0,
+        ip: enroll.ip,
         hostname: enroll.hostname,
         timestamp: enroll.checkin,
         cpu: enroll.cpu,
@@ -110,6 +117,7 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
         uptime: enroll.uptime,
         kernel_version: enroll.kernel_version,
         platform: enroll.platform,
+        artemis_version: enroll.artemis_version,
     };
 
     let path = format!("{endpoint_dir}/heartbeat.jsonl");
@@ -162,28 +170,30 @@ pub(crate) async fn get_endpoints(
     let mut globs = glob_paths(glob_pattern)?;
     globs.sort();
 
-    let limit = 50;
+    let limit = request.count;
     let mut endpoint_entries = Vec::new();
-    let mut paged_found = false;
+    let mut offset_count = 0;
 
+    let start = 0;
     for entry in globs {
+        if endpoint_entries.len() == limit as usize {
+            break;
+        }
+
         let enroll_path = entry.full_path;
         let (filter_match, info) = enroll_filter(&enroll_path, request).await?;
 
-        if request.pagination.is_empty() && filter_match {
+        if request.offset <= start && filter_match {
             endpoint_entries.push(info.clone());
-        } else if enroll_path.contains(&request.pagination) {
-            paged_found = true;
             continue;
         }
 
-        if paged_found && filter_match {
+        if offset_count >= request.offset && filter_match {
             endpoint_entries.push(info);
+            continue;
         }
 
-        if endpoint_entries.len() == limit {
-            break;
-        }
+        offset_count += 1;
     }
 
     Ok(endpoint_entries)
@@ -195,40 +205,55 @@ async fn enroll_filter(
     request: &EndpointRequest,
 ) -> Result<(bool, EndpointList), StoreError> {
     let enroll = read_enroll(path).await?;
+    let mut filter_match = false;
+
+    if !request.search.is_empty() && format!("{:?}", enroll).contains(&request.search) {
+        filter_match = true;
+        let entry = EndpointList {
+            os: enroll.platform,
+            version: enroll.os_version,
+            id: enroll.id,
+            hostname: enroll.hostname,
+            last_heartbeat: 0,
+            ip: enroll.ip,
+            artemis_version: enroll.artemis_version,
+        };
+        return Ok((filter_match, entry));
+    }
+
     let entry = EndpointList {
         os: enroll.platform,
         version: enroll.os_version,
         id: enroll.id,
         hostname: enroll.hostname,
         last_heartbeat: 0,
+        ip: enroll.ip,
+        artemis_version: enroll.artemis_version,
     };
-    let mut filter_match = false;
 
     // If no filters. Just return the entry
-    if request.search.is_empty() && request.tags.is_empty() {
-        filter_match = true;
-        return Ok((filter_match, entry));
-    }
-
-    if !request.search.is_empty()
-        && (entry.hostname.contains(&request.search) || !entry.id.contains(&request.search))
-    {
+    if request.search.is_empty() && request.tags.is_empty() && request.filter == EndpointOS::All {
         filter_match = true;
         return Ok((filter_match, entry));
     }
 
     for tag in &request.tags {
-        if enroll.tags.contains(tag) {
+        if enroll.tags.contains(tag) && entry.os == format!("{:?}", request.filter) {
             filter_match = true;
             return Ok((filter_match, entry));
         }
+    }
+
+    if entry.os == format!("{:?}", request.filter) {
+        filter_match = true;
+        return Ok((filter_match, entry));
     }
 
     Ok((filter_match, entry))
 }
 
 /// Read the `enroll.json` file
-pub(crate) async fn read_enroll(path: &str) -> Result<EndpointEnrollment, StoreError> {
+pub(crate) async fn read_enroll(path: &str) -> Result<EndpointInfo, StoreError> {
     let enroll_result = read_file(path).await;
     let enroll_data = match enroll_result {
         Ok(result) => result,
@@ -239,7 +264,7 @@ pub(crate) async fn read_enroll(path: &str) -> Result<EndpointEnrollment, StoreE
     };
 
     let enroll_beat_result = serde_json::from_slice(&enroll_data);
-    let enroll: EndpointEnrollment = match enroll_beat_result {
+    let enroll: EndpointInfo = match enroll_beat_result {
         Ok(result) => result,
         Err(err) => {
             error!("[server] Could not serialize enroll file: {path}: {err:?}");
@@ -299,8 +324,9 @@ mod tests {
         },
         utils::{config::read_config, filesystem::create_dirs},
     };
+    use common::server::enrollment::Enrollment;
     use common::{
-        server::{EndpointInfo, EndpointOS, EndpointRequest},
+        server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
     use std::path::PathBuf;
@@ -308,9 +334,10 @@ mod tests {
     #[tokio::test]
     async fn test_create_endpoint_path() {
         let path = "./tmp";
-        let data = EndpointInfo {
+        let data = Enrollment {
             boot_time: 1111,
             hostname: String::from("hello"),
+            ip: String::from("127.0.0.1"),
             os_version: String::from("12.1"),
             uptime: 100,
             kernel_version: String::from("12.11"),
@@ -326,6 +353,7 @@ mod tests {
                 used_memory: 111,
                 used_swap: 111,
             },
+            artemis_version: env!("CARGO_PKG_VERSION").to_string(),
         };
 
         let result = create_endpoint_path(path, &data).await.unwrap();
@@ -387,10 +415,11 @@ mod tests {
         test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::new(),
+            offset: 0,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 2,
         };
 
         let path = test_location.to_str().unwrap();
@@ -417,10 +446,11 @@ mod tests {
         test_location.push("tests/test_data/*/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::from("3482136c-3176-4272-9bd7-b79f025307d6"),
+            offset: 1,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 2,
         };
 
         let pattern = test_location.to_str().unwrap();
@@ -435,10 +465,11 @@ mod tests {
         test_location.push("tests/test_data/*/enroll.json");
 
         let request = EndpointRequest {
-            pagination: String::new(),
+            offset: 0,
             filter: EndpointOS::All,
             tags: Vec::new(),
             search: String::new(),
+            count: 10,
         };
 
         let pattern = test_location.to_str().unwrap();

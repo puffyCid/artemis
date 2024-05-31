@@ -30,7 +30,7 @@ walkdir = "2.5.0"
 home = "0.5.9"
 chrono = "0.4.38"
 simplelog = "0.12.2"
-zip = { version = "0.6.6", default-features = false }
+zip = { version = "2.1.1", default-features = false }
 jsonwebtoken = "9.3.0"
 rusty-s3 = "0.5.0"
 quick-xml = { version = "0.31.0", default-features = false }
@@ -50,7 +50,7 @@ plist = "1.6.1"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.279.0" }
+deno_core = { version = "0.283.0" }
 tokio = { workspace = true }
 
 # Windows API Dependencies
@@ -59,7 +59,7 @@ ntapi = "0.4.1"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.279.0" }
+deno_core = { version = "0.283.0" }
 
 # Dependencies for tests
 [dev-dependencies]

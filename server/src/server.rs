@@ -3,7 +3,7 @@ use crate::{
     utils::{config::read_config, filesystem::create_dirs},
 };
 use axum::extract::ws::Message;
-use common::server::ArtemisConfig;
+use common::server::config::ArtemisConfig;
 use log::error;
 use std::{
     collections::HashMap,

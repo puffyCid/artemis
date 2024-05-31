@@ -1,5 +1,5 @@
 use crate::{filestore::error::StoreError, utils::filesystem::read_file};
-use common::server::ProcessJob;
+use common::server::jobs::ProcessJob;
 use log::error;
 use serde_json::Error;
 

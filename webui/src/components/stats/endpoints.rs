@@ -1,5 +1,5 @@
 use crate::web::server::request_server;
-use common::server::EndpointOS;
+use common::server::webui::EndpointOS;
 use leptos::logging::error;
 use leptos::{component, create_resource, view, IntoView, SignalGet, Transition};
 use reqwest::Method;
@@ -14,15 +14,15 @@ pub(crate) fn Stats(
     let count = create_resource(|| (), move |_| async move { endpoint_stats(&os).await });
 
     view! {
-        <div class="stat shadow">
-            <div class="stat-figure text-primary" inner_html=html></div>
-            <div class="stat-title"> {format!("{os:?} Endpoint Count")}</div>
-            <div class="stat-value">
-                <Transition fallback=move || view!{<p> "Loading..."</p>}>
-                    {move || count.get()}
-                </Transition>
-            </div>
+      <div class="stat shadow">
+        <div class="stat-figure text-primary" inner_html=html></div>
+        <div class="stat-title">{format!("{os:?} Endpoint Count")}</div>
+        <div class="stat-value">
+          <Transition fallback=move || {
+              view! { <p>"Loading..."</p> }
+          }>{move || count.get()}</Transition>
         </div>
+      </div>
     }
 }
 

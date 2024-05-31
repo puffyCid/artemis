@@ -1,5 +1,5 @@
 use crate::filestore::jobs::cache_job_results;
-use common::server::{JobInfo, JobMetadata, JobType};
+use common::server::jobs::{JobInfo, JobMetadata, JobType};
 use log::error;
 use serde_json::{Error, Value};
 
@@ -73,7 +73,7 @@ mod tests {
     use crate::filestore::jobs::save_job;
     use crate::socket::jobs::parse_job;
     use crate::utils::filesystem::create_dirs;
-    use common::server::{Action, JobInfo, JobType, Status};
+    use common::server::jobs::{Action, JobInfo, JobType, Status};
 
     #[tokio::test]
     async fn test_get_job_type() {

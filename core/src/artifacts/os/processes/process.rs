@@ -3,7 +3,10 @@
  * Depending on `ProcessOptions` will also parse and get basic executable metadata
  */
 use super::error::ProcessError;
-use crate::filesystem::files::{hash_file, Hashes};
+use crate::filesystem::{
+    directory::get_parent_directory,
+    files::{hash_file, Hashes},
+};
 use common::system::Processes;
 use log::{info, warn};
 use sysinfo::{Process, ProcessRefreshKind, System};
@@ -60,15 +63,10 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: bool) -> Processes
         Some(result) => result.display().to_string(),
         None => String::new(),
     };
-    let root_result = process.root();
-    let root = match root_result {
-        Some(result) => result.display().to_string(),
-        None => String::new(),
-    };
     let mut system_proc = Processes {
+        path: get_parent_directory(&path),
         full_path: path,
         name: process.name().to_string(),
-        path: root,
         pid: process.pid().as_u32(),
         ppid: 0,
         environment: process.environ().join(" "),

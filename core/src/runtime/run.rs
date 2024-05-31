@@ -173,7 +173,6 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         wait_for_inspector_disconnect_callback: None,
         custom_module_evaluation_cb: None,
         extension_transpiler: None,
-        enable_code_cache: false,
         eval_context_code_cache_cbs: None,
     });
 

@@ -4,7 +4,7 @@ use crate::{
 };
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
-use common::server::{EnrollSystem, EnrollmentResponse};
+use common::server::enrollment::{EnrollSystem, EnrollmentResponse};
 use log::error;
 use serde_json::Error;
 
@@ -21,7 +21,7 @@ pub(crate) async fn enroll_endpoint(
     }
 
     let id_result =
-        create_endpoint_path(&state.config.endpoint_server.storage, &data.endpoint_info).await;
+        create_endpoint_path(&state.config.endpoint_server.storage, &data.enrollment_info).await;
 
     let endpoint_id = match id_result {
         Ok(result) => result,
@@ -66,7 +66,7 @@ mod tests {
     };
     use axum::{extract::State, Json};
     use common::{
-        server::{EndpointInfo, EnrollSystem},
+        server::enrollment::{EnrollSystem, Enrollment},
         system::Memory,
     };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -76,9 +76,10 @@ mod tests {
     async fn test_enroll_endpoint() {
         let info = EnrollSystem {
             enroll_key: String::from("arandomkey"),
-            endpoint_info: EndpointInfo {
+            enrollment_info: Enrollment {
                 boot_time: 0,
                 hostname: String::from("test"),
+                ip: String::from("127.0.0.1"),
                 os_version: String::from("test"),
                 uptime: 1,
                 kernel_version: String::from("1.1"),
@@ -94,6 +95,7 @@ mod tests {
                     used_memory: 12,
                     used_swap: 12,
                 },
+                artemis_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
         let test = Json(info);
@@ -118,9 +120,10 @@ mod tests {
     async fn test_enroll_endpoint_bad() {
         let info = EnrollSystem {
             enroll_key: String::from("bad"),
-            endpoint_info: EndpointInfo {
+            enrollment_info: Enrollment {
                 boot_time: 0,
                 hostname: String::from("test"),
+                ip: String::from("127.0.0.1"),
                 os_version: String::from("test"),
                 uptime: 1,
                 kernel_version: String::from("1.1"),
@@ -136,6 +139,7 @@ mod tests {
                     used_memory: 12,
                     used_swap: 12,
                 },
+                artemis_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
         let test = Json(info);

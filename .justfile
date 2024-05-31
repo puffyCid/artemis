@@ -68,7 +68,7 @@ build:(_wasm)
 
 # Run tests for code coverage. Used by CI
 _coverage:(_wasm)
-  cargo llvm-cov --release --workspace --lcov --output-path lcov.info
+  cargo llvm-cov --release --workspace --exclude artemis-webui --lcov --output-path lcov.info
 
 # Test the entire artemis project
 test:(_wasm)

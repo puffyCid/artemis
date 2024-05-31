@@ -5,6 +5,8 @@
     "os_version": "13.2",
     "uptime": 4550,
     "kernel_version": "22.3.0",
+    "ip": "127.0.0.1",
+    "artemis_version": "0.9.0",
     "cpu": [
         {
             "frequency": 0,

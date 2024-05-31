@@ -1,4 +1,4 @@
-use common::server::{DiskInfo, ServerInfo};
+use common::server::webui::{DiskInfo, ServerInfo};
 use sysinfo::{Disks, System};
 
 /// Get server system info

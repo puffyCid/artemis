@@ -190,7 +190,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_path: alt_path.clone(),
             };
             collect.groups_macos = Some(options);
-            collect.artifact_name = String::from("groups");
+            collect.artifact_name = String::from("groups-macos");
         }
         CommandArgs::Launchd { alt_file } => {
             let options = LaunchdOptions {
@@ -213,7 +213,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_path: alt_path.clone(),
             };
             collect.users_macos = Some(options);
-            collect.artifact_name = String::from("users");
+            collect.artifact_name = String::from("users-macos");
         }
         CommandArgs::SudologsMacos { logarchive_path } => {
             let options = MacosSudoOptions {
@@ -424,7 +424,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_file: alt_file.clone(),
             };
             collect.users_windows = Some(options);
-            collect.artifact_name = String::from("users");
+            collect.artifact_name = String::from("users-windows");
         }
         CommandArgs::Usnjrnl {
             alt_drive,

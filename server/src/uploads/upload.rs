@@ -10,7 +10,7 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
 };
-use common::server::JobInfo;
+use common::server::jobs::JobInfo;
 use log::{error, warn};
 
 /// Process uploaded data
@@ -128,7 +128,7 @@ async fn write_collection(
 
 #[cfg(test)]
 mod tests {
-    use common::server::{Action, JobInfo, JobType, Status};
+    use common::server::jobs::{Action, JobInfo, JobType, Status};
 
     use crate::uploads::upload::write_collection;
     use crate::utils::filesystem::{create_dirs, write_file};

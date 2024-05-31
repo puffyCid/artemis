@@ -1,5 +1,5 @@
 use super::{error::UtilServerError, filesystem::read_file, uuid::generate_uuid};
-use common::server::{ArtemisConfig, ArtemisInfo, EndpointServer};
+use common::server::config::{ArtemisConfig, ArtemisInfo, EndpointServer};
 use log::error;
 use std::str::from_utf8;
 

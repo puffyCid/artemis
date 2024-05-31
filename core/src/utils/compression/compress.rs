@@ -4,7 +4,7 @@ use flate2::{write::GzEncoder, Compression};
 use log::{error, warn};
 use std::{fs::File, io::Write};
 use walkdir::WalkDir;
-use zip::{write::FileOptions, ZipWriter};
+use zip::{write::SimpleFileOptions, ZipWriter};
 
 /// Compress provided data with GZIP
 pub(crate) fn compress_gzip_data(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
@@ -41,7 +41,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             return Err(CompressionError::CompressCreate);
         }
     };
-    let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let mut zip_writer = ZipWriter::new(zip_file);
     for entries in output_files {
         let entry = match entries {

@@ -241,7 +241,7 @@ pub struct LoginItemsData {
     pub source_path: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct MachoInfo {
     pub cpu_type: String,
     pub cpu_subtype: String,
@@ -256,7 +256,7 @@ pub struct MachoInfo {
     pub sdk: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Segment64 {
     pub name: String,
     pub vmaddr: u64,
@@ -270,7 +270,7 @@ pub struct Segment64 {
     pub sections: Vec<Section>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DylibCommand {
     pub name: String,
     pub timestamp: u32,
@@ -278,7 +278,7 @@ pub struct DylibCommand {
     pub compatibility_version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Section {
     pub section_name: String,
     pub segment_name: String,

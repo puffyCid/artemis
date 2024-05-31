@@ -3,7 +3,9 @@ use crate::filestore::endpoints::{get_endpoints, recent_heartbeat};
 use crate::{filestore::endpoints::endpoint_count, server::ServerState};
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
-use common::server::{EndpointList, EndpointOS, EndpointRequest, Heartbeat, ProcessJob};
+use common::server::heartbeat::Heartbeat;
+use common::server::jobs::ProcessJob;
+use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
 use log::error;
 
 /// Count number of Endpoints based on OS type
@@ -30,6 +32,8 @@ pub(crate) async fn endpoint_list(
 ) -> Result<Json<Vec<EndpointList>>, StatusCode> {
     let storage_path = state.config.endpoint_server.storage;
     let mut pattern = format!("{}/{:?}/*/enroll.json", storage_path, data.filter);
+
+    // If Filter is all replace pattern with wildcard. Otherwise use filter
     if data.filter == EndpointOS::All {
         pattern = format!("{}/*/*/enroll.json", storage_path);
     }
@@ -105,8 +109,9 @@ mod tests {
         utils::{config::read_config, filesystem::create_dirs},
     };
     use axum::{extract::State, Json};
+    use common::server::enrollment::{EnrollSystem, Enrollment};
     use common::{
-        server::{EndpointInfo, EndpointOS, EndpointRequest, EnrollSystem},
+        server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -145,17 +150,19 @@ mod tests {
         let test2 = State(server_state);
 
         let data = Json(EndpointRequest {
-            pagination: String::new(),
-            filter: EndpointOS::Darwin,
+            offset: 0,
+            filter: EndpointOS::MacOS,
             tags: Vec::new(),
             search: String::new(),
+            count: 0,
         });
 
         let info = EnrollSystem {
             enroll_key: String::from("arandomkey"),
-            endpoint_info: EndpointInfo {
+            enrollment_info: Enrollment {
                 boot_time: 0,
                 hostname: String::from("hello"),
+                ip: String::from("127.0.0.1"),
                 os_version: String::from("test"),
                 uptime: 1,
                 kernel_version: String::from("1.1"),
@@ -171,6 +178,7 @@ mod tests {
                     used_memory: 12,
                     used_swap: 12,
                 },
+                artemis_version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
 

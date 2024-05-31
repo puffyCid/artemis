@@ -1,6 +1,6 @@
 use crate::utils::info::server_info;
 use axum::Json;
-use common::server::ServerInfo;
+use common::server::webui::ServerInfo;
 
 /// Poll basic information about server resources
 pub(crate) async fn about() -> Json<ServerInfo> {
