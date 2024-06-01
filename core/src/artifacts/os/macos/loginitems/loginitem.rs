@@ -44,7 +44,7 @@ pub(crate) fn parse_loginitems(path: &str) -> Result<Vec<LoginItemsData>, LoginI
             volume_uuid: bookmark.volume_uuid,
             volume_size: bookmark.volume_size,
             volume_created: bookmark.volume_created,
-            volume_flag: bookmark.volume_flag,
+            volume_flags: bookmark.volume_flags,
             volume_root: bookmark.volume_root,
             localized_name: bookmark.localized_name,
             security_extension_rw: bookmark.security_extension_rw,
@@ -92,8 +92,8 @@ pub(crate) fn loginitems_bundled_apps_path(
             Ok(data) => {
                 for (key, value) in data {
                     let mut loginitems_data = LoginItemsData {
-                        path: Vec::new(),
-                        cnid_path: Vec::new(),
+                        path: String::new(),
+                        cnid_path: String::new(),
                         created: 0,
                         volume_path: String::new(),
                         volume_url: String::new(),
@@ -101,7 +101,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                         volume_uuid: String::new(),
                         volume_size: 0,
                         volume_created: 0,
-                        volume_flag: Vec::new(),
+                        volume_flags: Vec::new(),
                         volume_root: false,
                         localized_name: String::new(),
                         security_extension_rw: String::new(),
@@ -110,7 +110,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                         username: String::new(),
                         folder_index: 0,
                         uid: 0,
-                        creation_options: 0,
+                        creation_options: Vec::new(),
                         is_bundled: true,
                         app_id: String::new(),
                         app_binary: String::new(),
@@ -151,6 +151,8 @@ pub(crate) fn loginitem_apps_system() -> Result<Vec<LoginItemsData>, LoginItemEr
 
 #[cfg(test)]
 mod tests {
+    use common::macos::{TargetFlags, VolumeFlags};
+
     use crate::artifacts::os::macos::loginitems::loginitem::{
         loginitems_bundled_apps_path, parse_loginitems,
     };
@@ -187,21 +189,28 @@ mod tests {
         let data = parse_loginitems(&test_location.display().to_string()).unwrap();
 
         assert_eq!(data.len(), 1);
-        assert_eq!(data[0].path, ["Applications", "Syncthing.app"]);
+        assert_eq!(data[0].path, "/Applications/Syncthing.app");
         assert_eq!(data[0].created, 1643781189);
-        assert_eq!(data[0].cnid_path, [103, 706090]);
+        assert_eq!(data[0].cnid_path, "/103/706090");
         assert_eq!(data[0].volume_path, "/");
         assert_eq!(data[0].volume_url, "file:///");
         assert_eq!(data[0].volume_name, "Macintosh HD");
         assert_eq!(data[0].volume_uuid, "0A81F3B1-51D9-3335-B3E3-169C3640360D");
         assert_eq!(data[0].volume_size, 160851517440);
         assert_eq!(data[0].volume_created, 1219441716);
-        assert_eq!(data[0].volume_flag, [4294967425, 4294972399, 0]);
+        assert_eq!(
+            data[0].volume_flags,
+            vec![
+                VolumeFlags::Local,
+                VolumeFlags::Internal,
+                VolumeFlags::SupportsPersistentIds
+            ]
+        );
         assert_eq!(data[0].volume_root, true);
         assert_eq!(data[0].localized_name, "Syncthing");
         assert_eq!(data[0].security_extension_rw, "64cb7eaa9a1bbccc4e1397c9f2a411ebe539cd29;00000000;00000000;0000000000000020;com.apple.app-sandbox.read-write;01;01000004;00000000000ac62a;/applications/syncthing.app\0");
         assert_eq!(data[0].security_extension_ro, "");
-        assert_eq!(data[0].target_flags, [2, 15, 0]);
+        assert_eq!(data[0].target_flags, vec![TargetFlags::Directory]);
         assert_eq!(data[0].username, String::new());
         assert_eq!(data[0].folder_index, 0);
         assert_eq!(data[0].uid, 0);
