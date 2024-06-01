@@ -4,7 +4,7 @@ use crate::utils::{
     },
     time::cocoatime_to_unixepoch,
 };
-use common::macos::BookmarkData;
+use common::macos::{BookmarkData, CreationFlags, TargetFlags, VolumeFlags};
 use log::warn;
 use nom::{
     bytes::complete::take,
@@ -115,8 +115,8 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
         table_of_contents_record(toc_record_data, &toc_content_data.number_of_records)?;
 
     let mut bookmark_data = BookmarkData {
-        path: Vec::new(),
-        cnid_path: Vec::new(),
+        path: String::new(),
+        cnid_path: String::new(),
         target_flags: Vec::new(),
         created: 0,
         volume_path: String::new(),
@@ -125,13 +125,13 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
         volume_uuid: String::new(),
         volume_size: 0,
         volume_created: 0,
-        volume_flag: Vec::new(),
+        volume_flags: Vec::new(),
         volume_root: false,
         localized_name: String::new(),
         security_extension_rw: String::new(),
         username: String::new(),
         uid: 0,
-        creation_options: 0,
+        creation_options: Vec::new(),
         folder_index: 0,
         is_executable: false,
         security_extension_ro: String::new(),
@@ -225,7 +225,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                         if flags.is_empty() {
                             continue;
                         }
-                        bookmark_data.target_flags = flags;
+                        bookmark_data.target_flags = get_target_flags(&flags);
                     }
                     Err(err) => warn!("[bookmarks] Failed to parse Target Flags: {err:?}"),
                 }
@@ -296,7 +296,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
             {
                 let flags_data = bookmark_target_flags(&record_data);
                 match flags_data {
-                    Ok((_, flags)) => bookmark_data.volume_flag = flags,
+                    Ok((_, flags)) => bookmark_data.volume_flags = get_volume_flags(&flags),
                     Err(err) => warn!("[bookmarks] Failed to parse Volume Flags: {err:?}"),
                 }
             } else if standard_data.record_type == volume_root
@@ -390,7 +390,9 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
             {
                 let creation_options_data = bookmark_data_type_number_four(&record_data);
                 match creation_options_data {
-                    Ok((_, options)) => bookmark_data.creation_options = options,
+                    Ok((_, options)) => {
+                        bookmark_data.creation_options = get_creation_flags(&options);
+                    }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark Creation options: {err:?}");
                     }
@@ -409,7 +411,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
             if standard_data.data_type == string_type && standard_data.record_type == target_path {
                 let path_data = bookmark_data_type_string(&standard_data.record_data);
                 match path_data {
-                    Ok(path) => bookmark_data.path.push(path),
+                    Ok(path) => bookmark_data.path = format!("{}/{path}", bookmark_data.path),
                     Err(_err) => continue,
                 }
             } else if standard_data.data_type == number_eight_byte
@@ -417,7 +419,9 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
             {
                 let cnid_data = bookmark_cnid(&standard_data.record_data);
                 match cnid_data {
-                    Ok((_, cnid)) => bookmark_data.cnid_path.push(cnid),
+                    Ok((_, cnid)) => {
+                        bookmark_data.cnid_path = format!("{}/{cnid}", bookmark_data.cnid_path);
+                    }
                     Err(_err) => continue,
                 }
             }
@@ -615,15 +619,299 @@ fn bookmark_data_type_date(standard_data: &[u8]) -> nom::IResult<&[u8], f64> {
     Ok((data, creation))
 }
 
+/// Determine Target flags
+fn get_target_flags(flags: &[u64]) -> Vec<TargetFlags> {
+    let mut target_flags = Vec::new();
+    // Only first entry contains the flag data
+    if let Some(target) = flags.first() {
+        let file = 0x1;
+        let dir = 0x2;
+        let symbolic = 0x4;
+        let volume = 0x8;
+        let package = 0x10;
+        let immut = 0x20;
+        let user_immut = 0x40;
+        let hidden = 0x80;
+        let hiddent_ext = 0x100;
+        let app = 0x200;
+        let compressed = 0x400;
+        let set_hidden_extension = 0x800;
+        let readable = 0x1000;
+        let writable = 0x2000;
+        let executable = 0x4000;
+        let alias_file = 0x8000;
+        let mount = 0x10000;
+
+        if (target & file) == file {
+            target_flags.push(TargetFlags::RegularFile);
+        }
+        if (target & dir) == dir {
+            target_flags.push(TargetFlags::Directory);
+        }
+        if (target & symbolic) == symbolic {
+            target_flags.push(TargetFlags::SymbolicLink);
+        }
+        if (target & volume) == volume {
+            target_flags.push(TargetFlags::Volume);
+        }
+        if (target & package) == package {
+            target_flags.push(TargetFlags::Package);
+        }
+        if (target & immut) == immut {
+            target_flags.push(TargetFlags::SystemImmutable);
+        }
+        if (target & user_immut) == user_immut {
+            target_flags.push(TargetFlags::UserImmutable);
+        }
+        if (target & hidden) == hidden {
+            target_flags.push(TargetFlags::Hidden);
+        }
+        if (target & hiddent_ext) == hiddent_ext {
+            target_flags.push(TargetFlags::HasHiddenExtension);
+        }
+        if (target & app) == app {
+            target_flags.push(TargetFlags::Application);
+        }
+        if (target & compressed) == compressed {
+            target_flags.push(TargetFlags::Compressed);
+        }
+        if (target & set_hidden_extension) == set_hidden_extension {
+            target_flags.push(TargetFlags::CanSetHiddenExtension);
+        }
+        if (target & readable) == readable {
+            target_flags.push(TargetFlags::Readable);
+        }
+        if (target & writable) == writable {
+            target_flags.push(TargetFlags::Writable);
+        }
+        if (target & executable) == executable {
+            target_flags.push(TargetFlags::Executable);
+        }
+        if (target & alias_file) == alias_file {
+            target_flags.push(TargetFlags::AliasFile);
+        }
+        if (target & mount) == mount {
+            target_flags.push(TargetFlags::MountTrigger);
+        }
+    }
+    target_flags
+}
+
+/// Determine Volume flags
+fn get_volume_flags(flags: &[u64]) -> Vec<VolumeFlags> {
+    let mut volume_flags = Vec::new();
+    if let Some(volume) = flags.first() {
+        if (volume & 0x1) == 0x1 {
+            volume_flags.push(VolumeFlags::Local);
+        }
+        if (volume & 0x2) == 0x2 {
+            volume_flags.push(VolumeFlags::Automount);
+        }
+        if (volume & 0x4) == 0x4 {
+            volume_flags.push(VolumeFlags::DontBrowse);
+        }
+        if (volume & 0x8) == 0x8 {
+            volume_flags.push(VolumeFlags::ReadOnly);
+        }
+        if (volume & 0x10) == 0x10 {
+            volume_flags.push(VolumeFlags::Quarantined);
+        }
+        if (volume & 0x20) == 0x20 {
+            volume_flags.push(VolumeFlags::Ejectable);
+        }
+        if (volume & 0x40) == 0x40 {
+            volume_flags.push(VolumeFlags::Removable);
+        }
+        if (volume & 0x80) == 0x80 {
+            volume_flags.push(VolumeFlags::Internal);
+        }
+        if (volume & 0x100) == 0x100 {
+            volume_flags.push(VolumeFlags::External);
+        }
+        if (volume & 0x200) == 0x200 {
+            volume_flags.push(VolumeFlags::DiskImage);
+        }
+        if (volume & 0x400) == 0x400 {
+            volume_flags.push(VolumeFlags::FileVault);
+        }
+        if (volume & 0x800) == 0x800 {
+            volume_flags.push(VolumeFlags::LocaliDiskMirror);
+        }
+        if (volume & 0x1000) == 0x1000 {
+            volume_flags.push(VolumeFlags::Ipod);
+        }
+        if (volume & 0x2000) == 0x2000 {
+            volume_flags.push(VolumeFlags::Idisk);
+        }
+        if (volume & 0x4000) == 0x4000 {
+            volume_flags.push(VolumeFlags::Cd);
+        }
+        if (volume & 0x8000) == 0x8000 {
+            volume_flags.push(VolumeFlags::Dvd);
+        }
+        if (volume & 0x10000) == 0x10000 {
+            volume_flags.push(VolumeFlags::DeviceFileSystem);
+        }
+        if (volume & 0x20000) == 0x20000 {
+            volume_flags.push(VolumeFlags::TimeMachine);
+        }
+        if (volume & 0x40000) == 0x40000 {
+            volume_flags.push(VolumeFlags::Airport);
+        }
+        if (volume & 0x80000) == 0x80000 {
+            volume_flags.push(VolumeFlags::VideoDisk);
+        }
+        if (volume & 0x100000) == 0x100000 {
+            volume_flags.push(VolumeFlags::DvdVideo);
+        }
+        if (volume & 0x200000) == 0x200000 {
+            volume_flags.push(VolumeFlags::BdVideo);
+        }
+        if (volume & 0x400000) == 0x400000 {
+            volume_flags.push(VolumeFlags::MobileTimeMachine);
+        }
+        if (volume & 0x800000) == 0x800000 {
+            volume_flags.push(VolumeFlags::NetworkOptical);
+        }
+        if (volume & 0x1000000) == 0x1000000 {
+            volume_flags.push(VolumeFlags::BeingRepaired);
+        }
+        if (volume & 0x2000000) == 0x2000000 {
+            volume_flags.push(VolumeFlags::Unmounted);
+        }
+
+        // Volume supports
+        if (volume & 0x100000000) == 0x100000000 {
+            volume_flags.push(VolumeFlags::SupportsPersistentIds);
+        }
+        if (volume & 0x200000000) == 0x200000000 {
+            volume_flags.push(VolumeFlags::SupportsSearchFs);
+        }
+        if (volume & 0x400000000) == 0x400000000 {
+            volume_flags.push(VolumeFlags::SupportsExchange);
+        }
+        if (volume & 0x1000000000) == 0x1000000000 {
+            volume_flags.push(VolumeFlags::SupportsSymbolicLinks);
+        }
+        if (volume & 0x2000000000) == 0x2000000000 {
+            volume_flags.push(VolumeFlags::SupportsDenyModes);
+        }
+        if (volume & 0x4000000000) == 0x4000000000 {
+            volume_flags.push(VolumeFlags::SupportsCopyFile);
+        }
+        if (volume & 0x8000000000) == 0x8000000000 {
+            volume_flags.push(VolumeFlags::SupportsReadDirAttr);
+        }
+        if (volume & 0x10000000000) == 0x10000000000 {
+            volume_flags.push(VolumeFlags::SupportsJournaling);
+        }
+        if (volume & 0x20000000000) == 0x20000000000 {
+            volume_flags.push(VolumeFlags::SupportsRename);
+        }
+        if (volume & 0x40000000000) == 0x40000000000 {
+            volume_flags.push(VolumeFlags::SupportsFastStatFs);
+        }
+        if (volume & 0x80000000000) == 0x80000000000 {
+            volume_flags.push(VolumeFlags::SupportsCaseSensitiveNames);
+        }
+        if (volume & 0x100000000000) == 0x100000000000 {
+            volume_flags.push(VolumeFlags::SupportsCasePreservedNames);
+        }
+        if (volume & 0x200000000000) == 0x200000000000 {
+            volume_flags.push(VolumeFlags::SupportsFlock);
+        }
+        if (volume & 0x400000000000) == 0x400000000000 {
+            volume_flags.push(VolumeFlags::SupportsNoRootDirectoryTimes);
+        }
+        if (volume & 0x800000000000) == 0x800000000000 {
+            volume_flags.push(VolumeFlags::SupportsExtendedSecurity);
+        }
+        if (volume & 0x1000000000000) == 0x1000000000000 {
+            volume_flags.push(VolumeFlags::Supports2TbFileSize);
+        }
+        if (volume & 0x2000000000000) == 0x2000000000000 {
+            volume_flags.push(VolumeFlags::SupportsHardLinks);
+        }
+        if (volume & 0x4000000000000) == 0x4000000000000 {
+            volume_flags.push(VolumeFlags::SupportsMandatoryByteRangeLocks);
+        }
+        if (volume & 0x8000000000000) == 0x8000000000000 {
+            volume_flags.push(VolumeFlags::SupportsPathFromId);
+        }
+        if (volume & 0x20000000000000) == 0x20000000000000 {
+            volume_flags.push(VolumeFlags::SupportsJournaling);
+        }
+        if (volume & 0x40000000000000) == 0x40000000000000 {
+            volume_flags.push(VolumeFlags::SupportsSparseFiles);
+        }
+        if (volume & 0x80000000000000) == 0x80000000000000 {
+            volume_flags.push(VolumeFlags::SupportsZeroRunes);
+        }
+        if (volume & 0x100000000000000) == 0x100000000000000 {
+            volume_flags.push(VolumeFlags::SupportsVolumeSizes);
+        }
+        if (volume & 0x200000000000000) == 0x200000000000000 {
+            volume_flags.push(VolumeFlags::SupportsRemoteEvents);
+        }
+        if (volume & 0x400000000000000) == 0x400000000000000 {
+            volume_flags.push(VolumeFlags::SupportsHiddenFiles);
+        }
+        if (volume & 0x800000000000000) == 0x800000000000000 {
+            volume_flags.push(VolumeFlags::SupportsDecmpFsCompression);
+        }
+        if (volume & 0x1000000000000000) == 0x1000000000000000 {
+            volume_flags.push(VolumeFlags::Has64BitObjectIds);
+        }
+        if *volume == 0xffffffffffffffff {
+            volume_flags.push(VolumeFlags::PropertyFlagsAll);
+        }
+    }
+
+    volume_flags
+}
+
+/// Determine Creation flags
+fn get_creation_flags(flags: &i32) -> Vec<CreationFlags> {
+    let not_implict = 0x20000000;
+    let prefer_id = 0x100;
+    let read_only = 0x1000;
+    let security = 0x800;
+    let suitable = 0x400;
+    let minimal = 0x200;
+
+    let mut creation = Vec::new();
+    if (flags & not_implict) == not_implict {
+        creation.push(CreationFlags::WithoutImplicitSecurityScope);
+    }
+    if (flags & prefer_id) == prefer_id {
+        creation.push(CreationFlags::PreferFileIDResolutionMask);
+    }
+    if (flags & read_only) == read_only {
+        creation.push(CreationFlags::SecurityScopeAllowOnlyReadAccess);
+    }
+    if (flags & security) == security {
+        creation.push(CreationFlags::SecurityScope);
+    }
+    if (flags & suitable) == suitable {
+        creation.push(CreationFlags::SuitableBookmark);
+    }
+    if (flags & minimal) == minimal {
+        creation.push(CreationFlags::MinimalBookmark);
+    }
+    creation
+}
+
 #[cfg(test)]
 mod tests {
-    use super::TableOfContentsDataRecord;
+    use super::{get_target_flags, TableOfContentsDataRecord};
     use crate::artifacts::os::macos::bookmarks::bookmark::{
         bookmark_array, bookmark_array_data, bookmark_cnid, bookmark_data_type_date,
         bookmark_data_type_number_eight, bookmark_data_type_number_four, bookmark_data_type_string,
-        bookmark_standard_data, bookmark_target_flags, parse_bookmark_data, parse_bookmark_header,
-        table_of_contents_data, table_of_contents_header, table_of_contents_record,
+        bookmark_standard_data, bookmark_target_flags, get_creation_flags, get_volume_flags,
+        parse_bookmark_data, parse_bookmark_header, table_of_contents_data,
+        table_of_contents_header, table_of_contents_record,
     };
+    use common::macos::{CreationFlags, TargetFlags, VolumeFlags};
 
     #[test]
     fn test_bookmark_header() {
@@ -637,6 +925,24 @@ mod tests {
         assert_eq!(header._bookmark_data_length, 584);
         assert_eq!(header.bookmark_data_offset, 48);
         assert_eq!(header._version, 1040);
+    }
+
+    #[test]
+    fn test_get_target_flags() {
+        let results = get_target_flags(&[1]);
+        assert_eq!(results[0], TargetFlags::RegularFile);
+    }
+
+    #[test]
+    fn test_get_volume_flags() {
+        let results = get_volume_flags(&[1]);
+        assert_eq!(results[0], VolumeFlags::Local);
+    }
+
+    #[test]
+    fn test_get_creation_flags() {
+        let results = get_creation_flags(&0x100);
+        assert_eq!(results[0], CreationFlags::PreferFileIDResolutionMask);
     }
 
     #[test]
@@ -685,11 +991,11 @@ mod tests {
         ];
         let (_, bookmark) = parse_bookmark_data(&test_data).unwrap();
 
-        assert_eq!(bookmark.path.len(), 2);
-        assert_eq!(bookmark.cnid_path.len(), 2);
+        assert_eq!(bookmark.path.len(), 27);
+        assert_eq!(bookmark.cnid_path.len(), 11);
         assert_eq!(bookmark.created, 1643781189);
         assert_eq!(bookmark.volume_created, 1219441716);
-        assert_eq!(bookmark.target_flags.len(), 3);
+        assert_eq!(bookmark.target_flags.len(), 1);
     }
 
     #[test]
@@ -929,35 +1235,41 @@ mod tests {
 
         let (_, bookmark) = parse_bookmark_data(bookmark_data).unwrap();
 
-        assert_eq!(bookmark.path.len(), 4);
-        assert_eq!(bookmark.cnid_path.len(), 4);
         assert_eq!(bookmark.created, 1655695300);
         assert_eq!(bookmark.volume_created, 1645859107);
-        assert_eq!(bookmark.target_flags.len(), 3);
 
         assert_eq!(
             bookmark.path,
-            [
-                "Users",
-                "puffycid",
-                "Downloads",
-                "powershell-7.2.4-osx-x64.pkg",
-            ]
+            "/Users/puffycid/Downloads/powershell-7.2.4-osx-x64.pkg"
         );
-        assert_eq!(bookmark.cnid_path, [21327, 360459, 360510, 37602008]);
+        assert_eq!(bookmark.cnid_path, "/21327/360459/360510/37602008");
         assert_eq!(bookmark.volume_path, "/");
         assert_eq!(bookmark.volume_url, "file:///");
         assert_eq!(bookmark.volume_name, "Macintosh HD");
         assert_eq!(bookmark.volume_uuid, "96FB41C0-6CE9-4DA2-8435-35BC19C735A3");
         assert_eq!(bookmark.volume_size, 2000662327296);
-        assert_eq!(bookmark.volume_flag, [4294967425, 4294972399, 0]);
+        assert_eq!(
+            bookmark.volume_flags,
+            vec![
+                VolumeFlags::Local,
+                VolumeFlags::Internal,
+                VolumeFlags::SupportsPersistentIds
+            ]
+        );
         assert_eq!(bookmark.volume_root, true);
         assert_eq!(bookmark.localized_name, "");
-        assert_eq!(bookmark.target_flags, [1, 15, 0]);
+        assert_eq!(bookmark.target_flags, vec![TargetFlags::RegularFile]);
         assert_eq!(bookmark.username, "puffycid");
         assert_eq!(bookmark.folder_index, 2);
         assert_eq!(bookmark.uid, 501);
-        assert_eq!(bookmark.creation_options, 671094784);
+        assert_eq!(
+            bookmark.creation_options,
+            vec![
+                CreationFlags::WithoutImplicitSecurityScope,
+                CreationFlags::SecurityScopeAllowOnlyReadAccess,
+                CreationFlags::SecurityScope
+            ]
+        );
         assert_eq!(bookmark.security_extension_rw, "");
         assert_eq!(bookmark.security_extension_ro, "");
         assert_eq!(bookmark.file_ref_flag, false);

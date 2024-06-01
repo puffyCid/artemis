@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 use plist::Dictionary;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize)]
 pub struct OpendirectoryUsers {
@@ -32,9 +31,9 @@ pub struct OpendirectoryGroups {
 #[derive(Debug, Serialize)]
 pub struct BookmarkData {
     /**Path to file to run */
-    pub path: Vec<String>,
+    pub path: String,
     /**Path represented as Catalog Node ID */
-    pub cnid_path: Vec<i64>,
+    pub cnid_path: String,
     /**Created timestamp of target file in UNIXEPOCH seconds */
     pub created: i64,
     /**Path to the volume of target file */
@@ -50,7 +49,7 @@ pub struct BookmarkData {
     /**Created timestamp of volume in UNIXEPOCH seconds */
     pub volume_created: i64,
     /**Volume Property flags */
-    pub volume_flag: Vec<u64>,
+    pub volume_flags: Vec<VolumeFlags>,
     /**Flag if volume if the root filesystem */
     pub volume_root: bool,
     /**Localized name of target file */
@@ -60,7 +59,7 @@ pub struct BookmarkData {
     /**Read-Only security extension of target file */
     pub security_extension_ro: String,
     /**File property flags */
-    pub target_flags: Vec<u64>,
+    pub target_flags: Vec<TargetFlags>,
     /**Username associated with `Bookmark` */
     pub username: String,
     /**Folder index number associated with target file */
@@ -68,11 +67,100 @@ pub struct BookmarkData {
     /**UID associated with `Bookmark` */
     pub uid: i32,
     /**`Bookmark` creation flags */
-    pub creation_options: i32,
+    pub creation_options: Vec<CreationFlags>,
     /**Is target file executable */
     pub is_executable: bool,
     /**Does target file have file reference flag */
     pub file_ref_flag: bool,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub enum TargetFlags {
+    RegularFile,
+    Directory,
+    SymbolicLink,
+    Volume,
+    Package,
+    SystemImmutable,
+    UserImmutable,
+    Hidden,
+    HasHiddenExtension,
+    Application,
+    Compressed,
+    CanSetHiddenExtension,
+    Readable,
+    Writable,
+    Executable,
+    AliasFile,
+    MountTrigger,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub enum CreationFlags {
+    MinimalBookmark,
+    SuitableBookmark,
+    SecurityScope,
+    SecurityScopeAllowOnlyReadAccess,
+    WithoutImplicitSecurityScope,
+    PreferFileIDResolutionMask,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub enum VolumeFlags {
+    Local,
+    Automount,
+    DontBrowse,
+    ReadOnly,
+    Quarantined,
+    Ejectable,
+    Removable,
+    Internal,
+    External,
+    DiskImage,
+    FileVault,
+    LocaliDiskMirror,
+    Ipod,
+    Idisk,
+    Cd,
+    Dvd,
+    DeviceFileSystem,
+    TimeMachine,
+    Airport,
+    VideoDisk,
+    DvdVideo,
+    BdVideo,
+    MobileTimeMachine,
+    NetworkOptical,
+    BeingRepaired,
+    Unmounted,
+    SupportsPersistentIds,
+    SupportsSearchFs,
+    SupportsExchange,
+    SupportsSymbolicLinks,
+    SupportsDenyModes,
+    SupportsCopyFile,
+    SupportsReadDirAttr,
+    SupportsJournaling,
+    SupportsRename,
+    SupportsFastStatFs,
+    SupportsCaseSensitiveNames,
+    SupportsCasePreservedNames,
+    SupportsFlock,
+    SupportsNoRootDirectoryTimes,
+    SupportsExtendedSecurity,
+    Supports2TbFileSize,
+    SupportsHardLinks,
+    SupportsMandatoryByteRangeLocks,
+    SupportsPathFromId,
+    Journaling,
+    SupportsSparseFiles,
+    SupportsZeroRunes,
+    SupportsVolumeSizes,
+    SupportsRemoteEvents,
+    SupportsHiddenFiles,
+    SupportsDecmpFsCompression,
+    Has64BitObjectIds,
+    PropertyFlagsAll,
 }
 
 #[derive(Debug, Serialize)]
@@ -190,9 +278,9 @@ pub struct LaunchdPlist {
 #[derive(Debug, Serialize)]
 pub struct LoginItemsData {
     /**Path to file to run */
-    pub path: Vec<String>,
+    pub path: String,
     /**Path represented as Catalog Node ID */
-    pub cnid_path: Vec<i64>,
+    pub cnid_path: String,
     /**Created timestamp of target file in UNIXEPOCH seconds */
     pub created: i64,
     /**Path to the volume of target file */
@@ -208,7 +296,7 @@ pub struct LoginItemsData {
     /**Created timestamp of volume in UNIXEPOCH seconds */
     pub volume_created: i64,
     /**Volume Property flags */
-    pub volume_flag: Vec<u64>,
+    pub volume_flags: Vec<VolumeFlags>,
     /**Flag if volume if the root filesystem */
     pub volume_root: bool,
     /**Localized name of target file */
@@ -218,7 +306,7 @@ pub struct LoginItemsData {
     /**Read-Only security extension of target file */
     pub security_extension_ro: String,
     /**File property flags */
-    pub target_flags: Vec<u64>,
+    pub target_flags: Vec<TargetFlags>,
     /**Username associated with `Bookmark` */
     pub username: String,
     /**Folder index number associated with target file */
@@ -226,7 +314,7 @@ pub struct LoginItemsData {
     /**UID associated with `LoginItem` */
     pub uid: i32,
     /**`LoginItem` creation flags */
-    pub creation_options: i32,
+    pub creation_options: Vec<CreationFlags>,
     /**Is `LoginItem` bundled in app */
     pub is_bundled: bool,
     /**App ID associated with `LoginItem` */

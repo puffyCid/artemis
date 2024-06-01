@@ -80,7 +80,7 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<SafariDownload>, SafariE
             volume_uuid: bookmark.volume_uuid,
             volume_size: bookmark.volume_size,
             volume_created: bookmark.volume_created,
-            volume_flag: bookmark.volume_flag,
+            volume_flags: bookmark.volume_flags,
             volume_root: bookmark.volume_root,
             localized_name: bookmark.localized_name,
             security_extension_rw: bookmark.security_extension_rw,
@@ -100,6 +100,8 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<SafariDownload>, SafariE
 
 #[cfg(test)]
 mod tests {
+    use common::macos::{CreationFlags, TargetFlags, VolumeFlags};
+
     use super::get_safari_downloads;
     use crate::artifacts::applications::safari::downloads::downloads_query;
     use std::path::PathBuf;
@@ -135,14 +137,9 @@ mod tests {
         assert_eq!(results[0].download_entry_finish, 1656266422);
         assert_eq!(
             results[0].path,
-            [
-                "Users",
-                "puffycid",
-                "Downloads",
-                "powershell-7.2.5-osx-arm64.pkg"
-            ]
+            "/Users/puffycid/Downloads/powershell-7.2.5-osx-arm64.pkg"
         );
-        assert_eq!(results[0].cnid_path, [21327, 360459, 360510, 37719400]);
+        assert_eq!(results[0].cnid_path, "/21327/360459/360510/37719400");
         assert_eq!(results[0].volume_path, "/");
         assert_eq!(results[0].created, 1656266417);
         assert_eq!(results[0].volume_url, "file:///");
@@ -152,17 +149,31 @@ mod tests {
             "96FB41C0-6CE9-4DA2-8435-35BC19C735A3"
         );
         assert_eq!(results[0].volume_size, 2000662327296);
-        assert_eq!(results[0].volume_flag, [4294967425, 4294972399, 0]);
+        assert_eq!(
+            results[0].volume_flags,
+            vec![
+                VolumeFlags::Local,
+                VolumeFlags::Internal,
+                VolumeFlags::SupportsPersistentIds
+            ]
+        );
         assert_eq!(results[0].volume_created, 1645859107);
         assert_eq!(results[0].volume_root, true);
         assert_eq!(results[0].localized_name, "");
         assert_eq!(results[0].security_extension_ro, "");
         assert_eq!(results[0].security_extension_rw, "");
-        assert_eq!(results[0].target_flags, [1, 15, 0]);
+        assert_eq!(results[0].target_flags, vec![TargetFlags::RegularFile]);
         assert_eq!(results[0].username, "puffycid");
         assert_eq!(results[0].folder_index, 2);
         assert_eq!(results[0].uid, 501);
-        assert_eq!(results[0].creation_options, 671094784);
+        assert_eq!(
+            results[0].creation_options,
+            vec![
+                CreationFlags::WithoutImplicitSecurityScope,
+                CreationFlags::SecurityScopeAllowOnlyReadAccess,
+                CreationFlags::SecurityScope
+            ]
+        );
         assert_eq!(results[0].is_executable, false);
         assert_eq!(results[0].file_ref_flag, false);
     }

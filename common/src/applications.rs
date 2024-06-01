@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use crate::macos::{CreationFlags, TargetFlags, VolumeFlags};
+
 #[derive(Debug, Serialize)]
 pub struct ChromiumDownloads {
     pub downloads: Vec<ChromiumDownload>,
@@ -122,26 +124,26 @@ pub struct SafariDownload {
     pub download_id: String,
     pub download_entry_date: u64,
     pub download_entry_finish: u64,
-    pub path: Vec<String>,             // Path to binary to run
-    pub cnid_path: Vec<i64>,           // Path represented as Catalog Node ID
-    pub created: i64,                  // Created timestamp of binary target
-    pub volume_path: String,           // Root
-    pub volume_url: String,            // URL type
-    pub volume_name: String,           // Name of Volume
-    pub volume_uuid: String,           // Volume UUID string
-    pub volume_size: i64,              // Size of Volume
-    pub volume_created: i64,           // Created timestamp of Volume
-    pub volume_flag: Vec<u64>,         // Volume Property flags
-    pub volume_root: bool,             // If Volume is filesystem root
-    pub localized_name: String,        // Optional localized name of target binary
-    pub security_extension_rw: String, // Optional Security extension of target binary
-    pub security_extension_ro: String, // Optional Security extension of target binary
-    pub target_flags: Vec<u64>,        // Resource property flags
-    pub username: String,              // Username related to bookmark
-    pub folder_index: i64,             // Folder index number
-    pub uid: i32,                      // User UID
-    pub creation_options: i32,         // Bookmark creation options
-    pub is_executable: bool,           // Can target be executed
+    pub path: String,                         // Path to binary to run
+    pub cnid_path: String,                    // Path represented as Catalog Node ID
+    pub created: i64,                         // Created timestamp of binary target
+    pub volume_path: String,                  // Root
+    pub volume_url: String,                   // URL type
+    pub volume_name: String,                  // Name of Volume
+    pub volume_uuid: String,                  // Volume UUID string
+    pub volume_size: i64,                     // Size of Volume
+    pub volume_created: i64,                  // Created timestamp of Volume
+    pub volume_flags: Vec<VolumeFlags>,       // Volume Property flags
+    pub volume_root: bool,                    // If Volume is filesystem root
+    pub localized_name: String,               // Optional localized name of target binary
+    pub security_extension_rw: String,        // Optional Security extension of target binary
+    pub security_extension_ro: String,        // Optional Security extension of target binary
+    pub target_flags: Vec<TargetFlags>,       // Resource property flags
+    pub username: String,                     // Username related to bookmark
+    pub folder_index: i64,                    // Folder index number
+    pub uid: i32,                             // User UID
+    pub creation_options: Vec<CreationFlags>, // Bookmark creation options
+    pub is_executable: bool,                  // Can target be executed
     pub file_ref_flag: bool,
 }
 
