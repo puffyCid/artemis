@@ -14,6 +14,7 @@ use crate::{
     utils::{
         compression::decompress::decompress_lz4,
         nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+        time::unixepoch_to_iso,
     },
 };
 use common::macos::{DataAttribute, SpotlightEntries, SpotlightValue};
@@ -302,7 +303,7 @@ fn parse_record<'a>(
         parent_inode,
         flags,
         store_id,
-        last_updated,
+        last_updated: unixepoch_to_iso(&(last_updated as i64)),
         values,
         directory: dir.to_string(),
     };

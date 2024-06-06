@@ -1,3 +1,4 @@
+use crate::utils::time::unixepoch_to_iso;
 use common::system::{Cpus, DiskDrives, LoadPerformance, Memory, SystemInfo, SystemInfoMetadata};
 use sysinfo::{Disks, System};
 
@@ -5,7 +6,7 @@ use sysinfo::{Disks, System};
 pub(crate) fn get_info() -> SystemInfo {
     let mut system = System::new();
     SystemInfo {
-        boot_time: sysinfo::System::boot_time(),
+        boot_time: unixepoch_to_iso(&(sysinfo::System::boot_time() as i64)),
         hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
         os_version: sysinfo::System::os_version()
             .unwrap_or_else(|| String::from("Unknown OS version")),

@@ -3,8 +3,11 @@ use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
     utils::{
-        compression::compress::compress_gzip_data, logging::collection_status,
-        output::final_output, time::time_now, uuid::generate_uuid,
+        compression::compress::compress_gzip_data,
+        logging::collection_status,
+        output::final_output,
+        time::{time_now, unixepoch_to_iso},
+        uuid::generate_uuid,
     },
 };
 use log::{error, info};
@@ -25,8 +28,8 @@ pub(crate) fn json_format(
             "uuid": generate_uuid(),
             "id": output.collection_id,
             "artifact_name": output_name,
-            "complete_time": time_now(),
-            "start_time": start_time,
+            "complete_time": unixepoch_to_iso(&(time_now() as i64)),
+            "start_time": unixepoch_to_iso(&(*start_time as i64)),
             "hostname": info.hostname,
             "os_version": info.os_version,
             "platform": info.platform,
@@ -85,9 +88,8 @@ pub(crate) fn raw_json(
 
 #[cfg(test)]
 mod tests {
-    use crate::{output::formats::json::json_format, structs::toml::Output, utils::time::time_now};
-
     use super::raw_json;
+    use crate::{output::formats::json::json_format, structs::toml::Output, utils::time::time_now};
 
     #[test]
     fn test_json_format() {

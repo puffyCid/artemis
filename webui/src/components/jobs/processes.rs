@@ -1,4 +1,4 @@
-use crate::web::{server::request_server, time::unixepoch_to_rfc};
+use crate::web::server::request_server;
 use common::{server::jobs::ProcessJob, system::Processes};
 use leptos::{
     component, create_node_ref, create_resource, create_signal, html, logging::error, view,
@@ -260,7 +260,7 @@ fn ProcessInfo(proc: Processes) -> impl IntoView {
         <td>{proc.name.clone()}</td>
         <td>{proc.pid}</td>
         <td>{proc.ppid}</td>
-        <td>{unixepoch_to_rfc(proc.start_time as i64)}</td>
+        <td>{proc.start_time.clone()}</td>
       </tr>
       <tr class:hidden=move || view_status.get()>
         <td colspan="5">
@@ -333,7 +333,7 @@ fn ProcessInfo(proc: Processes) -> impl IntoView {
                 </tr>
                 <tr>
                   <td>"Start Time"</td>
-                  <td>{unixepoch_to_rfc(proc.start_time as i64)}</td>
+                  <td>{proc.start_time}</td>
                 </tr>
               </tbody>
             </table>

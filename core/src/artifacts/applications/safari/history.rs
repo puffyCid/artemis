@@ -1,7 +1,7 @@
 use super::error::SafariError;
 use crate::{
     filesystem::{directory::get_user_paths, files::is_file},
-    utils::time::cocoatime_to_unixepoch,
+    utils::time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
 use common::applications::{SafariHistory, SafariHistoryEntry};
 use log::{error, warn};
@@ -81,7 +81,9 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<SafariHistoryEntry>, Safar
                 .get("should_recompute_derived_visit_counts")?,
             visit_count_score: row.get("visit_count_score")?,
             status_code: row.get("status_code")?,
-            visit_time: row.get("visit_time")?,
+            visit_time: unixepoch_to_iso(&cocoatime_to_unixepoch(
+                &(row.get("visit_time").unwrap_or_default()),
+            )),
             load_successful: row.get("load_successful")?,
             attributes: row.get("attributes")?,
             score: row.get("score")?,
@@ -94,9 +96,7 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<SafariHistoryEntry>, Safar
 
             for history in history_iter {
                 match history {
-                    Ok(mut history_data) => {
-                        history_data.visit_time =
-                            cocoatime_to_unixepoch(&(history_data.visit_time as f64));
+                    Ok(history_data) => {
                         history_vec.push(history_data);
                     }
                     Err(err) => {
@@ -145,7 +145,7 @@ mod tests {
         assert_eq!(history[0].should_recompute_derived_visit_counts, 0);
         assert_eq!(history[0].visit_count_score, 100);
         assert_eq!(history[0].status_code, 0);
-        assert_eq!(history[0].visit_time, 1655693243);
+        assert_eq!(history[0].visit_time, "2022-06-20T02:47:23.000Z");
         assert_eq!(history[0].load_successful, true);
         assert_eq!(history[0].title, "duckduckgo - Google Search");
         assert_eq!(history[0].attributes, 0.0);
@@ -164,7 +164,7 @@ mod tests {
         assert_eq!(history[9].should_recompute_derived_visit_counts, 0);
         assert_eq!(history[9].visit_count_score, 100);
         assert_eq!(history[9].status_code, 0);
-        assert_eq!(history[9].visit_time, 1655695244);
+        assert_eq!(history[9].visit_time, "2022-06-20T03:20:44.000Z");
         assert_eq!(history[9].load_successful, true);
         assert_eq!(history[9].title, "");
         assert_eq!(history[9].attributes, 0.0);

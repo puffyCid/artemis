@@ -2,7 +2,7 @@ use crate::utils::{
     nom_helper::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
     },
-    time::cocoatime_to_unixepoch,
+    time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
 use common::macos::{BookmarkData, CreationFlags, TargetFlags, VolumeFlags};
 use log::warn;
@@ -118,13 +118,13 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
         path: String::new(),
         cnid_path: String::new(),
         target_flags: Vec::new(),
-        created: 0,
+        created: String::new(),
         volume_path: String::new(),
         volume_url: String::new(),
         volume_name: String::new(),
         volume_uuid: String::new(),
         volume_size: 0,
-        volume_created: 0,
+        volume_created: String::new(),
         volume_flags: Vec::new(),
         volume_root: false,
         localized_name: String::new(),
@@ -235,7 +235,8 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_data = bookmark_data_type_date(&record_data);
                 match creation_data {
                     Ok((_, creation)) => {
-                        bookmark_data.created = cocoatime_to_unixepoch(&creation);
+                        bookmark_data.created =
+                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Target File created timestamp: {err:?}");
@@ -285,7 +286,8 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_data = bookmark_data_type_date(&record_data);
                 match creation_data {
                     Ok((_, creation)) => {
-                        bookmark_data.volume_created = cocoatime_to_unixepoch(&creation);
+                        bookmark_data.volume_created =
+                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Volume Creation timestamp: {err:?}");
@@ -993,8 +995,8 @@ mod tests {
 
         assert_eq!(bookmark.path.len(), 27);
         assert_eq!(bookmark.cnid_path.len(), 11);
-        assert_eq!(bookmark.created, 1643781189);
-        assert_eq!(bookmark.volume_created, 1219441716);
+        assert_eq!(bookmark.created, "2022-02-02T05:53:09.000Z");
+        assert_eq!(bookmark.volume_created, "2008-08-22T21:48:36.000Z");
         assert_eq!(bookmark.target_flags.len(), 1);
     }
 
@@ -1235,8 +1237,8 @@ mod tests {
 
         let (_, bookmark) = parse_bookmark_data(bookmark_data).unwrap();
 
-        assert_eq!(bookmark.created, 1655695300);
-        assert_eq!(bookmark.volume_created, 1645859107);
+        assert_eq!(bookmark.created, "2022-06-20T03:21:40.000Z");
+        assert_eq!(bookmark.volume_created, "2022-02-26T07:05:07.000Z");
 
         assert_eq!(
             bookmark.path,

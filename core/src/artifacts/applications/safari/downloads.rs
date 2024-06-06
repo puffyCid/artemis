@@ -2,6 +2,7 @@ use super::{error::SafariError, plist::DownloadsPlist};
 use crate::{
     artifacts::os::macos::bookmarks::parser::parse_bookmark,
     filesystem::{directory::get_user_paths, files::is_file},
+    utils::time::unixepoch_to_iso,
 };
 use common::applications::{SafariDownload, SafariDownloads};
 use log::error;
@@ -69,8 +70,10 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<SafariDownload>, SafariE
             sandbox_id: data.download_sandbox_id,
             download_bytes: data.download_entry_progress_total_to_load,
             download_id: data.download_identifier,
-            download_entry_date: data.download_entry_date_added_key,
-            download_entry_finish: data.download_entry_date_finished_key,
+            download_entry_date: unixepoch_to_iso(&(data.download_entry_date_added_key as i64)),
+            download_entry_finish: unixepoch_to_iso(
+                &(data.download_entry_date_finished_key as i64),
+            ),
             path: bookmark.path,
             cnid_path: bookmark.cnid_path,
             created: bookmark.created,
@@ -100,10 +103,9 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<SafariDownload>, SafariE
 
 #[cfg(test)]
 mod tests {
-    use common::macos::{CreationFlags, TargetFlags, VolumeFlags};
-
     use super::get_safari_downloads;
     use crate::artifacts::applications::safari::downloads::downloads_query;
+    use common::macos::{CreationFlags, TargetFlags, VolumeFlags};
     use std::path::PathBuf;
 
     #[test]
@@ -133,15 +135,15 @@ mod tests {
             results[0].download_id,
             "835D414A-492E-4DBB-BD6B-E8FACD4ED84D"
         );
-        assert_eq!(results[0].download_entry_date, 1656266417);
-        assert_eq!(results[0].download_entry_finish, 1656266422);
+        assert_eq!(results[0].download_entry_date, "2022-06-26T18:00:17.000Z");
+        assert_eq!(results[0].download_entry_finish, "2022-06-26T18:00:22.000Z");
         assert_eq!(
             results[0].path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-arm64.pkg"
         );
         assert_eq!(results[0].cnid_path, "/21327/360459/360510/37719400");
         assert_eq!(results[0].volume_path, "/");
-        assert_eq!(results[0].created, 1656266417);
+        assert_eq!(results[0].created, "2022-06-26T18:00:17.000Z");
         assert_eq!(results[0].volume_url, "file:///");
         assert_eq!(results[0].volume_name, "Macintosh HD");
         assert_eq!(
@@ -157,7 +159,7 @@ mod tests {
                 VolumeFlags::SupportsPersistentIds
             ]
         );
-        assert_eq!(results[0].volume_created, 1645859107);
+        assert_eq!(results[0].volume_created, "2022-02-26T07:05:07.000Z");
         assert_eq!(results[0].volume_root, true);
         assert_eq!(results[0].localized_name, "");
         assert_eq!(results[0].security_extension_ro, "");

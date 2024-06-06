@@ -104,11 +104,8 @@ mod tests {
         let uid = 501;
         let security_extension = String::new();
 
-        let target_creation = 1655695300;
-        let volume_creation = 1645859107;
-
-        assert_eq!(bookmark.created, target_creation);
-        assert_eq!(bookmark.volume_created, volume_creation);
+        assert_eq!(bookmark.created, "2022-06-20T03:21:40.000Z");
+        assert_eq!(bookmark.volume_created, "2022-02-26T07:05:07.000Z");
 
         assert_eq!(
             bookmark.path,

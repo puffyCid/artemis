@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::spotlight::store::property::parse_variable_size,
-    utils::time::cocoatime_to_unixepoch,
+    utils::time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
 use nom::{bytes::complete::take, number::complete::le_f64};
 use serde_json::{json, Value};
@@ -18,7 +18,7 @@ pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<
         while count < num_values {
             let (remaining, date_data) = take(size_of::<f64>())(input)?;
             let (_, mac_date) = le_f64(date_data)?;
-            let unix_epoch = cocoatime_to_unixepoch(&mac_date);
+            let unix_epoch = unixepoch_to_iso(&cocoatime_to_unixepoch(&mac_date));
             input = remaining;
             count += 1;
 
@@ -29,7 +29,7 @@ pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<
 
     let (input, date_data) = take(size_of::<f64>())(data)?;
     let (_, mac_date) = le_f64(date_data)?;
-    let unix_epoch = cocoatime_to_unixepoch(&mac_date);
+    let unix_epoch = unixepoch_to_iso(&cocoatime_to_unixepoch(&mac_date));
 
     dates.push(unix_epoch);
 
@@ -53,6 +53,9 @@ mod tests {
         ];
 
         let (_, result) = extract_dates(&data, &prop_type).unwrap();
-        assert_eq!(result.as_array().unwrap()[0].as_i64().unwrap(), 1642291200);
+        assert_eq!(
+            result.as_array().unwrap()[0].as_str().unwrap(),
+            "2022-01-16T00:00:00.000Z"
+        );
     }
 }
