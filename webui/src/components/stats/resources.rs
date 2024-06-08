@@ -10,7 +10,7 @@ pub(crate) fn Resources() -> impl IntoView {
     let info = create_resource(|| {}, move |_| async move { get_info().await });
     view! {
       <div class="stat shadow">
-        <div class="stat-title">System CPU Usage</div>
+        <div class="stat-title text-zinc-600">System CPU Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
@@ -28,7 +28,7 @@ pub(crate) fn Resources() -> impl IntoView {
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">System Memory Usage</div>
+        <div class="stat-title text-zinc-600">System Memory Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
@@ -43,7 +43,7 @@ pub(crate) fn Resources() -> impl IntoView {
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">System Disk Usage</div>
+        <div class="stat-title text-zinc-600">System Disk Usage</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }
@@ -86,7 +86,7 @@ pub(crate) fn Resources() -> impl IntoView {
         </div>
       </div>
       <div class="stat shadow">
-        <div class="stat-title">System Uptime</div>
+        <div class="stat-title text-zinc-600">System Uptime</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }

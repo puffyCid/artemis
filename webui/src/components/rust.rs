@@ -5,7 +5,7 @@ use leptos::{component, view, IntoView, Transition};
 pub(crate) fn RustInfo() -> impl IntoView {
     view! {
       <div class="stat shadow">
-        <div class="stat-title">Artemis Version</div>
+        <div class="stat-title text-zinc-600">Artemis Version</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }

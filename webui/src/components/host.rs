@@ -127,7 +127,7 @@ fn CpuInfo(cpus: Vec<Cpus>) -> impl IntoView {
                   <div id=format!("core{index}") class="carousel-item relative w-full">
                     <div class="m-2 flex place-content-evenly pl-8 ml-8">
                       <div class="stat">
-                        <div class="stat-title">
+                        <div class="stat-title text-zinc-600">
                           {format!(
                               "CPU Usage (Core {} of {})",
                               index + 1,
@@ -180,7 +180,7 @@ fn DiskInfo(disks: Vec<DiskDrives>) -> impl IntoView {
                   <div id=format!("disk{index}") class="carousel-item relative w-full">
                     <div class="m-2 flex place-content-evenly pl-8 ml-8">
                       <div class="stat">
-                        <div class="stat-title">
+                        <div class="stat-title text-zinc-600">
                           {format!("Disk Drive {} of {}", index + 1, disks.len())}
                         </div>
                         <div class="stat-value">
