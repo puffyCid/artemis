@@ -36,7 +36,7 @@ impl ValueKey {
         let (input, data_offset_data) = take(size_of::<u32>())(input)?;
         let (_, data_offset) = le_u32(data_offset_data)?;
 
-        let (input, data_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, mut data_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
@@ -48,6 +48,13 @@ impl ValueKey {
             // Value name can be ASCII or UTF16
             extract_ascii_utf16_string(value_name_bytes)
         };
+
+        let dev_prop = 0xffff0000;
+        // Check if a devprop structure?
+        // https://github.com/mkorman90/regipy/blob/master/regipy/registry.py#L462
+        if data_type > dev_prop {
+            data_type = data_type & 0xffff;
+        }
 
         let (_, (data_type, data)) = ValueKey::get_data_and_type(
             data_type,
