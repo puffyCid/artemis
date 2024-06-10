@@ -1,5 +1,6 @@
 use super::{
     accounts::{get_groups_macos, get_users_macos},
+    bookmarks::get_bookmark,
     emond::get_emond,
     execpolicy::get_execpolicy,
     fsevents::get_fsevents,
@@ -56,6 +57,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_sudologs_macos(),
         get_spotlight(),
         setup_spotlight_parser(),
+        get_bookmark(),
     ];
 
     exts.append(&mut app_functions());

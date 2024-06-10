@@ -4,7 +4,7 @@ use log::error;
 
 #[op2]
 #[string]
-/// Expose parsing plist file  to `Deno`
+/// Expose parsing plist file to `Deno`
 pub(crate) fn get_plist(#[string] path: String) -> Result<String, AnyError> {
     let plist = parse_plist_file(&path)?;
     let results = serde_json::to_string(&plist)?;

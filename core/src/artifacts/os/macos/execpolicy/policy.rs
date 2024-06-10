@@ -1,5 +1,8 @@
 use super::error::ExecPolicyError;
-use crate::{filesystem::files::is_file, structs::artifacts::os::macos::ExecPolicyOptions};
+use crate::{
+    filesystem::files::is_file, structs::artifacts::os::macos::ExecPolicyOptions,
+    utils::time::unixepoch_to_iso,
+};
 use common::macos::ExecPolicy;
 use log::error;
 use rusqlite::{Connection, OpenFlags};
@@ -52,17 +55,20 @@ pub(crate) fn grab_execpolicy(
             signing_identifier: row.get("signing_identifier").unwrap_or_default(),
             cdhash: row.get("cdhash").unwrap_or_default(),
             main_executable_hash: row.get("main_executable_hash").unwrap_or_default(),
-            executable_timestamp: row.get("executable_timestamp").unwrap_or_default(),
+            executable_timestamp: unixepoch_to_iso(
+                &row.get("executable_timestamp").unwrap_or_default(),
+            ),
             file_size: row.get("file_size").unwrap_or_default(),
             is_library: row.get("is_library").unwrap_or_default(),
             is_used: row.get("is_used").unwrap_or_default(),
             responsible_file_identifier: row.get("responsible_file_identifier").unwrap_or_default(),
             is_valid: row.get("is_valid").unwrap_or_default(),
             is_quarantined: row.get("is_quarantined").unwrap_or_default(),
-            executable_measurements_v2_timestamp: row
-                .get("executable_measurements_v2_timestamp")
-                .unwrap_or_default(),
-            reported_timstamp: row.get("reported_timstamp").unwrap_or_default(),
+            executable_measurements_v2_timestamp: unixepoch_to_iso(
+                &row.get("executable_measurements_v2_timestamp")
+                    .unwrap_or_default(),
+            ),
+            reported_timestamp: unixepoch_to_iso(&row.get("reported_timstamp").unwrap_or_default()),
             pk: row.get("pk").unwrap_or_default(),
             volume_uuid: row.get("volume_uuid").unwrap_or_default(),
             object_id: row.get("object_id").unwrap_or_default(),
@@ -72,8 +78,12 @@ pub(crate) fn grab_execpolicy(
             malware_result: row.get("malware_result").unwrap_or_default(),
             flags: row.get("flags").unwrap_or_default(),
             mod_time: row.get("mod_time").unwrap_or_default(),
-            policy_scan_cache_timestamp: row.get("policy_scan_cache_timestamp").unwrap_or_default(),
-            revocation_check_time: row.get("revocation_check_time").unwrap_or_default(),
+            policy_scan_cache_timestamp: unixepoch_to_iso(
+                &row.get("policy_scan_cache_timestamp").unwrap_or_default(),
+            ),
+            revocation_check_time: unixepoch_to_iso(
+                &row.get("revocation_check_time").unwrap_or_default(),
+            ),
             scan_version: row.get("scan_version").unwrap_or_default(),
             top_policy_match: row.get("top_policy_match").unwrap_or_default(),
         })

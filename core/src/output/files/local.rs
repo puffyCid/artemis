@@ -22,10 +22,10 @@ pub(crate) struct AcquireFileApi {
 
 #[derive(Serialize)]
 struct AcquireMetadata {
-    created: i64,
-    modified: i64,
-    accessed: i64,
-    changed: i64,
+    created: String,
+    modified: String,
+    accessed: String,
+    changed: String,
     size: u64,
     full_path: String,
     filename: String,

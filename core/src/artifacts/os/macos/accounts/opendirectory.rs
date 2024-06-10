@@ -3,7 +3,10 @@ use crate::{
         error::PlistError,
         property_list::{get_array, get_float, parse_plist_data, parse_plist_file_dict},
     },
-    utils::encoding::{base64_decode_standard, base64_encode_standard},
+    utils::{
+        encoding::{base64_decode_standard, base64_encode_standard},
+        time::unixepoch_to_iso,
+    },
 };
 use common::macos::{OpendirectoryGroups, OpendirectoryUsers};
 use log::{error, warn};
@@ -18,8 +21,8 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
         name: Vec::new(),
         real_name: Vec::new(),
         account_photo: Vec::new(),
-        account_created: 0.0,
-        password_last_set: 0.0,
+        account_created: String::new(),
+        password_last_set: String::new(),
         shell: Vec::new(),
         unlock_options: Vec::new(),
         home_path: Vec::new(),
@@ -187,11 +190,11 @@ fn get_account_policy(
     for (key, value) in account_info {
         match key.as_str() {
             "creationTime" => {
-                users_data.account_created = get_float(value)?;
+                users_data.account_created = unixepoch_to_iso(&(get_float(value)? as i64));
             }
 
             "passwordLastSetTime" => {
-                users_data.password_last_set = get_float(value)?;
+                users_data.password_last_set = unixepoch_to_iso(&(get_float(value)? as i64));
             }
             _ => continue,
         }
@@ -326,8 +329,8 @@ mod tests {
             name: Vec::new(),
             real_name: Vec::new(),
             account_photo: Vec::new(),
-            account_created: 0.0,
-            password_last_set: 0.0,
+            account_created: String::new(),
+            password_last_set: String::new(),
             shell: Vec::new(),
             unlock_options: Vec::new(),
             home_path: Vec::new(),
@@ -344,7 +347,7 @@ mod tests {
                 get_account_policy(&data, &mut users_data).unwrap();
             }
         }
-        assert_eq!(users_data.account_created, 1595003382.687535);
+        assert_eq!(users_data.account_created, "2020-07-17T16:29:42.000Z");
     }
 
     #[test]
@@ -357,12 +360,12 @@ mod tests {
         assert_eq!(results.uid[0], "-2");
         assert_eq!(results.home_path[0], "/var/empty");
         assert_eq!(results.real_name[0], "Unprivileged User");
-        assert_eq!(results.account_created, 1595003382.687535);
+        assert_eq!(results.account_created, "2020-07-17T16:29:42.000Z");
         assert_eq!(results.account_photo.len(), 0);
         assert_eq!(results.gid[0], "-2");
         assert_eq!(results.name[0], "nobody");
         assert_eq!(results.uuid[0], "FFFFEEEE-DDDD-CCCC-BBBB-AAAAFFFFFFFE");
         assert_eq!(results.unlock_options.len(), 0);
-        assert_eq!(results.password_last_set, 1595003387.901966);
+        assert_eq!(results.password_last_set, "2020-07-17T16:29:47.000Z");
     }
 }

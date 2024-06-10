@@ -16,9 +16,9 @@ edition = "2021"
 serde = { version = "1.0.203", features = ["derive"] }
 log = "0.4.21"
 serde_json = "1.0.117"
-toml = "0.8.13"
+toml = "0.8.14"
 base64 = "0.22.1"
-tokio = { version = "1.37.0", features = ["full"] }
+tokio = { version = "1.38.0", features = ["full"] }
 flate2 = { version = "1.0.30", features = ["any_zlib", "zlib-ng"] }
 glob = "0.3.1"
 reqwest = { version = "0.12.4", features = ["json", "blocking"] }

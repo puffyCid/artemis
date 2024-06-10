@@ -19,6 +19,7 @@ pub(crate) struct DownloadsPlist {
     pub(crate) download_path: String,
     pub(crate) download_sandbox_id: String,
     pub(crate) download_remove_when_done: bool,
+    pub(crate) uuid: String,
 }
 
 impl DownloadsPlist {
@@ -68,6 +69,7 @@ impl DownloadsPlist {
                                 download_path: String::new(),
                                 download_sandbox_id: String::new(),
                                 download_remove_when_done: false,
+                                uuid: String::new(),
                             };
                             match dict_bookmark {
                                 Some(dict) => {
@@ -84,6 +86,7 @@ impl DownloadsPlist {
                                             "DownloadEntryPath" => downloads_metadata.download_path = get_string(dict_data).unwrap_or_default(),
                                             "DownloadEntrySandboxIdentifier" => downloads_metadata.download_sandbox_id = get_string(dict_data).unwrap_or_default(),
                                             "DownloadEntryRemoveWhenDoneKey" => downloads_metadata.download_remove_when_done = get_boolean(dict_data).unwrap_or_default(),
+                                            "DownloadEntryProfileUUIDStringKey" => downloads_metadata.uuid = get_string(dict_data).unwrap_or_default(),
                                             _ => warn!("Unknown Safari download key: {dict_key}")
                                         }
                                     }

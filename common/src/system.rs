@@ -9,7 +9,7 @@ use crate::windows::PeInfo;
 
 #[derive(Debug, Serialize)]
 pub struct SystemInfo {
-    pub boot_time: u64,
+    pub boot_time: String,
     pub hostname: String,
     pub os_version: String,
     pub uptime: u64,
@@ -80,7 +80,7 @@ pub struct Processes {
     pub arguments: String,
     pub memory_usage: u64,
     pub virtual_memory_usage: u64,
-    pub start_time: u64,
+    pub start_time: String,
     pub uid: String,
     pub gid: String,
     pub md5: String,

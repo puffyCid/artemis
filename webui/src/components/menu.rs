@@ -29,7 +29,10 @@ pub(crate) fn Menu() -> impl IntoView {
           <div class="navbar-end">
             <div tabindex="0" class="avatar">
               <div class="w24 rounded-full">
-                <img src="https://gravatar.com/avatar/76e90b779ff39910179f1c39b80c4025716c8030e054a257dc7dde83ea1fc691"/>
+                <img
+                  alt="avatar-profile"
+                  src="https://gravatar.com/avatar/76e90b779ff39910179f1c39b80c4025716c8030e054a257dc7dde83ea1fc691"
+                />
               </div>
             </div>
           </div>

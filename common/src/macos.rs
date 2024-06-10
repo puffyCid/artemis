@@ -10,8 +10,8 @@ pub struct OpendirectoryUsers {
     pub name: Vec<String>,
     pub real_name: Vec<String>,
     pub account_photo: Vec<String>,
-    pub account_created: f64,
-    pub password_last_set: f64,
+    pub account_created: String,
+    pub password_last_set: String,
     pub shell: Vec<String>,
     pub unlock_options: Vec<String>,
     pub home_path: Vec<String>,
@@ -34,8 +34,8 @@ pub struct BookmarkData {
     pub path: String,
     /**Path represented as Catalog Node ID */
     pub cnid_path: String,
-    /**Created timestamp of target file in UNIXEPOCH seconds */
-    pub created: i64,
+    /**Created timestamp of target file  */
+    pub created: String,
     /**Path to the volume of target file */
     pub volume_path: String,
     /**Target file URL type */
@@ -46,8 +46,8 @@ pub struct BookmarkData {
     pub volume_uuid: String,
     /**Size of target volume in bytes */
     pub volume_size: i64,
-    /**Created timestamp of volume in UNIXEPOCH seconds */
-    pub volume_created: i64,
+    /**Created timestamp of volume */
+    pub volume_created: String,
     /**Volume Property flags */
     pub volume_flags: Vec<VolumeFlags>,
     /**Flag if volume if the root filesystem */
@@ -233,15 +233,15 @@ pub struct ExecPolicy {
     pub signing_identifier: String,
     pub cdhash: String,
     pub main_executable_hash: String,
-    pub executable_timestamp: i64,
+    pub executable_timestamp: String,
     pub file_size: i64,
     pub is_library: i64,
     pub is_used: i64,
     pub responsible_file_identifier: String,
     pub is_valid: i64,
     pub is_quarantined: i64,
-    pub executable_measurements_v2_timestamp: i64,
-    pub reported_timstamp: i64,
+    pub executable_measurements_v2_timestamp: String,
+    pub reported_timestamp: String,
     pub pk: i64,
     pub volume_uuid: String,
     pub object_id: i64,
@@ -250,9 +250,9 @@ pub struct ExecPolicy {
     pub policy_match: i64,
     pub malware_result: i64,
     pub flags: i64,
-    pub mod_time: i64,
-    pub policy_scan_cache_timestamp: i64,
-    pub revocation_check_time: i64,
+    pub mod_time: String,
+    pub policy_scan_cache_timestamp: String,
+    pub revocation_check_time: String,
     pub scan_version: i64,
     pub top_policy_match: i64,
 }
@@ -282,7 +282,7 @@ pub struct LoginItemsData {
     /**Path represented as Catalog Node ID */
     pub cnid_path: String,
     /**Created timestamp of target file in UNIXEPOCH seconds */
-    pub created: i64,
+    pub created: String,
     /**Path to the volume of target file */
     pub volume_path: String,
     /**Target file URL type */
@@ -294,7 +294,7 @@ pub struct LoginItemsData {
     /**Size of target volume in bytes */
     pub volume_size: i64,
     /**Created timestamp of volume in UNIXEPOCH seconds */
-    pub volume_created: i64,
+    pub volume_created: String,
     /**Volume Property flags */
     pub volume_flags: Vec<VolumeFlags>,
     /**Flag if volume if the root filesystem */
@@ -388,7 +388,7 @@ pub struct SpotlightEntries {
     pub parent_inode: usize,
     pub flags: u8,
     pub store_id: usize,
-    pub last_updated: usize,
+    pub last_updated: String,
     pub values: HashMap<String, SpotlightValue>,
     pub directory: String,
 }

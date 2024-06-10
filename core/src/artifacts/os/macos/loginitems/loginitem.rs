@@ -94,13 +94,13 @@ pub(crate) fn loginitems_bundled_apps_path(
                     let mut loginitems_data = LoginItemsData {
                         path: String::new(),
                         cnid_path: String::new(),
-                        created: 0,
+                        created: String::new(),
                         volume_path: String::new(),
                         volume_url: String::new(),
                         volume_name: String::new(),
                         volume_uuid: String::new(),
                         volume_size: 0,
-                        volume_created: 0,
+                        volume_created: String::new(),
                         volume_flags: Vec::new(),
                         volume_root: false,
                         localized_name: String::new(),
@@ -151,11 +151,10 @@ pub(crate) fn loginitem_apps_system() -> Result<Vec<LoginItemsData>, LoginItemEr
 
 #[cfg(test)]
 mod tests {
-    use common::macos::{TargetFlags, VolumeFlags};
-
     use crate::artifacts::os::macos::loginitems::loginitem::{
         loginitems_bundled_apps_path, parse_loginitems,
     };
+    use common::macos::{TargetFlags, VolumeFlags};
     use std::path::PathBuf;
 
     #[test]
@@ -190,14 +189,14 @@ mod tests {
 
         assert_eq!(data.len(), 1);
         assert_eq!(data[0].path, "/Applications/Syncthing.app");
-        assert_eq!(data[0].created, 1643781189);
+        assert_eq!(data[0].created, "2022-02-02T05:53:09.000Z");
         assert_eq!(data[0].cnid_path, "/103/706090");
         assert_eq!(data[0].volume_path, "/");
         assert_eq!(data[0].volume_url, "file:///");
         assert_eq!(data[0].volume_name, "Macintosh HD");
         assert_eq!(data[0].volume_uuid, "0A81F3B1-51D9-3335-B3E3-169C3640360D");
         assert_eq!(data[0].volume_size, 160851517440);
-        assert_eq!(data[0].volume_created, 1219441716);
+        assert_eq!(data[0].volume_created, "2008-08-22T21:48:36.000Z");
         assert_eq!(
             data[0].volume_flags,
             vec![

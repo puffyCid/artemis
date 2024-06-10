@@ -16,7 +16,7 @@ pub(crate) fn Stats(
     view! {
       <div class="stat shadow">
         <div class="stat-figure text-primary" inner_html=html></div>
-        <div class="stat-title">{format!("{os:?} Endpoint Count")}</div>
+        <div class="stat-title text-zinc-600">{format!("{os:?} Endpoint Count")}</div>
         <div class="stat-value">
           <Transition fallback=move || {
               view! { <p>"Loading..."</p> }

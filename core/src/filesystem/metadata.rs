@@ -1,4 +1,5 @@
 use crate::filesystem::error::FileSystemError;
+use crate::utils::time::unixepoch_to_iso;
 use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
@@ -6,20 +7,20 @@ use std::{fs::Metadata, io::Error};
 
 // Timestamps containing number of seconds since UNIXEPOCH
 pub(crate) struct StandardTimestamps {
-    pub(crate) created: i64,
-    pub(crate) modified: i64,
-    pub(crate) accessed: i64,
-    pub(crate) changed: i64,
+    pub(crate) created: String,
+    pub(crate) modified: String,
+    pub(crate) accessed: String,
+    pub(crate) changed: String,
 }
 
 /// Get standard timestamps (created, modified, accessed, changed (if supported))
 pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
     let meta = get_metadata(path)?;
     let mut timestamps = StandardTimestamps {
-        created: 0,
-        modified: 0,
-        accessed: 0,
-        changed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
+        changed: String::new(),
     };
 
     #[cfg(target_os = "windows")]
@@ -27,9 +28,9 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         use crate::utils::time::filetime_to_unixepoch;
         use std::os::windows::fs::MetadataExt;
         // Rust for Windows does not support getting Changed times :(
-        timestamps.accessed = filetime_to_unixepoch(&meta.last_access_time());
-        timestamps.modified = filetime_to_unixepoch(&meta.last_write_time());
-        timestamps.created = filetime_to_unixepoch(&meta.creation_time());
+        timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_access_time()));
+        timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_write_time()));
+        timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(&meta.creation_time()));
     }
 
     #[cfg(target_family = "unix")]
@@ -39,12 +40,12 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         #[cfg(target_os = "macos")]
         use std::os::macos::fs::MetadataExt;
 
-        timestamps.accessed = meta.st_atime();
-        timestamps.modified = meta.st_mtime();
-        timestamps.changed = meta.st_ctime();
+        timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
+        timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
+        timestamps.changed = unixepoch_to_iso(&meta.st_ctime());
         #[cfg(target_os = "macos")]
         {
-            timestamps.created = meta.st_birthtime();
+            timestamps.created = unixepoch_to_iso(&meta.st_birthtime());
         }
     }
 
@@ -127,15 +128,15 @@ mod tests {
 
         let result = get_timestamps(&test_location.display().to_string()).unwrap();
         #[cfg(target_os = "windows")]
-        assert!(result.created > 0);
+        assert!(result.created != "");
         #[cfg(target_os = "macos")]
-        assert!(result.created > 0);
+        assert!(result.created != "");
 
-        assert!(result.modified > 0);
-        assert!(result.accessed > 0);
+        assert!(result.modified != "");
+        assert!(result.accessed != "");
         #[cfg(target_os = "windows")]
-        assert_eq!(result.changed, 0);
+        assert_eq!(result.changed, "");
         #[cfg(target_family = "unix")]
-        assert!(result.changed > 0);
+        assert!(result.changed != "");
     }
 }

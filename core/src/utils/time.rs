@@ -1,3 +1,5 @@
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, Utc};
+use log::error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// Return time now in seconds or 0
@@ -8,7 +10,7 @@ pub(crate) fn time_now() -> u64 {
         .as_secs()
 }
 
-/// Convert Windows filetime values to unixepoch
+/// Convert Windows filetime values to `UnixEpoch`
 pub(crate) fn filetime_to_unixepoch(filetime: &u64) -> i64 {
     let windows_nano = 10000000;
     let seconds_to_unix: i64 = 11644473600;
@@ -17,19 +19,19 @@ pub(crate) fn filetime_to_unixepoch(filetime: &u64) -> i64 {
     (filetime / windows_nano) as i64 - seconds_to_unix
 }
 
-/// Convert macOS Cocoa timestamp to unixepoch (also called mac time, mach absolute time)
+/// Convert macOS Cocoa timestamp to `UnixEpoch` (also called mac time, mach absolute time)
 pub(crate) fn cocoatime_to_unixepoch(cocoatime: &f64) -> i64 {
     let adjust_to_unix = 978307200.0;
     (cocoatime + adjust_to_unix) as i64
 }
 
-/// Convert macOS HFS+ timestamp to unixepoch
+/// Convert macOS HFS+ timestamp to `UnixEpoch`
 pub(crate) fn hfs_to_unixepoch(hfstime: &i64) -> i64 {
     let adjust_to_unix = 2082844800;
     hfstime - adjust_to_unix
 }
 
-/// Convert OLE Automation time (sometimes also referred to as Variant time) to unixepoch
+/// Convert OLE Automation time (sometimes also referred to as Variant time) to `UnixEpoch`
 pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
     // OLE automation time is just the number of days since Jan 1 1900 as float64
     let hours = 24.0;
@@ -47,17 +49,14 @@ pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
     seconds as i64
 }
 
-/// Convert Webkit time to unixepoch
+/// Convert Webkit time to `UnixEpoch`
 pub(crate) fn webkit_time_to_unixepoch(webkittime: &i64) -> i64 {
     let adjust_epoch = 11644473600;
     webkittime - adjust_epoch
 }
 
-/// Convert Windows FAT time (UTC) values to unixepoch
+/// Convert Windows FAT time (UTC) values to `UnixEpoch`
 pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
-    use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-    use log::error;
-
     let result = get_fat_bits(fattime);
     let (_, (date, time)) = match result {
         Ok(result) => result,
@@ -118,6 +117,15 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     epoch.timestamp()
 }
 
+/// Convert `UnixEpoch` to ISO8601 format
+pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
+    let iso_opt = DateTime::from_timestamp(*timestamp, 0);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T:00:00:00.000Z"),
+    }
+}
+
 /// Parse the bits in FAT timestamp
 fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
     use super::nom_helper::nom_unsigned_two_bytes;
@@ -134,7 +142,7 @@ mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
         cocoatime_to_unixepoch, fattime_utc_to_unixepoch, filetime_to_unixepoch, get_fat_bits,
-        ole_automationtime_to_unixepoch,
+        ole_automationtime_to_unixepoch, unixepoch_to_iso,
     };
 
     #[test]
@@ -153,6 +161,11 @@ mod tests {
     fn test_fattime_utc_to_unixepoch() {
         let test_data = [123, 79, 195, 14];
         assert_eq!(fattime_utc_to_unixepoch(&test_data), 1574819646)
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso() {
+        assert_eq!(unixepoch_to_iso(&1574819646), "2019-11-27T01:54:06.000Z")
     }
 
     #[test]

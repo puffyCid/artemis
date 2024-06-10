@@ -3,9 +3,12 @@
  * Depending on `ProcessOptions` will also parse and get basic executable metadata
  */
 use super::error::ProcessError;
-use crate::filesystem::{
-    directory::get_parent_directory,
-    files::{hash_file, Hashes},
+use crate::{
+    filesystem::{
+        directory::get_parent_directory,
+        files::{hash_file, Hashes},
+    },
+    utils::time::unixepoch_to_iso,
 };
 use common::system::Processes;
 use log::{info, warn};
@@ -74,7 +77,7 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: bool) -> Processes
         arguments: process.cmd().join(" "),
         memory_usage: process.memory(),
         virtual_memory_usage: process.virtual_memory(),
-        start_time: process.start_time(),
+        start_time: unixepoch_to_iso(&(process.start_time() as i64)),
         uid,
         gid,
         md5: String::new(),

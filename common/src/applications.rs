@@ -122,17 +122,17 @@ pub struct SafariDownload {
     pub sandbox_id: String,
     pub download_bytes: i64,
     pub download_id: String,
-    pub download_entry_date: u64,
-    pub download_entry_finish: u64,
+    pub download_entry_date: String,
+    pub download_entry_finish: String,
     pub path: String,                         // Path to binary to run
     pub cnid_path: String,                    // Path represented as Catalog Node ID
-    pub created: i64,                         // Created timestamp of binary target
+    pub created: String,                      // Created timestamp of binary target
     pub volume_path: String,                  // Root
     pub volume_url: String,                   // URL type
     pub volume_name: String,                  // Name of Volume
     pub volume_uuid: String,                  // Volume UUID string
     pub volume_size: i64,                     // Size of Volume
-    pub volume_created: i64,                  // Created timestamp of Volume
+    pub volume_created: String,               // Created timestamp of Volume
     pub volume_flags: Vec<VolumeFlags>,       // Volume Property flags
     pub volume_root: bool,                    // If Volume is filesystem root
     pub localized_name: String,               // Optional localized name of target binary
@@ -173,7 +173,7 @@ pub struct SafariHistoryEntry {
     pub should_recompute_derived_visit_counts: i64,
     pub visit_count_score: i64,
     pub status_code: i64,
-    pub visit_time: i64,
+    pub visit_time: String,
     pub load_successful: bool,
     pub title: String, // Can be null
     pub attributes: f64,
