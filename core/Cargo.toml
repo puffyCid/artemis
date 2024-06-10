@@ -24,7 +24,7 @@ rusqlite = { version = "0.31.0", features = ["bundled", "serde_json"] }
 md-5 = "0.10.6"
 sha-1 = "0.10.1"
 sha2 = "0.10.8"
-regex = "1.10.4"
+regex = "1.10.5"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.9"
@@ -44,7 +44,7 @@ elf = "0.7.4"
 ruzstd = "0.7.0"
 lz4_flex = "0.11.3"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
-macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "3e87dfa8b1233d5280c45b0a0f769695d3c2ae81" }
+macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev = "cef0a79f476782dfe685ba9db6f6dbdacc0b0695" }
 plist = "1.6.1"
 
 common = { path = "../common" }

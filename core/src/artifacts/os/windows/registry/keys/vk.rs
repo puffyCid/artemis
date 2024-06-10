@@ -53,7 +53,7 @@ impl ValueKey {
         // Check if a devprop structure?
         // https://github.com/mkorman90/regipy/blob/master/regipy/registry.py#L462
         if data_type > dev_prop {
-            data_type = data_type & 0xffff;
+            data_type &= 0xffff;
         }
 
         let (_, (data_type, data)) = ValueKey::get_data_and_type(
