@@ -27,7 +27,7 @@ pub struct BashHistory {
 #[derive(Debug, Serialize)]
 pub struct BashHistoryData {
     pub history: String,
-    pub timestamp: u64,
+    pub timestamp: String,
     pub line: usize,
 }
 
@@ -54,7 +54,7 @@ pub struct ZshHistory {
 #[derive(Debug, Serialize)]
 pub struct ZshHistoryData {
     pub history: String,
-    pub timestamp: u64,
+    pub timestamp: String,
     pub line: usize,
     pub duration: u64,
 }

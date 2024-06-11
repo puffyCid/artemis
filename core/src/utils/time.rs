@@ -126,6 +126,15 @@ pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
     }
 }
 
+/// Convert `UnixEpoch` to ISO8601 format
+pub(crate) fn unixepoch_microseconds_to_iso(timestamp: &i64) -> String {
+    let iso_opt = DateTime::from_timestamp_micros(*timestamp);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T:00:00:00.000Z"),
+    }
+}
+
 /// Parse the bits in FAT timestamp
 fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
     use super::nom_helper::nom_unsigned_two_bytes;
@@ -142,7 +151,7 @@ mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
         cocoatime_to_unixepoch, fattime_utc_to_unixepoch, filetime_to_unixepoch, get_fat_bits,
-        ole_automationtime_to_unixepoch, unixepoch_to_iso,
+        ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso, unixepoch_to_iso,
     };
 
     #[test]
@@ -166,6 +175,14 @@ mod tests {
     #[test]
     fn test_unixepoch_to_iso() {
         assert_eq!(unixepoch_to_iso(&1574819646), "2019-11-27T01:54:06.000Z")
+    }
+
+    #[test]
+    fn test_unixepoch_microseconds_to_iso() {
+        assert_eq!(
+            unixepoch_microseconds_to_iso(&2500000000000000),
+            "2049-03-22T04:26:40.000Z"
+        )
     }
 
     #[test]

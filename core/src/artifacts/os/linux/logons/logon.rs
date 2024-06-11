@@ -1,6 +1,7 @@
 use crate::utils::{
     nom_helper::{nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes, Endian},
     strings::extract_utf8_string,
+    time::unixepoch_to_iso,
 };
 use log::error;
 use nom::{
@@ -26,7 +27,7 @@ pub(crate) struct Logon {
     termination_status: i16,
     exit_status: i16,
     session: i32,
-    timestamp: i32,
+    timestamp: String,
     microseconds: i32,
     ip: String,
     status: Status,
@@ -151,7 +152,7 @@ impl Logon {
             termination_status,
             exit_status,
             session,
-            timestamp,
+            timestamp: unixepoch_to_iso(&(timestamp as i64)),
             microseconds,
             ip,
             status: status.clone(),
@@ -198,7 +199,7 @@ mod tests {
         assert_eq!(results.len(), 13);
 
         assert_eq!(results[4].hostname, "5.4.0-84-generic");
-        assert_eq!(results[4].timestamp, 1688451224);
+        assert_eq!(results[4].timestamp, "2023-07-04T06:13:44.000Z");
         assert_eq!(results[0].terminal, "~");
     }
 

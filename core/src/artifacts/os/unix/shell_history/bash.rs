@@ -6,6 +6,7 @@ use crate::filesystem::{
     files::{file_extension, is_file},
 };
 use crate::utils::regex_options::create_regex;
+use crate::utils::time::unixepoch_to_iso;
 use common::unix::{BashHistory, BashHistoryData};
 use log::{error, warn};
 use regex::Regex;
@@ -123,7 +124,7 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
         };
         let mut bash_history_data = BashHistoryData {
             history: String::new(),
-            timestamp: 0,
+            timestamp: String::new(),
             line: 0,
         };
 
@@ -131,7 +132,7 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
             // Parse and the the timestamp entry
             let timestamp = parse_line(&bash_entry, &bash_regex);
             bash_history_data.timestamp = match timestamp {
-                Ok(bash_timestamp) => bash_timestamp,
+                Ok(bash_timestamp) => unixepoch_to_iso(&(bash_timestamp as i64)),
                 Err(err) => {
                     warn!("[shell_history] Failed to get timestamp data for bash line {bash_entry}, error: {err:?}");
                     bash_history_data.history = bash_entry;
@@ -233,7 +234,7 @@ mod tests {
             "sudo cp /.fseventsd ~/Desktop/"
         );
         assert_eq!(results[0].history[0].line, 1);
-        assert_eq!(results[0].history[0].timestamp, 0);
+        assert_eq!(results[0].history[0].timestamp, "");
     }
 
     #[test]
@@ -246,19 +247,19 @@ mod tests {
 
         assert_eq!(results[59].history, "exit");
         assert_eq!(results[59].line, 60);
-        assert_eq!(results[59].timestamp, 1659581179);
+        assert_eq!(results[59].timestamp, "2022-08-04T02:46:19.000Z");
 
         assert_eq!(results[1].history, "sudo cp -r /.fseventsd ~/Desktop/");
         assert_eq!(results[1].line, 2);
-        assert_eq!(results[1].timestamp, 0);
+        assert_eq!(results[1].timestamp, "");
 
         assert_eq!(results[63].history, "exit");
         assert_eq!(results[63].line, 64);
-        assert_eq!(results[63].timestamp, 111111111);
+        assert_eq!(results[63].timestamp, "1973-07-10T00:11:51.000Z");
 
         assert_eq!(results[61].history, "#echo");
         assert_eq!(results[61].line, 62);
-        assert_eq!(results[61].timestamp, 0);
+        assert_eq!(results[61].timestamp, "");
     }
 
     #[test]

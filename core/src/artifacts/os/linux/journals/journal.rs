@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     artifacts::os::macos::artifacts::output_data, filesystem::files::file_reader,
-    structs::toml::Output,
+    structs::toml::Output, utils::time::unixepoch_microseconds_to_iso,
 };
 use common::linux::{Facility, Journal, Priority};
 use log::error;
@@ -246,8 +246,8 @@ fn parse_messages(entries: &[Entry]) -> Vec<Journal> {
             machine_id: String::new(),
             hostname: String::new(),
             runtime_scope: String::new(),
-            source_realtime: 0,
-            realtime: entry.realtime,
+            source_realtime: String::new(),
+            realtime: unixepoch_microseconds_to_iso(&(entry.realtime as i64)),
             seqnum: entry.seqnum,
             transport: String::new(),
             message: String::new(),
@@ -348,7 +348,9 @@ fn parse_messages(entries: &[Entry]) -> Vec<Journal> {
                 }
             } else if data.message.starts_with("_SOURCE_REALTIME_TIMESTAMP=") {
                 if let Some((_, timestamp)) = data.message.split_once('=') {
-                    journal.source_realtime = timestamp.parse::<u64>().unwrap_or_default();
+                    journal.source_realtime = unixepoch_microseconds_to_iso(
+                        &timestamp.parse::<i64>().unwrap_or_default(),
+                    );
                 }
             } else if data.message.starts_with("PRIORITY=") {
                 if let Some((_, priority)) = data.message.split_once('=') {
