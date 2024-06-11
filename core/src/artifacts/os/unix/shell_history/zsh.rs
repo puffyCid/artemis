@@ -4,6 +4,7 @@ use crate::filesystem::{
     files::{file_extension, is_file, list_files},
 };
 use crate::utils::regex_options::create_regex;
+use crate::utils::time::unixepoch_to_iso;
 use crate::{
     artifacts::os::unix::shell_history::error::ShellError,
     filesystem::{
@@ -151,7 +152,7 @@ fn parse_zsh(zsh_history: &str) -> Result<Vec<ZshHistoryData>, ShellError> {
 fn parse_line<'a>(zsh_line: &'a str, zsh_regex: &'a Regex) -> Result<ZshHistoryData, ShellError> {
     let mut zsh_history_data = ZshHistoryData {
         history: String::new(),
-        timestamp: 0,
+        timestamp: String::new(),
         line: 0,
         duration: 0,
     };
@@ -163,7 +164,9 @@ fn parse_line<'a>(zsh_line: &'a str, zsh_regex: &'a Regex) -> Result<ZshHistoryD
             }
             let zsh_timestamp_result = value[1].parse::<u64>();
             match zsh_timestamp_result {
-                Ok(zsh_timestamp) => zsh_history_data.timestamp = zsh_timestamp,
+                Ok(zsh_timestamp) => {
+                    zsh_history_data.timestamp = unixepoch_to_iso(&(zsh_timestamp as i64));
+                }
                 Err(err) => info!("[shell_history] Failed to parse zsh timestamp: {err:?}"),
             }
 
@@ -214,7 +217,7 @@ mod tests {
 
         assert_eq!(results[0].history[0].history, "./osquery/osqueryi");
         assert_eq!(results[0].history[0].line, 1);
-        assert_eq!(results[0].history[0].timestamp, 0);
+        assert_eq!(results[0].history[0].timestamp, "");
         assert_eq!(results[0].history[0].duration, 0);
     }
 
@@ -228,17 +231,17 @@ mod tests {
 
         assert_eq!(results[0].history, "pwd");
         assert_eq!(results[0].line, 1);
-        assert_eq!(results[0].timestamp, 1659414442);
+        assert_eq!(results[0].timestamp, "2022-08-02T04:27:22.000Z");
         assert_eq!(results[0].duration, 0);
 
         assert_eq!(results[1].history, "cd ~/Projects/Rust/macos-bookmarks");
         assert_eq!(results[1].line, 2);
-        assert_eq!(results[1].timestamp, 1659414442);
+        assert_eq!(results[1].timestamp, "2022-08-02T04:27:22.000Z");
         assert_eq!(results[1].duration, 0);
 
         assert_eq!(results[2].history, "cargo test --release");
         assert_eq!(results[2].line, 3);
-        assert_eq!(results[2].timestamp, 1659414442);
+        assert_eq!(results[2].timestamp, "2022-08-02T04:27:22.000Z");
         assert_eq!(results[2].duration, 0);
     }
 
@@ -250,7 +253,7 @@ mod tests {
 
         assert_eq!(results.history, "cd ~/Projects/Rust/macos-bookmarks");
         assert_eq!(results.line, 0);
-        assert_eq!(results.timestamp, 1659414442);
+        assert_eq!(results.timestamp, "2022-08-02T04:27:22.000Z");
         assert_eq!(results.duration, 0);
     }
 
@@ -265,7 +268,7 @@ mod tests {
             ": 1a659414442:0;cd ~/Projects/Rust/macos-bookmarks"
         );
         assert_eq!(results.line, 0);
-        assert_eq!(results.timestamp, 0);
+        assert_eq!(results.timestamp, "");
         assert_eq!(results.duration, 0);
     }
 }
