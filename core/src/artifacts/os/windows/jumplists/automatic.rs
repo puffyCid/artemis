@@ -101,7 +101,7 @@ mod tests {
 
         assert_eq!(result.len(), 4);
         assert_eq!(result[3].app_id, "1b4dd67f29cb1962");
-        assert_eq!(result[3].lnk_info.created, 1452975745);
+        assert_eq!(result[3].lnk_info.created, "1452975745");
         assert_eq!(result[3].lnk_info.drive_serial, "88008C2F");
         assert_eq!(
             result[3].jumplist_metadata.path,
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(result.len(), 41);
         assert_eq!(result[3].app_id, "3d2110c4a0cb6d15");
-        assert_eq!(result[3].lnk_info.created, 1668879141);
+        assert_eq!(result[3].lnk_info.created, "1668879141");
         assert_eq!(result[3].lnk_info.drive_serial, "4290933E");
         assert_eq!(
             result[3].jumplist_metadata.path,

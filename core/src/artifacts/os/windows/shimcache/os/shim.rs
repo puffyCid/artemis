@@ -110,7 +110,7 @@ mod tests {
             shim_data[0].path,
             "C:\\WINDOWS\\system32\\wbem\\WmiApSrv.exe"
         );
-        assert_eq!(shim_data[0].last_modified, 1655591210);
+        assert_eq!(shim_data[0].last_modified, "1655591210");
         assert_eq!(shim_data[0].key_path, "test");
     }
 
@@ -126,7 +126,7 @@ mod tests {
             shim_data[0].path,
             "C:\\WINDOWS\\system32\\wbem\\WmiApSrv.exe"
         );
-        assert_eq!(shim_data[0].last_modified, 1655591210);
+        assert_eq!(shim_data[0].last_modified, "1655591210");
         assert_eq!(shim_data[0].key_path, "test");
     }
 }

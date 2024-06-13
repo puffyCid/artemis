@@ -18,7 +18,7 @@ pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
         indexes: Vec::new(),
         db_data: DatabaseData {
             sdb_version: String::new(),
-            compile_time: 0,
+            compile_time: String::new(),
             compiler_version: String::new(),
             name: String::new(),
             platform: 0,
@@ -103,7 +103,7 @@ mod tests {
         let (_, result) = parse_shimdb(&buffer).unwrap();
 
         assert_eq!(result.db_data.additional_metadata.len(), 0);
-        assert_eq!(result.db_data.compile_time, 1451606400);
+        assert_eq!(result.db_data.compile_time, "1451606400");
         assert_eq!(result.db_data.platform, 6);
         assert_eq!(result.db_data.compiler_version, "3.0.0.9");
         assert_eq!(
@@ -168,7 +168,7 @@ mod tests {
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let (_, result) = parse_shimdb(&buffer).unwrap();
         assert_eq!(result.indexes.len(), 1);
-        assert_eq!(result.db_data.compile_time, 1512594908);
+        assert_eq!(result.db_data.compile_time, "1512594908");
         assert_eq!(result.db_data.sdb_version, "2.1");
         assert_eq!(result.db_data.compiler_version, "2.1.0.3");
         assert_eq!(result.db_data.name, "AtomicShim");
@@ -199,7 +199,7 @@ mod tests {
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let (_, result) = parse_shimdb(&buffer).unwrap();
         assert_eq!(result.indexes.len(), 1);
-        assert_eq!(result.db_data.compile_time, 1451606400);
+        assert_eq!(result.db_data.compile_time, "1451606400");
         assert_eq!(result.db_data.sdb_version, "2.3");
         assert_eq!(result.db_data.compiler_version, "3.0.0.9");
         assert_eq!(result.db_data.name, "T1138CompatDatabase");

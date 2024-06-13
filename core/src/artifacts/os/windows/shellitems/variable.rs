@@ -31,9 +31,9 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mut variable_item = ShellItem {
         value: String::new(),
         shell_type: Variable,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -320,9 +320,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -340,9 +340,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -356,9 +356,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -405,9 +405,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]

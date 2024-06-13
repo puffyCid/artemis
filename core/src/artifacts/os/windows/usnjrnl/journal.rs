@@ -5,7 +5,7 @@ use crate::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
         },
         strings::extract_utf16_string,
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -23,7 +23,7 @@ pub(crate) struct UsnJrnlFormat {
     pub(crate) mft_sequence: u16,
     pub(crate) parent_mft_entry: u64,
     pub(crate) parent_mft_sequence: u16,
-    pub(crate) update_time: i64,
+    pub(crate) update_time: String,
     pub(crate) update_reason: Vec<Reason>,
     pub(crate) update_source_flags: Source,
     pub(crate) security_descriptor_id: u32,
@@ -94,7 +94,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = filetime_to_unixepoch(&usn_time);
+            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
             let update_reason = UsnJrnlFormat::reason_flags(&reason);
             let update_source_flags = UsnJrnlFormat::source_flag(&source);
 
@@ -211,7 +211,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = filetime_to_unixepoch(&usn_time);
+            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
             let update_reason = UsnJrnlFormat::reason_flags(&reason);
             let update_source_flags = UsnJrnlFormat::source_flag(&source);
 
@@ -576,7 +576,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, 1675039199);
+        assert_eq!(results[0].update_time, "1675039199");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);
@@ -606,7 +606,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, 1675039199);
+        assert_eq!(results[0].update_time, "1675039199");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);

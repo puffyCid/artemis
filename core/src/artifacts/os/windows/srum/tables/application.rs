@@ -1,4 +1,7 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_unixepoch};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
+};
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -13,7 +16,7 @@ pub(crate) fn parse_application(
     for rows in column_rows {
         let mut app = ApplicationInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             foreground_cycle_time: 0,
@@ -39,7 +42,8 @@ pub(crate) fn parse_application(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    app.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -139,7 +143,7 @@ pub(crate) fn parse_app_timeline(
     for rows in column_rows {
         let mut energy = AppTimelineInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
@@ -189,7 +193,8 @@ pub(crate) fn parse_app_timeline(
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    energy.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -360,7 +365,7 @@ pub(crate) fn parse_vfu_provider(
     for rows in column_rows {
         let mut app = AppVfu {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
@@ -375,7 +380,8 @@ pub(crate) fn parse_vfu_provider(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    app.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {

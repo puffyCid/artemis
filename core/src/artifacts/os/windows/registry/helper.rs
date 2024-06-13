@@ -191,7 +191,7 @@ mod tests {
             result[0].values[0].data,
             "http://go.microsoft.com/fwlink/p/?LinkId=255141"
         );
-        assert_eq!(result[0].last_modified, 1575710174);
+        assert_eq!(result[0].last_modified, "1575710174");
         assert_eq!(result[0].depth, 4);
     }
 

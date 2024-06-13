@@ -30,9 +30,9 @@ pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let store_item = ShellItem {
         value: String::from("Property View"),
         shell_type: ShellType::UserPropertyView,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores,
@@ -53,9 +53,9 @@ pub(crate) fn parse_property_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem
     let store_item = ShellItem {
         value: drive,
         shell_type: ShellType::UserPropertyView,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -116,9 +116,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::UserPropertyView);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
         assert_eq!(result.stores.len(), 1);
         assert_eq!(
             result.stores[0].get("AutoCacheKey").unwrap(),
@@ -140,8 +140,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::UserPropertyView);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 }

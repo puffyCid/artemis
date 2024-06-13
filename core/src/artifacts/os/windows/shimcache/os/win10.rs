@@ -3,7 +3,7 @@ use crate::utils::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
     },
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::ShimcacheEntry;
 use log::warn;
@@ -49,7 +49,7 @@ pub(crate) fn win10_format<'a>(
         let shim_entry = ShimcacheEntry {
             entry,
             path: extract_utf16_string(path_data),
-            last_modified: filetime_to_unixepoch(&last_modified),
+            last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             key_path: key_path.to_string(),
         };
         entry += 1;
@@ -77,7 +77,7 @@ mod tests {
             shim_data[0].path,
             "C:\\Users\\bob\\Documents\\ShellBagsExplorer\\ShellBagsExplorer.exe"
         );
-        assert_eq!(shim_data[0].last_modified, 1612060862);
+        assert_eq!(shim_data[0].last_modified, "1612060862");
         assert_eq!(shim_data[0].key_path, "test");
 
         assert_eq!(shim_data[1].entry, 1);
@@ -85,7 +85,7 @@ mod tests {
             shim_data[1].path,
             "C:\\Users\\bob\\Documents\\ShellBagsExplorer\\SBECmd.exe"
         );
-        assert_eq!(shim_data[1].last_modified, 1612060860);
+        assert_eq!(shim_data[1].last_modified, "1612060860");
         assert_eq!(shim_data[1].key_path, "test");
     }
 }

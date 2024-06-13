@@ -120,7 +120,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, 1620610795);
+        assert_eq!(results[124].last_run_time, "1620610795");
     }
 
     #[test]
@@ -139,7 +139,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, 1620610795);
+        assert_eq!(results[124].last_run_time, "1620610795");
     }
 
     #[test]
@@ -156,7 +156,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "WINSDKSETUP.EXE");
         assert_eq!(results[124].hash, "637164D5");
-        assert_eq!(results[124].last_run_time, 1576552864);
+        assert_eq!(results[124].last_run_time, "1576552864");
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
         assert_eq!(results[1].path.contains("DLLHOST.EXE-5E46FA0D.pf"), true);
         assert_eq!(results[1].filename, "DLLHOST.EXE");
         assert_eq!(results[1].hash, "5E46FA0D");
-        assert_eq!(results[1].last_run_time, 1667183990);
+        assert_eq!(results[1].last_run_time, "1667183990");
     }
 
     #[test]
@@ -184,17 +184,17 @@ mod tests {
         assert_eq!(results[1].path.contains("7ZFM.EXE-44040917.pf"), true);
         assert_eq!(results[1].filename, "7ZFM.EXE");
         assert_eq!(results[1].hash, "44040917");
-        assert_eq!(results[1].last_run_time, 1665189531);
+        assert_eq!(results[1].last_run_time, "1665189531");
 
         for result in results {
             if result.path.contains("SVCHOST.EXE-576FFE64.pf") {
                 assert_eq!(result.path.contains("SVCHOST.EXE-576FFE64.pf"), true);
                 assert_eq!(result.filename, "SVCHOST.EXE");
                 assert_eq!(result.hash, "576FFE64");
-                assert_eq!(result.last_run_time, 1666317142);
+                assert_eq!(result.last_run_time, "1666317142");
                 assert_eq!(
                     result.all_run_times,
-                    vec![1666317142, 1665640344, 1665363442]
+                    vec!["1666317142", "1665640344", "1665363442"]
                 );
                 assert_eq!(
                     result.volume_serial,
@@ -202,7 +202,7 @@ mod tests {
                 );
                 assert_eq!(
                     result.volume_creation,
-                    vec![1599200032, 1599200033, 1641252225]
+                    vec!["1599200032", "1599200033", "1641252225"]
                 );
                 assert_eq!(
                     result.volume_path,
@@ -226,18 +226,24 @@ mod tests {
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, 1590283881);
+        assert_eq!(results.last_run_time, "1590283881");
         assert_eq!(
             results.all_run_times,
             vec![
-                1590283881, 1590283755, 1590283543, 1590283090, 1590279857, 1590279632, 1590279168,
-                1590277802
+                "1590283881",
+                "1590283755",
+                "1590283543",
+                "1590283090",
+                "1590279857",
+                "1590279632",
+                "1590279168",
+                "1590277802"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec![1576558381]);
+        assert_eq!(results.volume_creation, vec!["1576558381"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);
@@ -279,18 +285,24 @@ mod tests {
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, 1590283881);
+        assert_eq!(results.last_run_time, "1590283881");
         assert_eq!(
             results.all_run_times,
             vec![
-                1590283881, 1590283755, 1590283543, 1590283090, 1590279857, 1590279632, 1590279168,
-                1590277802
+                "1590283881",
+                "1590283755",
+                "1590283543",
+                "1590283090",
+                "1590279857",
+                "1590279632",
+                "1590279168",
+                "1590277802"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec![1576558381]);
+        assert_eq!(results.volume_creation, vec!["1576558381"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);

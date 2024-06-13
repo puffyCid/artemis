@@ -73,10 +73,10 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 job_id: String::new(),
                 file_id: String::new(),
                 owner_sid: String::new(),
-                created: 0,
-                modified: 0,
-                expiration: 0,
-                completed: 0,
+                created: String::new(),
+                modified: String::new(),
+                expiration: String::new(),
+                completed: String::new(),
                 job_name: String::new(),
                 job_description: String::new(),
                 job_command: String::new(),
@@ -156,9 +156,9 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         job_id: job.job_id.clone(),
         file_id: job.file_id.clone(),
         owner_sid: job.owner_sid.clone(),
-        created: job.created,
-        modified: job.modified,
-        completed: job.completed,
+        created: job.created.clone(),
+        modified: job.modified.clone(),
+        completed: job.completed.clone(),
         files_total: file.files_transferred,
         bytes_downloaded: file.download_bytes_size,
         bytes_transferred: file.transfer_bytes_size,
@@ -179,7 +179,7 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         volume: file.volume.clone(),
         url: file.url.clone(),
         carved,
-        expiration: job.expiration,
+        expiration: job.expiration.clone(),
         transient_error_count: job.transient_error_count,
         acls: job.acls.clone(),
         timeout: job.timeout,
@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(files.len(), 41);
 
         assert_eq!(jobs[1].job_name, "PreSignInSettingsConfigJSON");
-        assert_eq!(jobs[3].created, 1574638203);
+        assert_eq!(jobs[3].created, "1574638203");
         assert_eq!(jobs[18].job_id, "2d101a37-d827-41c8-828c-664a276b096d");
 
         assert_eq!(
@@ -244,10 +244,10 @@ mod tests {
             job_id: String::new(),
             file_id: String::new(),
             owner_sid: String::new(),
-            created: 0,
-            modified: 0,
-            expiration: 0,
-            completed: 0,
+            created: String::new(),
+            modified: String::new(),
+            expiration: String::new(),
+            completed: String::new(),
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),

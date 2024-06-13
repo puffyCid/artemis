@@ -59,7 +59,7 @@ fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> Ser
         path: String::new(),
         service_type: Vec::new(),
         account: String::new(),
-        modified: 0,
+        modified: String::new(),
         service_dll: String::new(),
         failure_command: String::new(),
         reset_period: 0,
@@ -72,7 +72,7 @@ fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> Ser
     for info in service_data {
         if info.values.is_empty() {
             if info.name == service_name {
-                service.modified = info.last_modified;
+                service.modified = info.last_modified.clone();
                 service.reg_path.clone_from(&info.path);
             }
             continue;
@@ -80,7 +80,7 @@ fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> Ser
 
         for value in &info.values {
             if info.name == service_name {
-                service.modified = info.last_modified;
+                service.modified = info.last_modified.clone();
                 service.reg_path.clone_from(&info.path);
                 // Get Service metadata associated with Service Name key
                 metadata(value, &mut service);
@@ -189,7 +189,7 @@ mod tests {
             path: String::new(),
             service_type: Vec::new(),
             account: String::new(),
-            modified: 0,
+            modified: String::new(),
             service_dll: String::new(),
             failure_command: String::new(),
             reset_period: 0,

@@ -1,6 +1,6 @@
 use crate::utils::{
     nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use log::warn;
 use nom::{bytes::complete::take, Needed};
@@ -19,7 +19,7 @@ pub(crate) struct Version30 {
     pub(crate) number_volumes: u32,
     pub(crate) volume_info_size: u32,
     pub(crate) _unknown: u64,
-    pub(crate) run_times: Vec<i64>,
+    pub(crate) run_times: Vec<String>,
     pub(crate) _unknown2: Vec<u8>, // may be 16 or 8 bytes. Depending on size of prefetch data (224 vs 216)
     pub(crate) run_count: u32,
     pub(crate) _unknown3: u32,
@@ -42,7 +42,7 @@ impl Version30 {
         let (input, volume_info_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (mut input, unknown) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-        let mut run_times: Vec<i64> = Vec::new();
+        let mut run_times: Vec<String> = Vec::new();
 
         let max_runtime_count = 8;
         let mut count = 0;
@@ -51,7 +51,7 @@ impl Version30 {
 
             let no_runs = 0;
             if runtime != no_runs {
-                run_times.push(filetime_to_unixepoch(&runtime));
+                run_times.push(unixepoch_to_iso(&filetime_to_unixepoch(&runtime)));
             }
             count += 1;
             input = runs_data;
@@ -129,7 +129,7 @@ mod tests {
         assert_eq!(result.run_count, 1);
 
         assert_eq!(result._unknown, 4294967311);
-        assert_eq!(result.run_times, vec![1665886665]);
+        assert_eq!(result.run_times, vec!["1665886665"]);
         assert_eq!(result._unknown4, 0);
         assert_eq!(result._unknown2, vec![0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(result._unknown3, 1);

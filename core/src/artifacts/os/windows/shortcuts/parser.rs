@@ -154,9 +154,9 @@ mod tests {
         ];
 
         let result = parse_lnk_data(&test).unwrap();
-        assert_eq!(result.created, 1667441367);
-        assert_eq!(result.modified, 1670566100);
-        assert_eq!(result.accessed, 1670566252);
+        assert_eq!(result.created, "1667441367");
+        assert_eq!(result.modified, "1670566100");
+        assert_eq!(result.accessed, "1670566252");
 
         assert_eq!(
             result.data_flags,
@@ -187,9 +187,9 @@ mod tests {
                 ShellItem {
                     value: String::from("59031a47-3f72-44a7-89c5-5595fe6b30ee"),
                     shell_type: RootFolder,
-                    created: 0,
-                    modified: 0,
-                    accessed: 0,
+                    created: String::new(),
+                    modified: String::new(),
+                    accessed: String::new(),
                     mft_entry: 0,
                     mft_sequence: 0,
                     stores: vec![],
@@ -197,9 +197,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Projects"),
                     shell_type: Delegate,
-                    created: 1571626314,
-                    modified: 1612040064,
-                    accessed: 1612040064,
+                    created: "1571626314".to_string(),
+                    modified: "1612040064".to_string(),
+                    accessed: "1612040064".to_string(),
                     mft_entry: 226573,
                     mft_sequence: 7,
                     stores: vec![],
@@ -207,9 +207,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Rust"),
                     shell_type: Directory,
-                    created: 1666575724,
-                    modified: 1667441368,
-                    accessed: 1670560382,
+                    created: "1666575724".to_string(),
+                    modified: "1667441368".to_string(),
+                    accessed: "1670560382".to_string(),
                     mft_entry: 1133647,
                     mft_sequence: 4,
                     stores: vec![],
@@ -217,9 +217,9 @@ mod tests {
                 ShellItem {
                     value: String::from("artemis-core"),
                     shell_type: Directory,
-                    created: 1667441368,
-                    modified: 1670383114,
-                    accessed: 1670560418,
+                    created: "1667441368".to_string(),
+                    modified: "1670383114".to_string(),
+                    accessed: "1670560418".to_string(),
                     mft_entry: 799135,
                     mft_sequence: 21,
                     stores: vec![],
@@ -260,9 +260,9 @@ mod tests {
                 DataFlags::PreferEnvironmentPath
             ]
         );
-        assert_eq!(result.created, -11644473600);
-        assert_eq!(result.modified, -11644473600);
-        assert_eq!(result.accessed, -11644473600);
+        assert_eq!(result.created, "11644473600");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
         assert_eq!(result.properties.len(), 5);
         assert_eq!(result.environment_variable, "%windir%\\explorer.exe");
     }

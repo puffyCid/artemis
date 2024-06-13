@@ -7,7 +7,7 @@ use crate::{
             raw_files::raw_hash_data, sector_reader::SectorReader,
         },
     },
-    utils::time::filetime_to_unixepoch,
+    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
 use log::error;
@@ -37,22 +37,35 @@ pub(crate) fn filename_info(
     filename.parent_directory_reference().file_record_number();
 
     file_info.filename = filename.name().to_string().unwrap_or_default();
-    file_info.filename_created = filetime_to_unixepoch(&filename.creation_time().nt_timestamp());
-    file_info.filename_modified =
-        filetime_to_unixepoch(&filename.modification_time().nt_timestamp());
-    file_info.filename_changed =
-        filetime_to_unixepoch(&filename.mft_record_modification_time().nt_timestamp());
-    file_info.filename_accessed = filetime_to_unixepoch(&filename.access_time().nt_timestamp());
+    file_info.filename_created = unixepoch_to_iso(&filetime_to_unixepoch(
+        &filename.creation_time().nt_timestamp(),
+    ));
+    file_info.filename_modified = unixepoch_to_iso(&filetime_to_unixepoch(
+        &filename.modification_time().nt_timestamp(),
+    ));
+    file_info.filename_changed = unixepoch_to_iso(&filetime_to_unixepoch(
+        &filename.mft_record_modification_time().nt_timestamp(),
+    ));
+    file_info.filename_accessed = unixepoch_to_iso(&filetime_to_unixepoch(
+        &filename.access_time().nt_timestamp(),
+    ));
     Ok(())
 }
 
 /// Get Standard attributes data
 pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut RawFilelist) {
-    file_info.created = filetime_to_unixepoch(&standard.creation_time().nt_timestamp());
-    file_info.modified = filetime_to_unixepoch(&standard.modification_time().nt_timestamp());
-    file_info.changed =
-        filetime_to_unixepoch(&standard.mft_record_modification_time().nt_timestamp());
-    file_info.accessed = filetime_to_unixepoch(&standard.access_time().nt_timestamp());
+    file_info.created = unixepoch_to_iso(&filetime_to_unixepoch(
+        &standard.creation_time().nt_timestamp(),
+    ));
+    file_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(
+        &standard.modification_time().nt_timestamp(),
+    ));
+    file_info.changed = unixepoch_to_iso(&filetime_to_unixepoch(
+        &standard.mft_record_modification_time().nt_timestamp(),
+    ));
+    file_info.accessed = unixepoch_to_iso(&filetime_to_unixepoch(
+        &standard.access_time().nt_timestamp(),
+    ));
 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);
@@ -294,14 +307,14 @@ mod tests {
                 directory: String::new(),
                 filename: String::new(),
                 extension: String::new(),
-                created: 0,
-                modified: 0,
-                changed: 0,
-                accessed: 0,
-                filename_created: 0,
-                filename_modified: 0,
-                filename_changed: 0,
-                filename_accessed: 0,
+                created: String::new(),
+                modified: String::new(),
+                changed: String::new(),
+                accessed: String::new(),
+                filename_created: String::new(),
+                filename_modified: String::new(),
+                filename_changed: String::new(),
+                filename_accessed: String::new(),
                 size: 0,
                 inode: 0,
                 sequence_number: 0,
@@ -371,14 +384,14 @@ mod tests {
                 directory: String::new(),
                 filename: String::new(),
                 extension: String::new(),
-                created: 0,
-                modified: 0,
-                changed: 0,
-                accessed: 0,
-                filename_created: 0,
-                filename_modified: 0,
-                filename_changed: 0,
-                filename_accessed: 0,
+                created: String::new(),
+                modified: String::new(),
+                changed: String::new(),
+                accessed: String::new(),
+                filename_created: String::new(),
+                filename_modified: String::new(),
+                filename_changed: String::new(),
+                filename_accessed: String::new(),
                 size: 0,
                 inode: 0,
                 sequence_number: 0,
@@ -391,7 +404,7 @@ mod tests {
                 sha256: String::new(),
                 is_file: false,
                 is_directory: false,
-                depth: directory_tracker.len() - root_index, // Substract root index (C:\)
+                depth: directory_tracker.len() - root_index, // Subtract root index (C:\)
                 usn: 0,
                 sid: 0,
                 user_sid: String::new(),
@@ -412,10 +425,10 @@ mod tests {
             let result = standard_info(&ntfs_file.info().unwrap(), &mut file_info);
 
             assert_eq!(result, ());
-            assert!(file_info.created != 0);
-            assert!(file_info.modified != 0);
-            assert!(file_info.accessed != 0);
-            assert!(file_info.changed != 0);
+            assert!(file_info.created != "");
+            assert!(file_info.modified != "");
+            assert!(file_info.accessed != "");
+            assert!(file_info.changed != "");
             break;
         }
     }
@@ -461,14 +474,14 @@ mod tests {
                 directory: String::new(),
                 filename: String::new(),
                 extension: String::new(),
-                created: 0,
-                modified: 0,
-                changed: 0,
-                accessed: 0,
-                filename_created: 0,
-                filename_modified: 0,
-                filename_changed: 0,
-                filename_accessed: 0,
+                created: String::new(),
+                modified: String::new(),
+                changed: String::new(),
+                accessed: String::new(),
+                filename_created: String::new(),
+                filename_modified: String::new(),
+                filename_changed: String::new(),
+                filename_accessed: String::new(),
                 size: 0,
                 parent_mft_reference: 0,
                 is_indx: false,

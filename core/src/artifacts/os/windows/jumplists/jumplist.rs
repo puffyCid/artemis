@@ -90,9 +90,9 @@ mod tests {
         let result = get_jumplist_path(&test_location.display().to_string()).unwrap();
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].jumplist_type, ListType::Custom);
-        assert_eq!(result[0].lnk_info.created, 1571636919);
-        assert_eq!(result[0].lnk_info.modified, 1686748880);
-        assert_eq!(result[0].lnk_info.accessed, 1691366002);
+        assert_eq!(result[0].lnk_info.created, "1571636919");
+        assert_eq!(result[0].lnk_info.modified, "1686748880");
+        assert_eq!(result[0].lnk_info.accessed, "1691366002");
         assert_eq!(result[0].lnk_info.file_size, 149416368);
     }
 }

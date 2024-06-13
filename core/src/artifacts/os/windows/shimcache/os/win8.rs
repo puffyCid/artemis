@@ -3,7 +3,7 @@ use crate::utils::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
     },
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::ShimcacheEntry;
 use log::warn;
@@ -41,7 +41,7 @@ pub(crate) fn win8_format<'a>(
             let shim_entry = ShimcacheEntry {
                 entry,
                 path: String::new(),
-                last_modified: 0,
+                last_modified: String::new(),
                 key_path: key_path.to_string(),
             };
             entry += 1;
@@ -61,7 +61,7 @@ pub(crate) fn win8_format<'a>(
         let shim_entry = ShimcacheEntry {
             entry,
             path: extract_utf16_string(path_data),
-            last_modified: filetime_to_unixepoch(&last_modified),
+            last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             key_path: key_path.to_string(),
         };
         entry += 1;
@@ -89,7 +89,7 @@ mod tests {
             shim_data[0].path,
             "SYSVOL\\Program Files\\Windows Defender\\MpCmdRun.exe"
         );
-        assert_eq!(shim_data[0].last_modified, 1621323713);
+        assert_eq!(shim_data[0].last_modified, "1621323713");
         assert_eq!(shim_data[0].key_path, "test");
 
         assert_eq!(shim_data[2].entry, 2);
@@ -97,7 +97,7 @@ mod tests {
             shim_data[1].path,
             "SYSVOL\\Program Files\\Windows Defender\\MsMpEng.exe"
         );
-        assert_eq!(shim_data[2].last_modified, 1416561412);
+        assert_eq!(shim_data[2].last_modified, "1416561412");
         assert_eq!(shim_data[2].key_path, "test");
     }
 }

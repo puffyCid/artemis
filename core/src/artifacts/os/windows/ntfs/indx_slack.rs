@@ -4,7 +4,7 @@ use crate::{
     utils::{
         nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
         strings::extract_utf16_string,
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use common::windows::{CompressionType, RawFilelist};
@@ -224,14 +224,14 @@ fn parse_indx_slack<'a>(
                 directory: directory.to_string(),
                 filename,
                 extension: String::new(),
-                created: 0,
-                modified: 0,
-                changed: 0,
-                accessed: 0,
-                filename_created: filetime_to_unixepoch(&created),
-                filename_modified: filetime_to_unixepoch(&modified),
-                filename_changed: filetime_to_unixepoch(&changed),
-                filename_accessed: filetime_to_unixepoch(&accessed),
+                created: String::new(),
+                modified: String::new(),
+                changed: String::new(),
+                accessed: String::new(),
+                filename_created: unixepoch_to_iso(&filetime_to_unixepoch(&created)),
+                filename_modified: unixepoch_to_iso(&filetime_to_unixepoch(&modified)),
+                filename_changed: unixepoch_to_iso(&filetime_to_unixepoch(&changed)),
+                filename_accessed: unixepoch_to_iso(&filetime_to_unixepoch(&accessed)),
                 size,
                 inode,
                 sequence_number: 0,
@@ -374,15 +374,15 @@ mod tests {
         assert_eq!(result[0].filename, "test.aut");
         assert_eq!(result[0].extension, "aut");
 
-        assert_eq!(result[0].created, 0);
-        assert_eq!(result[0].accessed, 0);
-        assert_eq!(result[0].changed, 0);
-        assert_eq!(result[0].modified, 0);
+        assert_eq!(result[0].created, "");
+        assert_eq!(result[0].accessed, "");
+        assert_eq!(result[0].changed, "");
+        assert_eq!(result[0].modified, "");
 
-        assert_eq!(result[0].filename_created, 1667969026);
-        assert_eq!(result[0].filename_modified, 1667969036);
-        assert_eq!(result[0].filename_accessed, 1667969036);
-        assert_eq!(result[0].filename_changed, 1667969036);
+        assert_eq!(result[0].filename_created, "1667969026");
+        assert_eq!(result[0].filename_modified, "1667969036");
+        assert_eq!(result[0].filename_accessed, "1667969036");
+        assert_eq!(result[0].filename_changed, "1667969036");
 
         assert_eq!(result[0].size, 699);
         assert_eq!(result[0].inode, 8589934608);

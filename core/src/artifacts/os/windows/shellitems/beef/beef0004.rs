@@ -1,4 +1,5 @@
 use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::time::unixepoch_to_iso;
 use crate::utils::{
     strings::{extract_ascii_utf16_string, extract_utf16_string},
     time::fattime_utc_to_unixepoch,
@@ -32,9 +33,9 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
     let mut directory_item = ShellItem {
         value: String::new(),
         shell_type,
-        created: fattime_utc_to_unixepoch(created_data),
-        modified: 0,
-        accessed: fattime_utc_to_unixepoch(accessed_data),
+        created: unixepoch_to_iso(&fattime_utc_to_unixepoch(created_data)),
+        modified: String::new(),
+        accessed: unixepoch_to_iso(&fattime_utc_to_unixepoch(accessed_data)),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -111,8 +112,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Directory);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 360510);
-        assert_eq!(result.created, 1559691896);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 1615758152);
+        assert_eq!(result.created, "1559691896");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "1615758152");
     }
 }

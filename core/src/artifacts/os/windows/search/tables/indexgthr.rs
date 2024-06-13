@@ -7,7 +7,7 @@ use crate::{
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{nom_unsigned_eight_bytes, Endian},
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use common::windows::TableDump;
@@ -29,7 +29,7 @@ pub(crate) fn parse_index_gthr(
         let mut entry = SearchEntry {
             document_id: 0,
             entry: String::new(),
-            last_modified: 0,
+            last_modified: String::new(),
             properties: HashMap::new(),
         };
 
@@ -53,7 +53,7 @@ pub(crate) fn parse_index_gthr(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = filetime_to_unixepoch(&result);
+                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
                         }
                     }
                 }
@@ -124,7 +124,7 @@ pub(crate) fn parse_index_gthr_path(
         let mut entry = SearchEntry {
             document_id: 0,
             entry: String::new(),
-            last_modified: 0,
+            last_modified: String::new(),
             properties: HashMap::new(),
         };
 
@@ -148,7 +148,7 @@ pub(crate) fn parse_index_gthr_path(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = filetime_to_unixepoch(&result);
+                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
                         }
                     }
                 }

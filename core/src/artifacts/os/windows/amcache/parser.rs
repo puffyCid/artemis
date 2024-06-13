@@ -83,7 +83,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let mut amcache_vec: Vec<Amcache> = Vec::new();
     for entry in amcache {
         let mut amcache_entry = Amcache {
-            last_modified: entry.last_modified,
+            last_modified: entry.last_modified.clone(),
             path: String::new(),
             name: String::new(),
             original_name: String::new(),
@@ -148,7 +148,7 @@ fn extract_entry(entry: RegistryEntry, amcache_entry: &mut Amcache) {
     // if entry.path contains \\File\\ parse as number or something
     for value in entry.values {
         match value.value.as_str() {
-            "Langague" => amcache_entry.language = value.data,
+            "Language" => amcache_entry.language = value.data,
             "LinkDate" => amcache_entry.link_date = value.data,
             "LongPathHash" => amcache_entry.path_hash = value.data,
             "LowerCaseLongPath" => amcache_entry.path = value.data,
@@ -227,7 +227,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
         let result = parse_amcache(test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(result[0].last_modified, 1673412178);
+        assert_eq!(result[0].last_modified, "2023-01-11T04:42:58.000Z");
         assert_eq!(
             result[0].path,
             "C:\\Users\\bob\\Documents\\artemis-core\\target\\release\\examples\\artemis_core.exe"
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(result[0].sha1, "8c55942db046700a0ccddea067e3a6e3cc259424");
         assert_eq!(result[0].reg_path, "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\File\\8195d9c8-2089-11ea-824e-806e6f6e6963\\20000667bc");
 
-        assert_eq!(result[3].last_modified, 1673413026);
+        assert_eq!(result[3].last_modified, "2023-01-11T04:57:06.000Z");
         assert_eq!(
             result[3].path,
             "c:\\program files (x86)\\microsoft\\edge\\application\\msedge.exe"
@@ -249,7 +249,7 @@ mod tests {
         assert_eq!(result[3].product_version, "108.0.1462.76");
         assert_eq!(result[3].binary_type, "pe64_amd64");
         assert_eq!(result[3].product_name, "microsoft edge");
-        assert_eq!(result[3].language, "");
+        assert_eq!(result[3].language, "1033");
         assert_eq!(
             result[3].file_id,
             "57f7a64c05fbc31830754108ccb6f65bd6c0f9bc"
@@ -291,7 +291,7 @@ mod tests {
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let mut amcache_entry = Amcache {
-                last_modified: entry.last_modified,
+                last_modified: entry.last_modified.clone(),
                 path: String::new(),
                 name: String::new(),
                 original_name: String::new(),
@@ -340,7 +340,7 @@ mod tests {
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let mut amcache_entry = Amcache {
-                last_modified: entry.last_modified,
+                last_modified: entry.last_modified.clone(),
                 path: String::new(),
                 name: String::new(),
                 original_name: String::new(),

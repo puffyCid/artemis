@@ -1,4 +1,4 @@
-use crate::artifacts::os::windows::srum::error::SrumError;
+use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::unixepoch_to_iso};
 use common::windows::{EnergyInfo, EnergyUsage, TableDump};
 use log::error;
 use serde_json::Value;
@@ -13,7 +13,7 @@ pub(crate) fn parse_energy(
     for rows in column_rows {
         let mut energy = EnergyInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             binary_data: String::new(),
@@ -25,7 +25,8 @@ pub(crate) fn parse_energy(
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    energy.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -69,10 +70,10 @@ pub(crate) fn parse_energy_usage(
     for rows in column_rows {
         let mut energy = EnergyUsage {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
-            event_timestamp: 0,
+            event_timestamp: String::new(),
             state_transition: 0,
             full_charged_capacity: 0,
             designed_capacity: 0,
@@ -85,7 +86,8 @@ pub(crate) fn parse_energy_usage(
             match column.column_name.as_str() {
                 "AutoIncId" => energy.auto_inc_id = column.column_data.parse::<i32>().unwrap(),
                 "TimeStamp" => {
-                    energy.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -102,7 +104,8 @@ pub(crate) fn parse_energy_usage(
                     energy.user_id.clone_from(&column.column_data);
                 }
                 "EventTimestamp" => {
-                    energy.event_timestamp = column.column_data.parse::<i64>().unwrap();
+                    energy.event_timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "StateTransition" => {
                     energy.state_transition = column.column_data.parse::<i32>().unwrap();

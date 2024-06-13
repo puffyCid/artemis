@@ -3,7 +3,7 @@ use crate::utils::nom_helper::{
     nom_unsigned_two_bytes, Endian,
 };
 use crate::utils::strings::{extract_ascii_utf16_string, extract_utf16_string};
-use crate::utils::time::filetime_to_unixepoch;
+use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
 use common::windows::ShellItem;
 use common::windows::ShellType::Uri;
 use nom::bytes::complete::{take, take_while};
@@ -17,9 +17,9 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mut uri_item = ShellItem {
         value: String::new(),
         shell_type: Uri,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -39,7 +39,7 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, _unknown2) = take(size_of::<u32>())(input)?;
 
     let (input, access) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-    uri_item.accessed = filetime_to_unixepoch(&access);
+    uri_item.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&access));
 
     let (input, _unknown3) = take(size_of::<u32>())(input)?;
 
@@ -84,9 +84,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Uri);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 1613204690);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "1613204690");
     }
 
     #[test]
@@ -101,8 +101,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Uri);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 }

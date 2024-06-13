@@ -10,7 +10,7 @@ use crate::{
         },
         regex_options::regex_check,
         strings::{extract_ascii_utf16_string, strings_contains},
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use common::windows::RegistryEntry;
@@ -107,7 +107,7 @@ impl NameKey {
             key: params.key_tracker.join("\\"),
             name: name_key.key_name.clone(),
             values: Vec::new(),
-            last_modified: filetime_to_unixepoch(&last_modified),
+            last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             depth: params.key_tracker.len(),
             security_offset: key_security_offset,
         };

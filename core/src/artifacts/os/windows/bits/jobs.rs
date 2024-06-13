@@ -11,7 +11,7 @@ use crate::{
             nom_unsigned_sixteen_bytes, Endian,
         },
         strings::extract_utf16_string,
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
@@ -30,10 +30,10 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
             job_id: String::new(),
             file_id: String::new(),
             owner_sid: String::new(),
-            created: 0,
-            modified: 0,
-            expiration: 0,
-            completed: 0,
+            created: String::new(),
+            modified: String::new(),
+            expiration: String::new(),
+            completed: String::new(),
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
@@ -119,10 +119,10 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
             job_id: String::new(),
             file_id: String::new(),
             owner_sid: String::new(),
-            created: 0,
-            modified: 0,
-            expiration: 0,
-            completed: 0,
+            created: String::new(),
+            modified: String::new(),
+            expiration: String::new(),
+            completed: String::new(),
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
@@ -339,10 +339,10 @@ pub(crate) fn job_details<'a>(
     let (input, expiration_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     job_info.error_count = error_count;
-    job_info.created = filetime_to_unixepoch(&created);
-    job_info.modified = filetime_to_unixepoch(&modified);
-    job_info.completed = filetime_to_unixepoch(&complete_time);
-    job_info.expiration = filetime_to_unixepoch(&expiration_time);
+    job_info.created = unixepoch_to_iso(&filetime_to_unixepoch(&created));
+    job_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(&modified));
+    job_info.completed = unixepoch_to_iso(&filetime_to_unixepoch(&complete_time));
+    job_info.expiration = unixepoch_to_iso(&filetime_to_unixepoch(&expiration_time));
     job_info.timeout = timeout;
     job_info.retry_delay = retry_delay;
     job_info.transient_error_count = transient_error_count;
@@ -491,10 +491,10 @@ mod tests {
             job_id: String::new(),
             file_id: String::new(),
             owner_sid: String::new(),
-            created: 0,
-            modified: 0,
-            expiration: 0,
-            completed: 0,
+            created: String::new(),
+            modified: String::new(),
+            expiration: String::new(),
+            completed: String::new(),
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
@@ -535,10 +535,10 @@ mod tests {
             job_id: String::new(),
             file_id: String::new(),
             owner_sid: String::new(),
-            created: 0,
-            modified: 0,
-            expiration: 0,
-            completed: 0,
+            created: String::new(),
+            modified: String::new(),
+            expiration: String::new(),
+            completed: String::new(),
             job_name: String::new(),
             job_description: String::new(),
             job_command: String::new(),
@@ -574,7 +574,7 @@ mod tests {
 
         assert_eq!(job.http_method, "GET");
         assert_eq!(job.timeout, 86400);
-        assert_eq!(job.created, 1671589083);
+        assert_eq!(job.created, "1671589083");
         assert_eq!(job.retry_delay, 60);
         assert_eq!(
             job.target_path,
@@ -604,7 +604,7 @@ mod tests {
 
         let results = get_legacy_jobs(&data).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, 1678775988);
+        assert_eq!(results[0].created, "1678775988");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
     }
@@ -617,7 +617,7 @@ mod tests {
 
         let (_, results) = parse_legacy_job(&data).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, 1678775988);
+        assert_eq!(results[0].created, "1678775988");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
     }

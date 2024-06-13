@@ -6,7 +6,10 @@ use super::{
     versions::version::VersionInfo,
     volume::Volume,
 };
-use crate::utils::compression::decompress::{decompress_xpress, XpressType};
+use crate::utils::{
+    compression::decompress::{decompress_xpress, XpressType},
+    time::unixepoch_to_iso,
+};
 use common::windows::Prefetch;
 use log::error;
 
@@ -102,7 +105,11 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
         path: path.to_string(),
         filename: header.filename,
         hash: header.pf_hash,
-        last_run_time: version.run_times.first().unwrap_or(&0).to_owned(),
+        last_run_time: version
+            .run_times
+            .first()
+            .unwrap_or(&String::new())
+            .to_owned(),
         all_run_times: version.run_times,
         run_count: version.run_count,
         size: header.size,
@@ -120,7 +127,9 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
         prefetch
             .volume_serial
             .push(format!("{:X?}", volume.volume_serial));
-        prefetch.volume_creation.push(volume.volume_creation);
+        prefetch
+            .volume_creation
+            .push(unixepoch_to_iso(&volume.volume_creation));
         prefetch.volume_path.push(volume.volume_path);
 
         prefetch.accessed_directories_count += volume.number_directory_strings;
@@ -194,15 +203,22 @@ mod tests {
         assert_eq!(results.path.contains("_IU14D2N.TMP-136252D4.pf"), true);
         assert_eq!(results.filename, "_IU14D2N.TMP");
         assert_eq!(results.hash, "136252D4");
-        assert_eq!(results.last_run_time, 1655507964);
+        assert_eq!(results.last_run_time, "1655507964");
         assert_eq!(
             results.all_run_times,
-            vec![1655507964, 1646978691, 1640232797, 1635477061, 1632023865, 1628991222]
+            vec![
+                "1655507964",
+                "1646978691",
+                "1640232797",
+                "1635477061",
+                "1632023865",
+                "1628991222"
+            ]
         );
         assert_eq!(results.run_count, 6);
         assert_eq!(results.size, 153064);
         assert_eq!(results.volume_serial, vec!["D49D126F"]);
-        assert_eq!(results.volume_creation, vec![1443412570]);
+        assert_eq!(results.volume_creation, vec!["1443412570"]);
         assert_eq!(
             results.volume_path,
             vec!["\\VOLUME{01d0f9a19c586134-d49d126f}"]
@@ -250,18 +266,24 @@ mod tests {
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, 1590283881);
+        assert_eq!(results.last_run_time, "1590283881");
         assert_eq!(
             results.all_run_times,
             vec![
-                1590283881, 1590283755, 1590283543, 1590283090, 1590279857, 1590279632, 1590279168,
-                1590277802
+                "1590283881",
+                "1590283755",
+                "1590283543",
+                "1590283090",
+                "1590279857",
+                "1590279632",
+                "1590279168",
+                "1590277802"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec![1576558381]);
+        assert_eq!(results.volume_creation, vec!["1576558381"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);
