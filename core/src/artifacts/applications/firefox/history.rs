@@ -3,7 +3,7 @@
  *  Provides functions to parse Firefox History data.
  * */
 use super::error::FirefoxHistoryError;
-use crate::filesystem::directory::get_user_paths;
+use crate::{filesystem::directory::get_user_paths, utils::time::unixepoch_microseconds_to_iso};
 use common::applications::{FirefoxHistory, FirefoxHistoryEntry};
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
@@ -143,7 +143,10 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<FirefoxHistoryEntry>, Fire
             hidden: row.get("hidden")?,
             typed: row.get("typed")?,
             frequency: row.get("frequency")?,
-            last_visit_date: row.get("last_visit_date").unwrap_or_default(),
+            last_visit_date: {
+                let value: i64 = row.get("last_visit_date").unwrap_or_default();
+                unixepoch_microseconds_to_iso(&value)
+            },
             guid: row.get("guid")?,
             foreign_count: row.get("foreign_count").unwrap_or_default(),
             url_hash: row.get("url_hash")?,
@@ -160,10 +163,7 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<FirefoxHistoryEntry>, Fire
             // Grab all Firefox history entries
             for history in history_iter {
                 match history {
-                    Ok(mut history_data) => {
-                        let adjust_time = 1000000;
-                        history_data.last_visit_date /= adjust_time;
-
+                    Ok(history_data) => {
                         history_vec.push(history_data);
                     }
                     Err(err) => {
@@ -209,7 +209,7 @@ mod tests {
                 assert_eq!(history_data.hidden, 0);
                 assert_eq!(history_data.typed, 0);
                 assert_eq!(history_data.frequency, 15517);
-                assert_eq!(history_data.last_visit_date, 0);
+                assert_eq!(history_data.last_visit_date, "1970-01-01T00:00:00.000Z");
                 assert_eq!(history_data.guid, "3WEJ95Stho90");
                 assert_eq!(history_data.foreign_count, 1);
                 assert_eq!(history_data.url_hash, 47359319030241);

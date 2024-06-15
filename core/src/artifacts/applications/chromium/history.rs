@@ -1,5 +1,8 @@
 use super::error::ChromiumHistoryError;
-use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_unixepoch};
+use crate::{
+    filesystem::directory::get_user_paths,
+    utils::time::{unixepoch_to_iso, webkit_time_to_unixepoch},
+};
 use common::applications::{ChromiumHistory, ChromiumHistoryEntry};
 use log::error;
 use rusqlite::{Connection, OpenFlags};
@@ -104,7 +107,11 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<ChromiumHistoryEntry>, Chr
             title: row.get("title").unwrap_or_default(),
             visit_count: row.get("visit_count")?,
             typed_count: row.get("typed_count")?,
-            last_visit_time: row.get("last_visit_time")?,
+            last_visit_time: {
+                let value: i64 = row.get("last_visit_time")?;
+                let adjust_time = 1000000;
+                unixepoch_to_iso(&webkit_time_to_unixepoch(&(value / adjust_time)))
+            },
             hidden: row.get("hidden")?,
             visits_id: row.get("visits_id")?,
             from_visit: row.get("from_visit").unwrap_or_default(),
@@ -118,13 +125,9 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<ChromiumHistoryEntry>, Chr
     match history_data {
         Ok(history_iter) => {
             let mut history_vec: Vec<ChromiumHistoryEntry> = Vec::new();
-
             for history in history_iter {
                 match history {
-                    Ok(mut history_data) => {
-                        let adjust_time = 1000000;
-                        history_data.last_visit_time =
-                            webkit_time_to_unixepoch(&(history_data.last_visit_time / adjust_time));
+                    Ok(history_data) => {
                         history_vec.push(history_data);
                     }
                     Err(err) => {
@@ -172,7 +175,7 @@ mod tests {
             if history_data.title == "Install PowerShell on Linux - PowerShell | Microsoft Docs" {
                 correct_title = true;
             }
-            if history_data.last_visit_time == 1645510339 {
+            if history_data.last_visit_time == "2022-02-22T06:12:19.000Z" {
                 correct_time = true;
             }
             if history_data.visit_count == 3 {
