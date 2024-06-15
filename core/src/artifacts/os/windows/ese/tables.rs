@@ -16,7 +16,7 @@ use crate::{
             nom_unsigned_two_bytes, Endian,
         },
         strings::extract_ascii_utf16_string,
-        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch},
+        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
@@ -207,15 +207,14 @@ fn column_data_to_string<'a>(
             if flags.contains(&ColumnFlags::NotNull) {
                 let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
                 let filetime = filetime_to_unixepoch(&filetime_data);
-                let value = format!("{filetime}");
-                (input, value)
+
+                (input, unixepoch_to_iso(&filetime))
             } else {
                 let (input, float_data) = take(size_of::<u64>())(data)?;
                 let (_, float_value) = le_f64(float_data)?;
                 let oletime = ole_automationtime_to_unixepoch(&float_value);
 
-                let value = format!("{oletime}");
-                (input, value)
+                (input, unixepoch_to_iso(&oletime))
             }
         }
         ColumnType::LongBinary | ColumnType::Binary => {

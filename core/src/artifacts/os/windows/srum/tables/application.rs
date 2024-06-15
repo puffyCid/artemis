@@ -42,8 +42,7 @@ pub(crate) fn parse_application(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    app.timestamp.clone_from(&column.column_data);
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -193,8 +192,7 @@ pub(crate) fn parse_app_timeline(
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    energy.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    energy.timestamp.clone_from(&column.column_data);
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -382,8 +380,7 @@ pub(crate) fn parse_vfu_provider(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    app.timestamp.clone_from(&column.column_data);
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {

@@ -1006,7 +1006,7 @@ pub struct NetworkConnectivityInfo {
     pub interface_luid: i64,
     pub l2_profile_id: i64,
     pub connected_time: i32,
-    pub connect_start_time: i64,
+    pub connect_start_time: String,
     pub l2_profile_flags: i32,
 }
 
