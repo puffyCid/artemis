@@ -1,4 +1,4 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::unixepoch_to_iso};
+use crate::artifacts::os::windows::srum::error::SrumError;
 use common::windows::{NotificationInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -27,8 +27,7 @@ pub(crate) fn parse_notification(
                     notif.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    notif.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    notif.timestamp.clone_from(&column.column_data);
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {

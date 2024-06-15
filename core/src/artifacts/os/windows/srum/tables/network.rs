@@ -1,4 +1,7 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::unixepoch_to_iso};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
+};
 use common::windows::{NetworkConnectivityInfo, NetworkInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -29,8 +32,8 @@ pub(crate) fn parse_network(
                     network.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    network.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    network.timestamp.clone_from(&column.column_data);
+                    // unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -96,7 +99,7 @@ pub(crate) fn parse_network_connectivity(
             l2_profile_id: 0,
             l2_profile_flags: 0,
             connected_time: 0,
-            connect_start_time: 0,
+            connect_start_time: String::new(),
         };
 
         for column in rows {
@@ -105,8 +108,8 @@ pub(crate) fn parse_network_connectivity(
                     network.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    network.timestamp =
-                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
+                    network.timestamp.clone_from(&column.column_data);
+                    //unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -136,8 +139,9 @@ pub(crate) fn parse_network_connectivity(
                     network.connected_time = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "ConnectStartTime" => {
-                    network.connect_start_time =
-                        column.column_data.parse::<i64>().unwrap_or_default();
+                    network.connect_start_time = unixepoch_to_iso(&filetime_to_unixepoch(
+                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                    ));
                 }
                 _ => continue,
             }
