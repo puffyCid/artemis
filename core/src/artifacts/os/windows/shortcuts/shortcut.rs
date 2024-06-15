@@ -10,11 +10,11 @@ use super::{
     volume::LnkVolume,
 };
 
-use crate::artifacts::os::windows::shortcuts::header::LnkHeader;
 use crate::artifacts::os::windows::shortcuts::{
     extras::{property::has_property, tracker::has_tracker},
     strings::extract_string,
 };
+use crate::{artifacts::os::windows::shortcuts::header::LnkHeader, utils::time::unixepoch_to_iso};
 use common::windows::DataFlags::{
     HasArguements, HasIconLocation, HasLinkInfo, HasName, HasRelativePath, HasTargetIdList,
     HasWorkingDirectory,
@@ -33,9 +33,9 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
         source_path: String::new(),
         data_flags: header.data_flags,
         attribute_flags: header.attribute_flags,
-        created: header.created,
-        modified: header.modified,
-        accessed: header.access,
+        created: unixepoch_to_iso(&header.created),
+        modified: unixepoch_to_iso(&header.modified),
+        accessed: unixepoch_to_iso(&header.access),
         file_size: header.file_size,
         location_flags: LocationFlag::None,
         path: String::new(),
@@ -210,10 +210,12 @@ mod tests {
     use crate::artifacts::os::windows::shortcuts::shortcut::{
         get_shortcut_data, get_shortcut_info, ShortcutInfo,
     };
+    use crate::utils::time::unixepoch_to_iso;
     use common::windows::AttributeFlags;
     use common::windows::LocationFlag;
     use common::windows::ShellType::{Delegate, Directory, RootFolder};
     use common::windows::{DataFlags, DriveType, NetworkProviderType, ShellItem};
+
     #[test]
     fn test_get_shortcut_data() {
         let test = [
@@ -253,9 +255,9 @@ mod tests {
         ];
 
         let (_, result) = get_shortcut_data(&test).unwrap();
-        assert_eq!(result.created, 1667441367);
-        assert_eq!(result.modified, 1670566100);
-        assert_eq!(result.accessed, 1670566252);
+        assert_eq!(result.created, "2022-11-03T02:09:27.000Z");
+        assert_eq!(result.modified, "2022-12-09T06:08:20.000Z");
+        assert_eq!(result.accessed, "2022-12-09T06:10:52.000Z");
 
         assert_eq!(
             result.data_flags,
@@ -286,9 +288,9 @@ mod tests {
                 ShellItem {
                     value: String::from("59031a47-3f72-44a7-89c5-5595fe6b30ee"),
                     shell_type: RootFolder,
-                    created: 0,
-                    modified: 0,
-                    accessed: 0,
+                    created: String::new(),
+                    modified: String::new(),
+                    accessed: String::new(),
                     mft_entry: 0,
                     mft_sequence: 0,
                     stores: vec![],
@@ -296,9 +298,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Projects"),
                     shell_type: Delegate,
-                    created: 1571626314,
-                    modified: 1612040064,
-                    accessed: 1612040064,
+                    created: "2019-10-21T02:51:54.000Z".to_string(),
+                    modified: "2021-01-30T20:54:24.000Z".to_string(),
+                    accessed: "2021-01-30T20:54:24.000Z".to_string(),
                     mft_entry: 226573,
                     mft_sequence: 7,
                     stores: vec![],
@@ -306,9 +308,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Rust"),
                     shell_type: Directory,
-                    created: 1666575724,
-                    modified: 1667441368,
-                    accessed: 1670560382,
+                    created: "2022-10-24T01:42:04.000Z".to_string(),
+                    modified: "2022-11-03T02:09:28.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:02.000Z".to_string(),
                     mft_entry: 1133647,
                     mft_sequence: 4,
                     stores: vec![],
@@ -316,9 +318,9 @@ mod tests {
                 ShellItem {
                     value: String::from("artemis-core"),
                     shell_type: Directory,
-                    created: 1667441368,
-                    modified: 1670383114,
-                    accessed: 1670560418,
+                    created: "2022-11-03T02:09:28.000Z".to_string(),
+                    modified: "2022-12-07T03:18:34.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:38.000Z".to_string(),
                     mft_entry: 799135,
                     mft_sequence: 21,
                     stores: vec![],
@@ -387,9 +389,9 @@ mod tests {
             source_path: String::new(),
             data_flags: header.data_flags,
             attribute_flags: header.attribute_flags,
-            created: header.created,
-            modified: header.modified,
-            accessed: header.access,
+            created: unixepoch_to_iso(&header.created),
+            modified: unixepoch_to_iso(&header.modified),
+            accessed: unixepoch_to_iso(&header.access),
             file_size: header.file_size,
             location_flags: LocationFlag::None,
             path: String::new(),
@@ -421,9 +423,9 @@ mod tests {
         };
 
         let (_, _) = get_shortcut_info(input, &mut shortcut_info).unwrap();
-        assert_eq!(shortcut_info.created, 1667441367);
-        assert_eq!(shortcut_info.modified, 1670566100);
-        assert_eq!(shortcut_info.accessed, 1670566252);
+        assert_eq!(shortcut_info.created, "2022-11-03T02:09:27.000Z");
+        assert_eq!(shortcut_info.modified, "2022-12-09T06:08:20.000Z");
+        assert_eq!(shortcut_info.accessed, "2022-12-09T06:10:52.000Z");
 
         assert_eq!(
             shortcut_info.data_flags,
@@ -457,9 +459,9 @@ mod tests {
                 ShellItem {
                     value: String::from("59031a47-3f72-44a7-89c5-5595fe6b30ee"),
                     shell_type: RootFolder,
-                    created: 0,
-                    modified: 0,
-                    accessed: 0,
+                    created: String::new(),
+                    modified: String::new(),
+                    accessed: String::new(),
                     mft_entry: 0,
                     mft_sequence: 0,
                     stores: vec![],
@@ -467,9 +469,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Projects"),
                     shell_type: Delegate,
-                    created: 1571626314,
-                    modified: 1612040064,
-                    accessed: 1612040064,
+                    created: "2019-10-21T02:51:54.000Z".to_string(),
+                    modified: "2021-01-30T20:54:24.000Z".to_string(),
+                    accessed: "2021-01-30T20:54:24.000Z".to_string(),
                     mft_entry: 226573,
                     mft_sequence: 7,
                     stores: vec![],
@@ -477,9 +479,9 @@ mod tests {
                 ShellItem {
                     value: String::from("Rust"),
                     shell_type: Directory,
-                    created: 1666575724,
-                    modified: 1667441368,
-                    accessed: 1670560382,
+                    created: "2022-10-24T01:42:04.000Z".to_string(),
+                    modified: "2022-11-03T02:09:28.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:02.000Z".to_string(),
                     mft_entry: 1133647,
                     mft_sequence: 4,
                     stores: vec![],
@@ -487,9 +489,9 @@ mod tests {
                 ShellItem {
                     value: String::from("artemis-core"),
                     shell_type: Directory,
-                    created: 1667441368,
-                    modified: 1670383114,
-                    accessed: 1670560418,
+                    created: "2022-11-03T02:09:28.000Z".to_string(),
+                    modified: "2022-12-07T03:18:34.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:38.000Z".to_string(),
                     mft_entry: 799135,
                     mft_sequence: 21,
                     stores: vec![],

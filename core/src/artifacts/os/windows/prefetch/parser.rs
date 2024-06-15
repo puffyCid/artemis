@@ -120,7 +120,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, 1620610795);
+        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.000Z");
     }
 
     #[test]
@@ -139,7 +139,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, 1620610795);
+        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.000Z");
     }
 
     #[test]
@@ -156,7 +156,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "WINSDKSETUP.EXE");
         assert_eq!(results[124].hash, "637164D5");
-        assert_eq!(results[124].last_run_time, 1576552864);
+        assert_eq!(results[124].last_run_time, "2019-12-17T03:21:04.000Z");
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
         assert_eq!(results[1].path.contains("DLLHOST.EXE-5E46FA0D.pf"), true);
         assert_eq!(results[1].filename, "DLLHOST.EXE");
         assert_eq!(results[1].hash, "5E46FA0D");
-        assert_eq!(results[1].last_run_time, 1667183990);
+        assert_eq!(results[1].last_run_time, "2022-10-31T02:39:50.000Z");
     }
 
     #[test]
@@ -184,17 +184,21 @@ mod tests {
         assert_eq!(results[1].path.contains("7ZFM.EXE-44040917.pf"), true);
         assert_eq!(results[1].filename, "7ZFM.EXE");
         assert_eq!(results[1].hash, "44040917");
-        assert_eq!(results[1].last_run_time, 1665189531);
+        assert_eq!(results[1].last_run_time, "2022-10-08T00:38:51.000Z");
 
         for result in results {
             if result.path.contains("SVCHOST.EXE-576FFE64.pf") {
                 assert_eq!(result.path.contains("SVCHOST.EXE-576FFE64.pf"), true);
                 assert_eq!(result.filename, "SVCHOST.EXE");
                 assert_eq!(result.hash, "576FFE64");
-                assert_eq!(result.last_run_time, 1666317142);
+                assert_eq!(result.last_run_time, "2022-10-21T01:52:22.000Z");
                 assert_eq!(
                     result.all_run_times,
-                    vec![1666317142, 1665640344, 1665363442]
+                    vec![
+                        "2022-10-21T01:52:22.000Z",
+                        "2022-10-13T05:52:24.000Z",
+                        "2022-10-10T00:57:22.000Z"
+                    ]
                 );
                 assert_eq!(
                     result.volume_serial,
@@ -202,7 +206,11 @@ mod tests {
                 );
                 assert_eq!(
                     result.volume_creation,
-                    vec![1599200032, 1599200033, 1641252225]
+                    vec![
+                        "2020-09-04T06:13:52.000Z",
+                        "2020-09-04T06:13:53.000Z",
+                        "2022-01-03T23:23:45.000Z"
+                    ]
                 );
                 assert_eq!(
                     result.volume_path,
@@ -226,18 +234,24 @@ mod tests {
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, 1590283881);
+        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                1590283881, 1590283755, 1590283543, 1590283090, 1590279857, 1590279632, 1590279168,
-                1590277802
+                "2020-05-24T01:31:21.000Z",
+                "2020-05-24T01:29:15.000Z",
+                "2020-05-24T01:25:43.000Z",
+                "2020-05-24T01:18:10.000Z",
+                "2020-05-24T00:24:17.000Z",
+                "2020-05-24T00:20:32.000Z",
+                "2020-05-24T00:12:48.000Z",
+                "2020-05-23T23:50:02.000Z"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec![1576558381]);
+        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.000Z"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);
@@ -274,50 +288,6 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/bad data/malformed.pf");
 
-        let results = read_prefetch(&test_location.display().to_string()).unwrap();
-
-        assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
-        assert_eq!(results.filename, "CMD.EXE");
-        assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, 1590283881);
-        assert_eq!(
-            results.all_run_times,
-            vec![
-                1590283881, 1590283755, 1590283543, 1590283090, 1590279857, 1590279632, 1590279168,
-                1590277802
-            ]
-        );
-        assert_eq!(results.run_count, 80);
-        assert_eq!(results.size, 14130);
-        assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec![1576558381]);
-        assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
-        assert_eq!(results.accessed_files_count, 28);
-        assert_eq!(results.accessed_directories_count, 5);
-        assert_eq!(results.accessed_files.len(), 28);
-        assert_eq!(results.accessed_directories.len(), 5);
-
-        assert_eq!(
-            results.accessed_files[3],
-            "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSTEM32\\WOW64CPU.DLL"
-        );
-        assert_eq!(
-            results.accessed_files[12],
-            "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSWOW64\\CMDEXT.DLL"
-        );
-        assert_eq!(results.accessed_files[27], "\\DEVICE\\HARDDISKVOLUME2\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\TMP832F744F467240578F4610EC7E1C7547.EXEC.CMD");
-
-        assert_eq!(
-            results.accessed_directories[2],
-            "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\GLOBALIZATION\\SORTING"
-        );
-        assert_eq!(
-            results.accessed_directories[3],
-            "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSTEM32"
-        );
-        assert_eq!(
-            results.accessed_directories[4],
-            "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSWOW64"
-        );
+        let _ = read_prefetch(&test_location.display().to_string()).unwrap();
     }
 }

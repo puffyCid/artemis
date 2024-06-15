@@ -1,5 +1,5 @@
 use super::beef::beef0004;
-use crate::utils::time::fattime_utc_to_unixepoch;
+use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::{ShellItem, ShellType};
 use nom::{
@@ -12,9 +12,9 @@ use std::mem::size_of;
 pub(crate) struct DelegateItem {
     pub(crate) value: String,
     pub(crate) shell_type: ShellType,
-    pub(crate) created: i64,  // FAT time
-    pub(crate) modified: i64, // FAT time
-    pub(crate) accessed: i64, // FAT time
+    pub(crate) created: String,  // FAT time
+    pub(crate) modified: String, // FAT time
+    pub(crate) accessed: String, // FAT time
     pub(crate) mft_entry: u64,
     pub(crate) mft_sequence: u16,
     pub(crate) _delegate_guid: String,
@@ -71,7 +71,7 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
     let class_id = format_guid_le_bytes(guid_bytes);
 
     let (input, mut directory_item) = beef0004::parse_beef(input, ShellType::Delegate)?;
-    directory_item.modified = fattime_utc_to_unixepoch(modified_data);
+    directory_item.modified = unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data));
 
     let delegate_item = DelegateItem {
         value: directory_item.value,
@@ -111,9 +111,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, 1571701240);
-        assert_eq!(result.modified, 1571701240);
-        assert_eq!(result.accessed, 1571701240);
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
         assert_eq!(
             result._delegate_guid,
             "5e591a74-df96-48d3-8d67-1733bcee28ba"
@@ -138,9 +138,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, 1571701240);
-        assert_eq!(result.modified, 1571701240);
-        assert_eq!(result.accessed, 1571701240);
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
         assert_eq!(remaining, [0, 0]);
     }
 }

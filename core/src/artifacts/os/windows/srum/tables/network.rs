@@ -1,4 +1,4 @@
-use crate::artifacts::os::windows::srum::error::SrumError;
+use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::unixepoch_to_iso};
 use common::windows::{NetworkConnectivityInfo, NetworkInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -13,7 +13,7 @@ pub(crate) fn parse_network(
     for rows in column_rows {
         let mut network = NetworkInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             interface_luid: 0,
@@ -29,7 +29,8 @@ pub(crate) fn parse_network(
                     network.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    network.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    network.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -88,7 +89,7 @@ pub(crate) fn parse_network_connectivity(
     for rows in column_rows {
         let mut network = NetworkConnectivityInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             interface_luid: 0,
@@ -104,7 +105,8 @@ pub(crate) fn parse_network_connectivity(
                     network.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    network.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    network.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {

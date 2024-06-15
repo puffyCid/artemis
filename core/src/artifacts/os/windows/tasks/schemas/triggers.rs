@@ -704,7 +704,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let result = parse_trigger(&mut reader);
         assert_eq!(
@@ -727,7 +727,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -754,7 +754,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -790,7 +790,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -814,7 +814,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -842,7 +842,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -867,7 +867,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -893,7 +893,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -925,7 +925,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = Triggers {
             boot: Vec::new(),
@@ -957,7 +957,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = BaseTriggers {
             id: None,
@@ -987,7 +987,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut result = BaseTriggers {
             id: None,
@@ -1016,7 +1016,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let values = process_event_values(&mut reader);
         assert_eq!(values.len(), 3);
@@ -1029,7 +1029,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let result = process_cal_day(&mut reader);
         assert_eq!(result.days_interval.unwrap(), 1);
@@ -1043,7 +1043,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let result = process_cal_week(&mut reader);
         assert_eq!(result.days_of_week.unwrap()[0], "Monday");
@@ -1057,7 +1057,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let result = process_cal_month(&mut reader);
         assert_eq!(result.months.unwrap()[0], "July");
@@ -1078,7 +1078,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let result = process_cal_month_day_week(&mut reader);
         assert_eq!(result.months.unwrap()[0], "July");

@@ -1,4 +1,7 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_unixepoch};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
+};
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
 use log::error;
 use serde_json::Value;
@@ -13,7 +16,7 @@ pub(crate) fn parse_application(
     for rows in column_rows {
         let mut app = ApplicationInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             foreground_cycle_time: 0,
@@ -39,7 +42,8 @@ pub(crate) fn parse_application(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    app.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -139,11 +143,11 @@ pub(crate) fn parse_app_timeline(
     for rows in column_rows {
         let mut energy = AppTimelineInfo {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
-            end_time: 0,
+            end_time: String::new(),
             duration_ms: 0,
             span_ms: 0,
             timeline_end: 0,
@@ -189,7 +193,8 @@ pub(crate) fn parse_app_timeline(
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    energy.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -207,7 +212,9 @@ pub(crate) fn parse_app_timeline(
                 }
                 "Flags" => energy.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "EndTime" => {
-                    energy.end_time = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
+                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                    ));
                 }
                 "DurationMS" => {
                     energy.duration_ms = column.column_data.parse::<i32>().unwrap_or_default();
@@ -360,12 +367,12 @@ pub(crate) fn parse_vfu_provider(
     for rows in column_rows {
         let mut app = AppVfu {
             auto_inc_id: 0,
-            timestamp: 0,
+            timestamp: String::new(),
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
-            start_time: 0,
-            end_time: 0,
+            start_time: String::new(),
+            end_time: String::new(),
             usage: String::new(),
         };
 
@@ -375,7 +382,8 @@ pub(crate) fn parse_vfu_provider(
                     app.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
                 }
                 "TimeStamp" => {
-                    app.timestamp = column.column_data.parse::<i64>().unwrap_or_default();
+                    app.timestamp =
+                        unixepoch_to_iso(&column.column_data.parse::<i64>().unwrap_or_default());
                 }
                 "AppId" => {
                     if let Some(value) = lookups.get(&column.column_data) {
@@ -393,14 +401,14 @@ pub(crate) fn parse_vfu_provider(
                 }
                 "Flags" => app.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "StartTime" => {
-                    app.start_time = filetime_to_unixepoch(
+                    app.start_time = unixepoch_to_iso(&filetime_to_unixepoch(
                         &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
-                    );
+                    ));
                 }
                 "EndTime" => {
-                    app.end_time = filetime_to_unixepoch(
+                    app.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
                         &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
-                    );
+                    ));
                 }
                 "Usage" => app.usage.clone_from(&column.column_data),
                 _ => continue,

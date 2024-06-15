@@ -4,7 +4,7 @@ use crate::utils::{
         nom_unsigned_two_bytes, Endian,
     },
     strings::{extract_utf16_string, extract_utf8_string},
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
     uuid::format_guid_le_bytes,
 };
 use common::windows::{DestEntries, PinStatus};
@@ -136,7 +136,7 @@ pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
             birth_droid_file_id: format_guid_le_bytes(birth_file),
             hostname: extract_utf8_string(hostname_data),
             entry,
-            modified: filetime_to_unixepoch(&modified),
+            modified: unixepoch_to_iso(&filetime_to_unixepoch(&modified)),
             pin_status,
             path: extract_utf16_string(path_data),
         };

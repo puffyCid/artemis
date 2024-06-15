@@ -27,14 +27,14 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct Shellbag {
     pub(crate) path: String,
-    pub(crate) created: i64,
-    pub(crate) modified: i64,
-    pub(crate) accessed: i64,
+    pub(crate) created: String,
+    pub(crate) modified: String,
+    pub(crate) accessed: String,
     pub(crate) mft_entry: u64,
     pub(crate) mft_sequence: u16,
     pub(crate) shell_type: ShellType,
     pub(crate) resolve_path: String,
-    pub(crate) reg_modified: i64,
+    pub(crate) reg_modified: String,
     pub(crate) reg_file: String,
     pub(crate) reg_path: String,
     pub(crate) reg_file_path: String,
@@ -103,7 +103,7 @@ struct RegInfo {
     bagmru: String,
     reg_file: String,
     reg_file_path: String,
-    last_modified: i64,
+    last_modified: String,
 }
 
 /**
@@ -223,9 +223,9 @@ fn extract_shellbags(
                     ShellItem {
                         value: String::from("[Failed to parse ShellItem]"),
                         shell_type: ShellType::Unknown,
-                        created: 0,
-                        modified: 0,
-                        accessed: 0,
+                        created: String::new(),
+                        modified: String::new(),
+                        accessed: String::new(),
                         mft_entry: 0,
                         mft_sequence: 0,
                         stores: Vec::new(),
@@ -239,7 +239,7 @@ fn extract_shellbags(
                 bagmru: bagkey_vec[min_length - vec_adjust].to_string(),
                 reg_file: reg_filename.to_string(),
                 reg_file_path: reg_path.to_string(),
-                last_modified: entry.last_modified,
+                last_modified: entry.last_modified.clone(),
             };
 
             update_shellbags(&data, shell_map, clsids, &reg_info);
@@ -281,14 +281,14 @@ fn update_shellbags(
 
         let bag = Shellbag {
             path,
-            created: shell.created,
-            modified: shell.modified,
-            accessed: shell.accessed,
+            created: shell.created.clone(),
+            modified: shell.modified.clone(),
+            accessed: shell.accessed.clone(),
             mft_entry: shell.mft_entry,
             mft_sequence: shell.mft_sequence,
             shell_type: shell.shell_type.clone(),
             resolve_path,
-            reg_modified: reg_info.last_modified,
+            reg_modified: reg_info.last_modified.clone(),
             reg_file: reg_info.reg_file.clone(),
             reg_file_path: reg_info.reg_file_path.clone(),
             reg_path: reg_info.reg_path.clone(),
@@ -319,14 +319,14 @@ fn update_shellbags(
 
     let bag = Shellbag {
         path: shell.value.clone(),
-        created: shell.created,
-        modified: shell.modified,
-        accessed: shell.accessed,
+        created: shell.created.clone(),
+        modified: shell.modified.clone(),
+        accessed: shell.accessed.clone(),
         mft_entry: shell.mft_entry,
         mft_sequence: shell.mft_sequence,
         shell_type: shell.shell_type.clone(),
         resolve_path,
-        reg_modified: reg_info.last_modified,
+        reg_modified: reg_info.last_modified.clone(),
         reg_file: reg_info.reg_file.clone(),
         reg_file_path: reg_info.reg_file_path.clone(),
         reg_path: reg_info.reg_path.clone(),
@@ -410,9 +410,9 @@ mod tests {
         let item = ShellItem {
             value: String::from("rust is nice"),
             shell_type: ShellType::Directory,
-            created: 0,
-            modified: 0,
-            accessed: 0,
+            created: String::new(),
+            modified: String::new(),
+            accessed: String::new(),
             mft_entry: 0,
             mft_sequence: 0,
             stores: Vec::new(),
@@ -425,7 +425,7 @@ mod tests {
             bagmru: String::from("shellbags are complex"),
             reg_file: String::from("shellbags are complex"),
             reg_file_path: String::from("shellbags are complex"),
-            last_modified: 0,
+            last_modified: String::new(),
         };
         update_shellbags(&item, &mut shell_map, &empty_clsids, &reg_info);
         assert_eq!(shell_map.len(), 1);
@@ -436,13 +436,13 @@ mod tests {
         let bag = Shellbag {
             path: String::from("rust is nice"),
             shell_type: ShellType::Directory,
-            created: 0,
-            modified: 0,
-            accessed: 0,
+            created: String::new(),
+            modified: String::new(),
+            accessed: String::new(),
             mft_entry: 0,
             mft_sequence: 0,
             resolve_path: String::from("shellbags are complex"),
-            reg_modified: 0,
+            reg_modified: String::new(),
             reg_file: String::from("shellbags are complex"),
             reg_path: String::from("shellbags are complex"),
             reg_file_path: String::from("shellbags are complex"),

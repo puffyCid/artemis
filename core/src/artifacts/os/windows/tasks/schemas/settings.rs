@@ -331,7 +331,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = parse_settings(&mut reader);
         assert_eq!(result.disallow_start_if_on_batteries.unwrap(), false);
         assert_eq!(result.hidden.unwrap(), true);
@@ -345,7 +345,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut info = Settings {
             allow_start_on_demand: None,
@@ -382,7 +382,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut info = Settings {
             allow_start_on_demand: None,
@@ -420,7 +420,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut info = Settings {
             allow_start_on_demand: None,
@@ -459,7 +459,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut info = Settings {
             allow_start_on_demand: None,

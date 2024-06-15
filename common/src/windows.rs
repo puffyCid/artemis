@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
-    pub last_logon: i64,
-    pub password_last_set: i64,
-    pub account_expires: i64,
-    pub last_password_failure: i64,
+    pub last_logon: String,
+    pub password_last_set: String,
+    pub account_expires: String,
+    pub last_password_failure: String,
     pub relative_id: u32,
     pub primary_group_id: u32,
     pub user_account_control_flags: Vec<UacFlags>,
@@ -69,7 +69,7 @@ pub struct PeInfo {
  */
 #[derive(Debug, Serialize)]
 pub struct Amcache {
-    pub last_modified: i64,
+    pub last_modified: String,
     pub path: String,
     pub name: String,
     pub original_name: String,
@@ -101,10 +101,10 @@ pub struct BitsInfo {
     pub job_id: String,
     pub file_id: String,
     pub owner_sid: String,
-    pub created: i64,
-    pub modified: i64,
-    pub completed: i64,
-    pub expiration: i64,
+    pub created: String,
+    pub modified: String,
+    pub completed: String,
+    pub expiration: String,
     pub files_total: u32,
     pub bytes_downloaded: u64,
     pub bytes_transferred: u64,
@@ -151,10 +151,10 @@ pub struct JobInfo {
     pub job_id: String,
     pub file_id: String,
     pub owner_sid: String,
-    pub created: i64,
-    pub modified: i64,
-    pub completed: i64,
-    pub expiration: i64,
+    pub created: String,
+    pub modified: String,
+    pub completed: String,
+    pub expiration: String,
     pub job_name: String,
     pub job_description: String,
     pub job_command: String,
@@ -367,7 +367,7 @@ pub enum ColumnType {
 #[derive(Debug, Serialize)]
 pub struct EventLogRecord {
     pub event_record_id: u64,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub data: Value,
 }
 
@@ -389,7 +389,7 @@ pub struct DestEntries {
     pub birth_droid_file_id: String,
     pub hostname: String,
     pub entry: u32,
-    pub modified: i64,
+    pub modified: String,
     pub pin_status: PinStatus,
     pub path: String,
 }
@@ -412,9 +412,9 @@ pub struct ShortcutInfo {
     pub source_path: String,
     pub data_flags: Vec<DataFlags>,
     pub attribute_flags: Vec<AttributeFlags>,
-    pub created: i64,
-    pub modified: i64,
-    pub accessed: i64,
+    pub created: String,
+    pub modified: String,
+    pub accessed: String,
     pub file_size: u32,
     pub location_flags: LocationFlag,
     pub path: String,
@@ -633,11 +633,11 @@ pub struct ShellItem {
     pub value: String,
     pub shell_type: ShellType,
     /**FAT time */
-    pub created: i64,
+    pub created: String,
     /**FAT time */
-    pub modified: i64,
+    pub modified: String,
     /**FAT time */
-    pub accessed: i64,
+    pub accessed: String,
     pub mft_entry: u64,
     pub mft_sequence: u16,
     pub stores: Vec<HashMap<String, Value>>,
@@ -668,14 +668,14 @@ pub struct RawFilelist {
     pub directory: String,
     pub filename: String,
     pub extension: String,
-    pub created: i64,
-    pub modified: i64,
-    pub changed: i64,
-    pub accessed: i64,
-    pub filename_created: i64,
-    pub filename_modified: i64,
-    pub filename_changed: i64,
-    pub filename_accessed: i64,
+    pub created: String,
+    pub modified: String,
+    pub changed: String,
+    pub accessed: String,
+    pub filename_created: String,
+    pub filename_modified: String,
+    pub filename_changed: String,
+    pub filename_accessed: String,
     pub size: u64,
     pub compressed_size: u64,
     pub compression_type: CompressionType,
@@ -718,12 +718,12 @@ pub struct Prefetch {
     pub path: String,
     pub filename: String,
     pub hash: String,
-    pub last_run_time: i64,
-    pub all_run_times: Vec<i64>,
+    pub last_run_time: String,
+    pub all_run_times: Vec<String>,
     pub run_count: u32,
     pub size: u32,
     pub volume_serial: Vec<String>,
-    pub volume_creation: Vec<i64>,
+    pub volume_creation: Vec<String>,
     pub volume_path: Vec<String>,
     pub accessed_files_count: u32,
     pub accessed_directories_count: u32,
@@ -734,7 +734,7 @@ pub struct Prefetch {
 #[derive(Debug, Serialize)]
 pub struct RecycleBin {
     pub size: u64,
-    pub deleted: i64,
+    pub deleted: String,
     pub filename: String,
     pub full_path: String,
     pub directory: String,
@@ -755,7 +755,7 @@ pub struct RegistryEntry {
     pub key: String,  // ROOT\...\CurrentVersion
     pub name: String, // Run key
     pub values: Vec<KeyValue>,
-    pub last_modified: i64,
+    pub last_modified: String,
     pub depth: usize,
     pub security_offset: i32,
 }
@@ -777,7 +777,7 @@ pub struct ServicesData {
     pub path: String,
     pub service_type: Vec<ServiceType>,
     pub account: String,
-    pub modified: i64,
+    pub modified: String,
     pub service_dll: String,
     pub failure_command: String,
     pub reset_period: u32,
@@ -848,7 +848,7 @@ pub enum Action {
 pub struct ShimcacheEntry {
     pub entry: u32,
     pub path: String,
-    pub last_modified: i64,
+    pub last_modified: String,
     pub key_path: String,
 }
 
@@ -862,7 +862,7 @@ pub struct ShimData {
 #[derive(Debug, Serialize)]
 pub struct DatabaseData {
     pub sdb_version: String,
-    pub compile_time: i64,
+    pub compile_time: String,
     pub compiler_version: String,
     pub name: String,
     pub platform: u32,
@@ -880,7 +880,7 @@ pub struct TagData {
 #[derive(Debug, Serialize)]
 pub struct ApplicationInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub foreground_cycle_time: i64,
@@ -903,11 +903,11 @@ pub struct ApplicationInfo {
 #[derive(Debug, Serialize)]
 pub struct AppTimelineInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub flags: i32,
-    pub end_time: i64,
+    pub end_time: String,
     pub duration_ms: i32,
     pub span_ms: i32,
     pub timeline_end: i32,
@@ -951,19 +951,19 @@ pub struct AppTimelineInfo {
 #[derive(Debug, Serialize)]
 pub struct AppVfu {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub flags: i32,
-    pub start_time: i64,
-    pub end_time: i64,
+    pub start_time: String,
+    pub end_time: String,
     pub usage: String,
 }
 
 #[derive(Debug, Serialize)]
 pub struct EnergyInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub binary_data: String,
@@ -972,10 +972,10 @@ pub struct EnergyInfo {
 #[derive(Debug, Serialize)]
 pub struct EnergyUsage {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
-    pub event_timestamp: i64,
+    pub event_timestamp: String,
     pub state_transition: i32,
     pub full_charged_capacity: i32,
     pub designed_capacity: i32,
@@ -987,7 +987,7 @@ pub struct EnergyUsage {
 #[derive(Debug, Serialize)]
 pub struct NetworkInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub interface_luid: i64,
@@ -1000,7 +1000,7 @@ pub struct NetworkInfo {
 #[derive(Debug, Serialize)]
 pub struct NetworkConnectivityInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub interface_luid: i64,
@@ -1013,7 +1013,7 @@ pub struct NetworkConnectivityInfo {
 #[derive(Debug, Serialize)]
 pub struct NotificationInfo {
     pub auto_inc_id: i32,
-    pub timestamp: i64,
+    pub timestamp: String,
     pub app_id: String,
     pub user_id: String,
     pub notification_type: i32,
@@ -1382,7 +1382,7 @@ pub enum TriggerTypes {
 #[derive(Debug, Serialize)]
 pub struct UserAssistEntry {
     pub path: String,
-    pub last_execution: i64,
+    pub last_execution: String,
     pub count: u32,
     pub reg_path: String,
     pub rot_path: String,
@@ -1396,7 +1396,7 @@ pub struct UsnJrnlEntry {
     pub parent_mft_entry: u64,
     pub parent_mft_sequence: u16,
     pub update_sequence_number: u64,
-    pub update_time: i64,
+    pub update_time: String,
     pub update_reason: Vec<Reason>,
     pub update_source_flags: Source,
     pub security_descriptor_id: u32,

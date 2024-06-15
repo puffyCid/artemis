@@ -10,7 +10,7 @@ repository = { workspace = true }
 
 [dependencies]
 leptos = { version = "0.6.12", features = ["csr"] }
-leptos_router = { version = "0.6.11", default-features = false, features = [
+leptos_router = { version = "0.6.12", default-features = false, features = [
     "csr",
 ] }
 leptos_meta = { version = "0.6.12", features = ["csr"] }

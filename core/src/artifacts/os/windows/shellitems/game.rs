@@ -18,9 +18,9 @@ pub(crate) fn parse_game(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let game_item = ShellItem {
         value: guid_string,
         shell_type: GameFolder,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),

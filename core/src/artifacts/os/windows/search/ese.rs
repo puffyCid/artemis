@@ -21,7 +21,7 @@ use std::collections::HashMap;
 pub(crate) struct SearchEntry {
     pub(crate) document_id: i32,
     pub(crate) entry: String,
-    pub(crate) last_modified: i64,
+    pub(crate) last_modified: String,
     pub(crate) properties: HashMap<String, String>,
 }
 

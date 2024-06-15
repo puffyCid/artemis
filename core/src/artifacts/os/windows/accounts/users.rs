@@ -9,7 +9,7 @@ use crate::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
         },
         regex_options::create_regex,
-        time::filetime_to_unixepoch,
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use common::windows::{UacFlags, UserInfo};
@@ -143,10 +143,10 @@ fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
     let (input, number_logons) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
     let user = UserInfo {
-        last_logon: filetime_to_unixepoch(&last_logon),
-        password_last_set: filetime_to_unixepoch(&password_last_set),
-        account_expires: filetime_to_unixepoch(&account_expires),
-        last_password_failure: filetime_to_unixepoch(&last_password_failure),
+        last_logon: unixepoch_to_iso(&filetime_to_unixepoch(&last_logon)),
+        password_last_set: unixepoch_to_iso(&filetime_to_unixepoch(&password_last_set)),
+        account_expires: unixepoch_to_iso(&filetime_to_unixepoch(&account_expires)),
+        last_password_failure: unixepoch_to_iso(&filetime_to_unixepoch(&last_password_failure)),
         relative_id,
         primary_group_id,
         user_account_control_flags: get_flags(&account_control_flags),
@@ -307,10 +307,10 @@ mod tests {
             0, 0, 0, 0,
         ];
         let (_, results) = parse_user_data(&test).unwrap();
-        assert_eq!(results.account_expires, 910692730085);
-        assert_eq!(results.last_logon, -11644473600);
-        assert_eq!(results.password_last_set, 1571623200);
-        assert_eq!(results.last_password_failure, -11644473600);
+        assert_eq!(results.account_expires, "+30828-09-14T02:48:05.000Z");
+        assert_eq!(results.last_logon, "1601-01-01T00:00:00.000Z");
+        assert_eq!(results.password_last_set, "2019-10-21T02:00:00.000Z");
+        assert_eq!(results.last_password_failure, "1601-01-01T00:00:00.000Z");
         assert_eq!(results.relative_id, 504);
         assert_eq!(results.primary_group_id, 513);
         assert_eq!(

@@ -72,7 +72,7 @@ pub(crate) fn parse_custom<'a>(
                 birth_droid_file_id: String::new(),
                 hostname: String::new(),
                 entry: 0,
-                modified: 0,
+                modified: String::new(),
                 pin_status: PinStatus::None,
                 path: String::new(),
             },
@@ -111,9 +111,9 @@ mod tests {
 
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].jumplist_type, ListType::Custom);
-        assert_eq!(result[0].lnk_info.created, 1571636919);
-        assert_eq!(result[0].lnk_info.modified, 1686748880);
-        assert_eq!(result[0].lnk_info.accessed, 1691366002);
+        assert_eq!(result[0].lnk_info.created, "2019-10-21T05:48:39.000Z");
+        assert_eq!(result[0].lnk_info.modified, "2023-06-14T13:21:20.000Z");
+        assert_eq!(result[0].lnk_info.accessed, "2023-08-06T23:53:22.000Z");
         assert_eq!(result[0].lnk_info.file_size, 149416368);
 
         assert_eq!(
@@ -129,9 +129,9 @@ mod tests {
         assert_eq!(result[0].lnk_info.properties.len(), 2);
         assert_eq!(result[0].lnk_info.shellitems.len(), 5);
 
-        assert_eq!(result[7].lnk_info.created, 1571636919);
-        assert_eq!(result[7].lnk_info.modified, 1686748880);
-        assert_eq!(result[7].lnk_info.accessed, 1691366002);
+        assert_eq!(result[7].lnk_info.created, "2019-10-21T05:48:39.000Z");
+        assert_eq!(result[7].lnk_info.modified, "2023-06-14T13:21:20.000Z");
+        assert_eq!(result[7].lnk_info.accessed, "2023-08-06T23:53:22.000Z");
         assert_eq!(result[7].lnk_info.file_size, 149416368);
 
         assert_eq!(

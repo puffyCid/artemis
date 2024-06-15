@@ -11,7 +11,7 @@ use crate::artifacts::os::windows::shimdb::tags::qword::parse_qword;
 use crate::artifacts::os::windows::shimdb::tags::word::parse_word;
 use crate::utils::encoding::base64_encode_standard;
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
-use crate::utils::time::filetime_to_unixepoch;
+use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::DatabaseData;
 use nom::bytes::complete::take;
@@ -41,7 +41,7 @@ pub(crate) fn parse_db<'a>(
     let mut input = db_data;
     let mut database_data = DatabaseData {
         sdb_version: String::new(),
-        compile_time: 0,
+        compile_time: String::new(),
         compiler_version: String::new(),
         name: String::new(),
         platform: 0,
@@ -56,7 +56,7 @@ pub(crate) fn parse_db<'a>(
             let (sdb_data, compile_time) = get_db_time(sdb_data)?;
 
             input = sdb_data;
-            database_data.compile_time = filetime_to_unixepoch(&compile_time);
+            database_data.compile_time = unixepoch_to_iso(&filetime_to_unixepoch(&compile_time));
             continue;
         } else if tag_value == tag_compiler_version {
             let (sdb_data, compiler_version) = get_compiler_version(sdb_data, stringtable_data)?;
@@ -203,7 +203,7 @@ mod tests {
         let (_, result) = parse_db(&test_data, &table_data, &tag_values).unwrap();
 
         assert_eq!(result.additional_metadata.len(), 0);
-        assert_eq!(result.compile_time, 1451606400);
+        assert_eq!(result.compile_time, "2016-01-01T00:00:00.000Z");
         assert_eq!(result.platform, 6);
         assert_eq!(result.compiler_version, "3.0.0.9");
         assert_eq!(

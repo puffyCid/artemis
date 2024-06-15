@@ -112,7 +112,7 @@ mod tests {
 
         let result = grab_recycle_bin_path(&test_location.display().to_string()).unwrap();
 
-        assert_eq!(result.deleted, 1631147228);
+        assert_eq!(result.deleted, "2021-09-09T00:27:08.000Z");
         assert_eq!(result.size, 0);
         assert_eq!(result.filename, "ns_osquery_utils_system_systemutils");
         assert_eq!(

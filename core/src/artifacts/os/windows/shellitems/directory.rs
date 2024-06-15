@@ -1,5 +1,5 @@
 use super::beef::beef0004;
-use crate::utils::time::fattime_utc_to_unixepoch;
+use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
 use common::windows::{ShellItem, ShellType};
 use nom::{
     bytes::complete::{take, take_until},
@@ -26,7 +26,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, _primary_name_data) = take(primary_name_size)(input)?;
 
     let (input, mut directory_item) = beef0004::parse_beef(input, ShellType::Directory)?;
-    directory_item.modified = fattime_utc_to_unixepoch(modified_data);
+    directory_item.modified = unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data));
 
     Ok((input, directory_item))
 }
@@ -51,8 +51,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Directory);
         assert_eq!(result.mft_sequence, 15);
         assert_eq!(result.mft_entry, 2529);
-        assert_eq!(result.created, 1574819646);
-        assert_eq!(result.modified, 1574819646);
-        assert_eq!(result.accessed, 1574819646);
+        assert_eq!(result.created, "2019-11-27T01:54:06.000Z");
+        assert_eq!(result.modified, "2019-11-27T01:54:06.000Z");
+        assert_eq!(result.accessed, "2019-11-27T01:54:06.000Z");
     }
 }

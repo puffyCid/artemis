@@ -79,7 +79,7 @@ mod tests {
 
         let xml = read_xml(&test_location.display().to_string()).unwrap();
         let mut reader = Reader::from_str(&xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         loop {
             match reader.read_event() {

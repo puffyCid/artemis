@@ -13,9 +13,9 @@ pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let root_item = ShellItem {
         value: guid_string,
         shell_type: RootFolder,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -41,8 +41,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::RootFolder);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 }

@@ -30,7 +30,7 @@ pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
 /// Parse the different parts the XML schema format
 fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     let mut reader = Reader::from_str(xml);
-    reader.trim_text(true);
+    reader.config_mut().trim_text(true);
     let mut task_xml = TaskXml {
         registration_info: None,
         triggers: None,

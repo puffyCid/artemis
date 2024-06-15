@@ -86,7 +86,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = parse_principals(&mut reader);
         assert_eq!(result.user_id.unwrap(), "S-1-5-18");
         assert_eq!(result.required_privileges.unwrap()[0], "SuperAdmin");

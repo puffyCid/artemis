@@ -88,9 +88,9 @@ mod tests {
         let result = grab_jumplist_file(&test_location.display().to_string()).unwrap();
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].jumplist_type, ListType::Custom);
-        assert_eq!(result[0].lnk_info.created, 1571636919);
-        assert_eq!(result[0].lnk_info.modified, 1686748880);
-        assert_eq!(result[0].lnk_info.accessed, 1691366002);
+        assert_eq!(result[0].lnk_info.created, "2019-10-21T05:48:39.000Z");
+        assert_eq!(result[0].lnk_info.modified, "2023-06-14T13:21:20.000Z");
+        assert_eq!(result[0].lnk_info.accessed, "2023-08-06T23:53:22.000Z");
         assert_eq!(result[0].lnk_info.file_size, 149416368);
     }
 }

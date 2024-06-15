@@ -3,7 +3,7 @@ use crate::utils::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
     },
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::ShimcacheEntry;
 use nom::bytes::complete::take;
@@ -45,7 +45,7 @@ pub(crate) fn win7_format<'a>(
                 let shim_entry = ShimcacheEntry {
                     entry,
                     path: String::new(),
-                    last_modified: 0,
+                    last_modified: String::new(),
                     key_path: key_path.to_string(),
                 };
                 entry += 1;
@@ -59,7 +59,7 @@ pub(crate) fn win7_format<'a>(
             let shim_entry = ShimcacheEntry {
                 entry,
                 path: extract_utf16_string(path_data),
-                last_modified: filetime_to_unixepoch(&last_modified),
+                last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
                 key_path: key_path.to_string(),
             };
             entry += 1;
@@ -84,7 +84,7 @@ pub(crate) fn win7_format<'a>(
             let shim_entry = ShimcacheEntry {
                 entry,
                 path: String::new(),
-                last_modified: 0,
+                last_modified: String::new(),
                 key_path: key_path.to_string(),
             };
             entry += 1;
@@ -98,7 +98,7 @@ pub(crate) fn win7_format<'a>(
         let shim_entry = ShimcacheEntry {
             entry,
             path: extract_utf16_string(path_data),
-            last_modified: filetime_to_unixepoch(&last_modified),
+            last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             key_path: key_path.to_string(),
         };
         entry += 1;
@@ -124,7 +124,7 @@ mod tests {
             shim_data[34].path,
             "\\??\\C:\\Windows\\system32\\aitagent.EXE"
         );
-        assert_eq!(shim_data[34].last_modified, 1247534051);
+        assert_eq!(shim_data[34].last_modified, "2009-07-14T01:14:11.000Z");
     }
 
     #[test]
@@ -139,6 +139,6 @@ mod tests {
             shim_data[34].path,
             "\\??\\C:\\Program Files (x86)\\Google\\Update\\Install\\{1632C2A5-255B-443C-9881-CB9AD5A6F24C}\\GoogleUpdateSetup.exe"
         );
-        assert_eq!(shim_data[34].last_modified, 1422481620);
+        assert_eq!(shim_data[34].last_modified, "2015-01-28T21:47:00.000Z");
     }
 }

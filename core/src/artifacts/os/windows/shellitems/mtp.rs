@@ -31,9 +31,9 @@ pub(crate) fn get_folder_name(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mtp_item = ShellItem {
         value: name,
         shell_type: Mtp,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -68,9 +68,9 @@ pub(crate) fn get_storage_name(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mtp_item = ShellItem {
         value: name,
         shell_type: Mtp,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -85,9 +85,9 @@ pub(crate) fn get_mtp_device(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let item = ShellItem {
         value: mtp.device,
         shell_type: Volume,
-        created: 0,
-        modified: 0,
-        accessed: 0,
+        created: String::new(),
+        modified: String::new(),
+        accessed: String::new(),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -243,9 +243,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Volume);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -320,9 +320,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Mtp);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -369,8 +369,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Mtp);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, 0);
-        assert_eq!(result.modified, 0);
-        assert_eq!(result.accessed, 0);
+        assert_eq!(result.created, "");
+        assert_eq!(result.modified, "");
+        assert_eq!(result.accessed, "");
     }
 }

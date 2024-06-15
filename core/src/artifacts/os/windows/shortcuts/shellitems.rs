@@ -94,9 +94,9 @@ mod tests {
         assert_eq!(results[6].value, "windows");
         assert_eq!(results[7].value, "amcache");
         assert_eq!(results[7].shell_type, ShellType::Directory);
-        assert_eq!(results[7].created, 1673414046);
-        assert_eq!(results[7].modified, 1673414046);
-        assert_eq!(results[7].accessed, 1673414046);
+        assert_eq!(results[7].created, "2023-01-11T05:14:06.000Z");
+        assert_eq!(results[7].modified, "2023-01-11T05:14:06.000Z");
+        assert_eq!(results[7].accessed, "2023-01-11T05:14:06.000Z");
         assert_eq!(results[7].mft_entry, 489707);
         assert_eq!(results[7].mft_sequence, 26);
     }

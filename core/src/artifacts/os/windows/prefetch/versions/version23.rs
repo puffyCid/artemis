@@ -1,7 +1,7 @@
 use super::version30::Version30;
 use crate::utils::{
     nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use nom::bytes::complete::take;
 use std::mem::size_of;
@@ -23,9 +23,9 @@ impl Version23 {
         let (input, volume_info_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, unknown) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-        let mut run_times: Vec<i64> = Vec::new();
+        let mut run_times: Vec<String> = Vec::new();
         let (input, runtime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-        run_times.push(filetime_to_unixepoch(&runtime));
+        run_times.push(unixepoch_to_iso(&filetime_to_unixepoch(&runtime)));
 
         let (input, unknown2_data) = take(size_of::<u128>())(input)?;
 
@@ -60,6 +60,7 @@ impl Version23 {
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::windows::prefetch::versions::version23::Version23;
+
     #[test]
     fn test_parse_file_info_ver23() {
         let test_data = vec![
@@ -81,6 +82,6 @@ mod tests {
         assert_eq!(result.number_volumes, 1);
         assert_eq!(result.volume_info_size, 2150);
         assert_eq!(result.run_count, 1);
-        assert_eq!(result.run_times, vec![1667184038]);
+        assert_eq!(result.run_times, vec!["2022-10-31T02:40:38.000Z"]);
     }
 }

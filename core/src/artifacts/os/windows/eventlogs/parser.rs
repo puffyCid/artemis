@@ -16,6 +16,7 @@ use crate::{
     structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
     utils::{environment::get_systemdrive, time::time_now},
 };
+use chrono::SecondsFormat;
 use common::windows::EventLogRecord;
 use evtx::EvtxParser;
 use log::error;
@@ -50,7 +51,7 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.timestamp_nanos_opt().unwrap_or_default(),
+                    timestamp: data.timestamp.to_rfc3339_opts(SecondsFormat::Nanos, true),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);
@@ -132,7 +133,7 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.timestamp_nanos_opt().unwrap_or_default(),
+                    timestamp: data.timestamp.to_rfc3339_opts(SecondsFormat::Nanos, true),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);

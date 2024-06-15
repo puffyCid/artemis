@@ -3,7 +3,7 @@ use crate::utils::{
     encoding::base64_decode_standard,
     environment::get_folder_descriptions,
     nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
-    time::filetime_to_unixepoch,
+    time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::UserAssistEntry;
 use log::{error, warn};
@@ -86,7 +86,7 @@ fn get_entries(
 fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let mut userassist = UserAssistEntry {
         path: String::new(),
-        last_execution: 0,
+        last_execution: String::new(),
         count: 0,
         reg_path: String::new(),
         rot_path: String::new(),
@@ -103,7 +103,7 @@ fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let (input, last_execution) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     userassist.count = count;
-    userassist.last_execution = filetime_to_unixepoch(&last_execution);
+    userassist.last_execution = unixepoch_to_iso(&filetime_to_unixepoch(&last_execution));
 
     Ok((input, userassist))
 }
@@ -140,7 +140,7 @@ mod tests {
         for entry in results {
             if entry.reg_path == "UEME_CTLSESSION" {
                 assert_eq!(entry.count, 0);
-                assert_eq!(entry.last_execution, 0);
+                assert_eq!(entry.last_execution, "");
                 assert_eq!(entry.rot_path, "HRZR_PGYFRFFVBA");
             }
         }

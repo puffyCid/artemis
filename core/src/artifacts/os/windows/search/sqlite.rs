@@ -60,7 +60,7 @@ pub(crate) fn parse_search_sqlite(
             let mut entry = SearchEntry {
                 document_id: 1,
                 entry: String::new(),
-                last_modified: 0,
+                last_modified: String::new(),
                 properties: HashMap::new(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property value.
@@ -183,7 +183,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
             let mut entry = SearchEntry {
                 document_id: 1,
                 entry: String::new(),
-                last_modified: 0,
+                last_modified: String::new(),
                 properties: HashMap::new(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property.
