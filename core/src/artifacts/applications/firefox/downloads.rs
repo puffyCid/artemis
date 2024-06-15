@@ -3,7 +3,7 @@
  *  Provides functions to parse Firefox Downloads data.
  * */
 use super::{error::FirefoxHistoryError, history::user_data};
-use crate::filesystem::directory::get_user_paths;
+use crate::{filesystem::directory::get_user_paths, utils::time::unixepoch_microseconds_to_iso};
 use common::applications::{FirefoxDownload, FirefoxDownloads, FirefoxHistoryEntry};
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
@@ -110,8 +110,14 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<FirefoxDownload>, Firefo
             flags: row.get("flags")?,
             expiration: row.get("expiration")?,
             download_type: row.get("type")?,
-            date_added: row.get("dateAdded")?,
-            last_modified: row.get("lastModified")?,
+            date_added: {
+                let value: i64 = row.get("dateAdded")?;
+                unixepoch_microseconds_to_iso(&value)
+            },
+            last_modified: {
+                let value: i64 = row.get("lastModified")?;
+                unixepoch_microseconds_to_iso(&value)
+            },
             name: row.get("name")?,
             history: FirefoxHistoryEntry {
                 moz_places_id: row.get("moz_places_id")?,
@@ -122,7 +128,10 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<FirefoxDownload>, Firefo
                 hidden: row.get("hidden")?,
                 typed: row.get("typed")?,
                 frequency: 0,
-                last_visit_date: row.get("last_visit_date").unwrap_or_default(),
+                last_visit_date: {
+                    let value: i64 = row.get("last_visit_date").unwrap_or_default();
+                    unixepoch_microseconds_to_iso(&value)
+                },
                 guid: row.get("guid")?,
                 foreign_count: row.get("foreign_count").unwrap_or_default(),
                 url_hash: row.get("url_hash")?,
@@ -139,12 +148,7 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<FirefoxDownload>, Firefo
             let mut download_vec: Vec<FirefoxDownload> = Vec::new();
             for download in download_iter {
                 match download {
-                    Ok(mut download_data) => {
-                        // Adjust to UNIXEPOCH seconds
-                        let adjust_time = 1000000;
-                        download_data.date_added /= adjust_time;
-                        download_data.last_modified /= adjust_time;
-                        download_data.history.last_visit_date /= adjust_time;
+                    Ok(download_data) => {
                         download_vec.push(download_data);
                     }
                     Err(err) => {
@@ -193,15 +197,15 @@ mod tests {
                 assert_eq!(result.history.url, "https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26iid%3D%7BA3C66172-6F8B-5CBB-E30B-10AEBD46614A%7D%26lang%3Den%26browser%3D3%26usagestats%3D0%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26ap%3Dx64-stable-statsdef_1%26installdataindex%3Dempty/update2/installers/ChromeSetup.exe");
                 assert_eq!(result.expiration, 4);
                 assert_eq!(result.download_type, 3);
-                assert_eq!(result.date_added, 1655590908);
-                assert_eq!(result.last_modified, 1655590908);
+                assert_eq!(result.date_added, "2022-06-18T22:21:48.198Z");
+                assert_eq!(result.last_modified, "2022-06-18T22:21:48.198Z");
                 assert_eq!(result.name, "downloads/destinationFileURI");
                 assert_eq!(result.history.moz_places_id, 1263);
                 assert_eq!(result.history.title, "ChromeSetup.exe");
                 assert_eq!(result.history.rev_host, "moc.elgoog.ld.");
                 assert_eq!(result.history.visit_count, 0);
                 assert_eq!(result.history.hidden, 0);
-                assert_eq!(result.history.last_visit_date, 1655590908);
+                assert_eq!(result.history.last_visit_date, "2022-06-18T22:21:48.060Z");
                 assert_eq!(result.history.guid, "I4m9vpx79Vuo");
                 assert_eq!(result.history.foreign_count, 0);
                 assert_eq!(result.history.url_hash, 47358292339056);
@@ -221,15 +225,15 @@ mod tests {
                 assert_eq!(result.history.url, "https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26iid%3D%7BA3C66172-6F8B-5CBB-E30B-10AEBD46614A%7D%26lang%3Den%26browser%3D3%26usagestats%3D0%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26ap%3Dx64-stable-statsdef_1%26installdataindex%3Dempty/update2/installers/ChromeSetup.exe");
                 assert_eq!(result.expiration, 4);
                 assert_eq!(result.download_type, 3);
-                assert_eq!(result.date_added, 1655590908);
-                assert_eq!(result.last_modified, 1655590908);
+                assert_eq!(result.date_added, "2022-06-18T22:21:48.397Z");
+                assert_eq!(result.last_modified, "2022-06-18T22:21:48.397Z");
                 assert_eq!(result.name, "downloads/metaData");
                 assert_eq!(result.history.moz_places_id, 1263);
                 assert_eq!(result.history.title, "ChromeSetup.exe");
                 assert_eq!(result.history.rev_host, "moc.elgoog.ld.");
                 assert_eq!(result.history.visit_count, 0);
                 assert_eq!(result.history.hidden, 0);
-                assert_eq!(result.history.last_visit_date, 1655590908);
+                assert_eq!(result.history.last_visit_date, "2022-06-18T22:21:48.060Z");
                 assert_eq!(result.history.guid, "I4m9vpx79Vuo");
                 assert_eq!(result.history.foreign_count, 0);
                 assert_eq!(result.history.url_hash, 47358292339056);

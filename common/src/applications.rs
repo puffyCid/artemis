@@ -15,16 +15,16 @@ pub struct ChromiumDownload {
     pub guid: String,
     pub current_path: String,
     pub target_path: String,
-    pub start_time: i64,
+    pub start_time: String,
     pub received_bytes: i64,
     pub total_bytes: i64,
     pub state: i64,
     pub danger_type: i64,
     pub interrupt_reason: i64,
     pub hash: Vec<u8>,
-    pub end_time: i64,
+    pub end_time: String,
     pub opened: i64,
-    pub last_access_time: i64,
+    pub last_access_time: String,
     pub transient: i64,
     pub referrer: String,
     pub site_url: String,
@@ -56,7 +56,7 @@ pub struct ChromiumHistoryEntry {
     pub title: String, // Can be null
     pub visit_count: i64,
     pub typed_count: i64,
-    pub last_visit_time: i64,
+    pub last_visit_time: String,
     pub hidden: i64,
     pub visits_id: i64,
     pub from_visit: i64, // Can be null
@@ -82,8 +82,8 @@ pub struct FirefoxDownload {
     pub flags: i64,
     pub expiration: i64,
     pub download_type: i64,
-    pub date_added: i64,
-    pub last_modified: i64,
+    pub date_added: String,
+    pub last_modified: String,
     pub name: String,
     pub history: FirefoxHistoryEntry,
 }
@@ -105,7 +105,7 @@ pub struct FirefoxHistoryEntry {
     pub hidden: i64,
     pub typed: i64,
     pub frequency: i64,
-    pub last_visit_date: i64, // Can be null
+    pub last_visit_date: String, // Can be null
     pub guid: String,
     pub foreign_count: i64, // Can be null
     pub url_hash: i64,

@@ -1,5 +1,8 @@
 use super::error::ChromiumHistoryError;
-use crate::{filesystem::directory::get_user_paths, utils::time::webkit_time_to_unixepoch};
+use crate::{
+    filesystem::directory::get_user_paths,
+    utils::time::{unixepoch_to_iso, webkit_time_to_unixepoch},
+};
 use common::applications::{ChromiumDownload, ChromiumDownloads};
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
@@ -104,16 +107,28 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<ChromiumDownload>, Chrom
             guid: row.get("guid")?,
             current_path: row.get("current_path")?,
             target_path: row.get("target_path")?,
-            start_time: row.get("start_time")?,
+            start_time: {
+                let value: i64 = row.get("start_time")?;
+                let adjust_time = 1000000;
+                unixepoch_to_iso(&webkit_time_to_unixepoch(&(value / adjust_time)))
+            },
             received_bytes: row.get("received_bytes")?,
             total_bytes: row.get("total_bytes")?,
             state: row.get("state")?,
             danger_type: row.get("danger_type")?,
             interrupt_reason: row.get("interrupt_reason")?,
             hash: row.get("hash")?,
-            end_time: row.get("end_time")?,
+            end_time: {
+                let value: i64 = row.get("end_time")?;
+                let adjust_time = 1000000;
+                unixepoch_to_iso(&webkit_time_to_unixepoch(&(value / adjust_time)))
+            },
             opened: row.get("opened")?,
-            last_access_time: row.get("last_access_time")?,
+            last_access_time: {
+                let value: i64 = row.get("last_access_time")?;
+                let adjust_time = 1000000;
+                unixepoch_to_iso(&webkit_time_to_unixepoch(&(value / adjust_time)))
+            },
             transient: row.get("transient")?,
             referrer: row.get("referrer")?,
             site_url: row.get("site_url")?,
@@ -137,16 +152,7 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<ChromiumDownload>, Chrom
             let mut download_vec: Vec<ChromiumDownload> = Vec::new();
             for download in download_iter {
                 match download {
-                    Ok(mut download_data) => {
-                        let adjust_time = 1000000;
-                        download_data.start_time =
-                            webkit_time_to_unixepoch(&(download_data.start_time / adjust_time));
-                        download_data.last_access_time = webkit_time_to_unixepoch(
-                            &(download_data.last_access_time / adjust_time),
-                        );
-                        download_data.end_time =
-                            webkit_time_to_unixepoch(&(download_data.end_time / adjust_time));
-
+                    Ok(download_data) => {
                         download_vec.push(download_data);
                     }
                     Err(err) => {
@@ -193,14 +199,14 @@ mod tests {
             results[0].target_path,
             "/home/ubunty/Downloads/PowerShell-7.2.1-win-arm64.zip"
         );
-        assert_eq!(results[0].start_time, 1645510360);
+        assert_eq!(results[0].start_time, "2022-02-22T06:12:40.000Z");
         assert_eq!(results[0].received_bytes, 68907014);
         assert_eq!(results[0].state, 1);
         assert_eq!(results[0].danger_type, 0);
         assert_eq!(results[0].interrupt_reason, 0);
-        assert_eq!(results[0].end_time, 1645510365);
+        assert_eq!(results[0].end_time, "2022-02-22T06:12:45.000Z");
         assert_eq!(results[0].opened, 0);
-        assert_eq!(results[0].last_access_time, -11644473600);
+        assert_eq!(results[0].last_access_time, "1601-01-01T00:00:00.000Z");
         assert_eq!(
             results[0].referrer,
             "https://github.com/PowerShell/PowerShell/releases/tag/v7.2.1"
