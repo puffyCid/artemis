@@ -77,7 +77,7 @@ mod tests {
             shim_data[0].path,
             "C:\\Users\\bob\\Documents\\ShellBagsExplorer\\ShellBagsExplorer.exe"
         );
-        assert_eq!(shim_data[0].last_modified, "1612060862");
+        assert_eq!(shim_data[0].last_modified, "2021-01-31T02:41:02.000Z");
         assert_eq!(shim_data[0].key_path, "test");
 
         assert_eq!(shim_data[1].entry, 1);
@@ -85,7 +85,7 @@ mod tests {
             shim_data[1].path,
             "C:\\Users\\bob\\Documents\\ShellBagsExplorer\\SBECmd.exe"
         );
-        assert_eq!(shim_data[1].last_modified, "1612060860");
+        assert_eq!(shim_data[1].last_modified, "2021-01-31T02:41:00.000Z");
         assert_eq!(shim_data[1].key_path, "test");
     }
 }

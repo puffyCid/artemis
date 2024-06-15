@@ -246,7 +246,7 @@ mod tests {
              "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = parse_actions(&mut reader);
         assert_eq!(result.exec[0].command, "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
     }
@@ -260,7 +260,7 @@ mod tests {
         "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = process_exec(&mut reader);
         assert_eq!(result.command , "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
         assert_eq!(result.arguments.unwrap(), "-all");
@@ -275,7 +275,7 @@ mod tests {
         "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = process_com(&mut reader);
         assert_eq!(result.class_id, "111-222-33389091-12321-4252asdf");
         assert_eq!(result.data.unwrap(), "whatever");
@@ -297,7 +297,7 @@ mod tests {
         "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = process_email(&mut reader);
         assert_eq!(result.to.unwrap(), "help@rust[.]com");
         assert_eq!(result.from, "me");
@@ -311,7 +311,7 @@ mod tests {
         "#;
 
         let mut reader = Reader::from_str(xml);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
         let result = process_message(&mut reader);
         assert_eq!(result.body, "messsage here");
         assert_eq!(result.title.unwrap(), "Fancy");

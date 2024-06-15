@@ -154,9 +154,9 @@ mod tests {
         ];
 
         let result = parse_lnk_data(&test).unwrap();
-        assert_eq!(result.created, "1667441367");
-        assert_eq!(result.modified, "1670566100");
-        assert_eq!(result.accessed, "1670566252");
+        assert_eq!(result.created, "2022-11-03T02:09:27.000Z");
+        assert_eq!(result.modified, "2022-12-09T06:08:20.000Z");
+        assert_eq!(result.accessed, "2022-12-09T06:10:52.000Z");
 
         assert_eq!(
             result.data_flags,
@@ -185,44 +185,44 @@ mod tests {
             result.shellitems,
             vec![
                 ShellItem {
-                    value: String::from("59031a47-3f72-44a7-89c5-5595fe6b30ee"),
+                    value: "59031a47-3f72-44a7-89c5-5595fe6b30ee".to_string(),
                     shell_type: RootFolder,
-                    created: String::new(),
-                    modified: String::new(),
-                    accessed: String::new(),
+                    created: "".to_string(),
+                    modified: "".to_string(),
+                    accessed: "".to_string(),
                     mft_entry: 0,
                     mft_sequence: 0,
-                    stores: vec![],
+                    stores: Vec::new(),
                 },
                 ShellItem {
-                    value: String::from("Projects"),
+                    value: "Projects".to_string(),
                     shell_type: Delegate,
-                    created: "1571626314".to_string(),
-                    modified: "1612040064".to_string(),
-                    accessed: "1612040064".to_string(),
+                    created: "2019-10-21T02:51:54.000Z".to_string(),
+                    modified: "2021-01-30T20:54:24.000Z".to_string(),
+                    accessed: "2021-01-30T20:54:24.000Z".to_string(),
                     mft_entry: 226573,
                     mft_sequence: 7,
-                    stores: vec![],
+                    stores: Vec::new(),
                 },
                 ShellItem {
-                    value: String::from("Rust"),
+                    value: "Rust".to_string(),
                     shell_type: Directory,
-                    created: "1666575724".to_string(),
-                    modified: "1667441368".to_string(),
-                    accessed: "1670560382".to_string(),
+                    created: "2022-10-24T01:42:04.000Z".to_string(),
+                    modified: "2022-11-03T02:09:28.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:02.000Z".to_string(),
                     mft_entry: 1133647,
                     mft_sequence: 4,
-                    stores: vec![],
+                    stores: Vec::new(),
                 },
                 ShellItem {
-                    value: String::from("artemis-core"),
+                    value: "artemis-core".to_string(),
                     shell_type: Directory,
-                    created: "1667441368".to_string(),
-                    modified: "1670383114".to_string(),
-                    accessed: "1670560418".to_string(),
+                    created: "2022-11-03T02:09:28.000Z".to_string(),
+                    modified: "2022-12-07T03:18:34.000Z".to_string(),
+                    accessed: "2022-12-09T04:33:38.000Z".to_string(),
                     mft_entry: 799135,
                     mft_sequence: 21,
-                    stores: vec![],
+                    stores: Vec::new(),
                 }
             ]
         );
@@ -260,9 +260,9 @@ mod tests {
                 DataFlags::PreferEnvironmentPath
             ]
         );
-        assert_eq!(result.created, "11644473600");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
+        assert_eq!(result.created, "1601-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1601-01-01T00:00:00.000Z");
+        assert_eq!(result.accessed, "1601-01-01T00:00:00.000Z");
         assert_eq!(result.properties.len(), 5);
         assert_eq!(result.environment_variable, "%windir%\\explorer.exe");
     }

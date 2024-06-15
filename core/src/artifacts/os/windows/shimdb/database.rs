@@ -203,7 +203,7 @@ mod tests {
         let (_, result) = parse_db(&test_data, &table_data, &tag_values).unwrap();
 
         assert_eq!(result.additional_metadata.len(), 0);
-        assert_eq!(result.compile_time, "1451606400");
+        assert_eq!(result.compile_time, "2016-01-01T00:00:00.000Z");
         assert_eq!(result.platform, 6);
         assert_eq!(result.compiler_version, "3.0.0.9");
         assert_eq!(

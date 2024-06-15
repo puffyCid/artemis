@@ -10,4 +10,4 @@ repository = { workspace = true }
 base64 = { workspace = true }
 log = { workspace = true }
 core = { path = "../core" }
-clap = { version = "4.5.4", features = ["std", "help", "derive"] }
+clap = { version = "4.5.7", features = ["std", "help", "derive"] }

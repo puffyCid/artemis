@@ -60,6 +60,7 @@ impl Version23 {
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::windows::prefetch::versions::version23::Version23;
+
     #[test]
     fn test_parse_file_info_ver23() {
         let test_data = vec![
@@ -81,6 +82,6 @@ mod tests {
         assert_eq!(result.number_volumes, 1);
         assert_eq!(result.volume_info_size, 2150);
         assert_eq!(result.run_count, 1);
-        assert_eq!(result.run_times, vec!["1667184038"]);
+        assert_eq!(result.run_times, vec!["2022-10-31T02:40:38.000Z"]);
     }
 }

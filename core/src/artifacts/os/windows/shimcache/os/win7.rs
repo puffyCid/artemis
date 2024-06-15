@@ -124,7 +124,7 @@ mod tests {
             shim_data[34].path,
             "\\??\\C:\\Windows\\system32\\aitagent.EXE"
         );
-        assert_eq!(shim_data[34].last_modified, "1247534051");
+        assert_eq!(shim_data[34].last_modified, "2009-07-14T01:14:11.000Z");
     }
 
     #[test]
@@ -139,6 +139,6 @@ mod tests {
             shim_data[34].path,
             "\\??\\C:\\Program Files (x86)\\Google\\Update\\Install\\{1632C2A5-255B-443C-9881-CB9AD5A6F24C}\\GoogleUpdateSetup.exe"
         );
-        assert_eq!(shim_data[34].last_modified, "1422481620");
+        assert_eq!(shim_data[34].last_modified, "2015-01-28T21:47:00.000Z");
     }
 }

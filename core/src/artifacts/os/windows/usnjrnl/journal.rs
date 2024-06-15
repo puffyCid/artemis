@@ -576,7 +576,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, "1675039199");
+        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.000Z");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);
@@ -606,7 +606,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, "1675039199");
+        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.000Z");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);

@@ -91,7 +91,7 @@ mod tests {
             shim_data[0].path,
             "SYSVOL\\Program Files\\Windows Defender\\MpCmdRun.exe"
         );
-        assert_eq!(shim_data[0].last_modified, "1621323713");
+        assert_eq!(shim_data[0].last_modified, "2021-05-18T07:41:53.000Z");
         assert_eq!(shim_data[0].key_path, "test");
 
         assert_eq!(shim_data[2].entry, 2);
@@ -99,7 +99,7 @@ mod tests {
             shim_data[1].path,
             "SYSVOL\\Program Files\\Windows Defender\\MsMpEng.exe"
         );
-        assert_eq!(shim_data[2].last_modified, "1416561412");
+        assert_eq!(shim_data[2].last_modified, "2014-11-21T09:16:52.000Z");
         assert_eq!(shim_data[2].key_path, "test");
     }
 }

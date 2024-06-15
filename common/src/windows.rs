@@ -907,7 +907,7 @@ pub struct AppTimelineInfo {
     pub app_id: String,
     pub user_id: String,
     pub flags: i32,
-    pub end_time: i64,
+    pub end_time: String,
     pub duration_ms: i32,
     pub span_ms: i32,
     pub timeline_end: i32,
@@ -955,8 +955,8 @@ pub struct AppVfu {
     pub app_id: String,
     pub user_id: String,
     pub flags: i32,
-    pub start_time: i64,
-    pub end_time: i64,
+    pub start_time: String,
+    pub end_time: String,
     pub usage: String,
 }
 

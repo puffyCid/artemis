@@ -39,8 +39,8 @@ mod tests {
             66, 226, 189, 132, 214, 1, 198, 63, 64, 72, 190, 132, 214, 1, 20, 0, 0, 0,
         ];
         let (_, (created, accessed, modified)) = parse_beef(&test_data).unwrap();
-        assert_eq!(created, "1599189119");
-        assert_eq!(accessed, "1599445584");
-        assert_eq!(modified, "1599445413");
+        assert_eq!(created, "2020-09-04T03:11:59.000Z");
+        assert_eq!(accessed, "2020-09-07T02:26:24.000Z");
+        assert_eq!(modified, "2020-09-07T02:23:33.000Z");
     }
 }

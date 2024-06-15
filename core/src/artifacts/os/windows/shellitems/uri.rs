@@ -86,7 +86,7 @@ mod tests {
         assert_eq!(result.mft_entry, 0);
         assert_eq!(result.created, "");
         assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "1613204690");
+        assert_eq!(result.accessed, "2021-02-13T08:24:50.000Z");
     }
 
     #[test]

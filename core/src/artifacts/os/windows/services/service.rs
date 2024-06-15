@@ -72,7 +72,7 @@ fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> Ser
     for info in service_data {
         if info.values.is_empty() {
             if info.name == service_name {
-                service.modified = info.last_modified.clone();
+                service.modified.clone_from(&info.last_modified);
                 service.reg_path.clone_from(&info.path);
             }
             continue;
@@ -80,7 +80,7 @@ fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> Ser
 
         for value in &info.values {
             if info.name == service_name {
-                service.modified = info.last_modified.clone();
+                service.modified.clone_from(&info.last_modified);
                 service.reg_path.clone_from(&info.path);
                 // Get Service metadata associated with Service Name key
                 metadata(value, &mut service);

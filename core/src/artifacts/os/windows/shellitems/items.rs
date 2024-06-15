@@ -183,9 +183,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, "1571701240");
-        assert_eq!(result.modified, "1571701240");
-        assert_eq!(result.accessed, "1571701240");
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
     }
 
     #[test]
@@ -204,9 +204,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, "1571701240");
-        assert_eq!(result.modified, "1571701240");
-        assert_eq!(result.accessed, "1571701240");
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
     }
 
     #[test]
@@ -225,9 +225,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, "1571701240");
-        assert_eq!(result.modified, "1571701240");
-        assert_eq!(result.accessed, "1571701240");
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
     }
 
     #[test]
@@ -238,8 +238,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Delegate);
         assert_eq!(result.mft_sequence, 12);
         assert_eq!(result.mft_entry, 278330);
-        assert_eq!(result.created, "1571701240");
-        assert_eq!(result.modified, "1571701240");
-        assert_eq!(result.accessed, "1571701240");
+        assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
+        assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
     }
 }

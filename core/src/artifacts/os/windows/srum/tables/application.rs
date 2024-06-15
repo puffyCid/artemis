@@ -147,7 +147,7 @@ pub(crate) fn parse_app_timeline(
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
-            end_time: 0,
+            end_time: String::new(),
             duration_ms: 0,
             span_ms: 0,
             timeline_end: 0,
@@ -212,7 +212,9 @@ pub(crate) fn parse_app_timeline(
                 }
                 "Flags" => energy.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "EndTime" => {
-                    energy.end_time = column.column_data.parse::<i64>().unwrap_or_default();
+                    energy.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
+                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                    ));
                 }
                 "DurationMS" => {
                     energy.duration_ms = column.column_data.parse::<i32>().unwrap_or_default();
@@ -369,8 +371,8 @@ pub(crate) fn parse_vfu_provider(
             app_id: String::new(),
             user_id: String::new(),
             flags: 0,
-            start_time: 0,
-            end_time: 0,
+            start_time: String::new(),
+            end_time: String::new(),
             usage: String::new(),
         };
 
@@ -399,14 +401,14 @@ pub(crate) fn parse_vfu_provider(
                 }
                 "Flags" => app.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "StartTime" => {
-                    app.start_time = filetime_to_unixepoch(
+                    app.start_time = unixepoch_to_iso(&filetime_to_unixepoch(
                         &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
-                    );
+                    ));
                 }
                 "EndTime" => {
-                    app.end_time = filetime_to_unixepoch(
+                    app.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
                         &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
-                    );
+                    ));
                 }
                 "Usage" => app.usage.clone_from(&column.column_data),
                 _ => continue,

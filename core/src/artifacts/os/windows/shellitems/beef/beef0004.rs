@@ -112,8 +112,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Directory);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 360510);
-        assert_eq!(result.created, "1559691896");
+        assert_eq!(result.created, "2019-06-04T23:44:56.000Z");
         assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "1615758152");
+        assert_eq!(result.accessed, "2021-03-14T21:42:32.000Z");
     }
 }

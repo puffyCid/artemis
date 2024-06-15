@@ -203,22 +203,22 @@ mod tests {
         assert_eq!(results.path.contains("_IU14D2N.TMP-136252D4.pf"), true);
         assert_eq!(results.filename, "_IU14D2N.TMP");
         assert_eq!(results.hash, "136252D4");
-        assert_eq!(results.last_run_time, "1655507964");
+        assert_eq!(results.last_run_time, "2022-06-17T23:19:24.000Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                "1655507964",
-                "1646978691",
-                "1640232797",
-                "1635477061",
-                "1632023865",
-                "1628991222"
+                "2022-06-17T23:19:24.000Z",
+                "2022-03-11T06:04:51.000Z",
+                "2021-12-23T04:13:17.000Z",
+                "2021-10-29T03:11:01.000Z",
+                "2021-09-19T03:57:45.000Z",
+                "2021-08-15T01:33:42.000Z"
             ]
         );
         assert_eq!(results.run_count, 6);
         assert_eq!(results.size, 153064);
         assert_eq!(results.volume_serial, vec!["D49D126F"]);
-        assert_eq!(results.volume_creation, vec!["1443412570"]);
+        assert_eq!(results.volume_creation, vec!["2015-09-28T03:56:10.000Z"]);
         assert_eq!(
             results.volume_path,
             vec!["\\VOLUME{01d0f9a19c586134-d49d126f}"]
@@ -266,24 +266,24 @@ mod tests {
         assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, "1590283881");
+        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                "1590283881",
-                "1590283755",
-                "1590283543",
-                "1590283090",
-                "1590279857",
-                "1590279632",
-                "1590279168",
-                "1590277802"
+                "2020-05-24T01:31:21.000Z",
+                "2020-05-24T01:29:15.000Z",
+                "2020-05-24T01:25:43.000Z",
+                "2020-05-24T01:18:10.000Z",
+                "2020-05-24T00:24:17.000Z",
+                "2020-05-24T00:20:32.000Z",
+                "2020-05-24T00:12:48.000Z",
+                "2020-05-23T23:50:02.000Z"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec!["1576558381"]);
+        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.000Z"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);

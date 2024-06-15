@@ -574,7 +574,7 @@ mod tests {
 
         assert_eq!(job.http_method, "GET");
         assert_eq!(job.timeout, 86400);
-        assert_eq!(job.created, "1671589083");
+        assert_eq!(job.created, "2022-12-21T02:18:03.000Z");
         assert_eq!(job.retry_delay, 60);
         assert_eq!(
             job.target_path,
@@ -604,7 +604,7 @@ mod tests {
 
         let results = get_legacy_jobs(&data).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, "1678775988");
+        assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
     }
@@ -617,7 +617,7 @@ mod tests {
 
         let (_, results) = parse_legacy_job(&data).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, "1678775988");
+        assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
     }

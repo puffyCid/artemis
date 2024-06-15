@@ -159,7 +159,7 @@ mod tests {
 
         let result = parse_sdb_file(&test_location.display().to_string()).unwrap();
         assert_eq!(result.db_data.additional_metadata.len(), 0);
-        assert_eq!(result.db_data.compile_time, "1451606400");
+        assert_eq!(result.db_data.compile_time, "2016-01-01T00:00:00.000Z");
         assert_eq!(result.db_data.platform, 6);
         assert_eq!(result.db_data.compiler_version, "3.0.0.9");
         assert_eq!(
