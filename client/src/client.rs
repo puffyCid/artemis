@@ -1,4 +1,7 @@
-use crate::{enrollment::enroll::enroll_client, filesystem::config::read_config};
+use crate::{
+    enrollment::enroll::enroll_client, filesystem::config::read_config,
+    socket::connect::start_connection,
+};
 use log::error;
 
 #[tokio::main]
@@ -15,11 +18,15 @@ pub async fn start(path: &str) {
     let enroll_status = enroll_client(&mut config).await;
     if enroll_status.is_err() {
         error!(
-            "[client] Could not read enroll endpoint: {:?}",
+            "[client] Could not enroll endpoint: {:?}",
             enroll_status.unwrap_err()
         );
         return;
     }
+
+    start_connection(&mut config)
+        .await
+        .expect("Websocket connection failed");
 }
 
 #[cfg(test)]

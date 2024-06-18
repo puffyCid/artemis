@@ -51,6 +51,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
             break;
         }
     }
+
     // If the message is None, don't setup any async tasks
     if message_source == MessageSource::None {
         warn!("[server] Unexpected message source none");
@@ -108,7 +109,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                 // If the source is the Server then the socket_data contains a command to be sent the client
                 if socket_message.source == MessageSource::Server {
                     let send_result =
-                        quick_jobs(&socket_message.id, &state.command.read().await).await;
+                        quick_jobs(&socket_message.content, &state.command.read().await).await;
                     if send_result.is_err() {
                         error!(
                             "[server] Could not issue quick job command: {:?}",
@@ -181,6 +182,7 @@ struct SocketMessage {
     id: String,
     platform: String,
     source: MessageSource,
+    content: String,
 }
 
 /// Parse websocket message. Currently messages are either Server messages (commands) or client messages (heartbeat)
@@ -194,6 +196,7 @@ async fn parse_message(
         id: String::new(),
         platform: String::new(),
         source: MessageSource::None,
+        content: String::new(),
     };
     match message {
         Message::Text(data) => {
@@ -207,6 +210,8 @@ async fn parse_message(
                     return ControlFlow::Break(());
                 }
                 socket_message.source = MessageSource::Server;
+                socket_message.content = data.to_string();
+
                 // Send the command the to targets
                 return ControlFlow::Continue(socket_message);
             }

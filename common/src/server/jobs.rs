@@ -1,11 +1,10 @@
 use crate::system::{LoadPerformance, Processes};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Command {
     /**Unique list of endpoint IDs */
-    pub targets: HashSet<String>,
+    pub targets: Vec<String>,
     /**Job to send to the targets */
     pub job: JobInfo,
 }
@@ -51,7 +50,6 @@ pub enum JobType {
     Collection,
     Processes,
     Filelist,
-    Script,
     Unknown,
 }
 

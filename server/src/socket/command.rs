@@ -17,7 +17,7 @@ pub(crate) async fn parse_command(data: &str, path: &str) -> Result<(), Error> {
         }
     };
 
-    if command.job.job_type == JobType::Collection {
+    if command.job.job_type != JobType::Collection {
         return Ok(());
     }
 
@@ -43,6 +43,7 @@ pub(crate) async fn quick_jobs(
     data: &str,
     channels: &RwLockReadGuard<'_, HashMap<String, mpsc::Sender<Message>>>,
 ) -> Result<(), Error> {
+    println!("commdn: {data}");
     let command_result: Result<Command, Error> = serde_json::from_str(data);
     let command = match command_result {
         Ok(result) => result,
@@ -69,6 +70,7 @@ pub(crate) async fn quick_jobs(
                     continue;
                 }
             };
+
             // Send job to the async client task. The job will only be sent the associated endpoint ID
             let result = sender.send(Message::Text(job)).await;
             if result.is_err() {

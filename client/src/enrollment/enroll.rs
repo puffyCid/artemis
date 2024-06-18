@@ -11,11 +11,11 @@ use serde_json::Value;
 
 /// Enroll the system into the server defined in the config
 pub(crate) async fn enroll_client(config: &mut ArtemisConfig) -> Result<(), EnrollError> {
-    let cliet_result = ClientBuilder::new()
+    let client_result = ClientBuilder::new()
         .danger_accept_invalid_certs(!config.endpoint_server.verify_ssl)
         .build();
 
-    let client = match cliet_result {
+    let client = match client_result {
         Ok(result) => result,
         Err(err) => {
             error!("[client] Could not create enroll client: {err:?}");
@@ -39,7 +39,7 @@ pub(crate) async fn enroll_client(config: &mut ArtemisConfig) -> Result<(), Enro
     };
 
     let mut builder = client.post(format!(
-        "{}:{}/endpoint/v{}/enroll",
+        "http://{}:{}/endpoint/v{}/enroll",
         config.endpoint_server.address, config.endpoint_server.port, config.endpoint_server.version
     ));
 

@@ -62,7 +62,6 @@ async fn get_job_type(job_type: &str) -> JobType {
     match job_type {
         "processes" => JobType::Processes,
         "filelist" => JobType::Filelist,
-        "script" => JobType::Script,
         _ => JobType::Unknown,
     }
 }
