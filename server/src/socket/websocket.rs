@@ -1,19 +1,18 @@
-use super::command::parse_command;
 use super::heartbeat::parse_heartbeat;
-use super::jobs::parse_job;
 use crate::enrollment::enroll::verify_enrollment;
+use crate::filestore::collections::save_collection;
 use crate::filestore::jobs::get_jobs;
 use crate::server::ServerState;
-use crate::socket::command::quick_jobs;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
+use common::server::collections::{CollectionRequest, QuickCollection};
+use common::server::heartbeat::Heartbeat;
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
 use std::collections::HashMap;
 use std::ops::ControlFlow::Continue;
 use std::{net::SocketAddr, ops::ControlFlow};
-use tokio::sync::mpsc;
 
 /// Accept websockets
 pub(crate) async fn socket_connection(
@@ -30,7 +29,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
     let storage_path = state.config.endpoint_server.storage.clone();
 
     let mut message_source = MessageSource::None;
-    let mut id = String::new();
+
     /*
      * When a system first connects over websockets we need to determine source of message:
      * 1. MessageSource::Client - Socket connection is remote system
@@ -47,7 +46,6 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
 
         if let Continue(socket_message) = control {
             message_source = socket_message.source;
-            id = socket_message.id;
             break;
         }
     }
@@ -57,32 +55,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
         warn!("[server] Unexpected message source none");
         return;
     }
-
-    /*
-     * Register new endpoint clients and use ID to track channels to send websocket commands from server
-     * When client system first checks in setup an async task and channel.
-     * This async task will be used to communicate with single client. This task is stored in a shared state (HashMap) to track individual clients
-     */
-    if message_source == MessageSource::Client && state.command.read().await.get(&id).is_none() {
-        let (client_send, mut client_recv) = mpsc::channel(50);
-
-        let _send_task = tokio::spawn(async move {
-            while let Some(msg) = client_recv.recv().await {
-                // If any websocket error, break loop.
-                let result = sender.send(msg).await;
-                if result.is_err() {
-                    error!(
-                        "[server] Could not send server message: {:?}",
-                        result.unwrap_err()
-                    );
-                    break;
-                }
-            }
-        });
-
-        // Register sender associated with endpoint client. Tracked via Endpoint ID
-        state.command.write().await.insert(id.clone(), client_send);
-    }
+    println!("{message_source:?}");
 
     /*
      * After we have registerd an async task for a client. Spawn another task to receive websocket data.
@@ -91,84 +64,84 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
      *  - Client heartbeat
      *  - Client jobs
      */
-    let _recv_task = tokio::spawn(async move {
-        while let Some(Ok(message)) = receiver.next().await {
-            // Parse the websocket data
-            let control = parse_message(&message, &addr, &storage_path).await;
-            // If the client disconnects from us, we need to remove from our tracker. We can no longer send commands from server
-            if control.is_break() {
-                state.command.write().await.remove(&id);
-                break;
+    // let _recv_task = tokio::spawn(async move {
+    while let Some(Ok(message)) = receiver.next().await {
+        // Parse the websocket data
+        let control = parse_message(&message, &addr, &storage_path).await;
+        // If the client disconnects from us, we need to remove from our tracker. We can no longer send commands from server
+        if control.is_break() {
+            println!("break?: {message:?}");
+            break;
+        }
+
+        if let Continue(socket_message) = control {
+            println!("message: {socket_message:?}");
+            if socket_message.source == MessageSource::None {
+                continue;
             }
 
-            if let Continue(socket_message) = control {
-                if socket_message.source == MessageSource::None {
+            // If the source is the Server then the socket_data contains a command to be sent the client
+            if socket_message.source == MessageSource::Server {
+                println!("command sent: {}", socket_message.content);
+                let send_result = sender.send(Message::Text(socket_message.content)).await;
+                if send_result.is_err() {
+                    error!(
+                        "[server] Could not server command clients {}: {:?}",
+                        socket_message.id,
+                        send_result.unwrap_err()
+                    );
+                }
+                continue;
+            }
+
+            /*
+             * The message source should now be Client. socket_data = endpoint_id
+             * The function `parse_message` already handles the heartbeat
+             *
+             * At this point we just need the endpoint_id to check for collection jobs
+             */
+            let endpoint_path = format!(
+                "{storage_path}/{}/{}",
+                socket_message.platform, socket_message.id
+            );
+            let jobs_result = get_jobs(&endpoint_path).await;
+            let jobs = match jobs_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!(
+                        "[server] Could not get jobs using ID {}: {err:?}",
+                        socket_message.id
+                    );
+                    HashMap::new()
+                }
+            };
+
+            // Serialize the available collection jobs if any
+            let serde_result = serde_json::to_string(&jobs);
+            let serde_value = match serde_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!(
+                        "[server] Could not serialize jobs for {}: {err:?}",
+                        socket_message.id
+                    );
                     continue;
                 }
+            };
 
-                // If the source is the Server then the socket_data contains a command to be sent the client
-                if socket_message.source == MessageSource::Server {
-                    let send_result =
-                        quick_jobs(&socket_message.content, &state.command.read().await).await;
-                    if send_result.is_err() {
-                        error!(
-                            "[server] Could not issue quick job command: {:?}",
-                            send_result.unwrap_err()
-                        );
-                    }
-                    continue;
-                }
-
-                /*
-                 * The message source should now be Client. socket_data = endpoint_id
-                 * The function `parse_message` already handles the heartbeat
-                 *
-                 * At this point we just need the endpoint_id to check for collection jobs
-                 */
-                let endpoint_path = format!(
-                    "{storage_path}/{}/{}",
-                    socket_message.platform, socket_message.id
+            // Get the registered socket sender associated with the registered async task for the Client.
+            // This was registered when the client first checked into the server
+            let send_result = sender.send(Message::Text(serde_value)).await;
+            if send_result.is_err() {
+                error!(
+                    "[server] Could not send jobs to ID {}: {:?}",
+                    socket_message.id,
+                    send_result.unwrap_err()
                 );
-                let jobs_result = get_jobs(&endpoint_path).await;
-                let jobs = match jobs_result {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!(
-                            "[server] Could not get jobs using ID {}: {err:?}",
-                            socket_message.id
-                        );
-                        HashMap::new()
-                    }
-                };
-
-                // Serialize the available collection jobs if any
-                let serde_result = serde_json::to_string(&jobs);
-                let serde_value = match serde_result {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!(
-                            "[server] Could not serialize jobs for {}: {err:?}",
-                            socket_message.id
-                        );
-                        continue;
-                    }
-                };
-
-                // Get the registered socket sender associated with the registered async task for the Client.
-                // This was registered when the client first checked into the server
-                if let Some(client_send) = state.command.read().await.get(&socket_message.id) {
-                    let send_result = client_send.send(Message::Text(serde_value)).await;
-                    if send_result.is_err() {
-                        error!(
-                            "[server] Could not send jobs to ID {}: {:?}",
-                            socket_message.id,
-                            send_result.unwrap_err()
-                        );
-                    }
-                }
             }
         }
-    });
+    }
+    // });
 }
 
 #[derive(PartialEq, Debug)]
@@ -178,6 +151,7 @@ enum MessageSource {
     None,
 }
 
+#[derive(PartialEq, Debug)]
 struct SocketMessage {
     id: String,
     platform: String,
@@ -200,42 +174,43 @@ async fn parse_message(
     };
     match message {
         Message::Text(data) => {
-            if data.contains("\"targets\":") && ip == "127.0.0.1" {
-                let command = parse_command(data, path).await;
-                if command.is_err() {
-                    error!(
-                        "[server] Could not parse the server command: {:?}",
-                        command.unwrap_err()
-                    );
+            if let Ok(_quick) = serde_json::from_str::<QuickCollection>(data) {
+                if ip != "127.0.0.1" {
+                    error!("[server] Received quick collection request from non-server IP");
                     return ControlFlow::Break(());
                 }
+                println!("socket message: {data}");
                 socket_message.source = MessageSource::Server;
                 socket_message.content = data.to_string();
 
                 // Send the command the to targets
                 return ControlFlow::Continue(socket_message);
             }
-            if data.contains("\"job\":") {
-                let job = parse_job(data, &ip, path).await;
-                if job.is_err() {
-                    error!(
-                        "[server] Could not parse the job result: {:?}",
-                        job.unwrap_err()
-                    );
+
+            if let Ok(collection) = serde_json::from_str::<CollectionRequest>(data) {
+                if ip != "127.0.0.1" {
+                    error!("[server] Received collection request from non-server IP");
                     return ControlFlow::Break(());
                 }
+                socket_message.source = MessageSource::Server;
+                socket_message.content = data.to_string();
+
+                let _ = save_collection(collection, path).await;
+
+                // Send the command the to targets
                 return ControlFlow::Continue(socket_message);
             }
 
             if verify_enrollment(data, &ip, path).is_err() {
                 return ControlFlow::Break(());
             }
-
             socket_message.source = MessageSource::Client;
-            if data.contains("\"heartbeat\":") {
+
+            if let Ok(_beat) = serde_json::from_str::<Heartbeat>(data) {
                 let (id, plat) = parse_heartbeat(data, &ip, path).await;
                 socket_message.id = id;
                 socket_message.platform = plat;
+
                 return ControlFlow::Continue(socket_message);
             }
         }

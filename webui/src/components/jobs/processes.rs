@@ -1,5 +1,5 @@
 use crate::web::server::request_server;
-use common::{server::jobs::ProcessJob, system::Processes};
+use common::system::Processes;
 use leptos::{
     component, create_node_ref, create_resource, create_signal, html, logging::error, view,
     IntoView, NodeRef, ReadSignal, Resource, Show, SignalGet, SignalSet, SignalUpdate, Transition,
@@ -9,7 +9,7 @@ use reqwest::Method;
 
 #[derive(Debug, Clone, PartialEq)]
 struct EndpointProcesses {
-    procs: ProcessJob,
+    procs: Vec<Processes>,
     count: i32,
     filter: String,
     offset: i32,
@@ -17,7 +17,7 @@ struct EndpointProcesses {
 
 #[component]
 /// Display process listing info
-pub(crate) fn EndpointProcesses(procs: Option<ProcessJob>) -> impl IntoView {
+pub(crate) fn EndpointProcesses(procs: Option<Vec<Processes>>) -> impl IntoView {
     if procs.is_none() {
         return view! {
           <div class="m-4 flex items-center">
@@ -355,7 +355,6 @@ fn sort_table(
             info.update(|endpoints| {
                 endpoints
                     .procs
-                    .data
                     .sort_by(|a, b| a.full_path.to_lowercase().cmp(&b.full_path.to_lowercase()))
             });
             update_order.set(false);
@@ -364,7 +363,6 @@ fn sort_table(
         info.update(|endpoints| {
             endpoints
                 .procs
-                .data
                 .sort_by(|a, b| b.full_path.to_lowercase().cmp(&a.full_path.to_lowercase()))
         });
         update_order.set(true);
@@ -373,7 +371,6 @@ fn sort_table(
             info.update(|endpoints| {
                 endpoints
                     .procs
-                    .data
                     .sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
             });
             update_order.set(false);
@@ -382,7 +379,6 @@ fn sort_table(
         info.update(|endpoints| {
             endpoints
                 .procs
-                .data
                 .sort_by(|a, b| b.name.to_lowercase().cmp(&a.name.to_lowercase()))
         });
         update_order.set(true);
@@ -391,7 +387,6 @@ fn sort_table(
             info.update(|endpoints| {
                 endpoints
                     .procs
-                    .data
                     .sort_by(|a, b| a.start_time.cmp(&b.start_time))
             });
             update_order.set(false);
@@ -401,7 +396,6 @@ fn sort_table(
         info.update(|endpoints| {
             endpoints
                 .procs
-                .data
                 .sort_by(|a, b| b.start_time.cmp(&a.start_time))
         });
         update_order.set(true);
@@ -409,7 +403,7 @@ fn sort_table(
 }
 
 /// Get processes associated with endpoint
-pub(crate) async fn endpoint_processes(data: String) -> Option<ProcessJob> {
+pub(crate) async fn endpoint_processes(data: String) -> Option<Vec<Processes>> {
     let res_result = request_server("endpoints/processes", data, Method::POST).await;
     let response = match res_result {
         Ok(result) => result,
@@ -433,7 +427,7 @@ pub(crate) async fn endpoint_processes(data: String) -> Option<ProcessJob> {
 async fn list_processes(procs: EndpointProcesses) -> Vec<Processes> {
     let mut data = Vec::new();
 
-    for (key, value) in procs.procs.data.into_iter().enumerate() {
+    for (key, value) in procs.procs.into_iter().enumerate() {
         if procs.offset > key as i32 {
             continue;
         }

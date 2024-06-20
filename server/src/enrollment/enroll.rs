@@ -69,8 +69,7 @@ mod tests {
         server::enrollment::{EnrollSystem, Enrollment},
         system::Memory,
     };
-    use std::{collections::HashMap, path::PathBuf, sync::Arc};
-    use tokio::sync::RwLock;
+    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_enroll_endpoint() {
@@ -107,8 +106,7 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
@@ -151,8 +149,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();

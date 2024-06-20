@@ -30,8 +30,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
 
         let res = route
             .with_state(server_state)

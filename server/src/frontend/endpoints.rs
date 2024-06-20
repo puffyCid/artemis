@@ -4,8 +4,8 @@ use crate::{filestore::endpoints::endpoint_count, server::ServerState};
 use axum::Json;
 use axum::{extract::State, http::StatusCode};
 use common::server::heartbeat::Heartbeat;
-use common::server::jobs::ProcessJob;
 use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
+use common::system::Processes;
 use log::error;
 
 /// Count number of Endpoints based on OS type
@@ -70,13 +70,13 @@ pub(crate) async fn endpoint_info(
 pub(crate) async fn endpoint_processes(
     State(state): State<ServerState>,
     data: String,
-) -> Result<Json<ProcessJob>, StatusCode> {
+) -> Result<Json<Vec<Processes>>, StatusCode> {
     let endpoint_dir = endpoint_path(&data, &state).await?;
     let entries_result = process_list(&endpoint_dir).await;
     let entry = match entries_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Could not get heartbeat info for {data}: {err:?}",);
+            error!("[server] Could not get process list info for {data}: {err:?}",);
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
@@ -128,8 +128,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let _ = endpoint_stats(test2, test).await.unwrap();
@@ -145,8 +145,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let data = Json(EndpointRequest {
@@ -198,8 +198,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
 
         let result = endpoint_path("Darwin.123", &server_state).await.unwrap();
         assert!(result.contains("123"))
@@ -216,8 +216,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let _ = endpoint_info(test2, "Darwin.123".to_string())
@@ -236,8 +236,8 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        //let command = Arc::new(RwLock::new(HashMap::new()));
+        let server_state = ServerState { config };
         let test2 = State(server_state);
 
         let _ = endpoint_processes(test2, "Darwin.123".to_string())
