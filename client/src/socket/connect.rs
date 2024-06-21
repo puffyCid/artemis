@@ -1,6 +1,9 @@
 use super::{error::SocketError, heartbeat::generate_heartbeat};
-use crate::socket::jobs::parse_server_job;
-use common::server::config::ArtemisConfig;
+use crate::socket::collections::{quick_collection, save_collection};
+use common::server::{
+    collections::{CollectionRequest, QuickCollection},
+    config::ArtemisConfig,
+};
 use futures_util::{SinkExt, StreamExt};
 use log::error;
 use std::time::Duration;
@@ -68,8 +71,20 @@ pub(crate) async fn start_connection(config: &mut ArtemisConfig) -> Result<(), S
         };
 
         println!("Received command: {command}");
-        if command.contains("job") {
-            let _ = parse_server_job(&command, &config.endpoint_server.storage).await;
+
+        if let Ok(collection) = serde_json::from_str::<CollectionRequest>(&command) {
+            if collection.targets.get(&config.endpoint_id).is_none() {
+                continue;
+            }
+            save_collection(&collection, &config.endpoint_server.storage).await?;
+            continue;
+        }
+
+        if let Ok(quick) = serde_json::from_str::<QuickCollection>(&command) {
+            if quick.target != config.endpoint_id {
+                continue;
+            }
+            quick_collection(&quick, &config.endpoint_server.storage).await?;
         }
     }
 

@@ -5,7 +5,9 @@ use crate::server::ServerState;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
-use common::server::collections::{CollectionRequest, QuickCollection};
+use common::server::collections::{
+    CollectionRequest, CollectionType, QuickCollection, QuickResponse,
+};
 use common::server::heartbeat::Heartbeat;
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
@@ -80,25 +82,29 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                     storage_path, socket_message.platform, socket_message.id
                 );
 
-                let jobs_result = get_endpoint_collections_notstarted(&endpoint_path).await;
-                let jobs = match jobs_result {
+                let collects_result = get_endpoint_collections_notstarted(&endpoint_path).await;
+                let collects = match collects_result {
                     Ok(result) => result,
                     Err(err) => {
                         error!(
-                            "[server] Could not get jobs using ID {}: {err:?}",
+                            "[server] Could not get collections using ID {}: {err:?}",
                             socket_message.id
                         );
                         continue;
                     }
                 };
 
-                // Serialize the available collection jobs if any
-                let serde_result = serde_json::to_string(&jobs);
+                if collects.is_empty() {
+                    continue;
+                }
+
+                // Serialize the available collections if any
+                let serde_result = serde_json::to_string(&collects);
                 let serde_value = match serde_result {
                     Ok(result) => result,
                     Err(err) => {
                         error!(
-                            "[server] Could not serialize jobs for {}: {err:?}",
+                            "[server] Could not serialize collections for {}: {err:?}",
                             socket_message.id
                         );
                         continue;
@@ -108,7 +114,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                 let send_result = state.clients.send(serde_value);
                 if send_result.is_err() {
                     error!(
-                        "[server] Could not send jobs to receiver {}: {:?}",
+                        "[server] Could not send collections to receiver {}: {:?}",
                         socket_message.id,
                         send_result.unwrap_err()
                     );
@@ -185,6 +191,13 @@ async fn parse_message(
                 socket_message.platform = plat;
 
                 return ControlFlow::Continue(socket_message);
+            }
+
+            if let Ok(quick_response) = serde_json::from_str::<QuickResponse>(data) {
+                match quick_response.collection_type {
+                    CollectionType::Processes => todo!(),
+                    CollectionType::Filelist => todo!(),
+                }
             }
         }
         Message::Binary(_) => {

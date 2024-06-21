@@ -134,7 +134,7 @@ mod tests {
         utils::{config::read_config, uuid::generate_uuid},
     };
     use common::server::collections::{
-        CollectionInfo, CollectionRequest, CollectionResponse, CollectionType, Status,
+        CollectionInfo, CollectionRequest, CollectionResponse, Status,
     };
     use std::collections::HashSet;
     use std::path::PathBuf;
@@ -148,7 +148,6 @@ mod tests {
         let mut value = CollectionResponse {
             target: String::from("dasfasfd"),
             info: CollectionInfo {
-                collection_type: CollectionType::Artifact,
                 id: 1,
                 name: String::from("dasfasdfsa"),
                 created: 10,

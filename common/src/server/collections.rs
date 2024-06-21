@@ -17,20 +17,20 @@ pub struct QuickCollection {
 /**
  * Data sent back over websockets
  */
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct QuickResponse {
     /**Endpoint ID */
-    id: String,
+    pub id: String,
     /** The type of data returned from the collection */
-    collection_type: CollectionType,
+    pub collection_type: CollectionType,
     /**The data returned */
-    data: Vec<Value>,
+    pub data: Vec<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum CollectionType {
     Processes,
     Filelist,
-    Artifact,
 }
 
 /**
@@ -48,8 +48,6 @@ pub struct CollectionRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct CollectionInfo {
-    /** The type of collection data. This should always be Artifact */
-    pub collection_type: CollectionType,
     /**Collection ID */
     pub id: u64,
     pub name: String,
