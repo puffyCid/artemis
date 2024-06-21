@@ -70,6 +70,7 @@ mod tests {
         system::Memory,
     };
     use std::path::PathBuf;
+    use tokio::sync::broadcast;
 
     #[tokio::test]
     async fn test_enroll_endpoint() {
@@ -106,7 +107,8 @@ mod tests {
             .await
             .unwrap();
 
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
@@ -149,8 +151,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();

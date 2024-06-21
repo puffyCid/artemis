@@ -1,6 +1,6 @@
 use super::error::StoreError;
 use crate::utils::filesystem::{append_file, is_file, read_lines};
-use common::server::collections::{CollectionInfo, CollectionRequest};
+use common::server::collections::{CollectionInfo, CollectionRequest, Status};
 use log::error;
 use redb::{Database, Error, TableDefinition};
 
@@ -84,6 +84,24 @@ pub(crate) async fn get_endpoint_collections(
     Ok(collects)
 }
 
+/// Return not-started Collections for endpoint. Path is full path to endpoint **including** the endpoint ID
+pub(crate) async fn get_endpoint_collections_notstarted(
+    path: &str,
+) -> Result<Vec<CollectionInfo>, StoreError> {
+    let collections = get_endpoint_collections(path).await?;
+
+    let mut not_started = Vec::new();
+    for entry in collections {
+        if entry.status != Status::NotStarted {
+            continue;
+        }
+
+        not_started.push(entry);
+    }
+
+    Ok(not_started)
+}
+
 /**
  * Update `CollectionInfo` at central `collections.redb` file.
  */
@@ -115,7 +133,7 @@ fn write_db(path: &str, collection: &CollectionRequest) -> Result<(), Error> {
     Ok(())
 }
 
-/// Update CollectionInfo in database
+/// Update `CollectionInfo` in database
 fn update_info_db(path: &str, info: &CollectionInfo) -> Result<(), Error> {
     let database = Database::create(path)?;
     let write_txn = database.begin_write()?;

@@ -74,8 +74,6 @@ pub struct CollectionResponse {
     pub started: u64,
     /**When endpoint finished the collection */
     pub finished: u64,
-    /**Compressed data associated with collection */
-    pub data: Vec<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]

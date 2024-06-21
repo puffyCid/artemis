@@ -114,8 +114,8 @@ mod tests {
         server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
-    use std::{collections::HashMap, path::PathBuf, sync::Arc};
-    use tokio::sync::RwLock;
+    use std::path::PathBuf;
+    use tokio::sync::broadcast;
 
     #[tokio::test]
     async fn test_endpoint_stats() {
@@ -128,8 +128,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let _ = endpoint_stats(test2, test).await.unwrap();
@@ -145,8 +145,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let data = Json(EndpointRequest {
@@ -198,8 +198,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
 
         let result = endpoint_path("Darwin.123", &server_state).await.unwrap();
         assert!(result.contains("123"))
@@ -216,8 +216,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let _ = endpoint_info(test2, "Darwin.123".to_string())
@@ -236,8 +236,8 @@ mod tests {
             .await
             .unwrap();
 
-        //let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
         let test2 = State(server_state);
 
         let _ = endpoint_processes(test2, "Darwin.123".to_string())

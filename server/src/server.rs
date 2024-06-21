@@ -5,10 +5,12 @@ use crate::{
 use common::server::config::ArtemisConfig;
 use log::error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use tokio::sync::broadcast;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ServerState {
     pub(crate) config: ArtemisConfig,
+    pub(crate) clients: broadcast::Sender<String>,
 }
 
 #[tokio::main]
@@ -28,8 +30,8 @@ pub async fn start(path: &str) {
         return;
     }
 
-    //let command = Arc::new(RwLock::new(HashMap::new()));
-    let server_state = ServerState { config };
+    let (clients, _rx) = broadcast::channel(100);
+    let server_state = ServerState { config, clients };
 
     let app = routes::setup_routes().with_state(server_state);
     let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);

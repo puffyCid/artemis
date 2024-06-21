@@ -16,6 +16,7 @@ mod tests {
         http::{Method, Request, StatusCode},
     };
     use std::path::PathBuf;
+    use tokio::sync::broadcast;
     use tower::util::ServiceExt;
 
     #[tokio::test]
@@ -30,7 +31,8 @@ mod tests {
             .await
             .unwrap();
 
-        let server_state = ServerState { config };
+        let (clients, _rx) = broadcast::channel(100);
+        let server_state = ServerState { config, clients };
 
         let res = route
             .with_state(server_state)
