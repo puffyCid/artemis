@@ -35,7 +35,8 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
-    use std::path::PathBuf;
+    use redb::Database;
+    use std::{path::PathBuf, sync::Arc};
     use tokio::sync::broadcast;
     use tower::ServiceExt;
 
@@ -49,7 +50,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
 
         let app = setup_routes();
         let res = app

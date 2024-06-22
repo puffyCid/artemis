@@ -12,6 +12,7 @@ use axum::{
 };
 use common::server::collections::CollectionResponse;
 use log::{error, warn};
+use redb::Database;
 
 /// Process uploaded data
 pub(crate) async fn upload_collection(
@@ -27,7 +28,7 @@ pub(crate) async fn upload_collection(
 
         if name == "collection-info" {
             let data = field.text().await.unwrap_or_default();
-            endpoint_id = update_collection_status(&path, &data).await?;
+            endpoint_id = update_collection_status(&path, &data, &state.central_collect_db).await?;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -46,7 +47,11 @@ pub(crate) async fn upload_collection(
 }
 
 /// Update the Collection DB using the uploaded collection-info data
-async fn update_collection_status(path: &str, data: &str) -> Result<String, StatusCode> {
+async fn update_collection_status(
+    path: &str,
+    data: &str,
+    db: &Database,
+) -> Result<String, StatusCode> {
     if path.is_empty() {
         error!("[server] No endpoint path provided cannot update collections.redb");
         return Err(StatusCode::BAD_REQUEST);
@@ -61,7 +66,7 @@ async fn update_collection_status(path: &str, data: &str) -> Result<String, Stat
         }
     };
 
-    let status = update_collection(&collect.info, path).await;
+    let status = update_collection(&collect.info, db).await;
     if status.is_err() {
         error!(
             "[server] Could not update collection info for {path}: {:?}",
@@ -136,6 +141,7 @@ mod tests {
     use common::server::collections::{
         CollectionInfo, CollectionRequest, CollectionResponse, Status,
     };
+    use redb::Database;
     use std::collections::HashSet;
     use std::path::PathBuf;
 
@@ -168,13 +174,19 @@ mod tests {
             info: value.info.clone(),
         };
 
-        save_collection(req, "./tmp").await.unwrap();
+        let db = Database::create("./tmp/uploads/test2.redb").unwrap();
+
+        save_collection(req, &db).await.unwrap();
 
         value.info.status = Status::Finished;
 
-        update_collection_status("./tmp/uploads", &serde_json::to_string(&value).unwrap())
-            .await
-            .unwrap();
+        update_collection_status(
+            "./tmp/uploads",
+            &serde_json::to_string(&value).unwrap(),
+            &db,
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]

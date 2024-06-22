@@ -59,7 +59,8 @@ mod tests {
         server::enrollment::{EnrollSystem, Enrollment},
         system::Memory,
     };
-    use std::path::PathBuf;
+    use redb::Database;
+    use std::{path::PathBuf, sync::Arc};
     use tokio::sync::broadcast;
 
     #[tokio::test]
@@ -98,7 +99,20 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create(format!(
+                "{}/collections15.redb",
+                config.endpoint_server.storage
+            ))
+            .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
+
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();
@@ -142,7 +156,19 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create(format!(
+                "{}/collections10.redb",
+                config.endpoint_server.storage
+            ))
+            .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
         let test2 = State(server_state);
 
         let result = enroll_endpoint(test2, test).await.unwrap();

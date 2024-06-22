@@ -9,11 +9,9 @@ use redb::{Database, Error, TableDefinition};
  */
 pub(crate) async fn save_collection(
     collection: CollectionRequest,
-    path: &str,
+    db: &Database,
 ) -> Result<(), StoreError> {
-    let collect_file = format!("{path}/collections.redb");
-
-    let status = write_db(&collect_file, &collection);
+    let status = write_db(&collection, db);
     if status.is_err() {
         error!("[server] Could not write collection database");
         return Err(StoreError::WriteFile);
@@ -105,9 +103,11 @@ pub(crate) async fn get_endpoint_collections_notstarted(
 /**
  * Update `CollectionInfo` at central `collections.redb` file.
  */
-pub(crate) async fn update_collection(info: &CollectionInfo, path: &str) -> Result<(), StoreError> {
-    let collect_file = format!("{path}/collections.redb");
-    let status = update_info_db(&collect_file, info);
+pub(crate) async fn update_collection(
+    info: &CollectionInfo,
+    db: &Database,
+) -> Result<(), StoreError> {
+    let status = update_info_db(info, db);
 
     if status.is_err() {
         error!("[server] Could not update collection database");
@@ -117,8 +117,7 @@ pub(crate) async fn update_collection(info: &CollectionInfo, path: &str) -> Resu
 }
 
 /// Store collection request to central database
-fn write_db(path: &str, collection: &CollectionRequest) -> Result<(), Error> {
-    let database = Database::create(path)?;
+fn write_db(collection: &CollectionRequest, database: &Database) -> Result<(), Error> {
     let write_txn = database.begin_write()?;
     {
         let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
@@ -134,8 +133,7 @@ fn write_db(path: &str, collection: &CollectionRequest) -> Result<(), Error> {
 }
 
 /// Update `CollectionInfo` in database
-fn update_info_db(path: &str, info: &CollectionInfo) -> Result<(), Error> {
-    let database = Database::create(path)?;
+fn update_info_db(info: &CollectionInfo, database: &Database) -> Result<(), Error> {
     let write_txn = database.begin_write()?;
     {
         let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
@@ -148,9 +146,11 @@ fn update_info_db(path: &str, info: &CollectionInfo) -> Result<(), Error> {
 }
 
 /// Add completed endpoint to collection database
-fn add_endpoint_db(path: &str, endpoint_id: &str, info: &CollectionInfo) -> Result<(), Error> {
-    let database = Database::create(path)?;
-
+fn add_endpoint_db(
+    endpoint_id: &str,
+    info: &CollectionInfo,
+    database: &Database,
+) -> Result<(), Error> {
     let read_txn = database.begin_read()?;
     let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
 
@@ -190,13 +190,14 @@ mod tests {
     };
     use crate::utils::filesystem::create_dirs;
     use common::server::collections::{CollectionInfo, CollectionRequest, Status};
+    use redb::Database;
     use std::collections::HashSet;
     use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_save_collection() {
         create_dirs("./tmp/save").await.unwrap();
-        let path = "./tmp/save";
+        let path = "./tmp/save/test.redb";
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
@@ -214,7 +215,9 @@ mod tests {
             start_time: 0,
         } };
 
-        save_collection(data, &path).await.unwrap();
+        let db = Database::create(path).unwrap();
+
+        save_collection(data, &db).await.unwrap();
     }
 
     #[tokio::test]
@@ -233,9 +236,8 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "WriteFile")]
     async fn test_update_collection() {
-        let path = "./tmpasdfasfd";
+        let path = "./tmp/asdfasfd";
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
@@ -253,15 +255,17 @@ mod tests {
             start_time: 0,
         } };
 
-        save_collection(data.clone(), path).await.unwrap();
+        let db = Database::create(path).unwrap();
+
+        save_collection(data.clone(), &db).await.unwrap();
         data.info.status = Status::Finished;
-        update_collection(&data.info, path).await.unwrap();
+        update_collection(&data.info, &db).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_write_db() {
         create_dirs("./tmp/save").await.unwrap();
-        let path = "./tmp/save/collections.redb";
+        let path = "./tmp/save/collections1.redb";
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
@@ -279,13 +283,15 @@ mod tests {
             start_time: 0,
         } };
 
-        write_db(path, &data).unwrap();
+        let db = Database::create(path).unwrap();
+
+        write_db(&data, &db).unwrap();
     }
 
     #[tokio::test]
     async fn test_update_info_db() {
         create_dirs("./tmp").await.unwrap();
-        let path = "./tmp";
+        let path = "./tmp/save/test2.redb";
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
@@ -303,15 +309,17 @@ mod tests {
             start_time: 0,
         } };
 
-        save_collection(data.clone(), path).await.unwrap();
+        let db = Database::create(path).unwrap();
+
+        save_collection(data.clone(), &db).await.unwrap();
         data.info.status = Status::Finished;
-        update_info_db(&format!("{path}/collections.redb"), &data.info).unwrap();
+        update_info_db(&data.info, &db).unwrap();
     }
 
     #[tokio::test]
     async fn test_add_endpoint_db() {
-        create_dirs("./tmp").await.unwrap();
-        let path = "./tmp/";
+        create_dirs("./tmp/test").await.unwrap();
+        let path = "./tmp/test/db.redb";
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
@@ -329,12 +337,9 @@ mod tests {
             start_time: 0,
         } };
 
-        save_collection(data.clone(), path).await.unwrap();
-        add_endpoint_db(
-            &format!("{path}/collections.redb"),
-            "asdfasdfafsd",
-            &data.info,
-        )
-        .unwrap();
+        let db = Database::create(path).unwrap();
+
+        save_collection(data.clone(), &db).await.unwrap();
+        add_endpoint_db("asdfasdfafsd", &data.info, &db).unwrap();
     }
 }

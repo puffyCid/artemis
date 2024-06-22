@@ -12,6 +12,7 @@ use common::server::collections::{
 use common::server::heartbeat::Heartbeat;
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
+use redb::Database;
 use std::ops::ControlFlow::Continue;
 use std::{net::SocketAddr, ops::ControlFlow};
 
@@ -50,8 +51,13 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
     let _recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
             // Parse the websocket data
-            let control =
-                parse_message(&message, &addr, &state.config.endpoint_server.storage).await;
+            let control = parse_message(
+                &message,
+                &addr,
+                &state.config.endpoint_server.storage,
+                &state.central_collect_db,
+            )
+            .await;
             if control.is_break() {
                 break;
             }
@@ -76,7 +82,6 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
 
                 /*
                  * The message source should now be Client. socket_data = endpoint_id
-                 * The function `parse_message` already handles the heartbeat
                  */
                 let endpoint_path = format!(
                     "{}/{}/{}",
@@ -145,6 +150,7 @@ async fn parse_message(
     message: &Message,
     addr: &SocketAddr,
     path: &str,
+    central_db: &Database,
 ) -> ControlFlow<(), SocketMessage> {
     let ip = addr.ip().to_string();
     let mut socket_message = SocketMessage {
@@ -175,7 +181,7 @@ async fn parse_message(
                 socket_message.source = MessageSource::Server;
                 socket_message.content = data.to_string();
 
-                let _ = save_collection(collection, path).await;
+                let _ = save_collection(collection, central_db).await;
 
                 // Send the command the to targets
                 return ControlFlow::Continue(socket_message);
@@ -204,7 +210,7 @@ async fn parse_message(
                     format!("{path}/{}/{}", quick_response.platform, quick_response.id);
                 match quick_response.collection_type {
                     CollectionType::Processes => {
-                        save_processes(&quick_response.data, &endpoint_dir).await
+                        save_processes(&quick_response.data, &endpoint_dir).await;
                     }
                     CollectionType::Filelist => {}
                 }
@@ -225,6 +231,8 @@ async fn parse_message(
 
 #[cfg(test)]
 mod tests {
+    use redb::Database;
+
     use super::parse_message;
     use crate::socket::websocket::Message::Text;
     use crate::socket::websocket::MessageSource;
@@ -243,7 +251,9 @@ mod tests {
         test_location.push("tests/test_data");
         let path = test_location.display().to_string();
 
-        let control = parse_message(&message, &address, &path).await;
+        let db = Database::create("./tmp/test.redb").unwrap();
+
+        let control = parse_message(&message, &address, &path, &db).await;
         if let Continue(socket_message) = control {
             assert_eq!(socket_message.id, "3482136c-3176-4272-9bd7-b79f025307d6");
             assert_eq!(socket_message.source, MessageSource::Client)

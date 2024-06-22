@@ -114,7 +114,8 @@ mod tests {
         server::webui::{EndpointOS, EndpointRequest},
         system::Memory,
     };
-    use std::path::PathBuf;
+    use redb::Database;
+    use std::{path::PathBuf, sync::Arc};
     use tokio::sync::broadcast;
 
     #[tokio::test]
@@ -129,7 +130,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections11.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
         let test2 = State(server_state);
 
         let _ = endpoint_stats(test2, test).await.unwrap();
@@ -146,7 +156,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections17.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
         let test2 = State(server_state);
 
         let data = Json(EndpointRequest {
@@ -199,7 +218,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections20.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
 
         let result = endpoint_path("Darwin.123", &server_state).await.unwrap();
         assert!(result.contains("123"))
@@ -217,7 +245,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections24.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
         let test2 = State(server_state);
 
         let _ = endpoint_info(test2, "Darwin.123".to_string())
@@ -237,7 +274,16 @@ mod tests {
             .unwrap();
 
         let (clients, _rx) = broadcast::channel(100);
-        let server_state = ServerState { config, clients };
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections31.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
         let test2 = State(server_state);
 
         let _ = endpoint_processes(test2, "Darwin.123".to_string())
