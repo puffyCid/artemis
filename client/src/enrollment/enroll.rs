@@ -220,7 +220,7 @@ mod tests {
         let data = serde_json::to_vec(&enroll_info).unwrap();
 
         let mut builder = client.post(format!(
-            "{}:{}/endpoint/v{}/enroll",
+            "http://{}:{}/endpoint/v{}/enroll",
             config.endpoint_server.address,
             config.endpoint_server.port,
             config.endpoint_server.version

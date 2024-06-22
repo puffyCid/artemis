@@ -28,20 +28,6 @@ pub(crate) fn generate_config() -> ArtemisConfig {
     }
 }
 
-/// Compare and verify enrollment key against server TOML config
-pub(crate) async fn verify_enroll_key(
-    key: &str,
-    config_path: &str,
-) -> Result<bool, UtilServerError> {
-    let config = read_config(config_path).await?;
-
-    if key != config.enroll_key {
-        return Ok(false);
-    }
-
-    Ok(true)
-}
-
 /// Return only the storage path from the server config
 pub(crate) async fn storage_path(config_path: &str) -> Result<String, UtilServerError> {
     let config = read_config(config_path).await?;
@@ -67,7 +53,7 @@ pub(crate) async fn read_config(path: &str) -> Result<ArtemisConfig, UtilServerE
 #[cfg(test)]
 mod tests {
     use super::generate_config;
-    use crate::utils::config::{read_config, storage_path, verify_enroll_key};
+    use crate::utils::config::{read_config, storage_path};
     use std::path::PathBuf;
 
     #[test]
@@ -86,17 +72,6 @@ mod tests {
             .unwrap();
         assert_eq!(result.enroll_key, "arandomkey");
         assert_eq!(result.endpoint_server.address, "127.0.0.1")
-    }
-
-    #[tokio::test]
-    async fn test_verify_enroll_key() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/server.toml");
-
-        let result = verify_enroll_key("arandomkey", &test_location.display().to_string())
-            .await
-            .unwrap();
-        assert!(result);
     }
 
     #[tokio::test]
