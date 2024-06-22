@@ -66,6 +66,15 @@ pub(crate) async fn create_endpoint_path(
     create_enroll_file(&collects_file, &[]).await?;
     create_enroll_file(&heartbeat_file, &[]).await?;
 
+    let status = create_dirs(&format!("{endpoint_path}/qc")).await;
+    if status.is_err() {
+        error!(
+            "[server] Failed to create endpoint quick collection directory: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StoreError::CreateDirectory);
+    }
+
     Ok(data.id)
 }
 

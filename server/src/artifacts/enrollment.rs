@@ -1,12 +1,6 @@
 use common::system::{Cpus, DiskDrives, Memory};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Endpoint {
-    pub(crate) endpoint_id: String,
-    pub(crate) platform: String,
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 /// Initial data for endpoint
 pub(crate) struct EndpointInfo {

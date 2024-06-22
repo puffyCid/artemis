@@ -23,6 +23,7 @@ pub struct QuickResponse {
     pub id: String,
     /** The type of data returned from the collection */
     pub collection_type: CollectionType,
+    pub platform: String,
     /**The data returned */
     pub data: Vec<Value>,
 }

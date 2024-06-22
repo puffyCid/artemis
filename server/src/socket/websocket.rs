@@ -1,5 +1,6 @@
 use super::heartbeat::parse_heartbeat;
 use crate::enrollment::enroll::verify_enrollment;
+use crate::filestore::cache::processes::save_processes;
 use crate::filestore::collections::{get_endpoint_collections_notstarted, save_collection};
 use crate::server::ServerState;
 use axum::extract::ws::{Message, WebSocket};
@@ -180,12 +181,13 @@ async fn parse_message(
                 return ControlFlow::Continue(socket_message);
             }
 
-            if verify_enrollment(data, &ip, path).is_err() {
-                return ControlFlow::Break(());
-            }
             socket_message.source = MessageSource::Client;
 
-            if let Ok(_beat) = serde_json::from_str::<Heartbeat>(data) {
+            if let Ok(beat) = serde_json::from_str::<Heartbeat>(data) {
+                if verify_enrollment(&beat.endpoint_id, &beat.platform, path).is_err() {
+                    return ControlFlow::Break(());
+                }
+
                 let (id, plat) = parse_heartbeat(data, &ip, path).await;
                 socket_message.id = id;
                 socket_message.platform = plat;
@@ -194,9 +196,17 @@ async fn parse_message(
             }
 
             if let Ok(quick_response) = serde_json::from_str::<QuickResponse>(data) {
+                if verify_enrollment(&quick_response.id, &quick_response.platform, path).is_err() {
+                    return ControlFlow::Break(());
+                }
+
+                let endpoint_dir =
+                    format!("{path}/{}/{}", quick_response.platform, quick_response.id);
                 match quick_response.collection_type {
-                    CollectionType::Processes => todo!(),
-                    CollectionType::Filelist => todo!(),
+                    CollectionType::Processes => {
+                        save_processes(&quick_response.data, &endpoint_dir).await
+                    }
+                    CollectionType::Filelist => {}
                 }
             }
         }
@@ -225,7 +235,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_message() {
         let message = Text(String::from(
-            r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","hostname":"hello","platform":"Darwin","boot_time":0,"os_version":"12.0","uptime":110,"kernel_version":"12.1","heartbeat":true,"timestamp":1111111,"jobs_running":0,"cpu":[{"frequency":0,"cpu_usage":25.70003890991211,"name":"1","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":25.076454162597656,"name":"2","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":8.922499656677246,"name":"3","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":6.125399112701416,"name":"4","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":4.081260681152344,"name":"5","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":3.075578451156616,"name":"6","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":2.0113024711608887,"name":"7","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.5097296237945557,"name":"8","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.288386583328247,"name":"9","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.1674108505249023,"name":"10","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10}],"disks":[{"disk_type":"SSD","file_system":"97112102115","mount_point":"/","total_space":494384795648 ,"available_space":295755320592 ,"removable":false},{"disk_type":"SSD","file_system":"97112102115","mount_point":"/System/Volumes/Data","total_space":494384795648 ,"available_space":295755320592 ,"removable":false}],"memory":{"available_memory":20146110464 ,"free_memory":6238076928 ,"free_swap":0,"total_memory":34359738368 ,"total_swap":0,"used_memory":18717523968 ,"used_swap":0}}"#,
+            r#"{"endpoint_id":"3482136c-3176-4272-9bd7-b79f025307d6","heartbeat":true,"timestamp":22,"jobs_running":100,"boot_time":1693527587,"hostname":"aStudio.lan","os_version":"13.2","uptime":4550,"kernel_version":"22.3.0","platform":"Darwin","ip":"127.0.0.1","artemis_version":"0.9.0","cpu":[{"frequency":0,"cpu_usage":25.70003890991211,"name":"1","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":25.076454162597656,"name":"2","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":8.922499656677246,"name":"3","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":6.125399112701416,"name":"4","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":4.081260681152344,"name":"5","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":3.075578451156616,"name":"6","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":2.0113024711608887,"name":"7","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.5097296237945557,"name":"8","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.288386583328247,"name":"9","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10},{"frequency":0,"cpu_usage":1.1674108505249023,"name":"10","vendor_id":"Apple","brand":"Apple M1 Max","physical_core_count":10}],"disks":[{"disk_type":"SSD","file_system":"97112102115","mount_point":"/","total_space":494384795648,"available_space":295755320592,"removable":false},{"disk_type":"SSD","file_system":"97112102115","mount_point":"/System/Volumes/Data","total_space":494384795648,"available_space":295755320592,"removable":false}],"memory":{"available_memory":20146110464,"free_memory":6238076928,"free_swap":0,"total_memory":34359738368,"total_swap":0,"used_memory":18717523968,"used_swap":0}}"#,
         ));
         let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);
 
