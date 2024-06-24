@@ -264,12 +264,10 @@ mod tests {
             file_data, filename_info, get_ads_names, get_attribute_name, get_attribute_type,
             standard_info,
         },
-        filesystem::{
-            files::Hashes,
-            ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
-        },
+        filesystem::ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
         structs::artifacts::os::windows::RawFilesOptions,
     };
+    use common::files::Hashes;
     use common::windows::CompressionType;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
