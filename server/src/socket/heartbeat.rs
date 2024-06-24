@@ -14,17 +14,21 @@ pub(crate) async fn parse_heartbeat(data: &str, ip: &str, endpoint_path: &str) -
         }
     };
 
-    // Heartbeat.json size limit is 10MB
+    // Heartbeat.jsonl size limit is 10MB
     let beat_size_limit = 10485760;
     let path = format!(
         "{endpoint_path}/{}/{}/heartbeat.jsonl",
         beat.platform, beat.endpoint_id
     );
-    // Serialize to a JSONL format. Unwrap is safe becase we went from String->Heartbeat->String
-    let beat_line = serde_json::to_string(&beat).unwrap();
-    let status = append_file(&beat_line, &path, &beat_size_limit).await;
+
+    let status = append_file(
+        &serde_json::to_string(&beat).unwrap(),
+        &path,
+        &beat_size_limit,
+    )
+    .await;
     if status.is_err() {
-        error!(
+        println!(
             "[server] Could not update heartbeat.jsonl file from {ip}: {:?}",
             status.unwrap_err()
         );

@@ -6,8 +6,9 @@ pub enum FileSystemError {
     NotFile,
     ReadFile,
     CreateDirectory,
-    CrateFile,
+    CreateFile,
     WriteFile,
+    AppendFile,
 }
 
 impl fmt::Display for FileSystemError {
@@ -17,8 +18,9 @@ impl fmt::Display for FileSystemError {
             FileSystemError::NotFile => write!(f, "Not a file"),
             FileSystemError::ReadFile => write!(f, "Could not read file"),
             FileSystemError::CreateDirectory => write!(f, "Could not create directory"),
-            FileSystemError::CrateFile => write!(f, "Could not create file"),
+            FileSystemError::CreateFile => write!(f, "Could not create file"),
             FileSystemError::WriteFile => write!(f, "Could not write file"),
+            FileSystemError::AppendFile => write!(f, "Could not append to file"),
         }
     }
 }

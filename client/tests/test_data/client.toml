@@ -8,7 +8,7 @@ min_rust_version = "1.70"
 target = "darwin"
 
 [endpoint_server]
-address = "http://127.0.0.1"
+address = "127.0.0.1"
 port = 8000
 cert = ""
 storage = "./tmp"

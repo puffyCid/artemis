@@ -1,4 +1,5 @@
-use crate::{artifacts::os::processes::process::proc_list, filesystem::files::Hashes};
+use crate::artifacts::os::processes::process::proc_list;
+use common::files::Hashes;
 use deno_core::{error::AnyError, op2};
 
 #[op2]

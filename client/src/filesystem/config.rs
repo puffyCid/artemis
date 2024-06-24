@@ -59,7 +59,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result.enroll_key, "arandomkey");
-        assert_eq!(result.endpoint_server.address, "http://127.0.0.1")
+        assert_eq!(result.endpoint_server.address, "127.0.0.1")
     }
 
     #[tokio::test]

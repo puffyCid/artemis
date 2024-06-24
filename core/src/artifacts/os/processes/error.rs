@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub(crate) enum ProcessError {
+pub enum ProcessError {
     Empty,
     ParseProcFile,
     ProcessList,

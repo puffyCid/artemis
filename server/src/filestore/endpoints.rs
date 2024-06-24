@@ -59,12 +59,21 @@ pub(crate) async fn create_endpoint_path(
     }
 
     let enroll_file = format!("{endpoint_path}/enroll.json");
-    let jobs_file = format!("{endpoint_path}/jobs.json");
+    let collects_file = format!("{endpoint_path}/collections.jsonl");
     let heartbeat_file = format!("{endpoint_path}/heartbeat.jsonl");
 
     create_enroll_file(&enroll_file, &value).await?;
-    create_enroll_file(&jobs_file, &[]).await?;
+    create_enroll_file(&collects_file, &[]).await?;
     create_enroll_file(&heartbeat_file, &[]).await?;
+
+    let status = create_dirs(&format!("{endpoint_path}/qc")).await;
+    if status.is_err() {
+        error!(
+            "[server] Failed to create endpoint quick collection directory: {:?}",
+            status.unwrap_err()
+        );
+        return Err(StoreError::CreateDirectory);
+    }
 
     Ok(data.id)
 }

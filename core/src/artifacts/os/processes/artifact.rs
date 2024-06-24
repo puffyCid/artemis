@@ -1,10 +1,10 @@
 use super::{error::ProcessError, process::proc_list};
 use crate::{
     artifacts::output::output_artifact,
-    filesystem::files::Hashes,
     structs::{artifacts::os::processes::ProcessOptions, toml::Output},
     utils::time,
 };
+use common::files::Hashes;
 use log::{error, warn};
 
 /// Collect a process listing from a system

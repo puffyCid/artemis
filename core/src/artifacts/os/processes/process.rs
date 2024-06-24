@@ -4,12 +4,10 @@
  */
 use super::error::ProcessError;
 use crate::{
-    filesystem::{
-        directory::get_parent_directory,
-        files::{hash_file, Hashes},
-    },
+    filesystem::{directory::get_parent_directory, files::hash_file},
     utils::time::unixepoch_to_iso,
 };
+use common::files::Hashes;
 use common::system::Processes;
 use log::{info, warn};
 use sysinfo::{Process, ProcessRefreshKind, System};
@@ -28,10 +26,7 @@ use super::executable::elf_metadata;
 use common::linux::ElfInfo;
 
 /// Get process listing.
-pub(crate) fn proc_list(
-    hashes: &Hashes,
-    binary_data: bool,
-) -> Result<Vec<Processes>, ProcessError> {
+pub fn proc_list(hashes: &Hashes, binary_data: bool) -> Result<Vec<Processes>, ProcessError> {
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
 
@@ -150,10 +145,8 @@ fn executable_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::processes::process::executable_metadata;
-    use crate::{
-        artifacts::os::processes::process::{proc_info, proc_list},
-        filesystem::files::Hashes,
-    };
+    use crate::artifacts::os::processes::process::{proc_info, proc_list};
+    use common::files::Hashes;
     use common::system::Processes;
     use sysinfo::System;
 

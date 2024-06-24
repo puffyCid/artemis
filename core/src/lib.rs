@@ -72,7 +72,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
-mod artifacts;
+pub mod artifacts;
 pub mod core;
 mod error;
 mod filesystem;

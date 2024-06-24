@@ -6,15 +6,13 @@ use super::{
 };
 use crate::{
     artifacts::os::systeminfo::info::get_platform,
-    filesystem::{
-        error::FileSystemError,
-        files::{read_file_custom, Hashes},
-    },
+    filesystem::{error::FileSystemError, files::read_file_custom},
     utils::{
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
     },
 };
+use common::files::Hashes;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use ntfs::{
@@ -549,19 +547,16 @@ pub(crate) fn iterate_ntfs(
 mod tests {
     use super::{get_user_registry_files, iterate_ntfs, raw_reader, NtfsOptions};
     use crate::{
-        filesystem::{
-            files::Hashes,
-            ntfs::{
-                raw_files::{
-                    raw_hash_data, raw_read_by_file_ref, raw_read_data, raw_read_file,
-                    read_attribute,
-                },
-                sector_reader::SectorReader,
-                setup::setup_ntfs_parser,
+        filesystem::ntfs::{
+            raw_files::{
+                raw_hash_data, raw_read_by_file_ref, raw_read_data, raw_read_file, read_attribute,
             },
+            sector_reader::SectorReader,
+            setup::setup_ntfs_parser,
         },
         utils::regex_options::create_regex,
     };
+    use common::files::Hashes;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
 

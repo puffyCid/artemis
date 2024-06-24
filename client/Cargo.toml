@@ -19,8 +19,13 @@ reqwest = { workspace = true }
 sysinfo = { workspace = true }
 
 common = { path = "../common" }
+artemis-core = { package = "core", path = "../core" }
 
-tokio-tungstenite = "0.23.0"
+tokio-tungstenite = "0.23.1"
+futures-util = { version = "0.3.30", default-features = false, features = [
+    "sink",
+    "std",
+] }
 
 [dev-dependencies]
 httpmock = "0.7.0"

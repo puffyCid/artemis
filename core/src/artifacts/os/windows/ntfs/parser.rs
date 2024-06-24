@@ -23,7 +23,7 @@ use super::{
 use crate::{
     artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file},
     filesystem::{
-        files::{file_extension, Hashes},
+        files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
     },
     structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
@@ -33,6 +33,7 @@ use crate::{
         time::time_now,
     },
 };
+use common::files::Hashes;
 use common::windows::{CompressionType, RawFilelist};
 use log::error;
 use ntfs::{Ntfs, NtfsFile};

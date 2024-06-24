@@ -7,4 +7,4 @@ mod macho;
 mod pe;
 
 pub(crate) mod artifact;
-pub(crate) mod process;
+pub mod process;

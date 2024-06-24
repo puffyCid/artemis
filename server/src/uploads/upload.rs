@@ -1,5 +1,5 @@
 use crate::{
-    filestore::jobs::update_job,
+    filestore::collections::update_collection,
     server::ServerState,
     utils::{
         filesystem::{create_dirs, write_file},
@@ -10,26 +10,25 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
 };
-use common::server::jobs::JobInfo;
+use common::server::collections::CollectionResponse;
 use log::{error, warn};
+use redb::Database;
 
 /// Process uploaded data
 pub(crate) async fn upload_collection(
     State(state): State<ServerState>,
     mut multipart: Multipart,
 ) -> Result<(), StatusCode> {
-    let mut endpoint_id = String::new();
     let path = state.config.endpoint_server.storage;
+
+    let mut endpoint_id = String::new();
 
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap_or_default().to_string();
 
-        if name == "endpoint-id" {
-            endpoint_id = field.text().await.unwrap_or_default();
-        } else if name == "job-info" {
+        if name == "collection-info" {
             let data = field.text().await.unwrap_or_default();
-            let endpoint_path = format!("{path}/{endpoint_id}");
-            update_job_file(&endpoint_path, &data).await?;
+            endpoint_id = update_collection_status(&path, &data, &state.central_collect_db).await?;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -47,32 +46,36 @@ pub(crate) async fn upload_collection(
     Ok(())
 }
 
-/// Update the Job DB using the uploaded job-info data
-async fn update_job_file(path: &str, data: &str) -> Result<(), StatusCode> {
+/// Update the Collection DB using the uploaded collection-info data
+async fn update_collection_status(
+    path: &str,
+    data: &str,
+    db: &Database,
+) -> Result<String, StatusCode> {
     if path.is_empty() {
-        error!("[server] No endpoint path provided cannot update jobs.json");
+        error!("[server] No endpoint path provided cannot update collections.redb");
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let job_result = serde_json::from_str(data);
-    let job: JobInfo = match job_result {
+    let collect_esult = serde_json::from_str(data);
+    let collect: CollectionResponse = match collect_esult {
         Ok(result) => result,
         Err(err) => {
-            error!("[server] Cannot deserialize Job Info for Endpoint ID {path}: {err:?}");
+            error!("[server] Cannot deserialize Collection Info for Endpoint ID {path}: {err:?}");
             return Err(StatusCode::BAD_REQUEST);
         }
     };
 
-    let status = update_job(&job, path).await;
+    let status = update_collection(&collect.info, db).await;
     if status.is_err() {
         error!(
-            "[server] Could not update Job for {path}: {:?}",
+            "[server] Could not update collection info for {path}: {:?}",
             status.unwrap_err()
         );
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    Ok(())
+    Ok(collect.target)
 }
 
 /// Write data to endpoint storage directory
@@ -128,53 +131,62 @@ async fn write_collection(
 
 #[cfg(test)]
 mod tests {
-    use common::server::jobs::{Action, JobInfo, JobType, Status};
-
+    use crate::filestore::collections::save_collection;
     use crate::uploads::upload::write_collection;
-    use crate::utils::filesystem::{create_dirs, write_file};
+    use crate::utils::filesystem::create_dirs;
     use crate::{
-        uploads::upload::update_job_file,
+        uploads::upload::update_collection_status,
         utils::{config::read_config, uuid::generate_uuid},
     };
-    use std::collections::HashMap;
+    use common::server::collections::{
+        CollectionInfo, CollectionRequest, CollectionResponse, Status,
+    };
+    use redb::Database;
+    use std::collections::HashSet;
     use std::path::PathBuf;
 
     #[tokio::test]
-    async fn test_update_job_file() {
+    async fn test_update_collection_status() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
         create_dirs("./tmp/uploads").await.unwrap();
 
-        let mut value = JobInfo {
-            id: 1,
-            collection: String::from("asdfasdfasdfasd=="),
-            created: 1000,
-            started: 10001,
-            finished: 20000,
-            name: String::from("processes"),
-            status: Status::NotStarted,
-            duration: 0,
-            start_time: 0,
-            action: Action::Start,
-            job_type: JobType::Collection,
+        let mut value = CollectionResponse {
+            target: String::from("dasfasfd"),
+            info: CollectionInfo {
+                id: 1,
+                name: String::from("dasfasdfsa"),
+                created: 10,
+                status: Status::Started,
+                start_time: 0,
+                duration: 10,
+            },
+            started: 0,
+            finished: 10,
         };
 
-        let mut jobs = HashMap::new();
-        jobs.insert(1, value.clone());
+        let mut targets = HashSet::new();
+        targets.insert(String::from("dafasdf"));
+        let req = CollectionRequest {
+            targets,
+            collection: String::from("asdfsadf"),
+            targets_completed: HashSet::new(),
+            info: value.info.clone(),
+        };
 
-        write_file(
-            &serde_json::to_vec(&jobs).unwrap(),
-            "./tmp/uploads/jobs.json",
-            false,
+        let db = Database::create("./tmp/uploads/test2.redb").unwrap();
+
+        save_collection(req, &db).await.unwrap();
+
+        value.info.status = Status::Finished;
+
+        update_collection_status(
+            "./tmp/uploads",
+            &serde_json::to_string(&value).unwrap(),
+            &db,
         )
         .await
         .unwrap();
-
-        value.status = Status::Failed;
-
-        update_job_file("./tmp/uploads", &serde_json::to_string(&value).unwrap())
-            .await
-            .unwrap();
     }
 
     #[tokio::test]

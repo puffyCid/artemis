@@ -1,8 +1,6 @@
 use super::{error::FileError, filelisting::get_filelist};
-use crate::{
-    filesystem::files::Hashes,
-    structs::{artifacts::os::files::FileOptions, toml::Output},
-};
+use crate::structs::{artifacts::os::files::FileOptions, toml::Output};
+use common::files::Hashes;
 use log::error;
 
 /// Get a filelisting based on provided options

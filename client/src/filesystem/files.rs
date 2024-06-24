@@ -2,7 +2,7 @@ use super::error::FileSystemError;
 use log::{error, info};
 use std::path::Path;
 use tokio::{
-    fs::{read, File},
+    fs::{read, File, OpenOptions},
     io::AsyncWriteExt,
 };
 
@@ -39,9 +39,10 @@ pub(crate) async fn write_file(data: &[u8], path: &str) -> Result<(), FileSystem
         Ok(result) => result,
         Err(err) => {
             error!("[client] Failed to create file {path}: {err:?}");
-            return Err(FileSystemError::CrateFile);
+            return Err(FileSystemError::CreateFile);
         }
     };
+
     let status = file.write_all(data).await;
     if status.is_err() {
         error!(
@@ -55,11 +56,34 @@ pub(crate) async fn write_file(data: &[u8], path: &str) -> Result<(), FileSystem
     Ok(())
 }
 
+/// Append data to a target file
+pub(crate) async fn append_file(data: &[u8], path: &str) -> Result<(), FileSystemError> {
+    let file_result = OpenOptions::new().append(true).open(path).await;
+    let mut file = match file_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[client] Failed to append file {path}: {err:?}");
+            return Err(FileSystemError::AppendFile);
+        }
+    };
+
+    let status = file.write_all(data).await;
+    if status.is_err() {
+        error!(
+            "[client] Failed to write file {path}: {:?}",
+            status.unwrap_err()
+        );
+        return Err(FileSystemError::WriteFile);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::read_file;
-    use crate::filesystem::files::write_file;
-    use crate::filesystem::{directory::create_dirs, files::is_file};
+    use crate::filesystem::directory::create_dirs;
+    use crate::filesystem::files::{append_file, is_file, write_file};
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -88,5 +112,14 @@ mod tests {
 
         let test = b"hello world!";
         write_file(test, "./tmp/test").await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_append_file() {
+        create_dirs("./tmp").await.unwrap();
+
+        let test = b"hello world!";
+        write_file(test, "./tmp/test").await.unwrap();
+        append_file(test, "./tmp/test").await.unwrap();
     }
 }

@@ -76,3 +76,4 @@
 pub mod client;
 mod enrollment;
 mod filesystem;
+mod socket;

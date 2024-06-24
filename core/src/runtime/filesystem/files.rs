@@ -1,8 +1,9 @@
 use super::directory::JsFileInfo;
 use crate::filesystem::{
-    files::{file_extension, get_filename, hash_file, read_file, read_text_file, Hashes},
+    files::{file_extension, get_filename, hash_file, read_file, read_text_file},
     metadata::{get_metadata, get_timestamps, glob_paths},
 };
+use common::files::Hashes;
 use deno_core::{error::AnyError, op2};
 use serde::Serialize;
 use std::path::Path;

@@ -110,8 +110,9 @@ pub(crate) async fn create_dirs(path: &str) -> Result<(), UtilServerError> {
 
 #[cfg(test)]
 mod tests {
-    use super::read_file;
-    use crate::utils::filesystem::{create_dirs, is_directory, is_file, read_lines, write_file};
+    use crate::utils::filesystem::{
+        append_file, create_dirs, is_directory, is_file, read_file, read_lines, write_file,
+    };
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -129,15 +130,15 @@ mod tests {
         create_dirs("./tmp").await.unwrap();
 
         let test = b"hello world!";
-        write_file(test, "./tmp/test", false).await.unwrap();
+        write_file(test, "./tmp/test3", false).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_append_file() {
         create_dirs("./tmp").await.unwrap();
 
-        let test = b"hello world!";
-        write_file(test, "./tmp/test", false).await.unwrap();
+        let test = "hello world!";
+        append_file(test, "./tmp/test2", &10000000).await.unwrap();
     }
 
     #[tokio::test]

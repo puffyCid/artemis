@@ -2,20 +2,20 @@ use crate::{
     routes,
     utils::{config::read_config, filesystem::create_dirs},
 };
-use axum::extract::ws::Message;
 use common::server::config::ArtemisConfig;
 use log::error;
+use redb::Database;
 use std::{
-    collections::HashMap,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
 };
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::broadcast;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ServerState {
     pub(crate) config: ArtemisConfig,
-    pub(crate) command: Arc<RwLock<HashMap<String, mpsc::Sender<Message>>>>,
+    pub(crate) clients: broadcast::Sender<String>,
+    pub(crate) central_collect_db: Arc<Database>,
 }
 
 #[tokio::main]
@@ -35,8 +35,20 @@ pub async fn start(path: &str) {
         return;
     }
 
-    let command = Arc::new(RwLock::new(HashMap::new()));
-    let server_state = ServerState { config, command };
+    let (clients, _rx) = broadcast::channel(100);
+    let central_collect_db = Arc::new(
+        Database::create(format!(
+            "{}/collections.redb",
+            config.endpoint_server.storage
+        ))
+        .expect("Could not setup central collections redb"),
+    );
+
+    let server_state = ServerState {
+        config,
+        clients,
+        central_collect_db,
+    };
 
     let app = routes::setup_routes().with_state(server_state);
     let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000);

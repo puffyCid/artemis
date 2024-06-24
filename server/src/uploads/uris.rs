@@ -14,8 +14,9 @@ mod tests {
         body::Body,
         http::{Method, Request, StatusCode},
     };
-    use std::{collections::HashMap, path::PathBuf, sync::Arc};
-    use tokio::sync::RwLock;
+    use redb::Database;
+    use std::{path::PathBuf, sync::Arc};
+    use tokio::sync::broadcast;
     use tower::util::ServiceExt;
 
     #[tokio::test]
@@ -30,8 +31,17 @@ mod tests {
             .await
             .unwrap();
 
-        let command = Arc::new(RwLock::new(HashMap::new()));
-        let server_state = ServerState { config, command };
+        let (clients, _rx) = broadcast::channel(100);
+        let central_collect_db = Arc::new(
+            Database::create("./tmp/collections14.redb")
+                .expect("Could not setup central collections redb"),
+        );
+
+        let server_state = ServerState {
+            config,
+            clients,
+            central_collect_db,
+        };
 
         let res = route
             .with_state(server_state)
