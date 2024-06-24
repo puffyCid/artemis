@@ -32,7 +32,7 @@ pub(crate) async fn process_list(endpoint_dir: &str) -> Result<Vec<Processes>, S
 }
 
 /// Save process quick collections to disk
-pub(crate) async fn save_processes(procs: &[Value], endpoint_dir: &str) {
+pub(crate) async fn save_processes(procs: &Value, endpoint_dir: &str) {
     let proc_path = format!("{endpoint_dir}/qc/processes.json");
 
     let data_result = write_file(
@@ -94,7 +94,7 @@ mod tests {
         };
 
         save_processes(
-            &vec![serde_json::to_value(procs).unwrap()],
+            &serde_json::to_value(&vec![procs]).unwrap(),
             test_location.to_str().unwrap(),
         )
         .await;

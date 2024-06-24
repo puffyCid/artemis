@@ -6,15 +6,13 @@ use super::{
 };
 use crate::{
     artifacts::os::systeminfo::info::get_platform,
-    filesystem::{
-        error::FileSystemError,
-        files::{read_file_custom, Hashes},
-    },
+    filesystem::{error::FileSystemError, files::read_file_custom},
     utils::{
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
     },
 };
+use common::files::Hashes;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use ntfs::{

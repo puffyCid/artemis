@@ -1,7 +1,7 @@
 use super::error::NTFSError;
 use crate::{
     filesystem::{
-        files::{hash_file_data, Hashes},
+        files::hash_file_data,
         ntfs::{
             attributes::get_filename_attribute, compression::check_wofcompressed,
             raw_files::raw_hash_data, sector_reader::SectorReader,
@@ -9,6 +9,7 @@ use crate::{
     },
     utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
+use common::files::Hashes;
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
 use log::error;
 use ntfs::{

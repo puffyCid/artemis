@@ -25,7 +25,7 @@ pub struct QuickResponse {
     pub collection_type: CollectionType,
     pub platform: String,
     /**The data returned */
-    pub data: Vec<Value>,
+    pub data: Value,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]

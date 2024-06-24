@@ -4,6 +4,7 @@ use std::fmt;
 pub enum SocketError {
     StartConnection,
     SaveCollection,
+    QuickCollection,
 }
 
 impl fmt::Display for SocketError {
@@ -11,6 +12,7 @@ impl fmt::Display for SocketError {
         match self {
             SocketError::StartConnection => write!(f, "Failed to start websocket connection"),
             SocketError::SaveCollection => write!(f, "Could not create collection file"),
+            SocketError::QuickCollection => write!(f, "Could not do quick collection"),
         }
     }
 }

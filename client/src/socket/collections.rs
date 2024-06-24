@@ -1,6 +1,11 @@
 use super::error::SocketError;
-use crate::filesystem::files::{append_file, is_file, write_file};
-use common::server::collections::{CollectionRequest, QuickCollection};
+use crate::{
+    filesystem::files::{append_file, is_file, write_file},
+    socket::actions::processes::collect_processes,
+};
+use common::server::collections::{
+    CollectionRequest, CollectionType, QuickCollection, QuickResponse,
+};
 use log::error;
 
 /// Save collections to a file
@@ -38,13 +43,14 @@ pub(crate) async fn save_collection(
     Ok(())
 }
 
+/// Parse quick collection requests from server
 pub(crate) async fn quick_collection(
     quick: &QuickCollection,
-    storage_path: &str,
-) -> Result<(), SocketError> {
-    println!("{quick:?}");
-
-    Ok(())
+) -> Result<QuickResponse, SocketError> {
+    match quick.collection_type {
+        CollectionType::Processes => collect_processes(quick).await,
+        CollectionType::Filelist => Err(SocketError::QuickCollection),
+    }
 }
 
 #[cfg(test)]
@@ -87,6 +93,7 @@ mod tests {
             collection_type: CollectionType::Processes,
             target: String::from("dafdasdfa"),
         };
-        quick_collection(&data, "./tmp/").await.unwrap();
+        let results = quick_collection(&data).await.unwrap();
+        assert!(results.data.is_array());
     }
 }

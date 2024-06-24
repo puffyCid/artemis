@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "linux")]
 use crate::linux::ElfInfo;
@@ -7,6 +7,13 @@ use crate::macos::MachoInfo;
 #[cfg(target_os = "windows")]
 use crate::windows::PeInfo;
 
+#[derive(Deserialize)]
+/// Supported hashes
+pub struct Hashes {
+    pub md5: bool,
+    pub sha1: bool,
+    pub sha256: bool,
+}
 #[derive(Debug, Serialize)]
 pub struct FileInfo {
     pub full_path: String,
