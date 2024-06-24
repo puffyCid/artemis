@@ -21,6 +21,6 @@ base64 = "0.22.1"
 tokio = { version = "1.38.0", features = ["full"] }
 flate2 = { version = "1.0.30", features = ["any_zlib", "zlib-ng"] }
 glob = "0.3.1"
-reqwest = { version = "0.12.4", features = ["json", "blocking"] }
+reqwest = { version = "0.12.5", features = ["json", "blocking"] }
 sysinfo = "0.30.12"
 uuid = { version = "1.8.0", features = ["v4"] }
