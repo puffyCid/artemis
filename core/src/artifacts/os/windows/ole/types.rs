@@ -8,7 +8,7 @@ use crate::{
             nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
         },
         strings::{extract_utf16_string, extract_utf8_string},
-        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch},
+        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
@@ -58,7 +58,7 @@ pub(crate) fn parse_types<'a>(
             let (_, oletime) = le_f64(vt_data)?;
             (
                 input,
-                Value::Number(ole_automationtime_to_unixepoch(&oletime).into()),
+                Value::String(unixepoch_to_iso(&ole_automationtime_to_unixepoch(&oletime))),
             )
         }
         0x8 => {
@@ -107,7 +107,7 @@ pub(crate) fn parse_types<'a>(
             let (input, filetime) = nom_unsigned_eight_bytes(data, Endian::Le)?;
             (
                 input,
-                Value::Number(filetime_to_unixepoch(&filetime).into()),
+                Value::String(unixepoch_to_iso(&filetime_to_unixepoch(&filetime))),
             )
         }
         0x42 => {

@@ -125,6 +125,12 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
             if check_beef(data, &beef00) || data.len() < drive_size {
                 return parse_root(input);
             }
+
+            // If offset 3 == 16. Then this is the new Archive ShellItem format added in Windows 11
+            if data.get(2).is_some_and(|b| *b == 16) {
+                return parse_variable(data);
+            }
+
             get_mtp_device(input)?
         } else if item_type == control_panel {
             parse_control_panel(input)?

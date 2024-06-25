@@ -25,7 +25,7 @@ pub(crate) async fn collect_processes(
         id: quick.target.clone(),
         collection_type: quick.collection_type.clone(),
         platform: System::name().unwrap_or_default(),
-        data: serde_json::to_value(&procs).unwrap(),
+        data: serde_json::to_value(procs).unwrap(),
     };
 
     Ok(res)

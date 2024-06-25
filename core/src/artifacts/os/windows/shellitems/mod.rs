@@ -1,3 +1,4 @@
+mod archive;
 mod beef;
 mod controlpanel;
 mod delegate;
