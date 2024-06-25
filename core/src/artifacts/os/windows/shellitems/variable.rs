@@ -3,7 +3,10 @@ use super::{
     property::parse_property,
 };
 use crate::{
-    artifacts::os::windows::shellitems::beef::{beef0004, beef0013, beef0026},
+    artifacts::os::windows::shellitems::{
+        archive::parse_archive,
+        beef::{beef0004, beef0013, beef0026},
+    },
     utils::{
         nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
         strings::{extract_utf16_string, extract_utf8_string},
@@ -89,6 +92,14 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         }
     }
 
+    // If offset 3 == 16. Then this is the new Archive ShellItem format added in Windows 11
+    if data.get(2).is_some_and(|b| *b == 16) {
+        let (remaining, (modified, path)) = parse_archive(data)?;
+        variable_item.modified = modified;
+        variable_item.value = path;
+        return Ok((remaining, variable_item));
+    }
+
     if check_property(data) {
         // Nom till we get to start of property store
         let (input, _) = take(size_of::<u8>())(data)?;
@@ -104,6 +115,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         variable_item.value = guid;
         return Ok((input, variable_item));
     }
+
     // Try FTP variable now
     let (input, uri) = parse_ftp_uri(data)?;
     variable_item.value = uri;
@@ -134,7 +146,7 @@ fn parse_ftp_uri(data: &[u8]) -> nom::IResult<&[u8], String> {
     Ok((input, uri))
 }
 
-/// Parse the `ZIP content` `ShellItem`.
+/// Parse the ZIP content `ShellItem`.
 pub(crate) fn parse_zip(data: &[u8]) -> nom::IResult<&[u8], (bool, String)> {
     // Zip file contents also do not have a dedicated id
     // However, the size of the directory name is at offset 0x54, in addition a second name may be found at offset 0x58
