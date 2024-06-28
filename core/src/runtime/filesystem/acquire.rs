@@ -1,5 +1,6 @@
 use crate::{
     filesystem::acquire::{acquire_file, acquire_file_remote},
+    output::files::remote::RemoteType,
     structs::toml::Output,
 };
 use deno_core::{error::AnyError, op2};
@@ -29,9 +30,21 @@ pub(crate) fn js_acquire_file(
             return Err(status.unwrap_err().into());
         }
     } else if output.output == "gcp" {
-        let status = acquire_file_remote(&path, output);
+        let status = acquire_file_remote(&path, output, RemoteType::Gcp);
         if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload{path}");
+            error!("[runtime] Failed to acquire file for upload {path}");
+            return Err(status.unwrap_err().into());
+        }
+    } else if output.output == "aws" {
+        let status = acquire_file_remote(&path, output, RemoteType::Aws);
+        if status.is_err() {
+            error!("[runtime] Failed to acquire file for upload {path}");
+            return Err(status.unwrap_err().into());
+        }
+    } else if output.output == "azure" {
+        let status = acquire_file_remote(&path, output, RemoteType::Azure);
+        if status.is_err() {
+            error!("[runtime] Failed to acquire file for upload {path}");
             return Err(status.unwrap_err().into());
         }
     } else {

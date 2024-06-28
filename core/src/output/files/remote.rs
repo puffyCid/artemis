@@ -5,14 +5,18 @@ use crate::{
         files::file_reader,
         metadata::{get_metadata, get_timestamps},
     },
-    output::remote::gcp::{create_jwt_gcp, gcp_get_upload_status, gcp_session, setup_gcp_upload},
+    output::remote::{
+        aws::{aws_complete_multipart, aws_creds, aws_multipart_upload, setup_upload},
+        gcp::{create_jwt_gcp, gcp_get_upload_status, gcp_session, setup_gcp_upload},
+    },
     structs::toml::Output,
 };
 use flate2::{write::GzEncoder, Compression};
 use log::error;
-use reqwest::{blocking::Client, StatusCode};
+use reqwest::{blocking::Client, StatusCode, Url};
+use rusty_s3::{Bucket, Credentials};
 use serde::Serialize;
-use std::fs::File;
+use std::{collections::HashMap, fs::File};
 
 pub(crate) struct AcquireFileApiRemote {
     pub(crate) path: String,
@@ -22,6 +26,10 @@ pub(crate) struct AcquireFileApiRemote {
     pub(crate) remote: RemoteType,
     pub(crate) session: String,
     pub(crate) token: String,
+    pub(crate) bucket: Option<Bucket>,
+    pub(crate) aws_creds: Option<Credentials>,
+    pub(crate) aws_tags: Vec<String>,
+    pub(crate) aws_id: u16,
 }
 
 #[derive(PartialEq)]
@@ -31,23 +39,16 @@ pub(crate) enum RemoteType {
     Aws,
 }
 
-#[derive(Serialize)]
-struct AcquireMetadata {
-    created: i64,
-    modified: i64,
-    accessed: i64,
-    changed: i64,
-    size: u64,
-    full_path: String,
-    filename: String,
-    md5: String,
-}
-
 pub(crate) trait AcquireActionRemote {
     fn reader(&self) -> Result<File, AcquireError>;
     fn compressor(&self) -> GzEncoder<Vec<u8>>;
     fn upload_setup(&mut self) -> Result<(), AcquireError>;
-    fn upload(&self, bytes: &[u8], offset: &usize, total_size: &str) -> Result<(), AcquireError>;
+    fn upload(
+        &mut self,
+        bytes: &[u8],
+        offset: &usize,
+        total_size: &str,
+    ) -> Result<(), AcquireError>;
 }
 
 trait GoogleUpload {
@@ -58,6 +59,11 @@ trait GoogleUpload {
         offset: &usize,
         total_size: &str,
     ) -> Result<(), AcquireError>;
+}
+
+trait AmazonUpload {
+    fn aws_start(&mut self) -> Result<(), AcquireError>;
+    fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
 }
 
 impl AcquireActionRemote for AcquireFileApiRemote {
@@ -85,18 +91,28 @@ impl AcquireActionRemote for AcquireFileApiRemote {
 
     /// Setup the upload process
     fn upload_setup(&mut self) -> Result<(), AcquireError> {
-        if self.remote == RemoteType::Gcp {
-            self.gcp_start()?;
+        match self.remote {
+            RemoteType::Gcp => self.gcp_start()?,
+            RemoteType::Azure => todo!(),
+            RemoteType::Aws => self.aws_start()?,
         }
 
         Ok(())
     }
 
     /// Begin uploading data to cloud services
-    fn upload(&self, bytes: &[u8], offset: &usize, total_size: &str) -> Result<(), AcquireError> {
-        if self.remote == RemoteType::Gcp {
-            self.gcp_upload(bytes, offset, total_size)?;
+    fn upload(
+        &mut self,
+        bytes: &[u8],
+        offset: &usize,
+        total_size: &str,
+    ) -> Result<(), AcquireError> {
+        match self.remote {
+            RemoteType::Gcp => self.gcp_upload(bytes, offset, total_size)?,
+            RemoteType::Azure => todo!(),
+            RemoteType::Aws => self.aws_upload(bytes)?,
         }
+
         Ok(())
     }
 }
@@ -223,5 +239,113 @@ impl GoogleUpload for AcquireFileApiRemote {
         }
         error!("[artemis-core] Max attempts reached for uploading to Google Cloud");
         Err(AcquireError::MaxAttempts)
+    }
+}
+
+impl AmazonUpload for AcquireFileApiRemote {
+    /// Start the upload process to AWS
+    fn aws_start(&mut self) -> Result<(), AcquireError> {
+        let info_results = aws_creds(self.output.api_key.as_ref().unwrap_or(&String::new()));
+        let info = match info_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Could not parse AWS creds: {err:?}");
+                return Err(AcquireError::AwsSetup);
+            }
+        };
+
+        let url = Url::parse("https://s3.amazonaws.com").unwrap();
+
+        self.filename = format!(
+            "{}/{}/{}.{}",
+            self.output.directory, self.output.name, self.filename, self.output.format
+        );
+
+        let mut headers = HashMap::new();
+
+        headers.insert(String::from("x-amz-meta-fullpath"), self.path.clone());
+        headers.insert(String::from("x-amz-meta-filename"), self.filename.clone());
+        headers.insert(
+            String::from("x-amz-meta-hostname"),
+            get_info_metadata().hostname,
+        );
+        headers.insert(
+            String::from("x-amz-meta-endpoint-id"),
+            self.output.endpoint_id.clone(),
+        );
+        headers.insert(
+            String::from("x-amz-meta-collection-id"),
+            self.output.collection_id.to_string(),
+        );
+
+        let timestamps_result = get_timestamps(&self.path);
+        let meta_result = get_metadata(&self.path);
+        // If both values are ok, add metadata to final request
+        if meta_result.is_ok() && timestamps_result.is_ok() {
+            let timestamps = timestamps_result.unwrap();
+            let metadata = meta_result.unwrap();
+
+            headers.insert(String::from("x-amz-meta-created"), timestamps.created);
+            headers.insert(String::from("x-amz-meta-modified"), timestamps.modified);
+            headers.insert(String::from("x-amz-meta-accessed"), timestamps.accessed);
+            headers.insert(String::from("x-amz-meta-changed"), timestamps.changed);
+            headers.insert(String::from("x-amz-meta-size"), metadata.len().to_string());
+        }
+
+        let setup_results = setup_upload(info, url, &self.filename, &headers);
+        let setup = match setup_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[artemis-core] Could not setup AWS upload: {err:?}");
+                return Err(AcquireError::AwsSetup);
+            }
+        };
+
+        self.session = setup.session.upload_id().to_string();
+        self.bucket = Some(setup.bucket);
+        self.aws_creds = Some(setup.creds);
+
+        Ok(())
+    }
+
+    /// Upload bytes to AWS
+    fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
+        if self.aws_creds.is_none() || self.bucket.is_none() {
+            error!("[artemis-core] AWS bucket and/or creds not setup");
+            return Err(AcquireError::AwsUpload);
+        }
+        let bucket = self.bucket.as_ref().unwrap();
+        let creds = self.aws_creds.as_ref().unwrap();
+
+        if bytes.is_empty() {
+            let etags: Vec<&str> = self.aws_tags.iter().map(|tag| tag as &str).collect();
+
+            let status =
+                aws_complete_multipart(bucket, creds, &self.filename, &self.session, etags);
+            if status.is_err() {
+                error!("[artemis-core] Could not finish AWS upload");
+                return Err(AcquireError::AwsUpload);
+            }
+
+            self.aws_tags = Vec::new();
+            return Ok(());
+        }
+
+        let result = aws_multipart_upload(
+            bytes,
+            &self.session,
+            bucket,
+            creds,
+            &self.filename,
+            self.aws_id,
+        );
+        let mut tags = match result {
+            Ok(tags) => tags,
+            Err(_err) => return Err(AcquireError::AwsUpload),
+        };
+
+        self.aws_tags.append(&mut tags);
+
+        Ok(())
     }
 }
