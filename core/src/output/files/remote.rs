@@ -7,15 +7,20 @@ use crate::{
     },
     output::remote::{
         aws::{aws_complete_multipart, aws_creds, aws_multipart_upload, setup_upload},
+        azure::{azure_url_upload, compose_azure_url},
         gcp::{create_jwt_gcp, gcp_get_upload_status, gcp_session, setup_gcp_upload},
     },
     structs::toml::Output,
+    utils::encoding::base64_encode_url,
 };
 use flate2::{write::GzEncoder, Compression};
 use log::error;
-use reqwest::{blocking::Client, StatusCode, Url};
+use reqwest::{
+    blocking::Client,
+    header::{HeaderMap, HeaderValue},
+    StatusCode, Url,
+};
 use rusty_s3::{Bucket, Credentials};
-use serde::Serialize;
 use std::{collections::HashMap, fs::File};
 
 pub(crate) struct AcquireFileApiRemote {
@@ -30,6 +35,7 @@ pub(crate) struct AcquireFileApiRemote {
     pub(crate) aws_creds: Option<Credentials>,
     pub(crate) aws_tags: Vec<String>,
     pub(crate) aws_id: u16,
+    pub(crate) bytes_sent: usize,
 }
 
 #[derive(PartialEq)]
@@ -66,6 +72,11 @@ trait AmazonUpload {
     fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
 }
 
+trait MicrosoftUpload {
+    fn azure_start(&mut self) -> Result<(), AcquireError>;
+    fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
+}
+
 impl AcquireActionRemote for AcquireFileApiRemote {
     /// Create a reader for user to read acquired file
     fn reader(&self) -> Result<File, AcquireError> {
@@ -93,7 +104,7 @@ impl AcquireActionRemote for AcquireFileApiRemote {
     fn upload_setup(&mut self) -> Result<(), AcquireError> {
         match self.remote {
             RemoteType::Gcp => self.gcp_start()?,
-            RemoteType::Azure => todo!(),
+            RemoteType::Azure => self.azure_start()?,
             RemoteType::Aws => self.aws_start()?,
         }
 
@@ -109,7 +120,7 @@ impl AcquireActionRemote for AcquireFileApiRemote {
     ) -> Result<(), AcquireError> {
         match self.remote {
             RemoteType::Gcp => self.gcp_upload(bytes, offset, total_size)?,
-            RemoteType::Azure => todo!(),
+            RemoteType::Azure => self.azure_upload(bytes)?,
             RemoteType::Aws => self.aws_upload(bytes)?,
         }
 
@@ -345,6 +356,157 @@ impl AmazonUpload for AcquireFileApiRemote {
         };
 
         self.aws_tags.append(&mut tags);
+
+        Ok(())
+    }
+}
+
+impl MicrosoftUpload for AcquireFileApiRemote {
+    /// Setup Azure uploader
+    fn azure_start(&mut self) -> Result<(), AcquireError> {
+        let url = self.output.url.as_ref().unwrap();
+        let filename = format!(
+            "{}%2F{}%2F{}.{}",
+            self.output.directory, self.output.name, self.filename, self.output.format
+        );
+
+        let azure_url_result = compose_azure_url(url, &filename);
+        let azure_url = match azure_url_result {
+            Ok(result) => result,
+            Err(_err) => {
+                return Err(AcquireError::AzureBadUrl);
+            }
+        };
+
+        self.output.url = Some(azure_url);
+
+        Ok(())
+    }
+
+    /// Upload bytes to Azure
+    fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
+        if self.output.url.is_none() {
+            return Err(AcquireError::AzureMissingUrl);
+        }
+
+        let mut headers = HeaderMap::new();
+
+        if self.aws_id == 0 {
+            headers.insert(
+                "x-ms-meta-fullpath",
+                self.path.parse().unwrap_or(HeaderValue::from_static("")),
+            );
+            headers.insert(
+                "x-mx-meta-filename",
+                self.filename
+                    .parse()
+                    .unwrap_or(HeaderValue::from_static("")),
+            );
+            headers.insert(
+                "x-mx-meta-hostname",
+                get_info_metadata()
+                    .hostname
+                    .parse()
+                    .unwrap_or(HeaderValue::from_static("")),
+            );
+            headers.insert(
+                "x-mx-meta-endpoint-id",
+                self.output
+                    .endpoint_id
+                    .clone()
+                    .parse()
+                    .unwrap_or(HeaderValue::from_static("")),
+            );
+            headers.insert(
+                "x-mx-meta-collection-id",
+                self.output
+                    .collection_id
+                    .to_string()
+                    .parse()
+                    .unwrap_or(HeaderValue::from_static("")),
+            );
+
+            let timestamps_result = get_timestamps(&self.path);
+            let meta_result = get_metadata(&self.path);
+            // If both values are ok, add metadata to final request
+            if meta_result.is_ok() && timestamps_result.is_ok() {
+                let timestamps = timestamps_result.unwrap();
+                let metadata = meta_result.unwrap();
+
+                headers.insert(
+                    "x-mx-meta-created",
+                    timestamps
+                        .created
+                        .parse()
+                        .unwrap_or(HeaderValue::from_static("")),
+                );
+                headers.insert(
+                    "x-mx-meta-modified",
+                    timestamps
+                        .modified
+                        .parse()
+                        .unwrap_or(HeaderValue::from_static("")),
+                );
+                headers.insert(
+                    "x-mx-meta-accessed",
+                    timestamps
+                        .accessed
+                        .parse()
+                        .unwrap_or(HeaderValue::from_static("")),
+                );
+                headers.insert(
+                    "x-mx-meta-changed",
+                    timestamps
+                        .changed
+                        .parse()
+                        .unwrap_or(HeaderValue::from_static("")),
+                );
+                headers.insert("x-mx-meta-size", metadata.len().into());
+            }
+        }
+
+        if bytes.is_empty() {
+            let url = self.output.url.as_ref().unwrap();
+            let azure_url = format!("{url}&comp=blocklist");
+            let mut commit_body =
+                String::from(r#"<?xml version="1.0" encoding="utf-8"?><BlockList>"#);
+            for list in &self.aws_tags {
+                commit_body += &format!("<Latest>{list}</Latest>");
+            }
+            commit_body += "</BlockList>";
+            headers.insert(
+                "x-mx-meta-md5",
+                self.md5.parse().unwrap_or(HeaderValue::from_static("")),
+            );
+
+            let status = azure_url_upload(
+                &azure_url,
+                &headers,
+                commit_body.as_bytes(),
+                self.bytes_sent,
+            );
+            if status.is_err() {
+                return Err(AcquireError::AzureCommit);
+            }
+            return Ok(());
+        }
+
+        headers.insert("x-ms-blob-sequence-number", self.aws_id.into());
+        headers.insert("x-ms-blob-content-length", bytes.len().into());
+
+        let url = self.output.url.as_ref().unwrap();
+        // Length of block IDs must be the same. So we add padding
+        let block_id = base64_encode_url(format!("blockid-{:0>5}", self.aws_id).as_bytes());
+
+        let azure_url = format!("{url}&comp=block&blockid={block_id}");
+        self.aws_tags.push(block_id);
+
+        let status = azure_url_upload(&azure_url, &headers, bytes, bytes.len());
+        if status.is_err() {
+            return Err(AcquireError::AzureUpload);
+        }
+
+        self.aws_id += 1;
 
         Ok(())
     }

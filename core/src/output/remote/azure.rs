@@ -1,7 +1,9 @@
+use std::time::Duration;
+
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::{error, info, warn};
-use reqwest::{blocking::Client, StatusCode};
+use reqwest::{blocking::Client, header::HeaderMap, StatusCode};
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
 pub(crate) fn azure_upload(
@@ -15,7 +17,6 @@ pub(crate) fn azure_upload(
         return Err(RemoteError::RemoteUrl);
     };
 
-    let header_value = "application/json-seq";
     let azure_filename = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
@@ -25,27 +26,46 @@ pub(crate) fn azure_upload(
         )
     };
 
-    let azure_uris: Vec<&str> = azure_url.split('?').collect();
-    let expected_len = 2;
-    if azure_uris.len() < expected_len {
-        error!("[artemis-core] Unexpected Azure URL provided: {azure_url}");
-        return Err(RemoteError::RemoteUrl);
-    }
+    let azure_full_url = compose_azure_url(azure_url, &azure_filename)?;
 
+    azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len())?;
+
+    info!(
+        "[artemis-core] Uploaded {} bytes to Azure blob storage",
+        data.len()
+    );
+
+    Ok(())
+}
+
+/// Upload bytes to Azure
+pub(crate) fn azure_url_upload(
+    url: &str,
+    headers: &HeaderMap,
+    data: &[u8],
+    size: usize,
+) -> Result<(), RemoteError> {
     let client = Client::new();
     let max_attempts = 15;
     let mut attempts = 0;
 
     while attempts < max_attempts {
-        let azure_full_url = format!("{}/{azure_filename}?{}", azure_uris[0], azure_uris[1]);
-
-        let mut builder = client.put(azure_full_url);
-        builder = builder.header("Content-Type", header_value);
-        builder = builder.header("Content-Length", data.len());
+        let mut builder = client.put(url);
+        builder = builder.header("Content-Type", "application/json-seq");
+        builder = builder.header("Content-Length", size);
         builder = builder.header("x-ms-version", "2019-12-12");
-        builder = builder.header("x-ms-blob-type", "Blockblob");
-        builder = builder.body(data.to_vec());
 
+        if !url.contains("&comp=") {
+            builder = builder.header("x-ms-blob-type", "Blockblob");
+        }
+
+        for (key, value) in headers {
+            builder = builder.header(key, value);
+        }
+
+        builder = builder.timeout(Duration::from_secs(300));
+
+        builder = builder.body(data.to_vec());
         let res_result = builder.send();
         let res = match res_result {
             Ok(result) => result,
@@ -58,6 +78,7 @@ pub(crate) fn azure_upload(
         if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
             if attempts < max_attempts {
                 warn!("[artemis-core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}");
+
                 attempts += 1;
                 continue;
             }
@@ -70,17 +91,24 @@ pub(crate) fn azure_upload(
         break;
     }
 
-    info!(
-        "[artemis-core] Uploaded {} bytes to Azure blob storage",
-        data.len()
-    );
-
     Ok(())
+}
+
+/// Compose the final URL to upload data to Azure
+pub(crate) fn compose_azure_url(azure_url: &str, filename: &str) -> Result<String, RemoteError> {
+    let azure_uris: Vec<&str> = azure_url.split('?').collect();
+    let expected_len = 2;
+    if azure_uris.len() < expected_len {
+        error!("[artemis-core] Unexpected Azure URL provided: {azure_url}");
+        return Err(RemoteError::RemoteUrl);
+    }
+
+    Ok(format!("{}/{filename}?{}", azure_uris[0], azure_uris[1]))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::azure_upload;
+    use super::{azure_upload, compose_azure_url};
     use crate::structs::toml::Output;
     use httpmock::{Method::PUT, MockServer};
 
@@ -123,6 +151,14 @@ mod tests {
         });
         azure_upload(test.as_bytes(), &output, name).unwrap();
         mock_me.assert();
+    }
+
+    #[test]
+    fn test_compose_azure_url() {
+        let name = "output";
+
+        let result =  compose_azure_url("http://127.0.0.1/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf", name).unwrap();
+        assert_eq!(result, "http://127.0.0.1/mycontainername/output?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf");
     }
 
     #[test]

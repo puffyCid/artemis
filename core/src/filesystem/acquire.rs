@@ -109,17 +109,20 @@ pub(crate) fn acquire_file_remote(
         aws_creds: None,
         aws_tags: Vec::new(),
         aws_id: 1,
+        bytes_sent: 0,
     };
+    if acquire.remote == RemoteType::Azure {
+        acquire.aws_id = 0;
+    }
     acquire.output.format = String::from("gz");
 
     /*
     GCP - 64 MB limit
-    AWS - 100 MB limit
+    AWS | Azure - 100 MB limit
     */
     let bytes_limit = match acquire.remote {
         RemoteType::Gcp => 1024 * 1024 * 64,
-        RemoteType::Azure => todo!(),
-        RemoteType::Aws => 1024 * 1024 * 100,
+        RemoteType::Aws | RemoteType::Azure => 1024 * 1024 * 100,
     };
 
     let reader_result = acquire.reader();
@@ -211,6 +214,8 @@ pub(crate) fn acquire_file_remote(
         }
 
         bytes_offset += upload_bytes.len();
+        acquire.bytes_sent = bytes_offset;
+
         upload_bytes = Vec::new();
     }
 
@@ -224,11 +229,14 @@ pub(crate) fn acquire_file_remote(
             &bytes_offset,
             &format!("{}", bytes_offset + upload_bytes.len()),
         );
-
+        acquire.bytes_sent += upload_bytes.len();
         if last_result.is_err() {
             return Err(FileSystemError::FinalUpload);
         }
-    } else if acquire.remote == RemoteType::Aws && !acquire.aws_tags.is_empty() {
+    }
+    if acquire.remote == RemoteType::Aws && !acquire.aws_tags.is_empty()
+        || acquire.remote == RemoteType::Azure
+    {
         // Always make sure we finalize the upload and closeout the session for AWS
         let last_result = acquire.upload(
             &[],
@@ -267,7 +275,7 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            url: Some(format!("http://127.0.0.1:{port}")),
+            url: Some(format!("http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf")),
             api_key: Some(key),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
@@ -348,5 +356,32 @@ mod tests {
         acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Aws).unwrap();
 
         mock_me.assert_hits(5);
+    }
+
+    #[test]
+    fn test_acquire_file_azure() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/unix/bash/bash_history");
+
+        let server = MockServer::start();
+        let port = server.port();
+
+        let mock_me = server.mock(|when, then| {
+            when.any_request();
+            then.status(200).body(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+                            <InitiateMultipartUploadResult>
+                            <Bucket>mybucket</Bucket>
+                            <Key>mykey</Key>
+                            <UploadId>whatever</UploadId>
+                         </InitiateMultipartUploadResult>",
+            );
+        });
+
+        let out = output_options("acquire_file", "azure", "./tmp", false, port, String::from("ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9"));
+
+        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Azure).unwrap();
+
+        mock_me.assert_hits(2);
     }
 }
