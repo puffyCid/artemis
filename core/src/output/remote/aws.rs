@@ -1,14 +1,16 @@
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use crate::utils::encoding::base64_decode_standard;
-use log::{error, info, warn};
-use nom::bytes::complete::take;
-use nom::error::ErrorKind;
+use log::{error, warn};
 use reqwest::header::ETAG;
 use reqwest::{blocking::Client, StatusCode, Url};
-use rusty_s3::actions::{CompleteMultipartUpload, CreateMultipartUpload, S3Action, UploadPart};
+use rusty_s3::actions::{
+    CompleteMultipartUpload, CreateMultipartUpload, CreateMultipartUploadResponse, S3Action,
+    UploadPart,
+};
 use rusty_s3::{Bucket, Credentials, UrlStyle};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::time::Duration;
 
 /// Upload data to AWS S3 Bucket using a signed URL signature
@@ -44,32 +46,28 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
         }
     };
 
-    let header_value = "application/json-seq";
     let aws_info = aws_creds(api_key)?;
 
-    aws_start_upload(
-        aws_info,
-        aws_endpoint_url,
-        data,
-        &aws_filename,
-        header_value,
-    )
+    let setup = setup_upload(aws_info, aws_endpoint_url, &aws_filename, &HashMap::new())?;
+
+    aws_start_upload(setup, data)
 }
 
-/// Start the AWS data upload
-fn aws_start_upload(
-    aws_info: AwsInfo,
-    aws_endpoint_url: Url,
-    output_data: &[u8],
-    aws_filename: &str,
-    header_value: &str,
-) -> Result<(), RemoteError> {
-    let bucket_result = Bucket::new(
-        aws_endpoint_url,
-        UrlStyle::VirtualHost,
-        aws_info.bucket,
-        aws_info.region,
-    );
+pub(crate) struct AwsSetup {
+    pub(crate) bucket: Bucket,
+    pub(crate) creds: Credentials,
+    pub(crate) session: CreateMultipartUploadResponse,
+    pub(crate) filename: String,
+}
+
+/// Setup requirements to establish an upload session to S3 bucket
+pub(crate) fn setup_upload(
+    info: AwsInfo,
+    url: Url,
+    filename: &str,
+    headers: &HashMap<String, String>,
+) -> Result<AwsSetup, RemoteError> {
+    let bucket_result = Bucket::new(url, UrlStyle::VirtualHost, info.bucket, info.region);
     let bucket = match bucket_result {
         Ok(result) => result,
         Err(err) => {
@@ -78,22 +76,25 @@ fn aws_start_upload(
         }
     };
 
-    let creds = Credentials::new(aws_info.key, aws_info.secret);
+    let creds = Credentials::new(info.key, info.secret);
     // Valid for one (1) hour
     let duration = Duration::from_secs(3600);
 
-    let action = CreateMultipartUpload::new(&bucket, Some(&creds), aws_filename);
-    let mut url = action.sign(duration);
+    let mut action = CreateMultipartUpload::new(&bucket, Some(&creds), filename);
+    for (key, value) in headers {
+        action.headers_mut().insert(key, value);
+    }
 
+    let mut url = action.sign(duration);
     // This is used for our test to ensure we hit the mock server
     if url.as_str().starts_with("http://blah.replacemeduh.com") {
         url.set_host(Some("127.0.0.1")).unwrap();
     }
 
-    let response = aws_create_multipart(url.as_str())?;
+    let response = aws_create_multipart(url.as_str(), headers)?;
 
     let multipart_res = CreateMultipartUpload::parse_response(&response);
-    let multiplart = match multipart_res {
+    let session = match multipart_res {
         Ok(result) => result,
         Err(err) => {
             error!("[artemis-core] Could not parse session for multipart upload: {err:?}");
@@ -101,17 +102,28 @@ fn aws_start_upload(
         }
     };
 
+    let setup = AwsSetup {
+        bucket,
+        creds,
+        session,
+        filename: filename.to_string(),
+    };
+
+    Ok(setup)
+}
+
+/// Start the AWS data upload
+fn aws_start_upload(setup: AwsSetup, output_data: &[u8]) -> Result<(), RemoteError> {
     let first_upload = 1;
     let etag_res = aws_multipart_upload(
         output_data,
-        multiplart.upload_id(),
-        &bucket,
-        &creds,
-        aws_filename,
+        setup.session.upload_id(),
+        &setup.bucket,
+        &setup.creds,
+        &setup.filename,
         first_upload,
-        header_value,
     );
-    let (_, etag) = if let Ok(result) = etag_res {
+    let etag = if let Ok(result) = etag_res {
         result
     } else {
         error!("[artemis-core] Could not finish AWS S3 upload");
@@ -120,23 +132,31 @@ fn aws_start_upload(
 
     let etags: Vec<&str> = etag.iter().map(|tag| tag as &str).collect();
     aws_complete_multipart(
-        &bucket,
-        &creds,
-        aws_filename,
-        multiplart.upload_id(),
+        &setup.bucket,
+        &setup.creds,
+        &setup.filename,
+        setup.session.upload_id(),
         etags,
-        &output_data.len(),
     )
 }
 
 /// Create the AWS multipart upload session
-fn aws_create_multipart(url: &str) -> Result<String, RemoteError> {
+fn aws_create_multipart(
+    url: &str,
+    headers: &HashMap<String, String>,
+) -> Result<String, RemoteError> {
     let max_attempts = 15;
     let mut attempts = 0;
     let client = Client::new();
 
     while attempts < max_attempts {
-        let session_result = client.post(url).send();
+        let mut builder = client.post(url);
+
+        for (key, value) in headers {
+            builder = builder.header(key, value);
+        }
+
+        let session_result = builder.send();
         let session = match session_result {
             Ok(result) => result,
             Err(err) => {
@@ -168,13 +188,12 @@ fn aws_create_multipart(url: &str) -> Result<String, RemoteError> {
 }
 
 /// Complete and close the multipart upload session
-fn aws_complete_multipart(
+pub(crate) fn aws_complete_multipart(
     bucket: &Bucket,
     creds: &Credentials,
     aws_filename: &str,
     upload_id: &str,
     etags: Vec<&str>,
-    bytes: &usize,
 ) -> Result<(), RemoteError> {
     let action = CompleteMultipartUpload::new(
         bucket,
@@ -221,36 +240,35 @@ fn aws_complete_multipart(
         }
         let body = complete.text().unwrap_or_default();
         if status == StatusCode::OK && body.contains("Internal Error") && attempts < max_attempts {
-            warn!("[artemis-core] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}");
+            error!("[artemis-core] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}");
             attempts += 1;
             continue;
         }
         break;
     }
 
-    info!("[artemis-core] Uploaded {bytes} bytes to AWS S3 bucket");
-
     Ok(())
 }
 
-/// Upload data in 1GB chunks using multipart uploads
-fn aws_multipart_upload<'a>(
-    output_data: &'a [u8],
+/// Upload data using multipart uploads
+pub(crate) fn aws_multipart_upload(
+    output_data: &[u8],
     upload_id: &str,
     bucket: &Bucket,
     creds: &Credentials,
     aws_filename: &str,
     id: u16,
-    header_value: &str,
-) -> nom::IResult<&'a [u8], Vec<String>> {
-    // Upload in 1GB chunks
-    let gb_limit = 1024 * 1024 * 1024;
+) -> Result<Vec<String>, RemoteError> {
     // Valid for one (1) hour
     let duration = Duration::from_secs(3600);
 
     let part_upload = UploadPart::new(bucket, Some(creds), aws_filename, id, upload_id);
 
-    let client = Client::new();
+    //let client = Client::new();
+    let client = Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()
+        .unwrap();
     let max_attempts = 15;
     let mut attempts = 0;
 
@@ -266,73 +284,19 @@ fn aws_multipart_upload<'a>(
         }
 
         let mut builder = client.put(signed_url);
+        let header_value = "application/json-seq";
+
         builder = builder.header("Content-Type", header_value);
 
         let mut etags: Vec<String> = Vec::new();
-        if output_data.len() <= gb_limit {
-            builder = builder.header("Content-Length", output_data.len());
+        builder = builder.header("Content-Length", output_data.len());
 
-            let res_result = builder.body(output_data.to_vec()).send();
-            let response = match res_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("[artemis-core] Could not upload data for multipart upload: {err:?}");
-                    return Err(nom::Err::Failure(nom::error::Error::new(
-                        &[],
-                        ErrorKind::Fail,
-                    )));
-                }
-            };
-
-            if response.status() != StatusCode::OK {
-                if attempts < max_attempts {
-                    warn!("[artemis-core] Non-200 response on upload attempt {attempts} out of {max_attempts}. Response: {response:?}");
-                    attempts += 1;
-                    continue;
-                }
-
-                error!(
-                    "[artemis-core] Non-200 response from AWS S3 bucket: {:?}",
-                    response.text()
-                );
-                return Err(nom::Err::Failure(nom::error::Error::new(
-                    &[],
-                    ErrorKind::Fail,
-                )));
-            }
-
-            if let Some(etag_header) = response.headers().get(ETAG) {
-                let etag = etag_header.to_str().unwrap_or_default();
-                if etag.is_empty() {
-                    error!("[artemis-core] Got empty ETAG");
-                    return Err(nom::Err::Failure(nom::error::Error::new(
-                        &[],
-                        ErrorKind::Fail,
-                    )));
-                }
-                etags.push(etag.to_string());
-                return Ok((&[], etags));
-            }
-            error!("[artemis-core] Missing ETAG header in response");
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                &[],
-                ErrorKind::Fail,
-            )));
-        }
-
-        // Grab the first chunk
-        let (remaining_chunk, chunk) = take(gb_limit)(output_data)?;
-        builder = builder.header("Content-Length", chunk.len());
-
-        let res_result = builder.body(chunk.to_vec()).send();
+        let res_result = builder.body(output_data.to_vec()).send();
         let response = match res_result {
             Ok(result) => result,
             Err(err) => {
                 error!("[artemis-core] Could not upload data for multipart upload: {err:?}");
-                return Err(nom::Err::Failure(nom::error::Error::new(
-                    &[],
-                    ErrorKind::Fail,
-                )));
+                return Err(RemoteError::RemoteUpload);
             }
         };
 
@@ -347,61 +311,35 @@ fn aws_multipart_upload<'a>(
                 "[artemis-core] Non-200 response from AWS S3 bucket: {:?}",
                 response.text()
             );
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                &[],
-                ErrorKind::Fail,
-            )));
+            return Err(RemoteError::RemoteUpload);
         }
 
         if let Some(etag_header) = response.headers().get(ETAG) {
             let etag = etag_header.to_str().unwrap_or_default();
             if etag.is_empty() {
                 error!("[artemis-core] Got empty ETAG");
-                return Err(nom::Err::Failure(nom::error::Error::new(
-                    &[],
-                    ErrorKind::Fail,
-                )));
+                return Err(RemoteError::RemoteUpload);
             }
             etags.push(etag.to_string());
-        } else {
-            error!("[artemis-core] Missing ETAG header in response");
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                &[],
-                ErrorKind::Fail,
-            )));
+            return Ok(etags);
         }
-
-        let next_id = id + 1;
-
-        let (_, mut other_etags) = aws_multipart_upload(
-            remaining_chunk,
-            upload_id,
-            bucket,
-            creds,
-            aws_filename,
-            next_id,
-            header_value,
-        )?;
-
-        etags.append(&mut other_etags);
-        return Ok((&[], etags));
+        error!("[artemis-core] Missing ETAG header in response");
+        return Err(RemoteError::RemoteUpload);
     }
-    Err(nom::Err::Failure(nom::error::Error::new(
-        &[],
-        ErrorKind::Fail,
-    )))
+    error!("[artemis-core] Failed to upload to S3 bucket max retries reached");
+    Err(RemoteError::RemoteUpload)
 }
 
 #[derive(Deserialize)]
-struct AwsInfo {
-    bucket: String,
-    secret: String,
-    key: String,
-    region: String,
+pub(crate) struct AwsInfo {
+    pub(crate) bucket: String,
+    pub(crate) secret: String,
+    pub(crate) key: String,
+    pub(crate) region: String,
 }
 
 /// Base64 decode the AWS key info
-fn aws_creds(keys: &str) -> Result<AwsInfo, RemoteError> {
+pub(crate) fn aws_creds(keys: &str) -> Result<AwsInfo, RemoteError> {
     let aws_info_result = base64_decode_standard(keys);
     let aws_info = match aws_info_result {
         Ok(result) => result,
@@ -426,7 +364,7 @@ fn aws_creds(keys: &str) -> Result<AwsInfo, RemoteError> {
 mod tests {
     use super::{
         aws_complete_multipart, aws_create_multipart, aws_creds, aws_multipart_upload,
-        aws_start_upload, aws_upload,
+        aws_start_upload, aws_upload, setup_upload,
     };
     use crate::structs::toml::Output;
     use httpmock::{
@@ -435,6 +373,7 @@ mod tests {
     };
     use reqwest::Url;
     use rusty_s3::{Bucket, Credentials, UrlStyle};
+    use std::collections::HashMap;
 
     fn output_options(
         name: &str,
@@ -456,7 +395,7 @@ mod tests {
             output: output.to_string(),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
-logging: Some(String::new())
+            logging: Some(String::new())
         }
     }
 
@@ -486,6 +425,39 @@ logging: Some(String::new())
         aws_upload(test.as_bytes(), &output, name).unwrap();
         mock_me.assert_hits(2);
         mock_me_put.assert();
+    }
+
+    #[test]
+    fn test_setup_upload() {
+        let server = MockServer::start();
+        let port = server.port();
+        let output = output_options("aws_upload_test", "aws", "tmp", false, port);
+
+        let name = "output";
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200).body(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <InitiateMultipartUploadResult>
+            <Bucket>mybucket</Bucket>
+            <Key>mykey</Key>
+            <UploadId>whatever</UploadId>
+         </InitiateMultipartUploadResult>",
+            );
+        });
+
+        let info = aws_creds(output.api_key.as_ref().unwrap()).unwrap();
+        let result = setup_upload(
+            info,
+            Url::parse(output.url.as_ref().unwrap()).unwrap(),
+            name,
+            &HashMap::new(),
+        )
+        .unwrap();
+        mock_me.assert();
+
+        // This is fake key and data
+        assert_eq!(result.creds.key(), "AKIA2OGYBAH6TOIAUJMR")
     }
 
     #[test]
@@ -528,7 +500,6 @@ logging: Some(String::new())
 
         let aws_info = aws_creds(key).unwrap();
         let url: Url = output.url.unwrap().parse().unwrap();
-        let header_value = "plain/text";
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
@@ -545,7 +516,10 @@ logging: Some(String::new())
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_start_upload(aws_info, url, test.as_bytes(), name, header_value).unwrap();
+
+        let setup = setup_upload(aws_info, url, name, &HashMap::new()).unwrap();
+
+        aws_start_upload(setup, test.as_bytes()).unwrap();
         mock_me.assert_hits(2);
         mock_me_put.assert();
     }
@@ -560,7 +534,7 @@ logging: Some(String::new())
             then.status(200).body("hi");
         });
 
-        let result = aws_create_multipart(&url).unwrap();
+        let result = aws_create_multipart(&url, &HashMap::new()).unwrap();
         assert_eq!(result, "hi");
         mock_me.assert();
     }
@@ -584,14 +558,13 @@ logging: Some(String::new())
         });
 
         let bucket = Bucket::new(url, UrlStyle::VirtualHost, "blah", "us-east-1").unwrap();
-        let (_, etag_res) = aws_multipart_upload(
+        let etag_res = aws_multipart_upload(
             test.as_bytes(),
             "an id",
             &bucket,
             &creds,
             name,
             first_upload,
-            "plain/text",
         )
         .unwrap();
         assert_eq!(etag_res.len(), 1);
@@ -614,10 +587,8 @@ logging: Some(String::new())
             then.status(200);
         });
 
-        let bytes = 10;
-
         let bucket = Bucket::new(url, UrlStyle::VirtualHost, "blah", "us-east-1").unwrap();
-        aws_complete_multipart(&bucket, &creds, name, "myid", Vec::new(), &bytes).unwrap();
+        aws_complete_multipart(&bucket, &creds, name, "myid", Vec::new()).unwrap();
         mock_me.assert();
     }
 

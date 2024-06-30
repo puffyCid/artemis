@@ -14,6 +14,12 @@ pub(crate) enum AcquireError {
     GcpSetup,
     GcpToken,
     GcpSession,
+    AwsSetup,
+    AwsUpload,
+    AzureMissingUrl,
+    AzureBadUrl,
+    AzureCommit,
+    AzureUpload,
 }
 
 impl std::error::Error for AcquireError {}
@@ -33,6 +39,12 @@ impl fmt::Display for AcquireError {
             AcquireError::GcpSetup => write!(f, "Could not setup GCP upload"),
             AcquireError::GcpToken => write!(f, "Could not create GCP token"),
             AcquireError::GcpSession => write!(f, "Could not create GCP session"),
+            AcquireError::AwsSetup => write!(f, "Could not setup AWS upload"),
+            AcquireError::AwsUpload => write!(f, "Could not upload AWS data"),
+            AcquireError::AzureMissingUrl => write!(f, "No Azure URL provided"),
+            AcquireError::AzureBadUrl => write!(f, "Bad Azure URL provided"),
+            AcquireError::AzureCommit => write!(f, "Failed to commit Azure upload"),
+            AcquireError::AzureUpload => write!(f, "Failed to upload to Azure"),
         }
     }
 }
