@@ -1,4 +1,4 @@
-use crate::utils::compression::decompress::decompress_zlib;
+use crate::utils::compression::decompress::{decompress_gzip_data, decompress_zlib};
 use deno_core::{error::AnyError, op2, JsBuffer};
 
 #[op2]
@@ -7,6 +7,15 @@ use deno_core::{error::AnyError, op2, JsBuffer};
 pub(crate) fn js_decompress_zlib(#[buffer] data: JsBuffer, wbits: u8) -> Result<Vec<u8>, AnyError> {
     let wbits_value = if wbits == 0 { None } else { Some(wbits) };
     let decom_data = decompress_zlib(&data, &wbits_value)?;
+    Ok(decom_data)
+}
+
+#[op2]
+#[buffer]
+/// Expose decmpressing gzip data to Deno
+pub(crate) fn js_decompress_gzip(#[buffer] data: JsBuffer) -> Result<Vec<u8>, AnyError> {
+    let decom_data = decompress_gzip_data(&data)?;
+
     Ok(decom_data)
 }
 
