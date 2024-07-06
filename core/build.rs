@@ -16,6 +16,7 @@ fn main() {
         "javascript/time.js",
         "javascript/http.js",
         "javascript/compression.js",
+        "javascript/decryption.js",
         "javascript/main.js",)
         .to_vec()
         .into(),

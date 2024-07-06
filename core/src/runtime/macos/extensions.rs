@@ -18,10 +18,11 @@ use super::{
 };
 use crate::runtime::{
     applications::extensions::app_functions, compression::extensions::compression_functions,
-    encoding::extensions::enocoding_functions, environment::extensions::env_runtime,
-    filesystem::extensions::fs_runtime, http::extensions::http_functions,
-    nom::extensions::nom_functions, system::extensions::system_functions,
-    time::extensions::time_functions, unix::extensions::unix_functions,
+    decryption::extensions::decryption_functions, encoding::extensions::enocoding_functions,
+    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
+    http::extensions::http_functions, nom::extensions::nom_functions,
+    system::extensions::system_functions, time::extensions::time_functions,
+    unix::extensions::unix_functions,
 };
 use deno_core::Extension;
 
@@ -72,6 +73,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
     exts.append(&mut time_functions());
     exts.append(&mut http_functions());
     exts.append(&mut compression_functions());
+    exts.append(&mut decryption_functions());
 
     exts
 }

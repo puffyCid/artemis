@@ -53,4 +53,15 @@ mod tests {
         };
         execute_script(&mut output, &script).unwrap();
     }
+
+    #[test]
+    fn test_gzip_decompress() {
+        let test = "";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("gzip_test"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
 }

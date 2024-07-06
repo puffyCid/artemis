@@ -6,6 +6,7 @@ import { system } from "ext:artemis/javascript/system.js";
 import { time } from "ext:artemis/javascript/time.js";
 import { requst } from "ext:artemis/javascript/http.js";
 import { compression } from "ext:artemis/javascript/compression.js";
+import { decryption } from "ext:artemis/javascript/decryption.js";
 
 globalThis.console = console;
 globalThis.fs = filesystem;
@@ -15,3 +16,4 @@ globalThis.system = system;
 globalThis.time = time;
 globalThis.http = requst;
 globalThis.compression = compression;
+globalThis.decryption = decryption;

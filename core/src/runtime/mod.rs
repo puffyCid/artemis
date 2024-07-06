@@ -1,5 +1,6 @@
 mod applications;
 mod compression;
+mod decryption;
 pub(crate) mod deno;
 mod encoding;
 mod environment;
