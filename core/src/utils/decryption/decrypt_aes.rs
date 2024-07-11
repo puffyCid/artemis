@@ -12,7 +12,8 @@ pub(crate) fn decrypt_aes_data(
     data: &mut [u8],
 ) -> Result<Vec<u8>, DecryptError> {
     let key_length = 32;
-    if key.len() != key_length {
+    let iv_length = 16;
+    if key.len() != key_length || iv.len() != iv_length {
         return Err(DecryptError::WrongAesKeyLength);
     }
 
@@ -33,7 +34,6 @@ pub(crate) fn decrypt_aes_data(
 
 #[cfg(test)]
 mod tests {
-
     use super::decrypt_aes_data;
 
     #[test]
