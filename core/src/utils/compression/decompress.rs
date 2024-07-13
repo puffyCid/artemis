@@ -23,13 +23,18 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
             return Err(CompressionError::GzipReadFile);
         }
     };
-    let mut data = MultiGzDecoder::new(&buffer[..]);
+    decompress_gzip_data(&buffer)
+}
+
+/// Decompress raw gzip bytes
+pub(crate) fn decompress_gzip_data(buffer: &[u8]) -> Result<Vec<u8>, CompressionError> {
+    let mut data = MultiGzDecoder::new(buffer);
 
     let mut decompress_data = Vec::new();
     let result = data.read_to_end(&mut decompress_data);
     if result.is_err() {
         error!(
-            "[compression] Could not decompress file {path}: {:?}",
+            "[compression] Could not decompress data: {:?}",
             result.unwrap_err()
         );
         return Err(CompressionError::GzipDecompress);
@@ -174,24 +179,48 @@ pub(crate) fn decompress_xpress(
 
 #[cfg(test)]
 mod tests {
-    use super::decompress_lz4;
-    use super::decompress_xz;
-    use super::decompress_zstd;
-    use crate::utils::compression::decompress::decompress_zlib;
     use crate::{
         filesystem::files::read_file,
-        utils::compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
+        utils::compression::decompress::{
+            decompress_gzip, decompress_gzip_data, decompress_lz4, decompress_seven_bit,
+            decompress_xpress, decompress_xz, decompress_zlib, decompress_zstd, XpressType,
+        },
     };
     use std::path::PathBuf;
 
     #[test]
     fn test_decompress_gzip() {
-        use crate::utils::compression::decompress::decompress_gzip;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
         let files = decompress_gzip(&test_location.display().to_string()).unwrap();
         assert_eq!(files.len(), 78970);
+    }
+
+    #[test]
+    #[should_panic(expected = "GzipDecompress")]
+    fn test_decompress_gzip_data_error() {
+        let test_data = [
+            40, 181, 47, 253, 96, 246, 1, 13, 11, 0, 38, 86, 70, 34, 48, 79, 220, 104, 104, 164,
+            213, 236, 199, 164, 19, 243, 36, 222, 54, 232, 158, 27, 205, 124, 87, 133, 215, 237,
+            160, 61, 33, 255, 131, 30, 20, 52, 81, 42, 62, 0, 59, 0, 61, 0, 11, 131, 33, 196, 25,
+            210, 75, 130, 113, 33, 146, 97, 53, 111, 247, 103, 181, 12, 105, 217, 149, 183, 112,
+            45, 173, 22, 87, 62, 248, 203, 155, 98, 89, 184, 157, 136, 113, 221, 146, 112, 201,
+            134, 243, 130, 93, 228, 89, 237, 17, 241, 120, 60, 11, 106, 48, 120, 20, 14, 32, 232,
+            121, 8, 213, 244, 202, 19, 135, 53, 1, 7, 160, 125, 197, 162, 176, 210, 24, 121, 122,
+            101, 170, 229, 211, 231, 173, 170, 141, 157, 87, 253, 236, 14, 158, 59, 33, 136, 159,
+            220, 201, 69, 73, 207, 165, 0, 193, 32, 17, 177, 0, 45, 170, 157, 2, 190, 92, 159, 75,
+            98, 244, 244, 1, 77, 227, 73, 168, 84, 187, 37, 194, 165, 222, 18, 121, 17, 7, 41, 135,
+            210, 83, 153, 126, 37, 125, 217, 240, 37, 207, 8, 43, 236, 59, 189, 198, 117, 29, 23,
+            205, 152, 178, 154, 168, 38, 117, 20, 232, 3, 193, 59, 97, 194, 197, 72, 2, 88, 99,
+            154, 129, 165, 160, 60, 184, 8, 73, 195, 26, 67, 208, 176, 2, 231, 185, 14, 203, 195,
+            105, 42, 199, 247, 122, 70, 142, 0, 207, 101, 119, 81, 210, 96, 205, 97, 19, 82, 28,
+            37, 0, 1, 173, 193, 176, 143, 148, 189, 157, 62, 199, 74, 106, 74, 191, 226, 189, 115,
+            148, 228, 46, 68, 9, 99, 90, 19, 25, 0, 8, 48, 179, 128, 201, 15, 71, 22, 170, 254, 39,
+            8, 216, 246, 107, 136, 75, 38, 214, 245, 184, 88, 200, 89, 197, 179, 101, 209, 103,
+            196, 201, 9, 27, 133, 6, 11, 67, 204, 216, 132, 63, 226, 133, 45, 4, 177, 5, 85, 18,
+            182, 230, 176, 178, 215, 245, 107, 134, 127, 83, 173, 195, 245, 106, 25, 9, 33, 10,
+        ];
+        let _ = decompress_gzip_data(&test_data).unwrap();
     }
 
     #[test]

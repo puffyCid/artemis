@@ -267,12 +267,21 @@ pub struct FsEvents {
     pub node: u64,
     /**Event ID for the `FsEvent` record */
     pub event_id: u64,
+    pub source: String,
+    pub source_created: String,
+    pub source_modified: String,
+    pub source_changed: String,
+    pub source_accessed: String,
 }
 
 #[derive(Debug, Serialize)]
 pub struct LaunchdPlist {
     pub launchd_data: Dictionary,
     pub plist_path: String,
+    pub created: String,
+    pub modified: String,
+    pub accessed: String,
+    pub changed: String,
 }
 
 #[derive(Debug, Serialize)]
