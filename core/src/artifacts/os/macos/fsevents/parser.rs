@@ -40,7 +40,7 @@ pub(crate) fn grab_fseventsd(options: &FseventsOptions) -> Result<Vec<FsEvents>,
             }
         };
 
-        let results = parse_fsevents(&decompress_data);
+        let results = parse_fsevents(&decompress_data, &file);
         match results {
             Ok((_, mut data)) => fsevents_data.append(&mut data),
             Err(err) => error!("Failed to parse FsEvent file {file}, err: {err:?}"),
@@ -61,7 +61,7 @@ pub(crate) fn grab_fsventsd_file(path: &str) -> Result<Vec<FsEvents>, FsEventsEr
         }
     };
 
-    let results = parse_fsevents(&decompress_data);
+    let results = parse_fsevents(&decompress_data, path);
     match results {
         Ok((_, mut data)) => fsevents_data.append(&mut data),
         Err(err) => error!("Failed to parse FsEvent file {path}, err: {err:?}"),
@@ -83,8 +83,8 @@ fn get_fseventsd_legacy() -> Result<Vec<String>, FsEventsError> {
 }
 
 /// Get `FsEvents` data from decompressed file
-fn parse_fsevents(data: &[u8]) -> nom::IResult<&[u8], Vec<FsEvents>> {
-    fsevents_data(data)
+fn parse_fsevents<'a>(data: &'a [u8], path: &str) -> nom::IResult<&'a [u8], Vec<FsEvents>> {
+    fsevents_data(data, path)
 }
 
 /// Get list of `FsEvents` files in a directory
@@ -147,7 +147,7 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
         let test_path: &str = &test_location.display().to_string();
         let files = decompress_gzip(test_path).unwrap();
-        let (_, results) = parse_fsevents(&files).unwrap();
+        let (_, results) = parse_fsevents(&files, test_path).unwrap();
         assert_eq!(results.len(), 736)
     }
 
@@ -167,7 +167,7 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/Malformed/malformed");
         let test_path: &str = &test_location.display().to_string();
         let files = decompress_gzip(test_path).unwrap();
-        let _results = parse_fsevents(&files).unwrap();
+        let _results = parse_fsevents(&files, test_path).unwrap();
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/DLS1/0000000000027d7a");
         let test_path: &str = &test_location.display().to_string();
         let files = decompress_gzip(test_path).unwrap();
-        let (_, results) = parse_fsevents(&files).unwrap();
+        let (_, results) = parse_fsevents(&files, test_path).unwrap();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].path, "/.fseventsd/sl-compat");

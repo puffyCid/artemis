@@ -11,6 +11,7 @@ use crate::{
     filesystem::{
         directory::{get_user_paths, is_directory},
         files::list_files,
+        metadata::get_timestamps,
     },
     structs::artifacts::os::macos::LaunchdOptions,
 };
@@ -21,16 +22,30 @@ use log::{error, warn};
 pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>, LaunchdError> {
     if let Some(alt_file) = &options.alt_file {
         let results = parse_plist_file_dict(alt_file);
-        let launchd_data = match results {
-            Ok(launchd_data_dictionary) => LaunchdPlist {
-                launchd_data: launchd_data_dictionary,
-                plist_path: alt_file.to_string(),
-            },
+        let plist_data = match results {
+            Ok(result) => result,
             Err(err) => {
                 warn!("[launchd] Failed to parse plist file {alt_file}: {err:?}");
                 return Err(LaunchdError::Files);
             }
         };
+
+        let mut launchd_data = LaunchdPlist {
+            launchd_data: plist_data,
+            plist_path: alt_file.to_owned(),
+            created: String::from("1601-01-01T00:00:00Z"),
+            modified: String::from("1601-01-01T00:00:00Z"),
+            accessed: String::from("1601-01-01T00:00:00Z"),
+            changed: String::from("1601-01-01T00:00:00Z"),
+        };
+
+        let meta_result = get_timestamps(alt_file);
+        if let Ok(result) = meta_result {
+            launchd_data.created = result.created;
+            launchd_data.modified = result.modified;
+            launchd_data.changed = result.changed;
+            launchd_data.accessed = result.accessed;
+        }
 
         return Ok(vec![launchd_data]);
     }
@@ -62,12 +77,25 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
             continue;
         }
 
+        let meta_result = get_timestamps(&data);
+        let meta = match meta_result {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("[launchd] Failed to get timestamp for plist daemon file {data}: {err:?}");
+                continue;
+            }
+        };
+
         let launchd_results = parse_plist_file_dict(&data);
         match launchd_results {
             Ok(launchd_data_dictionary) => {
                 let launchd_data = LaunchdPlist {
                     launchd_data: launchd_data_dictionary,
                     plist_path: data,
+                    created: meta.created,
+                    modified: meta.modified,
+                    accessed: meta.accessed,
+                    changed: meta.changed,
                 };
                 launchd_plist_vec.push(launchd_data);
             }
@@ -98,12 +126,25 @@ pub(crate) fn grab_launchd_agents() -> Result<Vec<LaunchdPlist>, LaunchdError> {
             continue;
         }
 
+        let meta_result = get_timestamps(&data);
+        let meta = match meta_result {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("[launchd] Failed to get timestamp for plist agent file {data}: {err:?}");
+                continue;
+            }
+        };
+
         let launchd_results = parse_plist_file_dict(&data);
         match launchd_results {
             Ok(launchd_data_dictionary) => {
                 let launchd_data = LaunchdPlist {
                     launchd_data: launchd_data_dictionary,
                     plist_path: data,
+                    created: meta.created,
+                    modified: meta.modified,
+                    accessed: meta.accessed,
+                    changed: meta.changed,
                 };
                 launchd_plist_vec.push(launchd_data);
             }
