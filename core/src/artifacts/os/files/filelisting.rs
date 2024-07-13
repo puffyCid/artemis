@@ -10,11 +10,13 @@
 use super::error::FileError;
 use crate::artifacts::os::systeminfo::info::get_platform;
 use crate::artifacts::output::output_artifact;
-use crate::filesystem::files::{file_extension, hash_file};
+use crate::filesystem::files::{file_extension, hash_file, scan_file_yara};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::metadata::get_timestamps;
 use crate::structs::toml::Output;
+use crate::utils::encoding::base64_decode_standard;
 use crate::utils::regex_options::{create_regex, regex_check};
+use crate::utils::strings::extract_utf8_string;
 use crate::utils::time::time_now;
 use common::files::FileInfo;
 use common::files::Hashes;
@@ -40,24 +42,37 @@ use common::linux::ElfInfo;
 #[cfg(target_family = "unix")]
 use std::os::unix::prelude::MetadataExt;
 
+pub(crate) struct FileArgs {
+    pub(crate) start_directory: String,
+    pub(crate) depth: usize,
+    pub(crate) metadata: bool,
+    pub(crate) yara: String,
+    pub(crate) path_filter: String,
+}
+
 /// Get file listing
 pub(crate) fn get_filelist(
-    start_directory: &str,
-    depth: usize,
-    metadata: bool,
+    args: &FileArgs,
     hashes: &Hashes,
-    path_filter: &str,
     output: &mut Output,
     filter: &bool,
 ) -> Result<(), FileError> {
     let start_time = time_now();
 
-    let start_walk = WalkDir::new(start_directory).same_file_system(true);
-    let begin_walk = start_walk.max_depth(depth);
+    let start_walk = WalkDir::new(&args.start_directory).same_file_system(true);
+    let begin_walk = start_walk.max_depth(args.depth);
     let mut filelist_vec: Vec<FileInfo> = Vec::new();
 
-    let path_filter = user_regex(path_filter)?;
+    let path_filter = user_regex(&args.path_filter)?;
     let mut firmlink_paths: Vec<String> = Vec::new();
+
+    let mut rule = String::new();
+    if !args.yara.is_empty() {
+        let bytes_result = base64_decode_standard(&args.yara);
+        if let Ok(bytes) = bytes_result {
+            rule = extract_utf8_string(&bytes);
+        }
+    }
 
     let platform = get_platform();
     if platform == "Darwin" {
@@ -80,13 +95,32 @@ pub(crate) fn get_filelist(
             }
         };
 
+        let mut scan = Vec::new();
+        if !rule.is_empty() {
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            let scan_result = scan_file_yara(&entry.path().display().to_string(), &rule);
+            scan = match scan_result {
+                Ok(result) => result,
+                Err(err) => {
+                    warn!("[files] Failed scan with yara: {err:?}");
+                    continue;
+                }
+            };
+
+            if scan.is_empty() {
+                continue;
+            }
+        }
+
         // If Regex does not match then skip file info
         if !regex_check(&path_filter, &entry.path().display().to_string()) {
             continue;
         }
 
-        let file_entry_result = file_metadata(&entry, metadata, hashes);
-        let file_entry = match file_entry_result {
+        let file_entry_result = file_metadata(&entry, args.metadata, hashes);
+        let mut file_entry = match file_entry_result {
             Ok(result) => result,
             Err(err) => {
                 warn!(
@@ -96,6 +130,7 @@ pub(crate) fn get_filelist(
                 continue;
             }
         };
+        file_entry.yara_hits = scan;
 
         filelist_vec.push(file_entry);
         let max_list = 100000;
@@ -136,6 +171,7 @@ fn file_metadata(
         is_symlink: false,
         depth: entry.depth(),
         binary_info: Vec::new(),
+        yara_hits: Vec::new(),
     };
     file_entry.extension = file_extension(&file_entry.full_path);
     let metadata = get_metadata(&file_entry.full_path)?;
@@ -321,6 +357,7 @@ mod tests {
     use crate::artifacts::os::files::filelisting::executable_metadata;
     use crate::artifacts::os::files::filelisting::file_metadata;
     use crate::artifacts::os::files::filelisting::get_filelist;
+    use crate::artifacts::os::files::filelisting::FileArgs;
     use crate::{
         artifacts::os::files::filelisting::{user_regex, Hashes},
         structs::toml::Output,
@@ -361,16 +398,15 @@ mod tests {
         let path_filter = r".*/Downloads";
         let mut output = output_options("files_temp", "local", "./tmp", false);
 
-        let results = get_filelist(
-            &start_location,
+        let args = FileArgs {
+            start_directory: start_location.to_string(),
             depth,
             metadata,
-            &hashes,
-            path_filter,
-            &mut output,
-            &false,
-        )
-        .unwrap();
+            yara: String::new(),
+            path_filter: path_filter.to_string(),
+        };
+
+        let results = get_filelist(&args, &hashes, &mut output, &false).unwrap();
         assert_eq!(results, ());
     }
 
@@ -399,6 +435,7 @@ mod tests {
             is_symlink: false,
             depth: 1,
             binary_info: Vec::new(),
+            yara_hits: Vec::new(),
         };
         file_output(&vec![info], &mut output, &0, &false);
     }
@@ -424,16 +461,16 @@ mod tests {
         let path_filter = "";
         let mut output = output_options("files_temp", "local", "./tmp", false);
 
-        get_filelist(
-            &start_location,
+        let args = FileArgs {
+            start_directory: start_location.to_string(),
             depth,
             metadata,
-            &hashes,
-            path_filter,
-            &mut output,
-            &false,
-        )
-        .unwrap();
+            yara: String::new(),
+            path_filter: path_filter.to_string(),
+        };
+
+        let results = get_filelist(&args, &hashes, &mut output, &false).unwrap();
+        assert_eq!(results, ());
     }
 
     #[test]
@@ -450,16 +487,16 @@ mod tests {
         let path_filter = "";
         let mut output = output_options("files_temp", "local", "./tmp", false);
 
-        get_filelist(
-            start_location,
+        let args = FileArgs {
+            start_directory: start_location.to_string(),
             depth,
             metadata,
-            &hashes,
-            path_filter,
-            &mut output,
-            &false,
-        )
-        .unwrap();
+            yara: String::new(),
+            path_filter: path_filter.to_string(),
+        };
+
+        let results = get_filelist(&args, &hashes, &mut output, &false).unwrap();
+        assert_eq!(results, ());
     }
 
     #[test]

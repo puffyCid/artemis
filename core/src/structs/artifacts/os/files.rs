@@ -9,4 +9,5 @@ pub struct FileOptions {
     pub sha1: Option<bool>,
     pub sha256: Option<bool>,
     pub regex_filter: Option<String>,
+    pub yara: Option<String>,
 }
