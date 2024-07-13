@@ -94,6 +94,7 @@ mod tests {
             sha1: Some(false),
             sha256: Some(false),
             regex_filter: Some(String::new()),
+            yara: None,
         };
         let status = filelisting(&mut output, &false, &file_config).unwrap();
         assert_eq!(status, ());
