@@ -48,6 +48,7 @@ macos-unifiedlogs = { git = "https://github.com/mandiant/macos-UnifiedLogs", rev
 plist = "1.7.0"
 aes = "0.8.4"
 cbc = "0.1.2"
+yara-x = "0.5.0"
 
 common = { path = "../common" }
 

@@ -25,6 +25,7 @@ pub(crate) enum FileSystemError {
     AcquireFile,
     UploadSetup,
     FinalUpload,
+    DecodeYara,
 }
 
 impl std::error::Error for FileSystemError {}
@@ -57,6 +58,7 @@ impl fmt::Display for FileSystemError {
             FileSystemError::AcquireFile => write!(f, "Could not finish file acquisition"),
             FileSystemError::UploadSetup => write!(f, "Could not setup file upload"),
             FileSystemError::FinalUpload => write!(f, "Could not finish file upload"),
+            FileSystemError::DecodeYara => write!(f, "Could not decode yara rule"),
         }
     }
 }

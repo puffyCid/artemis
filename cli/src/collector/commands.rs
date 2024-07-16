@@ -40,6 +40,9 @@ pub(crate) enum CommandArgs {
         /// Regex to only include entries that match
         #[arg(long, default_value = None)]
         regex_filter: Option<String>,
+        /// Base64 encoded Yara rule to only include entries that match
+        #[arg(long, default_value = None)]
+        yara_rule: Option<String>,
     },
     /// Get systeminfo
     Systeminfo {},

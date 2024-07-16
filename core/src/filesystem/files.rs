@@ -11,6 +11,7 @@ use std::{
     io::{copy, Read},
     path::Path,
 };
+use yara_x::{Compiler, Scanner};
 
 /// Get a list of all files in a provided directory. Use `list_directories` to get only directories. Use `list_files_directories` to get both files and directories
 pub(crate) fn list_files(path: &str) -> Result<Vec<String>, FileSystemError> {
@@ -56,6 +57,36 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
     }
 
     Ok(data)
+}
+
+/// Scan a file using provided Yara rule
+pub(crate) fn scan_file_yara(path: &str, rule: &str) -> Result<Vec<String>, FileSystemError> {
+    let mut compile = Compiler::new();
+    compile.error_on_slow_pattern(true);
+    let status = compile.add_source(rule);
+    if status.is_err() {
+        error!(
+            "[artemis-core] Failed to add yara rule: {:?}",
+            status.unwrap_err()
+        );
+        return Err(FileSystemError::DecodeYara);
+    }
+
+    let rules = compile.build();
+    let mut scanner = Scanner::new(&rules);
+    let results = scanner.scan_file(path);
+    let hits = match results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Failed to scan file {path}: {err:?}",);
+            return Err(FileSystemError::DecodeYara);
+        }
+    };
+    let mut matches = Vec::new();
+    for hit in hits.matching_rules() {
+        matches.push(hit.identifier().to_string());
+    }
+    Ok(matches)
 }
 
 /// Check if path is a file
@@ -328,6 +359,7 @@ mod tests {
         file_extension, file_lines, file_read_text, file_reader, file_too_large,
         file_too_large_custom, get_file_size, get_filename, hash_file, hash_file_data, is_file,
         list_files, list_files_directories, read_file, read_file_custom, read_text_file,
+        scan_file_yara,
     };
     use common::files::Hashes;
     use std::path::PathBuf;
@@ -417,6 +449,25 @@ mod tests {
         let result = read_text_file(&test_location.display().to_string()).unwrap();
 
         assert_eq!(result, "hello, world! Its Rust!");
+    }
+
+    #[test]
+    fn test_scan_file_yara() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system/files/test.txt");
+
+        let rule = r#"
+    rule hello_world {
+      strings:
+        $ = "hello, world! Its Rust!"
+      condition:
+        all of them
+    }
+"#;
+
+        let result = scan_file_yara(test_location.to_str().unwrap(), rule).unwrap();
+
+        assert_eq!(result[0], "hello_world");
     }
 
     #[test]

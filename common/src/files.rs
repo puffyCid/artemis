@@ -36,6 +36,7 @@ pub struct FileInfo {
     pub is_directory: bool,
     pub is_symlink: bool,
     pub depth: usize,
+    pub yara_hits: Vec<String>,
     #[cfg(target_os = "macos")]
     pub binary_info: Vec<MachoInfo>,
     #[cfg(target_os = "windows")]

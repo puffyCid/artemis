@@ -208,6 +208,7 @@ mod tests {
                     start_path: String::from("/"),
                     depth: 1,
                     regex_filter: None,
+                    yara_rule: None,
                 }),
                 format: String::from("json"),
             }),

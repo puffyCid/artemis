@@ -1,4 +1,7 @@
-use super::{error::FileError, filelisting::get_filelist};
+use super::{
+    error::FileError,
+    filelisting::{get_filelist, FileArgs},
+};
 use crate::structs::{artifacts::os::files::FileOptions, toml::Output};
 use common::files::Hashes;
 use log::error;
@@ -14,15 +17,18 @@ pub(crate) fn filelisting(
         sha1: options.sha1.unwrap_or(false),
         sha256: options.sha256.unwrap_or(false),
     };
-    let artifact_result = get_filelist(
-        &options.start_path,
-        options.depth.unwrap_or(1).into(),
-        options.metadata.unwrap_or(false),
-        &hashes,
-        options.regex_filter.as_ref().unwrap_or(&String::new()),
-        output,
-        filter,
-    );
+    let args = FileArgs {
+        start_directory: options.start_path.clone(),
+        depth: options.depth.unwrap_or(1) as usize,
+        metadata: options.metadata.unwrap_or(false),
+        yara: options.yara.as_ref().unwrap_or(&String::new()).to_string(),
+        path_filter: options
+            .regex_filter
+            .as_ref()
+            .unwrap_or(&String::new())
+            .to_string(),
+    };
+    let artifact_result = get_filelist(&args, &hashes, output, filter);
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {
@@ -69,6 +75,7 @@ mod tests {
             sha1: Some(false),
             sha256: Some(false),
             regex_filter: Some(String::new()),
+            yara: None,
         };
         let status = filelisting(&mut output, &false, &file_config).unwrap();
         assert_eq!(status, ());
@@ -87,6 +94,7 @@ mod tests {
             sha1: Some(false),
             sha256: Some(false),
             regex_filter: Some(String::new()),
+            yara: None,
         };
         let status = filelisting(&mut output, &false, &file_config).unwrap();
         assert_eq!(status, ());
