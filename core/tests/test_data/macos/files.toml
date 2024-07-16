@@ -12,11 +12,12 @@ output = "local"
 [[artifacts]]
 artifact_name = "files" # Name of artifact
 [artifacts.files]
-start_path = "/usr/bin" # Start of file listing
-depth = 5 # How many sub directories to descend
-metadata = true # Get executable metadata
-md5 = true # MD5 all files
-sha1 = false # SHA1 all files
-sha256 = false # SHA256 all files
-path_regex = "" # Regex for paths
-file_regex = "" # Regex for files
+start_path = "/usr/bin"                                                                                                                   # Start of file listing
+depth = 5                                                                                                                                 # How many sub directories to descend
+metadata = true                                                                                                                           # Get executable metadata
+md5 = true                                                                                                                                # MD5 all files
+sha1 = false                                                                                                                              # SHA1 all files
+sha256 = false                                                                                                                            # SHA256 all files
+path_regex = ""                                                                                                                           # Regex for paths
+file_regex = ""                                                                                                                           # Regex for files
+yara = "cnVsZSBBcHBsZVJ1bGUgewogICAgc3RyaW5nczoKICAgICAgJHZhbHVlID0gIkFwcGxlIiBub2Nhc2UKCiAgICBjb25kaXRpb246CiAgICAgIGFsbCBvZiB0aGVtCn0="
