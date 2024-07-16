@@ -15,6 +15,8 @@ jobs:
     strategy:
       matrix:
         info:
+          - os: "ubuntu-latest"
+            target: "aarch64-unknown-linux-gnu"
           - os: "macOS-latest"
             target: "x86_64-apple-darwin"
           - os: "macOS-latest"
@@ -35,6 +37,8 @@ jobs:
         run: npm install -D @tailwindcss/typography
       - name: Add WASM Support
         run: rustup target add wasm32-unknown-unknown
+      - name: Setup Auditable
+        run: cargo install cargo-auditable && alias cargo="cargo auditable"
 
       - uses: actions/checkout@v3
       - uses: taiki-e/install-action@just
@@ -53,6 +57,7 @@ jobs:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
           # Note that glob pattern is not supported yet.
           bin: artemis
+          profile: release-action
           ref: refs/tags/nightly
           target: ${{ matrix.info.target }}
           archive: $bin-$tag-$target
