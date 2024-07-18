@@ -42,7 +42,10 @@ jobs:
         run: cargo install cargo-auditable && shopt -s expand_aliases && alias cargo="cargo auditable"
       - if: matrix.info.os == 'windows-latest'
         name: Setup Auditable
-        run: cargo install cargo-auditable && function cargo {cargo.exe auditable $args}
+        run: cargo install cargo-auditable
+      - if: matrix.info.os == 'windows-latest'
+        name: Configure Auditable
+        run: function cargo {cargo.exe auditable $args}
 
       - uses: actions/checkout@v3
       - uses: taiki-e/install-action@just
