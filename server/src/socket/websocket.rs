@@ -72,7 +72,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                     let send_result = state.clients.send(socket_message.content);
                     if send_result.is_err() {
                         error!(
-                            "[server] Could not server command clients {}: {:?}",
+                            "[server] Could not send server command to client {}: {:?}",
                             socket_message.id,
                             send_result.unwrap_err()
                         );
@@ -231,11 +231,10 @@ async fn parse_message(
 
 #[cfg(test)]
 mod tests {
-    use redb::Database;
-
     use super::parse_message;
     use crate::socket::websocket::Message::Text;
     use crate::socket::websocket::MessageSource;
+    use redb::Database;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::ops::ControlFlow::Continue;
     use std::path::PathBuf;

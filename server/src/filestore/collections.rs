@@ -67,7 +67,7 @@ pub(crate) async fn get_endpoint_collections(
                 let info: CollectionInfo = match serde_value {
                     Ok(result) => result,
                     Err(err) => {
-                        println!("[server] Failed to deserialize collection file data: {err:?}");
+                        error!("[server] Failed to deserialize collection file data: {err:?}");
                         return Err(StoreError::Deserialize);
                     }
                 };

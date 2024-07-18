@@ -13,6 +13,7 @@ pub async fn server_info() -> Result<(String, String), JsValue> {
     let ip = get_ip(&win).await?;
     let port = get_port(&win).await?;
 
+    // Use: String::from("8000") if you want to develop using trunk
     Ok((ip, port))
 }
 

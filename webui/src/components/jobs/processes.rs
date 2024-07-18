@@ -1,9 +1,12 @@
 use crate::web::server::request_server;
-use common::system::Processes;
+use common::{
+    server::collections::{CollectionType, QuickCollection},
+    system::Processes,
+};
 use leptos::{
-    component, create_node_ref, create_resource, create_signal, html, logging::error, view,
-    IntoView, NodeRef, ReadSignal, Resource, Show, SignalGet, SignalSet, SignalUpdate, Transition,
-    WriteSignal,
+    component, create_action, create_node_ref, create_resource, create_signal, html,
+    logging::error, view, IntoView, NodeRef, ReadSignal, Resource, Show, SignalGet, SignalSet,
+    SignalUpdate, Transition, WriteSignal,
 };
 use reqwest::Method;
 
@@ -17,31 +20,16 @@ struct EndpointProcesses {
 
 #[component]
 /// Display process listing info
-pub(crate) fn EndpointProcesses(procs: Option<Vec<Processes>>) -> impl IntoView {
-    if procs.is_none() {
-        return view! {
-          <div class="m-4 flex items-center">
-            <button class="btn btn-sm btn-outline btn-primary">
-              "Refresh"
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="size-6"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                ></path>
-              </svg>
-            </button>
-          </div>
-        };
+pub(crate) fn EndpointProcesses(proc_data: Vec<Processes>, target: String) -> impl IntoView {
+    view! {
+      <div class="col-span-full m-2 mb-16">
+        <ProcDetails proc_data target/>
+      </div>
     }
-    let proc_data = procs.unwrap();
+}
+
+#[component]
+fn ProcDetails(proc_data: Vec<Processes>, target: String) -> impl IntoView {
     let headers = vec!["Path", "Name", "PID", "PPID", "Start Time"];
 
     let endpoint_procs = EndpointProcesses {
@@ -56,8 +44,8 @@ pub(crate) fn EndpointProcesses(procs: Option<Vec<Processes>>) -> impl IntoView 
     let (asc_ord, set_ord) = create_signal(true);
 
     view! {
-      <div class="col-span-full m-2 mb-16">
-        <SearchProcesses proc_set proc_get info/>
+      <div>
+        <SearchProcesses proc_set proc_get info target/>
         <table class="table border">
           // Table Header
           <thead>
@@ -148,6 +136,7 @@ fn SearchProcesses(
     proc_set: WriteSignal<EndpointProcesses>,
     proc_get: ReadSignal<EndpointProcesses>,
     info: Resource<EndpointProcesses, Vec<Processes>>,
+    target: String,
 ) -> impl IntoView {
     let counts = vec![20, 50, 100];
     let search_form: NodeRef<html::Input> = create_node_ref();
@@ -163,6 +152,10 @@ fn SearchProcesses(
 
     let previous_disabled = move || proc_get.get().offset <= 0;
     let next_disabled = move || proc_get.get().count > info.get().unwrap_or_default().len() as i32;
+    let refresh = create_action(|id: &String| {
+        let value = id.clone();
+        async move { endpoint_process_command(&value).await }
+    });
 
     view! {
       <div class="grid grid-cols-5 p-2 gap-2">
@@ -206,7 +199,10 @@ fn SearchProcesses(
                 .collect::<Vec<_>>()}
           </ul>
         </div>
-        <button class="btn btn-sm btn-outline btn-primary">
+        <button
+          class="btn btn-sm btn-outline btn-primary"
+          on:click=move |_| { refresh.dispatch(target.clone()) }
+        >
           "Refresh"
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -403,24 +399,41 @@ fn sort_table(
 }
 
 /// Get processes associated with endpoint
-pub(crate) async fn endpoint_processes(data: String) -> Option<Vec<Processes>> {
-    let res_result = request_server("endpoints/processes", data, Method::POST).await;
+pub(crate) async fn endpoint_processes(target: String) -> Vec<Processes> {
+    let res_result = request_server("endpoints/processes", target, Method::POST).await;
     let response = match res_result {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to send request for process list: {err:?}");
-            return None;
+            return Vec::new();
         }
     };
 
-    let result_json = response.json().await;
-    match result_json {
+    response.json().await.unwrap_or(Vec::new())
+}
+
+/// Send process quick collectoin to target
+pub(crate) async fn endpoint_process_command(target: &str) {
+    let value: Vec<&str> = target.split('.').collect();
+
+    let quick = QuickCollection {
+        target: value.get(1).unwrap_or(&"").to_string(),
+        collection_type: CollectionType::Processes,
+    };
+
+    let res_result = request_server(
+        "endpoints/quick",
+        serde_json::to_string(&quick).unwrap_or_default(),
+        Method::POST,
+    )
+    .await;
+    let _response = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to get process list: {err:?}");
-            None
+            error!("Failed to send request for process list: {err:?}");
+            return;
         }
-    }
+    };
 }
 
 /// List processes for view

@@ -28,7 +28,7 @@ pub(crate) async fn parse_heartbeat(data: &str, ip: &str, endpoint_path: &str) -
     )
     .await;
     if status.is_err() {
-        println!(
+        error!(
             "[server] Could not update heartbeat.jsonl file from {ip}: {:?}",
             status.unwrap_err()
         );

@@ -15,7 +15,7 @@ pub(crate) fn gather_info() -> Enrollment {
         cpu: get_cpu(&mut system),
         disks: get_disks(),
         memory: get_memory(&mut system),
-        ip: String::new(),
+        ip: String::from("IP: TODO"),
         artemis_version: env!("CARGO_PKG_VERSION").to_string(),
     }
 }
