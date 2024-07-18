@@ -8,7 +8,8 @@ use common::system::Memory;
 use leptos::logging::error;
 use leptos::{
     component, create_node_ref, create_resource, create_signal, html, view, IntoView, NodeRef,
-    ReadSignal, Resource, Show, SignalGet, SignalSet, SignalUpdate, Transition, WriteSignal,
+    ReadSignal, Resource, Show, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, Transition,
+    WriteSignal,
 };
 use leptos_router::use_query_map;
 use reqwest::Method;
@@ -309,7 +310,13 @@ pub(crate) struct InfoValue {
 pub(crate) fn GetInfo() -> impl IntoView {
     let query = use_query_map();
     // search stored as ?q=
-    let search = move || query.get().get("query").cloned().unwrap_or_default();
+    let search = move || {
+        query
+            .get_untracked()
+            .get("query")
+            .cloned()
+            .unwrap_or_default()
+    };
     let info_results = create_resource(search, endpoint_info);
     let proc_results = create_resource(search, endpoint_processes);
 
@@ -341,11 +348,9 @@ pub(crate) fn GetInfo() -> impl IntoView {
           proc.get()
       }>
         {move || {
-            proc_results
-                .get()
-                .map(|res| {
-                    view! { <EndpointProcesses procs=res/> }
-                })
+            view! {
+              <EndpointProcesses proc_data=proc_results.get().unwrap_or_default() target=search()/>
+            }
         }}
 
       </Show>

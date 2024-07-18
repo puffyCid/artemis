@@ -29,7 +29,7 @@ pub(crate) fn EndpointDetails(beat: Heartbeat) -> impl IntoView {
         </div>
         <div class="divider divider-horizontal"></div>
         <div>
-          <p class="font-semibold">{format!("Jobs Running: {}", beat.jobs_running)}</p>
+          <p class="font-semibold">{format!("Collections Running: {}", beat.jobs_running)}</p>
         </div>
       </div>
       <br/>

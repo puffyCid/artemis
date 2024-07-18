@@ -36,7 +36,7 @@ jobs:
       - name: Add WASM Support
         run: rustup target add wasm32-unknown-unknown
       - name: Setup Auditable
-        run: cargo install cargo-auditable && alias cargo="cargo auditable"
+        run: cargo install cargo-auditable && shopt -s expand_aliases && alias cargo="cargo auditable"
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just

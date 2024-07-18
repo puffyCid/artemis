@@ -5,7 +5,7 @@ use common::server::{
     config::ArtemisConfig,
 };
 use futures_util::{SinkExt, StreamExt};
-use log::error;
+use log::{error, info};
 use std::time::Duration;
 use tokio::time::interval;
 use tokio_tungstenite::connect_async;
@@ -22,7 +22,7 @@ pub(crate) async fn start_connection(config: &mut ArtemisConfig) -> Result<(), S
     let (socket, _response) = match connect_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[client] Could not send heartbeat: ${err:?}");
+            error!("[client] Could not connect to server: ${err:?}");
             return Err(SocketError::StartConnection);
         }
     };
@@ -48,7 +48,7 @@ pub(crate) async fn start_connection(config: &mut ArtemisConfig) -> Result<(), S
             }
         };
 
-        println!("Received command: {command}");
+        info!("Received command: {command}");
 
         if let Ok(collection) = serde_json::from_str::<CollectionRequest>(&command) {
             if !collection.targets.contains(&config.endpoint_id) {

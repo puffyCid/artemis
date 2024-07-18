@@ -1,5 +1,6 @@
 use super::{
     about::about,
+    collections::endpoint_quick,
     endpoints::{endpoint_info, endpoint_list, endpoint_processes, endpoint_stats},
     webui::webui,
 };
@@ -28,6 +29,10 @@ pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
         &format!("{base}/endpoints/processes"),
         post(endpoint_processes),
     ));
+
+    // Post requests for collections
+    frontend = frontend
+        .merge(Router::new().route(&format!("{base}/endpoints/quick"), post(endpoint_quick)));
 
     // Server stats
     frontend = frontend.merge(Router::new().route(&format!("{base}/server/stats"), get(about)));
