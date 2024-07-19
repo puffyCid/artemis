@@ -6,12 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - main
-  schedule:
-    - cron: "0 0 * * *"
-  pull_request:
-    branches:
-      - "main"
+      - cross_future
 
 jobs:
   upload-nightly-cross:
