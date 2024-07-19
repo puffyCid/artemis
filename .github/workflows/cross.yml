@@ -33,9 +33,9 @@ jobs:
       - name: Add WASM Support
         run: rustup target add wasm32-unknown-unknown
       - name: Setup Auditable
-        run: | 
-          cargo install cargo-auditable
-          cargo install cross --git https://github.com/cross-rs/cross
+        run: cargo install cargo-auditable
+      - name: Setup Cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
@@ -48,6 +48,7 @@ jobs:
         run: just _wasm
 
       - name: Build Artemis
+        shell: bash
         run: just _ci_release_cross ${{ matrix.info.target }}
 
       - name: Package Artemis
