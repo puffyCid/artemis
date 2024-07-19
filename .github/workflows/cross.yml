@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - cross_future
+      - main
 
 jobs:
   upload-nightly-cross:
