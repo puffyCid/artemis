@@ -70,6 +70,10 @@ build:(_wasm)
 _coverage:(_wasm)
   cargo llvm-cov --release --workspace --exclude artemis-webui --lcov --output-path lcov.info
 
+# Build Artemis for GitHub Actions
+_ci_release target:
+  cargo auditable build --profile release-action --bin artemis --target {{target}}
+
 # Test the entire artemis project
 test:(_wasm)
   cargo test --release

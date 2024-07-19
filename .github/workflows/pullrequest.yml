@@ -9,7 +9,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-pr:
     strategy:
       fail-fast: false
       matrix:

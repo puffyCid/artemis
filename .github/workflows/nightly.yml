@@ -9,14 +9,17 @@ on:
       - main
   schedule:
     - cron: "0 0 * * *"
+  pull_request:
+    branches:
+      - "main"
 
 jobs:
-  upload-assets:
+  upload-nightly:
     strategy:
       matrix:
         info:
-          - os: "ubuntu-latest"
-            target: "aarch64-unknown-linux-gnu"
+         # - os: "ubuntu-latest"
+         #   target: "aarch64-unknown-linux-gnu"
           - os: "macOS-latest"
             target: "x86_64-apple-darwin"
           - os: "macOS-latest"
@@ -37,17 +40,10 @@ jobs:
         run: npm install -D @tailwindcss/typography
       - name: Add WASM Support
         run: rustup target add wasm32-unknown-unknown
-      - if: matrix.info.os != 'windows-latest'
-        name: Setup Auditable
-        run: cargo install cargo-auditable && shopt -s expand_aliases && alias cargo="cargo auditable"
-      - if: matrix.info.os == 'windows-latest'
-        name: Setup Auditable
+      - name: Setup Auditable
         run: cargo install cargo-auditable
-      - if: matrix.info.os == 'windows-latest'
-        name: Configure Auditable
-        run: function cargo {cargo.exe auditable $args}
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
       - uses: jetli/trunk-action@v0.5.0
         with:
@@ -59,14 +55,20 @@ jobs:
       - if: matrix.info.os != 'windows-latest'
         run: just _wasm
 
-      - uses: taiki-e/upload-rust-binary-action@v1
+      - name: Build Artemis
+        run: just _ci_release ${{ matrix.info.target }}
+
+      - name: Package Artemis
+        shell: bash
+        env:
+          NAME: artemis
+          TARGET: ${{ matrix.info.target }}
+        run: .github/scripts/package.sh
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
-          # Note that glob pattern is not supported yet.
-          bin: artemis
-          profile: release-action
-          ref: refs/tags/nightly
-          target: ${{ matrix.info.target }}
-          archive: $bin-$tag-$target
-          # (required) GitHub token for uploading assets to GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: "artemis*"
+          name: nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

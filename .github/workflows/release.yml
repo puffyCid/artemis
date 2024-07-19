@@ -9,7 +9,7 @@ on:
       - v[0-9]+.*
 
 jobs:
-  upload-assets:
+  upload-release:
     strategy:
       matrix:
         info:
