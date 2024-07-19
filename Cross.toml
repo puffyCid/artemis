@@ -2,4 +2,9 @@
 default-target = "aarch64-unknown-linux-gnu"
 
 [target.aarch64-unknown-linux-gnu]
-pre-build = ["cross install cargo-auditable", "alias cargo='cargo auditable'"]
+pre-build = [
+    "apt-get update && apt-get --assume-yes install curl",
+    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh",
+    "cargo install cargo-auditable",
+    "alias cargo='cargo auditable'",
+]
