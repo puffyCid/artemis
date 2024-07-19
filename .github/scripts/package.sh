@@ -1,7 +1,7 @@
-# Slightly tweaked from https://github.com/EmbarkStudios/cargo-about/blob/main/.github/workflows/rust-ci.yml (MIT LICENSE)
 #!/usr/bin/env bash
 set -eu
 
+# Slightly tweaked from https://github.com/EmbarkStudios/cargo-about/blob/main/.github/workflows/rust-ci.yml (MIT LICENSE)
 # When run in a container, the ownership will be messed up, so mark the
 # checkout dir as safe regardless of our env
 git config --global --add safe.directory "$GITHUB_WORKSPACE"

@@ -1,4 +1,4 @@
-name: Nightly Release
+name: Nightly Release Cross
 
 permissions:
   contents: write
@@ -14,20 +14,12 @@ on:
       - "main"
 
 jobs:
-  upload-nightly:
+  upload-nightly-cross:
     strategy:
       matrix:
         info:
-         # - os: "ubuntu-latest"
-         #   target: "aarch64-unknown-linux-gnu"
-          - os: "macOS-latest"
-            target: "x86_64-apple-darwin"
-          - os: "macOS-latest"
-            target: "aarch64-apple-darwin"
-          - os: "windows-latest"
-            target: "x86_64-pc-windows-msvc"
           - os: "ubuntu-latest"
-            target: "x86_64-unknown-linux-gnu"
+            target: "aarch64-unknown-linux-gnu"
     runs-on: ${{ matrix.info.os }}
     steps:
       - name: Setup NodeJS toolchain
@@ -39,11 +31,11 @@ jobs:
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
       - name: Add WASM Support
-        run: |
-          rustup target add wasm32-unknown-unknown
-          rustup target add ${{ matrix.info.target }}
+        run: rustup target add wasm32-unknown-unknown
       - name: Setup Auditable
-        run: cargo install cargo-auditable
+        run: | 
+          cargo install cargo-auditable
+          cargo install cross --git https://github.com/cross-rs/cross
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
@@ -52,15 +44,11 @@ jobs:
           version: "latest"
 
       # Compile WASM before compiling binary
-      - if: matrix.info.os == 'windows-latest'
-        name: Compile WASM
-        run: just --shell pwsh.exe --shell-arg -c _wasm
-      - if: matrix.info.os != 'windows-latest'
-        name: Compile WASM
+      - name: Compile WASM
         run: just _wasm
 
       - name: Build Artemis
-        run: just _ci_release ${{ matrix.info.target }}
+        run: just _ci_release_cross ${{ matrix.info.target }}
 
       - name: Package Artemis
         shell: bash
