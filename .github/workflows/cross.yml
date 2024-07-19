@@ -30,8 +30,11 @@ jobs:
         run: npm install -D daisyui@latest
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
-      - name: Add WASM Support
-        run: rustup target add wasm32-unknown-unknown
+      - name: Setup Stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
       - name: Setup Auditable
         run: cargo install cargo-auditable
       - name: Setup Cross
@@ -63,5 +66,6 @@ jobs:
         with:
           files: "artemis*"
           name: nightly
+          tag_name: nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
