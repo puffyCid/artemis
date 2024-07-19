@@ -10,8 +10,8 @@ git config --global --add safe.directory "$GITHUB_WORKSPACE"
 # if we're iterating or the like
 tag=$(git describe --tags --abbrev=0 --always)
 
-if [["${#tag}" -gt 8]]; then
-  tag='nightly'
+if [[ ${tag:0:1} != "v" ]]; then
+  tag="nightly"
 fi
 
 release_name="$NAME-$tag-$TARGET"
