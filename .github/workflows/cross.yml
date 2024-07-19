@@ -49,7 +49,7 @@ jobs:
 
       - name: Build Artemis
         shell: bash
-        run: just _ci_release_cross ${{ matrix.info.target }}
+        run: just --shell bash --shell-arg -uc _ci_release_cross ${{ matrix.info.target }}
 
       - name: Package Artemis
         shell: bash
