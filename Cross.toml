@@ -2,10 +2,4 @@
 default-target = "aarch64-unknown-linux-gnu"
 
 [target.aarch64-unknown-linux-gnu]
-#dockerfile = "Dockerfile"
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get install --assume-yes curl:$CROSS_DEB_ARCH",
-    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh",
-    "cargo install cargo-auditable",
-]
+pre-build = ["cross install cargo-auditable", "alias cargo='cargo auditable'"]
