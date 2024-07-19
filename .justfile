@@ -76,6 +76,8 @@ _ci_release target:
 
 # Build Artemis for GitHub Actions
 _ci_release_cross target:
+  shopt -s expand_aliases
+  alias cargo="cargo auditable"
   cross build --profile release-action --bin artemis --target {{target}}
 
 # Test the entire artemis project
