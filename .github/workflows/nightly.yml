@@ -71,10 +71,10 @@ jobs:
         run: .github/scripts/package.sh
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: "artemis*"
-          name: nightly
+          name: Nightly Version
           tag_name: nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

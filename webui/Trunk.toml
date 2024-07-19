@@ -2,7 +2,7 @@
 target = "index.html"
 dist = "../target/dist/web"
 
-[[hooks]]
-stage = "pre_build"
-command = "sh"
-command_arguments = ["-c", "npx tailwindcss -i input.css -o style/output.css"]
+#[[hooks]]
+#stage = "pre_build"
+#command = "sh"
+#command_arguments = ["-c", "npx tailwindcss -i input.css -o style/output.css"]

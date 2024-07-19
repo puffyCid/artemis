@@ -9,6 +9,11 @@ git config --global --add safe.directory "$GITHUB_WORKSPACE"
 # Normally we'll only do this on tags, but add --always to fallback to the revision
 # if we're iterating or the like
 tag=$(git describe --tags --abbrev=0 --always)
+
+if [["${#tag}" -gt 8]]; then
+  tag='nightly'
+fi
+
 release_name="$NAME-$tag-$TARGET"
 release_zip="${release_name}.zip"
 release_tar="${release_name}.tar.gz"
