@@ -6,7 +6,6 @@ pre-build = [
     "curl -fsSL \"https://github.com/cargo-prebuilt/index/releases/download/cargo-auditable-$(curl -fsSL https://github.com/cargo-prebuilt/index/releases/download/stable-index/cargo-auditable)/x86_64-unknown-linux-musl.tar.gz\" -o ca-musl.tar.gz",
     "tar -xvzf ca-musl.tar.gz -C /bin",
     "echo \\#\\!/bin/sh > /bin/cargo",
-    "echo which cargo >> /bin/cargo",
     "echo  /usr/bin/cargo install cargo-auditable >> /bin/cargo",
     "echo '/usr/bin/cargo auditable \"$@\"' >> /bin/cargo",
     "chmod +x /bin/cargo",
