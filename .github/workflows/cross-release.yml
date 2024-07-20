@@ -1,4 +1,4 @@
-name: Nightly Release Cross
+name: Stable Release Cross
 
 permissions:
   contents: write
@@ -14,7 +14,7 @@ on:
       - "main"
 
 jobs:
-  upload-nightly-cross:
+  upload-release-cross:
     strategy:
       matrix:
         info:
@@ -63,7 +63,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: "artemis*"
-          name: nightly
-          tag_name: nightly
+          name: "${{ vars.GITHUB_REF_NAME }} - Released!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
