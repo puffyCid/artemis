@@ -76,7 +76,7 @@ _ci_release target:
 
 # Build Artemis for GitHub Actions
 _ci_release_cross target:
-  cross cargo auditable build --profile release-action --bin artemis --target {{target}}
+  cross build --profile release-action --bin artemis --target {{target}}
 
 # Test the entire artemis project
 test:(_wasm)
