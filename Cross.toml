@@ -8,6 +8,7 @@ pre-build = [
     "echo \\#\\!/bin/sh > /bin/cargo",
     "echo which cargo >> /bin/cargo",
     "echo \"export CARGO='/rust/bin/cargo'\" >> /bin/cargo",
-    "echo 'cargo-auditable auditable \"$@\"' >> /bin/cargo",
+    "echo  /usr/bin/cargo install cargo-auditable >> /bin/cargo",
+    "echo '/usr/bin/cargo auditable \"$@\"' >> /bin/cargo",
     "chmod +x /bin/cargo",
 ]
