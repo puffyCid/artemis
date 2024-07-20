@@ -9,7 +9,7 @@ on:
       - v[0-9]+.*
 
 jobs:
-  upload-assets:
+  upload-release:
     strategy:
       matrix:
         info:
@@ -33,36 +33,42 @@ jobs:
         run: npm install -D daisyui@latest
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
-      - name: Add WASM Support
-        run: rustup target add wasm32-unknown-unknown
+      - name: Setup Stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown, ${{ matrix.info.target }}
+          components: clippy, rustfmt
       - name: Setup Auditable
-        run: cargo install cargo-auditable && shopt -s expand_aliases && alias cargo="cargo auditable"
-      - if: matrix.info.os != 'windows-latest'
-        name: Setup Auditable
-        run: cargo install cargo-auditable && shopt -s expand_aliases && alias cargo="cargo auditable"
-      - if: matrix.info.os == 'windows-latest'
-        name: Setup Auditable
         run: cargo install cargo-auditable
-      - if: matrix.info.os == 'windows-latest'
-        name: Configure Auditable
-        run: function cargo {cargo.exe auditable $args}
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
       - uses: jetli/trunk-action@v0.5.0
         with:
           version: "latest"
+
       # Compile WASM before compiling binary
       - if: matrix.info.os == 'windows-latest'
+        name: Compile WASM
         run: just --shell pwsh.exe --shell-arg -c _wasm
       - if: matrix.info.os != 'windows-latest'
+        name: Compile WASM
         run: just _wasm
-      - uses: taiki-e/upload-rust-binary-action@v1
+
+      - name: Build Artemis
+        run: just _ci_release ${{ matrix.info.target }}
+
+      - name: Package Artemis
+        shell: bash
+        env:
+          NAME: artemis
+          TARGET: ${{ matrix.info.target }}
+        run: .github/scripts/package.sh
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
-          # Note that glob pattern is not supported yet.
-          bin: artemis
-          target: ${{ matrix.info.target }}
-          archive: $bin-$tag-$target
-          # (required) GitHub token for uploading assets to GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: "artemis*"
+          name: "${{ vars.GITHUB_REF_NAME }} - Released!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

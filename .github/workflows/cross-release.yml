@@ -1,28 +1,20 @@
-name: Nightly Release
+name: Stable Release Cross
 
 permissions:
   contents: write
 
 on:
   push:
-    branches:
-      - main
-  schedule:
-    - cron: "0 0 * * *"
+    tags:
+      - v[0-9]+.*
 
 jobs:
-  upload-nightly:
+  upload-release-cross:
     strategy:
       matrix:
         info:
-          - os: "macOS-latest"
-            target: "x86_64-apple-darwin"
-          - os: "macOS-latest"
-            target: "aarch64-apple-darwin"
-          - os: "windows-latest"
-            target: "x86_64-pc-windows-msvc"
           - os: "ubuntu-latest"
-            target: "x86_64-unknown-linux-gnu"
+            target: "aarch64-unknown-linux-gnu"
     runs-on: ${{ matrix.info.os }}
     steps:
       - name: Setup NodeJS toolchain
@@ -36,10 +28,10 @@ jobs:
       - name: Setup Stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown, ${{ matrix.info.target }}
+          targets: wasm32-unknown-unknown
           components: clippy, rustfmt
-      - name: Setup Auditable
-        run: cargo install cargo-auditable
+      - name: Setup Cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
@@ -48,15 +40,12 @@ jobs:
           version: "latest"
 
       # Compile WASM before compiling binary
-      - if: matrix.info.os == 'windows-latest'
-        name: Compile WASM
-        run: just --shell pwsh.exe --shell-arg -c _wasm
-      - if: matrix.info.os != 'windows-latest'
-        name: Compile WASM
+      - name: Compile WASM
         run: just _wasm
 
       - name: Build Artemis
-        run: just _ci_release ${{ matrix.info.target }}
+        shell: bash
+        run: just --shell bash --shell-arg -uc _ci_release_cross ${{ matrix.info.target }}
 
       - name: Package Artemis
         shell: bash
@@ -69,7 +58,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: "artemis*"
-          name: Nightly Version
-          tag_name: nightly
+          name: "${{ vars.GITHUB_REF_NAME }} - Released!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
