@@ -3,11 +3,11 @@ default-target = "aarch64-unknown-linux-gnu"
 
 [target.aarch64-unknown-linux-gnu]
 pre-build = [
-    "apt-get update && apt-get --assume-yes install curl",
-    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
-    ". $HOME/.cargo/env",
-    "cargo install cargo-auditable",
     "echo \\#\\!/bin/sh > /bin/cargo",
+    "echo apt-get update && apt-get --assume-yes install curl >> /bin/cargo",
+    "echo \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\" >> /bin/cargo",
+    "echo . $HOME/.cargo/env >> /bin/cargo",
+    "echo cargo install cargo-auditable >> /bin/cargo",
     "echo \"export CARGO='/rust/bin/cargo'\" >> /bin/cargo",
     "echo 'cargo-auditable auditable \"$@\"' >> /bin/cargo",
     "chmod +x /bin/cargo",
