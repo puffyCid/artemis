@@ -5,9 +5,9 @@ default-target = "aarch64-unknown-linux-gnu"
 pre-build = [
     "curl -fsSL \"https://github.com/cargo-prebuilt/index/releases/download/cargo-auditable-$(curl -fsSL https://github.com/cargo-prebuilt/index/releases/download/stable-index/cargo-auditable)/x86_64-unknown-linux-musl.tar.gz\" -o ca-musl.tar.gz",
     "tar -xvzf ca-musl.tar.gz -C /bin",
-    "curl -fsSL \"https://github.com/cargo-prebuilt/index/releases/download/cargo-$(curl -fsSL https://github.com/cargo-prebuilt/index/releases/download/stable-index/cargo)/x86_64-unknown-linux-gnu.tar.gz\" -o cargo-gnu.tar.gz",
+    "curl -fsSL \"https://github.com/cargo-prebuilt/index/releases/download/cargo-$(curl -fsSL https://github.com/cargo-prebuilt/index/releases/download/stable-index/cargo)/x86_64-unknown-linux-musl.tar.gz\" -o cargo-musl.tar.gz",
     "mkdir -p /rust/bin",
-    "tar -xvzf cargo-gnu.tar.gz -C /rust/bin",
+    "tar -xvzf cargo-musl.tar.gz -C /rust/bin",
     "echo \\#\\!/bin/sh > /bin/cargo",
     "echo \"export CARGO='/rust/bin/cargo'\" >> /bin/cargo",
     "echo 'cargo-auditable auditable \"$@\"' >> /bin/cargo",
