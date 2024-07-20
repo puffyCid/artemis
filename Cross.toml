@@ -7,5 +7,8 @@ pre-build = [
     "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
     ". $HOME/.cargo/env",
     "cargo install cargo-auditable",
-    "alias cargo='cargo auditable'",
+    "echo \\#\\!/bin/sh > /bin/cargo",
+    "echo \"export CARGO='/rust/bin/cargo'\" >> /bin/cargo",
+    "echo 'cargo-auditable auditable \"$@\"' >> /bin/cargo",
+    "chmod +x /bin/cargo",
 ]
