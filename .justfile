@@ -55,7 +55,6 @@ unix: (_test "artifacts::os::unix")
 client:
   cd client && cargo build --release --examples
   cd target/release/examples && ./start_client ../../../client/tests/test_data/client.toml
-  
 
 # Compile WASM and server code then start the server
 server:(_wasm)
@@ -74,7 +73,7 @@ _coverage:(_wasm)
 _ci_release target:
   cargo auditable build --profile release-action --bin artemis --target {{target}}
 
-# Build Artemis for GitHub Actions
+# Build Artemis for GitHub Actions using Cross
 _ci_release_cross target:
   cross build --profile release-action --bin artemis --target {{target}}
 
