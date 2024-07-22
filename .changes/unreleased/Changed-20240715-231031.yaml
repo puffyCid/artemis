@@ -1,3 +1,0 @@
-kind: Changed
-body: Improved compiled binary performance via cargo LTO
-time: 2024-07-15T23:10:31.044685178-04:00
