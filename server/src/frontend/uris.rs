@@ -32,8 +32,10 @@ pub(crate) fn setup_webui(base: &str) -> Router<ServerState> {
     ));
 
     // Requests for collections
-    frontend = frontend
-        .merge(Router::new().route(&format!("{base}/collections/list"), get(get_collections_db)));
+    frontend = frontend.merge(Router::new().route(
+        &format!("{base}/collections/list"),
+        post(get_collections_db),
+    ));
 
     // Post requests for collections
     frontend = frontend

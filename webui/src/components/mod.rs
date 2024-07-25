@@ -1,3 +1,4 @@
+pub(crate) mod collect;
 pub(crate) mod enrollment;
 pub(crate) mod footer;
 pub(crate) mod host;

@@ -1,5 +1,5 @@
 use super::{collections::save_endpoint_collection, error::StoreError};
-use common::server::collections::{CollectionInfo, CollectionRequest};
+use common::server::collections::{CollectionRequest, CollectionResponse};
 use log::error;
 use redb::{Database, Error, ReadableTable, TableDefinition};
 
@@ -74,15 +74,42 @@ fn found_collection(id: &u64, db: &Database) -> Result<bool, Error> {
 }
 
 /// Update `CollectionInfo` in database
-pub(crate) fn update_info_db(info: &CollectionInfo, database: &Database) -> Result<(), Error> {
-    let write_txn = database.begin_write()?;
-    {
-        let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
-        let mut table = write_txn.open_table(name)?;
-        table.insert(info.id, serde_json::to_string(info).unwrap_or_default())?;
+pub(crate) fn update_info_db(info: &CollectionResponse, database: &Database) -> Result<(), Error> {
+    let read_txn = database.begin_read()?;
+    let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
+
+    let read_table = read_txn.open_table(name)?;
+    let value = read_table.get(info.info.id)?;
+    if let Some(entry) = value {
+        let collect_value = serde_json::from_str(&entry.value());
+        let mut serde_data: CollectionRequest = match collect_value {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[server] Could not deserialize collection data: {err:?}");
+                return Err(Error::Corrupted(format!(
+                    "Could not deserialize collection data: {err:?}"
+                )));
+            }
+        };
+
+        serde_data.targets.remove(&info.target);
+
+        serde_data.targets_completed.insert(info.target.clone());
+        serde_data.info = info.info.clone();
+
+        let write_txn = database.begin_write()?;
+        {
+            let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
+            let mut table = write_txn.open_table(name)?;
+            table.insert(
+                info.info.id,
+                serde_json::to_string(&serde_data).unwrap_or_default(),
+            )?;
+        }
+
+        write_txn.commit()?;
     }
 
-    write_txn.commit()?;
     Ok(())
 }
 
@@ -102,52 +129,15 @@ fn write_db(collection: &CollectionRequest, database: &Database) -> Result<(), E
     Ok(())
 }
 
-/// Add completed endpoint to collection database
-fn add_endpoint_db(
-    endpoint_id: &str,
-    info: &CollectionInfo,
-    database: &Database,
-) -> Result<(), Error> {
-    let read_txn = database.begin_read()?;
-    let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
-
-    let read_table = read_txn.open_table(name)?;
-    let value = read_table.get(info.id)?;
-    if let Some(entry) = value {
-        let collect_value = serde_json::from_str(&entry.value());
-        let mut serde_data: CollectionRequest = match collect_value {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[server] Could not deserialize collection data: {err:?}");
-                return Err(Error::Corrupted(format!(
-                    "Could not deserialize collection data: {err:?}"
-                )));
-            }
-        };
-
-        serde_data.targets_completed.insert(endpoint_id.to_string());
-
-        let write_txn = database.begin_write()?;
-        {
-            let mut table = write_txn.open_table(name)?;
-            table.insert(info.id, serde_json::to_string(info).unwrap_or_default())?;
-        }
-
-        write_txn.commit()?;
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        filestore::database::{
-            add_endpoint_db, get_collections, save_collection, update_info_db, write_db,
-        },
+        filestore::database::{get_collections, save_collection, update_info_db, write_db},
         utils::filesystem::create_dirs,
     };
-    use common::server::collections::{CollectionInfo, CollectionRequest, Status};
+    use common::server::collections::{
+        CollectionInfo, CollectionRequest, CollectionResponse, Status,
+    };
     use redb::Database;
     use std::collections::HashSet;
 
@@ -232,35 +222,13 @@ mod tests {
             .await
             .unwrap();
         data.info.status = Status::Finished;
-        update_info_db(&data.info, &db).unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_add_endpoint_db() {
-        create_dirs("./tmp/test").await.unwrap();
-        let path = "./tmp/test/db.redb";
-
-        let mut targets = HashSet::new();
-        targets.insert(String::from("dafasdf"));
-
-        let data = CollectionRequest {
-            targets,
-            targets_completed: HashSet::new(),
-            info: CollectionInfo {
-            id: 0,
-            name: String::from("test"),
-            created: 10,
-            status: Status::NotStarted,
-            duration: 0,
-            start_time: 0,
-            collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
-        } };
-
-        let db = Database::create(path).unwrap();
-
-        save_collection(data.clone(), &db, "./tmp/test/")
-            .await
-            .unwrap();
-        add_endpoint_db("asdfasdfafsd", &data.info, &db).unwrap();
+        let res = CollectionResponse {
+            target: String::from("dafasdf"),
+            platform: String::from("Darwin"),
+            info: data.info,
+            started: 0,
+            finished: 10,
+        };
+        update_info_db(&res, &db).unwrap();
     }
 }

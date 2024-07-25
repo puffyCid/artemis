@@ -90,8 +90,6 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                     storage_path, socket_message.platform, socket_message.id
                 );
 
-                println!("{endpoint_path}");
-
                 let collects_result = get_endpoint_collections_notstarted(&endpoint_path).await;
                 let collects = match collects_result {
                     Ok(result) => result,

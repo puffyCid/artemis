@@ -86,7 +86,7 @@ async fn update_collection_status(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let status = update_info_db(&collect.info, db);
+    let status = update_info_db(collect, db);
     if status.is_err() {
         error!(
             "[server] Could not update collection info for {path}: {:?}",

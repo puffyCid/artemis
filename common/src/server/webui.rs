@@ -33,6 +33,14 @@ pub struct EndpointRequest {
     pub count: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct CollectRequest {
+    pub offset: i32,
+    pub tags: Vec<String>,
+    pub search: String,
+    pub count: i32,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialEq, Eq, PartialOrd)]
 pub struct EndpointList {
     pub os: String,

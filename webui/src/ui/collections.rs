@@ -1,4 +1,4 @@
-use crate::components::{footer::Footer, menu::Menu};
+use crate::components::{collect::CollectScripts, footer::Footer, menu::Menu};
 use leptos::{component, view, IntoView};
 use leptos_meta::Stylesheet;
 
@@ -8,7 +8,7 @@ pub(crate) fn Collections() -> impl IntoView {
       <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
       <div class="grid">
         <Menu/>
-        <p>hello!</p>
+        <CollectScripts/>
         <Footer/>
       </div>
     }
