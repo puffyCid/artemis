@@ -8,6 +8,8 @@ pub enum StoreError {
     Serialize,
     Deserialize,
     BadGlob,
+    NoCollection,
+    DuplicateCollectionId,
 }
 
 impl fmt::Display for StoreError {
@@ -19,6 +21,8 @@ impl fmt::Display for StoreError {
             StoreError::Serialize => write!(f, "Could not serialize filestore data"),
             StoreError::Deserialize => write!(f, "Could not deserialize filestore data"),
             StoreError::BadGlob => write!(f, "Bad glob provided"),
+            StoreError::NoCollection => write!(f, "No collection id found"),
+            StoreError::DuplicateCollectionId => write!(f, "Collection ID already created"),
         }
     }
 }

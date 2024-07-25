@@ -4,6 +4,7 @@ mod web;
 
 use crate::ui::{
     about::About,
+    collections::Collections,
     endpoints::{EndpointInfo, Endpoints},
     home::Home,
 };
@@ -25,6 +26,7 @@ fn App() -> impl IntoView {
           <Route path="/ui/v1/home" view=Home/>
           <Route path="/ui/v1/endpoints" view=Endpoints/>
           <Route path="/ui/v1/endpoints/info" view=EndpointInfo/>
+          <Route path="/ui/v1/collections" view=Collections/>
         </Routes>
       </Router>
     }

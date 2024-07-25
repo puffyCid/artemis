@@ -113,7 +113,6 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
 
     let enroll_beat = Heartbeat {
         endpoint_id: enroll.id,
-        heartbeat: false,
         jobs_running: 0,
         ip: enroll.ip,
         hostname: enroll.hostname,

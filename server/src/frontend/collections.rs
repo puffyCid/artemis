@@ -1,10 +1,10 @@
-use crate::server::ServerState;
+use crate::{filestore::database::get_collections, server::ServerState};
 use axum::{
     extract::{ConnectInfo, State},
     http::StatusCode,
     Json,
 };
-use common::server::collections::QuickCollection;
+use common::server::collections::{CollectionRequest, QuickCollection};
 use log::error;
 use std::net::SocketAddr;
 
@@ -35,6 +35,21 @@ pub(crate) async fn endpoint_quick(
         quick.unwrap_err()
     );
     Err(StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// Send list of all collection requests to WebUI
+pub(crate) async fn get_collections_db(
+    State(state): State<ServerState>,
+) -> Result<Json<Vec<CollectionRequest>>, StatusCode> {
+    let collections_result = get_collections(&state.central_collect_db).await;
+    let collections = match collections_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not get collections: {err:?}");
+            Vec::new()
+        }
+    };
+    Ok(Json(collections))
 }
 
 #[cfg(test)]

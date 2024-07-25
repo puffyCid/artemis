@@ -41,8 +41,6 @@ pub enum CollectionType {
 pub struct CollectionRequest {
     /**Endpoint target */
     pub targets: HashSet<String>,
-    /**Base64 encoded TOML collection */
-    pub collection: String,
     pub targets_completed: HashSet<String>,
     pub info: CollectionInfo,
 }
@@ -59,6 +57,8 @@ pub struct CollectionInfo {
     pub start_time: u64,
     /**How long Collection should run */
     pub duration: u64,
+    /**Base64 Collection script */
+    pub collection: String,
 }
 
 /**
@@ -68,6 +68,7 @@ pub struct CollectionInfo {
 pub struct CollectionResponse {
     /**Endpoint target */
     pub target: String,
+    pub platform: String,
     pub info: CollectionInfo,
     /**When endpoint started the collection */
     pub started: u64,

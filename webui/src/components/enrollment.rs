@@ -417,7 +417,6 @@ async fn request_endpoints(body: EndpointRequest) -> Vec<EndpointList> {
 async fn endpoint_info(data: String) -> Heartbeat {
     let beat = Heartbeat {
         endpoint_id: String::new(),
-        heartbeat: false,
         jobs_running: 0,
         hostname: String::new(),
         timestamp: 0,
