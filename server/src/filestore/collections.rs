@@ -9,13 +9,14 @@ use redb::{Database, Error, TableDefinition};
 use tokio::fs::{remove_file, rename};
 
 /// Save collection info associated with endpoint
-pub(crate) async fn save_endpoint_collection(collection: &CollectionRequest, path: &str) {
+pub(crate) async fn save_endpoint_collection(collection: &mut CollectionRequest, path: &str) {
     for target in &collection.targets {
         let paths = glob_paths(&format!("{path}/*/{target}/collections.jsonl"));
         if paths.is_err() {
             continue;
         }
         for path in paths.unwrap() {
+            collection.info.endpoint_id = Some(target.clone());
             let serde_result = serde_json::to_string(&collection.info);
             let value = match serde_result {
                 Ok(result) => result,

@@ -4,10 +4,10 @@ use log::error;
 use redb::{Database, Error, ReadableTable, TableDefinition};
 
 /**
- * Save `CollectionInfo` to central `collections.redb` file.
+ * Save `CollectionInfo` to central `collections.redb` file and collections.jsonl.
  */
 pub(crate) async fn save_collection(
-    collection: CollectionRequest,
+    mut collection: CollectionRequest,
     db: &Database,
     path: &str,
 ) -> Result<(), StoreError> {
@@ -31,7 +31,7 @@ pub(crate) async fn save_collection(
         return Err(StoreError::WriteFile);
     }
 
-    save_endpoint_collection(&collection, path).await;
+    save_endpoint_collection(&mut collection, path).await;
 
     Ok(())
 }
@@ -153,13 +153,14 @@ mod tests {
             targets,
             targets_completed: HashSet::new(),
             info: CollectionInfo {
-            id: 0,
-            name: String::from("test"),
-            created: 10,
-            status: Status::NotStarted,
-            duration: 0,
-            start_time: 0,
-            collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
+                endpoint_id: Some(String::from("dafasdf")),
+                id: 0,
+                name: String::from("test"),
+                created: 10,
+                status: Status::NotStarted,
+                duration: 0,
+                start_time: 0,
+                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 
         let db = Database::create(path).unwrap();
@@ -179,13 +180,14 @@ mod tests {
             targets,
             targets_completed: HashSet::new(),
             info: CollectionInfo {
-            id: 0,
-            name: String::from("test"),
-            created: 10,
-            status: Status::NotStarted,
-            duration: 0,
-            start_time: 0,
-            collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="),
+                endpoint_id: Some(String::from("dafasdf")),
+                id: 0,
+                name: String::from("test"),
+                created: 10,
+                status: Status::NotStarted,
+                duration: 0,
+                start_time: 0,
+                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 
         let db = Database::create(path).unwrap();
@@ -207,13 +209,14 @@ mod tests {
             targets,
             targets_completed: HashSet::new(),
             info: CollectionInfo {
-            id: 0,
-            name: String::from("test"),
-            created: 10,
-            status: Status::NotStarted,
-            duration: 0,
-            start_time: 0,
-            collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
+                endpoint_id: Some(String::from("dafasdf")),
+                id: 0,
+                name: String::from("test"),
+                created: 10,
+                status: Status::NotStarted,
+                duration: 0,
+                start_time: 0,
+                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 
         let db = Database::create(path).unwrap();

@@ -175,6 +175,7 @@ mod tests {
             target: String::from("dasfasfd"),
             info: CollectionInfo {
                 id: 1,
+                endpoint_id: Some(String::from("dafasdf")),
                 name: String::from("dasfasdfsa"),
                 created: 10,
                 status: Status::Started,

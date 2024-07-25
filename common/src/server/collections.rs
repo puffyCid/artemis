@@ -49,6 +49,7 @@ pub struct CollectionRequest {
 pub struct CollectionInfo {
     /**Collection ID */
     pub id: u64,
+    pub endpoint_id: Option<String>,
     pub name: String,
     /**When Collection is created */
     pub created: u64,

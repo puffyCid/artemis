@@ -33,7 +33,7 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
 
     let mut rx = state.clients.subscribe();
 
-    let _send_message = tokio::spawn(async move {
+    let mut send_message = tokio::spawn(async move {
         while let Ok(message) = rx.recv().await {
             let send_result = sender.send(Message::Text(message)).await;
             if send_result.is_err() {
@@ -42,14 +42,13 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                     send_result.unwrap_err()
                 );
             }
-            //}
         }
     });
 
     /*
      * After we have registerd an async task for a client. Spawn another task to receive websocket data.
      */
-    let _recv_task = tokio::spawn(async move {
+    let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
             // Parse the websocket data
             let control = parse_message(
@@ -60,6 +59,8 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
                 &storage_path,
             )
             .await;
+
+            // If endpoint ID is not found close the websocket
             if control.is_break() {
                 break;
             }
@@ -71,6 +72,9 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
 
                 // If the source is the Server then the socket_data contains a command to be sent the client
                 if socket_message.source == MessageSource::Server {
+                    if socket_message.content.is_empty() {
+                        continue;
+                    }
                     let send_result = state.clients.send(socket_message.content);
                     if send_result.is_err() {
                         error!(
@@ -136,6 +140,16 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: ServerState) 
             }
         }
     });
+
+    // Close the websocket
+    tokio::select! {
+        _ = (&mut send_message) => {
+            recv_task.abort();
+        },
+        _ = (&mut recv_task) => {
+            send_message.abort();
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -188,7 +202,6 @@ async fn parse_message(
                     return ControlFlow::Break(());
                 }
                 socket_message.source = MessageSource::Server;
-                socket_message.content = data.to_string();
 
                 let _ = save_collection(collection, central_db, storage_path).await;
 
