@@ -45,7 +45,7 @@ pub(crate) async fn get_collections_db(
     State(state): State<ServerState>,
     Json(data): Json<CollectRequest>,
 ) -> Result<Json<Vec<CollectionRequest>>, StatusCode> {
-    let collections_result = get_collections(&state.central_collect_db).await;
+    let collections_result = get_collections(&state.central_collect_db, &data).await;
     let collections = match collections_result {
         Ok(result) => result,
         Err(err) => {

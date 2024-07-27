@@ -1,5 +1,8 @@
 use super::{collections::save_endpoint_collection, error::StoreError};
-use common::server::collections::{CollectionRequest, CollectionResponse};
+use common::server::{
+    collections::{CollectionRequest, CollectionResponse},
+    webui::CollectRequest,
+};
 use log::error;
 use redb::{Database, Error, ReadableTable, TableDefinition};
 
@@ -37,14 +40,25 @@ pub(crate) async fn save_collection(
 }
 
 /// Get list of all collections from database
-pub(crate) async fn get_collections(db: &Database) -> Result<Vec<CollectionRequest>, Error> {
+pub(crate) async fn get_collections(
+    db: &Database,
+    request: &CollectRequest,
+) -> Result<Vec<CollectionRequest>, Error> {
     let read_txn = db.begin_read()?;
     let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
 
     let read_table = read_txn.open_table(name)?;
-    let mut collections = Vec::new();
     let mut iter = read_table.iter()?;
+
+    let mut offset_count = 0;
+    let limit = request.count;
+    let mut collections = Vec::new();
+    let start = 0;
+
     while let Some(Ok((_, entry))) = iter.next() {
+        if collections.len() == limit as usize {
+            break;
+        }
         let value_result = serde_json::from_str(&entry.value());
         let value: CollectionRequest = match value_result {
             Ok(result) => result,
@@ -53,10 +67,38 @@ pub(crate) async fn get_collections(db: &Database) -> Result<Vec<CollectionReque
                 continue;
             }
         };
-        collections.push(value);
+        let filter_match = collection_filter(&value, request);
+        if request.offset <= start && filter_match {
+            collections.push(value);
+            continue;
+        }
+
+        if !offset_count >= request.offset && filter_match {
+            collections.push(value);
+            continue;
+        }
+        offset_count += 1;
     }
 
     Ok(collections)
+}
+
+/// Apply filter to collections
+fn collection_filter(collect: &CollectionRequest, request: &CollectRequest) -> bool {
+    let mut status = false;
+    if !request.search.is_empty() && format!("{collect:?}").contains(&request.search) {
+        status = true;
+    } else if request.search.is_empty() && request.tags.is_empty() {
+        status = true;
+    }
+
+    for tag in &request.tags {
+        if !collect.info.tags.contains(tag) {
+            continue;
+        }
+        status = true;
+    }
+    status
 }
 
 /// Check if collection ID is in REDB database
@@ -135,8 +177,9 @@ mod tests {
         filestore::database::{get_collections, save_collection, update_info_db, write_db},
         utils::filesystem::create_dirs,
     };
-    use common::server::collections::{
-        CollectionInfo, CollectionRequest, CollectionResponse, Status,
+    use common::server::{
+        collections::{CollectionInfo, CollectionRequest, CollectionResponse, Status},
+        webui::CollectRequest,
     };
     use redb::Database;
     use std::collections::HashSet;
@@ -160,6 +203,7 @@ mod tests {
                 status: Status::NotStarted,
                 duration: 0,
                 start_time: 0,
+                tags: Vec::new(),
                 collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 
@@ -187,13 +231,21 @@ mod tests {
                 status: Status::NotStarted,
                 duration: 0,
                 start_time: 0,
+                tags: Vec::new(),
                 collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 
         let db = Database::create(path).unwrap();
 
         write_db(&data, &db).unwrap();
-        let results = get_collections(&db).await.unwrap();
+
+        let request = CollectRequest {
+            offset: 0,
+            tags: Vec::new(),
+            search: String::from("dafasdf"),
+            count: 2,
+        };
+        let results = get_collections(&db, &request).await.unwrap();
         assert_eq!(results.len(), 1);
     }
 
@@ -216,6 +268,7 @@ mod tests {
                 status: Status::NotStarted,
                 duration: 0,
                 start_time: 0,
+                tags: Vec::new(),
                 collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
         } };
 

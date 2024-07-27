@@ -60,6 +60,7 @@ pub struct CollectionInfo {
     pub duration: u64,
     /**Base64 Collection script */
     pub collection: String,
+    pub tags: Vec<String>,
 }
 
 /**
