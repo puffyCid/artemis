@@ -21,22 +21,22 @@ pub(crate) fn Home() -> impl IntoView {
     );
 
     view! {
-      <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
+      <Stylesheet id="leptos" href="/pkg/tailwind.css" />
       <div class="grid grid-cols-4">
-        <Menu/>
+        <Menu />
         <div class="col-span-1">
-          <Stats os=EndpointOS::All html=all/>
+          <Stats os=EndpointOS::All html=all />
         </div>
         <div class="col-span-1">
-          <Stats os=EndpointOS::Linux html=linux/>
+          <Stats os=EndpointOS::Linux html=linux />
         </div>
         <div class="col-span-1">
-          <Stats os=EndpointOS::MacOS html=macos/>
+          <Stats os=EndpointOS::MacOS html=macos />
         </div>
         <div class="col-span-1">
-          <Stats os=EndpointOS::Windows html=windows/>
+          <Stats os=EndpointOS::Windows html=windows />
         </div>
       </div>
-      <Footer/>
+      <Footer />
     }
 }

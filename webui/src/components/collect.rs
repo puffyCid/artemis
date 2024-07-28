@@ -10,6 +10,7 @@ use leptos::{
 use reqwest::Method;
 
 #[component]
+/// Gather collections launched by artemis
 pub(crate) fn CollectScripts() -> impl IntoView {
     let headers = vec![
         "ID",
@@ -33,8 +34,8 @@ pub(crate) fn CollectScripts() -> impl IntoView {
 
     view! {
       <div class="col-span-full m-2 mb-14">
-        <SearchCollections request_set request_get info/>
-        <table class="table table-zebra border">
+        <SearchCollections request_set request_get info />
+        <table class="table border">
           // Table Header
           <thead>
             <tr>
@@ -98,8 +99,12 @@ pub(crate) fn CollectScripts() -> impl IntoView {
                       .map(|res| {
                           res.into_iter()
                               .map(|entry| {
+                                  let (view_status, set_status) = create_signal(true);
                                   view! {
-                                    <tr>
+                                    <tr
+                                      class="cursor-pointer"
+                                      on:click=move |_| set_status.set(!view_status.get())
+                                    >
                                       <td>{entry.info.id}</td>
                                       <td>{&entry.info.name}</td>
                                       <td>{unixepoch_to_rfc(entry.info.created as i64)}</td>
@@ -107,6 +112,7 @@ pub(crate) fn CollectScripts() -> impl IntoView {
                                       <td>{entry.targets.len()}</td>
                                       <td>{entry.targets_completed.len()}</td>
                                     </tr>
+                                    <CollectionDetails collect=entry view_status />
                                   }
                               })
                               .collect::<Vec<_>>()
@@ -117,6 +123,64 @@ pub(crate) fn CollectScripts() -> impl IntoView {
           </tbody>
         </table>
       </div>
+    }
+}
+
+#[component]
+/// View the collection details per endpoint
+fn CollectionDetails(collect: CollectionRequest, view_status: ReadSignal<bool>) -> impl IntoView {
+    let headers = vec![
+        "Hostname",
+        "Endpoint ID",
+        "Start Time",
+        "Completed Time",
+        "Status",
+    ];
+    let mut all_targets = collect.targets;
+    all_targets.extend(collect.targets_completed);
+    view! {
+      <tr class:hidden=move || view_status.get()>
+        <td colspan="5">
+          <div class="overflow-x">
+            <table class="table table-zebra border m-2 w-full overflow-scroll">
+              <thead>
+                <tr>
+                  {headers
+                      .into_iter()
+                      .map(|entry| {
+                          view! {
+                            <th>
+                              <p class="flex items-center justify-between gap-2 leading-none">
+                                {entry}
+                              </p>
+                            </th>
+                          }
+                      })
+                      .collect::<Vec<_>>()}
+                </tr>
+              </thead>
+              <tbody>
+
+                {all_targets
+                    .into_iter()
+                    .map(|entry| {
+                        view! {
+                          <tr>
+                            <td>"Hostname"</td>
+                            <td>{entry}</td>
+                            <td>"Start Time"</td>
+                            <td>"Complemted Time"</td>
+                            <td>"I finished!"</td>
+
+                          </tr>
+                        }
+                    })
+                    .collect::<Vec<_>>()}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
     }
 }
 
@@ -147,7 +211,7 @@ fn SearchCollections(
       <div class="grid grid-cols-4 p-2 gap-2">
         <form on:submit=search_submit>
           <label class="input input-sm input-bordered flex items-center gap-2">
-            <input type="text" class="grow" node_ref=search_form placeholder="Search Collections"/>
+            <input type="text" class="grow" node_ref=search_form placeholder="Search Collections" />
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 16 16"

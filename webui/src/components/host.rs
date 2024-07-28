@@ -32,7 +32,7 @@ pub(crate) fn EndpointDetails(beat: Heartbeat) -> impl IntoView {
           <p class="font-semibold">{format!("Collections Running: {}", beat.jobs_running)}</p>
         </div>
       </div>
-      <br/>
+      <br />
       <div class="p-8 m-4 border-2 rounded-lg col-span-full shadow-xl flex place-content-around">
         <div>
           <p class="font-semibold">Memory</p>
@@ -48,7 +48,7 @@ pub(crate) fn EndpointDetails(beat: Heartbeat) -> impl IntoView {
                     sum += cpu.cpu_usage;
                 }
                 sum as usize / beat.cpu.len()
-            } %
+            }%
           </p>
         </div>
         <div>
@@ -79,9 +79,9 @@ pub(crate) fn EndpointDetails(beat: Heartbeat) -> impl IntoView {
           <p>{beat.platform}</p>
         </div>
       </div>
-      <UptimeBootime count=beat.uptime seconds=beat.boot_time as i64/>
-      <CpuInfo cpus=beat.cpu/>
-      <DiskInfo disks=beat.disks/>
+      <UptimeBootime count=beat.uptime seconds=beat.boot_time as i64 />
+      <CpuInfo cpus=beat.cpu />
+      <DiskInfo disks=beat.disks />
     }
 }
 

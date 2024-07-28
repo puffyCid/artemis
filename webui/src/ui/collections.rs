@@ -5,11 +5,11 @@ use leptos_meta::Stylesheet;
 #[component]
 pub(crate) fn Collections() -> impl IntoView {
     view! {
-      <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
+      <Stylesheet id="leptos" href="/pkg/tailwind.css" />
       <div class="grid">
-        <Menu/>
-        <CollectScripts/>
-        <Footer/>
+        <Menu />
+        <CollectScripts />
+        <Footer />
       </div>
     }
 }
