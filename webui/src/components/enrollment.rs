@@ -1,6 +1,6 @@
 use crate::components::host::EndpointDetails;
 use crate::components::host_navigation::Navigate;
-use crate::components::jobs::processes::{endpoint_processes, EndpointProcesses};
+use crate::components::quick::processes::{endpoint_processes, EndpointProcesses};
 use crate::web::server::request_server;
 use common::server::heartbeat::Heartbeat;
 use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};

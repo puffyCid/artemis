@@ -1,6 +1,6 @@
 use super::{collections::save_endpoint_collection, error::StoreError};
 use common::server::{
-    collections::{CollectionRequest, CollectionResponse},
+    collections::{CollectionInfo, CollectionRequest},
     webui::CollectRequest,
 };
 use log::error;
@@ -116,12 +116,12 @@ fn found_collection(id: &u64, db: &Database) -> Result<bool, Error> {
 }
 
 /// Update `CollectionInfo` in database
-pub(crate) fn update_info_db(info: &CollectionResponse, database: &Database) -> Result<(), Error> {
+pub(crate) fn update_info_db(info: &CollectionInfo, database: &Database) -> Result<(), Error> {
     let read_txn = database.begin_read()?;
     let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
 
     let read_table = read_txn.open_table(name)?;
-    let value = read_table.get(info.info.id)?;
+    let value = read_table.get(info.id)?;
     if let Some(entry) = value {
         let collect_value = serde_json::from_str(&entry.value());
         let mut serde_data: CollectionRequest = match collect_value {
@@ -134,17 +134,19 @@ pub(crate) fn update_info_db(info: &CollectionResponse, database: &Database) -> 
             }
         };
 
-        serde_data.targets.remove(&info.target);
+        serde_data.targets.remove(&info.endpoint_id);
 
-        serde_data.targets_completed.insert(info.target.clone());
-        serde_data.info = info.info.clone();
+        serde_data
+            .targets_completed
+            .insert(info.endpoint_id.clone());
+        serde_data.info = info.clone();
 
         let write_txn = database.begin_write()?;
         {
             let name: TableDefinition<'_, u64, String> = TableDefinition::new("collections");
             let mut table = write_txn.open_table(name)?;
             table.insert(
-                info.info.id,
+                info.id,
                 serde_json::to_string(&serde_data).unwrap_or_default(),
             )?;
         }
@@ -178,7 +180,7 @@ mod tests {
         utils::filesystem::create_dirs,
     };
     use common::server::{
-        collections::{CollectionInfo, CollectionRequest, CollectionResponse, Status},
+        collections::{CollectionInfo, CollectionRequest, Status},
         webui::CollectRequest,
     };
     use redb::Database;
@@ -195,17 +197,7 @@ mod tests {
         let data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {
-                endpoint_id: Some(String::from("dafasdf")),
-                id: 0,
-                name: String::from("test"),
-                created: 10,
-                status: Status::NotStarted,
-                duration: 0,
-                start_time: 0,
-                tags: Vec::new(),
-                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
-        } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None } };
 
         let db = Database::create(path).unwrap();
 
@@ -223,17 +215,7 @@ mod tests {
         let data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {
-                endpoint_id: Some(String::from("dafasdf")),
-                id: 0,
-                name: String::from("test"),
-                created: 10,
-                status: Status::NotStarted,
-                duration: 0,
-                start_time: 0,
-                tags: Vec::new(),
-                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
-        } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
 
         let db = Database::create(path).unwrap();
 
@@ -260,17 +242,7 @@ mod tests {
         let mut data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {
-                endpoint_id: Some(String::from("dafasdf")),
-                id: 0,
-                name: String::from("test"),
-                created: 10,
-                status: Status::NotStarted,
-                duration: 0,
-                start_time: 0,
-                tags: Vec::new(),
-                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
-        } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
 
         let db = Database::create(path).unwrap();
 
@@ -278,13 +250,7 @@ mod tests {
             .await
             .unwrap();
         data.info.status = Status::Finished;
-        let res = CollectionResponse {
-            target: String::from("dafasdf"),
-            platform: String::from("Darwin"),
-            info: data.info,
-            started: 0,
-            finished: 10,
-        };
-        update_info_db(&res, &db).unwrap();
+
+        update_info_db(&data.info, &db).unwrap();
     }
 }

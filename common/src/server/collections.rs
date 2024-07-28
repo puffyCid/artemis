@@ -49,33 +49,46 @@ pub struct CollectionRequest {
 pub struct CollectionInfo {
     /**Collection ID */
     pub id: u64,
-    pub endpoint_id: Option<String>,
+    /**
+     * Target Endpoint ID. This is not set on the initial request. It gets filled in on the response.  
+     * Initial request can target more than one endpoint_id (See `CollectionRequest`)
+     * When the target completes the collection, it fills in this struct
+     * */
+    pub endpoint_id: String,
+    /**Name of collection */
     pub name: String,
     /**When Collection is created */
     pub created: u64,
+    /**
+     * Status of the collection
+     * This is set to `NotStarted` when created. Updated to `Started` when target receives it
+     * Target endpoint updates the status upon completion
+     */
     pub status: Status,
-    /**When endpoint should start Collection */
+    /**When endpoint should start Collection. This when the server sends the collection to the target */
     pub start_time: u64,
-    /**How long Collection should run */
+    /**When the target actually started the collection */
+    pub started: u64,
+    /**When target completed the collection */
+    pub completed: u64,
+    /**How long collection should run before stopping */
+    pub timeout: u64,
+    /**
+     * Target platform. This is not set when creating the collection
+     * Target endpoint fills it in when running
+     */
+    pub platform: Option<String>,
+    /**
+     * Target hostname. This is not set when creating the Collection
+     * Target endpoint fills it in when running
+     */
+    pub hostname: Option<String>,
+    /**How long the collection ran */
     pub duration: u64,
     /**Base64 Collection script */
     pub collection: String,
+    /**Tags associated with the collectoin */
     pub tags: Vec<String>,
-}
-
-/**
- * This collection is for complex and verbose data. The response uploaded via POST requests
- */
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct CollectionResponse {
-    /**Endpoint target */
-    pub target: String,
-    pub platform: String,
-    pub info: CollectionInfo,
-    /**When endpoint started the collection */
-    pub started: u64,
-    /**When endpoint finished the collection */
-    pub finished: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]

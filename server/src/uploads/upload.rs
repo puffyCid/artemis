@@ -13,7 +13,7 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
 };
-use common::server::collections::{CollectionResponse, Status};
+use common::server::collections::{CollectionInfo, Status};
 use log::{error, warn};
 use redb::Database;
 
@@ -33,7 +33,7 @@ pub(crate) async fn upload_collection(
         if name == "collection-info" {
             let data = field.text().await.unwrap_or_default();
             let serde_result = serde_json::from_str(&data);
-            let serde_value: CollectionResponse = match serde_result {
+            let serde_value: CollectionInfo = match serde_result {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[server] Failed to deserialzie collection upload metadata: {err:?}");
@@ -41,10 +41,14 @@ pub(crate) async fn upload_collection(
                 }
             };
             update_collection_status(&path, &serde_value, &state.central_collect_db).await?;
-            endpoint_id = serde_value.target;
-            platform = serde_value.platform;
+            if serde_value.platform.is_none() || serde_value.hostname.is_none() {
+                error!("[server] Did not receive all required info in response");
+                return Err(StatusCode::BAD_REQUEST);
+            }
+            endpoint_id = serde_value.endpoint_id;
+            platform = serde_value.platform.unwrap_or_default();
             let path = format!("{path}/{platform}/{endpoint_id}");
-            let status_result = collection_status(&path, &serde_value.info.id).await;
+            let status_result = collection_status(&path, &serde_value.id).await;
             let status = match status_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -56,8 +60,7 @@ pub(crate) async fn upload_collection(
                 warn!("[server] Received uploaded data for endpoint but status is unexpected");
                 return Err(StatusCode::BAD_REQUEST);
             }
-            let _ = set_collection_status(&path, &[serde_value.info.id], &serde_value.info.status)
-                .await;
+            let _ = set_collection_status(&path, &[serde_value.id], &serde_value.status).await;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -78,7 +81,7 @@ pub(crate) async fn upload_collection(
 /// Update the Collection DB using the uploaded collection-info data
 async fn update_collection_status(
     path: &str,
-    collect: &CollectionResponse,
+    collect: &CollectionInfo,
     db: &Database,
 ) -> Result<(), StatusCode> {
     if path.is_empty() {
@@ -158,9 +161,7 @@ mod tests {
         uploads::upload::update_collection_status,
         utils::{config::read_config, uuid::generate_uuid},
     };
-    use common::server::collections::{
-        CollectionInfo, CollectionRequest, CollectionResponse, Status,
-    };
+    use common::server::collections::{CollectionInfo, CollectionRequest, Status};
     use redb::Database;
     use std::collections::HashSet;
     use std::path::PathBuf;
@@ -171,11 +172,10 @@ mod tests {
         test_location.push("tests/test_data/server.toml");
         create_dirs("./tmp/uploads").await.unwrap();
 
-        let mut value = CollectionResponse {
-            target: String::from("dasfasfd"),
-            info: CollectionInfo {
+        let mut value =
+           CollectionInfo {
                 id: 1,
-                endpoint_id: Some(String::from("dafasdf")),
+                endpoint_id: String::from("dafasdf"),
                 name: String::from("dasfasdfsa"),
                 created: 10,
                 status: Status::Started,
@@ -183,11 +183,11 @@ mod tests {
                 duration: 10,
                 tags: Vec::new(),
                 collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
-
-            },
-            started: 0,
-            finished: 10,
-            platform: String::from("Darwin"),
+                started: 1000,
+                completed: 2000,
+                timeout: 1000,
+                platform: Some(String::from("Darwin")),
+                hostname: Some(String::from("cxvasdf")),
         };
 
         let mut targets = HashSet::new();
@@ -195,14 +195,14 @@ mod tests {
         let req = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: value.info.clone(),
+            info: value.clone(),
         };
 
         let db = Database::create("./tmp/uploads/test2.redb").unwrap();
 
         save_collection(req, &db, "./tmp/uploads").await.unwrap();
 
-        value.info.status = Status::Finished;
+        value.status = Status::Finished;
 
         update_collection_status("./tmp/uploads", &value, &db)
             .await

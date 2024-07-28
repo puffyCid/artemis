@@ -16,7 +16,7 @@ pub(crate) async fn save_endpoint_collection(collection: &mut CollectionRequest,
             continue;
         }
         for path in paths.unwrap() {
-            collection.info.endpoint_id = Some(target.clone());
+            collection.info.endpoint_id = target.clone();
             let serde_result = serde_json::to_string(&collection.info);
             let value = match serde_result {
                 Ok(result) => result,
