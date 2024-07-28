@@ -146,10 +146,18 @@ pub(crate) async fn set_collection_status(
 
 /// Get collection status for endpoint. Path is full path to endpoint **including** the endpoint ID
 pub(crate) async fn collection_status(path: &str, id: &u64) -> Result<Status, StoreError> {
+    Ok(get_collection_info(path, id).await?.status)
+}
+
+/// Get collection info for endpoint. Path is full path to endpoint **including** the endpoint ID
+pub(crate) async fn get_collection_info(
+    path: &str,
+    id: &u64,
+) -> Result<CollectionInfo, StoreError> {
     let collections = get_endpoint_collections(path).await?;
     for ids in collections {
         if &ids.id == id {
-            return Ok(ids.status);
+            return Ok(ids);
         }
     }
     Err(StoreError::NoCollection)

@@ -101,3 +101,9 @@ pub enum Status {
     Failed,
     Cancelled,
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct CollectionTargets {
+    pub targets: Vec<String>,
+    pub id: u64,
+}

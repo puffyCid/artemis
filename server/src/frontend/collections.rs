@@ -1,11 +1,16 @@
-use crate::{filestore::database::get_collections, server::ServerState};
+use crate::{
+    filestore::{
+        collections::get_collection_info, database::get_collections, endpoints::glob_paths,
+    },
+    server::ServerState,
+};
 use axum::{
     extract::{ConnectInfo, State},
     http::StatusCode,
     Json,
 };
 use common::server::{
-    collections::{CollectionRequest, QuickCollection},
+    collections::{CollectionInfo, CollectionRequest, CollectionTargets, QuickCollection},
     webui::CollectRequest,
 };
 use log::error;
@@ -54,6 +59,47 @@ pub(crate) async fn get_collections_db(
         }
     };
     Ok(Json(collections))
+}
+
+pub(crate) async fn get_endpoints_collection_status(
+    State(state): State<ServerState>,
+    Json(targets): Json<CollectionTargets>,
+) -> Result<Json<Vec<CollectionInfo>>, StatusCode> {
+    let glob_path = format!("{}/*/*", state.config.endpoint_server.storage);
+    let glob_result = glob_paths(&glob_path);
+    let paths = match glob_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not glob collections: {err:?}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let mut info = Vec::new();
+    let limit = 50;
+    let mut count = 0;
+
+    for target in targets.targets {
+        for path in &paths {
+            if !path.full_path.ends_with(&target) {
+                continue;
+            }
+
+            let value = get_collection_info(&path.full_path, &targets.id).await;
+            if value.is_err() {
+                continue;
+            }
+
+            info.push(value.unwrap());
+            break;
+        }
+        count += 1;
+        if count == limit {
+            break;
+        }
+    }
+
+    Ok(Json(info))
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use crate::web::server::request_server;
 use crate::web::time::unixepoch_to_rfc;
-use common::server::collections::CollectionRequest;
+use common::server::collections::{CollectionInfo, CollectionRequest, CollectionTargets};
 use common::server::webui::CollectRequest;
 use leptos::logging::error;
 use leptos::{
@@ -294,6 +294,36 @@ async fn request_collections(body: CollectRequest) -> Vec<CollectionRequest> {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to get collection list: {err:?}");
+            list
+        }
+    }
+}
+
+async fn request_endpoints_collection(targets: &[String], id: &u64) -> Vec<CollectionInfo> {
+    let body = CollectionTargets {
+        targets: targets.to_vec(),
+        id: *id,
+    };
+    let list = Vec::new();
+    let res_result = request_server(
+        "collections/endpoints",
+        serde_json::to_string(&body).unwrap_or_default(),
+        Method::POST,
+    )
+    .await;
+    let response = match res_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to send request for endpoint collection info: {err:?}");
+            return list;
+        }
+    };
+
+    let result_json = response.json().await;
+    match result_json {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to get collection info list: {err:?}");
             list
         }
     }
