@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Heartbeat {
     pub endpoint_id: String,
-    pub heartbeat: bool,
     pub jobs_running: u32,
     pub hostname: String,
     pub ip: String,

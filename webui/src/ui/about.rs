@@ -11,13 +11,13 @@ use leptos_meta::Stylesheet;
 /// Acount page
 pub(crate) fn About() -> impl IntoView {
     view! {
-      <Stylesheet id="leptos" href="/pkg/tailwind.css"/>
+      <Stylesheet id="leptos" href="/pkg/tailwind.css" />
       <div class="grid grid-cols-3">
-        <Menu/>
-        <Resources/>
-        <Scripts/>
-        <RustInfo/>
+        <Menu />
+        <Resources />
+        <Scripts />
+        <RustInfo />
       </div>
-      <Footer/>
+      <Footer />
     }
 }

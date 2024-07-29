@@ -23,7 +23,7 @@ struct EndpointProcesses {
 pub(crate) fn EndpointProcesses(proc_data: Vec<Processes>, target: String) -> impl IntoView {
     view! {
       <div class="col-span-full m-2 mb-16">
-        <ProcDetails proc_data target/>
+        <ProcDetails proc_data target />
       </div>
     }
 }
@@ -45,7 +45,7 @@ fn ProcDetails(proc_data: Vec<Processes>, target: String) -> impl IntoView {
 
     view! {
       <div>
-        <SearchProcesses proc_set proc_get info target/>
+        <SearchProcesses proc_set proc_get info target />
         <table class="table border">
           // Table Header
           <thead>
@@ -118,7 +118,7 @@ fn ProcDetails(proc_data: Vec<Processes>, target: String) -> impl IntoView {
                   .map(|res| {
                       res.into_iter()
                           .map(|entry| {
-                              view! { <ProcessInfo proc=entry/> }
+                              view! { <ProcessInfo proc=entry /> }
                           })
                           .collect::<Vec<_>>()
                   })}
@@ -161,7 +161,7 @@ fn SearchProcesses(
       <div class="grid grid-cols-5 p-2 gap-2">
         <form on:submit=search_submit>
           <label class="input input-sm input-bordered flex items-center gap-2">
-            <input type="text" class="grow" node_ref=search_form placeholder="Search Processes"/>
+            <input type="text" class="grow" node_ref=search_form placeholder="Search Processes" />
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 16 16"

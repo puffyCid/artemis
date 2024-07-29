@@ -8,7 +8,6 @@ pub(crate) fn generate_heartbeat(id: &str) -> Heartbeat {
 
     Heartbeat {
         endpoint_id: id.to_string(),
-        heartbeat: true,
         jobs_running: 0,
         hostname: info.hostname,
         ip: info.ip,

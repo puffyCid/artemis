@@ -1,5 +1,8 @@
 use crate::{
-    filestore::collections::update_collection,
+    filestore::{
+        collections::{collection_status, set_collection_info},
+        database::update_info_db,
+    },
     server::ServerState,
     utils::{
         filesystem::{create_dirs, write_file},
@@ -10,7 +13,7 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
 };
-use common::server::collections::CollectionResponse;
+use common::server::collections::{CollectionInfo, Status};
 use log::{error, warn};
 use redb::Database;
 
@@ -22,13 +25,42 @@ pub(crate) async fn upload_collection(
     let path = state.config.endpoint_server.storage;
 
     let mut endpoint_id = String::new();
+    let mut platform = String::new();
 
-    while let Some(field) = multipart.next_field().await.unwrap() {
+    while let Some(field) = multipart.next_field().await.unwrap_or(None) {
         let name = field.name().unwrap_or_default().to_string();
 
         if name == "collection-info" {
             let data = field.text().await.unwrap_or_default();
-            endpoint_id = update_collection_status(&path, &data, &state.central_collect_db).await?;
+            let serde_result = serde_json::from_str(&data);
+            let serde_value: CollectionInfo = match serde_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[server] Failed to deserialzie collection upload metadata: {err:?}");
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            };
+            update_collection_status(&path, &serde_value, &state.central_collect_db).await?;
+            if serde_value.platform.is_none() || serde_value.hostname.is_none() {
+                error!("[server] Did not receive all required info in response");
+                return Err(StatusCode::BAD_REQUEST);
+            }
+            endpoint_id = serde_value.endpoint_id.clone();
+            platform = serde_value.platform.clone().unwrap_or_default();
+            let path = format!("{path}/{platform}/{endpoint_id}");
+            let status_result = collection_status(&path, &serde_value.id).await;
+            let status = match status_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[server] Failed to check endpoint status for upload: {err:?}");
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            };
+            if status != Status::Started {
+                warn!("[server] Received uploaded data for endpoint but status is unexpected");
+                return Err(StatusCode::BAD_REQUEST);
+            }
+            let _ = set_collection_info(&path, &[serde_value.id], &serde_value).await;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -39,7 +71,7 @@ pub(crate) async fn upload_collection(
             };
 
             let data = field.bytes().await.unwrap_or_default();
-            let endpoint_dir = format!("{path}/{endpoint_id}");
+            let endpoint_dir = format!("{path}/{platform}/{endpoint_id}");
             write_collection(&endpoint_dir, &filename, &data).await?;
         }
     }
@@ -49,24 +81,15 @@ pub(crate) async fn upload_collection(
 /// Update the Collection DB using the uploaded collection-info data
 async fn update_collection_status(
     path: &str,
-    data: &str,
+    collect: &CollectionInfo,
     db: &Database,
-) -> Result<String, StatusCode> {
+) -> Result<(), StatusCode> {
     if path.is_empty() {
         error!("[server] No endpoint path provided cannot update collections.redb");
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let collect_esult = serde_json::from_str(data);
-    let collect: CollectionResponse = match collect_esult {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[server] Cannot deserialize Collection Info for Endpoint ID {path}: {err:?}");
-            return Err(StatusCode::BAD_REQUEST);
-        }
-    };
-
-    let status = update_collection(&collect.info, db).await;
+    let status = update_info_db(collect, db);
     if status.is_err() {
         error!(
             "[server] Could not update collection info for {path}: {:?}",
@@ -75,7 +98,7 @@ async fn update_collection_status(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    Ok(collect.target)
+    Ok(())
 }
 
 /// Write data to endpoint storage directory
@@ -131,16 +154,14 @@ async fn write_collection(
 
 #[cfg(test)]
 mod tests {
-    use crate::filestore::collections::save_collection;
+    use crate::filestore::database::save_collection;
     use crate::uploads::upload::write_collection;
     use crate::utils::filesystem::create_dirs;
     use crate::{
         uploads::upload::update_collection_status,
         utils::{config::read_config, uuid::generate_uuid},
     };
-    use common::server::collections::{
-        CollectionInfo, CollectionRequest, CollectionResponse, Status,
-    };
+    use common::server::collections::{CollectionInfo, CollectionRequest, Status};
     use redb::Database;
     use std::collections::HashSet;
     use std::path::PathBuf;
@@ -151,46 +172,45 @@ mod tests {
         test_location.push("tests/test_data/server.toml");
         create_dirs("./tmp/uploads").await.unwrap();
 
-        let mut value = CollectionResponse {
-            target: String::from("dasfasfd"),
-            info: CollectionInfo {
-                id: 1,
+        let mut value =
+           CollectionInfo {
+                id: 10,
+                endpoint_id: String::from("dafasdf"),
                 name: String::from("dasfasdfsa"),
                 created: 10,
                 status: Status::Started,
                 start_time: 0,
                 duration: 10,
-            },
-            started: 0,
-            finished: 10,
+                tags: Vec::new(),
+                collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
+                started: 1000,
+                completed: 2000,
+                timeout: 1000,
+                platform: Some(String::from("Darwin")),
+                hostname: Some(String::from("cxvasdf")),
         };
 
         let mut targets = HashSet::new();
         targets.insert(String::from("dafasdf"));
         let req = CollectionRequest {
             targets,
-            collection: String::from("asdfsadf"),
             targets_completed: HashSet::new(),
-            info: value.info.clone(),
+            info: value.clone(),
         };
 
         let db = Database::create("./tmp/uploads/test2.redb").unwrap();
 
-        save_collection(req, &db).await.unwrap();
+        save_collection(req, &db, "./tmp/uploads").await.unwrap();
 
-        value.info.status = Status::Finished;
+        value.status = Status::Finished;
 
-        update_collection_status(
-            "./tmp/uploads",
-            &serde_json::to_string(&value).unwrap(),
-            &db,
-        )
-        .await
-        .unwrap();
+        update_collection_status("./tmp/uploads", &value, &db)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
-    async fn test_write_collction() {
+    async fn test_write_collection() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 

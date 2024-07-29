@@ -1,10 +1,18 @@
-use crate::server::ServerState;
+use crate::{
+    filestore::{
+        collections::get_collection_info, database::get_collections, endpoints::glob_paths,
+    },
+    server::ServerState,
+};
 use axum::{
     extract::{ConnectInfo, State},
     http::StatusCode,
     Json,
 };
-use common::server::collections::QuickCollection;
+use common::server::{
+    collections::{CollectionInfo, CollectionRequest, CollectionTargets, QuickCollection},
+    webui::CollectRequest,
+};
 use log::error;
 use std::net::SocketAddr;
 
@@ -35,6 +43,63 @@ pub(crate) async fn endpoint_quick(
         quick.unwrap_err()
     );
     Err(StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// Send list of all collection requests to `WebUI`
+pub(crate) async fn get_collections_db(
+    State(state): State<ServerState>,
+    Json(data): Json<CollectRequest>,
+) -> Result<Json<Vec<CollectionRequest>>, StatusCode> {
+    let collections_result = get_collections(&state.central_collect_db, &data).await;
+    let collections = match collections_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not get collections: {err:?}");
+            Vec::new()
+        }
+    };
+    Ok(Json(collections))
+}
+
+pub(crate) async fn get_endpoints_collection_status(
+    State(state): State<ServerState>,
+    Json(targets): Json<CollectionTargets>,
+) -> Result<Json<Vec<CollectionInfo>>, StatusCode> {
+    let glob_path = format!("{}/*/*", state.config.endpoint_server.storage);
+    let glob_result = glob_paths(&glob_path);
+    let paths = match glob_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[server] Could not glob collections: {err:?}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let mut info = Vec::new();
+    let limit = 50;
+    let mut count = 0;
+
+    for target in targets.targets {
+        for path in &paths {
+            if !path.full_path.ends_with(&target) {
+                continue;
+            }
+
+            let value = get_collection_info(&path.full_path, &targets.id).await;
+            if value.is_err() {
+                continue;
+            }
+
+            info.push(value.unwrap());
+            break;
+        }
+        count += 1;
+        if count == limit {
+            break;
+        }
+    }
+
+    Ok(Json(info))
 }
 
 #[cfg(test)]

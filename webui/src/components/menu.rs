@@ -16,7 +16,7 @@ pub(crate) fn Menu() -> impl IntoView {
                 <a href="/ui/v1/endpoints">Endpoints</a>
               </li>
               <li>
-                <a>Collections</a>
+                <a href="/ui/v1/collections">Collections</a>
               </li>
               <li>
                 <a>Files</a>

@@ -1,6 +1,6 @@
 use crate::components::host::EndpointDetails;
 use crate::components::host_navigation::Navigate;
-use crate::components::jobs::processes::{endpoint_processes, EndpointProcesses};
+use crate::components::quick::processes::{endpoint_processes, EndpointProcesses};
 use crate::web::server::request_server;
 use common::server::heartbeat::Heartbeat;
 use common::server::webui::{EndpointList, EndpointOS, EndpointRequest};
@@ -31,7 +31,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
 
     view! {
       <div class="col-span-full m-2 mb-14">
-        <SearchEndpoints request_set request_get info/>
+        <SearchEndpoints request_set request_get info />
         <table class="table table-zebra border">
           // Table Header
           <thead>
@@ -134,7 +134,7 @@ pub(crate) fn Enrollment() -> impl IntoView {
                               .map(|entry| {
                                   view! {
                                     <tr>
-                                      <PlatformIcon platform=entry.os.clone()/>
+                                      <PlatformIcon platform=entry.os.clone() />
                                       <td>
                                         <a
                                           class="link link-primary no-underline"
@@ -217,7 +217,7 @@ fn SearchEndpoints(
       <div class="grid grid-cols-4 p-2 gap-2">
         <form on:submit=search_submit>
           <label class="input input-sm input-bordered flex items-center gap-2">
-            <input type="text" class="grow" node_ref=search_form placeholder="Search Endpoints"/>
+            <input type="text" class="grow" node_ref=search_form placeholder="Search Endpoints" />
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 16 16"
@@ -338,7 +338,7 @@ pub(crate) fn GetInfo() -> impl IntoView {
               info_results
                   .get()
                   .map(|res| {
-                      view! { <EndpointDetails beat=res/> }
+                      view! { <EndpointDetails beat=res /> }
                   })
           }}
 
@@ -349,12 +349,12 @@ pub(crate) fn GetInfo() -> impl IntoView {
       }>
         {move || {
             view! {
-              <EndpointProcesses proc_data=proc_results.get().unwrap_or_default() target=search()/>
+              <EndpointProcesses proc_data=proc_results.get().unwrap_or_default() target=search() />
             }
         }}
 
       </Show>
-      <Navigate values/>
+      <Navigate values />
     }
 }
 
@@ -417,7 +417,6 @@ async fn request_endpoints(body: EndpointRequest) -> Vec<EndpointList> {
 async fn endpoint_info(data: String) -> Heartbeat {
     let beat = Heartbeat {
         endpoint_id: String::new(),
-        heartbeat: false,
         jobs_running: 0,
         hostname: String::new(),
         timestamp: 0,

@@ -113,7 +113,6 @@ pub(crate) async fn recent_heartbeat(endpoint_dir: &str) -> Result<Heartbeat, St
 
     let enroll_beat = Heartbeat {
         endpoint_id: enroll.id,
-        heartbeat: false,
         jobs_running: 0,
         ip: enroll.ip,
         hostname: enroll.hostname,
@@ -193,7 +192,7 @@ pub(crate) async fn get_endpoints(
         let (filter_match, info) = enroll_filter(&enroll_path, request).await?;
 
         if request.offset <= start && filter_match {
-            endpoint_entries.push(info.clone());
+            endpoint_entries.push(info);
             continue;
         }
 
@@ -216,7 +215,7 @@ async fn enroll_filter(
     let enroll = read_enroll(path).await?;
     let mut filter_match = false;
 
-    if !request.search.is_empty() && format!("{:?}", enroll).contains(&request.search) {
+    if !request.search.is_empty() && format!("{enroll:?}").contains(&request.search) {
         filter_match = true;
         let entry = EndpointList {
             os: enroll.platform,
