@@ -100,6 +100,20 @@ pub(crate) fn CollectScripts() -> impl IntoView {
                           res.into_iter()
                               .map(|entry| {
                                   let (view_status, set_status) = create_signal(true);
+                                  let mut all_targets = Vec::from_iter(entry.targets.clone());
+                                  all_targets
+                                      .append(&mut Vec::from_iter(entry.targets_completed.clone()));
+                                  let info_request = CollectionTargets {
+                                      offset: 0,
+                                      limit: 50,
+                                      targets: all_targets,
+                                      id: entry.info.id,
+                                  };
+                                  let (info_get, _info_set) = create_signal(info_request);
+                                  let collect_info = create_resource(
+                                      move || info_get.get(),
+                                      request_endpoints_collection,
+                                  );
                                   view! {
                                     <tr
                                       class="cursor-pointer"
@@ -112,7 +126,7 @@ pub(crate) fn CollectScripts() -> impl IntoView {
                                       <td>{entry.targets.len()}</td>
                                       <td>{entry.targets_completed.len()}</td>
                                     </tr>
-                                    <CollectionDetails collect=entry view_status />
+                                    <CollectionDetails view_status info=collect_info />
                                   }
                               })
                               .collect::<Vec<_>>()
@@ -128,16 +142,18 @@ pub(crate) fn CollectScripts() -> impl IntoView {
 
 #[component]
 /// View the collection details per endpoint
-fn CollectionDetails(collect: CollectionRequest, view_status: ReadSignal<bool>) -> impl IntoView {
+fn CollectionDetails(
+    view_status: ReadSignal<bool>,
+    info: Resource<CollectionTargets, Vec<CollectionInfo>>,
+) -> impl IntoView {
     let headers = vec![
         "Hostname",
         "Endpoint ID",
-        "Start Time",
+        "Started Time",
         "Completed Time",
         "Status",
     ];
-    let mut all_targets = collect.targets;
-    all_targets.extend(collect.targets_completed);
+
     view! {
       <tr class:hidden=move || view_status.get()>
         <td colspan="5">
@@ -160,22 +176,24 @@ fn CollectionDetails(collect: CollectionRequest, view_status: ReadSignal<bool>) 
                 </tr>
               </thead>
               <tbody>
-
-                {all_targets
-                    .into_iter()
-                    .map(|entry| {
-                        view! {
-                          <tr>
-                            <td>"Hostname"</td>
-                            <td>{entry}</td>
-                            <td>"Start Time"</td>
-                            <td>"Complemted Time"</td>
-                            <td>"I finished!"</td>
-
-                          </tr>
-                        }
-                    })
-                    .collect::<Vec<_>>()}
+                {move || {
+                    info.get()
+                        .map(|res| {
+                            res.into_iter()
+                                .map(|entry| {
+                                    view! {
+                                      <tr>
+                                        <td>{entry.hostname}</td>
+                                        <td>{entry.endpoint_id}</td>
+                                        <td>{unixepoch_to_rfc(entry.started as i64)}</td>
+                                        <td>{unixepoch_to_rfc(entry.completed as i64)}</td>
+                                        <td>{format!("{:?}", entry.status)}</td>
+                                      </tr>
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                }}
               </tbody>
             </table>
           </div>
@@ -208,7 +226,7 @@ fn SearchCollections(
         move || request_get.get().count > info.get().unwrap_or_default().len() as i32;
 
     view! {
-      <div class="grid grid-cols-4 p-2 gap-2">
+      <div class="grid grid-cols-5 p-2 gap-2">
         <form on:submit=search_submit>
           <label class="input input-sm input-bordered flex items-center gap-2">
             <input type="text" class="grow" node_ref=search_form placeholder="Search Collections" />
@@ -249,6 +267,23 @@ fn SearchCollections(
                 .collect::<Vec<_>>()}
           </ul>
         </div>
+        <button class="btn btn-sm btn-outline btn-primary">
+          "New Collection"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+            ></path>
+          </svg>
+        </button>
         <button
           class="join-item btn btn-sm btn-outline"
           disabled=previous_disabled
@@ -299,11 +334,7 @@ async fn request_collections(body: CollectRequest) -> Vec<CollectionRequest> {
     }
 }
 
-async fn request_endpoints_collection(targets: &[String], id: &u64) -> Vec<CollectionInfo> {
-    let body = CollectionTargets {
-        targets: targets.to_vec(),
-        id: *id,
-    };
+async fn request_endpoints_collection(body: CollectionTargets) -> Vec<CollectionInfo> {
     let list = Vec::new();
     let res_result = request_server(
         "collections/endpoints",

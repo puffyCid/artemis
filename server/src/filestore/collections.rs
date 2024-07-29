@@ -2,6 +2,7 @@ use super::{endpoints::glob_paths, error::StoreError};
 use crate::utils::{
     filesystem::{append_file, is_file, read_lines},
     time::time_now,
+    uuid::generate_uuid,
 };
 use common::server::collections::{CollectionInfo, CollectionRequest, Status};
 use log::error;
@@ -90,6 +91,65 @@ pub(crate) async fn get_endpoint_collections_notstarted(
     Ok(not_started)
 }
 
+/// Set collection IDs to specified upload for endpoint
+pub(crate) async fn set_collection_info(
+    path: &str,
+    ids: &[u64],
+    status: &CollectionInfo,
+) -> Result<(), StoreError> {
+    let mut collections = get_endpoint_collections(path).await?;
+    let temp_file = format!("{path}/{}_temp.jsonl", generate_uuid());
+    let limit = 1024 * 1024 * 1024 * 5;
+
+    for entry in &mut collections {
+        let status = if !ids.contains(&entry.id) {
+            append_file(
+                &serde_json::to_string(entry).unwrap_or_default(),
+                &temp_file,
+                &limit,
+            )
+            .await
+        } else {
+            entry.status = status.status.clone();
+            entry.completed = status.completed;
+            entry.started = status.started;
+            entry.hostname = status.hostname.clone();
+            entry.duration = status.duration;
+            entry.platform = status.platform.clone();
+            append_file(
+                &serde_json::to_string(entry).unwrap_or_default(),
+                &temp_file,
+                &limit,
+            )
+            .await
+        };
+
+        if status.is_err() {
+            error!(
+                "[server] Could not write updated collections temp file: {:?}",
+                status.unwrap_err()
+            );
+        }
+    }
+
+    let status = rename(&temp_file, &format!("{path}/collections.jsonl")).await;
+    if status.is_err() {
+        error!(
+            "[server] Could not move collections temp file: {:?}",
+            status.unwrap_err()
+        );
+    }
+
+    let status = remove_file(&temp_file).await;
+    if status.is_err() {
+        error!(
+            "[server] Could not delete collections temp file: {:?}",
+            status.unwrap_err()
+        );
+    }
+    Ok(())
+}
+
 /// Set collection IDs to specified status for endpoint
 pub(crate) async fn set_collection_status(
     path: &str,
@@ -97,7 +157,8 @@ pub(crate) async fn set_collection_status(
     status: &Status,
 ) -> Result<(), StoreError> {
     let mut collections = get_endpoint_collections(path).await?;
-    let temp_file = format!("{path}/collections_temp.jsonl");
+    let temp_file = format!("{path}/{}_temp.jsonl", generate_uuid());
+
     let limit = 1024 * 1024 * 1024 * 5;
 
     for entry in &mut collections {
@@ -110,6 +171,7 @@ pub(crate) async fn set_collection_status(
             .await
         } else {
             entry.status = status.clone();
+
             append_file(
                 &serde_json::to_string(entry).unwrap_or_default(),
                 &temp_file,
@@ -191,9 +253,9 @@ fn get_collection_script(id: &u64, db: &Database) -> Result<String, Error> {
 #[cfg(test)]
 mod tests {
     use crate::filestore::collections::{
-        collection_status, get_endpoint_collections, set_collection_status,
+        collection_status, get_endpoint_collections, set_collection_info, set_collection_status,
     };
-    use common::server::collections::Status;
+    use common::server::collections::{CollectionInfo, Status};
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -205,6 +267,33 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(status, Status::NotStarted)
+    }
+
+    #[tokio::test]
+    async fn test_set_collection_info() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/3482136c-3176-4272-9bd7-b79f025307d6");
+
+        let info = CollectionInfo {
+            id: 1,
+            endpoint_id: String::from("dafasdf"),
+            name: String::from("dasfasdfsa"),
+            created: 10,
+            status: Status::NotStarted,
+            start_time: 0,
+            duration: 0,
+            tags: Vec::new(),
+            collection: String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), 
+            started: 0,
+            completed: 0,
+            timeout: 100,
+            platform: Some(String::from("Darwin")),
+            hostname: Some(String::from("cxvasdf")),
+        };
+
+        set_collection_info(test_location.to_str().unwrap(), &[1], &info)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]

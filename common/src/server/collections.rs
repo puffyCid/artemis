@@ -105,5 +105,7 @@ pub enum Status {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct CollectionTargets {
     pub targets: Vec<String>,
+    pub offset: u64,
+    pub limit: u64,
     pub id: u64,
 }

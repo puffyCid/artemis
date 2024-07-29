@@ -197,7 +197,7 @@ mod tests {
         let data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:1,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None } };
 
         let db = Database::create(path).unwrap();
 
@@ -215,7 +215,7 @@ mod tests {
         let data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:1,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
 
         let db = Database::create(path).unwrap();
 
@@ -233,7 +233,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_info_db() {
-        create_dirs("./tmp").await.unwrap();
+        create_dirs("./tmp/save").await.unwrap();
         let path = "./tmp/save/test2.redb";
 
         let mut targets = HashSet::new();
@@ -242,7 +242,7 @@ mod tests {
         let mut data = CollectionRequest {
             targets,
             targets_completed: HashSet::new(),
-            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:0,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
+            info: CollectionInfo {endpoint_id:String::from("dafasdf"),id:2,name:String::from("test"),created:10,status:Status::NotStarted,duration:0,start_time:0,tags:Vec::new(),collection:String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInByZWZldGNoX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiNmM1MWIxMjMtMTUyMi00NTcyLTlmMmEtMGJkNWFiZDgxYjgyIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAicHJlZmV0Y2giClthcnRpZmFjdHMucHJlZmV0Y2hdCmFsdF9kcml2ZSA9ICdDJwo="), started: 0, completed: 0, timeout: 1000, platform: None, hostname: None  } };
 
         let db = Database::create(path).unwrap();
 

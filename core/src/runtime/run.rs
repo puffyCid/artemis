@@ -154,7 +154,6 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
     extensions.append(&mut setup_windows_extensions());
 
     let runtime = JsRuntime::new(RuntimeOptions {
-        source_map_getter: None,
         get_error_class_fn: Some(&get_error_class_name),
         module_loader: Some(module_loader),
         extensions,

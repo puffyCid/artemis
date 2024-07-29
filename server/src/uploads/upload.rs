@@ -1,6 +1,6 @@
 use crate::{
     filestore::{
-        collections::{collection_status, set_collection_status},
+        collections::{collection_status, set_collection_info},
         database::update_info_db,
     },
     server::ServerState,
@@ -45,8 +45,8 @@ pub(crate) async fn upload_collection(
                 error!("[server] Did not receive all required info in response");
                 return Err(StatusCode::BAD_REQUEST);
             }
-            endpoint_id = serde_value.endpoint_id;
-            platform = serde_value.platform.unwrap_or_default();
+            endpoint_id = serde_value.endpoint_id.clone();
+            platform = serde_value.platform.clone().unwrap_or_default();
             let path = format!("{path}/{platform}/{endpoint_id}");
             let status_result = collection_status(&path, &serde_value.id).await;
             let status = match status_result {
@@ -60,7 +60,7 @@ pub(crate) async fn upload_collection(
                 warn!("[server] Received uploaded data for endpoint but status is unexpected");
                 return Err(StatusCode::BAD_REQUEST);
             }
-            let _ = set_collection_status(&path, &[serde_value.id], &serde_value.status).await;
+            let _ = set_collection_info(&path, &[serde_value.id], &serde_value).await;
         } else if name == "collection" {
             let filename_option = field.file_name();
             let filename = if let Some(result) = filename_option {
@@ -174,7 +174,7 @@ mod tests {
 
         let mut value =
            CollectionInfo {
-                id: 1,
+                id: 10,
                 endpoint_id: String::from("dafasdf"),
                 name: String::from("dasfasdfsa"),
                 created: 10,
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_write_collction() {
+    async fn test_write_collection() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/server.toml");
 
