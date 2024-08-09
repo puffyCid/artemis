@@ -21,18 +21,21 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     };
 
     // Need to align block size based on Outlook file format
-    let alignment_size = (size - block.size % size) % size;
-    println!("{alignment_size}");
+    let mut alignment_size = (size - block.size % size) % size;
+    if alignment_size == 0 {
+        // If the actual data is perfectly aligned then we need to add footer size
+        alignment_size = 24;
+    }
     let bytes = read_bytes(
         &block.block_offset,
-        (block.size + alignment_size) as u64,
+        block.size as u64 + alignment_size as u64,
         ntfs_file,
         fs,
     )
     .unwrap();
 
     let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
-    println!("{block_data:?}");
+    //println!("{block_data:?}");
 
     Ok(block_data)
 }
@@ -63,7 +66,7 @@ mod tests {
             block_offset: 0,
             size: 456,
             reference_count: 1,
-            file_offset_allocation_table: 2,
+            total_size: 2,
         };
         let block =
             parse_raw_block(None, &mut buf_reader, &test, &FormatType::Unicode64_4k).unwrap();

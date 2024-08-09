@@ -1,7 +1,10 @@
-use nom::error::ErrorKind;
-
+use super::{descriptors::DescriptorData, raw::parse_raw_block, xblock::parse_xblock};
 use crate::{
-    artifacts::os::windows::outlook::header::FormatType,
+    artifacts::os::windows::outlook::{
+        error::OutlookError,
+        header::FormatType,
+        pages::btree::{BlockType, LeafBlockData},
+    },
     utils::{
         compression::decompress::decompress_zlib,
         nom_helper::{
@@ -10,6 +13,42 @@ use crate::{
         },
     },
 };
+use nom::error::ErrorKind;
+use ntfs::NtfsFile;
+use std::{collections::BTreeMap, io::BufReader};
+
+pub(crate) struct BlockValue {
+    block_type: Block,
+    /**Set if `Block::Xblock`, `Block::Xxblock`, or `Block::Raw` */
+    data: Vec<u8>,
+    /**Set if `Block::Descriptors` */
+    descriptors: BTreeMap<u64, DescriptorData>,
+}
+
+pub(crate) enum Block {
+    Xblock,
+    Raw,
+    Xxblock,
+    Descriptors,
+}
+
+pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
+    ntfs_file: Option<&NtfsFile<'_>>,
+    fs: &mut BufReader<T>,
+    block: &LeafBlockData,
+    other_blocks: &[BTreeMap<u64, LeafBlockData>],
+    format: &FormatType,
+) -> Result<Vec<u8>, OutlookError> {
+    let results = match block.block_type {
+        BlockType::Internal => parse_xblock(ntfs_file, fs, block, other_blocks, format)?,
+        BlockType::External => {
+            let value = parse_raw_block(ntfs_file, fs, block, format)?;
+            value.data
+        }
+    };
+
+    Ok(results)
+}
 
 #[derive(Debug)]
 pub(crate) struct BlockData {
@@ -50,7 +89,7 @@ pub(crate) fn parse_block_bytes<'a>(
             block.crc = crc;
             block.block_size = size;
 
-            return Ok((input, block));
+            Ok((input, block))
         }
         FormatType::Unicode64 => {
             let size = 16;
@@ -61,16 +100,17 @@ pub(crate) fn parse_block_bytes<'a>(
             let (input, crc) = nom_unsigned_four_bytes(input, Endian::Le)?;
             let (input, back_pointer) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-            block.back_pointer = back_pointer as u64;
+            block.back_pointer = back_pointer;
             block.data = block_data.to_vec();
             block.sig = sig;
             block.crc = crc;
             block.block_size = size;
 
-            return Ok((input, block));
+            Ok((input, block))
         }
         FormatType::Unicode64_4k => {
             let size = 24;
+            println!("length: {}", data.len());
             let (footer, block_data) = nom_data(data, (data.len() - size) as u64)?;
 
             let (input, size) = nom_unsigned_two_bytes(footer, Endian::Le)?;
@@ -80,7 +120,7 @@ pub(crate) fn parse_block_bytes<'a>(
             let (input, _unknown) = nom_unsigned_two_bytes(input, Endian::Le)?;
             let (input, size2) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-            block.back_pointer = back_pointer as u64;
+            block.back_pointer = back_pointer;
             block.sig = sig;
             block.crc = crc;
             block.block_size = size;
@@ -99,14 +139,71 @@ pub(crate) fn parse_block_bytes<'a>(
                 block.data = final_bytes.to_vec();
             }
 
-            return Ok((input, block));
+            Ok((input, block))
         }
         FormatType::Unknown => {
             // We should never get here
-            return Err(nom::Err::Failure(nom::error::Error::new(
+            Err(nom::Err::Failure(nom::error::Error::new(
                 data,
                 ErrorKind::Fail,
-            )));
+            )))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_block_bytes, parse_blocks};
+    use crate::{
+        artifacts::os::windows::outlook::{header::FormatType, pages::btree::get_block_btree},
+        filesystem::files::{file_reader, read_file},
+    };
+    use std::{io::BufReader, path::PathBuf};
+
+    #[test]
+    fn test_parse_block_bytes() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/block_raw.raw");
+        let test = read_file(test_location.to_str().unwrap()).unwrap();
+
+        let (_, results) = parse_block_bytes(&test, &FormatType::Unicode64_4k).unwrap();
+
+        assert_eq!(results.data.len(), 456);
+        assert_eq!(results.block_size, 456);
+        assert_eq!(results.sig, 63926);
+        assert_eq!(results.crc, 3861511615);
+        assert_eq!(results.back_pointer, 69820);
+    }
+
+    #[test]
+    fn test_parse_blocks() {
+        let reader =
+            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut buf_reader = BufReader::new(reader);
+        let mut tree = Vec::new();
+
+        get_block_btree(
+            None,
+            &mut buf_reader,
+            &18800640,
+            &4096,
+            &FormatType::Unicode64_4k,
+            &mut tree,
+        )
+        .unwrap();
+
+        for entry in &tree {
+            for (_, value) in entry {
+                println!("{value:?}");
+                let result = parse_blocks(
+                    None,
+                    &mut buf_reader,
+                    value,
+                    &tree,
+                    &FormatType::Unicode64_4k,
+                )
+                .unwrap();
+            }
         }
     }
 }

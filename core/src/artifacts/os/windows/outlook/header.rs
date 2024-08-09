@@ -3,7 +3,7 @@ use crate::utils::nom_helper::{
     nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
 };
 use log::{error, warn};
-use nom::{bits::complete::take, error::ErrorKind};
+use nom::error::ErrorKind;
 
 #[derive(PartialEq, Debug)]
 pub(crate) struct OutlookHeader {
@@ -51,7 +51,7 @@ pub(crate) enum FormatType {
 }
 
 #[derive(PartialEq, Debug)]
-/// https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/d9bcc1fd-c66a-41b3-b6d7-ed09d2a25ced
+/// `<https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/d9bcc1fd-c66a-41b3-b6d7-ed09d2a25ced>`
 enum AllocationType {
     /**Possible corruption */
     InvalidMaps,
@@ -95,7 +95,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let mut count = 0;
     let mut node_ids = Vec::new();
 
-    // Array of known node IDs https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6
+    // Array of known node IDs `<https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6>`
     while count < limit {
         let (remaining, id_data) = nom_data(input, 4)?;
         let result = get_node_ids(id_data);
@@ -214,12 +214,12 @@ fn get_encryption(data: &u8) -> EncryptionType {
 pub(crate) struct Node {
     pub(crate) node_id: NodeID,
     pub(crate) node_id_num: u64,
-    pub(crate) node_id_value: u64,
+    //pub(crate) node_id_value: u64,
     pub(crate) node: u32,
 }
 
 #[derive(Eq, Hash, PartialEq, Debug)]
-/**See: https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6 */
+/**See: `<https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6>` */
 pub(crate) enum NodeID {
     HeapNode,
     InternalNode,
@@ -235,7 +235,7 @@ pub(crate) enum NodeID {
     Outbox,
     HierarchyTable,
     ContentsTable,
-    /**FolderAssociatedInfo (FAI) */
+    /**`FolderAssociatedInfo` (FAI) */
     FaiContentsTable,
     SearchContentsTable,
     AttachmentTable,
@@ -246,12 +246,14 @@ pub(crate) enum NodeID {
     Unknown,
 }
 
-/// Determine NodeIDs in header
-pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<(&[u8], usize), Node> {
-    let bit_size: u8 = 5;
-    let ((input, offset), id_type) = take(bit_size)((data, 0))?;
+/// Determine `NodeIDs` in header
+pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
+    let (input, value) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
-    let id = match id_type {
+    //let bit_size: u8 = 5;
+    //let ((input, offset), id_type) = take(bit_size)((data, 0))?;
+
+    let id = match value & 0x1f {
         0x0 => NodeID::HeapNode,
         0x1 => NodeID::InternalNode,
         0x2 => NodeID::NormalFolder,
@@ -273,19 +275,21 @@ pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<(&[u8], usize), Node> {
         0x13 => NodeID::SearchTableIndex,
         0x1f => NodeID::LocalDescriptors,
         _ => {
-            warn!("[outlook] Unknown NodeID: {id_type}");
+            warn!("[outlook] Unknown NodeID: {value}");
             NodeID::Unknown
         }
     };
 
+    /*
     let value_size: u8 = 27;
     let (input, node_id_value) = take(value_size)((input, offset))?;
     let (_, node) = nom_unsigned_four_bytes(data, Endian::Le).unwrap();
+    */
     let node = Node {
         node_id: id,
-        node_id_num: id_type,
-        node_id_value,
-        node,
+        node_id_num: ((value >> 5) & 0x07ffffff) as u64,
+        // node_id_value,
+        node: value,
     };
 
     Ok((input, node))
@@ -365,8 +369,7 @@ mod tests {
         let (_, results) = get_node_ids(&test).unwrap();
         data.push(results);
         assert_eq!(data[0].node_id, NodeID::HeapNode);
-        assert_eq!(data[0].node_id_num, 0);
-        assert_eq!(data[0].node_id_value, 262144);
+        assert_eq!(data[0].node_id_num, 32);
         assert_eq!(data[0].node, 1024);
     }
 }

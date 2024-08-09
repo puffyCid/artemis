@@ -13,7 +13,6 @@ use crate::{
 };
 use log::error;
 use nom::{
-    bits,
     bytes::complete::take,
     error::ErrorKind,
     number::complete::{le_u32, le_u64},
@@ -32,7 +31,7 @@ pub(crate) struct BtreeTable {
 }
 
 #[derive(PartialEq, Debug)]
-enum NodeLevel {
+pub(crate) enum NodeLevel {
     LeafNode,
     BranchNode,
 }
@@ -59,7 +58,8 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             get_node_btree(ntfs_file, fs, &node.offset, size, format, node_tree)?;
         }
     } else {
-        let (_, leaf_node) = parse_leaf_node_data(&page.data, format).unwrap();
+        let (_, leaf_node) =
+            parse_leaf_node_data(&page.data, &page.number_entries, format).unwrap();
         println!("first leaf list: {}", leaf_node.len());
         let mut tree = BTreeMap::new();
         for node in leaf_node {
@@ -104,7 +104,10 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
         }
     } else {
-        let (_, leaf_block) = parse_leaf_block_data(&page.data, format).unwrap();
+        println!("entry size: {}", page.entry_size);
+        println!("entries: {}", page.number_entries);
+        let (_, leaf_block) =
+            parse_leaf_block_data(&page.data, &page.number_entries, format).unwrap();
         println!("first leaf list: {}", leaf_block.len());
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
@@ -113,9 +116,18 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
                 continue;
             }
             println!("my block: {block:?}");
-            println!("my block lsb cleared?: {}", (block.index_id & 0xfffffffe));
 
             if let Some(value) = tree.get(&block.index_id) {
+                if value.index == block.index
+                    && value.block_offset == block.block_offset
+                    && value.block_type == block.block_type
+                    && value.index_id == block.index_id
+                    && value.size == block.size
+                    && value.total_size == block.total_size
+                    && value.reference_count == block.reference_count
+                {
+                    continue;
+                }
                 println!("The dupe: {value:?}");
             }
             tree.insert(block.index_id, block);
@@ -174,7 +186,7 @@ pub(crate) fn parse_btree_page<'a>(
 
 #[derive(PartialEq, Debug)]
 pub(crate) struct BranchData {
-    /**Top Level NodeID's should be unique */
+    /**Top Level `NodeID`'s should be unique */
     node: Node,
     back_pointer: u64,
     offset: u64,
@@ -203,7 +215,7 @@ pub(crate) fn parse_branch_data<'a>(
                 )));
             }
         };
-        if node.node == 0 && node.node_id_num == 0 && node.node_id_value == 0 {
+        if node.node == 0 && node.node_id_num == 0 {
             // We are done
             break;
         }
@@ -236,9 +248,9 @@ pub(crate) fn parse_branch_data<'a>(
 #[derive(PartialEq, Debug)]
 pub(crate) struct LeafNodeData {
     node: Node,
-    /**Block ID. Points to the main data for this item (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1 tree (https://www.five-ten-sg.com/libpst/rn01re05.html) */
+    /**Block ID. Points to the main data for this item (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1 tree (`<https://www.five-ten-sg.com/libpst/rn01re05.html>`) */
     block_offset_data_id: u64,
-    /**Block ID subnode. Is zero or points to an Associated Tree Item 0x0002 via the index1 tree (https://www.five-ten-sg.com/libpst/rn01re05.html) */
+    /**Block ID subnode. Is zero or points to an Associated Tree Item 0x0002 via the index1 tree (`<https://www.five-ten-sg.com/libpst/rn01re05.html>`) */
     block_offset_descriptor_id: u64,
     /**If node is a child of `Folder Object`. This is the Node ID for the folder */
     parent_node_index: u32,
@@ -246,10 +258,11 @@ pub(crate) struct LeafNodeData {
 
 /**
  * Parse Leaf Btree data.
- * Also called "64 bit Index 2 Leaf Node" - https://www.five-ten-sg.com/libpst/rn01re05.html
+ * Also called "64 bit Index 2 Leaf Node" - `<https://www.five-ten-sg.com/libpst/rn01re05.html>`
  */
 pub(crate) fn parse_leaf_node_data<'a>(
     data: &'a [u8],
+    entries: &u16,
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<LeafNodeData>> {
     let mut leaf_data = data;
@@ -263,7 +276,7 @@ pub(crate) fn parse_leaf_node_data<'a>(
         32
     };
 
-    while leaf_data.len() >= min_size {
+    while leaf_data.len() >= min_size && leaf_nodes.len() != *entries as usize {
         let (input, node_data) = take(size)(leaf_data)?;
         let result = get_node_ids(node_data);
         let node = match result {
@@ -322,8 +335,9 @@ pub(crate) struct LeafBlockData {
     pub(crate) index: u64,
     pub(crate) block_offset: u64,
     pub(crate) size: u16,
+    /**Size of block after decompression? - `<https://github.com/Jmcleodfoss/pstreader/blob/master/pst/src/main/java/io/github/jmcleodfoss/pst/BBTEntry.java>` */
+    pub(crate) total_size: u16,
     pub(crate) reference_count: u16,
-    pub(crate) file_offset_allocation_table: u32,
 }
 
 #[derive(PartialEq, Debug)]
@@ -334,6 +348,7 @@ pub(crate) enum BlockType {
 
 pub(crate) fn parse_leaf_block_data<'a>(
     data: &'a [u8],
+    entries: &u16,
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<LeafBlockData>> {
     let mut leaf_data = data;
@@ -347,13 +362,13 @@ pub(crate) fn parse_leaf_block_data<'a>(
         24
     };
 
-    while leaf_data.len() >= min_size {
+    while leaf_data.len() >= min_size && leaf_blocks.len() != *entries as usize {
         let (input, index_data) = take(size)(leaf_data)?;
-        let (_, (block_type, index)) = check_block_bits(index_data).unwrap();
+        //let (_, (block_type, index)) = check_block_bits(index_data).unwrap();
 
         let (input, block_data) = take(size)(input)?;
         let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (mut input, reference_count) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (mut input, total_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let (index_id, block_offset) = if format == &FormatType::ANSI32 {
             let (_, index_id) = le_u32(index_data)?;
@@ -365,18 +380,25 @@ pub(crate) fn parse_leaf_block_data<'a>(
             (index_id, block_offset)
         };
 
+        let clear_lsb = 0xfffffffffffffffe;
+        let internal_id = 2;
         let mut leaf = LeafBlockData {
-            index_id,
+            index_id: index_id & clear_lsb,
             block_offset,
-            block_type,
-            index,
+            block_type: if index_id & 2 != 0 {
+                BlockType::Internal
+            } else {
+                BlockType::External
+            },
+            index: index_id >> internal_id,
             size,
-            reference_count,
-            file_offset_allocation_table: 0,
+            total_size,
+            reference_count: 0,
         };
         if format != &FormatType::ANSI32 {
-            let (remaining, allocation_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            leaf.file_offset_allocation_table = allocation_offset;
+            let (remaining, reference_count) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (remaining, _padding) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
+            leaf.reference_count = reference_count;
             input = remaining;
         }
 
@@ -385,23 +407,6 @@ pub(crate) fn parse_leaf_block_data<'a>(
     }
 
     Ok((leaf_data, leaf_blocks))
-}
-
-fn check_block_bits(data: &[u8]) -> nom::IResult<(&[u8], usize), (BlockType, u64)> {
-    let bit_size: u8 = 1;
-    let ((input, offset), _clear): ((&[u8], usize), u8) =
-        bits::complete::take(bit_size)((data, 0))?;
-    let ((input, offset), block_type): ((&[u8], usize), u8) =
-        bits::complete::take(bit_size)((input, offset))?;
-
-    let block = if block_type == 1 {
-        BlockType::Internal
-    } else {
-        BlockType::External
-    };
-    let value_size: u8 = 30;
-    let ((input, offset), value) = bits::complete::take(value_size)((input, offset))?;
-    Ok(((input, offset), (block, value)))
 }
 
 #[cfg(test)]
@@ -508,8 +513,7 @@ mod tests {
         assert_eq!(nodes.len(), 6);
         assert_eq!(nodes[0].back_pointer, 22032);
         assert_eq!(nodes[0].offset, 18448384);
-        assert_eq!(nodes[0].node.node_id, NodeID::Message);
-        assert_eq!(nodes[0].node.node_id_value, 16777216);
+        assert_eq!(nodes[0].node.node_id, NodeID::InternalNode);
         println!("{nodes:?}");
     }
 
@@ -528,7 +532,8 @@ mod tests {
         assert_eq!(results.entry_size, 32);
         assert_eq!(results.number_entries, 117);
 
-        let (_, leafs) = parse_leaf_node_data(&results.data, &FormatType::Unicode64_4k).unwrap();
+        let (_, leafs) =
+            parse_leaf_node_data(&results.data, &126, &FormatType::Unicode64_4k).unwrap();
         println!("{leafs:?}");
     }
 
@@ -547,7 +552,8 @@ mod tests {
         assert_eq!(results.entry_size, 24);
         assert_eq!(results.number_entries, 100);
 
-        let (_, leafs) = parse_leaf_block_data(&results.data, &FormatType::Unicode64_4k).unwrap();
+        let (_, leafs) =
+            parse_leaf_block_data(&results.data, &100, &FormatType::Unicode64_4k).unwrap();
         println!("{leafs:?}");
     }
 
@@ -557,14 +563,13 @@ mod tests {
             33, 0, 0, 0, 0, 0, 0, 0, 188, 16, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let (_, nodes) = parse_leaf_node_data(&test, &FormatType::Unicode64_4k).unwrap();
+        let (_, nodes) = parse_leaf_node_data(&test, &1, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(nodes.len(), 1);
-        assert_eq!(nodes[0].node.node_id, NodeID::Message);
-        assert_eq!(nodes[0].node.node_id_num, 4);
+        assert_eq!(nodes[0].node.node_id, NodeID::InternalNode);
+        assert_eq!(nodes[0].node.node_id_num, 1);
         assert_eq!(nodes[0].block_offset_data_id, 69820);
         assert_eq!(nodes[0].block_offset_descriptor_id, 0);
         assert_eq!(nodes[0].parent_node_index, 0);
-        assert_eq!(nodes[0].node.node_id_value, 16777216);
     }
 
     #[test]
@@ -572,12 +577,12 @@ mod tests {
         let test = [
             4, 0, 0, 0, 0, 0, 0, 0, 0, 80, 2, 0, 0, 0, 0, 0, 172, 0, 172, 0, 42, 0, 0, 0,
         ];
-        let (_, nodes) = parse_leaf_block_data(&test, &FormatType::Unicode64_4k).unwrap();
+        let (_, nodes) = parse_leaf_block_data(&test, &1, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes[0].block_offset, 151552);
-        assert_eq!(nodes[0].file_offset_allocation_table, 42);
+        assert_eq!(nodes[0].reference_count, 42);
         assert_eq!(nodes[0].index_id, 4);
-        assert_eq!(nodes[0].reference_count, 172);
+        assert_eq!(nodes[0].total_size, 172);
         assert_eq!(nodes[0].size, 172);
     }
 }

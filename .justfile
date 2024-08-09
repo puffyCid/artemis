@@ -30,6 +30,9 @@ wmi: (_test "artifacts::os::windows::wmi")
 # Test only the ShellItems parsing functions
 shellitems: (_test "artifacts::os::windows::shellitems")
 
+# Test only the Outlook parsing functions
+outlook: (_test "artifacts::os::windows::outlook")
+
 # Test only the Spotlight parsing functions
 spotlight: (_test "artifacts::os::macos::spotlight")
 
