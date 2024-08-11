@@ -17,19 +17,22 @@ use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};
 
+#[derive(Debug)]
 pub(crate) struct BlockValue {
-    block_type: Block,
+    pub(crate) block_type: Block,
     /**Set if `Block::Xblock`, `Block::Xxblock`, or `Block::Raw` */
-    data: Vec<u8>,
+    pub(crate) data: Vec<u8>,
     /**Set if `Block::Descriptors` */
-    descriptors: BTreeMap<u64, DescriptorData>,
+    pub(crate) descriptors: BTreeMap<u64, DescriptorData>,
 }
 
+#[derive(PartialEq, Debug)]
 pub(crate) enum Block {
     Xblock,
     Raw,
     Xxblock,
     Descriptors,
+    Unknown,
 }
 
 pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
@@ -38,16 +41,23 @@ pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
     block: &LeafBlockData,
     other_blocks: &[BTreeMap<u64, LeafBlockData>],
     format: &FormatType,
-) -> Result<Vec<u8>, OutlookError> {
-    let results = match block.block_type {
-        BlockType::Internal => parse_xblock(ntfs_file, fs, block, other_blocks, format)?,
+) -> Result<BlockValue, OutlookError> {
+    let mut block_value = BlockValue {
+        block_type: Block::Unknown,
+        data: Vec::new(),
+        descriptors: BTreeMap::new(),
+    };
+
+    match block.block_type {
+        BlockType::Internal => {
+            parse_xblock(ntfs_file, fs, block, other_blocks, format, &mut block_value)?
+        }
         BlockType::External => {
-            let value = parse_raw_block(ntfs_file, fs, block, format)?;
-            value.data
+            parse_raw_block(ntfs_file, fs, block, format, &mut block_value)?;
         }
     };
 
-    Ok(results)
+    Ok(block_value)
 }
 
 #[derive(Debug)]

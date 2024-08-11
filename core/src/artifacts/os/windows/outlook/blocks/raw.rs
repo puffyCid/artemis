@@ -1,4 +1,4 @@
-use super::block::{parse_block_bytes, BlockData};
+use super::block::{parse_block_bytes, Block, BlockData, BlockValue};
 use crate::{
     artifacts::os::windows::outlook::{
         error::OutlookError, header::FormatType, pages::btree::LeafBlockData,
@@ -13,6 +13,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     fs: &mut BufReader<T>,
     block: &LeafBlockData,
     format: &FormatType,
+    block_value: &mut BlockValue,
 ) -> Result<BlockData, OutlookError> {
     let size = if format != &FormatType::Unicode64_4k {
         64
@@ -37,6 +38,9 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
     //println!("{block_data:?}");
 
+    block_value.block_type = Block::Raw;
+    block_value.data = block_data.data.clone();
+
     Ok(block_data)
 }
 
@@ -45,12 +49,13 @@ mod tests {
     use super::parse_raw_block;
     use crate::{
         artifacts::os::windows::outlook::{
+            blocks::block::{Block, BlockValue},
             header::FormatType,
             pages::btree::{BlockType, LeafBlockData},
         },
         filesystem::files::file_reader,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
 
     #[test]
     fn test_parse_raw_block() {
@@ -68,8 +73,21 @@ mod tests {
             reference_count: 1,
             total_size: 2,
         };
-        let block =
-            parse_raw_block(None, &mut buf_reader, &test, &FormatType::Unicode64_4k).unwrap();
+
+        let mut block_value = BlockValue {
+            block_type: Block::Unknown,
+            data: Vec::new(),
+            descriptors: BTreeMap::new(),
+        };
+
+        let block = parse_raw_block(
+            None,
+            &mut buf_reader,
+            &test,
+            &FormatType::Unicode64_4k,
+            &mut block_value,
+        )
+        .unwrap();
 
         assert_eq!(block.data.len(), 456);
         assert_eq!(block.block_size, 456);

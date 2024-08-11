@@ -3,3 +3,4 @@ mod error;
 mod header;
 pub(crate) mod helper;
 mod pages;
+mod tables;

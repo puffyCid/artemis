@@ -4,7 +4,7 @@
  * 1. Parse header -- DONE!
  * 2. Parse pages -- in progress!
  *    2.1 Parse block_offset_descriptor_id next?
- * 3. Create final struct to return different blocks. Support xblock, raw, and descriptor
+ * 3. Create final struct to return different blocks. Support xblock, raw, and descriptor <--- next!!!
  * 4. Parse tables -- ??
  *
  * (file)/offset = block btree

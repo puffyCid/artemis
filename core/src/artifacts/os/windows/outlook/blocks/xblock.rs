@@ -1,7 +1,9 @@
-use super::block::parse_block_bytes;
+use super::block::{parse_block_bytes, BlockValue};
 use crate::{
     artifacts::os::windows::outlook::{
-        blocks::descriptors::parse_descriptor_block, error::OutlookError, header::FormatType,
+        blocks::{block::Block, descriptors::parse_descriptor_block},
+        error::OutlookError,
+        header::FormatType,
         pages::btree::LeafBlockData,
     },
     filesystem::ntfs::reader::read_bytes,
@@ -19,7 +21,8 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     block: &LeafBlockData,
     other_blocks: &[BTreeMap<u64, LeafBlockData>],
     format: &FormatType,
-) -> Result<Vec<u8>, OutlookError> {
+    block_value: &mut BlockValue,
+) -> Result<(), OutlookError> {
     let size = if format != &FormatType::Unicode64_4k {
         64
     } else {
@@ -37,7 +40,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     )
     .unwrap();
 
-    let (_, entries) = xblock_data(&bytes, format).unwrap();
+    let (_, entries) = xblock_data(&bytes, format, block_value).unwrap();
     let mut all_bytes = Vec::new();
     for entry in entries {
         for tree in other_blocks {
@@ -64,21 +67,34 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
         }
     }
 
-    Ok(all_bytes)
+    if block_value.block_type == Block::Unknown {
+        block_value.data = all_bytes;
+        block_value.block_type = Block::Xblock;
+    }
+
+    Ok(())
 }
 
-fn xblock_data<'a>(data: &'a [u8], format: &FormatType) -> nom::IResult<&'a [u8], Vec<u64>> {
+fn xblock_data<'a>(
+    data: &'a [u8],
+    format: &FormatType,
+    block_value: &mut BlockValue,
+) -> nom::IResult<&'a [u8], Vec<u64>> {
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
     let sblock_sig = 2;
     if sig == sblock_sig {
         println!("local descriptors!");
         let (input, descriptor_tree) = parse_descriptor_block(data, format)?;
+        block_value.block_type = Block::Descriptors;
+        block_value.descriptors = descriptor_tree;
         return Ok((input, Vec::new()));
     } else if sig != 1 {
         // Its a raw block.
         println!("handle raw blocks!");
         let (input, block) = parse_block_bytes(data, format)?;
+        block_value.block_type = Block::Raw;
+        block_value.data = block.data;
         return Ok((input, Vec::new()));
     }
     if array_level != 1 {
@@ -113,12 +129,13 @@ mod tests {
     use super::{parse_xblock, xblock_data};
     use crate::{
         artifacts::os::windows::outlook::{
+            blocks::block::{Block, BlockValue},
             header::FormatType,
             pages::btree::{get_block_btree, BlockType, LeafBlockData},
         },
         filesystem::files::file_reader,
     };
-    use std::io::BufReader;
+    use std::{collections::BTreeMap, io::BufReader};
 
     #[test]
     fn test_parse_xblock() {
@@ -147,17 +164,24 @@ mod tests {
             reference_count: 2,
         };
 
-        let bytes = parse_xblock(
+        let mut block = BlockValue {
+            block_type: Block::Unknown,
+            data: Vec::new(),
+            descriptors: BTreeMap::new(),
+        };
+
+        parse_xblock(
             None,
             &mut buf_reader,
             &test,
             &tree,
             &FormatType::Unicode64_4k,
+            &mut block,
         )
         .unwrap();
 
-        println!("{:?}", bytes.len());
-        assert_eq!(bytes.len(), 105466)
+        println!("{:?}", block.data.len());
+        assert_eq!(block.data.len(), 105466)
     }
 
     #[test]
@@ -183,7 +207,13 @@ mod tests {
             45, 236, 141, 12, 116, 94, 42, 44, 0, 0, 0, 0, 0, 0, 2, 0, 24, 0, 0, 0, 0, 0,
         ];
 
-        let (_, entries) = xblock_data(&test, &FormatType::Unicode64_4k).unwrap();
+        let mut block = BlockValue {
+            block_type: Block::Unknown,
+            data: Vec::new(),
+            descriptors: BTreeMap::new(),
+        };
+
+        let (_, entries) = xblock_data(&test, &FormatType::Unicode64_4k, &mut block).unwrap();
         assert_eq!(entries.len(), 2);
     }
 
@@ -213,7 +243,14 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 189, 0, 49, 100, 171, 48, 73, 18, 2, 42, 0, 0, 0, 0, 0,
             0, 2, 0, 24, 2, 0, 0, 0, 0,
         ];
-        let (_, results) = xblock_data(&test, &FormatType::Unicode64_4k).unwrap();
+
+        let mut block = BlockValue {
+            block_type: Block::Unknown,
+            data: Vec::new(),
+            descriptors: BTreeMap::new(),
+        };
+
+        let (_, results) = xblock_data(&test, &FormatType::Unicode64_4k, &mut block).unwrap();
         assert!(results.is_empty());
     }
 }
