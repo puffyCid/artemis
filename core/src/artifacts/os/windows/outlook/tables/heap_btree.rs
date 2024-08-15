@@ -1,42 +1,50 @@
+use super::header::{get_heap_node_id, HeapNode};
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian};
 
-pub(crate) struct B5 {
+#[derive(Debug)]
+pub(crate) struct HeapBtree {
     sig: u8,
     record_entry_size: u8,
     record_value_size: u8,
     level: u8,
-    entries_reference: u32,
+    //entries_reference: u32,
+    node: HeapNode,
 }
 
-pub(crate) fn parse_b5(data: &[u8]) -> nom::IResult<&[u8], B5> {
+pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, record_entry_size) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, record_value_size) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, level) = nom_unsigned_one_byte(input, Endian::Le)?;
-    let (input, entries_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, node_value) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let table = B5 {
+    let node = get_heap_node_id(&node_value);
+    println!("{node:?}");
+
+    let table = HeapBtree {
         sig,
         record_entry_size,
         record_value_size,
         level,
-        entries_reference,
+        //entries_reference,
+        node,
     };
     Ok((input, table))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_b5;
+    use super::parse_btree_heap;
 
     #[test]
-    fn test_parse_b5() {
-        let test = [181, 4, 4, 0, 0, 0, 0, 0];
-        let (_, result) = parse_b5(&test).unwrap();
+    fn test_parse_btree_heap() {
+        let test = [181, 4, 4, 0, 96, 0, 0, 0];
+        let (_, result) = parse_btree_heap(&test).unwrap();
         assert_eq!(result.sig, 181);
         assert_eq!(result.record_value_size, 4);
         assert_eq!(result.record_entry_size, 4);
         assert_eq!(result.level, 0);
-        assert_eq!(result.entries_reference, 0);
+        //assert_eq!(result.entries_reference, 96);
+        assert_eq!(result.node.index, 3);
     }
 }

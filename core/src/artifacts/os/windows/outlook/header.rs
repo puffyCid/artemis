@@ -250,9 +250,6 @@ pub(crate) enum NodeID {
 pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
     let (input, value) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
-    //let bit_size: u8 = 5;
-    //let ((input, offset), id_type) = take(bit_size)((data, 0))?;
-
     let id = match value & 0x1f {
         0x0 => NodeID::HeapNode,
         0x1 => NodeID::InternalNode,
@@ -280,11 +277,6 @@ pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
         }
     };
 
-    /*
-    let value_size: u8 = 27;
-    let (input, node_id_value) = take(value_size)((input, offset))?;
-    let (_, node) = nom_unsigned_four_bytes(data, Endian::Le).unwrap();
-    */
     let node = Node {
         node_id: id,
         node_id_num: ((value >> 5) & 0x07ffffff) as u64,

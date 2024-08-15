@@ -78,6 +78,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     }
 
     println!("{}", node_tree.len());
+    println!("{node_tree:?}");
 
     Ok(())
 }

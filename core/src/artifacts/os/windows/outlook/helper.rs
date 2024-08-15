@@ -4,8 +4,11 @@
  * 1. Parse header -- DONE!
  * 2. Parse pages -- in progress!
  *    2.1 Parse block_offset_descriptor_id next?
- * 3. Create final struct to return different blocks. Support xblock, raw, and descriptor <--- next!!!
  * 4. Parse tables -- ??
+ *    - Parse Table Context
+ *      - Need to determine the number of rows in the Table Context structure :)
+ *        - You may need to parse all heaps first? -- IN PROGRESS. Get all block_value.data parsing to work perfectly :)
+ *        - Need to find the root HID (Heap ID) -- DONE?
  *
  * (file)/offset = block btree
  * (item)/descriptor = node btree
