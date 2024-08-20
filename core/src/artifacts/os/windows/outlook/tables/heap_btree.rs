@@ -47,4 +47,16 @@ mod tests {
         //assert_eq!(result.entries_reference, 96);
         assert_eq!(result.node.index, 3);
     }
+
+    #[test]
+    fn test_parse_btree_heap_root() {
+        let test = [181, 2, 6, 0, 64, 0, 0, 0];
+        let (_, result) = parse_btree_heap(&test).unwrap();
+        assert_eq!(result.sig, 181);
+        assert_eq!(result.record_value_size, 6);
+        assert_eq!(result.record_entry_size, 2);
+        assert_eq!(result.level, 0);
+        //assert_eq!(result.entries_reference, 96);
+        assert_eq!(result.node.index, 2);
+    }
 }

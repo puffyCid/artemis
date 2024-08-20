@@ -10,12 +10,12 @@ use nom::bytes::complete::take;
 #[derive(Debug)]
 pub(crate) struct TableHeader {
     page_map_offset: u16,
-    sig: u8,
+    pub(crate) sig: u8,
     table_type: TableType,
     // value_reference: u32,
     heap_node: HeapNode,
     fill: Vec<FillLevel>,
-    page_map: HeapPageMap,
+    pub(crate) page_map: HeapPageMap,
 }
 
 #[derive(PartialEq, Debug)]
@@ -54,10 +54,31 @@ enum FillLevel {
 
 pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let (input, page_map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
-    let (page_data, _) = take(page_map_offset)(data)?;
-    let (_, page_map) = heap_page_map(page_data)?;
 
     let (input, sig) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let sig_value = 236;
+    if sig != sig_value {
+        let not_header = TableHeader {
+            page_map_offset: 0,
+            sig: 0,
+            table_type: TableType::Unknown,
+            heap_node: HeapNode {
+                node: NodeID::Unknown,
+                index: 0,
+                block_index: 0,
+            },
+            fill: Vec::new(),
+            page_map: HeapPageMap {
+                allocation_count: 0,
+                free: 0,
+                allocation_table: Vec::new(),
+            },
+        };
+
+        return Ok((input, not_header));
+    }
+    let (page_data, _) = take(page_map_offset)(data)?;
+    let (_, page_map) = heap_page_map(page_data)?;
     let (input, table_type) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     let (input, root_heap) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -148,9 +169,9 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
 
 #[derive(Debug)]
 pub(crate) struct HeapPageMap {
-    allocation_count: u16,
-    free: u16,
-    allocation_table: Vec<u16>,
+    pub(crate) allocation_count: u16,
+    pub(crate) free: u16,
+    pub(crate) allocation_table: Vec<u16>,
 }
 
 pub(crate) fn heap_page_map(data: &[u8]) -> nom::IResult<&[u8], HeapPageMap> {
@@ -210,6 +231,48 @@ mod tests {
         assert_eq!(header.heap_node.index, 2);
         assert_eq!(header.fill, Vec::new());
         assert_eq!(header.page_map.allocation_count, 6);
+        println!("{header:?}");
+    }
+
+    #[test]
+    fn test_table_header_root() {
+        let test = [
+            70, 2, 236, 188, 32, 0, 0, 0, 0, 0, 0, 0, 181, 2, 6, 0, 64, 0, 0, 0, 1, 48, 31, 0, 0,
+            0, 0, 0, 4, 48, 31, 0, 0, 0, 0, 0, 7, 48, 64, 0, 128, 0, 0, 0, 8, 48, 64, 0, 96, 0, 0,
+            0, 2, 54, 3, 0, 0, 0, 0, 0, 3, 54, 3, 0, 0, 0, 0, 0, 10, 54, 11, 0, 1, 0, 0, 0, 228,
+            63, 11, 0, 0, 0, 0, 0, 229, 63, 11, 0, 0, 0, 0, 0, 20, 102, 2, 1, 160, 0, 0, 0, 56,
+            102, 3, 0, 2, 0, 0, 0, 57, 102, 3, 0, 251, 5, 0, 0, 112, 189, 150, 244, 111, 225, 218,
+            1, 112, 189, 150, 244, 111, 225, 218, 1, 70, 53, 70, 86, 3, 0, 0, 0, 177, 0, 0, 0, 106,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 142, 0, 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 27,
+            1, 0, 0, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 104, 0, 0, 0, 8, 0, 0, 0, 94, 178, 150, 180, 131, 77, 40, 66, 134, 11, 232, 66,
+            98, 69, 158, 194, 6, 0, 0, 0, 0, 1, 12, 0, 3, 0, 0, 0, 0, 0, 0, 0, 94, 178, 150, 180,
+            131, 77, 40, 66, 134, 11, 232, 66, 98, 69, 158, 194, 82, 0, 0, 0, 0, 0, 1, 0, 3, 34,
+            183, 166, 197, 0, 94, 178, 150, 180, 131, 77, 40, 66, 134, 11, 232, 66, 98, 69, 158,
+            194, 82, 0, 0, 0, 0, 0, 1, 0, 3, 34, 183, 166, 197, 0, 91, 220, 80, 80, 0, 47, 111, 61,
+            70, 105, 114, 115, 116, 32, 79, 114, 103, 97, 110, 105, 122, 97, 116, 105, 111, 110,
+            47, 111, 117, 61, 69, 120, 99, 104, 97, 110, 103, 101, 32, 65, 100, 109, 105, 110, 105,
+            115, 116, 114, 97, 116, 105, 118, 101, 32, 71, 114, 111, 117, 112, 40, 70, 89, 68, 73,
+            66, 79, 72, 70, 50, 51, 83, 80, 68, 76, 84, 41, 47, 99, 110, 61, 82, 101, 99, 105, 112,
+            105, 101, 110, 116, 115, 47, 99, 110, 61, 48, 48, 48, 51, 66, 70, 70, 68, 51, 57, 56,
+            69, 69, 66, 48, 49, 0, 94, 178, 150, 180, 131, 77, 40, 66, 134, 11, 232, 66, 98, 69,
+            158, 194, 1, 0, 1, 0, 3, 0, 0, 1, 82, 9, 18, 66, 27, 4, 66, 39, 253, 66, 77, 193, 66,
+            92, 23, 80, 3, 133, 158, 143, 82, 134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187,
+            80, 1, 91, 82, 219, 220, 80, 80, 80, 0, 23, 80, 3, 133, 158, 143, 82, 134, 135, 80, 80,
+            3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80, 80, 0, 94, 178,
+            150, 180, 131, 77, 40, 66, 134, 11, 232, 66, 98, 69, 158, 194, 1, 0, 1, 0, 3, 0, 0, 1,
+            82, 9, 18, 66, 27, 4, 66, 39, 253, 66, 77, 193, 66, 92, 23, 80, 3, 133, 158, 143, 82,
+            134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80,
+            80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
+        ];
+        let (_, header) = table_header(&test).unwrap();
+        assert_eq!(header.table_type, TableType::PropertyContext);
+        assert_eq!(header.page_map.allocation_count, 5);
+        assert_eq!(
+            header.page_map.allocation_table,
+            vec![12, 20, 116, 124, 132, 581]
+        );
+
         println!("{header:?}");
     }
 }

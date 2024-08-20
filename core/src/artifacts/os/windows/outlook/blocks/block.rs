@@ -4,7 +4,7 @@ use crate::{
         error::OutlookError,
         header::FormatType,
         pages::btree::{BlockType, LeafBlockData},
-        tables::header::table_header,
+        tables::table::parse_table_data,
     },
     utils::{
         compression::decompress::decompress_zlib,
@@ -61,8 +61,7 @@ pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
     if !block_value.data.is_empty() {
         println!("Data type: {:?}", block_value.block_type);
         println!("data len: {}", block_value.data.len());
-        let (_, table_header) = table_header(&block_value.data).unwrap();
-        println!("The table: {table_header:?}");
+        parse_table_data(&block_value.data);
     }
 
     Ok(block_value)

@@ -1,3 +1,6 @@
+use nom::bytes::complete::take;
+use serde_json::Value;
+
 use crate::{
     artifacts::os::windows::outlook::tables::header::get_heap_node_id,
     utils::nom_helper::{
@@ -6,8 +9,9 @@ use crate::{
 };
 
 use super::{
-    header::HeapNode,
+    header::{HeapNode, HeapPageMap},
     properties::{property_id_to_name, PropertyName},
+    property::get_property_data,
 };
 
 #[derive(Debug)]
@@ -24,6 +28,12 @@ pub(crate) struct TableContext {
 }
 
 #[derive(Debug)]
+pub(crate) struct TableRows {
+    value: Value,
+    column: ColumnDescriptor,
+}
+
+#[derive(Debug)]
 pub(crate) struct ColumnDescriptor {
     property_type: PropertyType,
     id: u16,
@@ -33,8 +43,8 @@ pub(crate) struct ColumnDescriptor {
     index: u8,
 }
 
-#[derive(Debug)]
-enum PropertyType {
+#[derive(Debug, PartialEq)]
+pub(crate) enum PropertyType {
     Int16,
     Int32,
     Float32,
@@ -70,7 +80,10 @@ enum PropertyType {
     Unknown,
 }
 
-pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableContext> {
+pub(crate) fn parse_table_context<'a>(
+    data: &'a [u8],
+    map: &[u16],
+) -> nom::IResult<&'a [u8], TableContext> {
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, number_column_definitions) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, array_end_32bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -96,50 +109,119 @@ pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableConte
         row_index,
         row,
     };
+    let row_count = get_row_count(map);
 
-    let (input, columns) = get_column_definitions(input, &table.number_column_definitions)?;
-    println!("{columns:?}");
+    let (mut input, mut rows) =
+        get_column_definitions(input, &table.number_column_definitions, &row_count)?;
+    println!("{rows:?}");
+
+    let mut count = 0;
+
+    while count < row_count {
+        let (remaining, row_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (remaining, index) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+        input = remaining;
+        count += 1;
+
+        println!("Row ID: {row_id} - Index: {index}");
+    }
+
+    let (input, _) = get_row_data(input, &mut rows, table.array_end_offset)?;
 
     Ok((input, table))
+}
+
+fn get_row_count(map: &[u16]) -> u16 {
+    if map.len() < 4 {
+        // There are no rows
+        return 0;
+    }
+
+    let row_start = map[2];
+    let row_end = map[3];
+    let rows = row_end - row_start;
+
+    let row_size = 8;
+    if rows % row_size != 0 {
+        panic!("rows should always be a multiple of 8 bytes?! {rows}");
+    }
+
+    let count = rows / row_size;
+    count
+}
+
+fn get_row_data<'a>(
+    data: &'a [u8],
+    rows: &mut [Vec<TableRows>],
+    row_data_size: u16,
+) -> nom::IResult<&'a [u8], ()> {
+    let mut input = data;
+    for row in rows {
+        let (reamining, row_data) = take(row_data_size)(input)?;
+        for column in row {
+            let (_, value) = get_property_data(
+                row_data,
+                column.column.size as u16,
+                &column.column.property_type,
+                column.column.offset,
+            )?;
+            println!("{value:?}");
+        }
+        input = reamining;
+    }
+    Ok((data, ()))
 }
 
 fn get_column_definitions<'a>(
     data: &'a [u8],
     column_count: &u8,
-) -> nom::IResult<&'a [u8], Vec<ColumnDescriptor>> {
+    rows: &u16,
+) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
     let mut col_data = data;
     let mut count = 0;
-    let mut values = Vec::new();
 
-    while &count < column_count {
-        let (input, property_type) = nom_unsigned_two_bytes(col_data, Endian::Le)?;
-        let (input, id) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, size) = nom_unsigned_one_byte(input, Endian::Le)?;
-        let (input, index) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let mut row_values = Vec::new();
+    let mut row_count = 0;
+    while &row_count < rows {
+        let mut values = Vec::new();
 
-        col_data = input;
+        while &count < column_count {
+            let (input, property_type) = nom_unsigned_two_bytes(col_data, Endian::Le)?;
+            let (input, id) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, size) = nom_unsigned_one_byte(input, Endian::Le)?;
+            let (input, index) = nom_unsigned_one_byte(input, Endian::Le)?;
 
-        let value = ColumnDescriptor {
-            property_type: get_property_type(&property_type),
-            property_name: property_id_to_name(&format!(
-                "0x{:04x?}_0x{:04x?}",
-                &id, &property_type
-            )),
-            id,
-            offset,
-            size,
-            index,
-        };
+            col_data = input;
 
-        values.push(value);
-        count += 1;
+            let column = ColumnDescriptor {
+                property_type: get_property_type(&property_type),
+                property_name: property_id_to_name(&format!(
+                    "0x{:04x?}_0x{:04x?}",
+                    &id, &property_type
+                )),
+                id,
+                offset,
+                size,
+                index,
+            };
+
+            let row = TableRows {
+                value: Value::Null,
+                column,
+            };
+
+            values.push(row);
+            count += 1;
+        }
+        row_count += 1;
+        row_values.push(values);
     }
 
-    Ok((col_data, values))
+    Ok((col_data, row_values))
 }
 
-fn get_property_type(prop: &u16) -> PropertyType {
+pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
     match prop {
         1 => PropertyType::Null,
         0 => PropertyType::Unspecified,
@@ -199,7 +281,7 @@ mod tests {
             0,
         ];
 
-        let (_, table) = parse_table_context(&test).unwrap();
+        let (_, table) = parse_table_context(&test, &[]).unwrap();
         println!("{table:?}");
         assert_eq!(table.sig, 124);
         assert_eq!(table.number_column_definitions, 15);
@@ -235,7 +317,7 @@ mod tests {
 
         let (input, heap) = parse_btree_heap(&input).unwrap();
         println!("{heap:?}");
-        let (input, table) = parse_table_context(input).unwrap();
+        let (input, table) = parse_table_context(input, &header.page_map.allocation_table).unwrap();
         println!("{table:?}");
 
         assert_eq!(table.row_index.index, 1);

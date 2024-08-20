@@ -1,7 +1,7 @@
 /**
  * Generated using python script generate_properties.py
  */
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum PropertyName {
     PidTag7BitDisplayName,
     PidTagAccess,

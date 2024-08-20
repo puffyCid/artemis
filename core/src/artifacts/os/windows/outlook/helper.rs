@@ -9,6 +9,11 @@
  *      - Need to determine the number of rows in the Table Context structure :)
  *        - You may need to parse all heaps first? -- IN PROGRESS. Get all block_value.data parsing to work perfectly :)
  *        - Need to find the root HID (Heap ID) -- DONE?
+ *        - Folders have 4 components! All have the same node_id_num value!
+ *          - NormalFolder
+ *          - HierarchyTable
+ *          - ContentsTable
+ *          - FaiContentsTable
  *
  * (file)/offset = block btree
  * (item)/descriptor = node btree

@@ -1,5 +1,6 @@
 mod context;
-pub(crate) mod header;
+mod header;
 mod heap_btree;
 mod properties;
+mod property;
 pub(crate) mod table;

@@ -21,12 +21,20 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
         512
     };
 
+    let footer_size = 24;
+
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
     if alignment_size == 0 {
         // If the actual data is perfectly aligned then we need to add footer size
-        alignment_size = 24;
+        alignment_size = footer_size;
     }
+
+    // If alignment is less footer size. Then footer is stored in next block
+    if alignment_size < footer_size {
+        alignment_size += size;
+    }
+    println!("alignment: {alignment_size}");
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
