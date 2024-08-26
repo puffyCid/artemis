@@ -9,17 +9,17 @@ use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct TableHeader {
-    page_map_offset: u16,
+    pub(crate) page_map_offset: u16,
     pub(crate) sig: u8,
-    table_type: TableType,
+    pub(crate) table_type: TableType,
     // value_reference: u32,
-    heap_node: HeapNode,
-    fill: Vec<FillLevel>,
+    pub(crate) heap_node: HeapNode,
+    pub(crate) fill: Vec<FillLevel>,
     pub(crate) page_map: HeapPageMap,
 }
 
 #[derive(PartialEq, Debug)]
-enum TableType {
+pub(crate) enum TableType {
     SixC,
     TableContext,
     EightC,
@@ -33,7 +33,7 @@ enum TableType {
 }
 
 #[derive(PartialEq, Debug)]
-enum FillLevel {
+pub(crate) enum FillLevel {
     Empty,
     Level1,
     Level2,
