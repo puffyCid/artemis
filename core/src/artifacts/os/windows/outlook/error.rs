@@ -7,6 +7,7 @@ pub(crate) enum OutlookError {
     LeafNode,
     LeafBlock,
     ReadFile,
+    NoDescriptorBlock,
 }
 
 impl std::error::Error for OutlookError {}
@@ -19,6 +20,7 @@ impl fmt::Display for OutlookError {
             OutlookError::BlockBtree => write!(f, "Failed to read block btree"),
             OutlookError::LeafNode => write!(f, "Failed to read leaf node"),
             OutlookError::LeafBlock => write!(f, "Failed to read leaf block"),
+            OutlookError::NoDescriptorBlock => write!(f, "Failed to block offset from Descriptors"),
         }
     }
 }

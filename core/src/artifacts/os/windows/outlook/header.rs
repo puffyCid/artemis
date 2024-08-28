@@ -9,8 +9,8 @@ use nom::error::ErrorKind;
 pub(crate) struct OutlookHeader {
     sig: u32,
     crc_hash: u32,
-    content_type: ContentType,
-    format_type: FormatType,
+    pub(crate) content_type: ContentType,
+    pub(crate) format_type: FormatType,
     client_version: u16,
     creation_platform: u8,
     access_platform: u8,
@@ -23,11 +23,11 @@ pub(crate) struct OutlookHeader {
     total_available_data_size: u64,
     total_available_page_size: u64,
     node_btree_backpointer: u64,
-    node_btree_root: u64,
+    pub(crate) node_btree_root: u64,
     block_btree_backpointer: u64,
-    block_btree_root: u64,
+    pub(crate) block_btree_root: u64,
     allocation_type: AllocationType,
-    encryption_type: EncryptionType,
+    pub(crate) encryption_type: EncryptionType,
     /**Only used on ANSI32 header */
     initial_data_free_map: u128,
     /**Only used on ANSI32 header */
@@ -132,7 +132,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let (input, _unknown) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, _unknown2) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-    // Done parsing Header root. Now need to parser rest of header
+    // Done parsing Header root. Now need to parse rest of header
     let (input, _unknown3) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, initial_data_free_map) = nom_unsigned_sixteen_bytes(input, Endian::Le)?;
     let (input, initial_page_free_map) = nom_unsigned_sixteen_bytes(input, Endian::Le)?;
@@ -214,7 +214,6 @@ fn get_encryption(data: &u8) -> EncryptionType {
 pub(crate) struct Node {
     pub(crate) node_id: NodeID,
     pub(crate) node_id_num: u64,
-    //pub(crate) node_id_value: u64,
     pub(crate) node: u32,
 }
 
@@ -280,7 +279,6 @@ pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
     let node = Node {
         node_id: id,
         node_id_num: ((value >> 5) & 0x07ffffff) as u64,
-        // node_id_value,
         node: value,
     };
 

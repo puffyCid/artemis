@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::{
-    header::{HeapNode, HeapPageMap, TableHeader},
+    header::HeapNode,
     properties::{property_id_to_name, PropertyName},
     property::get_property_data,
 };
@@ -238,7 +238,8 @@ fn parse_row_data<'a>(
         PropertyType::String | PropertyType::MultiString => {
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             println!("string offset: {offset}");
-            let (_, prop_value) = get_property_data(data, prop_type, page_map_offset, &offset)?;
+            let (_, prop_value) =
+                get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
             value = prop_value;
         }
         PropertyType::String8 => todo!(),

@@ -801,6 +801,10 @@ pub(crate) enum PropertyName {
     PidTagWlinkType,
     PidTagYearInterval,
 
+    // Named Properties now
+    StreamGuid,
+    StreamEntry,
+    StreamString,
     Unknown,
 }
 
@@ -1665,6 +1669,11 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x684e_0x0102" => names.push(PropertyName::PidTagWlinkStoreEntryId),
         "0x6849_0x0003" => names.push(PropertyName::PidTagWlinkType),
         "0x0014_0x0002" => names.push(PropertyName::PidTagYearInterval),
+
+        // Named Properties now. These are slightly special
+        "0x0002_0x0102" => names.push(PropertyName::StreamGuid),
+        "0x0003_0x0102" => names.push(PropertyName::StreamEntry),
+        "0x0004_0x0102" => names.push(PropertyName::StreamString),
         _ => {
             println!("[outlook] Unknown property name and type: {id_type}");
             names.push(PropertyName::Unknown);
@@ -2457,6 +2466,9 @@ mod tests {
             "0xfffb_0x000b",
             "0xfffc_0x0102",
             "0xfffd_0x0003",
+            "0x0002_0x0102",
+            "0x0003_0x0102",
+            "0x0004_0x0102",
         ];
 
         for value in all_values {

@@ -4,7 +4,6 @@ use crate::{
         error::OutlookError,
         header::FormatType,
         pages::btree::{BlockType, LeafBlockData},
-        tables::table::parse_table_data,
     },
     utils::{
         compression::decompress::decompress_zlib,
@@ -40,6 +39,7 @@ pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
     block: &LeafBlockData,
+    descriptors: Option<&LeafBlockData>,
     other_blocks: &[BTreeMap<u64, LeafBlockData>],
     format: &FormatType,
 ) -> Result<BlockValue, OutlookError> {
@@ -58,10 +58,27 @@ pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
         }
     };
 
-    if !block_value.data.is_empty() {
-        println!("Data type: {:?}", block_value.block_type);
-        println!("data len: {}", block_value.data.len());
-        parse_table_data(&block_value.data);
+    // Not all Blocks have descriptor IDs
+    if descriptors.is_some() {
+        match descriptors.unwrap().block_type {
+            BlockType::Internal => parse_xblock(
+                ntfs_file,
+                fs,
+                descriptors.unwrap(),
+                other_blocks,
+                format,
+                &mut block_value,
+            )?,
+            BlockType::External => {
+                parse_raw_block(
+                    ntfs_file,
+                    fs,
+                    descriptors.unwrap(),
+                    format,
+                    &mut block_value,
+                )?;
+            }
+        }
     }
 
     Ok(block_value)
@@ -216,6 +233,7 @@ mod tests {
                     None,
                     &mut buf_reader,
                     value,
+                    None,
                     &tree,
                     &FormatType::Unicode64_4k,
                 )

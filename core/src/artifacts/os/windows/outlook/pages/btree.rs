@@ -248,13 +248,13 @@ pub(crate) fn parse_branch_data<'a>(
 
 #[derive(PartialEq, Debug)]
 pub(crate) struct LeafNodeData {
-    node: Node,
+    pub(crate) node: Node,
     /**Block ID. Points to the main data for this item (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1 tree (`<https://www.five-ten-sg.com/libpst/rn01re05.html>`) */
-    block_offset_data_id: u64,
+    pub(crate) block_offset_data_id: u64,
     /**Block ID subnode. Is zero or points to an Associated Tree Item 0x0002 via the index1 tree (`<https://www.five-ten-sg.com/libpst/rn01re05.html>`) */
-    block_offset_descriptor_id: u64,
+    pub(crate) block_offset_descriptor_id: u64,
     /**If node is a child of `Folder Object`. This is the Node ID for the folder */
-    parent_node_index: u32,
+    pub(crate) parent_node_index: u32,
 }
 
 /**
@@ -323,7 +323,7 @@ pub(crate) fn parse_leaf_node_data<'a>(
     Ok((leaf_data, leaf_nodes))
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub(crate) struct LeafBlockData {
     /**
      * Need to clear the first LSB when searching?
@@ -341,7 +341,7 @@ pub(crate) struct LeafBlockData {
     pub(crate) reference_count: u16,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub(crate) enum BlockType {
     Internal,
     External,

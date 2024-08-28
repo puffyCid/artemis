@@ -10,7 +10,6 @@ pub(crate) struct HeapBtree {
     record_entry_size: u8,
     record_value_size: u8,
     pub(crate) level: NodeLevel,
-    //entries_reference: u32,
     node: HeapNode,
 }
 
@@ -33,7 +32,6 @@ pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
         } else {
             NodeLevel::BranchNode
         },
-        //entries_reference,
         node,
     };
     Ok((input, table))
@@ -53,7 +51,6 @@ mod tests {
         assert_eq!(result.record_value_size, 4);
         assert_eq!(result.record_entry_size, 4);
         assert_eq!(result.level, NodeLevel::LeafNode);
-        //assert_eq!(result.entries_reference, 96);
         assert_eq!(result.node.index, 3);
     }
 
@@ -65,7 +62,6 @@ mod tests {
         assert_eq!(result.record_value_size, 6);
         assert_eq!(result.record_entry_size, 2);
         assert_eq!(result.level, NodeLevel::LeafNode);
-        //assert_eq!(result.entries_reference, 96);
         assert_eq!(result.node.index, 2);
     }
 }

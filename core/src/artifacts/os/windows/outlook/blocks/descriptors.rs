@@ -13,14 +13,14 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct DescriptorData {
-    node_level: NodeLevel,
-    node: Node,
+    pub(crate) node_level: NodeLevel,
+    pub(crate) node: Node,
     /**Only on `NodeLevel::Branch` */
-    block_subnode_id: u64,
+    pub(crate) block_subnode_id: u64,
     /**Only on `NodeLevel::Leaf` */
-    block_data_id: u64,
+    pub(crate) block_data_id: u64,
     /**Only on `NodeLevel::Leaf` */
-    block_descriptor_id: u64,
+    pub(crate) block_descriptor_id: u64,
 }
 
 pub(crate) fn parse_descriptor_block<'a>(
@@ -109,7 +109,7 @@ pub(crate) fn parse_descriptor_block<'a>(
 mod tests {
     use super::parse_descriptor_block;
     use crate::artifacts::os::windows::outlook::header::Node;
-    use crate::artifacts::os::windows::outlook::header::NodeID::InternalNode;
+    use crate::artifacts::os::windows::outlook::header::NodeID::{InternalNode, LocalDescriptors};
     use crate::artifacts::os::windows::outlook::pages::btree::NodeLevel::LeafNode;
     use crate::artifacts::os::windows::outlook::{
         blocks::descriptors::DescriptorData, header::FormatType,
@@ -178,6 +178,48 @@ mod tests {
                 },
                 block_subnode_id: 0,
                 block_data_id: 16,
+                block_descriptor_id: 0
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_descriptor_block_node_id_map() {
+        let test = [
+            2, 0, 2, 0, 0, 0, 0, 0, 63, 131, 0, 0, 0, 0, 0, 0, 48, 8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 159, 131, 0, 0, 0, 0, 0, 0, 44, 8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 56, 0,
+            32, 169, 90, 37, 126, 125, 58, 8, 1, 0, 0, 0, 0, 0, 2, 0, 56, 0, 0, 0, 0, 0,
+        ];
+        let (_, result) = parse_descriptor_block(&test, &FormatType::Unicode64_4k).unwrap();
+        println!("{result:?}");
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(
+            result.get(&1049).unwrap(),
+            &DescriptorData {
+                node_level: LeafNode,
+                node: Node {
+                    node_id: LocalDescriptors,
+                    node_id_num: 1049,
+                    node: 33599
+                },
+                block_subnode_id: 0,
+                block_data_id: 67632,
                 block_descriptor_id: 0
             }
         )
