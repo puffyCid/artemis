@@ -12,7 +12,6 @@
  *          - HierarchyTable - i can parse!
  *          - ContentsTable - i can parse (its a descriptor table)
  *          - FaiContentsTable - i can parse!
- * 5. Parse name_id_map item <-- next!!
  * 7. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
  *
  * (file)/offset = block btree
@@ -120,6 +119,7 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookReaderAction<'a, T> for Outloo
          * 1. Get static node ID value (97) from node_btree
          * 2. Parse block data
          * 3. Parse PropertyContext
+         * 4. Return HashMap of entries
          */
         Ok(Vec::new())
     }

@@ -17,11 +17,14 @@ use crate::{
             nom_unsigned_two_bytes, Endian,
         },
         strings::extract_ascii_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
-use nom::bytes::complete::take;
+use nom::{
+    bytes::complete::take,
+    number::complete::{le_f32, le_f64},
+};
 use serde_json::Value;
 
 /// Property Context Table (also called 0xbc table)
@@ -304,17 +307,36 @@ pub(crate) fn get_property_data<'a>(
             let (_, prop_value) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             value = serde_json::to_value(prop_value).unwrap_or_default();
         }
-        PropertyType::Float32 => todo!(),
-        PropertyType::Float64 => todo!(),
-        PropertyType::Currency => todo!(),
-        PropertyType::FloatTime => todo!(),
-        PropertyType::ErrorCode => todo!(),
+        PropertyType::Float32 => {
+            let (_, float_data) = take(size_of::<u32>())(value_data)?;
+            let (_, prop_value) = le_f32(float_data)?;
+            value = serde_json::to_value(prop_value).unwrap_or_default();
+        }
+        PropertyType::Float64 => {
+            let (_, float_data) = take(size_of::<u64>())(data)?;
+            let (_, prop_value) = le_f64(float_data)?;
+            value = serde_json::to_value(prop_value).unwrap_or_default();
+        }
+        PropertyType::FloatTime => {
+            // Supposdly this is OLE Time?
+            let (_, float_data) = take(size_of::<u64>())(value_data)?;
+            let (_, float_value) = le_f64(float_data)?;
+            let oletime = ole_automationtime_to_unixepoch(&float_value);
+            value = serde_json::to_value(unixepoch_to_iso(&oletime)).unwrap_or_default();
+            panic!("{value:?}");
+        }
+        PropertyType::ErrorCode => {
+            // In future we could perhaps translate this to proper error string
+            // https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc#9-error-values-scode
+            let (_, prop_value) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+            value = serde_json::to_value(prop_value).unwrap_or_default();
+        }
         PropertyType::Bool => {
             let (_, prop_value) = nom_unsigned_one_byte(value_data, Endian::Le)?;
             let prop_bool = if prop_value != 0 { true } else { false };
             value = serde_json::to_value(&prop_bool).unwrap_or_default();
         }
-        PropertyType::Int64 => {
+        PropertyType::Int64 | PropertyType::Currency => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             value = serde_json::to_value(&prop_value).unwrap_or_default();
         }
@@ -387,8 +409,8 @@ pub(crate) fn get_property_data<'a>(
         PropertyType::MultiTime => todo!(),
         PropertyType::MultiGuid => todo!(),
         PropertyType::MultiBinary => todo!(),
-        PropertyType::Unspecified => todo!(),
-        PropertyType::Null => todo!(),
+        // We are already NULL. Unspecified means the value type does not matter
+        PropertyType::Null | PropertyType::Unspecified => {}
         PropertyType::Object => todo!(),
         PropertyType::RuleAction => todo!(),
         PropertyType::Unknown => {
@@ -582,11 +604,6 @@ mod tests {
 
     #[test]
     fn test_parse_property_context_name_to_id_map() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/outlook/windows11/id_map.raw");
-
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-
         // We need an OST file for this test
         let reader =
             file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();

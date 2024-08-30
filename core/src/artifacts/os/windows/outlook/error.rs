@@ -8,6 +8,8 @@ pub(crate) enum OutlookError {
     LeafBlock,
     ReadFile,
     NoDescriptorBlock,
+    Base64Property,
+    NameIdMap,
 }
 
 impl std::error::Error for OutlookError {}
@@ -21,6 +23,8 @@ impl fmt::Display for OutlookError {
             OutlookError::LeafNode => write!(f, "Failed to read leaf node"),
             OutlookError::LeafBlock => write!(f, "Failed to read leaf block"),
             OutlookError::NoDescriptorBlock => write!(f, "Failed to block offset from Descriptors"),
+            OutlookError::Base64Property => write!(f, "Failed to base64 decode binary property"),
+            OutlookError::NameIdMap => write!(f, "Failed to parse NameMapId"),
         }
     }
 }

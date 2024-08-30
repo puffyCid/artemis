@@ -1,5 +1,5 @@
 /**
- * Generated using python script generate_properties.py
+ * Generated using python script tools/Outlook/generate_properties.py
  */
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum PropertyName {
@@ -805,6 +805,7 @@ pub(crate) enum PropertyName {
     StreamGuid,
     StreamEntry,
     StreamString,
+    StreamEntries,
     Unknown,
 }
 
@@ -814,7 +815,7 @@ pub(crate) enum PropertyName {
  */
 pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
     let mut names = Vec::new();
-    // Generated using python script generate_properties.py with some minor cleanup
+    // Generated using python script tools/Outlook/generate_properties.py with some minor cleanup
     match id_type {
         "0x0ff4_0x0003" => names.push(PropertyName::PidTagAccess),
         "0x3fe0_0x0102" => names.push(PropertyName::PidTagAccessControlListData),
@@ -1505,7 +1506,11 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x684f_0x1003" => names.push(PropertyName::PidTagScheduleInfoMonthsMerged),
         "0x6851_0x1003" => names.push(PropertyName::PidTagScheduleInfoMonthsTentative),
         "0x6622_0x0102" => names.push(PropertyName::PidTagSchedulePlusFreeBusyEntryId),
-        "0x0004_0x0102" => names.push(PropertyName::PidTagScriptData),
+        "0x0004_0x0102" => {
+            names.push(PropertyName::PidTagScriptData);
+            // Named Property. Special type
+            names.push(PropertyName::StreamString);
+        }
         "0x6845_0x0102" => names.push(PropertyName::PidTagSearchFolderDefinition),
         "0x6845_0x1102" => {
             names.push(PropertyName::PidTagSearchFolderDefinitions);
@@ -1671,9 +1676,9 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x0014_0x0002" => names.push(PropertyName::PidTagYearInterval),
 
         // Named Properties now. These are slightly special
+        "0x0001_0x0003" => names.push(PropertyName::StreamEntries),
         "0x0002_0x0102" => names.push(PropertyName::StreamGuid),
         "0x0003_0x0102" => names.push(PropertyName::StreamEntry),
-        "0x0004_0x0102" => names.push(PropertyName::StreamString),
         _ => {
             println!("[outlook] Unknown property name and type: {id_type}");
             names.push(PropertyName::Unknown);
@@ -2468,7 +2473,7 @@ mod tests {
             "0xfffd_0x0003",
             "0x0002_0x0102",
             "0x0003_0x0102",
-            "0x0004_0x0102",
+            "0x0001_0x0003",
         ];
 
         for value in all_values {
