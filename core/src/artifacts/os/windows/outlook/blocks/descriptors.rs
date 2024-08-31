@@ -11,7 +11,7 @@ use crate::{
 use nom::bytes::complete::take;
 use std::collections::BTreeMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct DescriptorData {
     pub(crate) node_level: NodeLevel,
     pub(crate) node: Node,

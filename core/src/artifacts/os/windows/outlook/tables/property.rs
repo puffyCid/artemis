@@ -28,7 +28,7 @@ use nom::{
 use serde_json::Value;
 
 /// Property Context Table (also called 0xbc table)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct PropertyContext {
     pub(crate) name: Vec<PropertyName>,
     pub(crate) property_type: PropertyType,

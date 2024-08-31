@@ -210,14 +210,14 @@ fn get_encryption(data: &u8) -> EncryptionType {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) struct Node {
     pub(crate) node_id: NodeID,
     pub(crate) node_id_num: u64,
     pub(crate) node: u32,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Debug, Clone)]
 /**See: `<https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6>` */
 pub(crate) enum NodeID {
     HeapNode,

@@ -2,9 +2,12 @@ use nom::bytes::complete::take;
 use serde_json::Value;
 
 use crate::{
-    artifacts::os::windows::outlook::tables::{
-        header::{get_heap_node_id, table_header},
-        heap_btree::parse_btree_heap,
+    artifacts::os::windows::outlook::{
+        pages::page,
+        tables::{
+            header::{get_heap_node_id, table_header},
+            heap_btree::parse_btree_heap,
+        },
     },
     utils::{
         encoding::base64_encode_standard,
@@ -34,20 +37,20 @@ pub(crate) struct TableContext {
     row_index: HeapNode,
     /**Will be found in either Heap BTree or NodeBtree. Depends on `NodeID` value */
     row: HeapNode,
-    rows: Vec<Vec<TableRows>>,
+    pub(crate) rows: Vec<Vec<TableRows>>,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableRows {
-    value: Value,
-    column: ColumnDescriptor,
+    pub(crate) value: Value,
+    pub(crate) column: ColumnDescriptor,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct ColumnDescriptor {
-    property_type: PropertyType,
-    id: u16,
-    property_name: Vec<PropertyName>,
+    pub(crate) property_type: PropertyType,
+    pub(crate) id: u16,
+    pub(crate) property_name: Vec<PropertyName>,
     offset: u16,
     size: u8,
     index: u8,
@@ -238,9 +241,11 @@ fn parse_row_data<'a>(
         PropertyType::String | PropertyType::MultiString => {
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             println!("string offset: {offset}");
-            let (_, prop_value) =
-                get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
-            value = prop_value;
+            if offset != 0 && page_map_offset != &0 {
+                let (_, prop_value) =
+                    get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
+                value = prop_value;
+            }
         }
         PropertyType::String8 => todo!(),
         PropertyType::Time => {

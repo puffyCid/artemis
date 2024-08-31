@@ -13,6 +13,7 @@
  *          - ContentsTable - i can parse (its a descriptor table)
  *          - FaiContentsTable - i can parse!
  * 7. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
+ * 8. ReadFolder
  *
  * (file)/offset = block btree
  * (item)/descriptor = node btree
@@ -51,6 +52,7 @@ pub(crate) trait OutlookReaderAction<'a, T: std::io::Seek + std::io::Read> {
     fn message_store(&self) -> Result<Vec<PropertyContext>, OutlookError>;
     fn name_id_map(&self) -> Result<Vec<PropertyContext>, OutlookError>;
     fn root_folder(&self) -> Result<(), OutlookError>;
+    fn read_folder(&self, folder: &u64) -> Result<(), OutlookError>;
 }
 
 impl<'a, T: std::io::Seek + std::io::Read> OutlookReaderAction<'a, T> for OutlookReader<'a, T> {
@@ -132,6 +134,19 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookReaderAction<'a, T> for Outloo
          * 2. Parse block data
          * 3. Parse PropertyContext and TableContext
          * 4. Parse the other nodes with the ID 290
+         */
+        Ok(())
+    }
+
+    /// Read a folder and get its details. Use `root_folder` if you do not know a folder number
+    fn read_folder(&self, folder: &u64) -> Result<(), OutlookError> {
+        /*
+         * Steps:
+         * 1. Get folder node_id_num. Requires 4 node_ids
+         * 2. Parse block data
+         * 3. Parse PropertyContext and TableContext
+         * 4. Parse the other nodes with the folder number (4 total)
+         * 5. Call folder_details()
          */
         Ok(())
     }

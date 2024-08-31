@@ -30,7 +30,7 @@ pub(crate) struct BtreeTable {
     page_type: PageType,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) enum NodeLevel {
     LeafNode,
     BranchNode,
@@ -246,7 +246,7 @@ pub(crate) fn parse_branch_data<'a>(
     Ok((branch_data, branch_nodes))
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) struct LeafNodeData {
     pub(crate) node: Node,
     /**Block ID. Points to the main data for this item (Associated Descriptor Items 0x7cec, 0xbcec, or 0x0101) via the index1 tree (`<https://www.five-ten-sg.com/libpst/rn01re05.html>`) */

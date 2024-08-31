@@ -17,7 +17,7 @@ use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct BlockValue {
     pub(crate) block_type: Block,
     /**Set if `Block::Xblock`, `Block::Xxblock`, or `Block::Raw` */
@@ -26,7 +26,7 @@ pub(crate) struct BlockValue {
     pub(crate) descriptors: BTreeMap<u64, DescriptorData>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) enum Block {
     Xblock,
     Raw,

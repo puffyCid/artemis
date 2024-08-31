@@ -39,11 +39,8 @@ pub(crate) fn extract_name_id_map(
             count = entry.value.as_u64().unwrap_or_default();
             continue;
         } else {
-            println!("skip: {:?}", entry.name);
             continue;
         };
-
-        println!("prop name: {:?}", entry.name);
 
         let bytes = match bytes_result {
             Ok(result) => result,
@@ -80,23 +77,9 @@ pub(crate) fn extract_name_id_map(
     // Now go through the entries and get the associated data. Either string or GUID
     for entry in entries.iter_mut() {
         if entry.name_type == NameType::Guid {
-            /* TODO First :)
-             * 1. Edit generate_property.py to also produce list of  PidLid values
-             * 2. If entry_type & name_type == is_string. The reference maps to a PidLid value
-             * 3. entry_type should? map a GUID via entry_type / 2 - 3
-             * 4. Get GUID from your array
-             */
             let name = property_name_ids(&entry.reference);
             entry.value = serde_json::to_value(&name).unwrap_or_default();
         } else {
-            /*
-             * 1. Reference is an offset to the strings data
-             * 2. Go to offset.
-             * 3. Read string size
-             * 4. Get string
-             * 5. entry_type should? map a GUID via entry_type / 2 - 3
-             * 6. Get GUID from your array
-             */
             let string_result = name_string(&strings, &entry.reference);
             let name = match string_result {
                 Ok((_, result)) => result,
@@ -215,7 +198,7 @@ fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{name_entries, name_guids};
+    use super::{name_entries, name_guids, name_string};
     use crate::{
         artifacts::os::windows::outlook::{
             header::FormatType,
@@ -340,5 +323,16 @@ mod tests {
 
         let (_, entries) = name_entries(&data).unwrap();
         assert_eq!(entries.len(), 1307);
+    }
+
+    #[test]
+    fn test_name_string() {
+        let test = [
+            26, 0, 0, 0, 99, 0, 111, 0, 110, 0, 116, 0, 101, 0, 110, 0, 116, 0, 45, 0, 99, 0, 108,
+            0, 97, 0, 115, 0, 115, 0,
+        ];
+
+        let (_, string) = name_string(&test, &0).unwrap();
+        assert_eq!(string, "content-class");
     }
 }
