@@ -35,13 +35,19 @@ pub(crate) enum NodeLevel {
     BranchNode,
 }
 
+pub(crate) struct NodeBtree {
+    pub(crate) branch_node: u32,
+    pub(crate) btree: BTreeMap<u32, LeafNodeData>,
+}
+
 pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
     node_offset: &u64,
     size: &u64,
     format: &FormatType,
-    node_tree: &mut Vec<BTreeMap<u32, LeafNodeData>>,
+    node_tree: &mut Vec<NodeBtree>,
+    branch_node: Option<u32>,
 ) -> Result<(), OutlookError> {
     let page_result = read_bytes(node_offset, *size, ntfs_file, fs).unwrap();
     let (_, page) = parse_btree_page(&page_result, format).unwrap();
@@ -54,7 +60,15 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         let (_, branch_nodes) = parse_branch_data(&page.data, format).unwrap();
         for node in branch_nodes {
             println!("branch: {node:?}");
-            get_node_btree(ntfs_file, fs, &node.offset, size, format, node_tree)?;
+            get_node_btree(
+                ntfs_file,
+                fs,
+                &node.offset,
+                size,
+                format,
+                node_tree,
+                Some(node.node.node),
+            )?;
         }
     } else {
         let (_, leaf_node) =
@@ -73,11 +87,18 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             }
             tree.insert(node.node.node, node);
         }
-        node_tree.push(tree);
+
+        if let Some(branch) = branch_node {
+            let node_value = NodeBtree {
+                branch_node: branch,
+                btree: tree,
+            };
+            node_tree.push(node_value);
+        }
     }
 
     println!("{}", node_tree.len());
-    println!("{node_tree:?}");
+    //println!("{node_tree:?}");
 
     Ok(())
 }
@@ -440,6 +461,7 @@ mod tests {
             &4096,
             &FormatType::Unicode64_4k,
             &mut tree,
+            None,
         )
         .unwrap();
 

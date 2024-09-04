@@ -227,10 +227,10 @@ mod tests {
         let mut fai = normal.clone();
         let folder_number: u64 = 290;
         for nodes in outlook_reader.node_btree.iter() {
-            if let Some(id) = nodes.get(&(folder_number as u32)) {
+            if let Some(id) = nodes.btree.get(&(folder_number as u32)) {
                 root_num = id.node.node_id_num;
 
-                for node in nodes.values() {
+                for node in nodes.btree.values() {
                     if node.node.node_id_num == root_num
                         && node.node.node_id == NodeID::NormalFolder
                     {

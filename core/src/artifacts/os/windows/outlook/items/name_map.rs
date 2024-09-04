@@ -246,7 +246,7 @@ mod tests {
             reference_count: 0,
         };
 
-        let node_data = outlook_reader.node_btree[0].get(&97).unwrap();
+        let node_data = outlook_reader.node_btree[0].btree.get(&97).unwrap();
         for blocks in outlook_reader.block_btree.iter() {
             if let Some(block_data) = blocks.get(&node_data.block_offset_data_id) {
                 leaf_block = block_data.clone();

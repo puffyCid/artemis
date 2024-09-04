@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use super::{
     context::{get_property_type, PropertyType},
     properties::{property_id_to_name, PropertyName},
@@ -28,6 +26,7 @@ use nom::{
     number::complete::{le_f32, le_f64},
 };
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 /// Property Context Table (also called 0xbc table)
 #[derive(Debug, Clone)]
@@ -677,7 +676,7 @@ mod tests {
             reference_count: 0,
         };
 
-        let node_data = outlook_reader.node_btree[0].get(&97).unwrap();
+        let node_data = outlook_reader.node_btree[0].btree.get(&97).unwrap();
         for blocks in outlook_reader.block_btree.iter() {
             if let Some(block_data) = blocks.get(&node_data.block_offset_data_id) {
                 leaf_block = block_data.clone();
