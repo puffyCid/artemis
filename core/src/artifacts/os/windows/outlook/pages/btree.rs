@@ -1,5 +1,3 @@
-use std::{collections::BTreeMap, io::BufReader};
-
 use super::page::{page_type, PageType};
 use crate::{
     artifacts::os::windows::outlook::{
@@ -18,6 +16,7 @@ use nom::{
     number::complete::{le_u32, le_u64},
 };
 use ntfs::NtfsFile;
+use std::{collections::BTreeMap, io::BufReader};
 
 #[derive(Debug)]
 pub(crate) struct BtreeTable {
@@ -70,7 +69,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             println!("my node: {node:?}");
 
             if let Some(value) = tree.get(&node.node.node) {
-                println!("The dupe: {value:?}");
+                panic!("The dupe: {value:?}");
             }
             tree.insert(node.node.node, node);
         }

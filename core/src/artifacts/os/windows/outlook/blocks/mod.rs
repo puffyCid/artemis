@@ -1,4 +1,4 @@
 pub(crate) mod block;
-mod descriptors;
+pub(crate) mod descriptors;
 mod raw;
 mod xblock;

@@ -1,9 +1,15 @@
-use nom::bytes::complete::take;
-use serde_json::Value;
-
+use super::{
+    header::HeapNode,
+    properties::{property_id_to_name, PropertyName},
+    property::get_property_data,
+};
 use crate::{
     artifacts::os::windows::outlook::{
-        pages::page,
+        blocks::descriptors::DescriptorData,
+        error::OutlookError,
+        header::NodeID,
+        helper::{OutlookReader, OutlookReaderAction},
+        pages::btree::{BlockType, LeafBlockData},
         tables::{
             header::{get_heap_node_id, table_header},
             heap_btree::parse_btree_heap,
@@ -19,12 +25,9 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
-
-use super::{
-    header::HeapNode,
-    properties::{property_id_to_name, PropertyName},
-    property::get_property_data,
-};
+use nom::bytes::complete::take;
+use serde_json::Value;
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(crate) struct TableContext {
@@ -93,7 +96,146 @@ pub(crate) enum PropertyType {
     Unknown,
 }
 
-pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableContext> {
+pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
+    fn parse_table_context<'a>(
+        &mut self,
+        data: &'a [u8],
+        descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> nom::IResult<&'a [u8], TableContext>;
+
+    fn get_descriptor_data(&mut self, descriptor: &DescriptorData)
+        -> Result<Vec<u8>, OutlookError>;
+}
+
+impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
+    fn parse_table_context<'a>(
+        &mut self,
+        data: &'a [u8],
+        descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> nom::IResult<&'a [u8], TableContext> {
+        let (input, header) = table_header(data)?;
+        println!("Table context header: {header:?}");
+        let (input, heap_btree) = parse_btree_heap(input)?;
+        println!("Table context heap tree: {heap_btree:?}");
+
+        let (input, sig) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, number_column_definitions) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, array_end_32bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, array_end_16bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, array_end_8bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let row_index = get_heap_node_id(&table_context_index_reference);
+        println!("Row Index HeapNode: {row_index:?}");
+        let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let row = get_heap_node_id(&values_array_index_reference);
+        println!("Row Heap Node: {row:?}");
+
+        let mut descriptor_data = Vec::new();
+        if row.node == NodeID::LocalDescriptors {
+            if let Some(descriptor) = descriptors.get(&(row.index as u64)) {
+                descriptor_data = self.get_descriptor_data(descriptor).unwrap();
+            }
+        }
+
+        let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+        let mut table = TableContext {
+            sig,
+            number_column_definitions,
+            array_end_32bit,
+            array_end_16bit,
+            array_end_8bit,
+            array_end_offset,
+            row_index,
+            row,
+            rows: Vec::new(),
+        };
+        let row_count = get_row_count(&header.page_map.allocation_table);
+
+        let (mut input, mut rows) =
+            get_column_definitions(input, &table.number_column_definitions, &row_count)?;
+        println!("Rows: {}", rows.len());
+
+        let mut count = 0;
+
+        while count < row_count {
+            let (remaining, row_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (remaining, index) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+            input = remaining;
+            count += 1;
+
+            println!("Row ID: {row_id} - Index: {index}");
+        }
+
+        // If we have descriptor data then part of the Table row is stored in the descriptor
+        if !descriptor_data.is_empty() {
+            let result = get_row_data(
+                &descriptor_data,
+                &mut rows,
+                table.array_end_offset,
+                &table.array_end_8bit,
+                &header.page_map_offset,
+                data,
+            );
+
+            table.rows = rows;
+            return Ok((input, table));
+        }
+
+        let (input, _) = get_row_data(
+            input,
+            &mut rows,
+            table.array_end_offset,
+            &table.array_end_8bit,
+            &header.page_map_offset,
+            data,
+        )?;
+
+        table.rows = rows;
+
+        Ok((input, table))
+    }
+
+    fn get_descriptor_data(
+        &mut self,
+        descriptor: &DescriptorData,
+    ) -> Result<Vec<u8>, OutlookError> {
+        let mut leaf_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
+        let mut leaf_descriptor = None;
+        for block_tree in &self.block_btree {
+            if let Some(block_data) = block_tree.get(&descriptor.block_data_id) {
+                leaf_block = block_data.clone();
+
+                if descriptor.block_descriptor_id == 0 {
+                    break;
+                }
+            }
+            if let Some(block_data) = block_tree.get(&descriptor.block_descriptor_id) {
+                leaf_descriptor = Some(block_data.clone());
+            }
+
+            if leaf_descriptor.is_none() && leaf_block.size != 0 {
+                break;
+            }
+        }
+        let value = self.get_block_data(None, &leaf_block, leaf_descriptor.as_ref())?;
+        return Ok(value.data);
+    }
+}
+
+pub(crate) fn parse_table_context<'a>(
+    data: &'a [u8],
+    descriptors: &BTreeMap<u64, DescriptorData>,
+) -> nom::IResult<&'a [u8], TableContext> {
     let (input, header) = table_header(data)?;
     println!("Table context header: {header:?}");
     let (input, heap_btree) = parse_btree_heap(input)?;
@@ -107,10 +249,14 @@ pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableConte
     let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
     let (input, table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let row_index = get_heap_node_id(&table_context_index_reference);
-    println!("{row_index:?}");
+    println!("Row Index HeapNode: {row_index:?}");
     let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let row = get_heap_node_id(&values_array_index_reference);
-    println!("{row:?}");
+    println!("Row Heap Node: {row:?}");
+
+    if row.node == NodeID::LocalDescriptors {
+        panic!("Sigh...you have to get the row data from the local descriptors block");
+    }
 
     let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -129,7 +275,7 @@ pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableConte
 
     let (mut input, mut rows) =
         get_column_definitions(input, &table.number_column_definitions, &row_count)?;
-    println!("Rows: {rows:?}");
+    println!("Rows: {}", rows.len());
 
     let mut count = 0;
 
@@ -146,6 +292,7 @@ pub(crate) fn parse_table_context(data: &[u8]) -> nom::IResult<&[u8], TableConte
         input,
         &mut rows,
         table.array_end_offset,
+        &table.array_end_8bit,
         &header.page_map_offset,
         data,
     )?;
@@ -178,13 +325,24 @@ fn get_row_data<'a>(
     data: &'a [u8],
     rows: &mut [Vec<TableRows>],
     row_data_size: u16,
+    cell_map_start: &u16,
     page_map_offset: &u16,
     property_data: &'a [u8],
 ) -> nom::IResult<&'a [u8], ()> {
     let mut input = data;
     for row in rows {
+        //let (cell_map, _) = take(*cell_map_start)(input)?;
         let (reamining, row_data) = take(row_data_size)(input)?;
+
         for column in row {
+            /*
+            if let Some(cell) = cell_map.get((column.column.index / 8) as usize) {
+               let skip = cell & (1 << (7 - column.column.index % 8));
+               let cell_not_exists = 0;
+               if skip == cell_not_exists {
+                continue;
+               }
+            }*/
             let (col_data_start, _) = take(column.column.offset)(row_data)?;
             println!("column: {column:?}");
             let (_, value) = parse_row_data(
@@ -212,8 +370,10 @@ fn parse_row_data<'a>(
     value_size: &u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
+    println!("TC offset: {offset}");
     let (value_start, _) = take(*offset)(row_data)?;
     let (_, value_data) = take(*value_size)(value_start)?;
+    println!("TC Value data: {value_data:?}");
 
     match prop_type {
         PropertyType::Int16 => {
@@ -263,13 +423,20 @@ fn parse_row_data<'a>(
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             let empty = 0;
             if offset != empty {
-                panic!("offset to binary?");
-                value =
-                    serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+                println!("binary offset: {offset}");
+                let (_, prop_value) =
+                    get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
+                value = prop_value;
             }
         }
         PropertyType::MultiIn16 => todo!(),
-        PropertyType::MultiInt32 => todo!(),
+        PropertyType::MultiInt32 => {
+            let (input, count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+            let empty = 0;
+            if count != empty {
+                panic!("multi-int32: {value_data:?}");
+            }
+        }
         PropertyType::MultiFloat32 => todo!(),
         PropertyType::MultiFloat64 => todo!(),
         PropertyType::MultiCurrency => todo!(),
@@ -278,7 +445,13 @@ fn parse_row_data<'a>(
         PropertyType::MultiString8 => todo!(),
         PropertyType::MultiTime => todo!(),
         PropertyType::MultiGuid => todo!(),
-        PropertyType::MultiBinary => todo!(),
+        PropertyType::MultiBinary => {
+            let (input, count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+            let empty = 0;
+            if count != empty {
+                panic!("multi-binary: {value_data:?}");
+            }
+        }
         PropertyType::Unspecified => todo!(),
         PropertyType::Null => todo!(),
         PropertyType::Object => todo!(),
@@ -385,6 +558,8 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::{
         get_column_definitions, get_property_type, get_row_count, get_row_data,
         parse_table_context, ColumnDescriptor, TableRows,
@@ -414,7 +589,7 @@ mod tests {
             6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1, 108, 1,
         ];
 
-        let (input, table) = parse_table_context(&test).unwrap();
+        let (input, table) = parse_table_context(&test, &BTreeMap::new()).unwrap();
         println!("{table:?}");
 
         assert_eq!(table.row_index.index, 1);
@@ -472,7 +647,7 @@ mod tests {
                 index: 8,
             },
         }]];
-        get_row_data(&data, &mut rows, 67, &364, &test).unwrap();
+        get_row_data(&data, &mut rows, 67, &65, &364, &test).unwrap();
         assert_eq!(rows[0][0].value, Value::Null);
     }
 
@@ -523,8 +698,10 @@ mod tests {
             28, 0, 0, 0, 0, 0, 0, 2, 0, 128, 1, 0, 0, 0, 0,
         ];
 
-        let (input, table) = parse_table_context(&test).unwrap();
+        let (input, table) = parse_table_context(&test, &BTreeMap::new()).unwrap();
         println!("{table:?}");
+        assert_eq!(table.rows.len(), 2);
+        assert_eq!(table.array_end_16bit, 64);
     }
 
     #[test]

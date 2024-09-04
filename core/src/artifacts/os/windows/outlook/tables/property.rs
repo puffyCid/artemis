@@ -1,10 +1,12 @@
+use std::collections::BTreeMap;
+
 use super::{
     context::{get_property_type, PropertyType},
     properties::{property_id_to_name, PropertyName},
 };
 use crate::{
     artifacts::os::windows::outlook::{
-        blocks::block::BlockValue,
+        blocks::{block::BlockValue, descriptors::DescriptorData},
         error::OutlookError,
         helper::{OutlookReader, OutlookReaderAction},
         pages::btree::{BlockType, LeafBlockData, NodeLevel},
@@ -38,26 +40,29 @@ pub(crate) struct PropertyContext {
     pub(crate) value: Value,
 }
 
-pub(crate) trait OutlookPropertyContext<'a, T: std::io::Seek + std::io::Read> {
-    fn parse_property_context(
+pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
+    fn parse_property_context<'a>(
         &mut self,
-        block: &'a BlockValue,
-    ) -> nom::IResult<&[u8], Vec<PropertyContext>>;
+        block_data: &'a [u8],
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> nom::IResult<&'a [u8], Vec<PropertyContext>>;
 
     fn get_large_data(
         &mut self,
-        block: &'a BlockValue,
+        block_data: &[u8],
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<u8>, OutlookError>;
 }
 
-impl<'a, T: std::io::Seek + std::io::Read> OutlookPropertyContext<'a, T> for OutlookReader<'a, T> {
+impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookReader<T> {
     /// Parse the Property Context data
-    fn parse_property_context(
+    fn parse_property_context<'a>(
         &mut self,
-        block: &'a BlockValue,
-    ) -> nom::IResult<&[u8], Vec<PropertyContext>> {
-        let (input, header) = table_header(&block.data)?;
+        block_data: &'a [u8],
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> nom::IResult<&'a [u8], Vec<PropertyContext>> {
+        let (input, header) = table_header(&block_data)?;
         println!("Property Context header: {header:?}");
 
         let (prop_data_bytes, heap_btree) = parse_btree_heap(input)?;
@@ -155,7 +160,9 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookPropertyContext<'a, T> for Out
                             ((prop.reference >> 5) & 0x07ffffff)
                         );
                         println!("prop: {prop:?}");
-                        let block_data = self.get_large_data(block, &prop.reference).unwrap();
+                        let block_data = self
+                            .get_large_data(block_data, block_descriptors, &prop.reference)
+                            .unwrap();
                         println!("large len: {}", block_data.len());
                         if !block_data.is_empty() {
                             let (_, prop_value) = get_property_data(
@@ -176,7 +183,7 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookPropertyContext<'a, T> for Out
                         println!("offset: {value}");
                         println!("Prop: {prop:?}");
                         let (_, prop_value) = get_property_data(
-                            &block.data,
+                            &block_data,
                             &prop.property_type,
                             &header.page_map_offset,
                             &prop.reference,
@@ -197,13 +204,14 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookPropertyContext<'a, T> for Out
     /// If data is too large to fit in the Heap Btree. We have to get the data from the Node Btree
     fn get_large_data(
         &mut self,
-        block: &'a BlockValue,
+        block_data: &[u8],
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<u8>, OutlookError> {
         let key = (reference >> 5) & 0x07ffffff;
         println!("descriptor key: {key}");
-        println!("descriptors: {:?}", block.descriptors);
-        if let Some(value) = block.descriptors.get(&(key as u64)) {
+        println!("descriptors: {:?}", block_descriptors);
+        if let Some(value) = block_descriptors.get(&(key as u64)) {
             let mut leaf_block = LeafBlockData {
                 block_type: BlockType::Internal,
                 index_id: 0,
@@ -230,7 +238,7 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookPropertyContext<'a, T> for Out
                     break;
                 }
             }
-            let value = self.get_block_data(&leaf_block, leaf_descriptor.as_ref())?;
+            let value = self.get_block_data(None, &leaf_block, leaf_descriptor.as_ref())?;
             return Ok(value.data);
         }
 
@@ -272,6 +280,7 @@ pub(crate) fn get_property_data<'a>(
 
         // Offset should always be a multiple of 2
         if map_offset % adjust_offset != 0 {
+            println!("{data:?}");
             panic!("odd bad offset?");
             return Ok((data, value));
         }
@@ -284,9 +293,10 @@ pub(crate) fn get_property_data<'a>(
 
         let heap_start = 12;
         let data_start = 20;
-        // If the value_start is 12 or 20. Then the value is null/empty
+        // If the value_start is 12 or 20. Then the value is null/empty?
         if value_start == heap_start || value_start == data_start {
-            panic!("should not have reached heap_start or data_start?");
+            //println!("{data:?}");
+            println!("should not have reached heap_start or data_start? This is empty/null?");
             return Ok((data, value));
         }
 
@@ -408,7 +418,35 @@ pub(crate) fn get_property_data<'a>(
         PropertyType::MultiString8 => todo!(),
         PropertyType::MultiTime => todo!(),
         PropertyType::MultiGuid => todo!(),
-        PropertyType::MultiBinary => todo!(),
+        PropertyType::MultiBinary => {
+            let (offset_start, bin_count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+            let empty = 0;
+            if bin_count != empty {
+                let mut remaining = offset_start;
+                let mut offsets = Vec::new();
+                let mut count = 0;
+                while count < bin_count {
+                    let (input, offset) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+                    remaining = input;
+                    offsets.push(offset);
+                    count += 1;
+                }
+
+                let mut peek_offsets = offsets.iter().peekable();
+                let mut binary_values = Vec::new();
+                while let Some(offset) = peek_offsets.next() {
+                    let (bin_start, _) = take(*offset)(offset_start)?;
+                    if let Some(next_value) = peek_offsets.peek() {
+                        let bin_len = *next_value - offset;
+                        let (_, final_bin) = take(bin_len)(bin_start)?;
+                        let string = base64_encode_standard(final_bin);
+                        binary_values.push(string);
+                        continue;
+                    }
+                }
+                value = serde_json::to_value(&binary_values).unwrap_or_default();
+            }
+        }
         // We are already NULL. Unspecified means the value type does not matter
         PropertyType::Null | PropertyType::Unspecified => {}
         PropertyType::Object => todo!(),
@@ -477,7 +515,6 @@ mod tests {
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
-            ntfs_file: None,
             fs: buf_reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
@@ -489,7 +526,9 @@ mod tests {
             data: test.to_vec(),
             descriptors: BTreeMap::new(),
         };
-        let (_, result) = outlook_reader.parse_property_context(&block).unwrap();
+        let (_, result) = outlook_reader
+            .parse_property_context(&block.data, &block.descriptors)
+            .unwrap();
 
         // let (_, result) = parse_property_context(&test).unwrap();
         println!("{result:?}");
@@ -571,7 +610,6 @@ mod tests {
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
-            ntfs_file: None,
             fs: buf_reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
@@ -583,7 +621,9 @@ mod tests {
             data: test.to_vec(),
             descriptors: BTreeMap::new(),
         };
-        let (_, store) = outlook_reader.parse_property_context(&block).unwrap();
+        let (_, store) = outlook_reader
+            .parse_property_context(&block.data, &block.descriptors)
+            .unwrap();
 
         println!("{store:?}");
         assert_eq!(store.len(), 19);
@@ -610,14 +650,13 @@ mod tests {
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
-            ntfs_file: None,
             fs: buf_reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup().unwrap();
+        outlook_reader.setup(None).unwrap();
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -653,10 +692,12 @@ mod tests {
         }
 
         let block_value = outlook_reader
-            .get_block_data(&leaf_block, Some(&leaf_descriptor))
+            .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
         println!("block value: {block_value:?}");
-        let (_, results) = outlook_reader.parse_property_context(&block_value).unwrap();
+        let (_, results) = outlook_reader
+            .parse_property_context(&block_value.data, &block_value.descriptors)
+            .unwrap();
         assert_eq!(results[1].value.as_str().unwrap().len(), 940);
         //println!("{results:?}");
     }

@@ -84,6 +84,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let heap_node = get_heap_node_id(&root_heap);
     println!("{heap_node:?}");
     let (input, level_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    println!("level: {level_data}");
 
     let table = TableHeader {
         page_map_offset,

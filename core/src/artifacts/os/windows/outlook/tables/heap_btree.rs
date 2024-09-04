@@ -34,6 +34,7 @@ pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
         },
         node,
     };
+
     Ok((input, table))
 }
 

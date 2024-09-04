@@ -6,31 +6,32 @@ use crate::artifacts::os::windows::outlook::tables::{
 
 pub(crate) struct FolderInfo {
     /**Name of the folder */
-    name: String,
+    pub(crate) name: String,
     /**Timestamp when folder was created */
-    created: String,
+    pub(crate) created: String,
     /**Timestamp when folder was modified */
-    modified: String,
+    pub(crate) modified: String,
     /**TableRows associated with the Hierarchy (subfolders) */
     hierarchy: Vec<Vec<TableRows>>,
     /**Folder Properties */
-    properties: Vec<PropertyContext>,
+    pub(crate) properties: Vec<PropertyContext>,
     /**Number of children under the folder. May contain subfolders and/or messages */
-    subfolders: Vec<SubFolder>,
+    pub(crate) subfolders: Vec<SubFolder>,
     /**TableRows associated with FAI (FolderAssociatedInfo) */
     associated_content: Vec<Vec<TableRows>>,
     /**Number of subfolders */
-    subfolder_count: usize,
+    pub(crate) subfolder_count: usize,
     /**Number of messages or non-subfolder children */
-    message_count: u64,
-    messages: Vec<String>,
+    pub(crate) message_count: u64,
+    pub(crate) messages: Vec<String>,
     //**Array of parent folders tracked*/
     //folders: Vec<String>,
 }
 
+#[derive(Debug)]
 pub(crate) struct SubFolder {
-    name: String,
-    node: u64,
+    pub(crate) name: String,
+    pub(crate) node: u64,
 }
 
 pub(crate) fn folder_details(
@@ -88,35 +89,84 @@ pub(crate) fn folder_details(
             } else if columns
                 .column
                 .property_name
-                .contains(&PropertyName::PidTagRowid)
+                .contains(&PropertyName::PidTagLtpRowId)
             {
                 sub.node = columns.value.as_u64().unwrap_or_default();
             }
 
             if !sub.name.is_empty() && sub.node != 0 {
+                println!("sub name: {}", sub.name);
+                info.subfolders.push(sub);
                 break;
             }
         }
-
-        info.subfolders.push(sub);
     }
 
     info.subfolder_count = info.subfolders.len();
     info.hierarchy = hierarchy.rows.clone();
 
-    println!("FAI: {fai:?}");
+    //println!("FAI: {fai:?}");
+    // FAI contains associated folder metadata
     for rows in &fai.rows {
-        panic!("FAI info!");
+        /*
+         * TODO:
+         * 1. Get PidTagLtpRowId. Need to node id and blocks again :/
+         * 2. Probably do that in another function/file
+         */
+        break;
+        //panic!("FAI info!");
     }
 
-    println!("Contents: {contents:?}");
+    println!("Contents len: {}", contents.rows.len());
     for rows in &contents.rows {
-        panic!("Contents info!");
+        /*
+         * TODO:
+         * 1. Get PidTagLtpRowId. Need to get node id and blocks again :/
+         * 2. Probably do that in another function/file
+         */
+        break;
     }
 
     info
 }
 
+pub(crate) fn search_folder_details(
+    search: &[PropertyContext],
+    criteria: &[PropertyContext],
+) -> FolderInfo {
+    let mut info = FolderInfo {
+        name: String::new(),
+        created: String::new(),
+        modified: String::new(),
+        hierarchy: Vec::new(),
+        associated_content: Vec::new(),
+        properties: Vec::new(),
+        subfolders: Vec::new(),
+        subfolder_count: 0,
+        message_count: 0,
+        messages: Vec::new(),
+        // folders: Vec::new(),
+    };
+
+    for props in search {
+        if props.name.contains(&PropertyName::PidTagDisplayNameW) {
+            info.name = props.value.as_str().unwrap_or_default().to_string();
+            // info.folders.push(info.name);
+        } else if props.name.contains(&PropertyName::PidTagCreationTime) {
+            info.created = props.value.as_str().unwrap_or_default().to_string();
+        } else if props
+            .name
+            .contains(&PropertyName::PidTagLastModificationTime)
+        {
+            info.modified = props.value.as_str().unwrap_or_default().to_string();
+        }
+    }
+
+    info.properties = search.to_vec();
+    info.properties.append(&mut criteria.to_vec());
+    //info.hierarchy = contents.rows.clone();
+    info
+}
 #[cfg(test)]
 mod tests {
     use super::folder_details;
@@ -141,14 +191,13 @@ mod tests {
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
-            ntfs_file: None,
             fs: buf_reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup().unwrap();
+        outlook_reader.setup(None).unwrap();
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -258,24 +307,28 @@ mod tests {
         }
 
         let block_value = outlook_reader
-            .get_block_data(&leaf_block, leaf_descriptor.as_ref())
+            .get_block_data(None, &leaf_block, leaf_descriptor.as_ref())
             .unwrap();
-        let (_, normal_result) = outlook_reader.parse_property_context(&block_value).unwrap();
+        let (_, normal_result) = outlook_reader
+            .parse_property_context(&block_value.data, &block_value.descriptors)
+            .unwrap();
 
         let hiearchy_value = outlook_reader
-            .get_block_data(&hierarchy_block, hiearchy_descriptor.as_ref())
+            .get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())
             .unwrap();
-        let (_, hiearhy_result) = parse_table_context(&hiearchy_value.data).unwrap();
+        let (_, hiearhy_result) =
+            parse_table_context(&hiearchy_value.data, &hiearchy_value.descriptors).unwrap();
 
         let content_value = outlook_reader
-            .get_block_data(&contents_block, contents_descriptor.as_ref())
+            .get_block_data(None, &contents_block, contents_descriptor.as_ref())
             .unwrap();
-        let (_, contents_result) = parse_table_context(&content_value.data).unwrap();
+        let (_, contents_result) =
+            parse_table_context(&content_value.data, &content_value.descriptors).unwrap();
 
         let fai_value = outlook_reader
-            .get_block_data(&fai_block, fai_descriptor.as_ref())
+            .get_block_data(None, &fai_block, fai_descriptor.as_ref())
             .unwrap();
-        let (_, fai_result) = parse_table_context(&fai_value.data).unwrap();
+        let (_, fai_result) = parse_table_context(&fai_value.data, &fai_value.descriptors).unwrap();
 
         let result = folder_details(
             &normal_result,

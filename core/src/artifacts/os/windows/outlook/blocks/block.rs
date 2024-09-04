@@ -3,6 +3,7 @@ use crate::{
     artifacts::os::windows::outlook::{
         error::OutlookError,
         header::FormatType,
+        helper::OutlookReader,
         pages::btree::{BlockType, LeafBlockData},
     },
     utils::{
@@ -35,53 +36,74 @@ pub(crate) enum Block {
     Unknown,
 }
 
-pub(crate) fn parse_blocks<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
-    block: &LeafBlockData,
-    descriptors: Option<&LeafBlockData>,
-    other_blocks: &[BTreeMap<u64, LeafBlockData>],
-    format: &FormatType,
-) -> Result<BlockValue, OutlookError> {
-    let mut block_value = BlockValue {
-        block_type: Block::Unknown,
-        data: Vec::new(),
-        descriptors: BTreeMap::new(),
-    };
+pub(crate) trait OutlookBlock<T: std::io::Seek + std::io::Read> {
+    fn parse_blocks(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block: &LeafBlockData,
+        descriptors: Option<&LeafBlockData>,
+    ) -> Result<BlockValue, OutlookError>;
+}
 
-    match block.block_type {
-        BlockType::Internal => {
-            parse_xblock(ntfs_file, fs, block, other_blocks, format, &mut block_value)?
-        }
-        BlockType::External => {
-            parse_raw_block(ntfs_file, fs, block, format, &mut block_value)?;
-        }
-    };
+impl<'a, T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
+    /// Parse the Outlook blocks to get data and/or descriptors
+    fn parse_blocks(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block: &LeafBlockData,
+        descriptors: Option<&LeafBlockData>,
+    ) -> Result<BlockValue, OutlookError> {
+        let mut block_value = BlockValue {
+            block_type: Block::Unknown,
+            data: Vec::new(),
+            descriptors: BTreeMap::new(),
+        };
 
-    // Not all Blocks have descriptor IDs
-    if descriptors.is_some() {
-        match descriptors.unwrap().block_type {
+        match block.block_type {
             BlockType::Internal => parse_xblock(
                 ntfs_file,
-                fs,
-                descriptors.unwrap(),
-                other_blocks,
-                format,
+                &mut self.fs,
+                block,
+                &self.block_btree,
+                &self.format,
                 &mut block_value,
             )?,
             BlockType::External => {
                 parse_raw_block(
                     ntfs_file,
-                    fs,
-                    descriptors.unwrap(),
-                    format,
+                    &mut self.fs,
+                    block,
+                    &self.format,
                     &mut block_value,
                 )?;
             }
-        }
-    }
+        };
 
-    Ok(block_value)
+        // Not all Blocks have descriptor IDs
+        if descriptors.is_some() {
+            match descriptors.unwrap().block_type {
+                BlockType::Internal => parse_xblock(
+                    ntfs_file,
+                    &mut self.fs,
+                    descriptors.unwrap(),
+                    &self.block_btree,
+                    &self.format,
+                    &mut block_value,
+                )?,
+                BlockType::External => {
+                    parse_raw_block(
+                        ntfs_file,
+                        &mut self.fs,
+                        descriptors.unwrap(),
+                        &self.format,
+                        &mut block_value,
+                    )?;
+                }
+            }
+        }
+
+        Ok(block_value)
+    }
 }
 
 #[derive(Debug)]
@@ -187,9 +209,14 @@ pub(crate) fn parse_block_bytes<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_block_bytes, parse_blocks};
+    use super::parse_block_bytes;
     use crate::{
-        artifacts::os::windows::outlook::{header::FormatType, pages::btree::get_block_btree},
+        artifacts::os::windows::outlook::{
+            blocks::block::OutlookBlock,
+            header::FormatType,
+            helper::{OutlookReader, OutlookReaderAction},
+            pages::btree::get_block_btree,
+        },
         filesystem::files::{file_reader, read_file},
     };
     use std::{io::BufReader, path::PathBuf};
@@ -226,18 +253,20 @@ mod tests {
         )
         .unwrap();
 
+        let mut outlook_reader = OutlookReader {
+            fs: buf_reader,
+            block_btree: Vec::new(),
+            node_btree: Vec::new(),
+            format: FormatType::Unicode64_4k,
+            size: 4096,
+        };
+
+        outlook_reader.setup(None).unwrap();
+
         for entry in &tree {
             for (_, value) in entry {
                 println!("{value:?}");
-                let result = parse_blocks(
-                    None,
-                    &mut buf_reader,
-                    value,
-                    None,
-                    &tree,
-                    &FormatType::Unicode64_4k,
-                )
-                .unwrap();
+                outlook_reader.parse_blocks(None, value, None).unwrap();
             }
         }
     }

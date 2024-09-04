@@ -219,14 +219,13 @@ mod tests {
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
-            ntfs_file: None,
             fs: buf_reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup().unwrap();
+        outlook_reader.setup(None).unwrap();
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -262,9 +261,11 @@ mod tests {
         }
 
         let block_value = outlook_reader
-            .get_block_data(&leaf_block, Some(&leaf_descriptor))
+            .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
-        let (_, props) = outlook_reader.parse_property_context(&block_value).unwrap();
+        let (_, props) = outlook_reader
+            .parse_property_context(&block_value.data, &block_value.descriptors)
+            .unwrap();
         assert_eq!(props[1].value.as_str().unwrap().len(), 940);
 
         let results = extract_name_id_map(&props).unwrap();

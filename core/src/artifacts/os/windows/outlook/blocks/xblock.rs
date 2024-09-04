@@ -31,7 +31,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
 
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
-    println!("{alignment_size}");
+    println!("alignment size: {alignment_size}");
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
