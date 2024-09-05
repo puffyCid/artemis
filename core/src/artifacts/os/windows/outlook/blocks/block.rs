@@ -45,7 +45,7 @@ pub(crate) trait OutlookBlock<T: std::io::Seek + std::io::Read> {
     ) -> Result<BlockValue, OutlookError>;
 }
 
-impl<'a, T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
+impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
     /// Parse the Outlook blocks to get data and/or descriptors
     fn parse_blocks(
         &mut self,
@@ -80,12 +80,12 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> 
         };
 
         // Not all Blocks have descriptor IDs
-        if descriptors.is_some() {
+        if let Some(descriptor_values) = descriptors {
             match descriptors.unwrap().block_type {
                 BlockType::Internal => parse_xblock(
                     ntfs_file,
                     &mut self.fs,
-                    descriptors.unwrap(),
+                    descriptor_values,
                     &self.block_btree,
                     &self.format,
                     &mut block_value,
@@ -94,7 +94,7 @@ impl<'a, T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> 
                     parse_raw_block(
                         ntfs_file,
                         &mut self.fs,
-                        descriptors.unwrap(),
+                        descriptor_values,
                         &self.format,
                         &mut block_value,
                     )?;
@@ -188,7 +188,6 @@ pub(crate) fn parse_block_bytes<'a>(
                 println!("decom");
                 // Data is compressed
                 let decom_data = decompress_zlib(block_data, &None).unwrap();
-                //let (_, final_bytes) = nom_data(&decom_data, block.decom_size as u64).unwrap();
                 block.data = decom_data;
             } else {
                 let (_, final_bytes) = nom_data(block_data, block.block_size as u64).unwrap();
@@ -265,7 +264,6 @@ mod tests {
 
         for entry in &tree {
             for (_, value) in entry {
-                println!("{value:?}");
                 outlook_reader.parse_blocks(None, value, None).unwrap();
             }
         }

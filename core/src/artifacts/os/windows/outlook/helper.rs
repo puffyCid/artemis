@@ -1,7 +1,6 @@
 /*
  * TODO:
  * 1. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
- * 2. Fix SearchFolder to support peekable loop
  * 3. Some clean up
  * 4. Make TableContext rows a iterator somehow...?
  * 5. Get FAI contenst!
@@ -18,7 +17,10 @@ use super::{
     blocks::block::{BlockValue, OutlookBlock},
     error::OutlookError,
     header::{parse_header, FormatType, Node, NodeID},
-    items::folder::{folder_details, search_folder_details, FolderInfo},
+    items::{
+        fai::{extract_fai, FolderMeta},
+        folder::{folder_details, search_folder_details, FolderInfo},
+    },
     pages::btree::{
         get_block_btree, get_node_btree, BlockType, LeafBlockData, LeafNodeData, NodeBtree,
     },
@@ -60,8 +62,13 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
     fn search_folder(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        folder: &u64,
+        folder: u64,
     ) -> Result<FolderInfo, OutlookError>;
+    fn folder_metadata(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        folder: u64,
+    ) -> Result<FolderMeta, OutlookError>;
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<T> {
@@ -169,16 +176,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
          * 5. Call folder_details()
          */
 
-        let mut leaf_block = LeafBlockData {
-            block_type: BlockType::Internal,
-            index_id: 0,
-            index: 0,
-            block_offset: 0,
-            size: 0,
-            total_size: 0,
-            reference_count: 0,
-        };
-
         let mut leaf_descriptor = None;
 
         let mut normal = LeafNodeData {
@@ -196,8 +193,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut contents = normal.clone();
         let mut fai = normal.clone();
 
-        let mut node_number = 0;
-
         let search = vec![
             NodeID::SearchFolder,
             NodeID::SearchContentsTable,
@@ -208,10 +203,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut folder_number = folder;
         let mut peek_nodes = self.node_btree.iter().peekable();
 
-        //for nodes in self.node_btree.iter() {
         while let Some(nodes) = peek_nodes.next() {
             if let Some(id) = nodes.btree.get(&(folder_number as u32)) {
-                node_number = id.node.node_id_num;
+                let node_number = id.node.node_id_num;
 
                 for node in nodes.btree.values() {
                     if node.node.node_id_num != node_number {
@@ -229,8 +223,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         warn!("[outlook] Unknown NodeID: {node:?}");
                         continue;
                     } else if search.contains(&node.node.node_id) {
-                        println!("dealing with a 'special' search folder :/");
-                        return self.search_folder(ntfs_file, &folder);
+                        return self.search_folder(ntfs_file, folder);
                     } else {
                         panic!("other optoin!?: {node:?}");
                     }
@@ -261,10 +254,19 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 if let Some(next_branch) = peek_nodes.peek() {
                     // Next folder number should contain the NodeID number associated with the remaing folders we need
                     folder_number = next_branch.branch_node as u64;
-                    println!("Next folder is: {folder_number}");
                 }
             }
         }
+
+        let mut leaf_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
 
         let mut hierarchy_block = leaf_block.clone();
         let mut hiearchy_descriptor = None;
@@ -336,9 +338,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             .parse_table_context(&content_value.data, &content_value.descriptors)
             .unwrap();
 
-        println!("FAI Descriptors: {fai_descriptor:?}");
         let fai_value = self.get_block_data(None, &fai_block, fai_descriptor.as_ref())?;
-        println!("FAI Descriptor values: {:?}", fai_value.descriptors);
         let (_, fai_result) = self
             .parse_table_context(&fai_value.data, &fai_value.descriptors)
             .unwrap();
@@ -349,15 +349,16 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             &contents_result,
             &fai_result,
         );
+
         Ok(result)
     }
 
     /// Read a special "Serch Folder" folder type. This function does **NO** searching. You should use `read_folder` if you are iterating through the OST file.
-    /// If will call this function automatically if it encounters a "Search Folder"
+    /// It will call this function automatically if it encounters a "Search Folder"
     fn search_folder(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        folder: &u64,
+        folder: u64,
     ) -> Result<FolderInfo, OutlookError> {
         let mut search = LeafNodeData {
             node: Node {
@@ -370,23 +371,21 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             parent_node_index: 0,
         };
 
-        let mut folder_id = folder;
-
         let mut criteria = search.clone();
         let mut contents = search.clone();
-        //let mut update = search.clone();
+        // let mut update = search.clone();
 
-        let mut node_number = 0;
+        let mut folder_number = folder;
+        let mut peek_nodes = self.node_btree.iter().peekable();
 
-        for nodes in self.node_btree.iter() {
-            if let Some(id) = nodes.btree.get(&(*folder_id as u32)) {
-                node_number = id.node.node_id_num;
+        while let Some(nodes) = peek_nodes.next() {
+            if let Some(id) = nodes.btree.get(&(folder_number as u32)) {
+                let node_number = id.node.node_id_num;
 
                 for node in nodes.btree.values() {
                     if node.node.node_id_num != node_number {
                         continue;
                     }
-                    println!("Search Node: {node:?}");
                     if node.node.node_id == NodeID::SearchFolder {
                         search = node.clone();
                     } else if node.node.node_id == NodeID::SearchCriteria {
@@ -411,6 +410,26 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     && contents.block_offset_data_id != 0
                 {
                     break;
+                }
+
+                // Ugh not all the folders were in the same Branch!
+                // If this happens the start of the next branch should contain the remaining folders
+                // We peek to get the folder number for the branch which should be associated with the folder we want
+
+                /* Ex:
+                 * Here is a folder at the end of a Branch
+                 * my node: LeafNodeData { node: Node { node_id: NormalFolder, node_id_num: 270, node: 8642 }, block_offset_data_id: 66548, block_offset_descriptor_id: 66558, parent_node_index: 8514 }
+                 *
+                 * Here is the next branch. The three (3) LeafNodeData values belong with the LeafNodeData above. Note the `node_id_num` values are all the same
+                 * The branch `node` value matches the `node` value of the first LeafNodeData in the branch
+                 * branch: BranchData { node: Node { node_id: HierarchyTable, node_id_num: 270, node: 8653 }, back_pointer: 21896, offset: 20832256 }
+                 * my node: LeafNodeData { node: Node { node_id: HierarchyTable, node_id_num: 270, node: 8653 }, block_offset_data_id: 4, block_offset_descriptor_id: 0, parent_node_index: 0 }
+                 * my node: LeafNodeData { node: Node { node_id: ContentsTable, node_id_num: 270, node: 8654 }, block_offset_data_id: 6132, block_offset_descriptor_id: 22, parent_node_index: 0 }
+                 * my node: LeafNodeData { node: Node { node_id: FaiContentsTable, node_id_num: 270, node: 8655 }, block_offset_data_id: 6120, block_offset_descriptor_id: 0, parent_node_index: 0 }
+                 */
+                if let Some(next_branch) = peek_nodes.peek() {
+                    // Next folder number should contain the NodeID number associated with the remaing folders we need
+                    folder_number = next_branch.branch_node as u64;
                 }
             }
         }
@@ -469,8 +488,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             .parse_property_context(&search_value.data, &search_value.descriptors)
             .unwrap();
 
-        /*
-        println!("criteria: {criteria_block:?}");
         let criteria_value =
             self.get_block_data(None, &criteria_block, criteria_descriptor.as_ref())?;
         let (_, criteria_result) = self
@@ -479,13 +496,80 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
-        let (_, contents_result) =
-            self.parse_table_context(&content_value.data, &content_value.descriptors).unwrap();
+        let (_, contents_result) = self
+            .parse_table_context(&content_value.data, &content_value.descriptors)
+            .unwrap();
 
         let result = search_folder_details(&search_result, &criteria_result, &contents_result);
-        */
-        let result = search_folder_details(&search_result, &[]);
         Ok(result)
+    }
+
+    fn folder_metadata(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        folder: u64,
+    ) -> Result<FolderMeta, OutlookError> {
+        let mut info = LeafNodeData {
+            node: Node {
+                node_id: NodeID::InternalNode,
+                node_id_num: 0,
+                node: 0,
+            },
+            block_offset_data_id: 0,
+            block_offset_descriptor_id: 0,
+            parent_node_index: 0,
+        };
+
+        let mut folder_number = folder;
+        let mut peek_nodes = self.node_btree.iter().peekable();
+
+        while let Some(nodes) = peek_nodes.next() {
+            if let Some(id) = nodes.btree.get(&(folder_number as u32)) {
+                let node_number = id.node.node_id_num;
+
+                for node in nodes.btree.values() {
+                    if node.node.node_id_num != node_number {
+                        continue;
+                    }
+                    if node.node.node_id == NodeID::FolderAssociatedInfo {
+                        info = node.clone();
+                    }
+                }
+                if info.block_offset_data_id != 0 {
+                    break;
+                }
+            }
+        }
+
+        let mut info_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
+        let mut info_descriptor = None;
+        for blocks in self.block_btree.iter() {
+            if let Some(block_data) = blocks.get(&info.block_offset_data_id) {
+                info_block = block_data.clone();
+            }
+            if info.block_offset_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(&info.block_offset_descriptor_id) {
+                    info_descriptor = Some(block_data.clone());
+                }
+            }
+        }
+
+        let info_value = self.get_block_data(ntfs_file, &info_block, info_descriptor.as_ref())?;
+        let (_, info_result) = self
+            .parse_property_context(&info_value.data, &info_value.descriptors)
+            .unwrap();
+
+        let meta = extract_fai(&info_result);
+
+        Ok(meta)
     }
 }
 
@@ -498,13 +582,20 @@ mod tests {
     use std::io::BufReader;
 
     fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: &u64) {
-        println!("Folder number: {folder}");
         let results = reader.read_folder(None, *folder).unwrap();
 
-        println!("Folder name: {}", results.name);
+        println!("My Folder name: {}", results.name);
+        for meta in results.associated_content {
+            println!(
+                "Getting additional metadata for {} under: {:?}",
+                results.name, meta
+            );
+            let meta_value = reader.folder_metadata(None, meta.node).unwrap();
+            println!("Meta: {meta_value:?}");
+        }
 
         for sub in results.subfolders {
-            println!("sub folder: {:?}", sub);
+            println!("getting info for sub folder: {:?}", sub);
             stream_ost(reader, &sub.node);
         }
     }

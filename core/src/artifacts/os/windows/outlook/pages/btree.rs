@@ -73,11 +73,10 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     } else {
         let (_, leaf_node) =
             parse_leaf_node_data(&page.data, &page.number_entries, format).unwrap();
-        println!("first leaf list: {}", leaf_node.len());
         let mut tree = BTreeMap::new();
         for node in leaf_node {
             if node.node.node_id_num == 0 && node.node.node == 0 {
-                println!("skip?: {node:?}");
+                panic!("skip?: {node:?}");
                 continue;
             }
             println!("my node: {node:?}");
@@ -96,9 +95,6 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             node_tree.push(node_value);
         }
     }
-
-    println!("{}", node_tree.len());
-    //println!("{node_tree:?}");
 
     Ok(())
 }
@@ -125,18 +121,14 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
         }
     } else {
-        println!("entry size: {}", page.entry_size);
-        println!("entries: {}", page.number_entries);
         let (_, leaf_block) =
             parse_leaf_block_data(&page.data, &page.number_entries, format).unwrap();
-        println!("first leaf list: {}", leaf_block.len());
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
             if block.index_id == 0 && block.index == 0 {
-                println!("skip?: {block:?}");
+                panic!("skip?: {block:?}");
                 continue;
             }
-            println!("my block: {block:?}");
 
             if let Some(value) = tree.get(&block.index_id) {
                 if value.index == block.index
@@ -149,7 +141,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
                 {
                     continue;
                 }
-                println!("The dupe: {value:?}");
+                panic!("The dupe: {value:?}");
             }
             tree.insert(block.index_id, block);
         }
@@ -385,7 +377,6 @@ pub(crate) fn parse_leaf_block_data<'a>(
 
     while leaf_data.len() >= min_size && leaf_blocks.len() != *entries as usize {
         let (input, index_data) = take(size)(leaf_data)?;
-        //let (_, (block_type, index)) = check_block_bits(index_data).unwrap();
 
         let (input, block_data) = take(size)(input)?;
         let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;

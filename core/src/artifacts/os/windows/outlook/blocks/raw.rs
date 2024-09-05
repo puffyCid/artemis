@@ -34,7 +34,6 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     if alignment_size < footer_size {
         alignment_size += size;
     }
-    println!("alignment: {alignment_size}");
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -44,7 +43,6 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     .unwrap();
 
     let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
-    //println!("{block_data:?}");
 
     block_value.block_type = Block::Raw;
     block_value.data = block_data.data.clone();

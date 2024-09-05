@@ -82,7 +82,6 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
 
     let (input, root_heap) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let heap_node = get_heap_node_id(&root_heap);
-    println!("{heap_node:?}");
     let (input, level_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
     println!("level: {level_data}");
 
@@ -225,7 +224,6 @@ mod tests {
         assert_eq!(header.page_map_offset, 364);
         assert_eq!(header.sig, 236);
         assert_eq!(header.table_type, TableType::TableContext);
-        // assert_eq!(header.value_reference, 64);
         assert_eq!(header.heap_node.node, NodeID::HeapNode);
         assert_eq!(header.heap_node.index, 2);
         assert_eq!(header.fill, Vec::new());
@@ -271,7 +269,5 @@ mod tests {
             header.page_map.allocation_table,
             vec![12, 20, 116, 124, 132, 581]
         );
-
-        println!("{header:?}");
     }
 }

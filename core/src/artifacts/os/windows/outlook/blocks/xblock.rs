@@ -31,7 +31,6 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
 
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
-    println!("alignment size: {alignment_size}");
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -51,7 +50,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                     // If the actual data is perfectly aligned then we need to add footer size
                     alignment_size = 24;
                 }
-                println!("align: {}", value.size + alignment_size);
+                println!("align: {}", value.size as u64 + alignment_size as u64);
                 let bytes = read_bytes(
                     &value.block_offset,
                     value.size as u64 + alignment_size as u64,
@@ -59,7 +58,6 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                     fs,
                 )
                 .unwrap();
-                println!("{}", bytes.len());
 
                 let (_, mut block_data) = parse_block_bytes(&bytes, format).unwrap();
                 all_bytes.append(&mut block_data.data);
@@ -84,14 +82,12 @@ fn xblock_data<'a>(
     let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
     let sblock_sig = 2;
     if sig == sblock_sig {
-        println!("local descriptors!");
         let (input, descriptor_tree) = parse_descriptor_block(data, format)?;
         block_value.block_type = Block::Descriptors;
         block_value.descriptors = descriptor_tree;
         return Ok((input, Vec::new()));
     } else if sig != 1 {
         // Its a raw block.
-        println!("handle raw blocks!");
         let (input, block) = parse_block_bytes(data, format)?;
         block_value.block_type = Block::Raw;
         block_value.data = block.data;
@@ -180,7 +176,6 @@ mod tests {
         )
         .unwrap();
 
-        println!("{:?}", block.data.len());
         assert_eq!(block.data.len(), 105466)
     }
 

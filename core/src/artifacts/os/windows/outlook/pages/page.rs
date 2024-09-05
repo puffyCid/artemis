@@ -34,3 +34,16 @@ pub(crate) fn page_type(data: &[u8]) -> nom::IResult<&[u8], PageType> {
 
     Ok((data, value))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::page_type;
+    use crate::artifacts::os::windows::outlook::pages::page::PageType;
+
+    #[test]
+    fn test_page_type() {
+        let test = [134];
+        let (_, result) = page_type(&test).unwrap();
+        assert_eq!(result, PageType::DensityList);
+    }
+}

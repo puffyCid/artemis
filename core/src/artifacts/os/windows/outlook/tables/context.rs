@@ -232,76 +232,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     }
 }
 
-pub(crate) fn parse_table_context<'a>(
-    data: &'a [u8],
-    descriptors: &BTreeMap<u64, DescriptorData>,
-) -> nom::IResult<&'a [u8], TableContext> {
-    let (input, header) = table_header(data)?;
-    println!("Table context header: {header:?}");
-    let (input, heap_btree) = parse_btree_heap(input)?;
-    println!("Table context heap tree: {heap_btree:?}");
-
-    let (input, sig) = nom_unsigned_one_byte(input, Endian::Le)?;
-    let (input, number_column_definitions) = nom_unsigned_one_byte(input, Endian::Le)?;
-    let (input, array_end_32bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
-    let (input, array_end_16bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
-    let (input, array_end_8bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
-    let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
-    let (input, table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let row_index = get_heap_node_id(&table_context_index_reference);
-    println!("Row Index HeapNode: {row_index:?}");
-    let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let row = get_heap_node_id(&values_array_index_reference);
-    println!("Row Heap Node: {row:?}");
-
-    if row.node == NodeID::LocalDescriptors {
-        panic!("Sigh...you have to get the row data from the local descriptors block");
-    }
-
-    let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-    let mut table = TableContext {
-        sig,
-        number_column_definitions,
-        array_end_32bit,
-        array_end_16bit,
-        array_end_8bit,
-        array_end_offset,
-        row_index,
-        row,
-        rows: Vec::new(),
-    };
-    let row_count = get_row_count(&header.page_map.allocation_table);
-
-    let (mut input, mut rows) =
-        get_column_definitions(input, &table.number_column_definitions, &row_count)?;
-    println!("Rows: {}", rows.len());
-
-    let mut count = 0;
-
-    while count < row_count {
-        let (remaining, row_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let (remaining, index) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
-        input = remaining;
-        count += 1;
-
-        println!("Row ID: {row_id} - Index: {index}");
-    }
-
-    let (input, _) = get_row_data(
-        input,
-        &mut rows,
-        table.array_end_offset,
-        &table.array_end_8bit,
-        &header.page_map_offset,
-        data,
-    )?;
-
-    table.rows = rows;
-
-    Ok((input, table))
-}
-
 fn get_row_count(map: &[u16]) -> u16 {
     if map.len() < 4 {
         // There are no rows
@@ -558,47 +488,14 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::{
-        get_column_definitions, get_property_type, get_row_count, get_row_data,
-        parse_table_context, ColumnDescriptor, TableRows,
+        get_column_definitions, get_property_type, get_row_count, get_row_data, ColumnDescriptor,
+        TableRows,
     };
     use crate::artifacts::os::windows::outlook::tables::{
         context::PropertyType, properties::PropertyName,
     };
     use serde_json::Value;
-
-    #[test]
-    fn test_parse_table_context_ipm() {
-        let test = [
-            108, 1, 236, 124, 64, 0, 0, 0, 0, 0, 0, 0, 181, 4, 4, 0, 96, 0, 0, 0, 124, 15, 64, 0,
-            64, 0, 65, 0, 67, 0, 32, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 2, 1, 48, 14, 32, 0, 4, 8,
-            20, 0, 51, 14, 36, 0, 8, 9, 2, 1, 52, 14, 44, 0, 4, 10, 3, 0, 56, 14, 48, 0, 4, 11, 31,
-            0, 1, 48, 8, 0, 4, 2, 3, 0, 2, 54, 12, 0, 4, 3, 3, 0, 3, 54, 16, 0, 4, 4, 11, 0, 10,
-            54, 64, 0, 1, 5, 31, 0, 19, 54, 52, 0, 4, 12, 3, 0, 53, 102, 56, 0, 4, 13, 3, 0, 54,
-            102, 60, 0, 4, 14, 3, 0, 56, 102, 20, 0, 4, 6, 3, 0, 242, 103, 0, 0, 4, 0, 3, 0, 243,
-            103, 4, 0, 4, 1, 20, 0, 244, 103, 24, 0, 8, 7, 34, 32, 0, 0, 0, 0, 0, 0, 66, 32, 0, 0,
-            1, 0, 0, 0, 34, 32, 0, 0, 11, 0, 0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 66, 32, 0, 0, 61, 0, 0, 0, 192, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 73, 0,
-            80, 0, 77, 0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0, 78, 0, 79, 0, 78,
-            0, 95, 0, 73, 0, 80, 0, 77, 0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0,
-            6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1, 108, 1,
-        ];
-
-        let (input, table) = parse_table_context(&test, &BTreeMap::new()).unwrap();
-        println!("{table:?}");
-
-        assert_eq!(table.row_index.index, 1);
-        assert_eq!(table.row.index, 4);
-        assert_eq!(table.rows.len(), 2);
-
-        assert_eq!(table.rows[0][4].value.as_str().unwrap(), "IPM_SUBTREE");
-        assert_eq!(table.rows[1][4].value.as_str().unwrap(), "NON_IPM_SUBTREE");
-    }
 
     #[test]
     fn test_get_row_count() {
@@ -671,37 +568,6 @@ mod tests {
         ];
         let (_, rows) = get_column_definitions(&test, &15, &2).unwrap();
         assert_eq!(rows.len(), 2);
-    }
-
-    #[test]
-    fn test_hierarchy_table_root_folder() {
-        let test = [
-            110, 1, 236, 124, 64, 0, 0, 0, 0, 0, 0, 0, 181, 4, 4, 0, 96, 0, 0, 0, 124, 15, 64, 0,
-            64, 0, 65, 0, 67, 0, 32, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 2, 1, 48, 14, 32, 0, 4, 8,
-            20, 0, 51, 14, 36, 0, 8, 9, 2, 1, 52, 14, 44, 0, 4, 10, 3, 0, 56, 14, 48, 0, 4, 11, 31,
-            0, 1, 48, 8, 0, 4, 2, 3, 0, 2, 54, 12, 0, 4, 3, 3, 0, 3, 54, 16, 0, 4, 4, 11, 0, 10,
-            54, 64, 0, 1, 5, 31, 0, 19, 54, 52, 0, 4, 12, 3, 0, 53, 102, 56, 0, 4, 13, 3, 0, 54,
-            102, 60, 0, 4, 14, 3, 0, 56, 102, 20, 0, 4, 6, 3, 0, 242, 103, 0, 0, 4, 0, 3, 0, 243,
-            103, 4, 0, 4, 1, 20, 0, 244, 103, 24, 0, 8, 7, 2, 32, 0, 0, 0, 0, 0, 0, 162, 32, 0, 0,
-            1, 0, 0, 0, 2, 32, 0, 0, 60, 0, 0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 162, 32, 0, 0, 62, 2, 0, 0, 192, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 82, 0,
-            111, 0, 111, 0, 116, 0, 32, 0, 45, 0, 32, 0, 80, 0, 117, 0, 98, 0, 108, 0, 105, 0, 99,
-            0, 82, 0, 111, 0, 111, 0, 116, 0, 32, 0, 45, 0, 32, 0, 77, 0, 97, 0, 105, 0, 108, 0,
-            98, 0, 111, 0, 120, 0, 6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 82, 1, 110, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 2, 98, 154, 135, 42, 147, 0,
-            28, 0, 0, 0, 0, 0, 0, 2, 0, 128, 1, 0, 0, 0, 0,
-        ];
-
-        let (input, table) = parse_table_context(&test, &BTreeMap::new()).unwrap();
-        println!("{table:?}");
-        assert_eq!(table.rows.len(), 2);
-        assert_eq!(table.array_end_16bit, 64);
     }
 
     #[test]

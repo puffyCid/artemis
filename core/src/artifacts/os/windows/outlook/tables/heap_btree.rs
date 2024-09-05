@@ -10,7 +10,7 @@ pub(crate) struct HeapBtree {
     record_entry_size: u8,
     record_value_size: u8,
     pub(crate) level: NodeLevel,
-    node: HeapNode,
+    pub(crate) node: HeapNode,
 }
 
 pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
@@ -21,7 +21,6 @@ pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
     let (input, node_value) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let node = get_heap_node_id(&node_value);
-    println!("{node:?}");
 
     let table = HeapBtree {
         sig,
@@ -40,9 +39,8 @@ pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::outlook::pages::btree::NodeLevel;
-
     use super::parse_btree_heap;
+    use crate::artifacts::os::windows::outlook::pages::btree::NodeLevel;
 
     #[test]
     fn test_parse_btree_heap() {

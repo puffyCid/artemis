@@ -106,7 +106,6 @@ pub(crate) fn extract_name_id_map(
             }
         }
 
-        println!("Entry now: {entry:?}");
         name_map.insert(entry.entry_number, entry.clone());
     }
 

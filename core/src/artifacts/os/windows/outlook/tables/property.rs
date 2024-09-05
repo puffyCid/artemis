@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::outlook::{
-        blocks::{block::BlockValue, descriptors::DescriptorData},
+        blocks::descriptors::DescriptorData,
         error::OutlookError,
         helper::{OutlookReader, OutlookReaderAction},
         pages::btree::{BlockType, LeafBlockData, NodeLevel},
@@ -48,7 +48,6 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
 
     fn get_large_data(
         &mut self,
-        block_data: &[u8],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<u8>, OutlookError>;
@@ -64,16 +63,19 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         let (input, header) = table_header(&block_data)?;
         println!("Property Context header: {header:?}");
 
-        let (prop_data_bytes, heap_btree) = parse_btree_heap(input)?;
+        let (_, heap_btree) = parse_btree_heap(input)?;
         println!("Heap Btree: {heap_btree:?}");
 
         if heap_btree.level == NodeLevel::BranchNode {
             panic!("branch property context!");
         }
 
-        let prop_offset = 20;
+        //let prop_offset = 20;
 
         let mut prop_data_size = 0;
+        // Often property data starts at offset 20 (0x14). But this is not 100% guaranteed
+        let mut prop_start = 20;
+        /*
         for (key, value) in header.page_map.allocation_table.iter().enumerate() {
             // Only loop until we reach the allocation acount
             if key == header.page_map.allocation_count as usize {
@@ -87,9 +89,28 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             if let Some(next_value) = header.page_map.allocation_table.get(key + 1) {
                 prop_data_size = next_value - prop_offset;
             }
+        }*/
+
+        // Heap BTree tells us where the property data starts at in the allocation_table
+        if let Some(start) = header
+            .page_map
+            .allocation_table
+            .get(heap_btree.node.index as usize - 1)
+        {
+            if let Some(end) = header
+                .page_map
+                .allocation_table
+                .get(heap_btree.node.index as usize)
+            {
+                prop_data_size = end - start;
+            }
+            prop_start = *start;
         }
 
-        let (input, mut props) = take(prop_data_size)(prop_data_bytes)?;
+        let (prop_data_start, _) = take(prop_start)(block_data)?;
+        println!("prop data size: {}", prop_data_size);
+
+        let (input, mut props) = take(prop_data_size)(prop_data_start)?;
         let prop_entry_size = 8;
         if props.len() % prop_entry_size != 0 {
             panic!("props definitions should always be a multiple of 8 bytes?! {prop_data_size}");
@@ -132,21 +153,30 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
             props_vec.push(prop);
         }
-        println!("{props_vec:?}");
 
         let node_offset = 12;
+        let prop_offset = 20;
+
+        let mut peek_map = header
+            .page_map
+            .allocation_table
+            .iter()
+            .skip(heap_btree.node.index as usize)
+            .peekable();
 
         // Now go through allocation table again and get the sizes for all properties that have data larger than 4 bytes
-        for (key, value) in header.page_map.allocation_table.iter().enumerate() {
+        //for (key, value) in header.page_map.allocation_table.iter().skip(heap_btree.node.index as usize).enumerate() {
+        while let Some(value) = peek_map.next() {
             // Only loop until we reach the allocation acount
-            if key == header.page_map.allocation_count as usize {
-                break;
-            } else if value == &prop_offset || value == &node_offset {
-                continue;
-            }
+            //if key == header.page_map.allocation_count as usize {
+            //    break;
+            //} else if value == &prop_offset || value == &node_offset {
+            //   continue;
+            // }
 
-            if let Some(next_value) = header.page_map.allocation_table.get(key + 1) {
-                let data_size = next_value - value;
+            //if let Some(next_value) = header.page_map.allocation_table.get(key + 1) {
+            if let Some(next_value) = peek_map.peek() {
+                let data_size = *next_value - value;
 
                 for prop in props_vec.iter_mut() {
                     let max_heap_size = 3580;
@@ -160,7 +190,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         );
                         println!("prop: {prop:?}");
                         let block_data = self
-                            .get_large_data(block_data, block_descriptors, &prop.reference)
+                            .get_large_data(block_descriptors, &prop.reference)
                             .unwrap();
                         println!("large len: {}", block_data.len());
                         if !block_data.is_empty() {
@@ -178,9 +208,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         // If we don't have data, then fallback to normal block data below
                     }
                     if prop.reference != 0 && prop.value == Value::Null {
-                        println!("size: {data_size}");
-                        println!("offset: {value}");
-                        println!("Prop: {prop:?}");
                         let (_, prop_value) = get_property_data(
                             &block_data,
                             &prop.property_type,
@@ -189,7 +216,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                             &false,
                         )?;
                         prop.value = prop_value;
-                        println!("Prop post Value: {prop:?}");
 
                         break;
                     }
@@ -203,7 +229,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     /// If data is too large to fit in the Heap Btree. We have to get the data from the Node Btree
     fn get_large_data(
         &mut self,
-        block_data: &[u8],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<u8>, OutlookError> {
@@ -290,14 +315,13 @@ pub(crate) fn get_property_data<'a>(
         let (input, value_start) = nom_unsigned_two_bytes(input, Endian::Le)?;
         println!("value start: {}", value_start);
 
-        let heap_start = 12;
-        let data_start = 20;
+        //let heap_start = 12;
+        //let data_start = 20;
         // If the value_start is 12 or 20. Then the value is null/empty?
-        if value_start == heap_start || value_start == data_start {
-            //println!("{data:?}");
-            println!("should not have reached heap_start or data_start? This is empty/null?");
-            return Ok((data, value));
-        }
+        // if value_start == heap_start || value_start == data_start {
+        //     println!("should not have reached heap_start or data_start? This is empty/null?");
+        //return Ok((data, value));
+        // }
 
         let (_, value_end) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let value_size = value_end - value_start;
@@ -357,7 +381,6 @@ pub(crate) fn get_property_data<'a>(
                         .unwrap_or_default()
                 }
                 PropertyType::MultiString => {
-                    println!("multi-string value_data: {value_data:?}");
                     let (mut input, string_count) =
                         nom_unsigned_four_bytes(value_data, Endian::Le)?;
                     let mut count = 0;
@@ -368,7 +391,6 @@ pub(crate) fn get_property_data<'a>(
                         input = remaining;
                         count += 1;
                     }
-                    println!("multi-string offsets: {offsets:?}");
 
                     let mut strings = Vec::new();
                     let mut peek_offsets = offsets.iter().peekable();
@@ -471,7 +493,7 @@ mod tests {
                 context::PropertyType, properties::PropertyName, property::OutlookPropertyContext,
             },
         },
-        filesystem::files::{file_reader, read_file},
+        filesystem::files::file_reader,
     };
     use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
 
