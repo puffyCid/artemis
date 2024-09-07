@@ -22,7 +22,7 @@ use std::{collections::BTreeMap, io::BufReader};
 pub(crate) struct BlockValue {
     pub(crate) block_type: Block,
     /**Set if `Block::Xblock`, `Block::Xxblock`, or `Block::Raw` */
-    pub(crate) data: Vec<u8>,
+    pub(crate) data: Vec<Vec<u8>>,
     /**Set if `Block::Descriptors` */
     pub(crate) descriptors: BTreeMap<u64, DescriptorData>,
 }

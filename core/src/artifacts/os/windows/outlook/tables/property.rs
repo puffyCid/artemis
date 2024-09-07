@@ -21,6 +21,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use log::error;
 use nom::{
     bytes::complete::take,
     number::complete::{le_f32, le_f64},
@@ -40,9 +41,15 @@ pub(crate) struct PropertyContext {
 }
 
 pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
+    fn parse_property_contextV2(
+        &mut self,
+        block_data: &Vec<Vec<u8>>,
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> Result<Vec<PropertyContext>, OutlookError>;
     fn parse_property_context<'a>(
         &mut self,
-        block_data: &'a [u8],
+        header_block: &'a [u8],
+        all_blocks: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], Vec<PropertyContext>>;
 
@@ -50,17 +57,41 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
         &mut self,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
-    ) -> Result<Vec<u8>, OutlookError>;
+    ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookReader<T> {
+    fn parse_property_contextV2(
+        &mut self,
+        block_data: &Vec<Vec<u8>>,
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> Result<Vec<PropertyContext>, OutlookError> {
+        let first_block = block_data.get(0);
+        let block = match first_block {
+            Some(result) => result,
+            None => return Err(OutlookError::NoBlocks),
+        };
+
+        let props_result = self.parse_property_context(block, block_data, block_descriptors);
+        let props = match props_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Could not parse property context");
+                return Err(OutlookError::PropertyContext);
+            }
+        };
+
+        Ok(props)
+    }
+
     /// Parse the Property Context data
     fn parse_property_context<'a>(
         &mut self,
-        block_data: &'a [u8],
+        header_block: &'a [u8],
+        all_blocks: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], Vec<PropertyContext>> {
-        let (input, header) = table_header(&block_data)?;
+        let (input, header) = table_header(&header_block)?;
         println!("Property Context header: {header:?}");
 
         let (_, heap_btree) = parse_btree_heap(input)?;
@@ -70,26 +101,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             panic!("branch property context!");
         }
 
-        //let prop_offset = 20;
-
         let mut prop_data_size = 0;
         // Often property data starts at offset 20 (0x14). But this is not 100% guaranteed
         let mut prop_start = 20;
-        /*
-        for (key, value) in header.page_map.allocation_table.iter().enumerate() {
-            // Only loop until we reach the allocation acount
-            if key == header.page_map.allocation_count as usize {
-                break;
-            }
-            // Should always be the 2nd value
-            if value != &prop_offset {
-                continue;
-            }
-
-            if let Some(next_value) = header.page_map.allocation_table.get(key + 1) {
-                prop_data_size = next_value - prop_offset;
-            }
-        }*/
 
         // Heap BTree tells us where the property data starts at in the allocation_table
         if let Some(start) = header
@@ -107,7 +121,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             prop_start = *start;
         }
 
-        let (prop_data_start, _) = take(prop_start)(block_data)?;
+        let (prop_data_start, _) = take(prop_start)(header_block)?;
         println!("prop data size: {}", prop_data_size);
 
         let (input, mut props) = take(prop_data_size)(prop_data_start)?;
@@ -132,8 +146,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             let (remaining, prop_id) = nom_unsigned_two_bytes(props, Endian::Le)?;
             let (remaining, prop_type_num) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
             let (remaining, value_reference) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
-            let name = property_id_to_name(&format!("0x{:04x?}_0x{:04x?}", prop_id, prop_type_num));
 
+            let name = property_id_to_name(&format!("0x{:04x?}_0x{:04x?}", prop_id, prop_type_num));
             props = remaining;
             count += 1;
 
@@ -154,72 +168,53 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             props_vec.push(prop);
         }
 
-        let node_offset = 12;
-        let prop_offset = 20;
+        for prop in props_vec.iter_mut() {
+            if prop.value != Value::Null || prop.reference == 0 {
+                continue;
+            }
+            println!("Prop: {prop:?}");
 
-        let mut peek_map = header
-            .page_map
-            .allocation_table
-            .iter()
-            .skip(heap_btree.node.index as usize)
-            .peekable();
+            let (block_index, map_start) = get_map_offset(&prop.reference);
+            if let Some(block_data) = all_blocks.get(block_index as usize) {
+                let max_heap_size = 3580;
 
-        // Now go through allocation table again and get the sizes for all properties that have data larger than 4 bytes
-        //for (key, value) in header.page_map.allocation_table.iter().skip(heap_btree.node.index as usize).enumerate() {
-        while let Some(value) = peek_map.next() {
-            // Only loop until we reach the allocation acount
-            //if key == header.page_map.allocation_count as usize {
-            //    break;
-            //} else if value == &prop_offset || value == &node_offset {
-            //   continue;
-            // }
-
-            //if let Some(next_value) = header.page_map.allocation_table.get(key + 1) {
-            if let Some(next_value) = peek_map.peek() {
-                let data_size = *next_value - value;
-
-                for prop in props_vec.iter_mut() {
-                    let max_heap_size = 3580;
-                    if prop.reference > max_heap_size && prop.value == Value::Null {
-                        println!("u got big data :)");
-                        println!("size: {data_size}");
-                        println!("offset: {value}");
-                        println!(
-                            "lookup in descriptorData the value: {}",
-                            ((prop.reference >> 5) & 0x07ffffff)
-                        );
-                        println!("prop: {prop:?}");
-                        let block_data = self
-                            .get_large_data(block_descriptors, &prop.reference)
-                            .unwrap();
-                        println!("large len: {}", block_data.len());
-                        if !block_data.is_empty() {
-                            let (_, prop_value) = get_property_data(
-                                &block_data,
-                                &prop.property_type,
-                                &header.page_map_offset,
-                                &prop.reference,
-                                &true,
-                            )
-                            .unwrap();
-                            prop.value = prop_value;
-                            println!("Prop post Value: {prop:?}");
-                        }
-                        // If we don't have data, then fallback to normal block data below
-                    }
-                    if prop.reference != 0 && prop.value == Value::Null {
+                if prop.reference > max_heap_size && prop.value == Value::Null {
+                    println!("u got big data :)");
+                    println!(
+                        "lookup in descriptorData the value: {}",
+                        ((prop.reference >> 5) & 0x07ffffff)
+                    );
+                    println!("prop: {prop:?}");
+                    let desc_blocks = self
+                        .get_large_data(block_descriptors, &prop.reference)
+                        .unwrap();
+                    println!("large len: {}", block_data.len());
+                    if !desc_blocks.is_empty() {
                         let (_, prop_value) = get_property_data(
-                            &block_data,
+                            &desc_blocks[0],
                             &prop.property_type,
                             &header.page_map_offset,
                             &prop.reference,
-                            &false,
-                        )?;
+                            &true,
+                        )
+                        .unwrap();
                         prop.value = prop_value;
-
-                        break;
+                        println!("Prop post Value: {prop:?}");
+                        continue;
                     }
+                    // If we don't have data, then fallback to normal block data below
                 }
+
+                let (_, prop_value) = get_property_data(
+                    block_data,
+                    &prop.property_type,
+                    &header.page_map_offset,
+                    &map_start,
+                    &false,
+                )
+                .unwrap();
+
+                prop.value = prop_value;
             }
         }
 
@@ -231,7 +226,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         &mut self,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
-    ) -> Result<Vec<u8>, OutlookError> {
+    ) -> Result<Vec<Vec<u8>>, OutlookError> {
         let key = (reference >> 5) & 0x07ffffff;
         println!("descriptor key: {key}");
         println!("descriptors: {:?}", block_descriptors);
@@ -283,36 +278,16 @@ pub(crate) fn get_property_data<'a>(
     let value_data = if *is_large {
         data
     } else {
-        let adjust_reference = 4;
+        // Get the allocation map start
+        let (_, allocation_start) = nom_unsigned_two_bytes(data, Endian::Le)?;
+        // Jump to the allocation map
+        let (allocation, _) = take(allocation_start)(data)?;
+        let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
-        /*
-         * This gets pretty crazy!:
-         * Reference: https://www.five-ten-sg.com/libpst/rn01re05.html (Associated Descriptor Item 0xbcec)
-         * 1. Shift 4 bits to right this is the actual value_offset
-         * 2. Add the page_map_offset and the value_offset plus 2. This should take you to one of the allocation_table values
-         * 3. Nom two bytes to get the offset of the value
-         * 4. Nom another two bytes to get the offset of the next allocated value
-         * 5. Subtract the value offset from the next allocated value to determine the value size
-         */
-
-        let value_map_offset = reference >> adjust_reference;
-        println!("Value map offset: {value_map_offset}");
-        println!("Map offset: {page_map_offset}");
-        let adjust_offset = 2;
-        let map_offset = *page_map_offset + value_map_offset as u16 + adjust_offset;
-        println!("Allocation start: {map_offset}");
-
-        // Offset should always be a multiple of 2
-        if map_offset % adjust_offset != 0 {
-            println!("{data:?}");
-            panic!("odd bad offset?");
-            return Ok((data, value));
-        }
-
-        // This should take us to start of the allocation_table entry for the value offset
-        let (input, _) = take(map_offset as u64)(data)?;
-
-        let (input, value_start) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        println!("map offset: {reference}");
+        // Jump to the start of our value
+        let (value_start, _) = take(*reference)(input)?;
+        let (input, value_start) = nom_unsigned_two_bytes(value_start, Endian::Le)?;
         println!("value start: {}", value_start);
 
         //let heap_start = 12;
@@ -477,12 +452,26 @@ pub(crate) fn get_property_data<'a>(
         }
     };
 
+    println!("Prop value: {value:?}");
     Ok((value_data, value))
+}
+
+fn get_map_offset(reference: &u32) -> (u32, u32) {
+    let unicode_4k = 19;
+    let block_index = reference >> unicode_4k;
+
+    let adjust = 0x07ffe0;
+    let value_lower_bits = 5;
+    let map_start = ((reference & adjust) >> value_lower_bits) - 1;
+
+    // The Allocation map array is in pairs (start, end)
+    let pairs = 2;
+    (block_index, map_start * pairs)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::get_property_data;
+    use super::{get_map_offset, get_property_data};
     use crate::{
         artifacts::os::windows::outlook::{
             blocks::block::{Block, BlockValue},
@@ -544,11 +533,11 @@ mod tests {
         };
         let block = BlockValue {
             block_type: Block::Xblock,
-            data: test.to_vec(),
+            data: vec![test.to_vec()],
             descriptors: BTreeMap::new(),
         };
-        let (_, result) = outlook_reader
-            .parse_property_context(&block.data, &block.descriptors)
+        let result = outlook_reader
+            .parse_property_contextV2(&block.data, &block.descriptors)
             .unwrap();
 
         // let (_, result) = parse_property_context(&test).unwrap();
@@ -596,7 +585,7 @@ mod tests {
             134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80,
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
-        let (_, value) = get_property_data(&test, &PropertyType::Time, &582, &96, &false).unwrap();
+        let (_, value) = get_property_data(&test, &PropertyType::Time, &582, &4, &false).unwrap();
         assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.000Z");
     }
 
@@ -639,11 +628,11 @@ mod tests {
         };
         let block = BlockValue {
             block_type: Block::Xblock,
-            data: test.to_vec(),
+            data: vec![test.to_vec()],
             descriptors: BTreeMap::new(),
         };
-        let (_, store) = outlook_reader
-            .parse_property_context(&block.data, &block.descriptors)
+        let store = outlook_reader
+            .parse_property_contextV2(&block.data, &block.descriptors)
             .unwrap();
 
         println!("{store:?}");
@@ -716,10 +705,17 @@ mod tests {
             .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
         println!("block value: {block_value:?}");
-        let (_, results) = outlook_reader
-            .parse_property_context(&block_value.data, &block_value.descriptors)
+        let results = outlook_reader
+            .parse_property_contextV2(&block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(results[1].value.as_str().unwrap().len(), 940);
         //println!("{results:?}");
+    }
+
+    #[test]
+    fn test_get_map_offset() {
+        let (block_index, map_start) = get_map_offset(&96);
+        assert_eq!(block_index, 0);
+        assert_eq!(map_start, 4);
     }
 }

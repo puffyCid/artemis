@@ -14,7 +14,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     block: &LeafBlockData,
     format: &FormatType,
     block_value: &mut BlockValue,
-) -> Result<BlockData, OutlookError> {
+) -> Result<(), OutlookError> {
     let size = if format != &FormatType::Unicode64_4k {
         64
     } else {
@@ -45,9 +45,9 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
 
     block_value.block_type = Block::Raw;
-    block_value.data = block_data.data.clone();
+    block_value.data.push(block_data.data);
 
-    Ok(block_data)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -86,7 +86,7 @@ mod tests {
             descriptors: BTreeMap::new(),
         };
 
-        let block = parse_raw_block(
+        parse_raw_block(
             None,
             &mut buf_reader,
             &test,
@@ -95,10 +95,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(block.data.len(), 456);
-        assert_eq!(block.block_size, 456);
-        assert_eq!(block.sig, 63926);
-        assert_eq!(block.crc, 3861511615);
-        assert_eq!(block.back_pointer, 69820);
+        assert_eq!(block_value.data[0].len(), 456);
+        //  assert_eq!(block_value.block_size, 456);
+        //  assert_eq!(block_value.sig, 63926);
+        //  assert_eq!(block_value.crc, 3861511615);
+        //  assert_eq!(block_value.back_pointer, 69820);
     }
 }

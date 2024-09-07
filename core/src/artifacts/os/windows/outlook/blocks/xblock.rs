@@ -60,8 +60,8 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 )
                 .unwrap();
 
-                let (_, mut block_data) = parse_block_bytes(&bytes, format).unwrap();
-                all_bytes.append(&mut block_data.data);
+                let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
+                all_bytes.push(block_data.data);
             }
         }
     }
@@ -91,7 +91,7 @@ fn xblock_data<'a>(
         // Its a raw block.
         let (input, block) = parse_block_bytes(data, format)?;
         block_value.block_type = Block::Raw;
-        block_value.data = block.data;
+        block_value.data.push(block.data);
         panic!("{:?}", block_value.data);
         return Ok((input, Vec::new()));
     }

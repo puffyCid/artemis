@@ -150,7 +150,9 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
         }
     };
 
-    let index = (value >> 5) & 0x07ffffff;
+    //let index = (value >> 5) & 0x07ffffff;
+
+    let index = (value & 0x07ffe0) >> 5;
 
     // Will only work for OST files (Outlook 2013+)
     let adjust_index = 19;

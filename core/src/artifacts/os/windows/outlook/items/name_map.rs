@@ -262,8 +262,8 @@ mod tests {
         let block_value = outlook_reader
             .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
-        let (_, props) = outlook_reader
-            .parse_property_context(&block_value.data, &block_value.descriptors)
+        let props = outlook_reader
+            .parse_property_contextV2(&block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(props[1].value.as_str().unwrap().len(), 940);
 

@@ -103,8 +103,10 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
         descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], TableContext>;
 
-    fn get_descriptor_data(&mut self, descriptor: &DescriptorData)
-        -> Result<Vec<u8>, OutlookError>;
+    fn get_descriptor_data(
+        &mut self,
+        descriptor: &DescriptorData,
+    ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
@@ -176,7 +178,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         // If we have descriptor data then part of the Table row is stored in the descriptor
         if !descriptor_data.is_empty() {
             let result = get_row_data(
-                &descriptor_data,
+                &descriptor_data[0],
                 &mut rows,
                 table.array_end_offset,
                 &table.array_end_8bit,
@@ -205,7 +207,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     fn get_descriptor_data(
         &mut self,
         descriptor: &DescriptorData,
-    ) -> Result<Vec<u8>, OutlookError> {
+    ) -> Result<Vec<Vec<u8>>, OutlookError> {
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -344,7 +346,7 @@ fn parse_row_data<'a>(
                 let (_, prop_value) =
                     get_property_data(original_data, prop_type, page_map_offset, &offset, &false)?;
                 value = prop_value;
-                //panic!("wrong?: {value:?}");
+                // panic!("wrong?: {value:?}");
             }
         }
         PropertyType::String8 => todo!(),

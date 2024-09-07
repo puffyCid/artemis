@@ -321,26 +321,29 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
-        let (_, normal_result) = self
-            .parse_property_context(&normal_value.data, &normal_value.descriptors)
+        println!("prop block: {normal_value:?}");
+        let normal_result = self
+            .parse_property_contextV2(&normal_value.data, &normal_value.descriptors)
             .unwrap();
 
+        println!("{normal_result:?}");
+        panic!("stop!");
         let hiearchy_value =
             self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
         let (_, hiearhy_result) = self
-            .parse_table_context(&hiearchy_value.data, &hiearchy_value.descriptors)
+            .parse_table_context(&hiearchy_value.data[0], &hiearchy_value.descriptors)
             .unwrap();
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
 
         let (_, contents_result) = self
-            .parse_table_context(&content_value.data, &content_value.descriptors)
+            .parse_table_context(&content_value.data[0], &content_value.descriptors)
             .unwrap();
 
         let fai_value = self.get_block_data(None, &fai_block, fai_descriptor.as_ref())?;
         let (_, fai_result) = self
-            .parse_table_context(&fai_value.data, &fai_value.descriptors)
+            .parse_table_context(&fai_value.data[0], &fai_value.descriptors)
             .unwrap();
 
         let result = folder_details(
@@ -484,20 +487,20 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let search_value =
             self.get_block_data(ntfs_file, &search_block, search_descriptor.as_ref())?;
-        let (_, search_result) = self
-            .parse_property_context(&search_value.data, &search_value.descriptors)
+        let search_result = self
+            .parse_property_contextV2(&search_value.data, &search_value.descriptors)
             .unwrap();
 
         let criteria_value =
             self.get_block_data(None, &criteria_block, criteria_descriptor.as_ref())?;
-        let (_, criteria_result) = self
-            .parse_property_context(&criteria_value.data, &criteria_value.descriptors)
+        let criteria_result = self
+            .parse_property_contextV2(&criteria_value.data, &criteria_value.descriptors)
             .unwrap();
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
         let (_, contents_result) = self
-            .parse_table_context(&content_value.data, &content_value.descriptors)
+            .parse_table_context(&content_value.data[0], &content_value.descriptors)
             .unwrap();
 
         let result = search_folder_details(&search_result, &criteria_result, &contents_result);
@@ -563,8 +566,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let info_value = self.get_block_data(ntfs_file, &info_block, info_descriptor.as_ref())?;
-        let (_, info_result) = self
-            .parse_property_context(&info_value.data, &info_value.descriptors)
+        let info_result = self
+            .parse_property_contextV2(&info_value.data, &info_value.descriptors)
             .unwrap();
 
         let meta = extract_fai(&info_result);

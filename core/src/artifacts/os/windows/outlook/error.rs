@@ -10,6 +10,8 @@ pub(crate) enum OutlookError {
     NoDescriptorBlock,
     Base64Property,
     NameIdMap,
+    NoBlocks,
+    PropertyContext,
 }
 
 impl std::error::Error for OutlookError {}
@@ -25,6 +27,12 @@ impl fmt::Display for OutlookError {
             OutlookError::NoDescriptorBlock => write!(f, "Failed to block offset from Descriptors"),
             OutlookError::Base64Property => write!(f, "Failed to base64 decode binary property"),
             OutlookError::NameIdMap => write!(f, "Failed to parse NameMapId"),
+            OutlookError::NoBlocks => {
+                write!(f, "Missing blocks. Cant parse Property or Table Context")
+            }
+            OutlookError::PropertyContext => {
+                write!(f, "Failed to parse the Property Context table")
+            }
         }
     }
 }
