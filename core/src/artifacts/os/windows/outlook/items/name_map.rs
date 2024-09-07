@@ -269,6 +269,7 @@ mod tests {
 
         let results = extract_name_id_map(&props).unwrap();
         assert_eq!(results.len(), 1307);
+        println!("name to map: {results:?}");
     }
 
     #[test]

@@ -41,6 +41,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
 
     let (_, entries) = xblock_data(&bytes, format, block_value).unwrap();
     let mut all_bytes = Vec::new();
+    println!("block entries count: {entries:?}");
     for entry in entries {
         for tree in other_blocks {
             if let Some(value) = tree.get(&entry) {
@@ -91,6 +92,7 @@ fn xblock_data<'a>(
         let (input, block) = parse_block_bytes(data, format)?;
         block_value.block_type = Block::Raw;
         block_value.data = block.data;
+        panic!("{:?}", block_value.data);
         return Ok((input, Vec::new()));
     }
     if array_level != 1 {

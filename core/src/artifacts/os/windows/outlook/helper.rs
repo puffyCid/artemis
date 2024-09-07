@@ -3,7 +3,6 @@
  * 1. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
  * 3. Some clean up
  * 4. Make TableContext rows a iterator somehow...?
- * 5. Get FAI contenst!
  * 6. Get email contents!
  *
  * (file)/offset = block btree
@@ -334,6 +333,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
+
         let (_, contents_result) = self
             .parse_table_context(&content_value.data, &content_value.descriptors)
             .unwrap();
@@ -504,6 +504,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         Ok(result)
     }
 
+    /// Get additional folder metadata by parsing the FAI data
     fn folder_metadata(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -520,11 +521,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             parent_node_index: 0,
         };
 
-        let mut folder_number = folder;
         let mut peek_nodes = self.node_btree.iter().peekable();
 
         while let Some(nodes) = peek_nodes.next() {
-            if let Some(id) = nodes.btree.get(&(folder_number as u32)) {
+            if let Some(id) = nodes.btree.get(&(folder as u32)) {
                 let node_number = id.node.node_id_num;
 
                 for node in nodes.btree.values() {
@@ -615,6 +615,6 @@ mod tests {
             size: 4096,
         };
         outlook_reader.setup(None).unwrap();
-        stream_ost(&mut outlook_reader, &290);
+        stream_ost(&mut outlook_reader, &8578);
     }
 }

@@ -115,6 +115,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     ) -> nom::IResult<&'a [u8], TableContext> {
         let (input, header) = table_header(data)?;
         println!("Table context header: {header:?}");
+        println!(
+            "Allocation table len: {}",
+            header.page_map.allocation_table.len()
+        );
         let (input, heap_btree) = parse_btree_heap(input)?;
         println!("Table context heap tree: {heap_btree:?}");
 
@@ -133,6 +137,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         let mut descriptor_data = Vec::new();
         if row.node == NodeID::LocalDescriptors {
+            println!("TC Desc: {descriptors:?}");
             if let Some(descriptor) = descriptors.get(&(row.index as u64)) {
                 descriptor_data = self.get_descriptor_data(descriptor).unwrap();
             }
@@ -210,6 +215,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             total_size: 0,
             reference_count: 0,
         };
+        println!("desc: {descriptor:?}");
         let mut leaf_descriptor = None;
         for block_tree in &self.block_btree {
             if let Some(block_data) = block_tree.get(&descriptor.block_data_id) {
@@ -257,12 +263,14 @@ fn get_row_data<'a>(
     row_data_size: u16,
     cell_map_start: &u16,
     page_map_offset: &u16,
-    property_data: &'a [u8],
+    original_data: &'a [u8],
 ) -> nom::IResult<&'a [u8], ()> {
     let mut input = data;
     for row in rows {
         //let (cell_map, _) = take(*cell_map_start)(input)?;
+        println!("Row size: {row_data_size}");
         let (reamining, row_data) = take(row_data_size)(input)?;
+        println!("row data: {row_data:?}");
 
         for column in row {
             /*
@@ -276,14 +284,14 @@ fn get_row_data<'a>(
             let (col_data_start, _) = take(column.column.offset)(row_data)?;
             println!("column: {column:?}");
             let (_, value) = parse_row_data(
-                property_data,
+                original_data,
                 row_data,
                 &column.column.property_type,
                 page_map_offset,
                 &(column.column.offset as u32),
                 &column.column.size,
             )?;
-            println!("{value:?}");
+            println!("col value: {value:?}");
             column.value = value;
         }
         input = reamining;
@@ -292,7 +300,7 @@ fn get_row_data<'a>(
 }
 
 fn parse_row_data<'a>(
-    data: &'a [u8],
+    original_data: &'a [u8],
     row_data: &'a [u8],
     prop_type: &PropertyType,
     page_map_offset: &u16,
@@ -331,10 +339,12 @@ fn parse_row_data<'a>(
         PropertyType::String | PropertyType::MultiString => {
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             println!("string offset: {offset}");
+            println!("heap?:{:?}", get_heap_node_id(&offset));
             if offset != 0 && page_map_offset != &0 {
                 let (_, prop_value) =
-                    get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
+                    get_property_data(original_data, prop_type, page_map_offset, &offset, &false)?;
                 value = prop_value;
+                //panic!("wrong?: {value:?}");
             }
         }
         PropertyType::String8 => todo!(),
@@ -355,7 +365,7 @@ fn parse_row_data<'a>(
             if offset != empty {
                 println!("binary offset: {offset}");
                 let (_, prop_value) =
-                    get_property_data(data, prop_type, page_map_offset, &offset, &false)?;
+                    get_property_data(original_data, prop_type, page_map_offset, &offset, &false)?;
                 value = prop_value;
             }
         }

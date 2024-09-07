@@ -21,14 +21,22 @@ pub(crate) struct FolderInfo {
     pub(crate) associated_content: Vec<SubFolder>,
     /**Number of subfolders */
     pub(crate) subfolder_count: usize,
-    /**Number of messages or non-subfolder children */
-    pub(crate) message_count: u64,
-    pub(crate) messages: Vec<String>,
+    /**Number of messages */
+    pub(crate) message_count: usize,
+    /**Messages that can be iterated into */
+    pub(crate) messages: Vec<MessagePreview>,
 }
 
 #[derive(Debug)]
 pub(crate) struct SubFolder {
     pub(crate) name: String,
+    pub(crate) node: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct MessagePreview {
+    pub(crate) subject: String,
+    pub(crate) delivery: String,
     pub(crate) node: u64,
 }
 
@@ -128,14 +136,46 @@ pub(crate) fn folder_details(
     }
 
     println!("Contents len: {}", contents.rows.len());
+    /*
     for rows in &contents.rows {
-        /*
-         * TODO:
-         * 1. Get PidTagLtpRowId. Need to get node id and blocks again :/
-         * 2. Probably do that in another function/file
-         */
-        break;
-    }
+        let mut mess = MessagePreview {
+            subject: String::new(),
+            delivery: String::new(),
+            node: 0,
+        };
+        for column in rows {
+            if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagLtpRowId)
+            {
+                mess.node = column.value.as_u64().unwrap_or_default();
+            } else if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagSubjectW)
+            {
+                mess.subject = column.value.as_str().unwrap_or_default().to_string();
+                if mess.subject == "azur3m3m1crosoft@outlook.com" {
+                    panic!("{rows:?}");
+                }
+            } else if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagMessageDeliveryTime)
+            {
+                mess.delivery = column.value.as_str().unwrap_or_default().to_string();
+            }
+
+            if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
+                println!("subject name: {}", mess.subject);
+                info.messages.push(mess);
+                break;
+            }
+        }
+    }*/
+
+    info.message_count = info.messages.len();
 
     info
 }
