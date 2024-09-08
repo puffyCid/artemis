@@ -184,7 +184,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         "lookup in descriptorData the value: {}",
                         ((prop.reference >> 5) & 0x07ffffff)
                     );
-                    println!("prop: {prop:?}");
                     let desc_blocks = self
                         .get_large_data(block_descriptors, &prop.reference)
                         .unwrap();
@@ -282,6 +281,7 @@ pub(crate) fn get_property_data<'a>(
         let (_, allocation_start) = nom_unsigned_two_bytes(data, Endian::Le)?;
         // Jump to the allocation map
         let (allocation, _) = take(allocation_start)(data)?;
+        // Skip the allocation count. We do not need it
         let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
         println!("map offset: {reference}");
@@ -404,15 +404,120 @@ pub(crate) fn get_property_data<'a>(
         PropertyType::Binary => {
             value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
         }
-        PropertyType::MultiIn16 => todo!(),
-        PropertyType::MultiInt32 => todo!(),
-        PropertyType::MultiFloat32 => todo!(),
-        PropertyType::MultiFloat64 => todo!(),
-        PropertyType::MultiCurrency => todo!(),
-        PropertyType::MultiFloatTime => todo!(),
-        PropertyType::MultiInt64 => todo!(),
+        PropertyType::MultiInt16 => {
+            let int_count = value_data.len() / 2;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, int_value) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
+                remaining = input;
+                int_values.push(int_value);
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
+        PropertyType::MultiInt32 => {
+            let int_count = value_data.len() / 4;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, int_value) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+                remaining = input;
+                int_values.push(int_value);
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
+        PropertyType::MultiFloat32 => {
+            let int_count = value_data.len() / 4;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, float_data) = take(size_of::<u32>())(remaining)?;
+                let (_, prop_value) = le_f32(float_data)?;
+                remaining = input;
+                int_values.push(prop_value);
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
+        PropertyType::MultiFloat64 => {
+            let int_count = value_data.len() / 8;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, float_data) = take(size_of::<u64>())(remaining)?;
+                let (_, prop_value) = le_f64(float_data)?;
+                remaining = input;
+                int_values.push(prop_value);
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
+        PropertyType::MultiFloatTime => {
+            let int_count = value_data.len() / 8;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+
+            while count < int_count {
+                // Supposdly this is OLE Time?
+                let (input, float_data) = take(size_of::<u64>())(remaining)?;
+                let (_, float_value) = le_f64(float_data)?;
+                remaining = input;
+                let oletime = ole_automationtime_to_unixepoch(&float_value);
+                int_values.push(unixepoch_to_iso(&oletime));
+                count += 1;
+            }
+            value = serde_json::to_value(int_values).unwrap_or_default();
+
+            panic!("{value:?}");
+        }
+        PropertyType::MultiInt64 | PropertyType::MultiCurrency => {
+            let int_count = value_data.len() / 8;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, int_value) = nom_unsigned_eight_bytes(remaining, Endian::Le)?;
+                remaining = input;
+                int_values.push(int_value);
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
         PropertyType::MultiString8 => todo!(),
-        PropertyType::MultiTime => todo!(),
+        PropertyType::MultiTime => {
+            let int_count = value_data.len() / 8;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < int_count {
+                let (input, prop_value) = nom_unsigned_eight_bytes(remaining, Endian::Le)?;
+                let timestamp = filetime_to_unixepoch(&prop_value);
+
+                remaining = input;
+                int_values.push(unixepoch_to_iso(&timestamp));
+                count += 1;
+            }
+            value = serde_json::to_value(int_values).unwrap_or_default();
+        }
         PropertyType::MultiGuid => todo!(),
         PropertyType::MultiBinary => {
             let (offset_start, bin_count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
@@ -456,7 +561,7 @@ pub(crate) fn get_property_data<'a>(
     Ok((value_data, value))
 }
 
-fn get_map_offset(reference: &u32) -> (u32, u32) {
+pub(crate) fn get_map_offset(reference: &u32) -> (u32, u32) {
     let unicode_4k = 19;
     let block_index = reference >> unicode_4k;
 

@@ -31,6 +31,10 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
 
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
+    if alignment_size == 0 {
+        // If the actual data is perfectly aligned then we need to add another block
+        alignment_size = size;
+    }
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -48,8 +52,8 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 println!("Found: {value:?}");
                 alignment_size = (size - value.size % size) % size;
                 if alignment_size == 0 {
-                    // If the actual data is perfectly aligned then we need to add footer size
-                    alignment_size = 24;
+                    // If the actual data is perfectly aligned then we need to add another block
+                    alignment_size = size;
                 }
                 println!("align: {}", value.size as u64 + alignment_size as u64);
                 let bytes = read_bytes(
@@ -90,9 +94,18 @@ fn xblock_data<'a>(
     } else if sig != 1 {
         // Its a raw block.
         let (input, block) = parse_block_bytes(data, format)?;
+        if let Some(sig) = block.data.get(0) {
+            if sig == &sblock_sig {
+                let (input, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
+                block_value.block_type = Block::Descriptors;
+                block_value.descriptors = descriptor_tree;
+                return Ok((&[], Vec::new()));
+            }
+        }
         block_value.block_type = Block::Raw;
         block_value.data.push(block.data);
-        panic!("{:?}", block_value.data);
+        println!("{:?}", block_value.data);
+        panic!("Got a raw block how should we treat it?");
         return Ok((input, Vec::new()));
     }
     if array_level != 1 {
@@ -178,7 +191,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(block.data.len(), 105466)
+        assert_eq!(block.data.len(), 2)
     }
 
     #[test]

@@ -1,7 +1,10 @@
-use crate::artifacts::os::windows::outlook::tables::{
-    context::{TableContext, TableRows},
-    properties::PropertyName,
-    property::PropertyContext,
+use crate::{
+    artifacts::os::windows::outlook::tables::{
+        context::{TableContext, TableRows},
+        properties::PropertyName,
+        property::PropertyContext,
+    },
+    utils::strings::extract_utf8_string,
 };
 
 pub(crate) struct FolderInfo {
@@ -96,7 +99,7 @@ pub(crate) fn folder_details(
             }
 
             if !sub.name.is_empty() && sub.node != 0 {
-                println!("sub name: {}", sub.name);
+                println!("subject name: {}", sub.name);
                 info.subfolders.push(sub);
                 break;
             }
@@ -136,7 +139,7 @@ pub(crate) fn folder_details(
     }
 
     println!("Contents len: {}", contents.rows.len());
-    /*
+
     for rows in &contents.rows {
         let mut mess = MessagePreview {
             subject: String::new(),
@@ -155,9 +158,21 @@ pub(crate) fn folder_details(
                 .property_name
                 .contains(&PropertyName::PidTagSubjectW)
             {
-                mess.subject = column.value.as_str().unwrap_or_default().to_string();
-                if mess.subject == "azur3m3m1crosoft@outlook.com" {
-                    panic!("{rows:?}");
+                let subject = column.value.as_str().unwrap_or_default().to_string();
+                let sub_bytes = subject.as_bytes();
+                if sub_bytes.starts_with(&[1, 1])
+                    || sub_bytes.starts_with(&[1, 4])
+                    || sub_bytes.starts_with(&[1, 5])
+                    || sub_bytes.starts_with(&[1, 6])
+                    || sub_bytes.starts_with(&[1, 7])
+                    || sub_bytes.starts_with(&[1, 16])
+                    || sub_bytes.starts_with(&[1, 20])
+                    || sub_bytes.starts_with(&[1, 26])
+                {
+                    let clean_subject = extract_utf8_string(&sub_bytes[2..]);
+                    mess.subject = clean_subject;
+                } else {
+                    mess.subject = column.value.as_str().unwrap_or_default().to_string();
                 }
             } else if column
                 .column
@@ -168,12 +183,12 @@ pub(crate) fn folder_details(
             }
 
             if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
-                println!("subject name: {}", mess.subject);
+                println!("message: {mess:?}");
                 info.messages.push(mess);
                 break;
             }
         }
-    }*/
+    }
 
     info.message_count = info.messages.len();
 

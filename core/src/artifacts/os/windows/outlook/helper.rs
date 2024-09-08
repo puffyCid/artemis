@@ -1,9 +1,14 @@
 /*
- * TODO:
+ * Main Parsing is complete!!!!!!! \O.O/
+ * 
+ * Remainign TODO:
  * 1. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
- * 3. Some clean up
+ * 3. Clean up
  * 4. Make TableContext rows a iterator somehow...?
- * 6. Get email contents!
+ * 5. Yara-X scanning
+ * 6. Time filtering
+ * 7. Expose to CLI
+ * 8. Tests
  *
  * (file)/offset = block btree
  * (item)/descriptor = node btree
@@ -17,16 +22,23 @@ use super::{
     error::OutlookError,
     header::{parse_header, FormatType, Node, NodeID},
     items::{
+        attachment::{extract_attachment, Attachment},
         fai::{extract_fai, FolderMeta},
         folder::{folder_details, search_folder_details, FolderInfo},
+        message::MessageDetails,
     },
     pages::btree::{
         get_block_btree, get_node_btree, BlockType, LeafBlockData, LeafNodeData, NodeBtree,
     },
-    tables::property::{OutlookPropertyContext, PropertyContext},
+    tables::{
+        context::TableContext,
+        property::{OutlookPropertyContext, PropertyContext},
+    },
 };
 use crate::{
-    artifacts::os::windows::outlook::tables::context::OutlookTableContext,
+    artifacts::os::windows::outlook::{
+        items::message::message_details, tables::context::OutlookTableContext,
+    },
     filesystem::ntfs::reader::read_bytes,
 };
 use log::warn;
@@ -68,6 +80,23 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
         ntfs_file: Option<&NtfsFile<'_>>,
         folder: u64,
     ) -> Result<FolderMeta, OutlookError>;
+    fn read_message(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        message: u64,
+    ) -> Result<MessageDetails, OutlookError>;
+    fn recipient_table(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block_data_id: &u64,
+        block_descriptor_id: &u64,
+    ) -> Result<TableContext, OutlookError>;
+    fn read_attachment(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block_data_id: &u64,
+        block_descriptor_id: &u64,
+    ) -> Result<Attachment, OutlookError>;
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<T> {
@@ -149,13 +178,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
     ) -> Result<FolderInfo, OutlookError> {
-        /*
-         * Steps:
-         * 1. Get static node ID value (290) from node_btree
-         * 2. Parse block data
-         * 3. Parse PropertyContext and TableContext
-         * 4. Parse the other nodes with the ID 290
-         */
         let root = 290;
         self.read_folder(ntfs_file, root)
     }
@@ -166,15 +188,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         ntfs_file: Option<&NtfsFile<'_>>,
         folder: u64,
     ) -> Result<FolderInfo, OutlookError> {
-        /*
-         * Steps:
-         * 1. Get folder node_id_num. Requires 4 node_ids
-         * 2. Parse block data
-         * 3. Parse PropertyContext and TableContext
-         * 4. Parse the other nodes with the folder number (4 total)
-         * 5. Call folder_details()
-         */
-
         let mut leaf_descriptor = None;
 
         let mut normal = LeafNodeData {
@@ -322,36 +335,30 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
         println!("prop block: {normal_value:?}");
-        let normal_result = self
-            .parse_property_contextV2(&normal_value.data, &normal_value.descriptors)
-            .unwrap();
-
-        println!("{normal_result:?}");
-        panic!("stop!");
+        let normal =
+            self.parse_property_contextV2(&normal_value.data, &normal_value.descriptors)?;
+        // println!("{normal:?}");
         let hiearchy_value =
             self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
-        let (_, hiearhy_result) = self
-            .parse_table_context(&hiearchy_value.data[0], &hiearchy_value.descriptors)
-            .unwrap();
+        let hierarchy =
+            self.parse_table_contextV2(&hiearchy_value.data, &hiearchy_value.descriptors)?;
+
+        // println!("{hierarchy:?}");
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
 
-        let (_, contents_result) = self
-            .parse_table_context(&content_value.data[0], &content_value.descriptors)
-            .unwrap();
+        let contents =
+            self.parse_table_contextV2(&content_value.data, &content_value.descriptors)?;
+
+        //println!("{contents:?}");
 
         let fai_value = self.get_block_data(None, &fai_block, fai_descriptor.as_ref())?;
-        let (_, fai_result) = self
-            .parse_table_context(&fai_value.data[0], &fai_value.descriptors)
-            .unwrap();
+        let fai = self.parse_table_contextV2(&fai_value.data, &fai_value.descriptors)?;
 
-        let result = folder_details(
-            &normal_result,
-            &hiearhy_result,
-            &contents_result,
-            &fai_result,
-        );
+        // println!("{fai:?}");
+
+        let result = folder_details(&normal, &hierarchy, &contents, &fai);
 
         Ok(result)
     }
@@ -499,11 +506,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let content_value =
             self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
-        let (_, contents_result) = self
-            .parse_table_context(&content_value.data[0], &content_value.descriptors)
-            .unwrap();
+        let contents =
+            self.parse_table_contextV2(&content_value.data, &content_value.descriptors)?;
 
-        let result = search_folder_details(&search_result, &criteria_result, &contents_result);
+        let result = search_folder_details(&search_result, &criteria_result, &contents);
         Ok(result)
     }
 
@@ -536,6 +542,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     }
                     if node.node.node_id == NodeID::FolderAssociatedInfo {
                         info = node.clone();
+                        break;
                     }
                 }
                 if info.block_offset_data_id != 0 {
@@ -566,13 +573,199 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let info_value = self.get_block_data(ntfs_file, &info_block, info_descriptor.as_ref())?;
-        let info_result = self
-            .parse_property_contextV2(&info_value.data, &info_value.descriptors)
-            .unwrap();
-
-        let meta = extract_fai(&info_result);
+        let info = self.parse_property_contextV2(&info_value.data, &info_value.descriptors)?;
+        let meta = extract_fai(&info);
 
         Ok(meta)
+    }
+
+    fn recipient_table(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block_data_id: &u64,
+        block_descriptor_id: &u64,
+    ) -> Result<TableContext, OutlookError> {
+        let mut table_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
+        let mut table_descriptor = None;
+        for blocks in self.block_btree.iter() {
+            if let Some(block_data) = blocks.get(block_data_id) {
+                table_block = block_data.clone();
+            }
+            if *block_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(block_descriptor_id) {
+                    table_descriptor = Some(block_data.clone());
+                }
+            }
+        }
+
+        let table_value =
+            self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
+        self.parse_table_contextV2(&table_value.data, &table_value.descriptors)
+    }
+
+    fn read_message(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        message: u64,
+    ) -> Result<MessageDetails, OutlookError> {
+        let mut mess = LeafNodeData {
+            node: Node {
+                node_id: NodeID::InternalNode,
+                node_id_num: 0,
+                node: 0,
+            },
+            block_offset_data_id: 0,
+            block_offset_descriptor_id: 0,
+            parent_node_index: 0,
+        };
+
+        let mut peek_nodes = self.node_btree.iter().peekable();
+
+        while let Some(nodes) = peek_nodes.next() {
+            if let Some(id) = nodes.btree.get(&(message as u32)) {
+                let node_number = id.node.node_id_num;
+
+                for node in nodes.btree.values() {
+                    if node.node.node_id_num != node_number {
+                        continue;
+                    }
+                    if node.node.node_id == NodeID::Message {
+                        mess = node.clone();
+                        break;
+                    }
+                }
+                if mess.block_offset_data_id != 0 {
+                    break;
+                }
+            }
+        }
+
+        let mut mess_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
+        let mut mess_descriptor = None;
+        for blocks in self.block_btree.iter() {
+            if let Some(block_data) = blocks.get(&mess.block_offset_data_id) {
+                mess_block = block_data.clone();
+            }
+            if mess.block_offset_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(&mess.block_offset_descriptor_id) {
+                    mess_descriptor = Some(block_data.clone());
+                }
+            }
+        }
+
+        println!("mess leaf: {mess_block:?}");
+        let mess_value = self.get_block_data(ntfs_file, &mess_block, mess_descriptor.as_ref())?;
+        println!("{mess_value:?}");
+        let message = self.parse_property_contextV2(&mess_value.data, &mess_value.descriptors)?;
+
+        let mut recipient_block_id = 0;
+        let mut recipient_block_descriptors = 0;
+
+        let mut attach = Vec::new();
+        for value in mess_value.descriptors.values() {
+            println!("Message desc: {value:?}");
+            if value.node.node_id == NodeID::RecipientTable {
+                recipient_block_id = value.block_data_id;
+                recipient_block_descriptors = value.block_descriptor_id;
+            } else if value.node.node_id == NodeID::AttachmentTable {
+                attach.push((value.block_data_id, value.block_descriptor_id));
+            }
+        }
+
+        let mut recipient_rows = Vec::new();
+        if recipient_block_id != 0 && recipient_block_descriptors != 0 {
+            let table =
+                self.recipient_table(ntfs_file, &recipient_block_id, &recipient_block_descriptors)?;
+            recipient_rows = table.rows;
+        }
+        let mut attach_rows = Vec::new();
+        for (block_id, descriptor_id) in attach {
+            let mut table_block = LeafBlockData {
+                block_type: BlockType::Internal,
+                index_id: 0,
+                index: 0,
+                block_offset: 0,
+                size: 0,
+                total_size: 0,
+                reference_count: 0,
+            };
+            let mut table_descriptor = None;
+            for blocks in self.block_btree.iter() {
+                if let Some(block_data) = blocks.get(&block_id) {
+                    table_block = block_data.clone();
+                }
+                if descriptor_id != 0 {
+                    if let Some(block_data) = blocks.get(&descriptor_id) {
+                        table_descriptor = Some(block_data.clone());
+                    }
+                }
+            }
+
+            let table_value =
+                self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
+
+            let mut attach_table =
+                self.parse_table_contextV2(&table_value.data, &table_value.descriptors)?;
+
+            attach_rows.append(&mut attach_table.rows);
+        }
+
+        //println!("Email content: {message:?}");
+
+        let mut details = message_details(&message, &attach_rows, &mess_value.descriptors);
+        details.recipients = recipient_rows;
+        Ok(details)
+    }
+
+    fn read_attachment(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        block_data_id: &u64,
+        block_descriptor_id: &u64,
+    ) -> Result<Attachment, OutlookError> {
+        let mut table_block = LeafBlockData {
+            block_type: BlockType::Internal,
+            index_id: 0,
+            index: 0,
+            block_offset: 0,
+            size: 0,
+            total_size: 0,
+            reference_count: 0,
+        };
+        let mut table_descriptor = None;
+        for blocks in self.block_btree.iter() {
+            if let Some(block_data) = blocks.get(block_data_id) {
+                table_block = block_data.clone();
+            }
+            if *block_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(block_descriptor_id) {
+                    table_descriptor = Some(block_data.clone());
+                }
+            }
+        }
+
+        let table_value =
+            self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
+        let mut attachment =
+            self.parse_property_contextV2(&table_value.data, &table_value.descriptors)?;
+
+        Ok(extract_attachment(&mut attachment))
     }
 }
 
@@ -597,6 +790,20 @@ mod tests {
             println!("Meta: {meta_value:?}");
         }
 
+        for message in results.messages {
+            println!("Getting message details for: {:?}", message);
+            let details = reader.read_message(None, message.node).unwrap();
+            println!("Message attachments: {:?}", details.attachments);
+            for attach in details.attachments {
+                println!("Getting attachment for: {attach:?}");
+                let details = reader
+                    .read_attachment(None, &attach.block_id, &attach.descriptor_id)
+                    .unwrap();
+                println!("{details:?}");
+            }
+            //panic!("stop!");
+        }
+
         for sub in results.subfolders {
             println!("getting info for sub folder: {:?}", sub);
             stream_ost(reader, &sub.node);
@@ -618,6 +825,7 @@ mod tests {
             size: 4096,
         };
         outlook_reader.setup(None).unwrap();
-        stream_ost(&mut outlook_reader, &8578);
+        //stream_ost(&mut outlook_reader, &8578);
+        stream_ost(&mut outlook_reader, &290)
     }
 }

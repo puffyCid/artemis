@@ -12,6 +12,7 @@ pub(crate) enum OutlookError {
     NameIdMap,
     NoBlocks,
     PropertyContext,
+    TableContext,
 }
 
 impl std::error::Error for OutlookError {}
@@ -32,6 +33,9 @@ impl fmt::Display for OutlookError {
             }
             OutlookError::PropertyContext => {
                 write!(f, "Failed to parse the Property Context table")
+            }
+            OutlookError::TableContext => {
+                write!(f, "Failed to parse the Table Context table")
             }
         }
     }

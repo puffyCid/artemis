@@ -13,6 +13,7 @@ use crate::{
         tables::{
             header::{get_heap_node_id, table_header},
             heap_btree::parse_btree_heap,
+            property::get_map_offset,
         },
     },
     utils::{
@@ -25,6 +26,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use log::error;
 use nom::bytes::complete::take;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -77,7 +79,7 @@ pub(crate) enum PropertyType {
     ServerId,
     Restriction,
     Binary,
-    MultiIn16,
+    MultiInt16,
     MultiInt32,
     MultiFloat32,
     MultiFloat64,
@@ -97,9 +99,16 @@ pub(crate) enum PropertyType {
 }
 
 pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
+    fn parse_table_contextV2(
+        &mut self,
+        block_data: &Vec<Vec<u8>>,
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> Result<TableContext, OutlookError>;
+
     fn parse_table_context<'a>(
         &mut self,
         data: &'a [u8],
+        all_block: &Vec<Vec<u8>>,
         descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], TableContext>;
 
@@ -110,9 +119,33 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
+    fn parse_table_contextV2(
+        &mut self,
+        block_data: &Vec<Vec<u8>>,
+        block_descriptors: &BTreeMap<u64, DescriptorData>,
+    ) -> Result<TableContext, OutlookError> {
+        let first_block = block_data.get(0);
+        let block = match first_block {
+            Some(result) => result,
+            None => return Err(OutlookError::NoBlocks),
+        };
+
+        let props_result = self.parse_table_context(block, block_data, block_descriptors);
+        let table = match props_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Could not parse table context");
+                return Err(OutlookError::TableContext);
+            }
+        };
+
+        Ok(table)
+    }
+
     fn parse_table_context<'a>(
         &mut self,
         data: &'a [u8],
+        all_blocks: &Vec<Vec<u8>>,
         descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], TableContext> {
         let (input, header) = table_header(data)?;
@@ -183,7 +216,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 table.array_end_offset,
                 &table.array_end_8bit,
                 &header.page_map_offset,
-                data,
+                all_blocks,
             );
 
             table.rows = rows;
@@ -196,7 +229,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             table.array_end_offset,
             &table.array_end_8bit,
             &header.page_map_offset,
-            data,
+            all_blocks,
         )?;
 
         table.rows = rows;
@@ -265,7 +298,7 @@ fn get_row_data<'a>(
     row_data_size: u16,
     cell_map_start: &u16,
     page_map_offset: &u16,
-    original_data: &'a [u8],
+    all_blocks: &Vec<Vec<u8>>,
 ) -> nom::IResult<&'a [u8], ()> {
     let mut input = data;
     for row in rows {
@@ -283,10 +316,9 @@ fn get_row_data<'a>(
                 continue;
                }
             }*/
-            let (col_data_start, _) = take(column.column.offset)(row_data)?;
             println!("column: {column:?}");
             let (_, value) = parse_row_data(
-                original_data,
+                all_blocks,
                 row_data,
                 &column.column.property_type,
                 page_map_offset,
@@ -302,7 +334,7 @@ fn get_row_data<'a>(
 }
 
 fn parse_row_data<'a>(
-    original_data: &'a [u8],
+    all_blocks: &Vec<Vec<u8>>,
     row_data: &'a [u8],
     prop_type: &PropertyType,
     page_map_offset: &u16,
@@ -340,13 +372,15 @@ fn parse_row_data<'a>(
         }
         PropertyType::String | PropertyType::MultiString => {
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            println!("string offset: {offset}");
-            println!("heap?:{:?}", get_heap_node_id(&offset));
-            if offset != 0 && page_map_offset != &0 {
+            if offset == 0 {
+                return Ok((row_data, value));
+            }
+            let (block_index, map_start) = get_map_offset(&offset);
+            if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let (_, prop_value) =
-                    get_property_data(original_data, prop_type, page_map_offset, &offset, &false)?;
+                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
+                        .unwrap();
                 value = prop_value;
-                // panic!("wrong?: {value:?}");
             }
         }
         PropertyType::String8 => todo!(),
@@ -356,6 +390,11 @@ fn parse_row_data<'a>(
             value = serde_json::to_value(&unixepoch_to_iso(&timestamp)).unwrap_or_default();
         }
         PropertyType::Guid => {
+            let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+            if offset == 0 {
+                return Ok((row_data, value));
+            }
+            panic!("a real guid?");
             let string_value = format_guid_le_bytes(value_data);
             value = serde_json::to_value(&string_value).unwrap_or_default();
         }
@@ -363,15 +402,18 @@ fn parse_row_data<'a>(
         PropertyType::Restriction => todo!(),
         PropertyType::Binary => {
             let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            let empty = 0;
-            if offset != empty {
-                println!("binary offset: {offset}");
+            if offset == 0 {
+                return Ok((row_data, value));
+            }
+            let (block_index, map_start) = get_map_offset(&offset);
+            if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let (_, prop_value) =
-                    get_property_data(original_data, prop_type, page_map_offset, &offset, &false)?;
+                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
+                        .unwrap();
                 value = prop_value;
             }
         }
-        PropertyType::MultiIn16 => todo!(),
+        PropertyType::MultiInt16 => todo!(),
         PropertyType::MultiInt32 => {
             let (input, count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             let empty = 0;
@@ -479,7 +521,7 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
         253 => PropertyType::Restriction,
         254 => PropertyType::RuleAction,
         258 => PropertyType::Binary,
-        4098 => PropertyType::MultiIn16,
+        4098 => PropertyType::MultiInt16,
         4099 => PropertyType::MultiInt32,
         4100 => PropertyType::MultiFloat32,
         4101 => PropertyType::MultiFloat64,
@@ -556,7 +598,7 @@ mod tests {
                 index: 8,
             },
         }]];
-        get_row_data(&data, &mut rows, 67, &65, &364, &test).unwrap();
+        get_row_data(&data, &mut rows, 67, &65, &364, &vec![test.to_vec()]).unwrap();
         assert_eq!(rows[0][0].value, Value::Null);
     }
 
