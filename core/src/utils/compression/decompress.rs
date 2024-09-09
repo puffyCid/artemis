@@ -177,9 +177,11 @@ pub(crate) fn decompress_xpress(
     Ok(decompress_data)
 }
 
-pub(crate) fn decompress_rtf(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
-    let size = data.len();
-    println!("compressed size: {size}");
+/**
+ * Decomress RTF compressed data. This is found mainly in Microsoft Outlook.
+ * Inspired by https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py (MIT license)
+ */
+pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, CompressionError> {
     let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
     const MAX_LZ_REFERENCE: usize = 4096;
     // Size of the intial string above
@@ -187,25 +189,117 @@ pub(crate) fn decompress_rtf(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     let mut initial_buf = [0; (MAX_LZ_REFERENCE - SIZE)];
     initial_buf.fill(0);
 
-    let start = [intial_string, &initial_buf].concat();
+    let mut start = [intial_string, &initial_buf].concat();
 
-    let mut count = 0;
     let mut decom_data = Vec::new();
-    loop {
-        if count > data.len() {
+    let mut buf_position = SIZE;
+
+    let mut position = 0;
+
+    let mut done = false;
+    while !done {
+        if position > data.len() {
+            warn!(
+                "[compression] Data position greater than data size: {position} vs {}",
+                data.len()
+            );
             break;
         }
-        let value = data[count];
+        let bit = data[position];
+        position += 1;
 
-        count += 1;
+        let bits = format!("{0:08b}", bit);
+        let bit_string = bits.chars().rev();
+        for entry in bit_string {
+            if entry == '1' {
+                if position + 2 > data.len() {
+                    warn!(
+                        "[compression] Data reference position greater than data size: {} vs {}",
+                        position + 2,
+                        data.len()
+                    );
+                    done = true;
+                    break;
+                }
+                let ref_offset = &data[position..position + 2];
+                position += 2;
 
-        break;
+                let ref_value = [ref_offset[0], ref_offset[1]];
+                let mut offset = u16::from_be_bytes(ref_value);
+
+                let size = offset & 0b1111;
+
+                offset >>= 4;
+                offset &= 0b111111111111;
+
+                if buf_position == offset as usize {
+                    done = true;
+                    break;
+                }
+
+                for value in 0..size + 2 {
+                    let value_offset = (offset + value) as usize % MAX_LZ_REFERENCE;
+                    if value_offset > start.len() {
+                        warn!(
+                            "[compression] Value offset greater than start size: {} vs {}",
+                            value_offset,
+                            start.len()
+                        );
+                        break;
+                    }
+                    let value = start[value_offset];
+                    decom_data.push(value);
+
+                    if buf_position > start.len() {
+                        warn!(
+                            "[compression] Buffer position greater than start size: {buf_position} vs {}",
+                            start.len()
+                        );
+                        break;
+                    }
+
+                    start[buf_position] = value;
+                    buf_position = (buf_position + 1) % MAX_LZ_REFERENCE;
+                }
+                continue;
+            }
+
+            if position > data.len() {
+                warn!(
+                    "[compression] Data position greater than data size, cannot get next byte: {position} vs {}",
+                    data.len()
+                );
+                done = true;
+                break;
+            }
+
+            let next_bit = data[position];
+            position += 1;
+            decom_data.push(next_bit);
+            if buf_position > start.len() {
+                warn!(
+                    "[compression] Buffer position greater than start size, cannot set next byte: {buf_position} vs {}",
+                    start.len()
+                );
+                done = true;
+                break;
+            }
+            start[buf_position] = next_bit;
+            buf_position = (buf_position + 1) % MAX_LZ_REFERENCE;
+        }
     }
+
+    if decom_data.len() as u32 != *decom_size {
+        error!("[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}", decom_data.len());
+        return Err(CompressionError::RtfCorrupted);
+    }
+
     Ok(decom_data)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::decompress_rtf;
     use crate::{
         filesystem::files::read_file,
         utils::{
@@ -217,8 +311,6 @@ mod tests {
         },
     };
     use std::path::PathBuf;
-
-    use super::decompress_rtf;
 
     #[test]
     fn test_decompress_gzip() {
@@ -383,10 +475,51 @@ mod tests {
             64, 13, 23, 112, 48, 10, 113, 23, 242, 98, 107, 109, 107, 6, 115, 1, 144, 0, 32, 32,
             66, 77, 95, 66, 224, 69, 71, 73, 78, 125, 10, 252, 21, 81, 33, 96,
         ];
-        let (input, compression_size) = nom_unsigned_four_bytes(&test, Endian::Le).unwrap();
+        let (input, _compression_size) = nom_unsigned_four_bytes(&test, Endian::Le).unwrap();
         let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let (input, sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let (input, crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let result = decompress_rtf(input).unwrap();
+        let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let result = decompress_rtf(input, &uncompressed_size).unwrap();
+
+        assert_eq!(result.len(), uncompressed_size as usize);
+        assert_eq!(
+            result,
+            vec![
+                123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 92, 102, 98, 105, 100, 105, 115,
+                92, 97, 110, 115, 105, 99, 112, 103, 49, 50, 53, 50, 92, 100, 101, 102, 102, 48,
+                92, 100, 101, 102, 116, 97, 98, 55, 50, 48, 92, 102, 114, 111, 109, 116, 101, 120,
+                116, 123, 92, 102, 111, 110, 116, 116, 98, 108, 123, 92, 102, 48, 92, 102, 115,
+                119, 105, 115, 115, 92, 102, 99, 104, 97, 114, 115, 101, 116, 48, 32, 84, 105, 109,
+                101, 115, 32, 78, 101, 119, 32, 82, 111, 109, 97, 110, 59, 125, 123, 92, 102, 49,
+                92, 102, 115, 119, 105, 115, 115, 92, 102, 99, 104, 97, 114, 115, 101, 116, 50, 10,
+                13, 83, 121, 109, 98, 111, 108, 59, 125, 125, 10, 13, 123, 92, 99, 111, 108, 111,
+                114, 116, 98, 108, 59, 92, 114, 101, 100, 49, 57, 50, 92, 103, 114, 101, 101, 110,
+                49, 57, 50, 92, 98, 108, 117, 101, 49, 57, 50, 59, 125, 10, 13, 123, 92, 42, 92,
+                103, 101, 110, 101, 114, 97, 116, 111, 114, 32, 77, 105, 99, 114, 111, 115, 111,
+                102, 116, 32, 69, 120, 99, 104, 97, 110, 103, 101, 32, 83, 101, 114, 118, 101, 114,
+                59, 125, 10, 13, 123, 92, 42, 92, 102, 111, 114, 109, 97, 116, 67, 111, 110, 118,
+                101, 114, 116, 101, 114, 32, 99, 111, 110, 118, 101, 114, 116, 101, 100, 32, 102,
+                114, 111, 109, 32, 116, 101, 120, 116, 59, 125, 10, 13, 92, 118, 105, 101, 119,
+                107, 105, 110, 100, 53, 92, 118, 105, 101, 119, 115, 99, 97, 108, 101, 49, 48, 48,
+                10, 13, 123, 92, 42, 92, 98, 107, 109, 107, 115, 116, 97, 114, 116, 32, 66, 77, 95,
+                66, 69, 71, 73, 78, 125, 92, 112, 97, 114, 100, 92, 112, 108, 97, 105, 110, 92,
+                102, 48, 125, 10, 13
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "RtfCorrupted")]
+    fn test_decompress_rtf_corrupt() {
+        let test = [
+            219, 0, 0, 0, 71, 1, 0, 0, 76, 90, 70, 117, 83, 82, 121, 25, 97, 0, 10, 102, 98, 105,
+            100, 4, 0, 0, 99, 99, 192, 112, 103, 49, 50, 53, 50, 0, 254, 3, 67, 240, 116, 101, 120,
+            116, 1, 247, 2, 164, 3, 22,
+        ];
+        let (input, _compression_size) = nom_unsigned_four_bytes(&test, Endian::Le).unwrap();
+        let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let _ = decompress_rtf(input, &uncompressed_size).unwrap();
     }
 }

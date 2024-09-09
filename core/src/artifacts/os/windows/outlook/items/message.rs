@@ -4,7 +4,12 @@ use crate::{
         header::NodeID,
         tables::{context::TableRows, properties::PropertyName, property::PropertyContext},
     },
-    utils::{encoding::base64_decode_standard, strings::extract_utf8_string},
+    utils::{
+        compression::decompress::decompress_rtf,
+        encoding::{base64_decode_standard, base64_encode_standard},
+        nom_helper::{nom_unsigned_four_bytes, Endian},
+        strings::{extract_ascii_utf16_string, extract_utf8_string},
+    },
 };
 use log::error;
 use std::collections::BTreeMap;
@@ -45,12 +50,12 @@ pub(crate) enum AttachMethod {
 }
 
 pub(crate) fn message_details(
-    props: &[PropertyContext],
+    props: &mut Vec<PropertyContext>,
     attachments: &Vec<Vec<TableRows>>,
     descriptors: &BTreeMap<u64, DescriptorData>,
 ) -> MessageDetails {
     let mut message = MessageDetails {
-        props: props.to_vec(),
+        props: Vec::new(),
         body: String::new(),
         subject: String::new(),
         from: String::new(),
@@ -60,14 +65,20 @@ pub(crate) fn message_details(
         recipients: Vec::new(),
     };
 
-    for prop in props {
+    let mut keep = Vec::new();
+
+    for prop in &mut *props {
         if prop.name.contains(&PropertyName::PidTagHtml) {
-            let decode_result = base64_decode_standard(prop.value.as_str().unwrap_or_default());
+            let encoded = prop.value.as_str().unwrap_or_default();
+
+            let decode_result = base64_decode_standard(encoded);
             let decode = match decode_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[outlook] Could not base64 HTML message: {err:?}");
-                    Vec::new()
+                    error!("[outlook] Could not base64 decode HTML message: {err:?}");
+                    message.body = encoded.to_string();
+                    keep.push(false);
+                    continue;
                 }
             };
 
@@ -84,9 +95,38 @@ pub(crate) fn message_details(
         {
             message.recipient = prop.value.as_str().unwrap_or_default().to_string();
         } else if prop.name.contains(&PropertyName::PidTagRtfCompressed) {
-            panic!("ugh: {:?}", prop.value);
-            message.delivered = prop.value.as_str().unwrap_or_default().to_string();
+            let encoded = prop.value.as_str().unwrap_or_default();
+            let data_result = base64_decode_standard(encoded);
+            let data = match data_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!(
+                        "[outlook] Failed to decode encoded RTF data: {err:?}. Returning base64 data"
+                    );
+                    message.body = encoded.to_string();
+                    keep.push(false);
+                    continue;
+                }
+            };
+
+            let decom_result = get_rtf_data(&data);
+            let decom = match decom_result {
+                Ok((_, result)) => result,
+                Err(_err) => {
+                    error!("[outlook] Failed to parse RTF data. Returning base64 data");
+                    message.body = encoded.to_string();
+                    keep.push(false);
+                    continue;
+                }
+            };
+
+            message.body = decom;
+        } else {
+            keep.push(true);
+            continue;
         }
+
+        keep.push(false);
     }
 
     for attach in attachments {
@@ -141,6 +181,11 @@ pub(crate) fn message_details(
         }
     }
 
+    let mut iter = keep.iter();
+    // Remove all props we already extracted above. We do this so we do not store the body twice
+    props.retain(|_| *iter.next().unwrap_or(&false));
+    message.props = props.to_vec();
+
     message
 }
 
@@ -155,4 +200,35 @@ pub(crate) fn get_attach_method(method: &u64) -> AttachMethod {
         6 => AttachMethod::Ole,
         _ => AttachMethod::Unknown,
     }
+}
+
+fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
+    let (input, compression_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, crc) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let compressed_sig = 0x75465a4c;
+    if sig != compressed_sig {
+        println!("not compressed?: {input:?}");
+        // Data is not compressed extract the string new_with_window_bits
+        let value = extract_ascii_utf16_string(input);
+        println!("{value}");
+        panic!("got non compressed RTF?!");
+
+        return Ok((input, value));
+    }
+
+    let decom_result = decompress_rtf(input, &uncompressed_size);
+    let decom = match decom_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
+            return Ok((input, base64_encode_standard(data)));
+        }
+    };
+
+    let value = extract_ascii_utf16_string(&decom);
+
+    Ok((input, value))
 }
