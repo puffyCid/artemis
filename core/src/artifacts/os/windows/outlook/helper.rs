@@ -9,7 +9,6 @@
  * 6. Time filtering
  * 7. Expose to CLI
  * 8. Tests
- * 9. RTF decompression support :/
  * 10. Map name-to-id to unknown props
  *
  * (file)/offset = block btree
@@ -674,7 +673,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         println!("mess leaf: {mess_block:?}");
         let mess_value = self.get_block_data(ntfs_file, &mess_block, mess_descriptor.as_ref())?;
         println!("{mess_value:?}");
-        let message = self.parse_property_contextV2(&mess_value.data, &mess_value.descriptors)?;
+        let mut message =
+            self.parse_property_contextV2(&mess_value.data, &mess_value.descriptors)?;
 
         let mut recipient_block_id = 0;
         let mut recipient_block_descriptors = 0;
@@ -730,7 +730,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         //println!("Email content: {message:?}");
 
-        let mut details = message_details(&message, &attach_rows, &mess_value.descriptors);
+        let mut details = message_details(&mut message, &attach_rows, &mess_value.descriptors);
         details.recipients = recipient_rows;
         Ok(details)
     }

@@ -223,7 +223,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
     let decom = match decom_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
+            panic!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
             return Ok((input, base64_encode_standard(data)));
         }
     };
