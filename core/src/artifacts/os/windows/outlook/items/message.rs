@@ -83,6 +83,9 @@ pub(crate) fn message_details(
             .contains(&PropertyName::PidTagReceivedBySmtpAddress)
         {
             message.recipient = prop.value.as_str().unwrap_or_default().to_string();
+        } else if prop.name.contains(&PropertyName::PidTagRtfCompressed) {
+            panic!("ugh: {:?}", prop.value);
+            message.delivered = prop.value.as_str().unwrap_or_default().to_string();
         }
     }
 

@@ -177,16 +177,48 @@ pub(crate) fn decompress_xpress(
     Ok(decompress_data)
 }
 
+pub(crate) fn decompress_rtf(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
+    let size = data.len();
+    println!("compressed size: {size}");
+    let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
+    const MAX_LZ_REFERENCE: usize = 4096;
+    // Size of the intial string above
+    const SIZE: usize = 207;
+    let mut initial_buf = [0; (MAX_LZ_REFERENCE - SIZE)];
+    initial_buf.fill(0);
+
+    let start = [intial_string, &initial_buf].concat();
+
+    let mut count = 0;
+    let mut decom_data = Vec::new();
+    loop {
+        if count > data.len() {
+            break;
+        }
+        let value = data[count];
+
+        count += 1;
+
+        break;
+    }
+    Ok(decom_data)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         filesystem::files::read_file,
-        utils::compression::decompress::{
-            decompress_gzip, decompress_gzip_data, decompress_lz4, decompress_seven_bit,
-            decompress_xpress, decompress_xz, decompress_zlib, decompress_zstd, XpressType,
+        utils::{
+            compression::decompress::{
+                decompress_gzip, decompress_gzip_data, decompress_lz4, decompress_seven_bit,
+                decompress_xpress, decompress_xz, decompress_zlib, decompress_zstd, XpressType,
+            },
+            nom_helper::{nom_unsigned_four_bytes, Endian},
         },
     };
     use std::path::PathBuf;
+
+    use super::decompress_rtf;
 
     #[test]
     fn test_decompress_gzip() {
@@ -334,5 +366,27 @@ mod tests {
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
         let decom_data = decompress_xpress(&mut bytes, 153064, &XpressType::XpressHuffman).unwrap();
         assert_eq!(decom_data.len(), 153064);
+    }
+
+    #[test]
+    fn test_decompress_rtf() {
+        let test = [
+            219, 0, 0, 0, 71, 1, 0, 0, 76, 90, 70, 117, 83, 82, 121, 25, 97, 0, 10, 102, 98, 105,
+            100, 4, 0, 0, 99, 99, 192, 112, 103, 49, 50, 53, 50, 0, 254, 3, 67, 240, 116, 101, 120,
+            116, 1, 247, 2, 164, 3, 227, 2, 0, 4, 99, 104, 10, 192, 115, 101, 116, 48, 32, 239, 7,
+            109, 2, 131, 0, 80, 17, 77, 50, 10, 128, 6, 180, 2, 128, 150, 125, 10, 128, 8, 200, 59,
+            9, 98, 49, 57, 14, 192, 191, 9, 195, 22, 114, 10, 50, 22, 113, 2, 128, 21, 98, 42, 9,
+            176, 115, 9, 240, 4, 144, 97, 116, 5, 178, 14, 80, 3, 96, 115, 162, 111, 1, 128, 32,
+            69, 120, 17, 193, 110, 24, 48, 93, 6, 82, 118, 4, 144, 23, 182, 2, 16, 114, 0, 192,
+            116, 125, 8, 80, 110, 26, 49, 16, 32, 5, 192, 5, 160, 27, 100, 100, 154, 32, 3, 82, 32,
+            16, 34, 23, 178, 92, 118, 8, 144, 228, 119, 107, 11, 128, 100, 53, 29, 83, 4, 240, 7,
+            64, 13, 23, 112, 48, 10, 113, 23, 242, 98, 107, 109, 107, 6, 115, 1, 144, 0, 32, 32,
+            66, 77, 95, 66, 224, 69, 71, 73, 78, 125, 10, 252, 21, 81, 33, 96,
+        ];
+        let (input, compression_size) = nom_unsigned_four_bytes(&test, Endian::Le).unwrap();
+        let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let (input, sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let (input, crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
+        let result = decompress_rtf(input).unwrap();
     }
 }

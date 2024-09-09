@@ -1,6 +1,6 @@
 /*
  * Main Parsing is complete!!!!!!! \O.O/
- * 
+ *
  * Remainign TODO:
  * 1. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
  * 3. Clean up
@@ -9,6 +9,8 @@
  * 6. Time filtering
  * 7. Expose to CLI
  * 8. Tests
+ * 9. RTF decompression support :/
+ * 10. Map name-to-id to unknown props
  *
  * (file)/offset = block btree
  * (item)/descriptor = node btree
