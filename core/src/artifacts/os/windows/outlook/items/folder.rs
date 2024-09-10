@@ -1,12 +1,10 @@
-use crate::{
-    artifacts::os::windows::outlook::tables::{
-        context::{TableContext, TableRows},
-        properties::PropertyName,
-        property::PropertyContext,
-    },
-    utils::strings::extract_utf8_string,
+use crate::artifacts::os::windows::outlook::tables::{
+    context::{TableInfo, TableRows},
+    properties::PropertyName,
+    property::PropertyContext,
 };
 
+#[derive(Debug)]
 pub(crate) struct FolderInfo {
     /**Name of the folder */
     pub(crate) name: String,
@@ -14,8 +12,6 @@ pub(crate) struct FolderInfo {
     pub(crate) created: String,
     /**Timestamp when folder was modified */
     pub(crate) modified: String,
-    /**TableRows associated with the Hierarchy (subfolders) */
-    hierarchy: Vec<Vec<TableRows>>,
     /**Folder Properties */
     pub(crate) properties: Vec<PropertyContext>,
     /**Subfolders that can be iterated into */
@@ -25,9 +21,9 @@ pub(crate) struct FolderInfo {
     /**Number of subfolders */
     pub(crate) subfolder_count: usize,
     /**Number of messages */
-    pub(crate) message_count: usize,
+    pub(crate) message_count: u64,
     /**Messages that can be iterated into */
-    pub(crate) messages: Vec<MessagePreview>,
+    pub(crate) messages_table: TableInfo,
 }
 
 #[derive(Debug)]
@@ -36,30 +32,22 @@ pub(crate) struct SubFolder {
     pub(crate) node: u64,
 }
 
-#[derive(Debug)]
-pub(crate) struct MessagePreview {
-    pub(crate) subject: String,
-    pub(crate) delivery: String,
-    pub(crate) node: u64,
-}
-
 pub(crate) fn folder_details(
     normal: &[PropertyContext],
-    hierarchy: &TableContext,
-    contents: &TableContext,
-    fai: &TableContext,
+    hierarchy: &Vec<Vec<TableRows>>,
+    contents: &TableInfo,
+    fai: &Vec<Vec<TableRows>>,
 ) -> FolderInfo {
     let mut info = FolderInfo {
         name: String::new(),
         created: String::new(),
         modified: String::new(),
-        hierarchy: Vec::new(),
         associated_content: Vec::new(),
         properties: Vec::new(),
         subfolders: Vec::new(),
         subfolder_count: 0,
         message_count: 0,
-        messages: Vec::new(),
+        messages_table: contents.clone(),
     };
 
     for props in normal {
@@ -78,7 +66,7 @@ pub(crate) fn folder_details(
     info.properties = normal.to_vec();
 
     // Now get any subfolders!
-    for rows in &hierarchy.rows {
+    for rows in hierarchy {
         let mut sub = SubFolder {
             name: String::new(),
             node: 0,
@@ -107,10 +95,9 @@ pub(crate) fn folder_details(
     }
 
     info.subfolder_count = info.subfolders.len();
-    info.hierarchy = hierarchy.rows.clone();
 
     // FAI contains associated folder metadata
-    for rows in &fai.rows {
+    for rows in fai {
         let mut sub = SubFolder {
             name: String::new(),
             node: 0,
@@ -138,59 +125,7 @@ pub(crate) fn folder_details(
         }
     }
 
-    println!("Contents len: {}", contents.rows.len());
-
-    for rows in &contents.rows {
-        let mut mess = MessagePreview {
-            subject: String::new(),
-            delivery: String::new(),
-            node: 0,
-        };
-        for column in rows {
-            if column
-                .column
-                .property_name
-                .contains(&PropertyName::PidTagLtpRowId)
-            {
-                mess.node = column.value.as_u64().unwrap_or_default();
-            } else if column
-                .column
-                .property_name
-                .contains(&PropertyName::PidTagSubjectW)
-            {
-                let subject = column.value.as_str().unwrap_or_default().to_string();
-                let sub_bytes = subject.as_bytes();
-                if sub_bytes.starts_with(&[1, 1])
-                    || sub_bytes.starts_with(&[1, 4])
-                    || sub_bytes.starts_with(&[1, 5])
-                    || sub_bytes.starts_with(&[1, 6])
-                    || sub_bytes.starts_with(&[1, 7])
-                    || sub_bytes.starts_with(&[1, 16])
-                    || sub_bytes.starts_with(&[1, 20])
-                    || sub_bytes.starts_with(&[1, 26])
-                {
-                    let clean_subject = extract_utf8_string(&sub_bytes[2..]);
-                    mess.subject = clean_subject;
-                } else {
-                    mess.subject = column.value.as_str().unwrap_or_default().to_string();
-                }
-            } else if column
-                .column
-                .property_name
-                .contains(&PropertyName::PidTagMessageDeliveryTime)
-            {
-                mess.delivery = column.value.as_str().unwrap_or_default().to_string();
-            }
-
-            if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
-                println!("message: {mess:?}");
-                info.messages.push(mess);
-                break;
-            }
-        }
-    }
-
-    info.message_count = info.messages.len();
+    info.message_count = info.messages_table.total_rows;
 
     info
 }
@@ -198,20 +133,18 @@ pub(crate) fn folder_details(
 pub(crate) fn search_folder_details(
     search: &[PropertyContext],
     criteria: &[PropertyContext],
-    contents: &TableContext,
+    contents: &TableInfo,
 ) -> FolderInfo {
     let mut info = FolderInfo {
         name: String::new(),
         created: String::new(),
         modified: String::new(),
-        hierarchy: Vec::new(),
         associated_content: Vec::new(),
         properties: Vec::new(),
         subfolders: Vec::new(),
         subfolder_count: 0,
         message_count: 0,
-        messages: Vec::new(),
-        // folders: Vec::new(),
+        messages_table: contents.clone(),
     };
 
     for props in search {
@@ -230,7 +163,6 @@ pub(crate) fn search_folder_details(
 
     info.properties = search.to_vec();
     info.properties.append(&mut criteria.to_vec());
-    info.hierarchy = contents.rows.clone();
     info
 }
 #[cfg(test)]

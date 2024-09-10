@@ -18,9 +18,9 @@ use std::collections::BTreeMap;
 pub(crate) struct MessageDetails {
     pub(crate) props: Vec<PropertyContext>,
     pub(crate) body: String,
-    subject: String,
-    from: String,
-    recipient: String,
+    pub(crate) subject: String,
+    pub(crate) from: String,
+    pub(crate) recipient: String,
     pub(crate) delivered: String,
     pub(crate) attachments: Vec<AttachmentInfo>,
     pub(crate) recipients: Vec<Vec<TableRows>>,
@@ -86,9 +86,19 @@ pub(crate) fn message_details(
         } else if prop.name.contains(&PropertyName::PidTagMessageDeliveryTime) {
             message.delivered = prop.value.as_str().unwrap_or_default().to_string();
         } else if prop.name.contains(&PropertyName::PidTagSubjectW) {
-            message.subject = prop.value.as_str().unwrap_or_default().to_string();
+            let subject = prop.value.as_str().unwrap_or_default().to_string();
+            message.subject = clean_subject(&subject);
         } else if prop.name.contains(&PropertyName::PidTagSenderEmailAddressW) {
             message.from = prop.value.as_str().unwrap_or_default().to_string();
+        } else if prop.name.contains(&PropertyName::PidTagDisplayToW)
+            && message.recipient.is_empty()
+        {
+            // Defer to PidTagReceivedBySmtpAddress property. But sometimes that property is not present
+            message.recipient = prop.value.as_str().unwrap_or_default().to_string();
+            // Just in case PidTagReceivedBySmtpAddress overrides this, we will keep the
+            // PidTagDisplayToW property
+            keep.push(true);
+            continue;
         } else if prop
             .name
             .contains(&PropertyName::PidTagReceivedBySmtpAddress)
@@ -231,4 +241,77 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
     let value = extract_ascii_utf16_string(&decom);
 
     Ok((input, value))
+}
+
+#[derive(Debug)]
+pub(crate) struct MessagePreview {
+    pub(crate) subject: String,
+    pub(crate) delivery: String,
+    pub(crate) node: u64,
+}
+
+/// Extract some info from the table that points to the messages
+pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePreview> {
+    println!("Contents len: {}", rows.len());
+
+    let mut info = Vec::new();
+    for row in rows {
+        let mut mess = MessagePreview {
+            subject: String::new(),
+            delivery: String::new(),
+            node: 0,
+        };
+        for column in row {
+            if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagLtpRowId)
+            {
+                mess.node = column.value.as_u64().unwrap_or_default();
+            } else if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagSubjectW)
+            {
+                let subject = column.value.as_str().unwrap_or_default().to_string();
+                mess.subject = clean_subject(&subject);
+            } else if column
+                .column
+                .property_name
+                .contains(&PropertyName::PidTagMessageDeliveryTime)
+            {
+                mess.delivery = column.value.as_str().unwrap_or_default().to_string();
+            }
+
+            if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
+                println!("message: {mess:?}");
+                info.push(mess);
+                break;
+            }
+        }
+    }
+
+    info
+}
+
+/// Clean subject. Sometimes it has control control
+fn clean_subject(sub: &str) -> String {
+    let sub_bytes = sub.as_bytes();
+    // https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc#102-subject-control-codes
+    let subject = if sub_bytes.starts_with(&[1, 1])
+        || sub_bytes.starts_with(&[1, 4])
+        || sub_bytes.starts_with(&[1, 5])
+        || sub_bytes.starts_with(&[1, 6])
+        || sub_bytes.starts_with(&[1, 7])
+        || sub_bytes.starts_with(&[1, 16])
+        || sub_bytes.starts_with(&[1, 20])
+        || sub_bytes.starts_with(&[1, 26])
+    {
+        println!("sub bytes: {sub_bytes:?}");
+        extract_utf8_string(&sub_bytes[2..])
+    } else {
+        sub.to_string()
+    };
+
+    subject
 }

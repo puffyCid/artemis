@@ -115,7 +115,7 @@ fn get_table_type(table: &u8) -> TableType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct HeapNode {
     pub(crate) node: NodeID,
     pub(crate) index: u32,

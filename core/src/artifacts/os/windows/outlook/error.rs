@@ -13,6 +13,7 @@ pub(crate) enum OutlookError {
     NoBlocks,
     PropertyContext,
     TableContext,
+    MessageCount,
 }
 
 impl std::error::Error for OutlookError {}
@@ -36,6 +37,9 @@ impl fmt::Display for OutlookError {
             }
             OutlookError::TableContext => {
                 write!(f, "Failed to parse the Table Context table")
+            }
+            OutlookError::MessageCount => {
+                write!(f, "Too many messages requested, not enough available")
             }
         }
     }

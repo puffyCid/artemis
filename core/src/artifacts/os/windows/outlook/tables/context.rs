@@ -99,18 +99,24 @@ pub(crate) enum PropertyType {
 }
 
 pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
-    fn parse_table_contextV2(
+    fn table_info(
         &mut self,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
-    ) -> Result<TableContext, OutlookError>;
+    ) -> Result<TableInfo, OutlookError>;
 
-    fn parse_table_context<'a>(
+    fn get_rows(&mut self, info: &TableInfo) -> Result<Vec<Vec<TableRows>>, OutlookError>;
+    fn parse_rows<'a>(
+        &mut self,
+        info: &TableInfo,
+        data: &'a [u8],
+    ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>>;
+    fn parse_table_info<'a>(
         &mut self,
         data: &'a [u8],
         all_block: &Vec<Vec<u8>>,
         descriptors: &BTreeMap<u64, DescriptorData>,
-    ) -> nom::IResult<&'a [u8], TableContext>;
+    ) -> nom::IResult<&'a [u8], TableInfo>;
 
     fn get_descriptor_data(
         &mut self,
@@ -118,23 +124,36 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct TableInfo {
+    pub(crate) block_data: Vec<Vec<u8>>,
+    pub(crate) block_descriptors: BTreeMap<u64, DescriptorData>,
+    pub(crate) rows: Vec<u64>,
+    pub(crate) columns: Vec<TableRows>,
+    pub(crate) include_cols: Vec<PropertyName>,
+    pub(crate) row_size: u16,
+    pub(crate) map_offset: u16,
+    pub(crate) node: HeapNode,
+    pub(crate) total_rows: u64,
+}
+
 impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
-    fn parse_table_contextV2(
+    fn table_info(
         &mut self,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
-    ) -> Result<TableContext, OutlookError> {
+    ) -> Result<TableInfo, OutlookError> {
         let first_block = block_data.get(0);
         let block = match first_block {
             Some(result) => result,
             None => return Err(OutlookError::NoBlocks),
         };
 
-        let props_result = self.parse_table_context(block, block_data, block_descriptors);
+        let props_result = self.parse_table_info(block, block_data, block_descriptors);
         let table = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not parse table context");
+                error!("[outlook] Could not get table info");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -142,12 +161,70 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         Ok(table)
     }
 
-    fn parse_table_context<'a>(
+    fn get_rows(&mut self, info: &TableInfo) -> Result<Vec<Vec<TableRows>>, OutlookError> {
+        let first_block = info.block_data.get(0);
+        let block = match first_block {
+            Some(result) => result,
+            None => return Err(OutlookError::NoBlocks),
+        };
+
+        let rows_result = self.parse_rows(info, &block);
+        let rows = match rows_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Could not get table rows");
+                return Err(OutlookError::TableContext);
+            }
+        };
+        Ok(rows)
+    }
+
+    fn parse_rows<'a>(
+        &mut self,
+        info: &TableInfo,
+        data: &'a [u8],
+    ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
+        let (input, header) = table_header(data)?;
+        let (input, heap_btree) = parse_btree_heap(input)?;
+
+        let tree_header_size: u8 = 22;
+        let (input, _) = take(tree_header_size)(input)?;
+
+        let mut descriptor_data = Vec::new();
+        if info.node.node == NodeID::LocalDescriptors {
+            println!("TC Desc: {:?}", info.block_descriptors);
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+                descriptor_data = self.get_descriptor_data(descriptor).unwrap();
+            }
+        }
+
+        let column_size = 8;
+        let column_definition_size = column_size * info.columns.len();
+        // Now skip column definitions
+        let (input, _) = take(column_definition_size)(input)?;
+
+        // Now skip Row name and ID section
+        let section_size = 8;
+        let size = info.total_rows * section_size;
+        let (input, _) = take(size)(input)?;
+
+        if !descriptor_data.is_empty() {
+            let (input, rows) = get_row_data(&descriptor_data[0], info).unwrap();
+
+            return Ok((&[], rows));
+        }
+
+        let (input, rows) = get_row_data(&input, info)?;
+
+        Ok((input, rows))
+    }
+
+    fn parse_table_info<'a>(
         &mut self,
         data: &'a [u8],
-        all_blocks: &Vec<Vec<u8>>,
+        all_block: &Vec<Vec<u8>>,
         descriptors: &BTreeMap<u64, DescriptorData>,
-    ) -> nom::IResult<&'a [u8], TableContext> {
+    ) -> nom::IResult<&'a [u8], TableInfo> {
         let (input, header) = table_header(data)?;
         println!("Table context header: {header:?}");
         println!(
@@ -170,71 +247,26 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let row = get_heap_node_id(&values_array_index_reference);
         println!("Row Heap Node: {row:?}");
 
-        let mut descriptor_data = Vec::new();
-        if row.node == NodeID::LocalDescriptors {
-            println!("TC Desc: {descriptors:?}");
-            if let Some(descriptor) = descriptors.get(&(row.index as u64)) {
-                descriptor_data = self.get_descriptor_data(descriptor).unwrap();
-            }
-        }
-
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-        let mut table = TableContext {
-            sig,
-            number_column_definitions,
-            array_end_32bit,
-            array_end_16bit,
-            array_end_8bit,
-            array_end_offset,
-            row_index,
-            row,
-            rows: Vec::new(),
-        };
         let row_count = get_row_count(&header.page_map.allocation_table);
 
-        let (mut input, mut rows) =
-            get_column_definitions(input, &table.number_column_definitions, &row_count)?;
+        let (input, rows) = get_column_definitions(input, &number_column_definitions)?;
         println!("Rows: {}", rows.len());
 
-        let mut count = 0;
+        let info = TableInfo {
+            block_data: all_block.to_vec(),
+            block_descriptors: descriptors.clone(),
+            rows: Vec::new(),
+            columns: rows,
+            include_cols: Vec::new(),
+            row_size: array_end_offset,
+            map_offset: header.page_map_offset,
+            total_rows: row_count,
+            node: row,
+        };
 
-        while count < row_count {
-            let (remaining, row_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (remaining, index) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
-            input = remaining;
-            count += 1;
-
-            println!("Row ID: {row_id} - Index: {index}");
-        }
-
-        // If we have descriptor data then part of the Table row is stored in the descriptor
-        if !descriptor_data.is_empty() {
-            let result = get_row_data(
-                &descriptor_data[0],
-                &mut rows,
-                table.array_end_offset,
-                &table.array_end_8bit,
-                &header.page_map_offset,
-                all_blocks,
-            );
-
-            table.rows = rows;
-            return Ok((input, table));
-        }
-
-        let (input, _) = get_row_data(
-            input,
-            &mut rows,
-            table.array_end_offset,
-            &table.array_end_8bit,
-            &header.page_map_offset,
-            all_blocks,
-        )?;
-
-        table.rows = rows;
-
-        Ok((input, table))
+        Ok((input, info))
     }
 
     fn get_descriptor_data(
@@ -273,7 +305,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     }
 }
 
-fn get_row_count(map: &[u16]) -> u16 {
+fn get_row_count(map: &[u16]) -> u64 {
     if map.len() < 4 {
         // There are no rows
         return 0;
@@ -289,48 +321,39 @@ fn get_row_count(map: &[u16]) -> u16 {
     }
 
     let count = rows / row_size;
-    count
+    count as u64
 }
 
 fn get_row_data<'a>(
     data: &'a [u8],
-    rows: &mut [Vec<TableRows>],
-    row_data_size: u16,
-    cell_map_start: &u16,
-    page_map_offset: &u16,
-    all_blocks: &Vec<Vec<u8>>,
-) -> nom::IResult<&'a [u8], ()> {
-    let mut input = data;
-    for row in rows {
-        //let (cell_map, _) = take(*cell_map_start)(input)?;
-        println!("Row size: {row_data_size}");
-        let (reamining, row_data) = take(row_data_size)(input)?;
-        println!("row data: {row_data:?}");
+    info: &TableInfo,
+) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
+    let mut rows = Vec::new();
+    // Get the rows we want
+    for entry in &info.rows {
+        // Go to the start of the row
+        let (row_start, _) = take(entry * info.row_size as u64)(data)?;
+        let (_, row_data) = take(info.row_size)(row_start)?;
 
-        for column in row {
-            /*
-            if let Some(cell) = cell_map.get((column.column.index / 8) as usize) {
-               let skip = cell & (1 << (7 - column.column.index % 8));
-               let cell_not_exists = 0;
-               if skip == cell_not_exists {
-                continue;
-               }
-            }*/
-            println!("column: {column:?}");
+        // Give each row column info
+        let mut col = info.columns.clone();
+        for column in col.iter_mut() {
             let (_, value) = parse_row_data(
-                all_blocks,
+                &info.block_data,
                 row_data,
                 &column.column.property_type,
-                page_map_offset,
-                &(column.column.offset as u32),
+                &info.map_offset,
+                &column.column.offset,
                 &column.column.size,
             )?;
-            println!("col value: {value:?}");
+
             column.value = value;
         }
-        input = reamining;
+
+        rows.push(col);
     }
-    Ok((data, ()))
+
+    Ok((data, rows))
 }
 
 fn parse_row_data<'a>(
@@ -338,7 +361,7 @@ fn parse_row_data<'a>(
     row_data: &'a [u8],
     prop_type: &PropertyType,
     page_map_offset: &u16,
-    offset: &u32,
+    offset: &u16,
     value_size: &u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
@@ -451,13 +474,10 @@ fn parse_row_data<'a>(
 fn get_column_definitions<'a>(
     data: &'a [u8],
     column_count: &u8,
-    rows: &u16,
-) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
+) -> nom::IResult<&'a [u8], Vec<TableRows>> {
     let mut col_data = data;
     let mut count = 0;
 
-    let mut row_values = Vec::new();
-    let mut row_count = 0;
     let mut values = Vec::new();
 
     while &count < column_count {
@@ -490,13 +510,7 @@ fn get_column_definitions<'a>(
         count += 1;
     }
 
-    // Each row has same number of column descriptors
-    while &row_count < rows {
-        row_values.push(values.clone());
-        row_count += 1;
-    }
-
-    Ok((col_data, row_values))
+    Ok((col_data, values))
 }
 
 pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
@@ -546,10 +560,16 @@ mod tests {
         get_column_definitions, get_property_type, get_row_count, get_row_data, ColumnDescriptor,
         TableRows,
     };
-    use crate::artifacts::os::windows::outlook::tables::{
-        context::PropertyType, properties::PropertyName,
+    use crate::artifacts::os::windows::outlook::{
+        header::NodeID,
+        tables::{
+            context::{PropertyType, TableInfo},
+            header::HeapNode,
+            properties::PropertyName,
+        },
     };
     use serde_json::Value;
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_get_row_count() {
@@ -561,45 +581,121 @@ mod tests {
     #[test]
     fn test_get_row_data() {
         let data = [
-            34, 32, 0, 0, 11, 0, 0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 66, 32, 0, 0, 61, 0, 0, 0, 192, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 73, 0, 80, 0, 77,
-            0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0, 78, 0, 79, 0, 78, 0, 95, 0,
-            73, 0, 80, 0, 77, 0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0, 6, 0, 0,
-            0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1, 108, 1,
+            2, 32, 0, 0, 60, 0, 0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 162, 32, 0, 0, 62, 2, 0, 0, 192, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 82, 0, 111, 0, 111,
+            0, 116, 0, 32, 0, 45, 0, 32, 0, 80, 0, 117, 0, 98, 0, 108, 0, 105, 0, 99, 0, 82, 0,
+            111, 0, 111, 0, 116, 0, 32, 0, 45, 0, 32, 0, 77, 0, 97, 0, 105, 0, 108, 0, 98, 0, 111,
+            0, 120, 0, 6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 82, 1, 110, 1,
         ];
-        let test = [
-            108, 1, 236, 124, 64, 0, 0, 0, 0, 0, 0, 0, 181, 4, 4, 0, 96, 0, 0, 0, 124, 15, 64, 0,
-            64, 0, 65, 0, 67, 0, 32, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 2, 1, 48, 14, 32, 0, 4, 8,
-            20, 0, 51, 14, 36, 0, 8, 9, 2, 1, 52, 14, 44, 0, 4, 10, 3, 0, 56, 14, 48, 0, 4, 11, 31,
-            0, 1, 48, 8, 0, 4, 2, 3, 0, 2, 54, 12, 0, 4, 3, 3, 0, 3, 54, 16, 0, 4, 4, 11, 0, 10,
-            54, 64, 0, 1, 5, 31, 0, 19, 54, 52, 0, 4, 12, 3, 0, 53, 102, 56, 0, 4, 13, 3, 0, 54,
-            102, 60, 0, 4, 14, 3, 0, 56, 102, 20, 0, 4, 6, 3, 0, 242, 103, 0, 0, 4, 0, 3, 0, 243,
-            103, 4, 0, 4, 1, 20, 0, 244, 103, 24, 0, 8, 7, 34, 32, 0, 0, 0, 0, 0, 0, 66, 32, 0, 0,
-            1, 0, 0, 0, 34, 32, 0, 0, 11, 0, 0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 66, 32, 0, 0, 61, 0, 0, 0, 192, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 73, 0,
-            80, 0, 77, 0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0, 78, 0, 79, 0, 78,
-            0, 95, 0, 73, 0, 80, 0, 77, 0, 95, 0, 83, 0, 85, 0, 66, 0, 84, 0, 82, 0, 69, 0, 69, 0,
-            6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1, 108, 1,
-        ];
-        let mut rows = vec![vec![TableRows {
-            value: Value::Null,
-            column: ColumnDescriptor {
-                property_type: PropertyType::Binary,
-                id: 3632,
-                property_name: vec![PropertyName::Unknown],
-                offset: 32,
-                size: 4,
-                index: 8,
+
+        let info = TableInfo {
+            block_data: vec![vec![
+                110, 1, 236, 124, 64, 0, 0, 0, 0, 0, 0, 0, 181, 4, 4, 0, 96, 0, 0, 0, 124, 15, 64,
+                0, 64, 0, 65, 0, 67, 0, 32, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 2, 1, 48, 14, 32, 0,
+                4, 8, 20, 0, 51, 14, 36, 0, 8, 9, 2, 1, 52, 14, 44, 0, 4, 10, 3, 0, 56, 14, 48, 0,
+                4, 11, 31, 0, 1, 48, 8, 0, 4, 2, 3, 0, 2, 54, 12, 0, 4, 3, 3, 0, 3, 54, 16, 0, 4,
+                4, 11, 0, 10, 54, 64, 0, 1, 5, 31, 0, 19, 54, 52, 0, 4, 12, 3, 0, 53, 102, 56, 0,
+                4, 13, 3, 0, 54, 102, 60, 0, 4, 14, 3, 0, 56, 102, 20, 0, 4, 6, 3, 0, 242, 103, 0,
+                0, 4, 0, 3, 0, 243, 103, 4, 0, 4, 1, 20, 0, 244, 103, 24, 0, 8, 7, 2, 32, 0, 0, 0,
+                0, 0, 0, 162, 32, 0, 0, 1, 0, 0, 0, 2, 32, 0, 0, 60, 0, 0, 0, 160, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 162,
+                32, 0, 0, 62, 2, 0, 0, 192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 0, 82, 0, 111, 0, 111, 0, 116, 0, 32, 0, 45, 0,
+                32, 0, 80, 0, 117, 0, 98, 0, 108, 0, 105, 0, 99, 0, 82, 0, 111, 0, 111, 0, 116, 0,
+                32, 0, 45, 0, 32, 0, 77, 0, 97, 0, 105, 0, 108, 0, 98, 0, 111, 0, 120, 0, 6, 0, 0,
+                0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 82, 1, 110, 1,
+            ]],
+            block_descriptors: BTreeMap::new(),
+            rows: vec![0, 1],
+            columns: vec![
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::String,
+                        id: 12289,
+                        property_name: vec![PropertyName::PidTagDisplayNameW],
+                        offset: 8,
+                        size: 4,
+                        index: 2,
+                    },
+                },
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::Int32,
+                        id: 13826,
+                        property_name: vec![PropertyName::PidTagContentCount],
+                        offset: 12,
+                        size: 4,
+                        index: 3,
+                    },
+                },
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::Int32,
+                        id: 13827,
+                        property_name: vec![PropertyName::PidTagContentUnreadCount],
+                        offset: 16,
+                        size: 4,
+                        index: 4,
+                    },
+                },
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::Bool,
+                        id: 13834,
+                        property_name: vec![PropertyName::PidTagSubfolders],
+                        offset: 64,
+                        size: 1,
+                        index: 5,
+                    },
+                },
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::Int32,
+                        id: 26610,
+                        property_name: vec![PropertyName::PidTagLtpRowId],
+                        offset: 0,
+                        size: 4,
+                        index: 0,
+                    },
+                },
+                TableRows {
+                    value: Value::Null,
+                    column: ColumnDescriptor {
+                        property_type: PropertyType::Int32,
+                        id: 26611,
+                        property_name: vec![PropertyName::PidTagLtpRowVer],
+                        offset: 4,
+                        size: 4,
+                        index: 1,
+                    },
+                },
+            ],
+            include_cols: Vec::new(),
+            row_size: 67,
+            map_offset: 366,
+            node: HeapNode {
+                node: NodeID::HeapNode,
+                index: 4,
+                block_index: 0,
             },
-        }]];
-        get_row_data(&data, &mut rows, 67, &65, &364, &vec![test.to_vec()]).unwrap();
-        assert_eq!(rows[0][0].value, Value::Null);
+            total_rows: 2,
+        };
+        let (_, results) = get_row_data(&data, &info).unwrap();
+        assert_eq!(results.len(), 2);
+        assert_eq!(
+            results[0][0].value,
+            Value::String(String::from("Root - Public"))
+        );
     }
 
     #[test]
@@ -620,8 +716,8 @@ mod tests {
             84, 0, 82, 0, 69, 0, 69, 0, 6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1,
             108, 1,
         ];
-        let (_, rows) = get_column_definitions(&test, &15, &2).unwrap();
-        assert_eq!(rows.len(), 2);
+        let (_, rows) = get_column_definitions(&test, &15).unwrap();
+        assert_eq!(rows.len(), 15);
     }
 
     #[test]
