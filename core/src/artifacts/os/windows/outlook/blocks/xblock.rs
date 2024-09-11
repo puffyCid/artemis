@@ -146,19 +146,21 @@ mod tests {
         },
         filesystem::files::file_reader,
     };
-    use std::{collections::BTreeMap, io::BufReader};
+    use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
 
     #[test]
     fn test_parse_xblock() {
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
         let mut tree = Vec::new();
 
         get_block_btree(
             None,
             &mut buf_reader,
-            &18800640,
+            &475136,
             &4096,
             &FormatType::Unicode64_4k,
             &mut tree,
@@ -166,13 +168,13 @@ mod tests {
         .unwrap();
 
         let test = LeafBlockData {
-            index_id: 3164,
+            index_id: 22,
             block_type: BlockType::Internal,
-            index: 470548480,
-            block_offset: 507904,
-            size: 65512,
-            total_size: 65512,
-            reference_count: 2,
+            index: 5,
+            block_offset: 152576,
+            size: 56,
+            total_size: 56,
+            reference_count: 44,
         };
 
         let mut block = BlockValue {
@@ -191,7 +193,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(block.data.len(), 2)
+        assert!(block.data.is_empty());
     }
 
     #[test]

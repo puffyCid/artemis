@@ -157,6 +157,7 @@ enum NameType {
     Guid,
 }
 
+/// Extract Name to ID map entries
 fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
     let mut input = data;
     let entry_size = 8;
@@ -212,9 +213,10 @@ mod tests {
 
     #[test]
     fn test_extract_name_id_map() {
-        // We need an OST file for this test
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
@@ -263,13 +265,12 @@ mod tests {
             .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
         let props = outlook_reader
-            .parse_property_contextV2(&block_value.data, &block_value.descriptors)
+            .parse_property_context(&block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(props[1].value.as_str().unwrap().len(), 940);
 
         let results = extract_name_id_map(&props).unwrap();
-        assert_eq!(results.len(), 1307);
-        println!("name to map: {results:?}");
+        assert_eq!(results.len(), 1276);
     }
 
     #[test]

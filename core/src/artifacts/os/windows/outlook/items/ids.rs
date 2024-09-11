@@ -412,6 +412,7 @@ pub(crate) enum PropertyId {
     Unknown,
 }
 
+/// Map IDs to property names
 pub(crate) fn property_name_ids(id: &u32) -> Vec<PropertyId> {
     let mut ids = Vec::new();
     // Generated using python script tools/Outlook/generate_properties.py with minor cleanup

@@ -441,14 +441,16 @@ mod tests {
 
     #[test]
     fn test_get_node_btree() {
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
         let mut tree = Vec::new();
         get_node_btree(
             None,
             &mut buf_reader,
-            &18432000,
+            &548864,
             &4096,
             &FormatType::Unicode64_4k,
             &mut tree,
@@ -456,20 +458,22 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(tree.len(), 6);
+        assert_eq!(tree.len(), 4);
     }
 
     #[test]
     fn test_get_block_btree() {
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
         let mut tree = Vec::new();
 
         get_block_btree(
             None,
             &mut buf_reader,
-            &18800640,
+            &475136,
             &4096,
             &FormatType::Unicode64_4k,
             &mut tree,

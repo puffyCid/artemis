@@ -209,6 +209,7 @@ pub(crate) fn parse_block_bytes<'a>(
 #[cfg(test)]
 mod tests {
     use super::parse_block_bytes;
+    use crate::artifacts::os::windows::outlook::blocks::block::Block;
     use crate::{
         artifacts::os::windows::outlook::{
             blocks::block::OutlookBlock,
@@ -237,15 +238,17 @@ mod tests {
 
     #[test]
     fn test_parse_blocks() {
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
         let mut tree = Vec::new();
 
         get_block_btree(
             None,
             &mut buf_reader,
-            &18800640,
+            &475136,
             &4096,
             &FormatType::Unicode64_4k,
             &mut tree,
@@ -264,7 +267,8 @@ mod tests {
 
         for entry in &tree {
             for (_, value) in entry {
-                outlook_reader.parse_blocks(None, value, None).unwrap();
+                let block = outlook_reader.parse_blocks(None, value, None).unwrap();
+                assert!(block.block_type != Block::Unknown);
             }
         }
     }

@@ -41,12 +41,12 @@ pub(crate) struct PropertyContext {
 }
 
 pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
-    fn parse_property_contextV2(
+    fn parse_property_context(
         &mut self,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<Vec<PropertyContext>, OutlookError>;
-    fn parse_property_context<'a>(
+    fn get_property_context<'a>(
         &mut self,
         header_block: &'a [u8],
         all_blocks: &Vec<Vec<u8>>,
@@ -61,7 +61,8 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookReader<T> {
-    fn parse_property_contextV2(
+    /// Parse property data
+    fn parse_property_context(
         &mut self,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
@@ -72,7 +73,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             None => return Err(OutlookError::NoBlocks),
         };
 
-        let props_result = self.parse_property_context(block, block_data, block_descriptors);
+        let props_result = self.get_property_context(block, block_data, block_descriptors);
         let props = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -85,7 +86,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     }
 
     /// Parse the Property Context data
-    fn parse_property_context<'a>(
+    fn get_property_context<'a>(
         &mut self,
         header_block: &'a [u8],
         all_blocks: &Vec<Vec<u8>>,
@@ -266,6 +267,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     }
 }
 
+/// Parse and get property data
 pub(crate) fn get_property_data<'a>(
     data: &'a [u8],
     prop_type: &PropertyType,
@@ -561,6 +563,7 @@ pub(crate) fn get_property_data<'a>(
     Ok((value_data, value))
 }
 
+/// Get offsets in allocation map from reference
 pub(crate) fn get_map_offset(reference: &u32) -> (u32, u32) {
     let unicode_4k = 19;
     let block_index = reference >> unicode_4k;
@@ -642,7 +645,7 @@ mod tests {
             descriptors: BTreeMap::new(),
         };
         let result = outlook_reader
-            .parse_property_contextV2(&block.data, &block.descriptors)
+            .parse_property_context(&block.data, &block.descriptors)
             .unwrap();
 
         // let (_, result) = parse_property_context(&test).unwrap();
@@ -737,7 +740,7 @@ mod tests {
             descriptors: BTreeMap::new(),
         };
         let store = outlook_reader
-            .parse_property_contextV2(&block.data, &block.descriptors)
+            .parse_property_context(&block.data, &block.descriptors)
             .unwrap();
 
         println!("{store:?}");
@@ -759,9 +762,10 @@ mod tests {
 
     #[test]
     fn test_parse_property_context_name_to_id_map() {
-        // We need an OST file for this test
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
@@ -811,10 +815,9 @@ mod tests {
             .unwrap();
         println!("block value: {block_value:?}");
         let results = outlook_reader
-            .parse_property_contextV2(&block_value.data, &block_value.descriptors)
+            .parse_property_context(&block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(results[1].value.as_str().unwrap().len(), 940);
-        //println!("{results:?}");
     }
 
     #[test]

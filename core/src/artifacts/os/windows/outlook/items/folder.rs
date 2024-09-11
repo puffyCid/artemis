@@ -32,6 +32,7 @@ pub(crate) struct SubFolder {
     pub(crate) node: u64,
 }
 
+/// Get details on Outlook folders
 pub(crate) fn folder_details(
     normal: &[PropertyContext],
     hierarchy: &Vec<Vec<TableRows>>,
@@ -130,6 +131,7 @@ pub(crate) fn folder_details(
     info
 }
 
+/// Get details Outlook search folders. These are special folders in Outlook
 pub(crate) fn search_folder_details(
     search: &[PropertyContext],
     criteria: &[PropertyContext],
@@ -174,13 +176,14 @@ mod tests {
         },
         filesystem::files::file_reader,
     };
-    use std::io::BufReader;
+    use std::{io::BufReader, path::PathBuf};
 
     #[test]
     fn test_folder_details_root() {
-        // We need an OST file for this test
-        let reader =
-            file_reader("C:\\Users\\bob\\Desktop\\azur3m3m1crosoft@outlook.com.ost").unwrap();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let buf_reader = BufReader::new(reader);
 
         let mut outlook_reader = OutlookReader {
@@ -194,8 +197,35 @@ mod tests {
 
         let result = outlook_reader.root_folder(None).unwrap();
 
-        assert_eq!(result.created, "2024-07-29T04:29:52.000Z");
+        assert_eq!(result.created, "2024-09-10T07:14:31.000Z");
         assert_eq!(result.subfolder_count, 2);
         assert_eq!(result.name, "");
+    }
+
+    #[test]
+    fn test_search_folder_details() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
+        let buf_reader = BufReader::new(reader);
+
+        let mut outlook_reader = OutlookReader {
+            fs: buf_reader,
+            block_btree: Vec::new(),
+            node_btree: Vec::new(),
+            format: FormatType::Unicode64_4k,
+            size: 4096,
+        };
+        outlook_reader.setup(None).unwrap();
+
+        let result = outlook_reader.search_folder(None, 524355).unwrap();
+
+        assert_eq!(result.name, "Reminders");
+        assert_eq!(result.created, "2024-09-10T07:15:07.000Z");
+        assert_eq!(result.modified, "2024-09-10T07:15:07.000Z");
+
+        assert_eq!(result.properties.len(), 34);
+        assert_eq!(result.messages_table.block_data.len(), 1);
     }
 }

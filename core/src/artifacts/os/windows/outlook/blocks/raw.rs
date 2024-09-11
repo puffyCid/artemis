@@ -102,9 +102,5 @@ mod tests {
         .unwrap();
 
         assert_eq!(block_value.data[0].len(), 456);
-        //  assert_eq!(block_value.block_size, 456);
-        //  assert_eq!(block_value.sig, 63926);
-        //  assert_eq!(block_value.crc, 3861511615);
-        //  assert_eq!(block_value.back_pointer, 69820);
     }
 }

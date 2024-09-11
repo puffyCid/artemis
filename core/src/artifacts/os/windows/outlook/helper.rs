@@ -7,7 +7,7 @@
  * 5. Yara-X scanning
  * 6. Time filtering
  * 7. Expose to CLI
- * 8. Tests <-- next, replace with ur test OST file!
+ * 8. Tests
  * 10. Map name-to-id to unknown props
  *
  * Sometimes UTF16 still remains in string. Unsure why, nothing else decodes the raw bytes either.
@@ -273,6 +273,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
             }
         }
+        check_node(&normal)?;
 
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
@@ -338,8 +339,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
-        let normal =
-            self.parse_property_contextV2(&normal_value.data, &normal_value.descriptors)?;
+        let normal = self.parse_property_context(&normal_value.data, &normal_value.descriptors)?;
         let hiearchy_value =
             self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
 
@@ -442,6 +442,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             }
         }
 
+        check_node(&search)?;
+
         let mut search_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -493,13 +495,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let search_value =
             self.get_block_data(ntfs_file, &search_block, search_descriptor.as_ref())?;
         let search_result = self
-            .parse_property_contextV2(&search_value.data, &search_value.descriptors)
+            .parse_property_context(&search_value.data, &search_value.descriptors)
             .unwrap();
 
         let criteria_value =
             self.get_block_data(None, &criteria_block, criteria_descriptor.as_ref())?;
         let criteria_result = self
-            .parse_property_contextV2(&criteria_value.data, &criteria_value.descriptors)
+            .parse_property_context(&criteria_value.data, &criteria_value.descriptors)
             .unwrap();
 
         let content_value =
@@ -549,6 +551,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             }
         }
 
+        check_node(&info)?;
+
         let mut info_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -571,12 +575,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let info_value = self.get_block_data(ntfs_file, &info_block, info_descriptor.as_ref())?;
-        let info = self.parse_property_contextV2(&info_value.data, &info_value.descriptors)?;
+        let info = self.parse_property_context(&info_value.data, &info_value.descriptors)?;
         let meta = extract_fai(&info);
 
         Ok(meta)
     }
 
+    /// Read and get info on recipient table
     fn recipient_table(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -614,6 +619,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         self.get_rows(&table_info)
     }
 
+    /// Read and extract email
     fn read_message(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -664,6 +670,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
             }
 
+            let status = check_node(&mess);
+            if status.is_err() {
+                continue;
+            }
+
             let mut mess_block = LeafBlockData {
                 block_type: BlockType::Internal,
                 index_id: 0,
@@ -689,7 +700,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             let mess_value =
                 self.get_block_data(ntfs_file, &mess_block, mess_descriptor.as_ref())?;
             let mut message =
-                self.parse_property_contextV2(&mess_value.data, &mess_value.descriptors)?;
+                self.parse_property_context(&mess_value.data, &mess_value.descriptors)?;
 
             let mut recipient_block_id = 0;
             let mut recipient_block_descriptors = 0;
@@ -760,6 +771,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         Ok(messages)
     }
 
+    /// Read and extract email attachment
     fn read_attachment(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -790,17 +802,34 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let table_value =
             self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
         let mut attachment =
-            self.parse_property_contextV2(&table_value.data, &table_value.descriptors)?;
+            self.parse_property_context(&table_value.data, &table_value.descriptors)?;
 
         Ok(extract_attachment(&mut attachment))
     }
+}
+
+/// Check to make the node info has been update. If we found data in the Node Btree the value should change from zero (0)
+fn check_node(leaf: &LeafNodeData) -> Result<(), OutlookError> {
+    let not_set = 0;
+    if leaf.block_offset_data_id == not_set
+        && leaf.block_offset_descriptor_id == not_set
+        && leaf.parent_node_index as u64 == not_set
+        && leaf.node.node as u64 == not_set
+        && leaf.node.node_id_num == not_set
+    {
+        error!("[outlook] Leaf node data has default values. Its likely the data was not found in the Node Btree");
+        return Err(OutlookError::LeafNode);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::{OutlookReader, OutlookReaderAction};
     use crate::{
-        artifacts::os::windows::outlook::header::FormatType, filesystem::files::file_reader,
+        artifacts::os::windows::outlook::{header::FormatType, items::message::AttachMethod},
+        filesystem::files::file_reader,
     };
     use std::{io::BufReader, path::PathBuf};
 
@@ -839,6 +868,8 @@ mod tests {
 
             // Check other messages
             for message in messages {
+                println!("attach count: {:?}", message.attachments);
+
                 assert!(!message.delivered.is_empty());
                 assert!(!message.from.is_empty());
                 assert!(!message.subject.is_empty());
@@ -854,8 +885,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_outlook_reader() {
+    fn setup_reader<T: std::io::Seek + std::io::Read>() -> OutlookReader<std::fs::File> {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
@@ -870,25 +900,19 @@ mod tests {
             size: 4096,
         };
         outlook_reader.setup(None).unwrap();
+        outlook_reader
+    }
+
+    #[test]
+    fn test_outlook_reader() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
         stream_ost(&mut outlook_reader, &290)
     }
 
     #[test]
     fn test_outlook_reader_root_folder() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+        let mut outlook_reader = setup_reader::<std::fs::File>();
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
-
-        let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
-            block_btree: Vec::new(),
-            node_btree: Vec::new(),
-            format: FormatType::Unicode64_4k,
-            size: 4096,
-        };
-        outlook_reader.setup(None).unwrap();
         let folder = outlook_reader.root_folder(None).unwrap();
         assert_eq!(folder.created, "2024-09-10T07:14:31.000Z");
         assert_eq!(folder.modified, "2024-09-10T07:14:31.000Z");
@@ -897,5 +921,73 @@ mod tests {
         assert_eq!(folder.subfolders[1].name, "Root - Mailbox");
         assert_eq!(folder.name, "");
         assert_eq!(folder.properties.len(), 12);
+    }
+
+    #[test]
+    fn test_outlook_reader_read_folder() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let folder = outlook_reader.read_folder(None, 8610).unwrap();
+
+        assert_eq!(folder.name, "Outbox");
+        assert_eq!(folder.created, "2024-09-10T04:03:24.000Z");
+        assert_eq!(folder.modified, "2024-09-10T07:14:50.000Z");
+        assert_eq!(folder.properties.len(), 27);
+        assert_eq!(folder.subfolder_count, 0);
+        assert_eq!(folder.messages_table.columns.len(), 78);
+    }
+
+    #[test]
+    fn test_outlook_reader_read_attachment() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let attach = outlook_reader.read_attachment(None, &7592, &7586).unwrap();
+
+        assert_eq!(attach.data.len(), 15320);
+        assert_eq!(attach.extension, ".png");
+        assert_eq!(attach.method, AttachMethod::ByValue);
+        assert_eq!(attach.mime, "image/png");
+        assert_eq!(attach.name, "wm-google-store.png");
+        assert_eq!(attach.size, 11703);
+        assert_eq!(attach.props.len(), 11);
+    }
+
+    #[test]
+    fn test_outlook_reader_read_message() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let mut info = outlook_reader.read_folder(None, 8546).unwrap();
+        info.messages_table.rows = vec![0];
+        let mess = outlook_reader
+            .read_message(None, &info.messages_table)
+            .unwrap();
+
+        assert_eq!(mess.len(), 1);
+    }
+
+    #[test]
+    fn test_outlook_reader_recipient_table() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let table = outlook_reader.recipient_table(None, &36, &0).unwrap();
+        assert!(table.is_empty());
+    }
+
+    #[test]
+    fn test_outlook_reader_folder_metadata() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let meta = outlook_reader.folder_metadata(None, 1048648).unwrap();
+
+        assert_eq!(meta.message_class, "IPM.Microsoft.WunderBar.Link");
+        assert_eq!(meta.properties.len(), 54);
+    }
+
+    #[test]
+    #[should_panic(expected = "LeafNode")]
+    fn test_outlook_reader_search_folder_details_bad() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        outlook_reader.folder_metadata(None, 99999).unwrap();
     }
 }

@@ -36,7 +36,7 @@ pub(crate) struct AttachmentInfo {
     pub(crate) descriptor_id: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 
 pub(crate) enum AttachMethod {
     None,
@@ -49,6 +49,7 @@ pub(crate) enum AttachMethod {
     Unknown,
 }
 
+/// Get the content of email messages
 pub(crate) fn message_details(
     props: &mut Vec<PropertyContext>,
     attachments: &Vec<Vec<TableRows>>,
@@ -186,8 +187,10 @@ pub(crate) fn message_details(
                 continue;
             }
 
-            entry.block_id = attach.block_data_id;
-            entry.descriptor_id = attach.block_descriptor_id;
+            if entry.node == attach.node.node as u64 {
+                entry.block_id = attach.block_data_id;
+                entry.descriptor_id = attach.block_descriptor_id;
+            }
         }
     }
 
@@ -199,6 +202,7 @@ pub(crate) fn message_details(
     message
 }
 
+/// Get info on how an attachment was attached to email
 pub(crate) fn get_attach_method(method: &u64) -> AttachMethod {
     match method {
         0 => AttachMethod::None,
@@ -212,6 +216,7 @@ pub(crate) fn get_attach_method(method: &u64) -> AttachMethod {
     }
 }
 
+/// Extract RTF data from emails. RTF may be compressed
 fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
     let (input, compression_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -307,11 +312,115 @@ fn clean_subject(sub: &str) -> String {
         || sub_bytes.starts_with(&[1, 20])
         || sub_bytes.starts_with(&[1, 26])
     {
-        println!("sub bytes: {sub_bytes:?}");
         extract_utf8_string(&sub_bytes[2..])
     } else {
         sub.to_string()
     };
 
     subject
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_rtf_data;
+    use crate::{
+        artifacts::os::windows::outlook::{
+            header::FormatType,
+            helper::{OutlookReader, OutlookReaderAction},
+            items::message::{clean_subject, get_attach_method, AttachMethod},
+        },
+        filesystem::files::file_reader,
+    };
+    use std::{io::BufReader, path::PathBuf};
+
+    #[test]
+    fn test_message_details() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
+        let buf_reader = BufReader::new(reader);
+
+        let mut outlook_reader = OutlookReader {
+            fs: buf_reader,
+            block_btree: Vec::new(),
+            node_btree: Vec::new(),
+            format: FormatType::Unicode64_4k,
+            size: 4096,
+        };
+        outlook_reader.setup(None).unwrap();
+        let mut folder = outlook_reader.read_folder(None, 8578).unwrap();
+        // Read 4th message (in table)
+        folder.messages_table.rows = vec![3];
+        let messages = outlook_reader
+            .read_message(None, &folder.messages_table)
+            .unwrap();
+
+        assert_eq!(messages[0].body.len(), 15683);
+        assert_eq!(
+            messages[0].subject,
+            "Welcome to your new Outlook.com account"
+        );
+        assert_eq!(messages[0].from, "no-reply@microsoft.com");
+    }
+
+    #[test]
+    fn test_get_attach_method() {
+        let test = 99;
+        assert_eq!(get_attach_method(&test), AttachMethod::Unknown);
+    }
+
+    #[test]
+    fn test_get_rtf_data() {
+        let test = [
+            219, 0, 0, 0, 71, 1, 0, 0, 76, 90, 70, 117, 83, 82, 121, 25, 97, 0, 10, 102, 98, 105,
+            100, 4, 0, 0, 99, 99, 192, 112, 103, 49, 50, 53, 50, 0, 254, 3, 67, 240, 116, 101, 120,
+            116, 1, 247, 2, 164, 3, 227, 2, 0, 4, 99, 104, 10, 192, 115, 101, 116, 48, 32, 239, 7,
+            109, 2, 131, 0, 80, 17, 77, 50, 10, 128, 6, 180, 2, 128, 150, 125, 10, 128, 8, 200, 59,
+            9, 98, 49, 57, 14, 192, 191, 9, 195, 22, 114, 10, 50, 22, 113, 2, 128, 21, 98, 42, 9,
+            176, 115, 9, 240, 4, 144, 97, 116, 5, 178, 14, 80, 3, 96, 115, 162, 111, 1, 128, 32,
+            69, 120, 17, 193, 110, 24, 48, 93, 6, 82, 118, 4, 144, 23, 182, 2, 16, 114, 0, 192,
+            116, 125, 8, 80, 110, 26, 49, 16, 32, 5, 192, 5, 160, 27, 100, 100, 154, 32, 3, 82, 32,
+            16, 34, 23, 178, 92, 118, 8, 144, 228, 119, 107, 11, 128, 100, 53, 29, 83, 4, 240, 7,
+            64, 13, 23, 112, 48, 10, 113, 23, 242, 98, 107, 109, 107, 6, 115, 1, 144, 0, 32, 32,
+            66, 77, 95, 66, 224, 69, 71, 73, 78, 125, 10, 252, 21, 81, 33, 96,
+        ];
+
+        let (_, message) = get_rtf_data(&test).unwrap();
+        assert_eq!(message.len(), 327);
+        assert_eq!(message, "{\\rtf1\\ansi\\fbidis\\ansicpg1252\\deff0\\deftab720\\fromtext{\\fonttbl{\\f0\\fswiss\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset2\n\rSymbol;}}\n\r{\\colortbl;\\red192\\green192\\blue192;}\n\r{\\*\\generator Microsoft Exchange Server;}\n\r{\\*\\formatConverter converted from text;}\n\r\\viewkind5\\viewscale100\n\r{\\*\\bkmkstart BM_BEGIN}\\pard\\plain\\f0}\n\r");
+    }
+
+    #[test]
+    fn test_table_message_preview() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
+        let buf_reader = BufReader::new(reader);
+
+        let mut outlook_reader = OutlookReader {
+            fs: buf_reader,
+            block_btree: Vec::new(),
+            node_btree: Vec::new(),
+            format: FormatType::Unicode64_4k,
+            size: 4096,
+        };
+        outlook_reader.setup(None).unwrap();
+        let mut folder = outlook_reader.read_folder(None, 8578).unwrap();
+        // Read 6th message (in table)
+        folder.messages_table.rows = vec![5];
+        let messages = outlook_reader
+            .read_message(None, &folder.messages_table)
+            .unwrap();
+
+        assert_eq!(messages[0].body.len(), 190);
+        assert_eq!(messages[0].subject, "Whodunit");
+    }
+
+    #[test]
+    fn test_clean_subject() {
+        let test = "test";
+        assert_eq!(clean_subject(&test), "test");
+    }
 }
