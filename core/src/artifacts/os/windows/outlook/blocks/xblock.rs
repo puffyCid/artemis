@@ -29,12 +29,21 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
         512
     };
 
+    println!("block type: {:?}", block.block_type);
+    println!("block offset: {}", block.block_offset);
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
     if alignment_size == 0 {
         // If the actual data is perfectly aligned then we need to add another block
         alignment_size = size;
     }
+
+    let footer_size = 24;
+    // If alignment is less than footer size. Then footer is stored in next block
+    if alignment_size < footer_size {
+        alignment_size += size;
+    }
+    //println!("block size: {} + align: {}", block.size, alignment_size);
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -49,13 +58,16 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     for entry in entries {
         for tree in other_blocks {
             if let Some(value) = tree.get(&entry) {
-                println!("Found: {value:?}");
+                //println!("Found: {value:?}");
                 alignment_size = (size - value.size % size) % size;
                 if alignment_size == 0 {
                     // If the actual data is perfectly aligned then we need to add another block
                     alignment_size = size;
                 }
-                println!("align: {}", value.size as u64 + alignment_size as u64);
+                if alignment_size < footer_size {
+                    alignment_size += size;
+                }
+                //println!("align: {}", value.size as u64 + alignment_size as u64);
                 let bytes = read_bytes(
                     &value.block_offset,
                     value.size as u64 + alignment_size as u64,
@@ -84,7 +96,7 @@ fn xblock_data<'a>(
     block_value: &mut BlockValue,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
-    let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
+    println!("xblock sig: {sig}");
     let sblock_sig = 2;
     if sig == sblock_sig {
         let (input, descriptor_tree) = parse_descriptor_block(data, format)?;
@@ -93,21 +105,35 @@ fn xblock_data<'a>(
         return Ok((input, Vec::new()));
     } else if sig != 1 {
         // Its a raw block.
-        let (input, block) = parse_block_bytes(data, format)?;
+        let (_, block) = parse_block_bytes(data, format)?;
         if let Some(sig) = block.data.get(0) {
             if sig == &sblock_sig {
                 let (input, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
                 block_value.block_type = Block::Descriptors;
                 block_value.descriptors = descriptor_tree;
                 return Ok((&[], Vec::new()));
+            } else if sig == &1 {
+                println!("raw block is actually xblock?");
+                let (_, result) = extract_xblock_entries(&block.data[1..], format).unwrap();
+                return Ok((&[], result));
+            } else {
+                block_value.block_type = Block::Raw;
+                //block_value.data.push(block.data);
+                panic!("got a raw block what todo: {:?}", block.data);
+                return Ok((&[], Vec::new()));
             }
         }
-        block_value.block_type = Block::Raw;
-        block_value.data.push(block.data);
-        println!("{:?}", block_value.data);
-        panic!("Got a raw block how should we treat it?");
-        return Ok((input, Vec::new()));
     }
+    return extract_xblock_entries(input, format);
+}
+
+fn extract_xblock_entries<'a>(
+    data: &'a [u8],
+    format: &FormatType,
+) -> nom::IResult<&'a [u8], Vec<u64>> {
+    let (input, array_level) = nom_unsigned_one_byte(data, Endian::Le)?;
+    println!("array level: {array_level}");
+
     if array_level != 1 {
         println!("{array_level}");
         println!("{data:?}");

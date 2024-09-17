@@ -30,7 +30,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
         alignment_size = size;
     }
 
-    // If alignment is less footer size. Then footer is stored in next block
+    // If alignment is less than footer size. Then footer is stored in next block
     if alignment_size < footer_size {
         alignment_size += size;
     }

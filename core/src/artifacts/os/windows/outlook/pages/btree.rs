@@ -79,7 +79,6 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
                 panic!("skip?: {node:?}");
                 continue;
             }
-            println!("my node: {node:?}");
 
             if let Some(value) = tree.get(&node.node.node) {
                 panic!("The dupe: {value:?}");
@@ -329,6 +328,7 @@ pub(crate) fn parse_leaf_node_data<'a>(
             block_offset_descriptor_id,
             parent_node_index,
         };
+        println!("leaf node: {leaf:?}");
         leaf_nodes.push(leaf);
     }
 
@@ -415,6 +415,7 @@ pub(crate) fn parse_leaf_block_data<'a>(
         }
 
         leaf_data = input;
+        println!("leaf block: {leaf:?}");
         leaf_blocks.push(leaf);
     }
 

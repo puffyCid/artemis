@@ -9,9 +9,9 @@ use crate::{
         error::OutlookError,
         header::NodeID,
         helper::{OutlookReader, OutlookReaderAction},
-        pages::btree::{BlockType, LeafBlockData},
+        pages::btree::{BlockType, LeafBlockData, NodeLevel},
         tables::{
-            header::{get_heap_node_id, table_header},
+            header::{get_heap_node_id, heap_page_map, table_header},
             heap_btree::parse_btree_heap,
             property::get_map_offset,
         },
@@ -111,6 +111,16 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
         info: &TableInfo,
         data: &'a [u8],
     ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>>;
+    fn get_branch_rows(
+        &mut self,
+        info: &TableInfo,
+        branch: &TableBranchInfo,
+    ) -> Result<Vec<Vec<TableRows>>, OutlookError>;
+    fn parse_branch_rows(
+        &mut self,
+        info: &TableInfo,
+        branch: &TableBranchInfo,
+    ) -> nom::IResult<&[u8], Vec<Vec<TableRows>>>;
     fn parse_table_info<'a>(
         &mut self,
         data: &'a [u8],
@@ -135,6 +145,14 @@ pub(crate) struct TableInfo {
     pub(crate) map_offset: u16,
     pub(crate) node: HeapNode,
     pub(crate) total_rows: u64,
+    /**Tables may have branches. If they do, getting the data becomes very different vs non-branch tables */
+    pub(crate) has_branch: Option<Vec<TableBranchInfo>>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct TableBranchInfo {
+    pub(crate) node: HeapNode,
+    pub(crate) rows_info: RowsInfo,
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
@@ -143,6 +161,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<TableInfo, OutlookError> {
+        println!("table info block_data len: {:?}", block_data.len());
+        //println!("table info block data first: {:?}", block_data.get(0));
         let first_block = block_data.get(0);
         let block = match first_block {
             Some(result) => result,
@@ -153,7 +173,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let table = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not get table info");
+                println!("[outlook] Could not get table info");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -172,7 +192,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not get table rows");
+                println!("[outlook] Could not get table rows");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -192,7 +212,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         let mut descriptor_data = Vec::new();
         if info.node.node == NodeID::LocalDescriptors {
-            println!("TC Desc: {:?}", info.block_descriptors);
             if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
                 descriptor_data = self.get_descriptor_data(descriptor).unwrap();
             }
@@ -203,20 +222,78 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         // Now skip column definitions
         let (input, _) = take(column_definition_size)(input)?;
 
+        if heap_btree.level == NodeLevel::BranchNode {
+            if let Some(branch_info) = &info.has_branch {
+                for branch in branch_info {
+                    println!("Branch: {branch:?}");
+                    let (_, rows) = parse_branch_row(
+                        &info.block_data[branch.node.block_index as usize],
+                        &descriptor_data,
+                        info,
+                        branch,
+                    )
+                    .unwrap();
+                    println!("we got {} messages", rows.len());
+                    return Ok((&[], rows));
+                }
+            }
+
+            panic!("FML its a branch row we have to parse!");
+        }
+
         // Now skip Row name and ID section
         let section_size = 8;
         let size = info.total_rows * section_size;
         let (input, _) = take(size)(input)?;
 
         if !descriptor_data.is_empty() {
+            println!("TC using desc!");
             let (input, rows) = get_row_data(&descriptor_data[0], info).unwrap();
 
             return Ok((&[], rows));
         }
 
-        let (input, rows) = get_row_data(&input, info)?;
+        get_row_data(&input, info)
+    }
 
-        Ok((input, rows))
+    fn get_branch_rows(
+        &mut self,
+        info: &TableInfo,
+        branch: &TableBranchInfo,
+    ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
+        let rows_result = self.parse_branch_rows(info, branch);
+        let rows = match rows_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                println!("[outlook] Could not get table rows from branch");
+                return Err(OutlookError::TableContext);
+            }
+        };
+        Ok(rows)
+    }
+
+    fn parse_branch_rows(
+        &mut self,
+        info: &TableInfo,
+        branch: &TableBranchInfo,
+    ) -> nom::IResult<&[u8], Vec<Vec<TableRows>>> {
+        let mut descriptor_data = Vec::new();
+
+        if info.node.node == NodeID::LocalDescriptors {
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+                descriptor_data = self.get_descriptor_data(descriptor).unwrap();
+            }
+        }
+
+        let (_, rows) = parse_branch_row(
+            &info.block_data[branch.node.block_index as usize],
+            &descriptor_data,
+            info,
+            branch,
+        )
+        .unwrap();
+        println!("we got {} messages", rows.len());
+        return Ok((&[], rows));
     }
 
     fn parse_table_info<'a>(
@@ -232,6 +309,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             header.page_map.allocation_table.len()
         );
         let (input, heap_btree) = parse_btree_heap(input)?;
+
         println!("Table context heap tree: {heap_btree:?}");
 
         let (input, sig) = nom_unsigned_one_byte(input, Endian::Le)?;
@@ -249,21 +327,67 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-        let row_count = get_row_count(&header.page_map.allocation_table);
+        let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
+        println!("cols: {}", cols.len());
 
-        let (input, rows) = get_column_definitions(input, &number_column_definitions)?;
-        println!("Rows: {}", rows.len());
-
-        let info = TableInfo {
+        let mut info = TableInfo {
             block_data: all_block.to_vec(),
             block_descriptors: descriptors.clone(),
             rows: Vec::new(),
-            columns: rows,
+            columns: cols,
             include_cols: Vec::new(),
             row_size: array_end_offset,
             map_offset: header.page_map_offset,
-            total_rows: row_count,
+            total_rows: 0,
             node: row,
+            has_branch: None,
+        };
+
+        if heap_btree.level == NodeLevel::BranchNode {
+            println!("map: {:?}", header.page_map.allocation_table);
+            println!("heap btree: {:?}", heap_btree);
+            println!(
+                "all block index?: {:?}",
+                all_block[heap_btree.node.block_index as usize].len()
+            );
+            //println!("index reference? {:?}", get_map_offset(&35662080));
+            println!("TC Desc: {descriptors:?}");
+            // Still not done. We only have references to the data now
+            let (_, branch_references) = extract_branch_details(
+                &all_block[heap_btree.node.block_index as usize],
+                &heap_btree.node.index,
+            )
+            .unwrap();
+
+            let mut branch_info_vec = Vec::new();
+            // Loop through the references and grab the rows
+            for branch in branch_references {
+                let (_, message_rows) = extract_branch_row(
+                    &all_block[branch.block_index as usize],
+                    &(branch.index as usize),
+                )
+                .unwrap();
+                info.total_rows += message_rows.count;
+                println!("message count: {}", message_rows.count);
+
+                let branch_info = TableBranchInfo {
+                    node: branch,
+                    rows_info: message_rows,
+                };
+
+                branch_info_vec.push(branch_info);
+            }
+            println!("branch info len: {}", branch_info_vec.len());
+
+            // We now have all the data that is needed to extract data from branches
+            info.has_branch = Some(branch_info_vec);
+
+            println!(
+                "FML its a branch! We need to determine the real row count and the real desc data?"
+            );
+        } else {
+            info.total_rows =
+                get_row_count(&header.page_map.allocation_table, &heap_btree.node.index);
         };
 
         Ok((input, info))
@@ -305,23 +429,219 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     }
 }
 
-fn get_row_count(map: &[u16]) -> u64 {
+#[derive(Debug, Clone)]
+pub(crate) struct RowsInfo {
+    pub(crate) row_end: u16,
+    pub(crate) count: u64,
+}
+
+fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a [u8], RowsInfo> {
+    // See:https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc#1111-table-block-header
+    println!("need to handle header based on fill level?");
+
+    let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
+    let (map_start, _) = take(map_offset)(data)?;
+
+    let (_, map) = heap_page_map(map_start)?;
+
+    let mut branch_row_start = 0;
+    let mut branch_row_end = 0;
+
+    if let Some(start) = map.allocation_table.get(*map_index - 1) {
+        if let Some(end) = map.allocation_table.get(*map_index) {
+            branch_row_start = *start;
+            branch_row_end = *end;
+        }
+    }
+
+    let branch_row_size = branch_row_end - branch_row_start;
+    let row_size = 8;
+    if branch_row_size % row_size != 0 {
+        panic!("we should be multiple of 8? Got size: {branch_row_size}");
+    }
+
+    let row_count = branch_row_size / row_size;
+
+    let info = RowsInfo {
+        row_end: branch_row_end,
+        count: row_count as u64,
+    };
+
+    Ok((&[], info))
+}
+
+fn extract_branch_details<'a>(
+    data: &'a [u8],
+    map_index: &u32,
+) -> nom::IResult<&'a [u8], Vec<HeapNode>> {
+    // See:https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc#1111-table-block-header
+    println!("need to handle header based on fill level?");
+    let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
+    let (map_start, _) = take(map_offset)(data)?;
+
+    let (_, map) = heap_page_map(map_start)?;
+
+    let mut branch_row_start = 0;
+    let mut branch_row_end = 0;
+
+    if let Some(start) = map.allocation_table.get(*map_index as usize - 1) {
+        if let Some(end) = map.allocation_table.get(*map_index as usize) {
+            println!("real entry?: {end} - {start}");
+            branch_row_start = *start;
+            branch_row_end = *end;
+        }
+    }
+
+    let branch_row_size = branch_row_end - branch_row_start;
+    let row_size = 8;
+    if branch_row_size % row_size != 0 {
+        panic!("we should be multiple of 8? Got size: {branch_row_size}");
+    }
+
+    let row_count = branch_row_size / row_size;
+    // Go to start of the Row branches
+    let (row_start, _) = take(branch_row_start)(data)?;
+    // Get the entire size of the data
+    let (_, mut row_data) = take(branch_row_size)(row_start)?;
+
+    let mut refs = Vec::new();
+    let mut count = 0;
+    while count < row_count {
+        let (input, id) = nom_unsigned_four_bytes(row_data, Endian::Le)?;
+        let (input, table_ref) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let results = get_heap_node_id(&table_ref);
+        println!("{results:?}");
+        row_data = input;
+        count += 1;
+
+        refs.push(results);
+    }
+
+    println!("Refs count: {}", refs.len());
+
+    Ok((&[], refs))
+}
+
+fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
     if map.len() < 4 {
         // There are no rows
         return 0;
     }
 
-    let row_start = map[2];
+    let mut row_start = map[2];
     let row_end = map[3];
-    let rows = row_end - row_start;
+    let mut rows = row_end - row_start;
 
     let row_size = 8;
     if rows % row_size != 0 {
-        panic!("rows should always be a multiple of 8 bytes?! {rows}");
+        println!("use heap_index?");
+        if let Some(start) = map.get(*heap_index as usize - 1) {
+            if let Some(end) = map.get(*heap_index as usize) {
+                println!("real entry?: {end} - {start}");
+                rows = end - start;
+                row_start = *start;
+            }
+        }
+        //panic!("rows should always be a multiple of 8 bytes?! {rows}. len: {map:?}");
     }
 
     let count = rows / row_size;
     count as u64
+}
+
+fn parse_branch_row<'a>(
+    data: &'a [u8],
+    descriptors: &Vec<Vec<u8>>,
+    info: &TableInfo,
+    branch: &TableBranchInfo,
+) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
+    println!("all desc: {}", descriptors.len());
+    // Bypass everything until the start of the row entries
+    let (row_data_start, _) = take(branch.rows_info.row_end)(data)?;
+    for desc in descriptors {
+        println!("desc len: {}", desc.len());
+    }
+
+    if !descriptors.is_empty() {
+        let mut desc_index = 0;
+        let mut rows = Vec::new();
+        let max_rows = descriptors[0].len() / info.row_size as usize;
+        println!("max rows {max_rows}");
+        for entry in &info.rows {
+            println!("Row number: {entry}");
+            let mut index = entry.clone();
+
+            /*
+             * This is kind of complex:
+             * We need to adjust the entry number to make sure it is not higher than the max number of entries can be found in a descriptor block.
+             * Each descriptor block has a max number of rows.
+             * Max rows can be found taking descriptor block size and dividing by row size
+             * Example: We have 400 emails. We want emails 300-350. Each row size is 358 bytes. Size of descriptors[desc_index] = 65512. Max rows is 182
+             *
+             * Row start = 300 * 358. Add 358 bytes to get the row data.
+             * Total bytes is > than descriptors[desc_index]
+             * So we increment the desc_index to the next descriptor block
+             * However, the row number 300 is still too large. So we adjust the number by subtracting the max_rows.
+             * 300 - 182 = 118
+             * Now row start = 118 * 358. Add 358 bytes to get the row data.
+             * This will then be used in the next descriptor_block.
+             */
+            while index as usize >= max_rows {
+                index -= max_rows as u64;
+            }
+
+            // If the entry and the row size are greater than the descriptor data. Then we need to go to the next descritpor data
+            if ((index * info.row_size as u64) + info.row_size as u64) as usize
+                > descriptors[desc_index].len()
+            {
+                desc_index += 1;
+            }
+
+            let (_, row) = get_row_data_entry(&descriptors[desc_index], &index, info).unwrap();
+            rows.push(row);
+        }
+        //let (_, rows) = get_row_data(&descriptors[0], info).unwrap();
+        return Ok((&[], rows));
+    }
+
+    let (_, rows) = get_row_data(row_data_start, info)?;
+
+    Ok((&[], rows))
+}
+
+fn get_row_data_entry<'a>(
+    data: &'a [u8],
+    entry: &u64,
+    info: &TableInfo,
+) -> nom::IResult<&'a [u8], Vec<TableRows>> {
+    println!("TC entry data len: {}", data.len());
+    println!("row start: {}", entry * info.row_size as u64);
+    println!("row size: {}", info.row_size);
+    // Go to the start of the row
+    let (row_start, _) = take(entry * info.row_size as u64)(data)?;
+    if info.row_size as usize > row_start.len() {
+        panic!("we need the next descriptor?!");
+    }
+    let (_, row_data) = take(info.row_size)(row_start)?;
+
+    // Give each row column info
+    let mut col = info.columns.clone();
+    for column in col.iter_mut() {
+        println!("TC col prop: {:?}", column.column.property_name);
+        let (_, value) = parse_row_data(
+            &info.block_data,
+            row_data,
+            &column.column.property_type,
+            &info.map_offset,
+            &column.column.offset,
+            &column.column.size,
+        )?;
+        println!("TC value: {value:?}");
+
+        column.value = value;
+    }
+
+    Ok((data, col))
 }
 
 fn get_row_data<'a>(
@@ -329,15 +649,23 @@ fn get_row_data<'a>(
     info: &TableInfo,
 ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
     let mut rows = Vec::new();
+    println!("TC data len: {}", data.len());
+
     // Get the rows we want
     for entry in &info.rows {
+        println!("row start: {}", entry * info.row_size as u64);
+        println!("row size: {}", info.row_size);
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
+        if info.row_size as usize > row_start.len() {
+            panic!("we need the next descriptor?!");
+        }
         let (_, row_data) = take(info.row_size)(row_start)?;
 
         // Give each row column info
         let mut col = info.columns.clone();
         for column in col.iter_mut() {
+            println!("TC col prop: {:?}", column.column.property_name);
             let (_, value) = parse_row_data(
                 &info.block_data,
                 row_data,
@@ -346,6 +674,7 @@ fn get_row_data<'a>(
                 &column.column.offset,
                 &column.column.size,
             )?;
+            println!("TC value: {value:?}");
 
             column.value = value;
         }
@@ -366,9 +695,14 @@ fn parse_row_data<'a>(
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
     println!("TC offset: {offset}");
+    println!("TC Property Type: {prop_type:?}");
     let (value_start, _) = take(*offset)(row_data)?;
     let (_, value_data) = take(*value_size)(value_start)?;
     println!("TC Value data: {value_data:?}");
+
+    if value_data == [73, 0, 80, 0] {
+        panic!("{row_data:?}");
+    }
 
     match prop_type {
         PropertyType::Int16 => {
@@ -417,9 +751,13 @@ fn parse_row_data<'a>(
             if offset == 0 {
                 return Ok((row_data, value));
             }
-            panic!("a real guid?");
-            let string_value = format_guid_le_bytes(value_data);
-            value = serde_json::to_value(&string_value).unwrap_or_default();
+            let (block_index, map_start) = get_map_offset(&offset);
+            if let Some(block_data) = all_blocks.get(block_index as usize) {
+                let (_, prop_value) =
+                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
+                        .unwrap();
+                value = prop_value;
+            }
         }
         PropertyType::ServerId => todo!(),
         PropertyType::Restriction => todo!(),
@@ -574,7 +912,7 @@ mod tests {
     #[test]
     fn test_get_row_count() {
         let test = [0, 1, 8, 16];
-        let rows = get_row_count(&test);
+        let rows = get_row_count(&test, &0);
         assert_eq!(rows, 1);
     }
 
@@ -689,6 +1027,7 @@ mod tests {
                 block_index: 0,
             },
             total_rows: 2,
+            has_branch: None,
         };
         let (_, results) = get_row_data(&data, &info).unwrap();
         assert_eq!(results.len(), 2);

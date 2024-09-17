@@ -353,7 +353,7 @@ mod tests {
         // Read 4th message (in table)
         folder.messages_table.rows = vec![3];
         let messages = outlook_reader
-            .read_message(None, &folder.messages_table)
+            .read_message(None, &folder.messages_table, None)
             .unwrap();
 
         assert_eq!(messages[0].body.len(), 15683);
@@ -411,7 +411,7 @@ mod tests {
         // Read 6th message (in table)
         folder.messages_table.rows = vec![5];
         let messages = outlook_reader
-            .read_message(None, &folder.messages_table)
+            .read_message(None, &folder.messages_table, None)
             .unwrap();
 
         assert_eq!(messages[0].body.len(), 190);

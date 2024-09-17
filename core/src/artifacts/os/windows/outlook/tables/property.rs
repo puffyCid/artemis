@@ -99,7 +99,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         println!("Heap Btree: {heap_btree:?}");
 
         if heap_btree.level == NodeLevel::BranchNode {
-            panic!("branch property context!");
+            panic!("FML branch property context! This can exist in table context. Can it exist here too?");
         }
 
         let mut prop_data_size = 0;
@@ -176,6 +176,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             println!("Prop: {prop:?}");
 
             let (block_index, map_start) = get_map_offset(&prop.reference);
+            println!("Block index: {block_index}");
+            println!("Block map start: {map_start}");
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let max_heap_size = 3580;
 
@@ -287,6 +289,10 @@ pub(crate) fn get_property_data<'a>(
         let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
         println!("map offset: {reference}");
+        if *reference as usize > input.len() {
+            println!("map value offset is greater than input? This is nulll?");
+            return Ok((&[], value));
+        }
         // Jump to the start of our value
         let (value_start, _) = take(*reference)(input)?;
         let (input, value_start) = nom_unsigned_two_bytes(value_start, Endian::Le)?;
@@ -538,9 +544,13 @@ pub(crate) fn get_property_data<'a>(
                 let mut peek_offsets = offsets.iter().peekable();
                 let mut binary_values = Vec::new();
                 while let Some(offset) = peek_offsets.next() {
-                    let (bin_start, _) = take(*offset)(offset_start)?;
+                    let (bin_start, _) = take(*offset)(value_data)?;
                     if let Some(next_value) = peek_offsets.peek() {
                         let bin_len = *next_value - offset;
+                        if bin_len == empty {
+                            // If length is zero, value is null
+                            continue;
+                        }
                         let (_, final_bin) = take(bin_len)(bin_start)?;
                         let string = base64_encode_standard(final_bin);
                         binary_values.push(string);
@@ -592,6 +602,7 @@ mod tests {
         },
         filesystem::files::file_reader,
     };
+    use serde_json::Value;
     use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
 
     #[test]
@@ -825,5 +836,57 @@ mod tests {
         let (block_index, map_start) = get_map_offset(&96);
         assert_eq!(block_index, 0);
         assert_eq!(map_start, 4);
+    }
+
+    #[test]
+    fn test_get_property_data_multi_binary() {
+        let test = [
+            86, 2, 236, 188, 32, 0, 0, 0, 0, 0, 0, 0, 181, 2, 6, 0, 64, 0, 0, 0, 1, 48, 31, 0, 160,
+            0, 0, 0, 4, 48, 31, 0, 0, 0, 0, 0, 7, 48, 64, 0, 128, 0, 0, 0, 8, 48, 64, 0, 96, 0, 0,
+            0, 2, 54, 3, 0, 0, 0, 0, 0, 3, 54, 3, 0, 0, 0, 0, 0, 10, 54, 11, 0, 1, 0, 0, 0, 213,
+            54, 2, 1, 32, 1, 0, 0, 215, 54, 2, 1, 128, 1, 0, 0, 216, 54, 2, 17, 96, 1, 0, 0, 217,
+            54, 2, 1, 64, 1, 0, 0, 228, 63, 11, 0, 0, 0, 0, 0, 229, 63, 11, 0, 0, 0, 0, 0, 226,
+            101, 2, 1, 224, 0, 0, 0, 227, 101, 2, 1, 0, 1, 0, 0, 20, 102, 2, 1, 0, 0, 0, 0, 56,
+            102, 3, 0, 11, 0, 0, 0, 57, 102, 3, 0, 1, 0, 0, 0, 244, 103, 20, 0, 192, 0, 0, 0, 1,
+            104, 3, 0, 2, 0, 0, 0, 16, 128, 3, 0, 2, 0, 0, 0, 48, 255, 41, 22, 190, 4, 219, 1, 16,
+            190, 42, 18, 190, 4, 219, 1, 82, 0, 111, 0, 111, 0, 116, 0, 32, 0, 45, 0, 32, 0, 77, 0,
+            97, 0, 105, 0, 108, 0, 98, 0, 111, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0, 5, 122, 180, 193,
+            196, 149, 18, 19, 77, 190, 54, 248, 71, 119, 70, 98, 170, 0, 0, 8, 37, 20, 122, 180,
+            193, 196, 149, 18, 19, 77, 190, 54, 248, 71, 119, 70, 98, 170, 0, 0, 8, 37, 0, 0, 0, 0,
+            231, 133, 221, 18, 152, 103, 116, 76, 165, 251, 197, 110, 145, 99, 30, 98, 1, 0, 195,
+            39, 9, 165, 214, 162, 153, 77, 151, 84, 182, 92, 93, 27, 160, 198, 0, 0, 0, 0, 2, 0, 0,
+            0, 2, 128, 50, 0, 1, 0, 46, 0, 0, 0, 0, 0, 231, 133, 221, 18, 152, 103, 116, 76, 165,
+            251, 197, 110, 145, 99, 30, 98, 1, 0, 195, 39, 9, 165, 214, 162, 153, 77, 151, 84, 182,
+            92, 93, 27, 160, 198, 0, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 28, 0, 0, 0, 28,
+            0, 0, 0, 74, 0, 0, 0, 120, 0, 0, 0, 120, 0, 0, 0, 166, 0, 0, 0, 0, 0, 0, 0, 231, 133,
+            221, 18, 152, 103, 116, 76, 165, 251, 197, 110, 145, 99, 30, 98, 1, 0, 195, 39, 9, 165,
+            214, 162, 153, 77, 151, 84, 182, 92, 93, 27, 160, 198, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0,
+            0, 231, 133, 221, 18, 152, 103, 116, 76, 165, 251, 197, 110, 145, 99, 30, 98, 1, 0,
+            195, 39, 9, 165, 214, 162, 153, 77, 151, 84, 182, 92, 93, 27, 160, 198, 0, 0, 0, 0, 2,
+            3, 0, 0, 0, 0, 0, 0, 231, 133, 221, 18, 152, 103, 116, 76, 165, 251, 197, 110, 145, 99,
+            30, 98, 1, 0, 52, 173, 118, 24, 117, 145, 151, 77, 191, 108, 79, 118, 149, 28, 135, 58,
+            1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 231, 133, 221, 18, 152, 103, 116, 76, 165, 251,
+            197, 110, 145, 99, 30, 98, 1, 0, 52, 173, 118, 24, 117, 145, 151, 77, 191, 108, 79,
+            118, 149, 28, 135, 58, 1, 0, 1, 0, 0, 0, 0, 0, 1, 12, 0, 0, 0, 12, 0, 20, 0, 188, 0,
+            196, 0, 204, 0, 232, 0, 240, 0, 4, 1, 25, 1, 71, 1, 129, 1, 39, 2, 85, 2,
+        ];
+
+        let (_, result) =
+            get_property_data(&test, &PropertyType::MultiBinary, &0, &20, &false).unwrap();
+
+        assert_eq!(
+            result.as_array().unwrap(),
+            &vec![
+                Value::String(
+                    "AAAAAOeF3RKYZ3RMpfvFbpFjHmIBAMMnCaXWoplNl1S2XF0boMYAAAAAAgIAAA==".to_string()
+                ),
+                Value::String(
+                    "AAAAAOeF3RKYZ3RMpfvFbpFjHmIBAMMnCaXWoplNl1S2XF0boMYAAAAAAgMAAA==".to_string()
+                ),
+                Value::String(
+                    "AAAAAOeF3RKYZ3RMpfvFbpFjHmIBADStdhh1kZdNv2xPdpUchzoBAAMAAAAAAA==".to_string()
+                )
+            ]
+        );
     }
 }

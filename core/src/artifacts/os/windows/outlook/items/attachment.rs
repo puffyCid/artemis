@@ -1,6 +1,6 @@
 use super::message::{get_attach_method, AttachMethod};
 use crate::artifacts::os::windows::outlook::tables::{
-    properties::PropertyName, property::PropertyContext,
+    context::PropertyType, properties::PropertyName, property::PropertyContext,
 };
 
 #[derive(Debug)]
@@ -29,6 +29,11 @@ pub(crate) fn extract_attachment(props: &mut Vec<PropertyContext>) -> Attachment
     let mut keep = Vec::new();
     for prop in &mut *props {
         if prop.name.contains(&PropertyName::PidTagDisplayNameW) {
+            // Sometimes we have AttachFilenameW property, sometimes we may not. Do not override it
+            if !attach.name.is_empty() {
+                keep.push(true);
+                continue;
+            }
             attach.name = prop.value.as_str().unwrap_or_default().to_string();
         } else if prop.name.contains(&PropertyName::PidTagAttachSize) {
             attach.size = prop.value.as_u64().unwrap_or_default();
@@ -41,6 +46,13 @@ pub(crate) fn extract_attachment(props: &mut Vec<PropertyContext>) -> Attachment
         } else if prop.name.contains(&PropertyName::PidTagAttachMethod) {
             let method = prop.value.as_u64().unwrap_or_default();
             attach.method = get_attach_method(&method);
+        } else if prop.name.contains(&PropertyName::PidTagAttachFilenameW) {
+            // Sometimes we have DisplayNameW property, sometimes we may not. Do not override it
+            if !attach.name.is_empty() {
+                keep.push(true);
+                continue;
+            }
+            attach.name = prop.value.as_str().unwrap_or_default().to_string();
         } else {
             keep.push(true);
             continue;

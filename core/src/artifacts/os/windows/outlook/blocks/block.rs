@@ -166,7 +166,7 @@ pub(crate) fn parse_block_bytes<'a>(
         }
         FormatType::Unicode64_4k => {
             let size = 24;
-            println!("length: {}", data.len());
+            // println!("length: {}", data.len());
             let (footer, block_data) = nom_data(data, (data.len() - size) as u64)?;
 
             let (input, size) = nom_unsigned_two_bytes(footer, Endian::Le)?;
@@ -181,11 +181,10 @@ pub(crate) fn parse_block_bytes<'a>(
             block.crc = crc;
             block.block_size = size;
             block.decom_size = size2;
-            println!("block: {}", block.block_size);
-            println!("second block: {size2}");
+            // println!("block: {}", block.block_size);
+            //println!("second block: {size2}");
 
             if block.block_size as u32 != block.decom_size {
-                println!("decom");
                 // Data is compressed
                 let decom_data = decompress_zlib(block_data, &None).unwrap();
                 block.data = decom_data;

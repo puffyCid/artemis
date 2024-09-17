@@ -34,7 +34,7 @@ use super::{
         get_block_btree, get_node_btree, BlockType, LeafBlockData, LeafNodeData, NodeBtree,
     },
     tables::{
-        context::{TableInfo, TableRows},
+        context::{TableBranchInfo, TableInfo, TableRows},
         property::{OutlookPropertyContext, PropertyContext},
     },
 };
@@ -88,6 +88,7 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
+        branch: Option<&TableBranchInfo>,
     ) -> Result<Vec<MessageDetails>, OutlookError>;
     fn recipient_table(
         &mut self,
@@ -240,6 +241,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         continue;
                     } else if search.contains(&node.node.node_id) {
                         return self.search_folder(ntfs_file, folder);
+                    } else if node.node.node_id == NodeID::ContentsTableIndex {
+                        // This Table is undocumented. Internal to the OST
+                        continue;
                     } else {
                         panic!("other optoin!?: {node:?}");
                     }
@@ -333,13 +337,22 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 && fai_block.index != 0
                 && contents_block.index != 0
                 && hierarchy_block.index != 0
+                && fai.block_offset_descriptor_id == 0
+                && contents.block_offset_descriptor_id == 0
+                && hierahcy.block_offset_descriptor_id == 0
+                && normal.block_offset_descriptor_id == 0
             {
+                // We can stop early if none of the items associated with a folder have descriptors
                 break;
             }
         }
 
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
         let normal = self.parse_property_context(&normal_value.data, &normal_value.descriptors)?;
+
+        println!("hierarcy block: {hierarchy_block:?}");
+        println!("hierarcy des: {hiearchy_descriptor:?}");
+
         let hiearchy_value =
             self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
 
@@ -624,6 +637,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
+        branch: Option<&TableBranchInfo>,
     ) -> Result<Vec<MessageDetails>, OutlookError> {
         if info.rows.len() > info.total_rows as usize {
             error!("[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available.", info.rows.len(), info.total_rows);
@@ -631,7 +645,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
         // First we parse the table that points to our messages
         // The number of messages is dependent on many the caller wants to get
-        let table_meta = self.get_rows(info)?;
+
+        let table_meta = if branch.is_none() {
+            self.get_rows(info)?
+        } else {
+            self.get_branch_rows(info, branch.unwrap())?
+        };
+        //let table_meta = self.get_rows(info)?;
         let table_info = table_message_preview(&table_meta);
 
         let mut mess = LeafNodeData {
@@ -852,8 +872,11 @@ mod tests {
             // Get first 5 messages!
             let messages_to_get = (0..5).collect();
             results.messages_table.rows = messages_to_get;
-            let messages = reader.read_message(None, &results.messages_table).unwrap();
+            let messages = reader
+                .read_message(None, &results.messages_table, None)
+                .unwrap();
             println!("i got: {} messages!", messages.len());
+
             assert_eq!(messages.len(), 5);
             println!("{:?}", messages[0]);
             assert_eq!(messages[0].delivered, "2024-09-10T04:14:19.000Z");
@@ -904,7 +927,7 @@ mod tests {
     }
 
     #[test]
-    fn test_outlook_reader() {
+    fn test_outlook_reader_only() {
         let mut outlook_reader = setup_reader::<std::fs::File>();
         stream_ost(&mut outlook_reader, &290)
     }
@@ -959,7 +982,7 @@ mod tests {
         let mut info = outlook_reader.read_folder(None, 8546).unwrap();
         info.messages_table.rows = vec![0];
         let mess = outlook_reader
-            .read_message(None, &info.messages_table)
+            .read_message(None, &info.messages_table, None)
             .unwrap();
 
         assert_eq!(mess.len(), 1);
