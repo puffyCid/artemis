@@ -21,11 +21,12 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
-use log::error;
+use log::{error, warn};
 use nom::{
     bytes::complete::take,
     number::complete::{le_f32, le_f64},
 };
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -195,7 +196,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         let (_, prop_value) = get_property_data(
                             &desc_blocks[0],
                             &prop.property_type,
-                            &header.page_map_offset,
                             &prop.reference,
                             &true,
                         )
@@ -207,14 +207,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     // If we don't have data, then fallback to normal block data below
                 }
 
-                let (_, prop_value) = get_property_data(
-                    block_data,
-                    &prop.property_type,
-                    &header.page_map_offset,
-                    &map_start,
-                    &false,
-                )
-                .unwrap();
+                let (_, prop_value) =
+                    get_property_data(block_data, &prop.property_type, &map_start, &false).unwrap();
 
                 prop.value = prop_value;
             }
@@ -269,11 +263,18 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     }
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct ServerId {
+    definition: u8,
+    folder_id: u64,
+    message_id: u64,
+    index: u32,
+}
+
 /// Parse and get property data
 pub(crate) fn get_property_data<'a>(
     data: &'a [u8],
     prop_type: &PropertyType,
-    page_map_offset: &u16,
     reference: &u32,
     is_large: &bool,
 ) -> nom::IResult<&'a [u8], Value> {
@@ -356,14 +357,17 @@ pub(crate) fn get_property_data<'a>(
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             value = serde_json::to_value(&prop_value).unwrap_or_default();
         }
-        PropertyType::String | PropertyType::MultiString => {
+        PropertyType::String
+        | PropertyType::MultiString
+        | PropertyType::String8
+        | PropertyType::MultiString8 => {
             // Strings can either be UTF8 or UTF16 :/
             value = match prop_type {
-                PropertyType::String => {
+                PropertyType::String | PropertyType::String8 => {
                     serde_json::to_value(&extract_ascii_utf16_string(value_data))
                         .unwrap_or_default()
                 }
-                PropertyType::MultiString => {
+                PropertyType::MultiString | PropertyType::MultiString8 => {
                     let (mut input, string_count) =
                         nom_unsigned_four_bytes(value_data, Endian::Le)?;
                     let mut count = 0;
@@ -397,7 +401,6 @@ pub(crate) fn get_property_data<'a>(
                     .unwrap(),
             };
         }
-        PropertyType::String8 => todo!(),
         PropertyType::Time => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             let timestamp = filetime_to_unixepoch(&prop_value);
@@ -407,8 +410,32 @@ pub(crate) fn get_property_data<'a>(
             let string_value = format_guid_le_bytes(value_data);
             value = serde_json::to_value(&string_value).unwrap_or_default();
         }
-        PropertyType::ServerId => todo!(),
-        PropertyType::Restriction => todo!(),
+        PropertyType::ServerId => {
+            warn!("[outlook] Got server ID property. Best effort attempt to parse");
+            let (input, definition) = nom_unsigned_one_byte(value_data, Endian::Le)?;
+            if definition == 0 {
+                warn!("[outlook] Got client defined server ID. Format is arbritary");
+                value =
+                    serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+            } else {
+                let (input, folder_id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+                let (input, message_id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+                let (input, index) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+                let server_id = ServerId {
+                    definition,
+                    folder_id,
+                    message_id,
+                    index,
+                };
+
+                value = serde_json::to_value(&server_id).unwrap_or_default();
+            }
+        }
+        PropertyType::Restriction => {
+            warn!("[outlook] Got restriction property. Format undocumented");
+            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+        }
         PropertyType::Binary => {
             value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
         }
@@ -509,7 +536,6 @@ pub(crate) fn get_property_data<'a>(
 
             value = serde_json::to_value(&int_values).unwrap_or_default();
         }
-        PropertyType::MultiString8 => todo!(),
         PropertyType::MultiTime => {
             let int_count = value_data.len() / 8;
             let mut remaining = value_data;
@@ -526,7 +552,23 @@ pub(crate) fn get_property_data<'a>(
             }
             value = serde_json::to_value(int_values).unwrap_or_default();
         }
-        PropertyType::MultiGuid => todo!(),
+        PropertyType::MultiGuid => {
+            warn!("[outlook] Got mnulti-guid property. Attempt to parse");
+            let guid_size = 16;
+            let guid_count = value_data.len() / guid_size;
+            let mut remaining = value_data;
+            let mut count = 0;
+
+            let mut int_values = Vec::new();
+            while count < guid_count {
+                let (input, guid_value) = take(guid_size)(remaining)?;
+                remaining = input;
+                int_values.push(format_guid_le_bytes(guid_value));
+                count += 1;
+            }
+
+            value = serde_json::to_value(&int_values).unwrap_or_default();
+        }
         PropertyType::MultiBinary => {
             let (offset_start, bin_count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
             let empty = 0;
@@ -562,8 +604,14 @@ pub(crate) fn get_property_data<'a>(
         }
         // We are already NULL. Unspecified means the value type does not matter
         PropertyType::Null | PropertyType::Unspecified => {}
-        PropertyType::Object => todo!(),
-        PropertyType::RuleAction => todo!(),
+        PropertyType::Object => {
+            warn!("[outlook] Got object property. Contains embedded COM object or message table.");
+            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+        }
+        PropertyType::RuleAction => {
+            warn!("[outlook] Got rule action property. Not supported");
+            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+        }
         PropertyType::Unknown => {
             value = serde_json::to_value(base64_encode_standard(value_data)).unwrap_or_default();
         }
@@ -704,7 +752,7 @@ mod tests {
             134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80,
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
-        let (_, value) = get_property_data(&test, &PropertyType::Time, &582, &4, &false).unwrap();
+        let (_, value) = get_property_data(&test, &PropertyType::Time, &4, &false).unwrap();
         assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.000Z");
     }
 
@@ -872,7 +920,7 @@ mod tests {
         ];
 
         let (_, result) =
-            get_property_data(&test, &PropertyType::MultiBinary, &0, &20, &false).unwrap();
+            get_property_data(&test, &PropertyType::MultiBinary, &20, &false).unwrap();
 
         assert_eq!(
             result.as_array().unwrap(),

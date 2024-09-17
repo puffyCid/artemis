@@ -16,7 +16,7 @@ use crate::{
 };
 use nom::error::ErrorKind;
 use ntfs::NtfsFile;
-use std::{collections::BTreeMap, io::BufReader};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
 pub(crate) struct BlockValue {
@@ -117,6 +117,8 @@ pub(crate) struct BlockData {
     pub(crate) back_pointer: u64,
     pub(crate) decom_size: u32,
 }
+
+/// Parse block bytes and get data
 pub(crate) fn parse_block_bytes<'a>(
     data: &'a [u8],
     format: &FormatType,
@@ -166,7 +168,6 @@ pub(crate) fn parse_block_bytes<'a>(
         }
         FormatType::Unicode64_4k => {
             let size = 24;
-            // println!("length: {}", data.len());
             let (footer, block_data) = nom_data(data, (data.len() - size) as u64)?;
 
             let (input, size) = nom_unsigned_two_bytes(footer, Endian::Le)?;
@@ -181,8 +182,6 @@ pub(crate) fn parse_block_bytes<'a>(
             block.crc = crc;
             block.block_size = size;
             block.decom_size = size2;
-            // println!("block: {}", block.block_size);
-            //println!("second block: {size2}");
 
             if block.block_size as u32 != block.decom_size {
                 // Data is compressed

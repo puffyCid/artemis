@@ -1,4 +1,4 @@
-use super::block::{parse_block_bytes, Block, BlockData, BlockValue};
+use super::block::{parse_block_bytes, Block, BlockValue};
 use crate::{
     artifacts::os::windows::outlook::{
         error::OutlookError, header::FormatType, pages::btree::LeafBlockData,
@@ -8,6 +8,7 @@ use crate::{
 use ntfs::NtfsFile;
 use std::io::BufReader;
 
+/// Parse a Raw block. Will be either Xblock, XXblock or Descriptor block
 pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -41,12 +42,6 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
         fs,
     )
     .unwrap();
-
-    println!(
-        "bytes read: {} at offset: {}",
-        bytes.len(),
-        block.block_offset
-    );
 
     let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
 

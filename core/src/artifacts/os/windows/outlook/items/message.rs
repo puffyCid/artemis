@@ -218,18 +218,15 @@ pub(crate) fn get_attach_method(method: &u64) -> AttachMethod {
 
 /// Extract RTF data from emails. RTF may be compressed
 fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
-    let (input, compression_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, _compression_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, crc) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let compressed_sig = 0x75465a4c;
     if sig != compressed_sig {
-        println!("not compressed?: {input:?}");
         // Data is not compressed extract the string new_with_window_bits
         let value = extract_ascii_utf16_string(input);
-        println!("{value}");
-        panic!("got non compressed RTF?!");
 
         return Ok((input, value));
     }
@@ -238,7 +235,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
     let decom = match decom_result {
         Ok(result) => result,
         Err(err) => {
-            panic!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
+            error!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
             return Ok((input, base64_encode_standard(data)));
         }
     };

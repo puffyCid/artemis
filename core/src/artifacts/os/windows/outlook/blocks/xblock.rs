@@ -12,9 +12,11 @@ use crate::{
         nom_unsigned_two_bytes, Endian,
     },
 };
+use log::warn;
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};
 
+/// Get block data from xblocks
 pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -43,7 +45,6 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     if alignment_size < footer_size {
         alignment_size += size;
     }
-    //println!("block size: {} + align: {}", block.size, alignment_size);
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -54,11 +55,9 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
 
     let (_, entries) = xblock_data(&bytes, format, block_value).unwrap();
     let mut all_bytes = Vec::new();
-    println!("block entries count: {entries:?}");
     for entry in entries {
         for tree in other_blocks {
             if let Some(value) = tree.get(&entry) {
-                //println!("Found: {value:?}");
                 alignment_size = (size - value.size % size) % size;
                 if alignment_size == 0 {
                     // If the actual data is perfectly aligned then we need to add another block
@@ -67,7 +66,6 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 if alignment_size < footer_size {
                     alignment_size += size;
                 }
-                //println!("align: {}", value.size as u64 + alignment_size as u64);
                 let bytes = read_bytes(
                     &value.block_offset,
                     value.size as u64 + alignment_size as u64,
@@ -90,13 +88,13 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
+/// Parse xblock like data
 fn xblock_data<'a>(
     data: &'a [u8],
     format: &FormatType,
     block_value: &mut BlockValue,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
-    let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
-    println!("xblock sig: {sig}");
+    let (_, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let sblock_sig = 2;
     if sig == sblock_sig {
         let (input, descriptor_tree) = parse_descriptor_block(data, format)?;
@@ -108,13 +106,12 @@ fn xblock_data<'a>(
         let (_, block) = parse_block_bytes(data, format)?;
         if let Some(sig) = block.data.get(0) {
             if sig == &sblock_sig {
-                let (input, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
+                let (_, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
                 block_value.block_type = Block::Descriptors;
                 block_value.descriptors = descriptor_tree;
                 return Ok((&[], Vec::new()));
             } else if sig == &1 {
-                println!("raw block is actually xblock?");
-                let (_, result) = extract_xblock_entries(&block.data[1..], format).unwrap();
+                let (_, result) = extract_xblock_entries(&block.data, format).unwrap();
                 return Ok((&[], result));
             } else {
                 block_value.block_type = Block::Raw;
@@ -124,25 +121,23 @@ fn xblock_data<'a>(
             }
         }
     }
-    return extract_xblock_entries(input, format);
+    return extract_xblock_entries(data, format);
 }
 
+/// Extract xblock and xxblock entries
 fn extract_xblock_entries<'a>(
     data: &'a [u8],
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
-    let (input, array_level) = nom_unsigned_one_byte(data, Endian::Le)?;
-    println!("array level: {array_level}");
+    let (input, _sig) = nom_unsigned_one_byte(data, Endian::Le)?;
+    let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     if array_level != 1 {
-        println!("{array_level}");
-        println!("{data:?}");
-        panic!("array level not 1! Its XXBLOCK!");
+        warn!("[outlook] Got possible xxblock. Level: {array_level}. Should be same format as xblock?");
     }
     let (input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-    let (mut input, total_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    println!("{total_size}");
+    let (mut input, _total_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let mut count = 0;
 
     let mut entries = Vec::new();

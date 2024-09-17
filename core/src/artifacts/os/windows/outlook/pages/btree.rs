@@ -40,6 +40,7 @@ pub(crate) struct NodeBtree {
     pub(crate) btree: BTreeMap<u32, LeafNodeData>,
 }
 
+/// Extract and get he Node BTree
 pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -98,6 +99,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
+/// Extract and get the Block BTree
 pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -116,7 +118,6 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     if page.node_level == NodeLevel::BranchNode {
         let (_, branch_nodes) = parse_branch_data(&page.data, format).unwrap();
         for node in branch_nodes {
-            println!("branch: {node:?}");
             get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
         }
     } else {
@@ -150,6 +151,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
+/// Parse BTree pages
 pub(crate) fn parse_btree_page<'a>(
     data: &'a [u8],
     format: &FormatType,
@@ -204,6 +206,7 @@ pub(crate) struct BranchData {
     offset: u64,
 }
 
+/// Parse Branch pages. These pages are references to the actual page that has data
 pub(crate) fn parse_branch_data<'a>(
     data: &'a [u8],
     format: &FormatType,
@@ -328,7 +331,6 @@ pub(crate) fn parse_leaf_node_data<'a>(
             block_offset_descriptor_id,
             parent_node_index,
         };
-        println!("leaf node: {leaf:?}");
         leaf_nodes.push(leaf);
     }
 
@@ -359,6 +361,7 @@ pub(crate) enum BlockType {
     External,
 }
 
+/// Parse Leaf data. This is the actual Outlook data
 pub(crate) fn parse_leaf_block_data<'a>(
     data: &'a [u8],
     entries: &u16,
@@ -415,7 +418,6 @@ pub(crate) fn parse_leaf_block_data<'a>(
         }
 
         leaf_data = input;
-        println!("leaf block: {leaf:?}");
         leaf_blocks.push(leaf);
     }
 

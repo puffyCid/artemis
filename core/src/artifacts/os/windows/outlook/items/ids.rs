@@ -131,7 +131,6 @@ pub(crate) enum PropertyId {
     PidLidEmail3OriginalDisplayName,
     PidLidEmail3OriginalEntryId,
     PidLidEmail3RichtextFormat,
-    PidLidEmail3RichTextFormat,
     PidLidEmailList,
     PidLidEndRecurrenceDate,
     PidLidEndRecurrenceTime,

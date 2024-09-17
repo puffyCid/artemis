@@ -26,7 +26,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
-use log::error;
+use log::{error, warn};
 use nom::bytes::complete::take;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -534,15 +534,9 @@ fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
 
     let row_size = 8;
     if rows % row_size != 0 {
-        println!("use heap_index?");
-        if let Some(start) = map.get(*heap_index as usize - 1) {
-            if let Some(end) = map.get(*heap_index as usize) {
-                println!("real entry?: {end} - {start}");
-                rows = end - start;
-                row_start = *start;
-            }
-        }
-        //panic!("rows should always be a multiple of 8 bytes?! {rows}. len: {map:?}");
+        panic!("rows should always be a multiple of 8 bytes?! {rows}. len: {map:?}");
+        warn!("[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early");
+        return 0;
     }
 
     let count = rows / row_size;
@@ -632,7 +626,6 @@ fn get_row_data_entry<'a>(
             &info.block_data,
             row_data,
             &column.column.property_type,
-            &info.map_offset,
             &column.column.offset,
             &column.column.size,
         )?;
@@ -670,7 +663,6 @@ fn get_row_data<'a>(
                 &info.block_data,
                 row_data,
                 &column.column.property_type,
-                &info.map_offset,
                 &column.column.offset,
                 &column.column.size,
             )?;
@@ -689,7 +681,6 @@ fn parse_row_data<'a>(
     all_blocks: &Vec<Vec<u8>>,
     row_data: &'a [u8],
     prop_type: &PropertyType,
-    page_map_offset: &u16,
     offset: &u16,
     value_size: &u8,
 ) -> nom::IResult<&'a [u8], Value> {
@@ -735,8 +726,7 @@ fn parse_row_data<'a>(
             let (block_index, map_start) = get_map_offset(&offset);
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let (_, prop_value) =
-                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
-                        .unwrap();
+                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
                 value = prop_value;
             }
         }
@@ -754,8 +744,7 @@ fn parse_row_data<'a>(
             let (block_index, map_start) = get_map_offset(&offset);
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let (_, prop_value) =
-                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
-                        .unwrap();
+                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
                 value = prop_value;
             }
         }
@@ -769,8 +758,7 @@ fn parse_row_data<'a>(
             let (block_index, map_start) = get_map_offset(&offset);
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let (_, prop_value) =
-                    get_property_data(block_data, prop_type, page_map_offset, &map_start, &false)
-                        .unwrap();
+                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
                 value = prop_value;
             }
         }

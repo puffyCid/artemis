@@ -24,7 +24,6 @@ pub(crate) fn extract_name_id_map(
         PropertyName::StreamEntry,
         PropertyName::StreamString,
     ];
-    let mut count = 0;
     let mut guids = Vec::new();
     let mut strings = Vec::new();
     let mut entries = Vec::new();
@@ -35,9 +34,6 @@ pub(crate) fn extract_name_id_map(
     for entry in context {
         let bytes_result = if entry.name.iter().any(|item| name_props.contains(item)) {
             base64_decode_standard(entry.value.as_str().unwrap_or_default())
-        } else if entry.name.contains(&PropertyName::StreamEntries) {
-            count = entry.value.as_u64().unwrap_or_default();
-            continue;
         } else {
             continue;
         };
@@ -84,7 +80,7 @@ pub(crate) fn extract_name_id_map(
             let name = match string_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    panic!("[outlook] Could not extract NameIdMap string for: {entry:?}");
+                    warn!("[outlook] Could not extract NameIdMap string for: {entry:?}");
                     String::from("Failed to extract string for NameIdMap")
                 }
             };

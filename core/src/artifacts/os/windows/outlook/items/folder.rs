@@ -88,7 +88,6 @@ pub(crate) fn folder_details(
             }
 
             if !sub.name.is_empty() && sub.node != 0 {
-                println!("subject name: {}", sub.name);
                 info.subfolders.push(sub);
                 break;
             }
@@ -119,7 +118,6 @@ pub(crate) fn folder_details(
             }
 
             if !sub.name.is_empty() && sub.node != 0 {
-                println!("class name: {}", sub.name);
                 info.associated_content.push(sub);
                 break;
             }

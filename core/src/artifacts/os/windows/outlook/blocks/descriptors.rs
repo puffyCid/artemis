@@ -23,6 +23,7 @@ pub(crate) struct DescriptorData {
     pub(crate) block_descriptor_id: u64,
 }
 
+/// Parse and extract the Descriptor blocks
 pub(crate) fn parse_descriptor_block<'a>(
     data: &'a [u8],
     format: &FormatType,
