@@ -5,9 +5,9 @@
  * 3. Clean up
  * 5. Yara-X scanning
  * 6. Time filtering
- * 7. Expose to CLI
  * 8. Tests
  * 10. Map name-to-id to unknown props
+ * 11. Review for dupe messages :/
  *
  * Sometimes UTF16 still remains in string. Unsure why, nothing else decodes the raw bytes either.
  * Throwing the extracted string int cyberchef and unescaping string should clean up the remaining UTF16
@@ -868,7 +868,7 @@ mod tests {
                 "     Get to know your OneDrive \u{13}  How to back up your PC and mobile"
             );
             assert_eq!(messages[0].from, "Microsoft@notificationmail.microsoft.com");
-            assert_eq!(messages[0].body.len(), 65512);
+            assert_eq!(messages[0].body.len(), 132324);
             assert_eq!(messages[0].props.len(), 120);
             assert_eq!(messages[0].recipient.len(), 32);
 

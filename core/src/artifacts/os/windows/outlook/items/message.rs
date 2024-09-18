@@ -132,6 +132,9 @@ pub(crate) fn message_details(
             };
 
             message.body = decom;
+        } else if prop.name.contains(&PropertyName::PidTagBodyW) {
+            // Plaintext email
+            message.body = prop.value.as_str().unwrap_or_default().to_string();
         } else {
             keep.push(true);
             continue;

@@ -124,7 +124,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         }
 
         let (prop_data_start, _) = take(prop_start)(header_block)?;
-        println!("prop data size: {}", prop_data_size);
 
         let (input, mut props) = take(prop_data_size)(prop_data_start)?;
         let prop_entry_size = 8;
@@ -174,25 +173,17 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             if prop.value != Value::Null || prop.reference == 0 {
                 continue;
             }
-            println!("Prop: {prop:?}");
 
             let (block_index, map_start) = get_map_offset(&prop.reference);
-            println!("Block index: {block_index}");
-            println!("Block map start: {map_start}");
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let max_heap_size = 3580;
 
                 if prop.reference > max_heap_size && prop.value == Value::Null {
-                    println!("u got big data :)");
-                    println!(
-                        "lookup in descriptorData the value: {}",
-                        ((prop.reference >> 5) & 0x07ffffff)
-                    );
                     let desc_blocks = self
                         .get_large_data(block_descriptors, &prop.reference)
                         .unwrap();
-                    println!("large len: {}", block_data.len());
                     if !desc_blocks.is_empty() {
+                        // Concat the descriptor data to get the entire property data
                         let (_, prop_value) = get_property_data(
                             &desc_blocks.concat(),
                             &prop.property_type,
@@ -224,8 +215,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         reference: &u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
         let key = (reference >> 5) & 0x07ffffff;
-        println!("descriptor key: {key}");
-        println!("descriptors: {:?}", block_descriptors);
         if let Some(value) = block_descriptors.get(&(key as u64)) {
             let mut leaf_block = LeafBlockData {
                 block_type: BlockType::Internal,
@@ -261,14 +250,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         //Err(OutlookError::NoDescriptorBlock)
         Ok(Vec::new())
     }
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct ServerId {
-    definition: u8,
-    folder_id: u64,
-    message_id: u64,
-    index: u32,
 }
 
 /// Parse and get property data

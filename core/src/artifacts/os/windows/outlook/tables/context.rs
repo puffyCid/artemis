@@ -25,20 +25,6 @@ use nom::bytes::complete::take;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-#[derive(Debug)]
-pub(crate) struct TableContext {
-    sig: u8,
-    number_column_definitions: u8,
-    array_end_32bit: u16,
-    array_end_16bit: u16,
-    array_end_8bit: u16,
-    array_end_offset: u16,
-    row_index: HeapNode,
-    /**Will be found in either Heap BTree or NodeBtree. Depends on `NodeID` value */
-    row: HeapNode,
-    pub(crate) rows: Vec<Vec<TableRows>>,
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct TableRows {
     pub(crate) value: Value,
@@ -156,7 +142,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<TableInfo, OutlookError> {
         println!("table info block_data len: {:?}", block_data.len());
-        //println!("table info block data first: {:?}", block_data.get(0));
         let first_block = block_data.get(0);
         let block = match first_block {
             Some(result) => result,
@@ -219,7 +204,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         if heap_btree.level == NodeLevel::BranchNode {
             if let Some(branch_info) = &info.has_branch {
                 for branch in branch_info {
-                    println!("Branch: {branch:?}");
                     let (_, rows) = parse_branch_row(
                         &info.block_data[branch.node.block_index as usize],
                         &descriptor_data,
@@ -283,7 +267,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             branch,
         )
         .unwrap();
-        println!("we got {} messages", rows.len());
         return Ok((&[], rows));
     }
 
@@ -294,14 +277,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], TableInfo> {
         let (input, header) = table_header(data)?;
-        println!("Table context header: {header:?}");
-        println!(
-            "Allocation table len: {}",
-            header.page_map.allocation_table.len()
-        );
         let (input, heap_btree) = parse_btree_heap(input)?;
-
-        println!("Table context heap tree: {heap_btree:?}");
 
         let (input, _sig) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, number_column_definitions) = nom_unsigned_one_byte(input, Endian::Le)?;
@@ -319,7 +295,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
-        println!("cols: {}", cols.len());
 
         let mut info = TableInfo {
             block_data: all_block.to_vec(),
@@ -335,13 +310,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         };
 
         if heap_btree.level == NodeLevel::BranchNode {
-            println!("map: {:?}", header.page_map.allocation_table);
-            println!("heap btree: {:?}", heap_btree);
-            println!(
-                "all block index?: {:?}",
-                all_block[heap_btree.node.block_index as usize].len()
-            );
-            println!("TC Desc: {descriptors:?}");
             // Still not done. We only have references to the data now
             let (_, branch_references) = extract_branch_details(
                 &all_block[heap_btree.node.block_index as usize],
@@ -358,7 +326,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 )
                 .unwrap();
                 info.total_rows += message_rows.count;
-                println!("message count: {}", message_rows.count);
 
                 let branch_info = TableBranchInfo {
                     node: branch,
@@ -367,14 +334,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
                 branch_info_vec.push(branch_info);
             }
-            println!("branch info len: {}", branch_info_vec.len());
 
             // We now have all the data that is needed to extract data from branches
             info.has_branch = Some(branch_info_vec);
-
-            println!(
-                "FML its a branch! We need to determine the real row count and the real desc data?"
-            );
         } else {
             info.total_rows =
                 get_row_count(&header.page_map.allocation_table, &heap_btree.node.index);
@@ -484,7 +446,6 @@ fn extract_branch_details<'a>(
 
     if let Some(start) = map.allocation_table.get(*map_index as usize - 1) {
         if let Some(end) = map.allocation_table.get(*map_index as usize) {
-            println!("real entry?: {end} - {start}");
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -566,11 +527,6 @@ fn parse_branch_row<'a>(
         for entry in &info.rows {
             let mut index = entry.clone();
 
-            //if desc_index >= descriptors.len() {
-            // We are done. There is no more data left
-            //    break;
-            //}
-
             /*
              * This is kind of complex:
              * We need to adjust the entry number to make sure it is not higher than the max number of entries can be found in a descriptor block.
@@ -622,9 +578,6 @@ fn get_row_data_entry<'a>(
     entry: &u64,
     info: &TableInfo,
 ) -> nom::IResult<&'a [u8], Vec<TableRows>> {
-    println!("TC entry data len: {}", data.len());
-    println!("row start: {}", entry * info.row_size as u64);
-    println!("row size: {}", info.row_size);
     // Go to the start of the row
     let (row_start, _) = take(entry * info.row_size as u64)(data)?;
     let (_, row_data) = take(info.row_size)(row_start)?;
@@ -632,7 +585,6 @@ fn get_row_data_entry<'a>(
     // Give each row column info
     let mut col = info.columns.clone();
     for column in col.iter_mut() {
-        println!("TC col prop: {:?}", column.column.property_name);
         let (_, value) = parse_row_data(
             &info.block_data,
             row_data,
@@ -640,7 +592,6 @@ fn get_row_data_entry<'a>(
             &column.column.offset,
             &column.column.size,
         )?;
-        println!("TC value: {value:?}");
 
         column.value = value;
     }
@@ -654,12 +605,9 @@ fn get_row_data<'a>(
     info: &TableInfo,
 ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
     let mut rows = Vec::new();
-    println!("TC data len: {}", data.len());
 
     // Get the rows we want
     for entry in &info.rows {
-        println!("row start: {}", entry * info.row_size as u64);
-        println!("row size: {}", info.row_size);
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
         let (_, row_data) = take(info.row_size)(row_start)?;
@@ -667,7 +615,6 @@ fn get_row_data<'a>(
         // Give each row column info
         let mut col = info.columns.clone();
         for column in col.iter_mut() {
-            println!("TC col prop: {:?}", column.column.property_name);
             let (_, value) = parse_row_data(
                 &info.block_data,
                 row_data,
@@ -675,7 +622,6 @@ fn get_row_data<'a>(
                 &column.column.offset,
                 &column.column.size,
             )?;
-            println!("TC value: {value:?}");
 
             column.value = value;
         }
@@ -695,11 +641,8 @@ fn parse_row_data<'a>(
     value_size: &u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
-    println!("TC offset: {offset}");
-    println!("TC Property Type: {prop_type:?}");
     let (value_start, _) = take(*offset)(row_data)?;
     let (_, value_data) = take(*value_size)(value_start)?;
-    println!("TC Value data: {value_data:?}");
 
     let multi_values = vec![
         PropertyType::String,
