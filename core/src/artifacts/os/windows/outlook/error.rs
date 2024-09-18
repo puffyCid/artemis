@@ -14,6 +14,9 @@ pub(crate) enum OutlookError {
     PropertyContext,
     TableContext,
     MessageCount,
+    UnknownPageFormat,
+    Systemdrive,
+    Serialize,
 }
 
 impl std::error::Error for OutlookError {}
@@ -22,6 +25,8 @@ impl fmt::Display for OutlookError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OutlookError::ReadFile => write!(f, "Failed to read outlook file"),
+            OutlookError::Systemdrive => write!(f, "Failed to get Windows system drive"),
+            OutlookError::UnknownPageFormat => write!(f, "Unknown page format detected"),
             OutlookError::NodeBtree => write!(f, "Failed to read node btree"),
             OutlookError::BlockBtree => write!(f, "Failed to read block btree"),
             OutlookError::LeafNode => write!(f, "Failed to read leaf node"),
@@ -41,6 +46,7 @@ impl fmt::Display for OutlookError {
             OutlookError::MessageCount => {
                 write!(f, "Too many messages requested, not enough available")
             }
+            OutlookError::Serialize => write!(f, "Failed to serialize outlook mesages"),
         }
     }
 }

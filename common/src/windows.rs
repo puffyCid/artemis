@@ -1450,3 +1450,27 @@ pub struct WmiPersist {
     pub consumer: String,
     pub consumer_name: String,
 }
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct OutlookMessage {
+    pub body: String,
+    pub subject: String,
+    pub from: String,
+    pub recipient: String,
+    pub delivered: String,
+    pub recipients: Vec<String>,
+    pub attachments: Vec<OutlookAttachment>,
+    pub properties: Vec<String>,
+    pub folder_path: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct OutlookAttachment {
+    pub name: String,
+    pub size: u64,
+    pub method: String,
+    pub mime: String,
+    pub extension: String,
+    pub data: String,
+    pub properties: Vec<String>,
+}

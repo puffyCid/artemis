@@ -13,17 +13,11 @@ use crate::{
         tables::{
             header::{get_heap_node_id, heap_page_map, table_header},
             heap_btree::parse_btree_heap,
-            property::get_map_offset,
+            property::{extract_property_value, get_map_offset},
         },
     },
-    utils::{
-        encoding::base64_encode_standard,
-        nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
-        },
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
-        uuid::format_guid_le_bytes,
+    utils::nom_helper::{
+        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
     },
 };
 use log::{error, warn};
@@ -204,7 +198,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         info: &TableInfo,
         data: &'a [u8],
     ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
-        let (input, header) = table_header(data)?;
+        let (input, _header) = table_header(data)?;
         let (input, heap_btree) = parse_btree_heap(input)?;
 
         let tree_header_size: u8 = 22;
@@ -233,12 +227,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                         branch,
                     )
                     .unwrap();
-                    println!("we got {} messages", rows.len());
                     return Ok((&[], rows));
                 }
             }
-
-            panic!("FML its a branch row we have to parse!");
         }
 
         // Now skip Row name and ID section
@@ -312,11 +303,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         println!("Table context heap tree: {heap_btree:?}");
 
-        let (input, sig) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, _sig) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, number_column_definitions) = nom_unsigned_one_byte(input, Endian::Le)?;
-        let (input, array_end_32bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, array_end_16bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, array_end_8bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _array_end_32bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _array_end_16bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _array_end_8bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let row_index = get_heap_node_id(&table_context_index_reference);
@@ -350,7 +341,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 "all block index?: {:?}",
                 all_block[heap_btree.node.block_index as usize].len()
             );
-            //println!("index reference? {:?}", get_map_offset(&35662080));
             println!("TC Desc: {descriptors:?}");
             // Still not done. We only have references to the data now
             let (_, branch_references) = extract_branch_details(
@@ -435,6 +425,7 @@ pub(crate) struct RowsInfo {
     pub(crate) count: u64,
 }
 
+/// Extract the rows found in branches. This involves alot more work then non-branch rows
 fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a [u8], RowsInfo> {
     // See:https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc#1111-table-block-header
     println!("need to handle header based on fill level?");
@@ -458,6 +449,12 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     let row_size = 8;
     if branch_row_size % row_size != 0 {
         panic!("we should be multiple of 8? Got size: {branch_row_size}");
+        warn!("[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        let info = RowsInfo {
+            row_end: branch_row_end,
+            count: 0,
+        };
+        return Ok((&[], info));
     }
 
     let row_count = branch_row_size / row_size;
@@ -470,6 +467,7 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     Ok((&[], info))
 }
 
+/// Parse rows found in branches
 fn extract_branch_details<'a>(
     data: &'a [u8],
     map_index: &u32,
@@ -496,6 +494,8 @@ fn extract_branch_details<'a>(
     let row_size = 8;
     if branch_row_size % row_size != 0 {
         panic!("we should be multiple of 8? Got size: {branch_row_size}");
+        warn!("[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        return Ok((&[], Vec::new()));
     }
 
     let row_count = branch_row_size / row_size;
@@ -507,17 +507,14 @@ fn extract_branch_details<'a>(
     let mut refs = Vec::new();
     let mut count = 0;
     while count < row_count {
-        let (input, id) = nom_unsigned_four_bytes(row_data, Endian::Le)?;
+        let (input, _id) = nom_unsigned_four_bytes(row_data, Endian::Le)?;
         let (input, table_ref) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let results = get_heap_node_id(&table_ref);
-        println!("{results:?}");
         row_data = input;
         count += 1;
 
         refs.push(results);
     }
-
-    println!("Refs count: {}", refs.len());
 
     Ok((&[], refs))
 }
@@ -543,6 +540,7 @@ fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
     count as u64
 }
 
+/// Parse row data located in Branches. This involves alot more work vs non-branch rows
 fn parse_branch_row<'a>(
     data: &'a [u8],
     descriptors: &Vec<Vec<u8>>,
@@ -552,18 +550,26 @@ fn parse_branch_row<'a>(
     println!("all desc: {}", descriptors.len());
     // Bypass everything until the start of the row entries
     let (row_data_start, _) = take(branch.rows_info.row_end)(data)?;
-    for desc in descriptors {
-        println!("desc len: {}", desc.len());
-    }
 
     if !descriptors.is_empty() {
         let mut desc_index = 0;
         let mut rows = Vec::new();
         let max_rows = descriptors[0].len() / info.row_size as usize;
         println!("max rows {max_rows}");
+
+        // Determine which descriptor index we need to start at
+        if let Some(first_row) = info.rows.get(0) {
+            desc_index = *first_row as usize / max_rows;
+        }
+
+        let mut count = 0;
         for entry in &info.rows {
-            println!("Row number: {entry}");
             let mut index = entry.clone();
+
+            //if desc_index >= descriptors.len() {
+            // We are done. There is no more data left
+            //    break;
+            //}
 
             /*
              * This is kind of complex:
@@ -582,19 +588,26 @@ fn parse_branch_row<'a>(
              */
             while index as usize >= max_rows {
                 index -= max_rows as u64;
+                //desc_index += 1;
             }
 
             // If the entry and the row size are greater than the descriptor data. Then we need to go to the next descritpor data
-            if ((index * info.row_size as u64) + info.row_size as u64) as usize
-                > descriptors[desc_index].len()
-            {
+            //if ((index * info.row_size as u64) + info.row_size as u64) as usize
+            //    > descriptors[desc_index].len()
+            // {
+            //    desc_index += 1;
+            //}
+            if count == max_rows {
                 desc_index += 1;
+                count = 0;
             }
 
+            println!("row number {index} - desc index is: {desc_index}");
+
             let (_, row) = get_row_data_entry(&descriptors[desc_index], &index, info).unwrap();
+            count += 1;
             rows.push(row);
         }
-        //let (_, rows) = get_row_data(&descriptors[0], info).unwrap();
         return Ok((&[], rows));
     }
 
@@ -603,6 +616,7 @@ fn parse_branch_row<'a>(
     Ok((&[], rows))
 }
 
+/// Get row data found in Branches
 fn get_row_data_entry<'a>(
     data: &'a [u8],
     entry: &u64,
@@ -613,9 +627,6 @@ fn get_row_data_entry<'a>(
     println!("row size: {}", info.row_size);
     // Go to the start of the row
     let (row_start, _) = take(entry * info.row_size as u64)(data)?;
-    if info.row_size as usize > row_start.len() {
-        panic!("we need the next descriptor?!");
-    }
     let (_, row_data) = take(info.row_size)(row_start)?;
 
     // Give each row column info
@@ -637,6 +648,7 @@ fn get_row_data_entry<'a>(
     Ok((data, col))
 }
 
+/// Get row data. This is where are Outlook data exists
 fn get_row_data<'a>(
     data: &'a [u8],
     info: &TableInfo,
@@ -650,9 +662,6 @@ fn get_row_data<'a>(
         println!("row size: {}", info.row_size);
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
-        if info.row_size as usize > row_start.len() {
-            panic!("we need the next descriptor?!");
-        }
         let (_, row_data) = take(info.row_size)(row_start)?;
 
         // Give each row column info
@@ -677,6 +686,7 @@ fn get_row_data<'a>(
     Ok((data, rows))
 }
 
+/// Finally parse the row data and return the Outlook data
 fn parse_row_data<'a>(
     all_blocks: &Vec<Vec<u8>>,
     row_data: &'a [u8],
@@ -691,112 +701,51 @@ fn parse_row_data<'a>(
     let (_, value_data) = take(*value_size)(value_start)?;
     println!("TC Value data: {value_data:?}");
 
-    if value_data == [73, 0, 80, 0] {
-        panic!("{row_data:?}");
+    let multi_values = vec![
+        PropertyType::String,
+        PropertyType::String8,
+        PropertyType::MultiBinary,
+        PropertyType::Binary,
+        PropertyType::MultiString,
+        PropertyType::MultiString8,
+        PropertyType::MultiCurrency,
+        PropertyType::MultiFloat32,
+        PropertyType::MultiFloat64,
+        PropertyType::FloatTime,
+        PropertyType::MultiGuid,
+        PropertyType::Guid,
+        PropertyType::MultiInt16,
+        PropertyType::MultiInt32,
+        PropertyType::MultiInt64,
+        PropertyType::MultiTime,
+        PropertyType::ServerId,
+    ];
+    if multi_values.contains(prop_type) {
+        let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
+        if offset == 0 {
+            return Ok((row_data, value));
+        }
+        let (block_index, map_start) = get_map_offset(&offset);
+        if let Some(block_data) = all_blocks.get(block_index as usize) {
+            let prop_result = get_property_data(block_data, prop_type, &map_start, &false);
+            let prop_value = match prop_result {
+                Ok((_, result)) => result,
+                Err(_err) => {
+                    error!("[outlook] Failed to parse the property data associated with {prop_type:?}. Data could be malformed.");
+                    return Ok((&[], value));
+                }
+            };
+            value = prop_value;
+        }
+    } else {
+        let (_, prop_value) = extract_property_value(value_data, prop_type)?;
+        value = prop_value;
     }
-
-    match prop_type {
-        PropertyType::Int16 => {
-            let (_, prop_value) = nom_unsigned_two_bytes(value_data, Endian::Le)?;
-            value = serde_json::to_value(&prop_value).unwrap_or_default();
-        }
-        PropertyType::Int32 => {
-            let (_, prop_value) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            value = serde_json::to_value(prop_value).unwrap_or_default();
-        }
-        PropertyType::Float32 => todo!(),
-        PropertyType::Float64 => todo!(),
-        PropertyType::Currency => todo!(),
-        PropertyType::FloatTime => todo!(),
-        PropertyType::ErrorCode => todo!(),
-        PropertyType::Bool => {
-            let (_, prop_value) = nom_unsigned_one_byte(value_data, Endian::Le)?;
-            let prop_bool = if prop_value != 0 { true } else { false };
-            value = serde_json::to_value(&prop_bool).unwrap_or_default();
-        }
-        PropertyType::Int64 => {
-            let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
-            value = serde_json::to_value(&prop_value).unwrap_or_default();
-        }
-        PropertyType::String | PropertyType::MultiString => {
-            let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            if offset == 0 {
-                return Ok((row_data, value));
-            }
-            let (block_index, map_start) = get_map_offset(&offset);
-            if let Some(block_data) = all_blocks.get(block_index as usize) {
-                let (_, prop_value) =
-                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
-                value = prop_value;
-            }
-        }
-        PropertyType::String8 => todo!(),
-        PropertyType::Time => {
-            let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
-            let timestamp = filetime_to_unixepoch(&prop_value);
-            value = serde_json::to_value(&unixepoch_to_iso(&timestamp)).unwrap_or_default();
-        }
-        PropertyType::Guid => {
-            let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            if offset == 0 {
-                return Ok((row_data, value));
-            }
-            let (block_index, map_start) = get_map_offset(&offset);
-            if let Some(block_data) = all_blocks.get(block_index as usize) {
-                let (_, prop_value) =
-                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
-                value = prop_value;
-            }
-        }
-        PropertyType::ServerId => todo!(),
-        PropertyType::Restriction => todo!(),
-        PropertyType::Binary => {
-            let (_, offset) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            if offset == 0 {
-                return Ok((row_data, value));
-            }
-            let (block_index, map_start) = get_map_offset(&offset);
-            if let Some(block_data) = all_blocks.get(block_index as usize) {
-                let (_, prop_value) =
-                    get_property_data(block_data, prop_type, &map_start, &false).unwrap();
-                value = prop_value;
-            }
-        }
-        PropertyType::MultiInt16 => todo!(),
-        PropertyType::MultiInt32 => {
-            let (input, count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            let empty = 0;
-            if count != empty {
-                panic!("multi-int32: {value_data:?}");
-            }
-        }
-        PropertyType::MultiFloat32 => todo!(),
-        PropertyType::MultiFloat64 => todo!(),
-        PropertyType::MultiCurrency => todo!(),
-        PropertyType::MultiFloatTime => todo!(),
-        PropertyType::MultiInt64 => todo!(),
-        PropertyType::MultiString8 => todo!(),
-        PropertyType::MultiTime => todo!(),
-        PropertyType::MultiGuid => todo!(),
-        PropertyType::MultiBinary => {
-            let (input, count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
-            let empty = 0;
-            if count != empty {
-                panic!("multi-binary: {value_data:?}");
-            }
-        }
-        PropertyType::Unspecified => todo!(),
-        PropertyType::Null => todo!(),
-        PropertyType::Object => todo!(),
-        PropertyType::RuleAction => todo!(),
-        PropertyType::Unknown => {
-            value = serde_json::to_value(base64_encode_standard(value_data)).unwrap_or_default();
-        }
-    };
 
     Ok((row_data, value))
 }
 
+/// Extract column definitions for our table. There can be alot
 fn get_column_definitions<'a>(
     data: &'a [u8],
     column_count: &u8,
@@ -839,6 +788,7 @@ fn get_column_definitions<'a>(
     Ok((col_data, values))
 }
 
+/// Return the PropertyType name
 pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
     match prop {
         1 => PropertyType::Null,
@@ -873,10 +823,7 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
         4160 => PropertyType::MultiTime,
         4168 => PropertyType::MultiGuid,
         4354 => PropertyType::MultiBinary,
-        _ => {
-            panic!("[outlook] Unknown property type: {prop}");
-            PropertyType::Unknown;
-        }
+        _ => PropertyType::Unknown,
     }
 }
 
@@ -892,6 +839,7 @@ mod tests {
             context::{PropertyType, TableInfo},
             header::HeapNode,
             properties::PropertyName,
+            property::extract_property_value,
         },
     };
     use serde_json::Value;

@@ -1,5 +1,6 @@
 use super::jumplists::parser::grab_jumplists;
 use super::ntfs::parser::ntfs_filelist;
+use super::outlook::parser::grab_outlook;
 use super::recyclebin::parser::grab_recycle_bin;
 use super::registry::parser::parse_registry;
 use super::search::parser::grab_search;
@@ -15,10 +16,11 @@ use super::{
 };
 use crate::artifacts::output::output_artifact;
 use crate::structs::artifacts::os::windows::{
-    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
-    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
+    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, OutlookOptions,
+    PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+    ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions,
+    SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
+    WmiPersistOptions,
 };
 use crate::structs::toml::Output;
 use crate::utils::time;
@@ -553,6 +555,24 @@ pub(crate) fn wmi_persist(
 
     let output_name = "wmipersist";
     output_data(&serde_data, output_name, output, &start_time, filter)
+}
+
+/// Parse the Windows `Outlook` artifact
+pub(crate) fn outlook(
+    options: &OutlookOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let outlook_result = grab_outlook(options, output, filter);
+    match outlook_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse Outlook: {err:?}");
+            return Err(WinArtifactError::Outlook);
+        }
+    };
+
+    Ok(())
 }
 
 /// Output Windows artifacts

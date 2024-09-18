@@ -194,14 +194,14 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     println!("large len: {}", block_data.len());
                     if !desc_blocks.is_empty() {
                         let (_, prop_value) = get_property_data(
-                            &desc_blocks[0],
+                            &desc_blocks.concat(),
                             &prop.property_type,
                             &prop.reference,
                             &true,
                         )
                         .unwrap();
                         prop.value = prop_value;
-                        println!("Prop post Value: {prop:?}");
+
                         continue;
                     }
                     // If we don't have data, then fallback to normal block data below
@@ -278,7 +278,6 @@ pub(crate) fn get_property_data<'a>(
     reference: &u32,
     is_large: &bool,
 ) -> nom::IResult<&'a [u8], Value> {
-    let mut value = Value::Null;
     let value_data = if *is_large {
         data
     } else {
@@ -289,31 +288,30 @@ pub(crate) fn get_property_data<'a>(
         // Skip the allocation count. We do not need it
         let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
-        println!("map offset: {reference}");
         if *reference as usize > input.len() {
             println!("map value offset is greater than input? This is nulll?");
-            return Ok((&[], value));
+            return Ok((&[], Value::Null));
         }
         // Jump to the start of our value
         let (value_start, _) = take(*reference)(input)?;
         let (input, value_start) = nom_unsigned_two_bytes(value_start, Endian::Le)?;
-        println!("value start: {}", value_start);
-
-        //let heap_start = 12;
-        //let data_start = 20;
-        // If the value_start is 12 or 20. Then the value is null/empty?
-        // if value_start == heap_start || value_start == data_start {
-        //     println!("should not have reached heap_start or data_start? This is empty/null?");
-        //return Ok((data, value));
-        // }
 
         let (_, value_end) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let value_size = value_end - value_start;
-        println!("value size: {value_size}");
         let (input, _) = take(value_start)(data)?;
         let (_, value_data) = take(value_size)(input)?;
         value_data
     };
+
+    extract_property_value(value_data, prop_type)
+}
+
+/// Extract the property data into a value
+pub(crate) fn extract_property_value<'a>(
+    value_data: &'a [u8],
+    prop_type: &PropertyType,
+) -> nom::IResult<&'a [u8], Value> {
+    let mut value = Value::Null;
 
     match prop_type {
         PropertyType::Int16 => {
@@ -330,7 +328,7 @@ pub(crate) fn get_property_data<'a>(
             value = serde_json::to_value(prop_value).unwrap_or_default();
         }
         PropertyType::Float64 => {
-            let (_, float_data) = take(size_of::<u64>())(data)?;
+            let (_, float_data) = take(size_of::<u64>())(value_data)?;
             let (_, prop_value) = le_f64(float_data)?;
             value = serde_json::to_value(prop_value).unwrap_or_default();
         }
@@ -340,7 +338,6 @@ pub(crate) fn get_property_data<'a>(
             let (_, float_value) = le_f64(float_data)?;
             let oletime = ole_automationtime_to_unixepoch(&float_value);
             value = serde_json::to_value(unixepoch_to_iso(&oletime)).unwrap_or_default();
-            panic!("{value:?}");
         }
         PropertyType::ErrorCode => {
             // In future we could perhaps translate this to proper error string
@@ -353,7 +350,7 @@ pub(crate) fn get_property_data<'a>(
             let prop_bool = if prop_value != 0 { true } else { false };
             value = serde_json::to_value(&prop_bool).unwrap_or_default();
         }
-        PropertyType::Int64 | PropertyType::Currency => {
+        PropertyType::Int64 => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             value = serde_json::to_value(&prop_value).unwrap_or_default();
         }
@@ -398,7 +395,7 @@ pub(crate) fn get_property_data<'a>(
                     serde_json::to_value(&strings).unwrap_or_default()
                 }
                 _ => serde_json::to_value(&format!("Non string property type. Got {prop_type:?}"))
-                    .unwrap(),
+                    .unwrap_or_default(),
             };
         }
         PropertyType::Time => {
@@ -409,32 +406,6 @@ pub(crate) fn get_property_data<'a>(
         PropertyType::Guid => {
             let string_value = format_guid_le_bytes(value_data);
             value = serde_json::to_value(&string_value).unwrap_or_default();
-        }
-        PropertyType::ServerId => {
-            warn!("[outlook] Got server ID property. Best effort attempt to parse");
-            let (input, definition) = nom_unsigned_one_byte(value_data, Endian::Le)?;
-            if definition == 0 {
-                warn!("[outlook] Got client defined server ID. Format is arbritary");
-                value =
-                    serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
-            } else {
-                let (input, folder_id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-                let (input, message_id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-                let (input, index) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-                let server_id = ServerId {
-                    definition,
-                    folder_id,
-                    message_id,
-                    index,
-                };
-
-                value = serde_json::to_value(&server_id).unwrap_or_default();
-            }
-        }
-        PropertyType::Restriction => {
-            warn!("[outlook] Got restriction property. Format undocumented");
-            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
         }
         PropertyType::Binary => {
             value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
@@ -509,7 +480,7 @@ pub(crate) fn get_property_data<'a>(
             let mut int_values = Vec::new();
 
             while count < int_count {
-                // Supposdly this is OLE Time?
+                // Supposedly this is OLE Time?
                 let (input, float_data) = take(size_of::<u64>())(remaining)?;
                 let (_, float_value) = le_f64(float_data)?;
                 remaining = input;
@@ -518,10 +489,8 @@ pub(crate) fn get_property_data<'a>(
                 count += 1;
             }
             value = serde_json::to_value(int_values).unwrap_or_default();
-
-            panic!("{value:?}");
         }
-        PropertyType::MultiInt64 | PropertyType::MultiCurrency => {
+        PropertyType::MultiInt64 => {
             let int_count = value_data.len() / 8;
             let mut remaining = value_data;
             let mut count = 0;
@@ -553,7 +522,7 @@ pub(crate) fn get_property_data<'a>(
             value = serde_json::to_value(int_values).unwrap_or_default();
         }
         PropertyType::MultiGuid => {
-            warn!("[outlook] Got mnulti-guid property. Attempt to parse");
+            warn!("[outlook] Got multi-guid property. Attempting to parse");
             let guid_size = 16;
             let guid_count = value_data.len() / guid_size;
             let mut remaining = value_data;
@@ -604,20 +573,18 @@ pub(crate) fn get_property_data<'a>(
         }
         // We are already NULL. Unspecified means the value type does not matter
         PropertyType::Null | PropertyType::Unspecified => {}
-        PropertyType::Object => {
-            warn!("[outlook] Got object property. Contains embedded COM object or message table.");
-            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
-        }
-        PropertyType::RuleAction => {
-            warn!("[outlook] Got rule action property. Not supported");
-            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
-        }
-        PropertyType::Unknown => {
+        // These properties have not been observed in the test data we have. Base64 encode for now. In future this can be added once we have test data
+        PropertyType::Unknown
+        | PropertyType::Currency
+        | PropertyType::MultiCurrency
+        | PropertyType::RuleAction
+        | PropertyType::Object
+        | PropertyType::Restriction
+        | PropertyType::ServerId => {
             value = serde_json::to_value(base64_encode_standard(value_data)).unwrap_or_default();
         }
     };
 
-    println!("Prop value: {value:?}");
     Ok((value_data, value))
 }
 
@@ -645,7 +612,9 @@ mod tests {
             helper::{OutlookReader, OutlookReaderAction},
             pages::btree::{BlockType, LeafBlockData},
             tables::{
-                context::PropertyType, properties::PropertyName, property::OutlookPropertyContext,
+                context::PropertyType,
+                properties::PropertyName,
+                property::{extract_property_value, OutlookPropertyContext},
             },
         },
         filesystem::files::file_reader,
@@ -708,7 +677,6 @@ mod tests {
             .unwrap();
 
         // let (_, result) = parse_property_context(&test).unwrap();
-        println!("{result:?}");
         assert_eq!(result[2].property_type, PropertyType::Time);
         assert_eq!(result[2].name, vec![PropertyName::PidTagCreationTime]);
         assert_eq!(
@@ -780,7 +748,7 @@ mod tests {
             0, 114, 0, 101, 0, 115, 0, 115, 0, 32, 0, 76, 0, 105, 0, 115, 0, 116, 0, 10, 0, 0, 0,
             12, 0, 20, 0, 172, 0, 188, 0, 12, 1, 28, 1, 48, 1, 56, 1, 64, 1, 110, 1, 174, 1,
         ];
-        // We dont need an OST file for this test
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/node.raw");
         let reader = file_reader(test_location.to_str().unwrap()).unwrap();
@@ -802,7 +770,6 @@ mod tests {
             .parse_property_context(&block.data, &block.descriptors)
             .unwrap();
 
-        println!("{store:?}");
         assert_eq!(store.len(), 19);
         assert_eq!(store[3].name, vec![PropertyName::Unknown]);
         assert_eq!(store[3].property_type, PropertyType::Binary);
@@ -936,5 +903,12 @@ mod tests {
                 )
             ]
         );
+    }
+
+    #[test]
+    fn teast_extract_property_value() {
+        let test = [0, 1, 8, 16, 0, 3, 0, 4, 1];
+        let (_, result) = extract_property_value(&test, &PropertyType::Currency).unwrap();
+        assert_eq!(result.as_str().unwrap(), "AAEIEAADAAQB");
     }
 }

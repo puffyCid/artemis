@@ -24,6 +24,7 @@ pub(crate) enum WinArtifactError {
     Jumplists,
     RecycleBin,
     WmiPersist,
+    Outlook,
 }
 
 impl std::error::Error for WinArtifactError {}
@@ -53,6 +54,7 @@ impl fmt::Display for WinArtifactError {
             WinArtifactError::Jumplists => write!(f, "Failed to parse Jumplists"),
             WinArtifactError::RecycleBin => write!(f, "Failed to parse Recycle Bin"),
             WinArtifactError::WmiPersist => write!(f, "Failed to parse WMI persist"),
+            WinArtifactError::Outlook => write!(f, "Failed to parse Outlook"),
         }
     }
 }

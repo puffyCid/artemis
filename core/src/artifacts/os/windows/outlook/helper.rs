@@ -2,7 +2,6 @@
  * Main Parsing is complete!!!!!!! \O.O/
  *
  * Remainign TODO:
- * 1. Support parsing remainign property_types (see: https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc)
  * 3. Clean up
  * 5. Yara-X scanning
  * 6. Time filtering
@@ -115,7 +114,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         self.size = match self.format {
             FormatType::ANSI32 | FormatType::Unicode64 => 512,
             FormatType::Unicode64_4k => 4096,
-            FormatType::Unknown => panic!("should not be possible"),
+            FormatType::Unknown => return Err(OutlookError::UnknownPageFormat),
         };
 
         let mut block_tree = Vec::new();
@@ -237,7 +236,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     } else if node.node.node_id == NodeID::FaiContentsTable {
                         fai = node.clone();
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Unknown NodeID: {node:?}");
+                        warn!("[outlook] Unknown NodeID when reading folder. We should still be ok: {node:?}");
                         continue;
                     } else if search.contains(&node.node.node_id) {
                         return self.search_folder(ntfs_file, folder);
@@ -245,7 +244,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         // This Table is undocumented. Internal to the OST
                         continue;
                     } else {
-                        panic!("other optoin!?: {node:?}");
+                        warn!("[outlook] Unexpected NodeID for folder: {node:?}");
                     }
                 }
                 if normal.block_offset_data_id != 0
@@ -350,9 +349,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
         let normal = self.parse_property_context(&normal_value.data, &normal_value.descriptors)?;
 
-        println!("hierarcy block: {hierarchy_block:?}");
-        println!("hierarcy des: {hiearchy_descriptor:?}");
-
         let hiearchy_value =
             self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
 
@@ -426,16 +422,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     } else if node.node.node_id == NodeID::SearchContentsTable {
                         contents = node.clone();
                     } else if node.node.node_id == NodeID::SearchUpdateQueue {
-                        // update = node.clone();
-                        println!(
-                            "Got update queue. Unsure whether property or table context: {node:?}"
-                        );
+                        // SearchUpdateQueue not needed to parse data
                         continue;
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Unknown NodeID: {node:?}");
+                        warn!("[outlook] Unknown NodeID when reading search folder. We should still be ok: {node:?}");
                         continue;
                     } else {
-                        panic!("other optoin!?: {node:?}");
+                        warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
                     }
                 }
                 if search.block_offset_data_id != 0
@@ -856,16 +849,8 @@ mod tests {
     fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: &u64) {
         let mut results = reader.read_folder(None, *folder).unwrap();
 
-        println!("My Folder name: {}", results.name);
-        println!("Folder info: {results:?}");
-
         for meta in results.associated_content {
-            println!(
-                "Getting additional metadata for {} under: {:?}",
-                results.name, meta
-            );
-            let meta_value = reader.folder_metadata(None, meta.node).unwrap();
-            println!("Meta: {meta_value:?}");
+            let _meta_value = reader.folder_metadata(None, meta.node).unwrap();
         }
 
         if results.message_count > 5 && results.name == "Inbox" {
@@ -875,10 +860,8 @@ mod tests {
             let messages = reader
                 .read_message(None, &results.messages_table, None)
                 .unwrap();
-            println!("i got: {} messages!", messages.len());
 
             assert_eq!(messages.len(), 5);
-            println!("{:?}", messages[0]);
             assert_eq!(messages[0].delivered, "2024-09-10T04:14:19.000Z");
             assert_eq!(
                 messages[0].subject,
@@ -891,8 +874,6 @@ mod tests {
 
             // Check other messages
             for message in messages {
-                println!("attach count: {:?}", message.attachments);
-
                 assert!(!message.delivered.is_empty());
                 assert!(!message.from.is_empty());
                 assert!(!message.subject.is_empty());
@@ -903,7 +884,6 @@ mod tests {
         }
 
         for sub in results.subfolders {
-            println!("getting info for sub folder: {:?}", sub);
             stream_ost(reader, &sub.node);
         }
     }

@@ -1,6 +1,6 @@
 use super::message::{get_attach_method, AttachMethod};
 use crate::artifacts::os::windows::outlook::tables::{
-    context::PropertyType, properties::PropertyName, property::PropertyContext,
+    properties::PropertyName, property::PropertyContext,
 };
 
 #[derive(Debug)]

@@ -13,6 +13,7 @@ pub(crate) struct HeapBtree {
     pub(crate) node: HeapNode,
 }
 
+/// Parse the Heap BTree in Outlook
 pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, record_entry_size) = nom_unsigned_one_byte(input, Endian::Le)?;

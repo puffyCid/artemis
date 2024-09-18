@@ -158,7 +158,7 @@ fn extract_xblock_entries<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_xblock, xblock_data};
+    use super::{extract_xblock_entries, parse_xblock, xblock_data};
     use crate::{
         artifacts::os::windows::outlook::{
             blocks::block::{Block, BlockValue},
@@ -248,6 +248,13 @@ mod tests {
 
         let (_, entries) = xblock_data(&test, &FormatType::Unicode64_4k, &mut block).unwrap();
         assert_eq!(entries.len(), 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error")]
+    fn test_extract_xblock_entries() {
+        let test = [2, 1, 2, 0, 0];
+        let _ = extract_xblock_entries(&test, &FormatType::Unicode64_4k).unwrap();
     }
 
     #[test]

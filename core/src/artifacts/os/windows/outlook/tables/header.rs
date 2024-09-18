@@ -13,7 +13,6 @@ pub(crate) struct TableHeader {
     pub(crate) sig: u8,
     pub(crate) table_type: TableType,
     pub(crate) heap_node: HeapNode,
-    pub(crate) fill: Vec<FillLevel>,
     pub(crate) page_map: HeapPageMap,
 }
 
@@ -31,26 +30,7 @@ pub(crate) enum TableType {
     Unknown,
 }
 
-#[derive(PartialEq, Debug)]
-pub(crate) enum FillLevel {
-    Empty,
-    Level1,
-    Level2,
-    Level3,
-    Level4,
-    Level5,
-    Level6,
-    Level7,
-    Level8,
-    Level9,
-    Level10,
-    Level11,
-    Level12,
-    Level13,
-    Level14,
-    LevelFull,
-}
-
+/// Parse the table found in TableContext and Property tables
 pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let (input, page_map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
 
@@ -66,7 +46,6 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
                 index: 0,
                 block_index: 0,
             },
-            fill: Vec::new(),
             page_map: HeapPageMap {
                 allocation_count: 0,
                 free: 0,
@@ -82,21 +61,20 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
 
     let (input, root_heap) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let heap_node = get_heap_node_id(&root_heap);
-    let (input, level_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    println!("fill: {level_data}");
+    let (input, _fill_level) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let table = TableHeader {
         page_map_offset,
         sig,
         table_type: get_table_type(&table_type),
         heap_node,
-        fill: Vec::new(),
         page_map,
     };
 
     Ok((input, table))
 }
 
+/// Determine the table type. Only TableContext, PropertyContext, and BTreeHeap are documented
 fn get_table_type(table: &u8) -> TableType {
     match table {
         0x6c => TableType::SixC,
@@ -122,6 +100,7 @@ pub(crate) struct HeapNode {
     pub(crate) block_index: u32,
 }
 
+/// Extract the Heap Node info from the table header
 pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
     let id = match value & 0x1f {
         0x0 => NodeID::HeapNode,
@@ -150,8 +129,6 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
         }
     };
 
-    //let index = (value >> 5) & 0x07ffffff;
-
     let index = (value & 0x07ffe0) >> 5;
 
     // Will only work for OST files (Outlook 2013+)
@@ -174,6 +151,7 @@ pub(crate) struct HeapPageMap {
     pub(crate) allocation_table: Vec<u16>,
 }
 
+/// Determine the allocation map found at the bottom of the table. This is partially defined in the header
 pub(crate) fn heap_page_map(data: &[u8]) -> nom::IResult<&[u8], HeapPageMap> {
     let (input, allocation_count) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (mut input, free) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -228,7 +206,6 @@ mod tests {
         assert_eq!(header.table_type, TableType::TableContext);
         assert_eq!(header.heap_node.node, NodeID::HeapNode);
         assert_eq!(header.heap_node.index, 2);
-        assert_eq!(header.fill, Vec::new());
         assert_eq!(header.page_map.allocation_count, 6);
         println!("{header:?}");
     }
