@@ -16,6 +16,7 @@ use log::error;
 use ntfs::NtfsFile;
 use std::io::BufReader;
 
+/// Parse and grab Outlook messages based on options provided
 pub(crate) fn grab_outlook(
     options: &OutlookOptions,
     output: &mut Output,
@@ -32,9 +33,12 @@ pub(crate) fn grab_outlook(
             return Err(OutlookError::Systemdrive);
         }
     };
+
+    panic!("glob for OST files");
     Ok(())
 }
 
+/// Parse the provided OST file and grab messages
 fn grab_outlook_file(
     path: &str,
     options: &OutlookOptions,
@@ -51,6 +55,7 @@ fn grab_outlook_file(
         yara_rule_message: options.yara_rule_message.clone(),
         start_time,
         filter: *filter,
+        source: path.to_string(),
     };
 
     let plat = get_platform();
@@ -68,6 +73,8 @@ fn grab_outlook_file(
         };
         return read_outlook(&mut outlook_reader, None, &runner, output);
     }
+
+    // Windows we default to parsing the NTFS in order bypass locked OST
     let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
@@ -98,8 +105,10 @@ struct OutlookRunner {
     yara_rule_message: Option<String>,
     start_time: u64,
     filter: bool,
+    source: String,
 }
 
+/// Start reading the OST file
 fn read_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
@@ -112,16 +121,14 @@ fn read_outlook<T: std::io::Seek + std::io::Read>(
     // Get the root folder
     let root = reader.root_folder(use_ntfs)?;
 
-    println!("root: {root:?}");
-
     for folders in root.subfolders {
-        println!("folder: {folders:?}");
         stream_outlook(reader, use_ntfs, options, output, &folders.node, &root.name)?;
     }
 
     Ok(())
 }
 
+/// Loop and stream all folders and messages in OST
 fn stream_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
@@ -153,7 +160,6 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 
             // Get our messages
             let messages = reader.read_message(use_ntfs, &results.messages_table, None)?;
-
             let mut entries = Vec::new();
 
             // Now process messages
@@ -167,89 +173,9 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     &results.name,
                 )?;
                 entries.push(entry);
-                /*
-                if let Some(start) = &options.start_date {
-                    println!("filter by start date");
-                    continue;
-                }
-                if let Some(end) = &options.end_date {
-                    println!("filter by end date");
-                    continue;
-                }
-                let mut attachments = Vec::new();
-
-                if options.include_attachments {
-                    for attach in message.attachments {
-                        let attach_info = reader.read_attachment(
-                            use_ntfs,
-                            &attach.block_id,
-                            &attach.descriptor_id,
-                        )?;
-
-                        let message_attach = OutlookAttachment {
-                            name: attach_info.name,
-                            size: attach_info.size,
-                            method: String::new(),
-                            mime: attach_info.mime,
-                            extension: attach_info.extension,
-                            data: attach_info.data,
-                            properties: Vec::new(),
-                        };
-                        attachments.push(message_attach);
-                    }
-                    if let Some(rule) = &options.yara_rule_attachment {
-                        println!("scan with yara!");
-                    }
-
-                    if let Some(rule) = &options.yara_rule_attachment {
-                        println!("scan with yara!");
-                    }
-                }
-
-                if let Some(rule) = &options.yara_rule_message {
-                    println!("scan message with yara!");
-                    continue;
-                }
-
-                let message_result = OutlookMessage {
-                    body: message.body,
-                    subject: message.subject,
-                    from: message.from,
-                    recipient: message.recipient,
-                    delivered: message.delivered,
-                    recipients: Vec::new(),
-                    attachments: Vec::new(),
-                    properties: Vec::new(),
-                    folder_path: format!("{folder_path}/{}", results.name),
-                };
-
-                entries.push(message_result);
-                */
             }
 
-            if !entries.is_empty() {
-                let serde_data_result = serde_json::to_value(&entries);
-                let serde_data = match serde_data_result {
-                    Ok(results) => results,
-                    Err(err) => {
-                        error!("[outlook] Failed to serialize Outlook messages: {err:?}");
-                        return Err(OutlookError::Serialize);
-                    }
-                };
-                let result = output_data(
-                    &serde_data,
-                    "outlook",
-                    output,
-                    &options.start_time,
-                    &options.filter,
-                );
-                match result {
-                    Ok(_result) => {}
-                    Err(err) => {
-                        error!("[outlook] Could not output Outlook messages: {err:?}");
-                    }
-                }
-            }
+            output_messages(&entries, options, output)?;
             chunks = Vec::new();
         }
 
@@ -259,91 +185,21 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 
             // Get our messages
             let messages = reader.read_message(use_ntfs, &results.messages_table, None)?;
-
             let mut entries = Vec::new();
 
             // Now process messages
             for message in messages {
-                if let Some(start) = &options.start_date {
-                    println!("filter by start date");
-                    continue;
-                }
-                if let Some(end) = &options.end_date {
-                    println!("filter by end date");
-                    continue;
-                }
-                let mut attachments = Vec::new();
-
-                if options.include_attachments {
-                    for attach in message.attachments {
-                        let attach_info = reader.read_attachment(
-                            use_ntfs,
-                            &attach.block_id,
-                            &attach.descriptor_id,
-                        )?;
-
-                        let message_attach = OutlookAttachment {
-                            name: attach_info.name,
-                            size: attach_info.size,
-                            method: String::new(),
-                            mime: attach_info.mime,
-                            extension: attach_info.extension,
-                            data: attach_info.data,
-                            properties: Vec::new(),
-                        };
-                        attachments.push(message_attach);
-                    }
-                    if let Some(rule) = &options.yara_rule_attachment {
-                        println!("scan with yara!");
-                    }
-
-                    if let Some(rule) = &options.yara_rule_attachment {
-                        println!("scan with yara!");
-                    }
-                }
-
-                if let Some(rule) = &options.yara_rule_message {
-                    println!("scan message with yara!");
-                    continue;
-                }
-
-                let message_result = OutlookMessage {
-                    body: message.body,
-                    subject: message.subject,
-                    from: message.from,
-                    recipient: message.recipient,
-                    delivered: message.delivered,
-                    recipients: Vec::new(),
-                    attachments,
-                    properties: Vec::new(),
-                    folder_path: format!("{folder_path}/{}", results.name),
-                };
-
-                entries.push(message_result);
+                let entry = message_details(
+                    message,
+                    reader,
+                    use_ntfs,
+                    options,
+                    folder_path,
+                    &results.name,
+                )?;
+                entries.push(entry);
             }
-            if !entries.is_empty() {
-                let serde_data_result = serde_json::to_value(&entries);
-                let serde_data = match serde_data_result {
-                    Ok(results) => results,
-                    Err(err) => {
-                        error!("[outlook] Failed to serialize Outlook messages: {err:?}");
-                        return Err(OutlookError::Serialize);
-                    }
-                };
-                let result = output_data(
-                    &serde_data,
-                    "outlook",
-                    output,
-                    &options.start_time,
-                    &options.filter,
-                );
-                match result {
-                    Ok(_result) => {}
-                    Err(err) => {
-                        error!("[outlook] Could not output Outlook messages: {err:?}");
-                    }
-                }
-            }
+            output_messages(&entries, options, output)?;
         }
 
         // Now check for subfolders
@@ -374,95 +230,28 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 if chunks.len() != message_limit {
                     continue;
                 }
-                println!("chunks: {chunks:?}");
                 // If we are at the limit get messages
                 results.messages_table.rows = chunks.clone();
 
                 // Get our messages
                 let messages =
                     reader.read_message(use_ntfs, &results.messages_table, Some(branch))?;
-
                 let mut entries = Vec::new();
 
                 // Now process messages
                 for message in messages {
-                    if let Some(start) = &options.start_date {
-                        println!("filter by start date");
-                        continue;
-                    }
-                    if let Some(end) = &options.end_date {
-                        println!("filter by end date");
-                        continue;
-                    }
-
-                    let mut attachments = Vec::new();
-                    if options.include_attachments {
-                        for attach in message.attachments {
-                            let attach_info = reader.read_attachment(
-                                use_ntfs,
-                                &attach.block_id,
-                                &attach.descriptor_id,
-                            )?;
-
-                            let message_attach = OutlookAttachment {
-                                name: attach_info.name,
-                                size: attach_info.size,
-                                method: String::new(),
-                                mime: attach_info.mime,
-                                extension: attach_info.extension,
-                                data: attach_info.data,
-                                properties: Vec::new(),
-                            };
-                            attachments.push(message_attach);
-                        }
-                        if let Some(rule) = &options.yara_rule_attachment {
-                            println!("scan with yara!");
-                        }
-                    }
-
-                    if let Some(rule) = &options.yara_rule_message {
-                        println!("scan message with yara!");
-                        continue;
-                    }
-
-                    let message_result = OutlookMessage {
-                        body: message.body,
-                        subject: message.subject,
-                        from: message.from,
-                        recipient: message.recipient,
-                        delivered: message.delivered,
-                        recipients: Vec::new(),
-                        attachments,
-                        properties: Vec::new(),
-                        folder_path: format!("{folder_path}/{}", results.name),
-                    };
-
-                    entries.push(message_result);
+                    let entry = message_details(
+                        message,
+                        reader,
+                        use_ntfs,
+                        options,
+                        folder_path,
+                        &results.name,
+                    )?;
+                    entries.push(entry);
                 }
 
-                if !entries.is_empty() {
-                    let serde_data_result = serde_json::to_value(&entries);
-                    let serde_data = match serde_data_result {
-                        Ok(results) => results,
-                        Err(err) => {
-                            error!("[outlook] Failed to serialize Outlook messages: {err:?}");
-                            return Err(OutlookError::Serialize);
-                        }
-                    };
-                    let result = output_data(
-                        &serde_data,
-                        "outlook",
-                        output,
-                        &options.start_time,
-                        &options.filter,
-                    );
-                    match result {
-                        Ok(_result) => {}
-                        Err(err) => {
-                            error!("[outlook] Could not output Outlook messages: {err:?}");
-                        }
-                    }
-                }
+                output_messages(&entries, options, output)?;
                 chunks = Vec::new();
             }
 
@@ -473,91 +262,22 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 // Get our messages
                 let messages =
                     reader.read_message(use_ntfs, &results.messages_table, Some(branch))?;
-
                 let mut entries = Vec::new();
 
                 // Now process messages
                 for message in messages {
-                    if let Some(start) = &options.start_date {
-                        println!("filter by start date");
-                        continue;
-                    }
-                    if let Some(end) = &options.end_date {
-                        println!("filter by end date");
-                        continue;
-                    }
-                    let mut attachments = Vec::new();
-                    if options.include_attachments {
-                        for attach in message.attachments {
-                            let attach_info = reader.read_attachment(
-                                use_ntfs,
-                                &attach.block_id,
-                                &attach.descriptor_id,
-                            )?;
-
-                            let message_attach = OutlookAttachment {
-                                name: attach_info.name,
-                                size: attach_info.size,
-                                method: String::new(),
-                                mime: attach_info.mime,
-                                extension: attach_info.extension,
-                                data: attach_info.data,
-                                properties: Vec::new(),
-                            };
-                            attachments.push(message_attach);
-                        }
-                        if let Some(rule) = &options.yara_rule_attachment {
-                            println!("scan with yara!");
-                        }
-
-                        if let Some(rule) = &options.yara_rule_attachment {
-                            println!("scan with yara!");
-                        }
-                    }
-
-                    if let Some(rule) = &options.yara_rule_message {
-                        println!("scan message with yara!");
-                        continue;
-                    }
-
-                    let message_result = OutlookMessage {
-                        body: message.body,
-                        subject: message.subject,
-                        from: message.from,
-                        recipient: message.recipient,
-                        delivered: message.delivered,
-                        recipients: Vec::new(),
-                        attachments,
-                        properties: Vec::new(),
-                        folder_path: format!("{folder_path}/{}", results.name),
-                    };
-
-                    entries.push(message_result);
+                    let entry = message_details(
+                        message,
+                        reader,
+                        use_ntfs,
+                        options,
+                        folder_path,
+                        &results.name,
+                    )?;
+                    entries.push(entry);
                 }
 
-                if !entries.is_empty() {
-                    let serde_data_result = serde_json::to_value(&entries);
-                    let serde_data = match serde_data_result {
-                        Ok(results) => results,
-                        Err(err) => {
-                            error!("[outlook] Failed to serialize Outlook messages: {err:?}");
-                            return Err(OutlookError::Serialize);
-                        }
-                    };
-                    let result = output_data(
-                        &serde_data,
-                        "outlook",
-                        output,
-                        &options.start_time,
-                        &options.filter,
-                    );
-                    match result {
-                        Ok(_result) => {}
-                        Err(err) => {
-                            error!("[outlook] Could not output Outlook messages: {err:?}");
-                        }
-                    }
-                }
+                output_messages(&entries, options, output)?;
             }
 
             all_rows += branch.rows_info.count;
@@ -580,6 +300,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
+/// Read and extract message details. We only get attachments if explictly enabled
 fn message_details<T: std::io::Seek + std::io::Read>(
     message: MessageDetails,
     reader: &mut OutlookReader<T>,
@@ -598,6 +319,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         attachments: Vec::new(),
         properties: Vec::new(),
         folder_path: format!("{folder_path}/{folder}"),
+        source_file: options.source,
     };
     if let Some(start) = &options.start_date {
         println!("filter by start date");
@@ -639,4 +361,39 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         return Ok(message_result);
     }
     return Ok(message_result);
+}
+
+/// Output the extract messages
+fn output_messages(
+    messages: &[OutlookMessage],
+    options: &OutlookRunner,
+    output: &mut Output,
+) -> Result<(), OutlookError> {
+    if messages.is_empty() {
+        return Ok(());
+    }
+    let serde_data_result = serde_json::to_value(&messages);
+    let serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[outlook] Failed to serialize Outlook messages: {err:?}");
+            return Err(OutlookError::Serialize);
+        }
+    };
+    let result = output_data(
+        &serde_data,
+        "outlook",
+        output,
+        &options.start_time,
+        &options.filter,
+    );
+    match result {
+        Ok(_result) => {}
+        Err(err) => {
+            error!("[outlook] Could not output Outlook messages: {err:?}");
+            return Err(OutlookError::OutputData);
+        }
+    }
+
+    Ok(())
 }

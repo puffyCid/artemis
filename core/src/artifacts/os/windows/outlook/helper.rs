@@ -1,22 +1,20 @@
 /*
- * Main Parsing is complete!!!!!!! \O.O/
  *
  * Remainign TODO:
- * 3. Clean up
- * 5. Yara-X scanning
- * 6. Time filtering
- * 8. Tests
- * 10. Map name-to-id to unknown props
- * 11. Review for dupe messages :/
+ * 1. Clean up
+ * 2. Yara-X scanning
+ * 3. Time filtering
+ * 4. Tests
+ * 5. Review for dupe messages :/
+ *
+ * TODO later:
+ * 1. Map name-to-id to unknown props
+ * 2. Expose to JavaScript API
  *
  * Sometimes UTF16 still remains in string. Unsure why, nothing else decodes the raw bytes either.
  * Throwing the extracted string int cyberchef and unescaping string should clean up the remaining UTF16
+ * ^ This is partially fixed
  *
- * (file)/offset = block btree
- * (item)/descriptor = node btree
- *
- * Working implmetation at https://github.com/Jmcleodfoss/pstreader (MIT LICENSE!)
- *  - run with: java -jar explorer-1.1.2.jar (download from: https://github.com/Jmcleodfoss/pstreader/tree/master/explorer)
  */
 
 use super::{

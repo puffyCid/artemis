@@ -17,6 +17,7 @@ pub(crate) enum OutlookError {
     UnknownPageFormat,
     Systemdrive,
     Serialize,
+    OutputData,
 }
 
 impl std::error::Error for OutlookError {}
@@ -47,6 +48,7 @@ impl fmt::Display for OutlookError {
                 write!(f, "Too many messages requested, not enough available")
             }
             OutlookError::Serialize => write!(f, "Failed to serialize outlook mesages"),
+            OutlookError::OutputData => write!(f, "Failed to output outlook messages"),
         }
     }
 }

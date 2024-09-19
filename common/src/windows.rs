@@ -1462,6 +1462,7 @@ pub struct OutlookMessage {
     pub attachments: Vec<OutlookAttachment>,
     pub properties: Vec<String>,
     pub folder_path: String,
+    pub source_file: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
