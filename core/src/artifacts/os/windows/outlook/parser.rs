@@ -2,6 +2,7 @@ use super::{
     error::OutlookError,
     header::FormatType,
     helper::{OutlookReader, OutlookReaderAction},
+    items::message::MessageDetails,
     reader::{setup_outlook_reader, setup_outlook_reader_windows},
 };
 use crate::{
@@ -143,8 +144,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
         // Easy parsing
         let mut chunks = Vec::new();
         for message in 0..results.message_count {
+            chunks.push(message);
             if chunks.len() != message_limit {
-                chunks.push(message);
                 continue;
             }
             // If we are at the limit get messages
@@ -157,6 +158,16 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 
             // Now process messages
             for message in messages {
+                let entry = message_details(
+                    message,
+                    reader,
+                    use_ntfs,
+                    options,
+                    folder_path,
+                    &results.name,
+                )?;
+                entries.push(entry);
+                /*
                 if let Some(start) = &options.start_date {
                     println!("filter by start date");
                     continue;
@@ -213,6 +224,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 };
 
                 entries.push(message_result);
+                */
             }
 
             if !entries.is_empty() {
@@ -566,4 +578,65 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     }
 
     Ok(())
+}
+
+fn message_details<T: std::io::Seek + std::io::Read>(
+    message: MessageDetails,
+    reader: &mut OutlookReader<T>,
+    use_ntfs: Option<&NtfsFile<'_>>,
+    options: &OutlookRunner,
+    folder_path: &str,
+    folder: &str,
+) -> Result<OutlookMessage, OutlookError> {
+    let message_result = OutlookMessage {
+        body: message.body,
+        subject: message.subject,
+        from: message.from,
+        recipient: message.recipient,
+        delivered: message.delivered,
+        recipients: Vec::new(),
+        attachments: Vec::new(),
+        properties: Vec::new(),
+        folder_path: format!("{folder_path}/{folder}"),
+    };
+    if let Some(start) = &options.start_date {
+        println!("filter by start date");
+        return Ok(message_result);
+    }
+    if let Some(end) = &options.end_date {
+        println!("filter by end date");
+        return Ok(message_result);
+    }
+    let mut attachments = Vec::new();
+
+    if options.include_attachments {
+        for attach in &message.attachments {
+            let attach_info =
+                reader.read_attachment(use_ntfs, &attach.block_id, &attach.descriptor_id)?;
+
+            let message_attach = OutlookAttachment {
+                name: attach_info.name,
+                size: attach_info.size,
+                method: String::new(),
+                mime: attach_info.mime,
+                extension: attach_info.extension,
+                data: attach_info.data,
+                properties: Vec::new(),
+            };
+            attachments.push(message_attach);
+        }
+        if let Some(rule) = &options.yara_rule_attachment {
+            println!("scan with yara!");
+        }
+
+        if let Some(rule) = &options.yara_rule_attachment {
+            println!("scan with yara!");
+        }
+    }
+
+    if let Some(rule) = &options.yara_rule_message {
+        println!("scan message with yara!");
+        return Ok(message_result);
+    }
+    return Ok(message_result);
 }

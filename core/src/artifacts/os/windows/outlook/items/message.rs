@@ -8,7 +8,7 @@ use crate::{
         compression::decompress::decompress_rtf,
         encoding::{base64_decode_standard, base64_encode_standard},
         nom_helper::{nom_unsigned_four_bytes, Endian},
-        strings::{extract_ascii_utf16_string, extract_utf8_string},
+        strings::{extract_ascii_utf16_string, extract_utf8_string_lossy},
     },
 };
 use log::error;
@@ -83,7 +83,7 @@ pub(crate) fn message_details(
                 }
             };
 
-            message.body = extract_utf8_string(&decode);
+            message.body = extract_utf8_string_lossy(&decode);
         } else if prop.name.contains(&PropertyName::PidTagMessageDeliveryTime) {
             message.delivered = prop.value.as_str().unwrap_or_default().to_string();
         } else if prop.name.contains(&PropertyName::PidTagSubjectW) {
@@ -312,7 +312,7 @@ fn clean_subject(sub: &str) -> String {
         || sub_bytes.starts_with(&[1, 20])
         || sub_bytes.starts_with(&[1, 26])
     {
-        extract_utf8_string(&sub_bytes[2..])
+        extract_utf8_string_lossy(&sub_bytes[2..])
     } else {
         sub.to_string()
     };
@@ -356,7 +356,7 @@ mod tests {
             .read_message(None, &folder.messages_table, None)
             .unwrap();
 
-        assert_eq!(messages[0].body.len(), 15683);
+        assert_eq!(messages[0].body.len(), 11750);
         assert_eq!(
             messages[0].subject,
             "Welcome to your new Outlook.com account"

@@ -236,7 +236,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     } else if node.node.node_id == NodeID::FaiContentsTable {
                         fai = node.clone();
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Unknown NodeID when reading folder. We should still be ok: {node:?}");
+                        warn!("[outlook] Got unknown NodeID when reading folder: {node:?}");
                         continue;
                     } else if search.contains(&node.node.node_id) {
                         return self.search_folder(ntfs_file, folder);
@@ -425,7 +425,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         // SearchUpdateQueue not needed to parse data
                         continue;
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Unknown NodeID when reading search folder. We should still be ok: {node:?}");
+                        warn!("[outlook] Unknown NodeID when reading search folder: {node:?}");
                         continue;
                     } else {
                         warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
@@ -865,7 +865,7 @@ mod tests {
             assert_eq!(messages[0].delivered, "2024-09-10T04:14:19.000Z");
             assert_eq!(
                 messages[0].subject,
-                "     Get to know your OneDrive \u{13}  How to back up your PC and mobile"
+                "     Get to know your OneDrive – How to back up your PC and mobile"
             );
             assert_eq!(messages[0].from, "Microsoft@notificationmail.microsoft.com");
             assert_eq!(messages[0].body.len(), 132324);
