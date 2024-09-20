@@ -289,7 +289,6 @@ pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePr
             }
 
             if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
-                println!("message: {mess:?}");
                 info.push(mess);
                 break;
             }

@@ -160,7 +160,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 value: Value::Null,
             };
 
-            // If the property value is less than 4 bytes then the value is stored with the defition
+            // If the property value is less than 4 bytes then the value is stored with the definition
             if prop_embedded.contains(&prop.property_type) && prop.reference != 0 {
                 prop.value = serde_json::to_value(value_reference).unwrap_or(Value::Null)
             }

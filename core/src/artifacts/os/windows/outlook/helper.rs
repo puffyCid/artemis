@@ -203,7 +203,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             parent_node_index: 0,
         };
 
-        let mut hierahcy = normal.clone();
+        let mut hierarchy = normal.clone();
         let mut contents = normal.clone();
         let mut fai = normal.clone();
 
@@ -228,7 +228,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     if node.node.node_id == NodeID::NormalFolder {
                         normal = node.clone();
                     } else if node.node.node_id == NodeID::HierarchyTable {
-                        hierahcy = node.clone();
+                        hierarchy = node.clone();
                     } else if node.node.node_id == NodeID::ContentsTable {
                         contents = node.clone();
                     } else if node.node.node_id == NodeID::FaiContentsTable {
@@ -247,7 +247,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
                 if normal.block_offset_data_id != 0
                     && fai.block_offset_data_id != 0
-                    && hierahcy.block_offset_data_id != 0
+                    && hierarchy.block_offset_data_id != 0
                     && contents.block_offset_data_id != 0
                 {
                     break;
@@ -269,7 +269,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                  * node: LeafNodeData { node: Node { node_id: FaiContentsTable, node_id_num: 270, node: 8655 }, block_offset_data_id: 6120, block_offset_descriptor_id: 0, parent_node_index: 0 }
                  */
                 if let Some(next_branch) = peek_nodes.peek() {
-                    // Next folder number should contain the NodeID number associated with the remaing folders we need
+                    // Next folder number should contain the NodeID number associated with the remaining folders we need
                     folder_number = next_branch.branch_node as u64;
                 }
             }
@@ -287,7 +287,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
 
         let mut hierarchy_block = leaf_block.clone();
-        let mut hiearchy_descriptor = None;
+        let mut hierarchy_descriptor = None;
         let mut contents_block = leaf_block.clone();
         let mut contents_descriptor = None;
         let mut fai_block = leaf_block.clone();
@@ -303,12 +303,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
             }
 
-            if let Some(block_data) = blocks.get(&hierahcy.block_offset_data_id) {
+            if let Some(block_data) = blocks.get(&hierarchy.block_offset_data_id) {
                 hierarchy_block = block_data.clone();
             }
-            if hierahcy.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&hierahcy.block_offset_descriptor_id) {
-                    hiearchy_descriptor = Some(block_data.clone());
+            if hierarchy.block_offset_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(&hierarchy.block_offset_descriptor_id) {
+                    hierarchy_descriptor = Some(block_data.clone());
                 }
             }
 
@@ -336,7 +336,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 && hierarchy_block.index != 0
                 && fai.block_offset_descriptor_id == 0
                 && contents.block_offset_descriptor_id == 0
-                && hierahcy.block_offset_descriptor_id == 0
+                && hierarchy.block_offset_descriptor_id == 0
                 && normal.block_offset_descriptor_id == 0
             {
                 // We can stop early if none of the items associated with a folder have descriptors
@@ -344,29 +344,38 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             }
         }
 
+        println!("leaf: {leaf_block:?}");
+
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
         let normal = self.parse_property_context(&normal_value.data, &normal_value.descriptors)?;
 
-        let hiearchy_value =
-            self.get_block_data(None, &hierarchy_block, hiearchy_descriptor.as_ref())?;
+        println!("hierarchy: {hierarchy_block:?}");
 
+        let hierarchy_value =
+            self.get_block_data(ntfs_file, &hierarchy_block, hierarchy_descriptor.as_ref())?;
+
+        println!("hier value: {hierarchy_value:?}");
         // Hierarchy table contains info on nested sub-folders
         let mut hierarchy_info =
-            self.table_info(&hiearchy_value.data, &hiearchy_value.descriptors)?;
+            self.table_info(&hierarchy_value.data, &hierarchy_value.descriptors)?;
 
         // We get all sub-folders. The data is not that large
         let rows_to_get = (0..hierarchy_info.total_rows).collect();
         hierarchy_info.rows = rows_to_get;
         let hierarchy_rows = self.get_rows(&hierarchy_info)?;
 
-        let content_value =
-            self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
+        println!("content: {hierarchy_block:?}");
 
-        // Contents contains **alot** of metadata about the email content. Since we do not know how emails are in the OST. We just return info required to start parsing emails
+        let content_value =
+            self.get_block_data(ntfs_file, &contents_block, contents_descriptor.as_ref())?;
+
+        // Contents contains **a lot** of metadata about the email content. Since we do not know how emails are in the OST. We just return info required to start parsing emails
         // And let the caller determine how many to parse at once
         let contents_info = self.table_info(&content_value.data, &content_value.descriptors)?;
 
-        let fai_value = self.get_block_data(None, &fai_block, fai_descriptor.as_ref())?;
+        println!("fai: {hierarchy_block:?}");
+
+        let fai_value = self.get_block_data(ntfs_file, &fai_block, fai_descriptor.as_ref())?;
         // FAI table contains preview info on extra folder metadata
         let mut fai_info = self.table_info(&fai_value.data, &fai_value.descriptors)?;
 
@@ -380,7 +389,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         Ok(result)
     }
 
-    /// Read a special "Serch Folder" folder type. This function does **NO** searching. You should use `read_folder` if you are iterating through the OST file.
+    /// Read a special "Search Folder" folder type. This function does **NO** searching. You should use `read_folder` if you are iterating through the OST file.
     /// It will call this function automatically if it encounters a "Search Folder"
     fn search_folder(
         &mut self,
@@ -440,7 +449,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 // If this happens the start of the next branch should contain the remaining folders
                 // We peek to get the folder number for the branch which should be associated with the folder we want
                 if let Some(next_branch) = peek_nodes.peek() {
-                    // Next folder number should contain the NodeID number associated with the remaing folders we need
+                    // Next folder number should contain the NodeID number associated with the remaining folders we need
                     folder_number = next_branch.branch_node as u64;
                 }
             }
@@ -503,14 +512,16 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             .unwrap();
 
         let criteria_value =
-            self.get_block_data(None, &criteria_block, criteria_descriptor.as_ref())?;
+            self.get_block_data(ntfs_file, &criteria_block, criteria_descriptor.as_ref())?;
         let criteria_result = self
             .parse_property_context(&criteria_value.data, &criteria_value.descriptors)
             .unwrap();
 
         let content_value =
-            self.get_block_data(None, &contents_block, contents_descriptor.as_ref())?;
+            self.get_block_data(ntfs_file, &contents_block, contents_descriptor.as_ref())?;
         // Have not seen any Search Folder yet with content
+
+        println!("remove table info from search folder. does not exist");
         let contents_info = self.table_info(&content_value.data, &content_value.descriptors)?;
 
         let result = search_folder_details(&search_result, &criteria_result, &contents_info);

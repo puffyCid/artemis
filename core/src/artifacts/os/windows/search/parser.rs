@@ -62,7 +62,7 @@ pub(crate) fn grab_search(
          * Unsure what Windows-usn.db is used for.
          *
          * Windows-gthr.db is created with a special SQLITE collating feature that requires a custom SQLITE callback function to handle: "UNICODE_en-US_LINGUISTIC_IGNORECASE".
-         * Basically we need to create a function to handle string comparisions for Windows-gthr.db before we are allowed to query it.
+         * Basically we need to create a function to handle string comparisons for Windows-gthr.db before we are allowed to query it.
          * We do not do that, instead we just parse the Windows.db file which often contains enough metadata to figure out what the entry is.
          *
          * References:

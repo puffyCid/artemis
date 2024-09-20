@@ -76,6 +76,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             parse_leaf_node_data(&page.data, &page.number_entries, format).unwrap();
         let mut tree = BTreeMap::new();
         for node in leaf_node {
+            //println!("node: {node:?}");
             if node.node.node_id_num == 0 && node.node.node == 0 {
                 panic!("skip?: {node:?}");
                 continue;
@@ -125,6 +126,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             parse_leaf_block_data(&page.data, &page.number_entries, format).unwrap();
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
+            //println!("block: {block:?}");
             if block.index_id == 0 && block.index == 0 {
                 panic!("skip?: {block:?}");
                 continue;

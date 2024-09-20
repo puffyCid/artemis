@@ -136,7 +136,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let (input, _unknown3) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, initial_data_free_map) = nom_unsigned_sixteen_bytes(input, Endian::Le)?;
     let (input, initial_page_free_map) = nom_unsigned_sixteen_bytes(input, Endian::Le)?;
-    let (input, _sentinal) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let (input, _sentinel) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     let (input, encryption_data) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, _unknown4) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -192,6 +192,7 @@ fn get_format(format: &u16) -> FormatType {
     }
 }
 
+/// Get Outlook allocation type
 fn get_allocation(data: &u8) -> AllocationType {
     match data {
         0 => AllocationType::InvalidMaps,

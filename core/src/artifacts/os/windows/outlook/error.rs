@@ -18,6 +18,7 @@ pub(crate) enum OutlookError {
     Systemdrive,
     Serialize,
     OutputData,
+    GlobPath,
 }
 
 impl std::error::Error for OutlookError {}
@@ -47,8 +48,9 @@ impl fmt::Display for OutlookError {
             OutlookError::MessageCount => {
                 write!(f, "Too many messages requested, not enough available")
             }
-            OutlookError::Serialize => write!(f, "Failed to serialize outlook mesages"),
+            OutlookError::Serialize => write!(f, "Failed to serialize outlook messages"),
             OutlookError::OutputData => write!(f, "Failed to output outlook messages"),
+            OutlookError::GlobPath => write!(f, "Failed to glob paths"),
         }
     }
 }

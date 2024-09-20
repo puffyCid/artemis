@@ -159,8 +159,38 @@ pub(crate) fn create_table_data(
     table_data
 }
 
-/// Parse the column data based on type into a string
+/// Parse the column data based flag type
 fn column_data_to_string<'a>(
+    column_type: &ColumnType,
+    data: &'a [u8],
+    flags: &[ColumnFlags],
+    tagged_flags: &[TaggedDataFlag],
+) -> nom::IResult<&'a [u8], String> {
+    // MultiValues have multiple values (obviously). So we loop through a get them all
+    if tagged_flags.contains(&TaggedDataFlag::MultiValue)
+        && !tagged_flags.contains(&TaggedDataFlag::LongValue)
+    {
+        let (_, multi_data) = parse_multivalue_data(data, tagged_flags)?;
+        let mut multi_string = String::new();
+        for multi in multi_data {
+            let result = extract_column_data_to_string(column_type, &multi, flags, tagged_flags);
+            let multi_value = match result {
+                Ok((_, result)) => result,
+                Err(_err) => {
+                    error!("[ese] Failed to extract multivalue data");
+                    base64_encode_standard(&multi)
+                }
+            };
+            // Right now multivalues are comma separated
+            multi_string = format!("{multi_string},{multi_value}");
+        }
+        return Ok((&[], multi_string));
+    }
+    extract_column_data_to_string(column_type, data, flags, tagged_flags)
+}
+
+/// Based on ColumnType extract the data into a string
+fn extract_column_data_to_string<'a>(
     column_type: &ColumnType,
     data: &'a [u8],
     flags: &[ColumnFlags],
@@ -218,8 +248,9 @@ fn column_data_to_string<'a>(
             }
         }
         ColumnType::LongBinary | ColumnType::Binary => {
-            let value = if tagged_flags.contains(&TaggedDataFlag::Compressed)
-                || flags.contains(&ColumnFlags::Compressed)
+            let value = if (tagged_flags.contains(&TaggedDataFlag::Compressed)
+                || flags.contains(&ColumnFlags::Compressed))
+                && !tagged_flags.contains(&TaggedDataFlag::MultiValue)
             {
                 let (_, decompressed_data) = get_decompressed_data(data)?;
                 base64_encode_standard(&decompressed_data)
@@ -229,8 +260,9 @@ fn column_data_to_string<'a>(
             (data, value)
         }
         ColumnType::LongText | ColumnType::Text => {
-            let value = if tagged_flags.contains(&TaggedDataFlag::Compressed)
-                || flags.contains(&ColumnFlags::Compressed)
+            let value = if (tagged_flags.contains(&TaggedDataFlag::Compressed)
+                || flags.contains(&ColumnFlags::Compressed))
+                && !tagged_flags.contains(&TaggedDataFlag::MultiValue)
             {
                 let (_, decompressed_data) = get_decompressed_data(data)?;
                 extract_ascii_utf16_string(&decompressed_data)
@@ -557,6 +589,7 @@ fn parse_tagged_data<'a>(
 
     // Nearly done, need to update columns now
     for tag in full_tags {
+        /*
         let mut data = tag.data;
         if tag.flags.contains(&TaggedDataFlag::MultiValue) {
             let value_result = parse_multivalue_data(&data, &tag.flags);
@@ -567,10 +600,10 @@ fn parse_tagged_data<'a>(
                 data
             };
             data = input;
-        }
+        }*/
         for entry in column_info.iter_mut() {
             if entry.column_id == tag.column as i32 {
-                entry.column_data.clone_from(&data);
+                entry.column_data.clone_from(&tag.data);
                 entry.column_tagged_flags.clone_from(&tag.flags);
             }
         }
@@ -579,16 +612,12 @@ fn parse_tagged_data<'a>(
     Ok((tagged_data, ()))
 }
 
-fn parse_multivalue_data<'a>(
+pub(crate) fn parse_multivalue_data<'a>(
     tag_data: &'a [u8],
     flags: &[TaggedDataFlag],
-) -> nom::IResult<&'a [u8], Vec<u8>> {
+) -> nom::IResult<&'a [u8], Vec<Vec<u8>>> {
     let mut data = tag_data;
     let mut offsets_sizes = Vec::new();
-
-    if flags.contains(&TaggedDataFlag::LongValue) {
-        return Ok((data, data.to_vec()));
-    }
 
     let mut multi_data = Vec::new();
     if flags.contains(&TaggedDataFlag::MultiValue) {
@@ -629,12 +658,12 @@ fn parse_multivalue_data<'a>(
             data = input;
 
             if flags.contains(&TaggedDataFlag::Compressed) {
-                let (_, mut decom_data) = get_decompressed_data(value_data)?;
-                multi_data.append(&mut decom_data);
+                let (_, decom_data) = get_decompressed_data(value_data)?;
+                multi_data.push(decom_data);
                 continue;
             }
 
-            multi_data.append(&mut value_data.to_vec());
+            multi_data.push(value_data.to_vec());
         }
     }
     Ok((data, multi_data))
@@ -972,13 +1001,21 @@ mod tests {
         assert_eq!(
             data,
             vec![
-                87, 105, 110, 100, 111, 119, 115, 32, 49, 48, 0, 87, 0, 105, 0, 110, 0, 100, 0,
-                111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32, 0, 76, 0, 84, 0, 83, 0, 66, 0, 0,
-                0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 44,
-                0, 32, 0, 118, 0, 101, 0, 114, 0, 115, 0, 105, 0, 111, 0, 110, 0, 32, 0, 49, 0, 57,
-                0, 48, 0, 51, 0, 32, 0, 97, 0, 110, 0, 100, 0, 32, 0, 108, 0, 97, 0, 116, 0, 101,
-                0, 114, 0, 0, 0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49,
-                0, 49, 0, 0, 0
+                vec![87, 105, 110, 100, 111, 119, 115, 32, 49, 48, 0],
+                vec![
+                    87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32,
+                    0, 76, 0, 84, 0, 83, 0, 66, 0, 0, 0
+                ],
+                vec![
+                    87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 44,
+                    0, 32, 0, 118, 0, 101, 0, 114, 0, 115, 0, 105, 0, 111, 0, 110, 0, 32, 0, 49, 0,
+                    57, 0, 48, 0, 51, 0, 32, 0, 97, 0, 110, 0, 100, 0, 32, 0, 108, 0, 97, 0, 116,
+                    0, 101, 0, 114, 0, 0, 0
+                ],
+                vec![
+                    87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 49, 0, 0,
+                    0
+                ]
             ]
         );
     }

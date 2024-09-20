@@ -125,7 +125,7 @@ impl Catalog {
     /**
      * Catalog is a metadata table (called `MSysObjects` table in ESE db)  
      * It contains metadata/definitions on all columns and tables in the ESE db  
-     * It even contains the metadata/defintions on itself
+     * It even contains the metadata/definitions on itself
      * The Catalog is a static table that exists at Page 4 (5 once adjusted for ESE shadow header page)  
      *
      * Before any significant parsing of the ESE db can start, we must parse the Catalog  
@@ -136,7 +136,7 @@ impl Catalog {
         fs: &mut BufReader<T>,
         page_size: u32,
     ) -> Result<Vec<Catalog>, EseError> {
-        // Some documention states Catalog is acutally page four (4), but the first page of the ESE is a shadow copy of the header
+        // Some documentation states Catalog is actually page four (4), but the first page of the ESE is a shadow copy of the header
         // ESE does not consider the shadow page a "real" page
         // So we have to add one (1)
         let catalog_page = 5;
@@ -243,7 +243,7 @@ impl Catalog {
                 }
             };
 
-            // Track child pages so dont end up in a rescursive loop (ex: child points back to parent)
+            // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
             let mut page_tracker: HashMap<u32, bool> = HashMap::new();
             let rows_results = BranchPage::parse_branch_child_catalog(
                 &child_data,

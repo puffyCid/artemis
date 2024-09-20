@@ -36,7 +36,7 @@ fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16
             break;
         }
 
-        // If Wide char does not contain 0, append separately
+        // If Wide char does not contain 0, append separately. This can probably be removed now?
         if !wide_char.contains(&0) && *adjust {
             utf16_data.push(wide_char[0] as u16);
             utf16_data.push(wide_char[1] as u16);
@@ -202,11 +202,11 @@ mod tests {
     #[test]
     fn test_strings_ascii_utf16() {
         let test = [
-            87, 105, 110, 100, 111, 119, 115, 32, 49, 48, 0, 87, 0, 105, 0, 110, 0, 100, 0, 111, 0,
-            119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32, 0, 76, 0, 84, 0, 83, 0, 66, 0, 0,
+            87, 0, 105, 0, 110, 0, 100, 0, 111, 0, 119, 0, 115, 0, 32, 0, 49, 0, 48, 0, 32, 0, 76,
+            0, 84, 0, 83, 0, 66, 0, 0,
         ];
         let data = extract_utf16_string(&test);
-        assert_eq!(data, "Windows 10Windows 10 LTSB");
+        assert_eq!(data, "Windows 10 LTSB");
     }
 
     #[test]

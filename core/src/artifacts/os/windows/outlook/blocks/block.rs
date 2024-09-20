@@ -59,6 +59,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
             descriptors: BTreeMap::new(),
         };
 
+        println!("block: {block:?}");
+        println!("desc: {descriptors:?}");
+
         match block.block_type {
             BlockType::Internal => parse_xblock(
                 ntfs_file,
@@ -184,6 +187,7 @@ pub(crate) fn parse_block_bytes<'a>(
             block.decom_size = size2;
 
             if block.block_size as u32 != block.decom_size {
+                println!("{block_data:?}");
                 // Data is compressed
                 let decom_data = decompress_zlib(block_data, &None).unwrap();
                 block.data = decom_data;

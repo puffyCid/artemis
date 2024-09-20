@@ -94,6 +94,7 @@ fn xblock_data<'a>(
     format: &FormatType,
     block_value: &mut BlockValue,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
+    println!("block value: {block_value:?}");
     let (_, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let sblock_sig = 2;
     if sig == sblock_sig {

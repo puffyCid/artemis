@@ -387,7 +387,7 @@ pub(crate) struct RowsInfo {
     pub(crate) count: u64,
 }
 
-/// Extract the rows found in branches. This involves alot more work then non-branch rows
+/// Extract the rows found in branches. This involves a lot more work then non-branch rows
 fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a [u8], RowsInfo> {
     // See:https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc#1111-table-block-header
     println!("need to handle header based on fill level?");
@@ -480,6 +480,7 @@ fn extract_branch_details<'a>(
     Ok((&[], refs))
 }
 
+/// Determine the total rows
 fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
     if map.len() < 4 {
         // There are no rows
@@ -492,16 +493,22 @@ fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
 
     let row_size = 8;
     if rows % row_size != 0 {
-        panic!("rows should always be a multiple of 8 bytes?! {rows}. len: {map:?}");
+        println!(
+            "{}-{} = {}",
+            map[*heap_index as usize - 1],
+            map[*heap_index as usize],
+            (map[*heap_index as usize - 1] - map[*heap_index as usize])
+        );
+        //panic!("rows should always be a multiple of 8 bytes?! {rows}. Heap index: {heap_index}. len: {map:?}");
         warn!("[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early");
-        return 0;
+        //return 0;
     }
 
     let count = rows / row_size;
     count as u64
 }
 
-/// Parse row data located in Branches. This involves alot more work vs non-branch rows
+/// Parse row data located in Branches. This involves a lot more work vs non-branch rows
 fn parse_branch_row<'a>(
     data: &'a [u8],
     descriptors: &Vec<Vec<u8>>,
@@ -547,7 +554,7 @@ fn parse_branch_row<'a>(
                 //desc_index += 1;
             }
 
-            // If the entry and the row size are greater than the descriptor data. Then we need to go to the next descritpor data
+            // If the entry and the row size are greater than the descriptor data. Then we need to go to the next descriptor data
             //if ((index * info.row_size as u64) + info.row_size as u64) as usize
             //    > descriptors[desc_index].len()
             // {
@@ -688,7 +695,7 @@ fn parse_row_data<'a>(
     Ok((row_data, value))
 }
 
-/// Extract column definitions for our table. There can be alot
+/// Extract column definitions for our table. There can be a lot
 fn get_column_definitions<'a>(
     data: &'a [u8],
     column_count: &u8,

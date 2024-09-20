@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
-    filesystem::ntfs::setup::setup_ntfs_parser,
+    filesystem::{metadata::glob_paths, ntfs::setup::setup_ntfs_parser},
     structs::{artifacts::os::windows::OutlookOptions, toml::Output},
     utils::{environment::get_systemdrive, time::time_now},
 };
@@ -34,7 +34,29 @@ pub(crate) fn grab_outlook(
         }
     };
 
-    panic!("glob for OST files");
+    // Only OST files supported right now. Outlook 2013+
+    let glob_path = format!("{drive}:\\Users\\*\\AppData\\Local\\Microsoft\\Outlook\\*.ost");
+    let paths_result = glob_paths(&glob_path);
+    let paths = match paths_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Failed to glob: {glob_path}: {err:?}");
+            return Err(OutlookError::GlobPath);
+        }
+    };
+
+    for path in paths {
+        println!("parsing: {}", path.full_path);
+        let status = grab_outlook_file(&path.full_path, options, filter, output);
+        if status.is_err() {
+            error!(
+                "[outlook] Could not extract messages from {}: {:?}",
+                path.full_path,
+                status.unwrap_err()
+            );
+        }
+    }
+
     Ok(())
 }
 
@@ -74,7 +96,7 @@ fn grab_outlook_file(
         return read_outlook(&mut outlook_reader, None, &runner, output);
     }
 
-    // Windows we default to parsing the NTFS in order bypass locked OST
+    // Windows we default to parsing the NTFS in order to bypass locked OST
     let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
@@ -137,8 +159,10 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     folder: &u64,
     folder_path: &str,
 ) -> Result<(), OutlookError> {
+    println!("reading: {folder_path}");
     // Read the provided folder
     let mut results = reader.read_folder(use_ntfs, *folder)?;
+    println!("got folder: {:?}", results);
 
     // If no messages or no subfolders, we are done
     if results.message_count == 0 && results.subfolder_count == 0 {
@@ -197,6 +221,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     folder_path,
                     &results.name,
                 )?;
+                println!("email message: {entry:?}");
                 entries.push(entry);
             }
             output_messages(&entries, options, output)?;
@@ -248,6 +273,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                         folder_path,
                         &results.name,
                     )?;
+
                     entries.push(entry);
                 }
 
@@ -286,6 +312,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 
     // Now check for subfolders
     for folder in &results.subfolders {
+        println!("sub folder: {} - {}", folder.name, folder.node);
+
         let new_folder_path = format!("{folder_path}/{}", results.name);
         stream_outlook(
             reader,
@@ -300,7 +328,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
-/// Read and extract message details. We only get attachments if explictly enabled
+/// Read and extract message details. We only get attachments if explicitly enabled
 fn message_details<T: std::io::Seek + std::io::Read>(
     message: MessageDetails,
     reader: &mut OutlookReader<T>,
@@ -309,7 +337,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
     folder_path: &str,
     folder: &str,
 ) -> Result<OutlookMessage, OutlookError> {
-    let message_result = OutlookMessage {
+    let mut message_result = OutlookMessage {
         body: message.body,
         subject: message.subject,
         from: message.from,
@@ -319,7 +347,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         attachments: Vec::new(),
         properties: Vec::new(),
         folder_path: format!("{folder_path}/{folder}"),
-        source_file: options.source,
+        source_file: options.source.clone(),
     };
     if let Some(start) = &options.start_date {
         println!("filter by start date");
@@ -354,6 +382,8 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         if let Some(rule) = &options.yara_rule_attachment {
             println!("scan with yara!");
         }
+
+        message_result.attachments = attachments;
     }
 
     if let Some(rule) = &options.yara_rule_message {
