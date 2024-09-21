@@ -31,8 +31,6 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
         512
     };
 
-    println!("block type: {:?}", block.block_type);
-    println!("block offset: {}", block.block_offset);
     // Need to align block size based on Outlook file format
     let mut alignment_size = (size - block.size % size) % size;
     if alignment_size == 0 {
@@ -45,6 +43,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     if alignment_size < footer_size {
         alignment_size += size;
     }
+
     let bytes = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
@@ -66,6 +65,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 if alignment_size < footer_size {
                     alignment_size += size;
                 }
+
                 let bytes = read_bytes(
                     &value.block_offset,
                     value.size as u64 + alignment_size as u64,
@@ -94,7 +94,6 @@ fn xblock_data<'a>(
     format: &FormatType,
     block_value: &mut BlockValue,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
-    println!("block value: {block_value:?}");
     let (_, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let sblock_sig = 2;
     if sig == sblock_sig {

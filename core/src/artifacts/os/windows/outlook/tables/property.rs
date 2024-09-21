@@ -26,6 +26,7 @@ use nom::{
     bytes::complete::take,
     number::complete::{le_f32, le_f64},
 };
+use ntfs::NtfsFile;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -43,11 +44,13 @@ pub(crate) struct PropertyContext {
 pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
     fn parse_property_context(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<Vec<PropertyContext>, OutlookError>;
     fn get_property_context<'a>(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         header_block: &'a [u8],
         all_blocks: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
@@ -55,6 +58,7 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
 
     fn get_large_data(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
@@ -64,6 +68,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     /// Parse property data
     fn parse_property_context(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<Vec<PropertyContext>, OutlookError> {
@@ -73,7 +78,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             None => return Err(OutlookError::NoBlocks),
         };
 
-        let props_result = self.get_property_context(block, block_data, block_descriptors);
+        let props_result =
+            self.get_property_context(ntfs_file, block, block_data, block_descriptors);
         let props = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -88,6 +94,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     /// Parse the Property Context data
     fn get_property_context<'a>(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         header_block: &'a [u8],
         all_blocks: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
@@ -179,7 +186,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
                 if prop.reference > max_heap_size && prop.value == Value::Null {
                     let desc_blocks = self
-                        .get_large_data(block_descriptors, &prop.reference)
+                        .get_large_data(ntfs_file, block_descriptors, &prop.reference)
                         .unwrap();
                     if !desc_blocks.is_empty() {
                         // Concat the descriptor data to get the entire property data
@@ -210,6 +217,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     /// If data is too large to fit in the Heap Btree. We have to get the data from the Node Btree
     fn get_large_data(
         &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
@@ -241,7 +249,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     break;
                 }
             }
-            let value = self.get_block_data(None, &leaf_block, leaf_descriptor.as_ref())?;
+            let value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
             return Ok(value.data);
         }
 
@@ -653,7 +661,7 @@ mod tests {
             descriptors: BTreeMap::new(),
         };
         let result = outlook_reader
-            .parse_property_context(&block.data, &block.descriptors)
+            .parse_property_context(None, &block.data, &block.descriptors)
             .unwrap();
 
         // let (_, result) = parse_property_context(&test).unwrap();
@@ -747,7 +755,7 @@ mod tests {
             descriptors: BTreeMap::new(),
         };
         let store = outlook_reader
-            .parse_property_context(&block.data, &block.descriptors)
+            .parse_property_context(None, &block.data, &block.descriptors)
             .unwrap();
 
         assert_eq!(store.len(), 19);
@@ -819,9 +827,8 @@ mod tests {
         let block_value = outlook_reader
             .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
             .unwrap();
-        println!("block value: {block_value:?}");
         let results = outlook_reader
-            .parse_property_context(&block_value.data, &block_value.descriptors)
+            .parse_property_context(None, &block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(results[1].value.as_str().unwrap().len(), 940);
     }

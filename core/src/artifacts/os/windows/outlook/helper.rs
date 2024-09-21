@@ -344,17 +344,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             }
         }
 
-        println!("leaf: {leaf_block:?}");
-
         let normal_value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
-        let normal = self.parse_property_context(&normal_value.data, &normal_value.descriptors)?;
-
-        println!("hierarchy: {hierarchy_block:?}");
+        let normal =
+            self.parse_property_context(ntfs_file, &normal_value.data, &normal_value.descriptors)?;
 
         let hierarchy_value =
             self.get_block_data(ntfs_file, &hierarchy_block, hierarchy_descriptor.as_ref())?;
 
-        println!("hier value: {hierarchy_value:?}");
         // Hierarchy table contains info on nested sub-folders
         let mut hierarchy_info =
             self.table_info(&hierarchy_value.data, &hierarchy_value.descriptors)?;
@@ -362,9 +358,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         // We get all sub-folders. The data is not that large
         let rows_to_get = (0..hierarchy_info.total_rows).collect();
         hierarchy_info.rows = rows_to_get;
-        let hierarchy_rows = self.get_rows(&hierarchy_info)?;
-
-        println!("content: {hierarchy_block:?}");
+        let hierarchy_rows = self.get_rows(&hierarchy_info, ntfs_file)?;
 
         let content_value =
             self.get_block_data(ntfs_file, &contents_block, contents_descriptor.as_ref())?;
@@ -373,8 +367,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         // And let the caller determine how many to parse at once
         let contents_info = self.table_info(&content_value.data, &content_value.descriptors)?;
 
-        println!("fai: {hierarchy_block:?}");
-
         let fai_value = self.get_block_data(ntfs_file, &fai_block, fai_descriptor.as_ref())?;
         // FAI table contains preview info on extra folder metadata
         let mut fai_info = self.table_info(&fai_value.data, &fai_value.descriptors)?;
@@ -382,7 +374,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         // We get all FAI metadata. The data is not that large
         let rows_to_get = (0..fai_info.total_rows).collect();
         fai_info.rows = rows_to_get;
-        let fai_rows = self.get_rows(&fai_info)?;
+        let fai_rows = self.get_rows(&fai_info, ntfs_file)?;
 
         let result = folder_details(&normal, &hierarchy_rows, &contents_info, &fai_rows);
 
@@ -508,13 +500,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let search_value =
             self.get_block_data(ntfs_file, &search_block, search_descriptor.as_ref())?;
         let search_result = self
-            .parse_property_context(&search_value.data, &search_value.descriptors)
+            .parse_property_context(ntfs_file, &search_value.data, &search_value.descriptors)
             .unwrap();
 
         let criteria_value =
             self.get_block_data(ntfs_file, &criteria_block, criteria_descriptor.as_ref())?;
         let criteria_result = self
-            .parse_property_context(&criteria_value.data, &criteria_value.descriptors)
+            .parse_property_context(ntfs_file, &criteria_value.data, &criteria_value.descriptors)
             .unwrap();
 
         let content_value =
@@ -590,7 +582,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         let info_value = self.get_block_data(ntfs_file, &info_block, info_descriptor.as_ref())?;
-        let info = self.parse_property_context(&info_value.data, &info_value.descriptors)?;
+        let info =
+            self.parse_property_context(ntfs_file, &info_value.data, &info_value.descriptors)?;
         let meta = extract_fai(&info);
 
         Ok(meta)
@@ -631,7 +624,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let rows_to_get = (0..table_info.total_rows).collect();
         table_info.rows = rows_to_get;
 
-        self.get_rows(&table_info)
+        self.get_rows(&table_info, ntfs_file)
     }
 
     /// Read and extract email
@@ -649,9 +642,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         // The number of messages is dependent on many the caller wants to get
 
         let table_meta = if branch.is_none() {
-            self.get_rows(info)?
+            self.get_rows(info, ntfs_file)?
         } else {
-            self.get_branch_rows(info, branch.unwrap())?
+            self.get_branch_rows(ntfs_file, info, branch.unwrap())?
         };
         //let table_meta = self.get_rows(info)?;
         let table_info = table_message_preview(&table_meta);
@@ -722,7 +715,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             let mess_value =
                 self.get_block_data(ntfs_file, &mess_block, mess_descriptor.as_ref())?;
             let mut message =
-                self.parse_property_context(&mess_value.data, &mess_value.descriptors)?;
+                self.parse_property_context(ntfs_file, &mess_value.data, &mess_value.descriptors)?;
 
             let mut recipient_block_id = 0;
             let mut recipient_block_descriptors = 0;
@@ -780,7 +773,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 // We get all attachment preview metadata. The data is not that large
                 let rows_to_get = (0..attach_info.total_rows).collect();
                 attach_info.rows = rows_to_get;
-                let mut rows = self.get_rows(&attach_info)?;
+                let mut rows = self.get_rows(&attach_info, ntfs_file)?;
 
                 attach_rows.append(&mut rows);
             }
@@ -824,7 +817,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let table_value =
             self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
         let mut attachment =
-            self.parse_property_context(&table_value.data, &table_value.descriptors)?;
+            self.parse_property_context(ntfs_file, &table_value.data, &table_value.descriptors)?;
 
         Ok(extract_attachment(&mut attachment))
     }
