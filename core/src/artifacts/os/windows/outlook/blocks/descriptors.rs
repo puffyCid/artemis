@@ -28,7 +28,7 @@ pub(crate) fn parse_descriptor_block<'a>(
     data: &'a [u8],
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], BTreeMap<u64, DescriptorData>> {
-    let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
+    let (input, _sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, level) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (mut input, entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
@@ -165,7 +165,6 @@ mod tests {
             20, 84, 201, 62, 214, 166, 22, 0, 0, 0, 0, 0, 0, 0, 2, 0, 56, 0, 0, 0, 0, 0,
         ];
         let (_, result) = parse_descriptor_block(&test, &FormatType::Unicode64_4k).unwrap();
-        println!("{result:?}");
 
         assert_eq!(result.len(), 2);
         assert_eq!(
@@ -207,7 +206,6 @@ mod tests {
             32, 169, 90, 37, 126, 125, 58, 8, 1, 0, 0, 0, 0, 0, 2, 0, 56, 0, 0, 0, 0, 0,
         ];
         let (_, result) = parse_descriptor_block(&test, &FormatType::Unicode64_4k).unwrap();
-        println!("{result:?}");
 
         assert_eq!(result.len(), 2);
         assert_eq!(

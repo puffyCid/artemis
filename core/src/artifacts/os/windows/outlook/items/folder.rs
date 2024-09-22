@@ -1,8 +1,13 @@
-use crate::artifacts::os::windows::outlook::tables::{
-    context::{TableInfo, TableRows},
-    properties::PropertyName,
-    property::PropertyContext,
+use crate::artifacts::os::windows::outlook::{
+    header::NodeID,
+    tables::{
+        context::{TableInfo, TableRows},
+        header::HeapNode,
+        properties::PropertyName,
+        property::PropertyContext,
+    },
 };
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(crate) struct FolderInfo {
@@ -133,7 +138,6 @@ pub(crate) fn folder_details(
 pub(crate) fn search_folder_details(
     search: &[PropertyContext],
     criteria: &[PropertyContext],
-    contents: &TableInfo,
 ) -> FolderInfo {
     let mut info = FolderInfo {
         name: String::new(),
@@ -144,7 +148,22 @@ pub(crate) fn search_folder_details(
         subfolders: Vec::new(),
         subfolder_count: 0,
         message_count: 0,
-        messages_table: contents.clone(),
+        messages_table: TableInfo {
+            block_data: Vec::new(),
+            block_descriptors: BTreeMap::new(),
+            rows: Vec::new(),
+            columns: Vec::new(),
+            include_cols: Vec::new(),
+            row_size: 0,
+            map_offset: 0,
+            node: HeapNode {
+                node: NodeID::Unknown,
+                index: 0,
+                block_index: 0,
+            },
+            total_rows: 0,
+            has_branch: None,
+        },
     };
 
     for props in search {

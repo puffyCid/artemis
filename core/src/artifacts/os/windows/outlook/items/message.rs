@@ -257,8 +257,6 @@ pub(crate) struct MessagePreview {
 
 /// Extract some info from the table that points to the messages
 pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePreview> {
-    println!("Contents len: {}", rows.len());
-
     let mut info = Vec::new();
     for row in rows {
         let mut mess = MessagePreview {

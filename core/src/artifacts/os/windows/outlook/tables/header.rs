@@ -10,9 +10,9 @@ use nom::bytes::complete::take;
 #[derive(Debug)]
 pub(crate) struct TableHeader {
     pub(crate) page_map_offset: u16,
-    pub(crate) sig: u8,
-    pub(crate) table_type: TableType,
-    pub(crate) heap_node: HeapNode,
+    _sig: u8,
+    _table_type: TableType,
+    _heap_node: HeapNode,
     pub(crate) page_map: HeapPageMap,
 }
 
@@ -39,16 +39,16 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     if sig != sig_value {
         let not_header = TableHeader {
             page_map_offset: 0,
-            sig: 0,
-            table_type: TableType::Unknown,
-            heap_node: HeapNode {
+            _sig: 0,
+            _table_type: TableType::Unknown,
+            _heap_node: HeapNode {
                 node: NodeID::Unknown,
                 index: 0,
                 block_index: 0,
             },
             page_map: HeapPageMap {
-                allocation_count: 0,
-                free: 0,
+                _allocation_count: 0,
+                _free: 0,
                 allocation_table: Vec::new(),
             },
         };
@@ -65,9 +65,9 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
 
     let table = TableHeader {
         page_map_offset,
-        sig,
-        table_type: get_table_type(&table_type),
-        heap_node,
+        _sig: sig,
+        _table_type: get_table_type(&table_type),
+        _heap_node: heap_node,
         page_map,
     };
 
@@ -146,21 +146,21 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
 
 #[derive(Debug)]
 pub(crate) struct HeapPageMap {
-    pub(crate) allocation_count: u16,
-    pub(crate) free: u16,
+    _allocation_count: u16,
+    _free: u16,
     pub(crate) allocation_table: Vec<u16>,
 }
 
 /// Determine the allocation map found at the bottom of the table. This is partially defined in the header
 pub(crate) fn heap_page_map(data: &[u8]) -> nom::IResult<&[u8], HeapPageMap> {
     let (input, allocation_count) = nom_unsigned_two_bytes(data, Endian::Le)?;
-    let (mut input, free) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (mut input, _free) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
     let mut count = 0;
 
     let mut page = HeapPageMap {
-        allocation_count,
-        free,
+        _allocation_count: allocation_count,
+        _free,
         allocation_table: Vec::new(),
     };
 
@@ -202,11 +202,11 @@ mod tests {
         ];
         let (_, header) = table_header(&test).unwrap();
         assert_eq!(header.page_map_offset, 364);
-        assert_eq!(header.sig, 236);
-        assert_eq!(header.table_type, TableType::TableContext);
-        assert_eq!(header.heap_node.node, NodeID::HeapNode);
-        assert_eq!(header.heap_node.index, 2);
-        assert_eq!(header.page_map.allocation_count, 6);
+        assert_eq!(header._sig, 236);
+        assert_eq!(header._table_type, TableType::TableContext);
+        assert_eq!(header._heap_node.node, NodeID::HeapNode);
+        assert_eq!(header._heap_node.index, 2);
+        assert_eq!(header.page_map._allocation_count, 6);
         println!("{header:?}");
     }
 
@@ -242,8 +242,8 @@ mod tests {
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
         let (_, header) = table_header(&test).unwrap();
-        assert_eq!(header.table_type, TableType::PropertyContext);
-        assert_eq!(header.page_map.allocation_count, 5);
+        assert_eq!(header._table_type, TableType::PropertyContext);
+        assert_eq!(header.page_map._allocation_count, 5);
         assert_eq!(
             header.page_map.allocation_table,
             vec![12, 20, 116, 124, 132, 581]

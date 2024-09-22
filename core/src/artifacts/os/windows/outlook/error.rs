@@ -19,6 +19,7 @@ pub(crate) enum OutlookError {
     Serialize,
     OutputData,
     GlobPath,
+    Header,
 }
 
 impl std::error::Error for OutlookError {}
@@ -51,6 +52,7 @@ impl fmt::Display for OutlookError {
             OutlookError::Serialize => write!(f, "Failed to serialize outlook messages"),
             OutlookError::OutputData => write!(f, "Failed to output outlook messages"),
             OutlookError::GlobPath => write!(f, "Failed to glob paths"),
+            OutlookError::Header => write!(f, "Failed to parser outlook header"),
         }
     }
 }

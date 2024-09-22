@@ -24,6 +24,7 @@ use crate::{
 use log::{error, warn};
 use nom::{
     bytes::complete::take,
+    error::ErrorKind,
     number::complete::{le_f32, le_f64},
 };
 use ntfs::NtfsFile;
@@ -100,13 +101,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], Vec<PropertyContext>> {
         let (input, header) = table_header(&header_block)?;
-        println!("Property Context header: {header:?}");
-
         let (_, heap_btree) = parse_btree_heap(input)?;
-        println!("Heap Btree: {heap_btree:?}");
 
+        // Have not seen Branch nodes for properties but maybe they exist?
         if heap_btree.level == NodeLevel::BranchNode {
-            panic!("FML branch property context! This can exist in table context. Can it exist here too?");
+            warn!("[outlook] Got Branch node for property data. Parse will likely fail");
         }
 
         let mut prop_data_size = 0;
@@ -131,10 +130,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
         let (prop_data_start, _) = take(prop_start)(header_block)?;
 
-        let (input, mut props) = take(prop_data_size)(prop_data_start)?;
+        let (_, mut props) = take(prop_data_size)(prop_data_start)?;
         let prop_entry_size = 8;
+
         if props.len() % prop_entry_size != 0 {
-            panic!("props definitions should always be a multiple of 8 bytes?! {prop_data_size}");
+            error!("[outlook] Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early");
+            return Ok((&[], Vec::new()));
         }
 
         let prop_count = props.len() / prop_entry_size;
@@ -185,18 +186,35 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 let max_heap_size = 3580;
 
                 if prop.reference > max_heap_size && prop.value == Value::Null {
-                    let desc_blocks = self
-                        .get_large_data(ntfs_file, block_descriptors, &prop.reference)
-                        .unwrap();
+                    let desc_result =
+                        self.get_large_data(ntfs_file, block_descriptors, &prop.reference);
+                    let desc_blocks = match desc_result {
+                        Ok(result) => result,
+                        Err(_err) => {
+                            error!("[outlook] Failed to parse descriptors for large data");
+                            return Err(nom::Err::Failure(nom::error::Error::new(
+                                &[],
+                                ErrorKind::Fail,
+                            )));
+                        }
+                    };
                     if !desc_blocks.is_empty() {
+                        let all_desc = desc_blocks.concat();
                         // Concat the descriptor data to get the entire property data
-                        let (_, prop_value) = get_property_data(
-                            &desc_blocks.concat(),
+                        let prop_result = get_property_data(
+                            &all_desc,
                             &prop.property_type,
                             &prop.reference,
                             &true,
-                        )
-                        .unwrap();
+                        );
+
+                        let prop_value = match prop_result {
+                            Ok((_, result)) => result,
+                            Err(_err) => {
+                                error!("[outlook] Failed to parse property data from descriptor blocks");
+                                continue;
+                            }
+                        };
                         prop.value = prop_value;
 
                         continue;
@@ -204,9 +222,15 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     // If we don't have data, then fallback to normal block data below
                 }
 
-                let (_, prop_value) =
-                    get_property_data(block_data, &prop.property_type, &map_start, &false).unwrap();
-
+                let prop_result =
+                    get_property_data(block_data, &prop.property_type, &map_start, &false);
+                let prop_value = match prop_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        error!("[outlook] Failed to parse property data");
+                        continue;
+                    }
+                };
                 prop.value = prop_value;
             }
         }
@@ -253,8 +277,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             return Ok(value.data);
         }
 
-        println!("Descriptor ID not found. Perhaps OST/microsoft is lying??");
-        //Err(OutlookError::NoDescriptorBlock)
         Ok(Vec::new())
     }
 }
@@ -277,7 +299,6 @@ pub(crate) fn get_property_data<'a>(
         let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
         if *reference as usize > input.len() {
-            println!("map value offset is greater than input? This is nulll?");
             return Ok((&[], Value::Null));
         }
         // Jump to the start of our value

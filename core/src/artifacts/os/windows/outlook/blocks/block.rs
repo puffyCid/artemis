@@ -31,7 +31,7 @@ pub(crate) struct BlockValue {
 pub(crate) enum Block {
     Xblock,
     Raw,
-    Xxblock,
+    _Xxblock,
     Descriptors,
     Unknown,
 }

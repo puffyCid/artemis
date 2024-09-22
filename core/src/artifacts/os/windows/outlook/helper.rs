@@ -105,8 +105,22 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     /// Get Block and Node BTrees and determine Outlook format type
     fn setup(&mut self, ntfs_file: Option<&NtfsFile<'_>>) -> Result<(), OutlookError> {
         let ost_size = 564;
-        let header_bytes = read_bytes(&0, ost_size, ntfs_file, &mut self.fs).unwrap();
-        let (_, header) = parse_header(&header_bytes).unwrap();
+        let header_results = read_bytes(&0, ost_size, ntfs_file, &mut self.fs);
+        let header_bytes = match header_results {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[outlook] Could not read header bytes: {err:?}");
+                return Err(OutlookError::ReadFile);
+            }
+        };
+        let header_result = parse_header(&header_bytes);
+        let (_, header) = match header_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[outlook] Could not parse header: {err:?}");
+                return Err(OutlookError::Header);
+            }
+        };
 
         self.format = header.format_type;
         self.size = match self.format {
@@ -400,7 +414,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
 
         let mut criteria = search.clone();
-        let mut contents = search.clone();
+        // let mut contents = search.clone();
         // let mut update = search.clone();
 
         let mut folder_number = folder;
@@ -419,7 +433,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     } else if node.node.node_id == NodeID::SearchCriteria {
                         criteria = node.clone();
                     } else if node.node.node_id == NodeID::SearchContentsTable {
-                        contents = node.clone();
+                        continue;
                     } else if node.node.node_id == NodeID::SearchUpdateQueue {
                         // SearchUpdateQueue not needed to parse data
                         continue;
@@ -430,10 +444,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
                     }
                 }
-                if search.block_offset_data_id != 0
-                    && criteria.block_offset_data_id != 0
-                    && contents.block_offset_data_id != 0
-                {
+                if search.block_offset_data_id != 0 && criteria.block_offset_data_id != 0 {
                     break;
                 }
 
@@ -462,8 +473,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let mut criteria_block = search_block.clone();
         let mut criteria_descriptor = None;
-        let mut contents_block = search_block.clone();
-        let mut contents_descriptor = None;
+
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(&search.block_offset_data_id) {
                 search_block = block_data.clone();
@@ -483,40 +493,25 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
             }
 
-            if let Some(block_data) = blocks.get(&contents.block_offset_data_id) {
-                contents_block = block_data.clone();
-            }
-            if contents.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&contents.block_offset_descriptor_id) {
-                    contents_descriptor = Some(block_data.clone());
-                }
-            }
-
-            if search_block.index != 0 && contents_block.index != 0 && criteria_block.index != 0 {
+            if search_block.index != 0 && criteria_block.index != 0 {
                 break;
             }
         }
 
         let search_value =
             self.get_block_data(ntfs_file, &search_block, search_descriptor.as_ref())?;
-        let search_result = self
-            .parse_property_context(ntfs_file, &search_value.data, &search_value.descriptors)
-            .unwrap();
+        let search_result =
+            self.parse_property_context(ntfs_file, &search_value.data, &search_value.descriptors)?;
 
         let criteria_value =
             self.get_block_data(ntfs_file, &criteria_block, criteria_descriptor.as_ref())?;
-        let criteria_result = self
-            .parse_property_context(ntfs_file, &criteria_value.data, &criteria_value.descriptors)
-            .unwrap();
+        let criteria_result = self.parse_property_context(
+            ntfs_file,
+            &criteria_value.data,
+            &criteria_value.descriptors,
+        )?;
 
-        let content_value =
-            self.get_block_data(ntfs_file, &contents_block, contents_descriptor.as_ref())?;
-        // Have not seen any Search Folder yet with content
-
-        println!("remove table info from search folder. does not exist");
-        let contents_info = self.table_info(&content_value.data, &content_value.descriptors)?;
-
-        let result = search_folder_details(&search_result, &criteria_result, &contents_info);
+        let result = search_folder_details(&search_result, &criteria_result);
         Ok(result)
     }
 
@@ -640,13 +635,13 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
         // First we parse the table that points to our messages
         // The number of messages is dependent on many the caller wants to get
-
         let table_meta = if branch.is_none() {
             self.get_rows(info, ntfs_file)?
         } else {
+            // Unwrap is ok here since we check above if it is none
             self.get_branch_rows(ntfs_file, info, branch.unwrap())?
         };
-        //let table_meta = self.get_rows(info)?;
+
         let table_info = table_message_preview(&table_meta);
 
         let mut mess = LeafNodeData {

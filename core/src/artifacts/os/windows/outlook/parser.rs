@@ -379,10 +379,6 @@ fn message_details<T: std::io::Seek + std::io::Read>(
             println!("scan with yara!");
         }
 
-        if let Some(rule) = &options.yara_rule_attachment {
-            println!("scan with yara!");
-        }
-
         message_result.attachments = attachments;
     }
 

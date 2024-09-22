@@ -61,7 +61,6 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         let (_, branch_nodes) =
             parse_branch_data(&page.data, format, &page.number_entries).unwrap();
         for node in branch_nodes {
-            println!("branch: {node:?}");
             get_node_btree(
                 ntfs_file,
                 fs,
@@ -77,7 +76,6 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             parse_leaf_node_data(&page.data, &page.number_entries, format).unwrap();
         let mut tree = BTreeMap::new();
         for node in leaf_node {
-            println!("node: {node:?}");
             if node.node.node_id_num == 0 && node.node.node == 0 {
                 panic!("skip?: {node:?}");
                 continue;
@@ -120,7 +118,6 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
         let (_, branch_nodes) =
             parse_branch_data(&page.data, format, &page.number_entries).unwrap();
         for node in branch_nodes {
-            println!("branch: {node:?}");
             get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
         }
     } else {
@@ -128,9 +125,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             parse_leaf_block_data(&page.data, &page.number_entries, format).unwrap();
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
-            println!("block: {block:?}");
             if block.index_id == 0 && block.index == 0 {
-                //println!("page: {:?}", page);
                 panic!("skip?: {block:?}");
                 continue;
             }
@@ -224,7 +219,6 @@ pub(crate) fn parse_branch_data<'a>(
     let size: u8 = if format == &FormatType::ANSI32 { 4 } else { 8 };
 
     while branch_nodes.len() != *entries as usize && branch_data.len() >= (size * 3) as usize {
-        println!("branch data size: {}", branch_data.len());
         let (input, node_data) = take(size)(branch_data)?;
         let result = get_node_ids(node_data);
         let node = match result {
@@ -523,7 +517,6 @@ mod tests {
         assert_eq!(results.number_entries, 31);
 
         let (_, blocks) = parse_branch_data(&results.data, &FormatType::Unicode64_4k, &31).unwrap();
-        println!("{blocks:?}");
     }
 
     #[test]
@@ -541,7 +534,6 @@ mod tests {
         assert_eq!(nodes[0].back_pointer, 22032);
         assert_eq!(nodes[0].offset, 18448384);
         assert_eq!(nodes[0].node.node_id, NodeID::InternalNode);
-        println!("{nodes:?}");
     }
 
     #[test]
@@ -561,7 +553,6 @@ mod tests {
 
         let (_, leafs) =
             parse_leaf_node_data(&results.data, &126, &FormatType::Unicode64_4k).unwrap();
-        println!("{leafs:?}");
     }
 
     #[test]
@@ -581,7 +572,6 @@ mod tests {
 
         let (_, leafs) =
             parse_leaf_block_data(&results.data, &100, &FormatType::Unicode64_4k).unwrap();
-        println!("{leafs:?}");
     }
 
     #[test]

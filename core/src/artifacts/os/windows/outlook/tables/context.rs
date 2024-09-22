@@ -150,7 +150,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         block_data: &Vec<Vec<u8>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<TableInfo, OutlookError> {
-        println!("table info block_data len: {:?}", block_data.len());
         let first_block = block_data.get(0);
         let block = match first_block {
             Some(result) => result,
@@ -161,7 +160,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let table = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                println!("[outlook] Could not get table info");
+                error!("[outlook] Could not get table info");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -184,7 +183,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                println!("[outlook] Could not get table rows");
+                error!("[outlook] Could not get table rows");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -230,17 +229,15 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             }
         }
 
+        if !descriptor_data.is_empty() {
+            let (_, rows) = parse_descriptors(&descriptor_data, info).unwrap();
+            return Ok((&[], rows));
+        }
+
         // Now skip Row name and ID section
         let section_size = 8;
         let size = info.total_rows * section_size;
         let (input, _) = take(size)(input)?;
-
-        if !descriptor_data.is_empty() {
-            println!("TC using desc!");
-            let (input, rows) = get_row_data(&descriptor_data[0], info).unwrap();
-
-            return Ok((&[], rows));
-        }
 
         get_row_data(&input, info)
     }
@@ -255,7 +252,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                println!("[outlook] Could not get table rows from branch");
+                error!("[outlook] Could not get table rows from branch");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -301,15 +298,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let (input, _array_end_16bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, _array_end_8bit) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let row_index = get_heap_node_id(&table_context_index_reference);
-        println!("Row Index HeapNode: {row_index:?}");
+        let (input, _table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let row = get_heap_node_id(&values_array_index_reference);
-        println!("Row Heap Node: {row:?}");
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
         let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
 
         let mut info = TableInfo {
@@ -353,9 +346,15 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
             // We now have all the data that is needed to extract data from branches
             info.has_branch = Some(branch_info_vec);
+        } else if heap_btree.node.block_index != 0 {
+            let (_, rows) = block_row_count(
+                &all_block[heap_btree.node.block_index as usize],
+                &heap_btree.node.index,
+            )
+            .unwrap();
+            info.total_rows = rows;
         } else {
-            info.total_rows =
-                get_row_count(&header.page_map.allocation_table, &heap_btree.node.index);
+            info.total_rows = get_row_count(&header.page_map.allocation_table);
         };
 
         Ok((input, info))
@@ -375,7 +374,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             total_size: 0,
             reference_count: 0,
         };
-        println!("desc: {descriptor:?}");
         let mut leaf_descriptor = None;
         for block_tree in &self.block_btree {
             if let Some(block_data) = block_tree.get(&descriptor.block_data_id) {
@@ -427,8 +425,7 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
     if branch_row_size % row_size != 0 {
-        panic!("we should be multiple of 8? Got size: {branch_row_size}");
-        warn!("[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        error!("[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
         let info = RowsInfo {
             row_end: branch_row_end,
             count: 0,
@@ -461,7 +458,8 @@ fn extract_branch_details<'a>(
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
 
-    if let Some(start) = map.allocation_table.get(*map_index as usize - 1) {
+    let adjust = 1;
+    if let Some(start) = map.allocation_table.get(*map_index as usize - adjust) {
         if let Some(end) = map.allocation_table.get(*map_index as usize) {
             branch_row_start = *start;
             branch_row_end = *end;
@@ -471,8 +469,7 @@ fn extract_branch_details<'a>(
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
     if branch_row_size % row_size != 0 {
-        panic!("we should be multiple of 8? Got size: {branch_row_size}");
-        warn!("[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        error!("[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
         return Ok((&[], Vec::new()));
     }
 
@@ -497,32 +494,94 @@ fn extract_branch_details<'a>(
     Ok((&[], refs))
 }
 
+/// Determine row count in block data
+fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8], u64> {
+    let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
+    let (map_start, _) = take(map_offset)(data)?;
+
+    let (_, map) = heap_page_map(map_start)?;
+
+    let mut branch_row_start = 0;
+    let mut branch_row_end = 0;
+    let adjust = 1;
+    if let Some(start) = map.allocation_table.get(*heap_index as usize - adjust) {
+        if let Some(end) = map.allocation_table.get(*heap_index as usize) {
+            branch_row_start = *start;
+            branch_row_end = *end;
+        }
+    }
+
+    let branch_row_size = branch_row_end - branch_row_start;
+    let row_size = 8;
+    if branch_row_size % row_size != 0 {
+        error!("[outlook] Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        return Ok((&[], 0));
+    }
+
+    let count = branch_row_size / row_size;
+
+    Ok((&[], count as u64))
+}
+
 /// Determine the total rows
-fn get_row_count(map: &[u16], heap_index: &u32) -> u64 {
+fn get_row_count(map: &[u16]) -> u64 {
     if map.len() < 4 {
         // There are no rows
         return 0;
     }
 
-    let mut row_start = map[2];
+    let row_start = map[2];
     let row_end = map[3];
-    let mut rows = row_end - row_start;
+    let rows = row_end - row_start;
 
     let row_size = 8;
     if rows % row_size != 0 {
-        println!(
-            "{}-{} = {}",
-            map[*heap_index as usize - 1],
-            map[*heap_index as usize],
-            (map[*heap_index as usize - 1] - map[*heap_index as usize])
-        );
-        panic!("rows should always be a multiple of 8 bytes?! {rows}. Heap index: {heap_index}. len: {map:?}");
         warn!("[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early");
-        //return 0;
+        return 0;
     }
 
     let count = rows / row_size;
     count as u64
+}
+
+fn parse_descriptors<'a>(
+    descriptors: &Vec<Vec<u8>>,
+    info: &TableInfo,
+) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
+    if descriptors.is_empty() {
+        return Ok((&[], Vec::new()));
+    }
+
+    let mut desc_index = 0;
+    let mut rows = Vec::new();
+    // Determine the max number of rows per descriptor block
+    let max_rows = descriptors[0].len() / info.row_size as usize;
+
+    // Determine which descriptor index we need to start at
+    // Ex: We have 3 descriptor indexes each have 200 rows. We want row 303. We need descriptor index 1
+    if let Some(first_row) = info.rows.get(0) {
+        desc_index = *first_row as usize / max_rows;
+    }
+
+    let mut count = 0;
+    for entry in &info.rows {
+        let mut index = entry.clone();
+
+        while index as usize >= max_rows {
+            index -= max_rows as u64;
+        }
+
+        // If the number of rows exceeds the max rows in descriptor, we move to the next one
+        if count == max_rows {
+            desc_index += 1;
+            count = 0;
+        }
+
+        let (_, row) = get_row_data_entry(&descriptors[desc_index], &index, info).unwrap();
+        count += 1;
+        rows.push(row);
+    }
+    return Ok((&[], rows));
 }
 
 /// Parse row data located in Branches. This involves a lot more work vs non-branch rows
@@ -532,65 +591,12 @@ fn parse_branch_row<'a>(
     info: &TableInfo,
     branch: &TableBranchInfo,
 ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
-    println!("all desc: {}", descriptors.len());
-    // Bypass everything until the start of the row entries
-    let (row_data_start, _) = take(branch.rows_info.row_end)(data)?;
-
     if !descriptors.is_empty() {
-        let mut desc_index = 0;
-        let mut rows = Vec::new();
-        let max_rows = descriptors[0].len() / info.row_size as usize;
-        println!("max rows {max_rows}");
-
-        // Determine which descriptor index we need to start at
-        if let Some(first_row) = info.rows.get(0) {
-            desc_index = *first_row as usize / max_rows;
-        }
-
-        let mut count = 0;
-        for entry in &info.rows {
-            let mut index = entry.clone();
-
-            /*
-             * This is kind of complex:
-             * We need to adjust the entry number to make sure it is not higher than the max number of entries can be found in a descriptor block.
-             * Each descriptor block has a max number of rows.
-             * Max rows can be found taking descriptor block size and dividing by row size
-             * Example: We have 400 emails. We want emails 300-350. Each row size is 358 bytes. Size of descriptors[desc_index] = 65512. Max rows is 182
-             *
-             * Row start = 300 * 358. Add 358 bytes to get the row data.
-             * Total bytes is > than descriptors[desc_index]
-             * So we increment the desc_index to the next descriptor block
-             * However, the row number 300 is still too large. So we adjust the number by subtracting the max_rows.
-             * 300 - 182 = 118
-             * Now row start = 118 * 358. Add 358 bytes to get the row data.
-             * This will then be used in the next descriptor_block.
-             */
-            while index as usize >= max_rows {
-                index -= max_rows as u64;
-                //desc_index += 1;
-            }
-
-            // If the entry and the row size are greater than the descriptor data. Then we need to go to the next descriptor data
-            //if ((index * info.row_size as u64) + info.row_size as u64) as usize
-            //    > descriptors[desc_index].len()
-            // {
-            //    desc_index += 1;
-            //}
-            if count == max_rows {
-                desc_index += 1;
-                count = 0;
-            }
-
-            println!("row number {index} - desc index is: {desc_index}");
-
-            let (_, row) = get_row_data_entry(&descriptors[desc_index], &index, info).unwrap();
-            count += 1;
-            rows.push(row);
-        }
-        return Ok((&[], rows));
+        return parse_descriptors(descriptors, info);
     }
 
+    // Bypass everything until the start of the row entries
+    let (row_data_start, _) = take(branch.rows_info.row_end)(data)?;
     let (_, rows) = get_row_data(row_data_start, info)?;
 
     Ok((&[], rows))
@@ -797,8 +803,8 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
 #[cfg(test)]
 mod tests {
     use super::{
-        get_column_definitions, get_property_type, get_row_count, get_row_data, ColumnDescriptor,
-        TableRows,
+        block_row_count, get_column_definitions, get_property_type, get_row_count, get_row_data,
+        ColumnDescriptor, TableRows,
     };
     use crate::artifacts::os::windows::outlook::{
         header::NodeID,
@@ -806,7 +812,6 @@ mod tests {
             context::{PropertyType, TableInfo},
             header::HeapNode,
             properties::PropertyName,
-            property::extract_property_value,
         },
     };
     use serde_json::Value;
@@ -815,7 +820,7 @@ mod tests {
     #[test]
     fn test_get_row_count() {
         let test = [0, 1, 8, 16];
-        let rows = get_row_count(&test, &0);
+        let rows = get_row_count(&test);
         assert_eq!(rows, 1);
     }
 
@@ -967,5 +972,38 @@ mod tests {
         let test = 13;
         let prop = get_property_type(&test);
         assert_eq!(prop, PropertyType::Object);
+    }
+
+    #[test]
+    fn test_block_row_count() {
+        let test = [
+            233, 0, 22, 0, 2, 0, 74, 0, 142, 0, 164, 0, 254, 0, 30, 1, 92, 1, 108, 1, 106, 3, 129,
+            3, 151, 3, 111, 7, 127, 7, 35, 8, 195, 8, 217, 8, 81, 9, 133, 9, 255, 9, 15, 10, 13,
+            12, 36, 12, 58, 12, 74, 12, 218, 12, 102, 13, 124, 13, 244, 13, 40, 14, 162, 14, 178,
+            14, 176, 16, 199, 16, 221, 16, 237, 16, 145, 17, 49, 18, 71, 18, 191, 18, 243, 18, 109,
+            19, 125, 19, 123, 21, 146, 21, 168, 21, 184, 21, 44, 22, 156, 22, 178, 22, 42, 23, 94,
+            23, 216, 23, 232, 23, 230, 25, 253, 25, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26,
+            19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26, 19, 26,
+            19, 26, 19, 26, 19, 26, 19, 26, 117, 26, 237, 26, 101, 27, 221, 27, 85, 28, 205, 28,
+            69, 29, 197, 29, 69, 30, 189, 30, 53, 31, 173, 31, 37, 32, 157, 32, 21, 33, 141, 33,
+            239, 33, 103, 34, 223, 34, 87, 35, 207, 35, 71, 36, 191, 36, 55, 37, 153, 37, 17, 38,
+            137, 38, 1, 39, 99, 39, 219, 39, 83, 40, 203, 40, 45, 41, 165, 41, 29, 42, 149, 42, 13,
+            43, 133, 43, 231, 43, 95, 44, 215, 44, 57, 45, 177, 45, 41, 46, 139, 46, 45, 47, 165,
+            47, 71, 48, 191, 48, 55, 49, 199, 49, 63, 50, 183, 50, 49, 51, 211, 51, 77, 52, 175,
+            52, 39, 53, 137, 53, 1, 54, 121, 54, 241, 54, 83, 55, 205, 55, 71, 56, 193, 56, 35, 57,
+            157, 57, 45, 58, 163, 58, 29, 59, 149, 59, 15, 60, 135, 60, 1, 61, 121, 61, 243, 61,
+            109, 62, 231, 62, 73, 63, 193, 63, 35, 64, 155, 64, 43, 65, 141, 65, 5, 66, 103, 66,
+            223, 66, 87, 67, 207, 67, 49, 68, 147, 68, 11, 69, 155, 69, 19, 70, 117, 70, 215, 70,
+            79, 71, 223, 71, 65, 72, 185, 72, 41, 73, 161, 73, 3, 74, 123, 74, 221, 74, 55, 75,
+            175, 75, 17, 76, 107, 76, 227, 76, 69, 77, 197, 77, 69, 78, 189, 78, 23, 79, 143, 79,
+            7, 80, 127, 80, 247, 80, 247, 80, 247, 80, 7, 81, 129, 81, 249, 81, 111, 82, 133, 82,
+            253, 82, 49, 83, 171, 83, 187, 83, 185, 85, 208, 85, 230, 85, 246, 85, 140, 86, 4, 87,
+            150, 87, 172, 87, 36, 88, 88, 88, 210, 88, 226, 88, 224, 90, 247, 90, 13, 91, 29, 91,
+            185, 91, 49, 92, 201, 92, 223, 92, 87, 93, 139, 93, 5, 94, 21, 94, 19, 96, 42, 96, 64,
+            96,
+        ];
+
+        let (_, rows) = block_row_count(&test, &11).unwrap();
+        assert_eq!(rows, 10);
     }
 }

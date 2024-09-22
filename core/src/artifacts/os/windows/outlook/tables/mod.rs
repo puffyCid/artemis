@@ -1,5 +1,5 @@
 pub(crate) mod context;
-mod header;
+pub(crate) mod header;
 mod heap_btree;
 pub(crate) mod properties;
 pub(crate) mod property;

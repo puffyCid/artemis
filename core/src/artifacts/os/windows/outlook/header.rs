@@ -35,7 +35,7 @@ pub(crate) struct OutlookHeader {
 }
 
 #[derive(PartialEq, Debug)]
-enum ContentType {
+pub(crate) enum ContentType {
     PersonalAddressBook,
     PersonalStorageTable,
     OfflineStorageTable,
@@ -60,7 +60,7 @@ enum AllocationType {
 }
 
 #[derive(PartialEq, Debug)]
-enum EncryptionType {
+pub(crate) enum EncryptionType {
     None,
     CompressEncryption,
     HighEncryption,
@@ -84,7 +84,11 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let format_type = get_format(&format_data);
 
     if format_type == FormatType::ANSI32 {
-        panic!("TODO!?");
+        error!("[outlook] Got ANSI32 FormatType. This type is currently unsupported");
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            data,
+            ErrorKind::Fail,
+        )));
     }
 
     let (input, _unused) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -168,6 +172,17 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
         initial_data_free_map,
         initial_page_free_map,
     };
+
+    if header.encryption_type != EncryptionType::None {
+        error!(
+            "[outlook] Outlook file is encrypted: {:?}. Currently decryption is not supported",
+            header.encryption_type
+        );
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            data,
+            ErrorKind::Fail,
+        )));
+    }
 
     Ok((input, header))
 }
