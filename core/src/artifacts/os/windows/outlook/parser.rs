@@ -11,7 +11,6 @@
 *
 * Other parsers:
 * `https://github.com/libyal/libpff`
-* ``
 *
 */
 use super::{
