@@ -6,7 +6,7 @@
 * *Outlook was re-written in 2022 (New Outlook for Windows). Which is a online only web app. This parser does not support that version
 *
 * References:
-* `https://www.linkedin.com/pulse/how-read-view-outlook-ost-file-forensics-mithilesh-tata-1mnkc`
+* `https://www.forensafe.com/blogs/outlook.html`
 * `https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc`
 *
 * Other parsers:
