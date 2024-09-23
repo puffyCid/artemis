@@ -77,6 +77,7 @@ Commands:
   jumplists          windows: Parse Jumplists
   recyclebin         windows: Parse RecycleBin
   wmipersist         windows: Parse WMI Repository
+  outlook            windows: Parse Outlook messages
   execpolicy         macos: Parse ExecPolicy
   users-macos        macos: Collect local users
   fsevents           macos: Parse FsEvents entries
