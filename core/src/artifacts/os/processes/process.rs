@@ -1,3 +1,5 @@
+use std::ffi::OsStr;
+
 /**
  * Get a process listing using `sysinfo` crate
  * Depending on `ProcessOptions` will also parse and get basic executable metadata
@@ -10,7 +12,7 @@ use crate::{
 use common::files::Hashes;
 use common::system::Processes;
 use log::{info, warn};
-use sysinfo::{Process, ProcessRefreshKind, System};
+use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
 
 #[cfg(target_os = "windows")]
 use super::pe::pe_metadata;
@@ -30,7 +32,7 @@ pub fn proc_list(hashes: &Hashes, binary_data: bool) -> Result<Vec<Processes>, P
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
 
-    proc.refresh_processes_specifics(ProcessRefreshKind::everything());
+    proc.refresh_processes_specifics(ProcessesToUpdate::All, ProcessRefreshKind::everything());
     if proc.processes().is_empty() {
         return Err(ProcessError::Empty);
     }
@@ -64,12 +66,22 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: bool) -> Processes
     let mut system_proc = Processes {
         path: get_parent_directory(&path),
         full_path: path,
-        name: process.name().to_string(),
+        name: process.name().to_str().unwrap_or_default().to_string(),
         pid: process.pid().as_u32(),
         ppid: 0,
-        environment: process.environ().join(" "),
+        environment: process
+            .environ()
+            .join(OsStr::new(" "))
+            .to_str()
+            .unwrap_or_default()
+            .to_string(),
         status: process.status().to_string(),
-        arguments: process.cmd().join(" "),
+        arguments: process
+            .cmd()
+            .join(OsStr::new(" "))
+            .to_str()
+            .unwrap_or_default()
+            .to_string(),
         memory_usage: process.memory(),
         virtual_memory_usage: process.virtual_memory(),
         start_time: unixepoch_to_iso(&(process.start_time() as i64)),
@@ -148,7 +160,7 @@ mod tests {
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use common::files::Hashes;
     use common::system::Processes;
-    use sysinfo::System;
+    use sysinfo::{ProcessesToUpdate, System};
 
     #[test]
     fn test_proc_list() {
@@ -167,7 +179,7 @@ mod tests {
         let mut proc = System::new();
         let mut processes_list: Vec<Processes> = Vec::new();
 
-        proc.refresh_processes();
+        proc.refresh_processes(ProcessesToUpdate::All);
 
         let hashes = Hashes {
             md5: true,

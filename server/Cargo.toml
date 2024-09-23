@@ -34,8 +34,8 @@ axum = { version = "=0.7.4", default-features = false, features = [
 futures = "0.3.30"
 rust-embed = "8.5.0"
 common = { path = "../common" }
-redb = { version = "2.1.1", default-features = false }
+redb = { version = "2.1.3", default-features = false }
 
 [dev-dependencies]
-tower = { version = "0.4.13", features = ["util"] }
+tower = { version = "0.5.1", features = ["util"] }
 hyper = { version = "1.4.1", features = ["full"] }
