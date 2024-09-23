@@ -30,7 +30,7 @@ pub(crate) enum TableType {
     Unknown,
 }
 
-/// Parse the table found in TableContext and Property tables
+/// Parse the table found in `TableContext` and Property tables
 pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let (input, page_map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
 
@@ -74,7 +74,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     Ok((input, table))
 }
 
-/// Determine the table type. Only TableContext, PropertyContext, and BTreeHeap are documented
+/// Determine the table type. Only `TableContext`, `PropertyContext`, and `BTreeHeap` are documented
 fn get_table_type(table: &u8) -> TableType {
     match table {
         0x6c => TableType::SixC,
@@ -123,10 +123,7 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
         0x12 => NodeID::RecipientTable,
         0x13 => NodeID::SearchTableIndex,
         0x1f => NodeID::LocalDescriptors,
-        _ => {
-            warn!("[outlook] Unknown NodeID for Heap BTree: {value}");
-            NodeID::Unknown
-        }
+        _ => NodeID::Unknown,
     };
 
     let index = (value & 0x07ffe0) >> 5;
@@ -135,13 +132,12 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
     let adjust_index = 19;
     let adjust = 0xffff;
     let block_index = adjust & (value >> adjust_index);
-    let node = HeapNode {
+
+    HeapNode {
         node: id,
         index,
         block_index,
-    };
-
-    node
+    }
 }
 
 #[derive(Debug)]
@@ -207,7 +203,6 @@ mod tests {
         assert_eq!(header._heap_node.node, NodeID::HeapNode);
         assert_eq!(header._heap_node.index, 2);
         assert_eq!(header.page_map._allocation_count, 6);
-        println!("{header:?}");
     }
 
     #[test]

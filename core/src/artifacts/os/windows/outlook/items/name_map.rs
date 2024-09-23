@@ -16,10 +16,11 @@ use nom::bytes::complete::take;
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// Parse and get the Name ID to Map data
 pub(crate) fn extract_name_id_map(
     context: &[PropertyContext],
 ) -> Result<HashMap<u16, NameEntry>, OutlookError> {
-    let name_props = vec![
+    let name_props = [
         PropertyName::StreamGuid,
         PropertyName::StreamEntry,
         PropertyName::StreamString,
@@ -142,7 +143,7 @@ pub(crate) struct NameEntry {
     entry_type: u16,
     entry_number: u16,
     value: Value,
-    index: u16,
+    _index: u16,
     guid: String,
     name_type: NameType,
 }
@@ -168,7 +169,7 @@ fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
         let name_type = 1;
         let is_guid = 0;
 
-        let index = 0xffff & (entry_type >> name_type);
+        let index = entry_type >> name_type;
 
         let name_type = if (entry_type & name_type) != is_guid {
             NameType::String
@@ -182,7 +183,7 @@ fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
             entry_number: entry_number + 0x8000,
             value: Value::Null,
             guid: String::new(),
-            index,
+            _index: index,
             name_type,
         };
 

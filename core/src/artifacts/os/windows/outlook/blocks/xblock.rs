@@ -104,7 +104,7 @@ fn xblock_data<'a>(
     } else if sig != 1 {
         // Its a raw block.
         let (_, block) = parse_block_bytes(data, format)?;
-        if let Some(sig) = block.data.get(0) {
+        if let Some(sig) = block.data.first() {
             if sig == &sblock_sig {
                 let (_, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
                 block_value.block_type = Block::Descriptors;
@@ -115,8 +115,7 @@ fn xblock_data<'a>(
                 return Ok((&[], result));
             } else {
                 block_value.block_type = Block::Raw;
-                //block_value.data.push(block.data);
-                panic!("got a raw block what todo: {:?}", block.data);
+                block_value.data.push(block.data);
                 return Ok((&[], Vec::new()));
             }
         }

@@ -64,7 +64,7 @@ pub(crate) fn extract_attachment(props: &mut Vec<PropertyContext>) -> Attachment
     let mut iter = keep.iter();
     // Remove all props we already extracted above. We do this so we do not store the attachment twice
     props.retain(|_| *iter.next().unwrap_or(&false));
-    attach.props = props.to_vec();
+    attach.props = props.clone();
 
     attach
 }

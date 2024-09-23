@@ -5,7 +5,7 @@ use std::string::FromUtf16Error;
 /// Get a UTF16 string from provided bytes data. Will attempt to fix malformed UTF16. Such as UTF16 missing zeros
 pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
     let result = bytes_to_utf16_string(data, &false);
-    let string_value = match result {
+    match result {
         Ok(result) => result,
         Err(_err) => {
             // If we fail, try again with adjustment. Just incase it works.
@@ -18,8 +18,7 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
                 }
             }
         }
-    };
-    string_value
+    }
 }
 
 /// Get a UTF16 string from provided bytes data

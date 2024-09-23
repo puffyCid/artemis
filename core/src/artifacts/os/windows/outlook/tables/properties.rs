@@ -1,5 +1,5 @@
 /**
- * Generated using python script tools/Outlook/generate_properties.py
+ * Generated using python script `tools/Outlook/generate_properties.py`
  */
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum PropertyName {
@@ -832,17 +832,17 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         }
         "0x8c93_0x0003" => names.push(PropertyName::PidTagAddressBookDisplayTypeExtended),
         "0x8ce3_0x0003" => {
-            names.push(PropertyName::PidTagAddressBookDistributionListExternalMemberCount)
+            names.push(PropertyName::PidTagAddressBookDistributionListExternalMemberCount);
         }
         "0x8ce2_0x0003" => names.push(PropertyName::PidTagAddressBookDistributionListMemberCount),
         "0x8073_0x000d" => {
-            names.push(PropertyName::PidTagAddressBookDistributionListMemberSubmitAccepted)
+            names.push(PropertyName::PidTagAddressBookDistributionListMemberSubmitAccepted);
         }
         "0x8cda_0x000d" => {
-            names.push(PropertyName::PidTagAddressBookDistributionListMemberSubmitRejected)
+            names.push(PropertyName::PidTagAddressBookDistributionListMemberSubmitRejected);
         }
         "0x8cdb_0x000d" => {
-            names.push(PropertyName::PidTagAddressBookDistributionListRejectMessagesFromDLMembers)
+            names.push(PropertyName::PidTagAddressBookDistributionListRejectMessagesFromDLMembers);
         }
         "0x663b_0x0102" => names.push(PropertyName::PidTagAddressBookEntryId),
         "0x802d_0x001f" => names.push(PropertyName::PidTagAddressBookExtensionAttribute1),
@@ -864,7 +864,7 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x8c9a_0x000d" => names.push(PropertyName::PidTagAddressBookHierarchicalChildDepartments),
         "0x8c97_0x000d" => names.push(PropertyName::PidTagAddressBookHierarchicalDepartmentMembers),
         "0x8cdd_0x000b" => {
-            names.push(PropertyName::PidTagAddressBookHierarchicalIsHierarchicalGroup)
+            names.push(PropertyName::PidTagAddressBookHierarchicalIsHierarchicalGroup);
         }
         "0x8c99_0x000d" => names.push(PropertyName::PidTagAddressBookHierarchicalParentDepartment),
         "0x8c98_0x001e" => names.push(PropertyName::PidTagAddressBookHierarchicalRootDepartment),
@@ -873,7 +873,7 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0xfffb_0x000b" => names.push(PropertyName::PidTagAddressBookIsMaster),
         "0x8008_0x001e" => names.push(PropertyName::PidTagAddressBookIsMemberOfDistributionList),
         "0x8008_0x101f" => {
-            names.push(PropertyName::PidTagAddressBookIsMemberOfDistributionListNspi)
+            names.push(PropertyName::PidTagAddressBookIsMemberOfDistributionListNspi);
         }
         "0x6704_0x000d" => names.push(PropertyName::PidTagAddressBookManageDistributionList),
         "0x8005_0x000d" => names.push(PropertyName::PidTagAddressBookManager),
@@ -885,7 +885,7 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x803c_0x001f" => names.push(PropertyName::PidTagAddressBookObjectDistinguishedName),
         "0x8c6d_0x0102" => names.push(PropertyName::PidTagAddressBookObjectGuid),
         "0x8ca8_0x001f" => {
-            names.push(PropertyName::PidTagAddressBookOrganizationalUnitRootDistinguishedName)
+            names.push(PropertyName::PidTagAddressBookOrganizationalUnitRootDistinguishedName);
         }
         "0x800c_0x000d" => names.push(PropertyName::PidTagAddressBookOwner),
         "0x8024_0x000d" => names.push(PropertyName::PidTagAddressBookOwnerBackLink),
@@ -1390,7 +1390,7 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x0ff9_0x0102" => names.push(PropertyName::PidTagRecordKey),
         "0x3a47_0x001f" => {
             names.push(PropertyName::PidTagReferredByName);
-            names.push(PropertyName::PidTagPreferredByName)
+            names.push(PropertyName::PidTagPreferredByName);
         }
         "0x36d5_0x0102" => names.push(PropertyName::PidTagRemindersOnlineEntryId),
         "0x0078_0x001f" => {
@@ -1680,7 +1680,6 @@ pub(crate) fn property_id_to_name(id_type: &str) -> Vec<PropertyName> {
         "0x0002_0x0102" => names.push(PropertyName::StreamGuid),
         "0x0003_0x0102" => names.push(PropertyName::StreamEntry),
         _ => {
-            println!("[outlook] Unknown property name and type: {id_type}");
             names.push(PropertyName::Unknown);
         }
     }

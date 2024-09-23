@@ -243,6 +243,6 @@ mod tests {
         assert_eq!(result.modified, "2024-09-10T07:15:07.000Z");
 
         assert_eq!(result.properties.len(), 34);
-        assert_eq!(result.messages_table.block_data.len(), 1);
+        assert_eq!(result.messages_table.block_data.len(), 0);
     }
 }

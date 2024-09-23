@@ -46,14 +46,14 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
     fn parse_property_context(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data: &Vec<Vec<u8>>,
+        block_data: &[Vec<u8>],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<Vec<PropertyContext>, OutlookError>;
     fn get_property_context<'a>(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         header_block: &'a [u8],
-        all_blocks: &Vec<Vec<u8>>,
+        all_blocks: &[Vec<u8>],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], Vec<PropertyContext>>;
 
@@ -70,10 +70,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
     fn parse_property_context(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data: &Vec<Vec<u8>>,
+        block_data: &[Vec<u8>],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<Vec<PropertyContext>, OutlookError> {
-        let first_block = block_data.get(0);
+        let first_block = block_data.first();
         let block = match first_block {
             Some(result) => result,
             None => return Err(OutlookError::NoBlocks),
@@ -97,10 +97,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         header_block: &'a [u8],
-        all_blocks: &Vec<Vec<u8>>,
+        all_blocks: &[Vec<u8>],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> nom::IResult<&'a [u8], Vec<PropertyContext>> {
-        let (input, header) = table_header(&header_block)?;
+        let (input, header) = table_header(header_block)?;
         let (_, heap_btree) = parse_btree_heap(input)?;
 
         // Have not seen Branch nodes for properties but maybe they exist?
@@ -143,7 +143,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
         let mut props_vec = Vec::new();
 
-        let prop_embedded = vec![
+        let prop_embedded = [
             PropertyType::Int16,
             PropertyType::Int32,
             PropertyType::Float32,
@@ -170,7 +170,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
             // If the property value is less than 4 bytes then the value is stored with the definition
             if prop_embedded.contains(&prop.property_type) && prop.reference != 0 {
-                prop.value = serde_json::to_value(value_reference).unwrap_or(Value::Null)
+                prop.value = serde_json::to_value(value_reference).unwrap_or(Value::Null);
             }
 
             props_vec.push(prop);
@@ -259,14 +259,14 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             let mut leaf_descriptor = None;
             for block_tree in &self.block_btree {
                 if let Some(block_data) = block_tree.get(&value.block_data_id) {
-                    leaf_block = block_data.clone();
+                    leaf_block = *block_data;
 
                     if value.block_descriptor_id == 0 {
                         break;
                     }
                 }
                 if let Some(block_data) = block_tree.get(&value.block_descriptor_id) {
-                    leaf_descriptor = Some(block_data.clone());
+                    leaf_descriptor = Some(*block_data);
                 }
 
                 if leaf_descriptor.is_none() && leaf_block.size != 0 {
@@ -325,7 +325,7 @@ pub(crate) fn extract_property_value<'a>(
     match prop_type {
         PropertyType::Int16 => {
             let (_, prop_value) = nom_unsigned_two_bytes(value_data, Endian::Le)?;
-            value = serde_json::to_value(&prop_value).unwrap_or_default();
+            value = serde_json::to_value(prop_value).unwrap_or_default();
         }
         PropertyType::Int32 => {
             let (_, prop_value) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
@@ -356,12 +356,12 @@ pub(crate) fn extract_property_value<'a>(
         }
         PropertyType::Bool => {
             let (_, prop_value) = nom_unsigned_one_byte(value_data, Endian::Le)?;
-            let prop_bool = if prop_value != 0 { true } else { false };
-            value = serde_json::to_value(&prop_bool).unwrap_or_default();
+            let prop_bool = prop_value != 0;
+            value = serde_json::to_value(prop_bool).unwrap_or_default();
         }
         PropertyType::Int64 => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
-            value = serde_json::to_value(&prop_value).unwrap_or_default();
+            value = serde_json::to_value(prop_value).unwrap_or_default();
         }
         PropertyType::String
         | PropertyType::MultiString
@@ -370,8 +370,7 @@ pub(crate) fn extract_property_value<'a>(
             // Strings can either be UTF8 or UTF16 :/
             value = match prop_type {
                 PropertyType::String | PropertyType::String8 => {
-                    serde_json::to_value(&extract_ascii_utf16_string(value_data))
-                        .unwrap_or_default()
+                    serde_json::to_value(extract_ascii_utf16_string(value_data)).unwrap_or_default()
                 }
                 PropertyType::MultiString | PropertyType::MultiString8 => {
                     let (mut input, string_count) =
@@ -401,23 +400,20 @@ pub(crate) fn extract_property_value<'a>(
                         strings.push(string);
                     }
 
-                    serde_json::to_value(&strings).unwrap_or_default()
+                    serde_json::to_value(strings).unwrap_or_default()
                 }
-                _ => serde_json::to_value(&format!("Non string property type. Got {prop_type:?}"))
+                _ => serde_json::to_value(format!("Non string property type. Got {prop_type:?}"))
                     .unwrap_or_default(),
             };
         }
         PropertyType::Time => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             let timestamp = filetime_to_unixepoch(&prop_value);
-            value = serde_json::to_value(&unixepoch_to_iso(&timestamp)).unwrap_or_default();
+            value = serde_json::to_value(unixepoch_to_iso(&timestamp)).unwrap_or_default();
         }
         PropertyType::Guid => {
             let string_value = format_guid_le_bytes(value_data);
-            value = serde_json::to_value(&string_value).unwrap_or_default();
-        }
-        PropertyType::Binary => {
-            value = serde_json::to_value(&base64_encode_standard(value_data)).unwrap_or_default();
+            value = serde_json::to_value(string_value).unwrap_or_default();
         }
         PropertyType::MultiInt16 => {
             let int_count = value_data.len() / 2;
@@ -589,6 +585,7 @@ pub(crate) fn extract_property_value<'a>(
         | PropertyType::RuleAction
         | PropertyType::Object
         | PropertyType::Restriction
+        | PropertyType::Binary
         | PropertyType::ServerId => {
             value = serde_json::to_value(base64_encode_standard(value_data)).unwrap_or_default();
         }

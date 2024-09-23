@@ -201,11 +201,8 @@ fn file_metadata(
 
     // Get executable metadata if enabled
     if get_executable_info && file_entry.is_file {
-        let meta_results = executable_metadata(&entry.path().display().to_string());
-        file_entry.binary_info = match meta_results {
-            Ok(results) => results,
-            Err(_err) => Vec::new(),
-        }
+        file_entry.binary_info =
+            executable_metadata(&entry.path().display().to_string()).unwrap_or_default();
     }
 
     if hashes.md5 || hashes.sha1 || hashes.sha256 {

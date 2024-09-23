@@ -179,7 +179,7 @@ pub(crate) fn decompress_xpress(
 
 /**
  * Decomress RTF compressed data. This is found mainly in Microsoft Outlook.
- * Inspired by https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py (MIT license)
+ * Inspired by <https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py> (MIT license)
  */
 pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, CompressionError> {
     let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();

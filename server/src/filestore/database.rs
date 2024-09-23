@@ -88,7 +88,8 @@ fn collection_filter(collect: &CollectionRequest, request: &CollectRequest) -> b
     let mut status = false;
     if !request.search.is_empty() && format!("{collect:?}").contains(&request.search) {
         status = true;
-    } else if request.search.is_empty() && request.tags.is_empty() {
+    }
+    if request.search.is_empty() && request.tags.is_empty() {
         status = true;
     }
 

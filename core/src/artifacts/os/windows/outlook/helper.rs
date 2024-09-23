@@ -102,7 +102,7 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
 }
 
 impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<T> {
-    /// Get Block and Node BTrees and determine Outlook format type
+    /// Get Block and Node `BTrees` and determine Outlook format type
     fn setup(&mut self, ntfs_file: Option<&NtfsFile<'_>>) -> Result<(), OutlookError> {
         let ost_size = 564;
         let header_results = read_bytes(&0, ost_size, ntfs_file, &mut self.fs);
@@ -163,10 +163,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         block: &LeafBlockData,
         descriptor: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError> {
-        self.parse_blocks(ntfs_file, &block, descriptor)
+        self.parse_blocks(ntfs_file, block, descriptor)
     }
 
-    /// Extract the Outlook MessageStore
+    /// Extract the Outlook `MessageStore`
     fn message_store(&self) -> Result<Vec<PropertyContext>, OutlookError> {
         /*
          * Steps:
@@ -177,7 +177,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         Ok(Vec::new())
     }
 
-    /// Extract the Outlook NameToIdMap
+    /// Extract the Outlook `NameToIdMap`
     fn name_id_map(&self) -> Result<Vec<PropertyContext>, OutlookError> {
         /*
          * Steps:
@@ -221,7 +221,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut contents = normal.clone();
         let mut fai = normal.clone();
 
-        let search = vec![
+        let search = [
             NodeID::SearchFolder,
             NodeID::SearchContentsTable,
             NodeID::SearchUpdateQueue,
@@ -248,7 +248,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     } else if node.node.node_id == NodeID::FaiContentsTable {
                         fai = node.clone();
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Got unknown NodeID when reading folder: {node:?}");
                         continue;
                     } else if search.contains(&node.node.node_id) {
                         return self.search_folder(ntfs_file, folder);
@@ -300,47 +299,47 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             reference_count: 0,
         };
 
-        let mut hierarchy_block = leaf_block.clone();
+        let mut hierarchy_block = leaf_block;
         let mut hierarchy_descriptor = None;
-        let mut contents_block = leaf_block.clone();
+        let mut contents_block = leaf_block;
         let mut contents_descriptor = None;
-        let mut fai_block = leaf_block.clone();
+        let mut fai_block = leaf_block;
         let mut fai_descriptor = None;
 
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(&normal.block_offset_data_id) {
-                leaf_block = block_data.clone();
+                leaf_block = *block_data;
             }
             if normal.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&normal.block_offset_descriptor_id) {
-                    leaf_descriptor = Some(block_data.clone());
+                    leaf_descriptor = Some(*block_data);
                 }
             }
 
             if let Some(block_data) = blocks.get(&hierarchy.block_offset_data_id) {
-                hierarchy_block = block_data.clone();
+                hierarchy_block = *block_data;
             }
             if hierarchy.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&hierarchy.block_offset_descriptor_id) {
-                    hierarchy_descriptor = Some(block_data.clone());
+                    hierarchy_descriptor = Some(*block_data);
                 }
             }
 
             if let Some(block_data) = blocks.get(&contents.block_offset_data_id) {
-                contents_block = block_data.clone();
+                contents_block = *block_data;
             }
             if contents.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&contents.block_offset_descriptor_id) {
-                    contents_descriptor = Some(block_data.clone());
+                    contents_descriptor = Some(*block_data);
                 }
             }
 
             if let Some(block_data) = blocks.get(&fai.block_offset_data_id) {
-                fai_block = block_data.clone();
+                fai_block = *block_data;
             }
             if fai.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&fai.block_offset_descriptor_id) {
-                    fai_descriptor = Some(block_data.clone());
+                    fai_descriptor = Some(*block_data);
                 }
             }
 
@@ -414,8 +413,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
 
         let mut criteria = search.clone();
-        // let mut contents = search.clone();
-        // let mut update = search.clone();
 
         let mut folder_number = folder;
         let mut peek_nodes = self.node_btree.iter().peekable();
@@ -438,7 +435,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         // SearchUpdateQueue not needed to parse data
                         continue;
                     } else if node.node.node_id == NodeID::Unknown {
-                        warn!("[outlook] Unknown NodeID when reading search folder: {node:?}");
                         continue;
                     } else {
                         warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
@@ -471,25 +467,25 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
         let mut search_descriptor = None;
 
-        let mut criteria_block = search_block.clone();
+        let mut criteria_block = search_block;
         let mut criteria_descriptor = None;
 
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(&search.block_offset_data_id) {
-                search_block = block_data.clone();
+                search_block = *block_data;
             }
             if search.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&search.block_offset_descriptor_id) {
-                    search_descriptor = Some(block_data.clone());
+                    search_descriptor = Some(*block_data);
                 }
             }
 
             if let Some(block_data) = blocks.get(&criteria.block_offset_data_id) {
-                criteria_block = block_data.clone();
+                criteria_block = *block_data;
             }
             if criteria.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&criteria.block_offset_descriptor_id) {
-                    criteria_descriptor = Some(block_data.clone());
+                    criteria_descriptor = Some(*block_data);
                 }
             }
 
@@ -532,9 +528,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             parent_node_index: 0,
         };
 
-        let mut peek_nodes = self.node_btree.iter().peekable();
-
-        while let Some(nodes) = peek_nodes.next() {
+        for nodes in &self.node_btree {
             if let Some(id) = nodes.btree.get(&(folder as u32)) {
                 let node_number = id.node.node_id_num;
 
@@ -567,11 +561,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut info_descriptor = None;
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(&info.block_offset_data_id) {
-                info_block = block_data.clone();
+                info_block = *block_data;
             }
             if info.block_offset_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(&info.block_offset_descriptor_id) {
-                    info_descriptor = Some(block_data.clone());
+                    info_descriptor = Some(*block_data);
                 }
             }
         }
@@ -603,11 +597,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut table_descriptor = None;
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(block_data_id) {
-                table_block = block_data.clone();
+                table_block = *block_data;
             }
             if *block_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(block_descriptor_id) {
-                    table_descriptor = Some(block_data.clone());
+                    table_descriptor = Some(*block_data);
                 }
             }
         }
@@ -658,10 +652,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut messages = Vec::new();
         // Loop through each message we want
         for info in table_info {
-            let mut peek_nodes = self.node_btree.iter().peekable();
-
             // Search until we find the Message node in the BTree
-            while let Some(nodes) = peek_nodes.next() {
+            for nodes in &self.node_btree {
                 if let Some(id) = nodes.btree.get(&(info.node as u32)) {
                     let node_number = id.node.node_id_num;
 
@@ -698,11 +690,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             // Search until we find the Block data in the BTree that contains the message data
             for blocks in self.block_btree.iter() {
                 if let Some(block_data) = blocks.get(&mess.block_offset_data_id) {
-                    mess_block = block_data.clone();
+                    mess_block = *block_data;
                 }
                 if mess.block_offset_descriptor_id != 0 {
                     if let Some(block_data) = blocks.get(&mess.block_offset_descriptor_id) {
-                        mess_descriptor = Some(block_data.clone());
+                        mess_descriptor = Some(*block_data);
                     }
                 }
             }
@@ -751,11 +743,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 let mut table_descriptor = None;
                 for blocks in self.block_btree.iter() {
                     if let Some(block_data) = blocks.get(&block_id) {
-                        table_block = block_data.clone();
+                        table_block = *block_data;
                     }
                     if descriptor_id != 0 {
                         if let Some(block_data) = blocks.get(&descriptor_id) {
-                            table_descriptor = Some(block_data.clone());
+                            table_descriptor = Some(*block_data);
                         }
                     }
                 }
@@ -800,11 +792,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let mut table_descriptor = None;
         for blocks in self.block_btree.iter() {
             if let Some(block_data) = blocks.get(block_data_id) {
-                table_block = block_data.clone();
+                table_block = *block_data;
             }
             if *block_descriptor_id != 0 {
                 if let Some(block_data) = blocks.get(block_descriptor_id) {
-                    table_descriptor = Some(block_data.clone());
+                    table_descriptor = Some(*block_data);
                 }
             }
         }

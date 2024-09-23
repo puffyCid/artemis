@@ -8,7 +8,7 @@ use crate::{
 use ntfs::NtfsFile;
 use std::io::BufReader;
 
-/// Parse a Raw block. Will be either Xblock, XXblock or Descriptor block
+/// Parse a Raw block. Will be either `Xblock`, `XXblock` or `Descriptor` block
 pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,

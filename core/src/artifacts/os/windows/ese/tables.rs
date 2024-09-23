@@ -189,7 +189,7 @@ fn column_data_to_string<'a>(
     extract_column_data_to_string(column_type, data, flags, tagged_flags)
 }
 
-/// Based on ColumnType extract the data into a string
+/// Based on `ColumnType` extract the data into a string
 fn extract_column_data_to_string<'a>(
     column_type: &ColumnType,
     data: &'a [u8],

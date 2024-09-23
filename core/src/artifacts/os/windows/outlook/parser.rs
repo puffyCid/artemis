@@ -46,7 +46,6 @@ pub(crate) fn grab_outlook(
     };
 
     for path in paths {
-        println!("parsing: {}", path.full_path);
         let status = grab_outlook_file(&path.full_path, options, filter, output);
         if status.is_err() {
             error!(
@@ -116,7 +115,7 @@ fn grab_outlook_file(
         size: 4096,
     };
 
-    return read_outlook(&mut outlook_reader, Some(&ntfs_file), &runner, output);
+    read_outlook(&mut outlook_reader, Some(&ntfs_file), &runner, output)
 }
 
 struct OutlookRunner {
@@ -159,10 +158,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     folder: &u64,
     folder_path: &str,
 ) -> Result<(), OutlookError> {
-    println!("reading: {folder_path}");
     // Read the provided folder
     let mut results = reader.read_folder(use_ntfs, *folder)?;
-    println!("got folder: {:?}", results);
 
     // If no messages or no subfolders, we are done
     if results.message_count == 0 && results.subfolder_count == 0 {
@@ -221,7 +218,6 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     folder_path,
                     &results.name,
                 )?;
-                println!("email message: {entry:?}");
                 entries.push(entry);
             }
             output_messages(&entries, options, output)?;
@@ -312,8 +308,6 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 
     // Now check for subfolders
     for folder in &results.subfolders {
-        println!("sub folder: {} - {}", folder.name, folder.node);
-
         let new_folder_path = format!("{folder_path}/{}", results.name);
         stream_outlook(
             reader,
@@ -349,13 +343,11 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         folder_path: format!("{folder_path}/{folder}"),
         source_file: options.source.clone(),
     };
-    if let Some(start) = &options.start_date {
+    if let Some(_start) = &options.start_date {
         println!("filter by start date");
-        return Ok(message_result);
     }
-    if let Some(end) = &options.end_date {
+    if let Some(_end) = &options.end_date {
         println!("filter by end date");
-        return Ok(message_result);
     }
     let mut attachments = Vec::new();
 
@@ -375,18 +367,17 @@ fn message_details<T: std::io::Seek + std::io::Read>(
             };
             attachments.push(message_attach);
         }
-        if let Some(rule) = &options.yara_rule_attachment {
+        if let Some(_rule) = &options.yara_rule_attachment {
             println!("scan with yara!");
         }
 
         message_result.attachments = attachments;
     }
 
-    if let Some(rule) = &options.yara_rule_message {
+    if let Some(_rule) = &options.yara_rule_message {
         println!("scan message with yara!");
-        return Ok(message_result);
     }
-    return Ok(message_result);
+    Ok(message_result)
 }
 
 /// Output the extract messages
@@ -398,7 +389,7 @@ fn output_messages(
     if messages.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(&messages);
+    let serde_data_result = serde_json::to_value(messages);
     let serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -422,4 +413,43 @@ fn output_messages(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::grab_outlook;
+    use crate::structs::{artifacts::os::windows::OutlookOptions, toml::Output};
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_grab_outlook() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
+
+        let options = OutlookOptions {
+            alt_file: Some(test_location.to_str().unwrap().to_string()),
+            include_attachments: true,
+            start_date: None,
+            end_date: None,
+            yara_rule_message: None,
+            yara_rule_attachment: None,
+        };
+
+        let mut out = Output {
+            name: "outlook_temp".to_string(),
+            directory: "./tmp".to_string(),
+            format: String::from("jsonl"),
+            compress: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: "local".to_string(),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        };
+
+        grab_outlook(&options, &mut out, &false).unwrap()
+    }
 }

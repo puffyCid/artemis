@@ -2,12 +2,8 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum OutlookError {
-    NodeBtree,
-    BlockBtree,
     LeafNode,
-    LeafBlock,
     ReadFile,
-    NoDescriptorBlock,
     Base64Property,
     NameIdMap,
     NoBlocks,
@@ -30,11 +26,7 @@ impl fmt::Display for OutlookError {
             OutlookError::ReadFile => write!(f, "Failed to read outlook file"),
             OutlookError::Systemdrive => write!(f, "Failed to get Windows system drive"),
             OutlookError::UnknownPageFormat => write!(f, "Unknown page format detected"),
-            OutlookError::NodeBtree => write!(f, "Failed to read node btree"),
-            OutlookError::BlockBtree => write!(f, "Failed to read block btree"),
             OutlookError::LeafNode => write!(f, "Failed to read leaf node"),
-            OutlookError::LeafBlock => write!(f, "Failed to read leaf block"),
-            OutlookError::NoDescriptorBlock => write!(f, "Failed to block offset from Descriptors"),
             OutlookError::Base64Property => write!(f, "Failed to base64 decode binary property"),
             OutlookError::NameIdMap => write!(f, "Failed to parse NameMapId"),
             OutlookError::NoBlocks => {

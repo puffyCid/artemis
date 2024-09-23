@@ -22,10 +22,10 @@ use std::{collections::BTreeMap, io::BufReader};
 pub(crate) struct BtreeTable {
     data: Vec<u8>,
     number_entries: u16,
-    max_number_entries: u16,
-    entry_size: u8,
+    _max_number_entries: u16,
+    _entry_size: u8,
     node_level: NodeLevel,
-    level: u8,
+    _level: u8,
     page_type: PageType,
 }
 
@@ -40,7 +40,7 @@ pub(crate) struct NodeBtree {
     pub(crate) btree: BTreeMap<u32, LeafNodeData>,
 }
 
-/// Extract and get he Node BTree
+/// Extract and get he Node `BTree`
 pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -77,13 +77,9 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         let mut tree = BTreeMap::new();
         for node in leaf_node {
             if node.node.node_id_num == 0 && node.node.node == 0 {
-                panic!("skip?: {node:?}");
                 continue;
             }
 
-            if let Some(value) = tree.get(&node.node.node) {
-                panic!("The dupe: {value:?}");
-            }
             tree.insert(node.node.node, node);
         }
 
@@ -99,7 +95,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
-/// Extract and get the Block BTree
+/// Extract and get the Block `BTree`
 pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
@@ -126,7 +122,6 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
             if block.index_id == 0 && block.index == 0 {
-                panic!("skip?: {block:?}");
                 continue;
             }
 
@@ -141,7 +136,6 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
                 {
                     continue;
                 }
-                panic!("The dupe: {value:?}");
             }
             tree.insert(block.index_id, block);
         }
@@ -151,7 +145,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
-/// Parse BTree pages
+/// Parse `BTree` pages
 pub(crate) fn parse_btree_page<'a>(
     data: &'a [u8],
     format: &FormatType,
@@ -185,14 +179,14 @@ pub(crate) fn parse_btree_page<'a>(
         data: table_data.to_vec(),
         page_type,
         number_entries,
-        max_number_entries,
-        entry_size,
+        _max_number_entries: max_number_entries,
+        _entry_size: entry_size,
         node_level: if node_level == 0 {
             NodeLevel::LeafNode
         } else {
             NodeLevel::BranchNode
         },
-        level: node_level,
+        _level: node_level,
     };
 
     Ok((input, btree))
@@ -273,8 +267,8 @@ pub(crate) struct LeafNodeData {
 }
 
 /**
- * Parse Leaf Btree data.
- * Also called "64 bit Index 2 Leaf Node" - `<https://www.five-ten-sg.com/libpst/rn01re05.html>`
+ * Parse Leaf `Btree` data.
+ * Also called "64 bit Index 2 Leaf Node" - <https://www.five-ten-sg.com/libpst/rn01re05.html>
  */
 pub(crate) fn parse_leaf_node_data<'a>(
     data: &'a [u8],
@@ -495,9 +489,9 @@ mod tests {
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::NodeBtree);
         assert_eq!(results.node_level, NodeLevel::BranchNode);
-        assert_eq!(results.level, 1);
-        assert_eq!(results.max_number_entries, 169);
-        assert_eq!(results.entry_size, 24);
+        assert_eq!(results._level, 1);
+        assert_eq!(results._max_number_entries, 169);
+        assert_eq!(results._entry_size, 24);
         assert_eq!(results.number_entries, 6);
     }
 
@@ -511,12 +505,13 @@ mod tests {
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::BlockBtree);
         assert_eq!(results.node_level, NodeLevel::BranchNode);
-        assert_eq!(results.level, 1);
-        assert_eq!(results.max_number_entries, 169);
-        assert_eq!(results.entry_size, 24);
+        assert_eq!(results._level, 1);
+        assert_eq!(results._max_number_entries, 169);
+        assert_eq!(results._entry_size, 24);
         assert_eq!(results.number_entries, 31);
 
         let (_, blocks) = parse_branch_data(&results.data, &FormatType::Unicode64_4k, &31).unwrap();
+        assert_eq!(blocks.len(), 31);
     }
 
     #[test]
@@ -546,13 +541,14 @@ mod tests {
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::NodeBtree);
         assert_eq!(results.node_level, NodeLevel::LeafNode);
-        assert_eq!(results.level, 0);
-        assert_eq!(results.max_number_entries, 126);
-        assert_eq!(results.entry_size, 32);
+        assert_eq!(results._level, 0);
+        assert_eq!(results._max_number_entries, 126);
+        assert_eq!(results._entry_size, 32);
         assert_eq!(results.number_entries, 117);
 
         let (_, leafs) =
             parse_leaf_node_data(&results.data, &126, &FormatType::Unicode64_4k).unwrap();
+        assert_eq!(leafs.len(), 126);
     }
 
     #[test]
@@ -565,13 +561,14 @@ mod tests {
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::BlockBtree);
         assert_eq!(results.node_level, NodeLevel::LeafNode);
-        assert_eq!(results.level, 0);
-        assert_eq!(results.max_number_entries, 169);
-        assert_eq!(results.entry_size, 24);
+        assert_eq!(results._level, 0);
+        assert_eq!(results._max_number_entries, 169);
+        assert_eq!(results._entry_size, 24);
         assert_eq!(results.number_entries, 100);
 
         let (_, leafs) =
             parse_leaf_block_data(&results.data, &100, &FormatType::Unicode64_4k).unwrap();
+        assert_eq!(leafs.len(), 100);
     }
 
     #[test]

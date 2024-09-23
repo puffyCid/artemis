@@ -200,7 +200,7 @@ pub(crate) fn message_details(
     let mut iter = keep.iter();
     // Remove all props we already extracted above. We do this so we do not store the body twice
     props.retain(|_| *iter.next().unwrap_or(&false));
-    message.props = props.to_vec();
+    message.props = props.clone();
 
     message
 }
@@ -300,7 +300,7 @@ pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePr
 fn clean_subject(sub: &str) -> String {
     let sub_bytes = sub.as_bytes();
     // https://github.com/libyal/libfmapi/blob/main/documentation/MAPI%20definitions.asciidoc#102-subject-control-codes
-    let subject = if sub_bytes.starts_with(&[1, 1])
+    if sub_bytes.starts_with(&[1, 1])
         || sub_bytes.starts_with(&[1, 4])
         || sub_bytes.starts_with(&[1, 5])
         || sub_bytes.starts_with(&[1, 6])
@@ -312,9 +312,7 @@ fn clean_subject(sub: &str) -> String {
         extract_utf8_string_lossy(&sub_bytes[2..])
     } else {
         sub.to_string()
-    };
-
-    subject
+    }
 }
 
 #[cfg(test)]

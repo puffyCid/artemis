@@ -2,8 +2,10 @@ use crate::utils::nom_helper::{
     nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
     nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
 };
-use log::{error, warn};
+use log::error;
 use nom::error::ErrorKind;
+
+use super::tables::header::get_heap_node_id;
 
 #[derive(PartialEq, Debug)]
 pub(crate) struct OutlookHeader {
@@ -265,35 +267,10 @@ pub(crate) enum NodeID {
 pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
     let (input, value) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
-    let id = match value & 0x1f {
-        0x0 => NodeID::HeapNode,
-        0x1 => NodeID::InternalNode,
-        0x2 => NodeID::NormalFolder,
-        0x3 => NodeID::SearchFolder,
-        0x4 => NodeID::Message,
-        0x5 => NodeID::Attachment,
-        0x6 => NodeID::SearchUpdateQueue,
-        0x7 => NodeID::SearchCriteria,
-        0x8 => NodeID::FolderAssociatedInfo,
-        0xa => NodeID::ContentsTableIndex,
-        0xb => NodeID::Inbox,
-        0xc => NodeID::Outbox,
-        0xd => NodeID::HierarchyTable,
-        0xe => NodeID::ContentsTable,
-        0xf => NodeID::FaiContentsTable,
-        0x10 => NodeID::SearchContentsTable,
-        0x11 => NodeID::AttachmentTable,
-        0x12 => NodeID::RecipientTable,
-        0x13 => NodeID::SearchTableIndex,
-        0x1f => NodeID::LocalDescriptors,
-        _ => {
-            warn!("[outlook] Unknown NodeID: {value}");
-            NodeID::Unknown
-        }
-    };
+    let id = get_heap_node_id(&value);
 
     let node = Node {
-        node_id: id,
+        node_id: id.node,
         node_id_num: ((value >> 5) & 0x07ffffff) as u64,
         node: value,
     };
@@ -339,8 +316,6 @@ mod tests {
         assert_eq!(header.format_type, FormatType::Unicode64_4k);
         assert_eq!(header.block_btree_root, 18800640);
         assert_eq!(header.node_btree_root, 18432000);
-
-        println!("{header:?}");
     }
 
     #[test]
