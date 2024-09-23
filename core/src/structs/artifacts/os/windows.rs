@@ -94,6 +94,16 @@ pub struct SearchOptions {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct OutlookOptions {
+    pub alt_file: Option<String>,
+    pub include_attachments: bool,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub yara_rule_message: Option<String>,
+    pub yara_rule_attachment: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct TasksOptions {
     pub alt_file: Option<String>,
 }

@@ -22,6 +22,7 @@ pub enum CompressionError {
     HuffmanCompressionDefault,
     ZlibDecompress,
     ZlibBadWbits,
+    RtfCorrupted,
 }
 
 impl std::error::Error for CompressionError {}
@@ -57,6 +58,7 @@ impl fmt::Display for CompressionError {
             CompressionError::ZlibBadWbits => {
                 write!(f, "Provide bad wbit value. Should be between 9-15")
             }
+            CompressionError::RtfCorrupted => write!(f, "Failed to decompess RTF"),
         }
     }
 }

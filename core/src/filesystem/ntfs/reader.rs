@@ -7,7 +7,7 @@ use std::io::{BufReader, Error, ErrorKind, Read, Seek, SeekFrom};
  * Read file bytes based on offset and size
  * `offset` - Offset to start reading
  * `bytes` - Number of bytes to read
- * `file_references` - NTFS filereference. Can get via `raw_reader`. If None (non-Windows platforms) it will use standard `BufReader`
+ * `file_references` - NTFS file reference. Can get via `raw_reader`. If None (non-Windows platforms) it will use standard `BufReader`
  *
  * returns bytes read as Vec<u8>
  */
@@ -34,7 +34,6 @@ pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
     }
 
     let ntfs_file = ntfs_file_opt.unwrap();
-
     let data_name = "";
     let ntfs_data_option = ntfs_file.data(fs, data_name);
     let ntfs_data_result = match ntfs_data_option {

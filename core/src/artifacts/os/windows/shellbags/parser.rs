@@ -69,11 +69,7 @@ fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, Shell
     };
 
     let clsids = if resolve_guids {
-        let clsid_results = get_clsids();
-        match clsid_results {
-            Ok(results) => results,
-            Err(_err) => HashMap::new(),
-        }
+        get_clsids().unwrap_or_default()
     } else {
         HashMap::new()
     };
@@ -123,11 +119,7 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
     };
 
     let clsids = if resolve_guids {
-        let clsid_results = get_clsids();
-        match clsid_results {
-            Ok(results) => results,
-            Err(_err) => HashMap::new(),
-        }
+        get_clsids().unwrap_or_default()
     } else {
         HashMap::new()
     };

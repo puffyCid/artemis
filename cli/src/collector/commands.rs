@@ -223,6 +223,27 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_dir: Option<String>,
     },
+    /// windows: Parse Outlook messages
+    Outlook {
+        /// Alternative path to a Outlook OST file. On Windows by default all user OST files are parsed
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+        /// Include message attachments in output. Default is no attachments
+        #[arg(long)]
+        include_attachments: bool,
+        /// Include messages after the start date. Format needs to be ISO 8601. Ex: YYYY-MM-ddTHH:mm:ss.000Z. By default all messages are returned
+        #[arg(long, default_value = None)]
+        start_date: Option<String>,
+        /// Include messages before the start date. Format needs to be ISO 8601. Ex: YYYY-MM-ddTHH:mm:ss.000Z. By default all messages are returned
+        #[arg(long, default_value = None)]
+        end_date: Option<String>,
+        /// Run the provided base64 encoded Yara-X rule against the message. Only matched results will be returned
+        #[arg(long, default_value = None)]
+        yara_rule_message: Option<String>,
+        /// Run the provided base64 encoded Yara-X rule against message attachments. Only matched results will be returned
+        #[arg(long, default_value = None)]
+        yara_rule_attachment: Option<String>,
+    },
     /// macos: Parse ExecPolicy
     Execpolicy {
         /// Alternative file path

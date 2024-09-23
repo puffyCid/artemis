@@ -13,9 +13,9 @@ use core::{
             },
             processes::ProcessOptions,
             windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
-                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, OutlookOptions,
+                PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
+                SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
                 ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
                 WindowsUserOptions, WmiPersistOptions,
             },
@@ -115,6 +115,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         jumplists: None,
         recyclebin: None,
         wmipersist: None,
+        outlook: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -445,6 +446,26 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             };
             collect.wmipersist = Some(options);
             collect.artifact_name = String::from("wmipersist");
+        }
+        CommandArgs::Outlook {
+            alt_file,
+            include_attachments,
+            start_date,
+            end_date,
+            yara_rule_message,
+            yara_rule_attachment,
+        } => {
+            let options = OutlookOptions {
+                alt_file: alt_file.clone(),
+                include_attachments: *include_attachments,
+                start_date: start_date.clone(),
+                end_date: end_date.clone(),
+                yara_rule_message: yara_rule_message.clone(),
+                yara_rule_attachment: yara_rule_attachment.clone(),
+            };
+
+            collect.outlook = Some(options);
+            collect.artifact_name = String::from("outlook");
         }
     }
     collect
