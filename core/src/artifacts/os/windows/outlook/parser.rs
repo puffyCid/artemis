@@ -1,3 +1,19 @@
+/**
+* Windows `Outlook` is a popular emali client. Outlook on Windows stores messages in OST or PST files
+* PST was used by older Outlook versions (prior to Outlook 2013)
+* OST is used by Outlook 2013+*
+*
+* *Outlook was re-written in 2022 (New Outlook for Windows). Which is a online only web app. This parser does not support that version
+*
+* References:
+* `https://www.linkedin.com/pulse/how-read-view-outlook-ost-file-forensics-mithilesh-tata-1mnkc`
+* `https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc`
+*
+* Other parsers:
+* `https://github.com/libyal/libpff`
+* ``
+*
+*/
 use super::{
     error::OutlookError,
     header::FormatType,
@@ -422,12 +438,76 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_grab_outlook() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
         let options = OutlookOptions {
             alt_file: Some(test_location.to_str().unwrap().to_string()),
+            include_attachments: true,
+            start_date: None,
+            end_date: None,
+            yara_rule_message: None,
+            yara_rule_attachment: None,
+        };
+
+        let mut out = Output {
+            name: "outlook_temp".to_string(),
+            directory: "./tmp".to_string(),
+            format: String::from("jsonl"),
+            compress: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: "local".to_string(),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        };
+
+        grab_outlook(&options, &mut out, &false).unwrap()
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_grab_outlook_windows_alt() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\outlook\\windows11\\test@outlook.com.ost");
+
+        let options = OutlookOptions {
+            alt_file: Some(test_location.to_str().unwrap().to_string()),
+            include_attachments: true,
+            start_date: None,
+            end_date: None,
+            yara_rule_message: None,
+            yara_rule_attachment: None,
+        };
+
+        let mut out = Output {
+            name: "outlook_temp".to_string(),
+            directory: "./tmp".to_string(),
+            format: String::from("jsonl"),
+            compress: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: "local".to_string(),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        };
+
+        grab_outlook(&options, &mut out, &false).unwrap()
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_grab_outlook_windows() {
+        let options = OutlookOptions {
+            alt_file: None,
             include_attachments: true,
             start_date: None,
             end_date: None,

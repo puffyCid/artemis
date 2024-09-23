@@ -1,22 +1,3 @@
-/*
- *
- * Remainign TODO:
- * 1. Clean up
- * 2. Yara-X scanning
- * 3. Time filtering
- * 4. Tests
- * 5. Review for dupe messages :/
- *
- * TODO later:
- * 1. Map name-to-id to unknown props
- * 2. Expose to JavaScript API
- *
- * Sometimes UTF16 still remains in string. Unsure why, nothing else decodes the raw bytes either.
- * Throwing the extracted string int cyberchef and unescaping string should clean up the remaining UTF16
- * ^ This is partially fixed
- *
- */
-
 use super::{
     blocks::block::{BlockValue, OutlookBlock},
     error::OutlookError,
