@@ -9,14 +9,14 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-leptos = { version = "0.6.13", features = ["csr"] }
-leptos_router = { version = "0.6.13", default-features = false, features = [
+leptos = { version = "0.6.15", features = ["csr"] }
+leptos_router = { version = "0.6.15", default-features = false, features = [
     "csr",
 ] }
-leptos_meta = { version = "0.6.13", features = ["csr"] }
+leptos_meta = { version = "0.6.15", features = ["csr"] }
 
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
-web-sys = { version = "0.3.69", features = ["Location", "Window"] }
+web-sys = { version = "0.3.70", features = ["Location", "Window"] }
 chrono = "0.4.38"

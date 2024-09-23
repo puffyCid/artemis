@@ -42,7 +42,7 @@ fn get_disks() -> Vec<DiskDrives> {
 
 /// Get CPU info from system
 fn get_cpu(system: &mut System) -> Vec<Cpus> {
-    system.refresh_cpu();
+    system.refresh_cpu_all();
     let mut cpu_vec: Vec<Cpus> = Vec::new();
 
     for cpu in system.cpus() {

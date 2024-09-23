@@ -5,7 +5,9 @@ use crate::runtime::error::RuntimeError;
 use deno_core::error::{custom_error, AnyError, JsError};
 use deno_core::serde_v8::from_v8;
 use deno_core::v8::{CreateParams, Local};
-use deno_core::{FsModuleLoader, JsRuntime, PollEventLoopOptions, RuntimeOptions};
+use deno_core::{
+    FsModuleLoader, ImportAssertionsSupport, JsRuntime, PollEventLoopOptions, RuntimeOptions,
+};
 use log::error;
 use serde_json::{json, Value};
 use std::rc::Rc;
@@ -173,6 +175,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         custom_module_evaluation_cb: None,
         extension_transpiler: None,
         eval_context_code_cache_cbs: None,
+        import_assertions_support: ImportAssertionsSupport::Error,
     });
 
     Ok(runtime)
