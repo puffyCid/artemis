@@ -5,6 +5,7 @@ use crate::{
     },
     filesystem::ntfs::reader::read_bytes,
 };
+use log::error;
 use ntfs::NtfsFile;
 use std::io::BufReader;
 
@@ -35,15 +36,29 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     if alignment_size < footer_size {
         alignment_size += size;
     }
-    let bytes = read_bytes(
+    let bytes_result = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
         ntfs_file,
         fs,
-    )
-    .unwrap();
+    );
 
-    let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
+    let bytes = match bytes_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Failed to raw block bytes: {err:?}");
+            return Err(OutlookError::ReadFile);
+        }
+    };
+
+    let block_result = parse_block_bytes(&bytes, format);
+    let block_data = match block_result {
+        Ok((_, result)) => result,
+        Err(_err) => {
+            error!("[outlook] Failed to parse raw block bytes");
+            return Err(OutlookError::RawBlock);
+        }
+    };
 
     block_value.block_type = Block::Raw;
     block_value.data.push(block_data.data);

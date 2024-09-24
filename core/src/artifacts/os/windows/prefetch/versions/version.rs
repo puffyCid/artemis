@@ -21,6 +21,7 @@ impl VersionInfo {
         let version23 = 23; // Win7
         let version26 = 26; // Win8
         let version30 = 30; // Win10+
+        let version31 = 31; // Windows 11
 
         let mut version_info = VersionInfo {
             file_array_offset: 0,
@@ -38,7 +39,7 @@ impl VersionInfo {
 
         let (pf_data, result) = if version == version26 {
             Version26::parse_file_info_ver26(data)?
-        } else if version == version30 {
+        } else if version == version30 || version == version31 {
             Version30::parse_file_info_ver30(data)?
         } else if version == version23 {
             Version23::parse_file_info_ver23(data)?

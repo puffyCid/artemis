@@ -16,6 +16,11 @@ pub(crate) enum OutlookError {
     OutputData,
     GlobPath,
     Header,
+    Xblock,
+    RawBlock,
+    NodeBtree,
+    BlockBtree,
+    BadBranch,
 }
 
 impl std::error::Error for OutlookError {}
@@ -45,6 +50,11 @@ impl fmt::Display for OutlookError {
             OutlookError::OutputData => write!(f, "Failed to output outlook messages"),
             OutlookError::GlobPath => write!(f, "Failed to glob paths"),
             OutlookError::Header => write!(f, "Failed to parser outlook header"),
+            OutlookError::Xblock => write!(f, "Failed to parse xblock"),
+            OutlookError::RawBlock => write!(f, "Failed to parse raw block"),
+            OutlookError::NodeBtree => write!(f, "Failed to parse node btree"),
+            OutlookError::BlockBtree => write!(f, "Failed to parse block btree"),
+            OutlookError::BadBranch => write!(f, "Failed to parse btree branch"),
         }
     }
 }

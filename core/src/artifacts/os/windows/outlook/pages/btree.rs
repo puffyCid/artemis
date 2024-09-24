@@ -50,16 +50,36 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     node_tree: &mut Vec<NodeBtree>,
     branch_node: Option<u32>,
 ) -> Result<(), OutlookError> {
-    let page_result = read_bytes(node_offset, *size, ntfs_file, fs).unwrap();
-    let (_, page) = parse_btree_page(&page_result, format).unwrap();
+    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes = match bytes_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Failed to read bytes for node btree: {err:?}");
+            return Err(OutlookError::ReadFile);
+        }
+    };
+    let page_result = parse_btree_page(&bytes, format);
+    let page = match page_result {
+        Ok((_, result)) => result,
+        Err(_err) => {
+            error!("[outlook] Failed to parse node btree");
+            return Err(OutlookError::NodeBtree);
+        }
+    };
 
     if page.page_type == PageType::Unknown {
         // We are done
         return Ok(());
     }
     if page.node_level == NodeLevel::BranchNode {
-        let (_, branch_nodes) =
-            parse_branch_data(&page.data, format, &page.number_entries).unwrap();
+        let branch_result = parse_branch_data(&page.data, format, &page.number_entries);
+        let branch_nodes = match branch_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Failed to parse node branch");
+                return Err(OutlookError::BadBranch);
+            }
+        };
         for node in branch_nodes {
             get_node_btree(
                 ntfs_file,
@@ -72,8 +92,14 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             )?;
         }
     } else {
-        let (_, leaf_node) =
-            parse_leaf_node_data(&page.data, &page.number_entries, format).unwrap();
+        let leaf_result = parse_leaf_node_data(&page.data, &page.number_entries, format);
+        let leaf_node = match leaf_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Failed to parse leaf block");
+                return Err(OutlookError::LeafNode);
+            }
+        };
         let mut tree = BTreeMap::new();
         for node in leaf_node {
             if node.node.node_id_num == 0 && node.node.node == 0 {
@@ -104,21 +130,47 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     format: &FormatType,
     block_tree: &mut Vec<BTreeMap<u64, LeafBlockData>>,
 ) -> Result<(), OutlookError> {
-    let page_result = read_bytes(node_offset, *size, ntfs_file, fs).unwrap();
-    let (_, page) = parse_btree_page(&page_result, format).unwrap();
+    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes = match bytes_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Failed to read bytes for block btree: {err:?}");
+            return Err(OutlookError::ReadFile);
+        }
+    };
+    let page_result = parse_btree_page(&bytes, format);
+    let page = match page_result {
+        Ok((_, result)) => result,
+        Err(_err) => {
+            error!("[outlook] Failed to parse block btree");
+            return Err(OutlookError::BlockBtree);
+        }
+    };
     if page.page_type == PageType::Unknown {
         // We are done
         return Ok(());
     }
     if page.node_level == NodeLevel::BranchNode {
-        let (_, branch_nodes) =
-            parse_branch_data(&page.data, format, &page.number_entries).unwrap();
+        let branch_result = parse_branch_data(&page.data, format, &page.number_entries);
+        let branch_nodes = match branch_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Failed to parse node branch");
+                return Err(OutlookError::BadBranch);
+            }
+        };
         for node in branch_nodes {
             get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
         }
     } else {
-        let (_, leaf_block) =
-            parse_leaf_block_data(&page.data, &page.number_entries, format).unwrap();
+        let leaf_result = parse_leaf_block_data(&page.data, &page.number_entries, format);
+        let leaf_block = match leaf_result {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[outlook] Failed to parse leaf block");
+                return Err(OutlookError::LeafNode);
+            }
+        };
         let mut tree: BTreeMap<u64, LeafBlockData> = BTreeMap::new();
         for block in leaf_block {
             if block.index_id == 0 && block.index == 0 {

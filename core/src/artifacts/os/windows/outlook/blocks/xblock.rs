@@ -12,7 +12,8 @@ use crate::{
         nom_unsigned_two_bytes, Endian,
     },
 };
-use log::warn;
+use log::{error, warn};
+use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};
 
@@ -44,15 +45,30 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
         alignment_size += size;
     }
 
-    let bytes = read_bytes(
+    let bytes_result = read_bytes(
         &block.block_offset,
         block.size as u64 + alignment_size as u64,
         ntfs_file,
         fs,
-    )
-    .unwrap();
+    );
 
-    let (_, entries) = xblock_data(&bytes, format, block_value).unwrap();
+    let bytes = match bytes_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[outlook] Could not read xblock bytes: {err:?}");
+            return Err(OutlookError::ReadFile);
+        }
+    };
+
+    let entries_result = xblock_data(&bytes, format, block_value);
+    let entries = match entries_result {
+        Ok((_, result)) => result,
+        Err(_err) => {
+            error!("[outlook] Could not parse xblock bytes");
+            return Err(OutlookError::Xblock);
+        }
+    };
+
     let mut all_bytes = Vec::new();
     for entry in entries {
         for tree in other_blocks {
@@ -66,15 +82,29 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                     alignment_size += size;
                 }
 
-                let bytes = read_bytes(
+                let bytes_result = read_bytes(
                     &value.block_offset,
                     value.size as u64 + alignment_size as u64,
                     ntfs_file,
                     fs,
-                )
-                .unwrap();
+                );
 
-                let (_, block_data) = parse_block_bytes(&bytes, format).unwrap();
+                let bytes = match bytes_result {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[outlook] Could not read xblock bytes for entry {entry}: {err:?}");
+                        return Err(OutlookError::ReadFile);
+                    }
+                };
+
+                let block_result = parse_block_bytes(&bytes, format);
+                let block_data = match block_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        error!("[outlook] Could not parse block bytes");
+                        return Err(OutlookError::Xblock);
+                    }
+                };
                 all_bytes.push(block_data.data);
             }
         }
@@ -106,12 +136,32 @@ fn xblock_data<'a>(
         let (_, block) = parse_block_bytes(data, format)?;
         if let Some(sig) = block.data.first() {
             if sig == &sblock_sig {
-                let (_, descriptor_tree) = parse_descriptor_block(&block.data, format).unwrap();
+                let desc_result = parse_descriptor_block(&block.data, format);
+                let descriptor_tree = match desc_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        error!("[outlook] Could not parse descriptor xblock bytes");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
                 block_value.block_type = Block::Descriptors;
                 block_value.descriptors = descriptor_tree;
                 return Ok((&[], Vec::new()));
             } else if sig == &1 {
-                let (_, result) = extract_xblock_entries(&block.data, format).unwrap();
+                let xblock_result = extract_xblock_entries(&block.data, format);
+                let result = match xblock_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        error!("[outlook] Could not extract xblock entries");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
                 return Ok((&[], result));
             } else {
                 block_value.block_type = Block::Raw;
