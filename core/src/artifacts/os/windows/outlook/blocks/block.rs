@@ -14,6 +14,7 @@ use crate::{
         },
     },
 };
+use log::error;
 use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::collections::BTreeMap;
@@ -185,10 +186,20 @@ pub(crate) fn parse_block_bytes<'a>(
 
             if block.block_size as u32 != block.decom_size {
                 // Data is compressed
-                let decom_data = decompress_zlib(block_data, &None).unwrap();
+                let decom_result = decompress_zlib(block_data, &None);
+                let decom_data = match decom_result {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[outlook] Could not decompress zlib data: {err:?}");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
                 block.data = decom_data;
             } else {
-                let (_, final_bytes) = nom_data(block_data, block.block_size as u64).unwrap();
+                let (_, final_bytes) = nom_data(block_data, block.block_size as u64)?;
                 block.data = final_bytes.to_vec();
             }
 

@@ -61,7 +61,14 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
         Catalog::grab_catalog(None, &mut buf_reader, page_size)?
     } else {
         // On Windows use a NTFS reader
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
+        let mut ntfs_parser = match ntfs_parser_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[ese] Could not setup NTFS parser: {err:?}");
+                return Err(EseError::ParseEse);
+            }
+        };
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
