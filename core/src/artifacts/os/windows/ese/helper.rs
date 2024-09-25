@@ -232,6 +232,10 @@ pub(crate) fn get_filtered_page_data(
                     continue;
                 }
 
+                if column_values.is_empty() {
+                    return Ok(total_rows);
+                }
+
                 if column_values.get(&columns.column_data).is_some() {
                     total_rows
                         .entry(name.to_string())
@@ -240,10 +244,6 @@ pub(crate) fn get_filtered_page_data(
 
                     column_values.remove(&columns.column_data);
                 }
-                if column_values.is_empty() {
-                    return Ok(total_rows);
-                }
-
                 break;
             }
         }
@@ -668,26 +668,14 @@ fn row_data<T: std::io::Seek + std::io::Read>(
                 || column.column_type == ColumnType::LongText)
                 && !column.column_data.is_empty()
             {
-                for (key, value) in &long_values {
-                    let mut col = column.column_data.clone();
-                    // Long value key is actually Big Endian
-                    col.reverse();
-                    /*
-                     * Finally we need to take last four (4) bytes of the long value key and append to our column data
-                     * and then check if the two (2) values match
-                     * (Long value keys should be 8 bytes total in size)
-                     */
-                    let min_key_size = 4;
-                    if key.len() < min_key_size {
-                        continue;
-                    }
-                    let mut final_prefix = key[key.len() - 4..].to_vec();
-                    col.append(&mut final_prefix);
+                let mut col = column.column_data.clone();
+                // Long value key is actually Big Endian
+                col.reverse();
 
-                    if key == &col {
-                        column.column_data.clone_from(value);
-                        break;
-                    }
+                let mut final_prefix = vec![0, 0, 0, 0];
+                col.append(&mut final_prefix);
+                if let Some(value) = long_values.get(&col) {
+                    column.column_data.clone_from(value);
                 }
             }
         }
