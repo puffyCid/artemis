@@ -128,6 +128,7 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
     };
 
     let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
+    let limit = 10000;
     for record in evt_parser.records_json_value() {
         match record {
             Ok(data) => {
@@ -143,23 +144,29 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
                 continue;
             }
         }
-    }
-    let serde_data_result = serde_json::to_value(&eventlog_records);
-    let serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[eventlogs] Failed to serialize eventlogs: {err:?}");
-            return Err(EventLogsError::Serialize);
-        }
-    };
 
-    let result = output_data(&serde_data, "eventlogs", output, &start_time, filter);
-    match result {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[eventlogs] Could not output eventlogs data: {err:?}");
+        if eventlog_records.len() == limit {
+            let serde_data_result = serde_json::to_value(&eventlog_records);
+            let serde_data = match serde_data_result {
+                Ok(results) => results,
+                Err(err) => {
+                    error!("[eventlogs] Failed to serialize eventlogs: {err:?}");
+                    return Err(EventLogsError::Serialize);
+                }
+            };
+
+            let result = output_data(&serde_data, "eventlogs", output, &start_time, filter);
+            match result {
+                Ok(_result) => {}
+                Err(err) => {
+                    error!("[eventlogs] Could not output eventlogs data: {err:?}");
+                }
+            }
+
+            eventlog_records = Vec::new();
         }
     }
+
     Ok(())
 }
 

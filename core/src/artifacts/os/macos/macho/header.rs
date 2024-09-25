@@ -11,39 +11,39 @@ pub(crate) struct MachoHeader {
     pub filetype: String,
     pub(crate) number_commands: u32,
     pub(crate) commands_size: u32,
-    pub(crate) flags: MachoFlags,
+    pub(crate) flags: Vec<MachoFlags>,
 }
 
-#[derive(Debug, Serialize)]
-pub(crate) struct MachoFlags {
-    pub(crate) no_undefines: bool,
-    pub(crate) incremental_link: bool,
-    pub(crate) dynamic_link: bool,
-    pub(crate) bind_at_load: bool,
-    pub(crate) prebound: bool,
-    pub(crate) split_segs: bool,
-    pub(crate) lazy_init: bool,
-    pub(crate) two_level: bool,
-    pub(crate) force_flat: bool,
-    pub(crate) no_multi_definitions: bool,
-    pub(crate) no_fix_prebinding: bool,
-    pub(crate) prebindable: bool,
-    pub(crate) all_modules_bound: bool,
-    pub(crate) subsections_via_symbols: bool,
-    pub(crate) canonical: bool,
-    pub(crate) weak_defines: bool,
-    pub(crate) binds_to_weak: bool,
-    pub(crate) allow_stack_execution: bool,
-    pub(crate) root_safe: bool,
-    pub(crate) setuid_safe: bool,
-    pub(crate) no_reexported_dylibs: bool,
-    pub(crate) pie: bool,
-    pub(crate) dead_strippable_dylib: bool,
-    pub(crate) has_tlv_descriptions: bool,
-    pub(crate) no_heap_execution: bool,
-    pub(crate) app_extension_safe: bool,
-    pub(crate) nlist_outofsync_with_dyldinfo: bool,
-    pub(crate) sim_support: bool,
+#[derive(Debug, Serialize, PartialEq)]
+pub(crate) enum MachoFlags {
+    NoUndefines,
+    IncrementalLink,
+    DynamicLink,
+    BindAtLoad,
+    Prebound,
+    SplitSegs,
+    LazyInit,
+    TwoLevel,
+    ForceFlat,
+    NoMultiDefinitions,
+    NoFixPrebinding,
+    Prebindable,
+    AllModulesBound,
+    SubsectionsViaSymbol,
+    Canonical,
+    WeakDefines,
+    AllowStackExecution,
+    RootSafe,
+    SetuidSafe,
+    NoReexportedDylib,
+    Pie,
+    DeadStrippableDylib,
+    HasTlvDescription,
+    NoHeapExecution,
+    AppExtensionSafe,
+    NlistAutofsyncWithDyldinfo,
+    SimSupport,
+    BindToWeak,
 }
 
 impl MachoHeader {
@@ -194,37 +194,8 @@ impl MachoHeader {
     }
 
     /// Get all flags for binary
-    fn get_flags(flag_data: &u32) -> MachoFlags {
-        let mut flags = MachoFlags {
-            no_undefines: false,
-            incremental_link: false,
-            dynamic_link: false,
-            bind_at_load: false,
-            prebound: false,
-            split_segs: false,
-            lazy_init: false,
-            two_level: false,
-            force_flat: false,
-            no_multi_definitions: false,
-            no_fix_prebinding: false,
-            prebindable: false,
-            all_modules_bound: false,
-            subsections_via_symbols: false,
-            canonical: false,
-            weak_defines: false,
-            binds_to_weak: false,
-            allow_stack_execution: false,
-            root_safe: false,
-            setuid_safe: false,
-            no_reexported_dylibs: false,
-            pie: false,
-            dead_strippable_dylib: false,
-            has_tlv_descriptions: false,
-            no_heap_execution: false,
-            app_extension_safe: false,
-            nlist_outofsync_with_dyldinfo: false,
-            sim_support: false,
-        };
+    fn get_flags(flag_data: &u32) -> Vec<MachoFlags> {
+        let mut flags = Vec::new();
 
         let no_undefines = 0x1;
         let incrlink = 0x2;
@@ -237,6 +208,7 @@ impl MachoHeader {
         let force_flat = 0x100;
         let no_multi_defs = 0x200;
         let no_fix_prebinding = 0x400;
+        let prebind = 0x800;
         let all_mods_bound = 0x1000;
         let subsections_symbols = 0x2000;
         let canonical = 0x4000;
@@ -251,81 +223,92 @@ impl MachoHeader {
         let has_tlv = 0x800000;
         let no_heap_execution = 0x1000000;
         let app_extension = 0x2000000;
+        let nlist = 0x4000000;
+        let sim = 0x8000000;
 
         if (flag_data & no_undefines) != 0 {
-            flags.no_undefines = true;
+            flags.push(MachoFlags::NoUndefines);
         }
         if (flag_data & incrlink) != 0 {
-            flags.incremental_link = true;
+            flags.push(MachoFlags::IncrementalLink);
         }
         if (flag_data & dyldlink) != 0 {
-            flags.dynamic_link = true;
+            flags.push(MachoFlags::DynamicLink);
         }
         if (flag_data & bind_at_load) != 0 {
-            flags.bind_at_load = true;
+            flags.push(MachoFlags::BindAtLoad);
         }
         if (flag_data & prebound) != 0 {
-            flags.prebound = true;
+            flags.push(MachoFlags::Prebound);
         }
         if (flag_data & split_segs) != 0 {
-            flags.split_segs = true;
+            flags.push(MachoFlags::SplitSegs);
         }
         if (flag_data & lazy_init) != 0 {
-            flags.lazy_init = true;
+            flags.push(MachoFlags::LazyInit);
         }
         if (flag_data & two_level) != 0 {
-            flags.two_level = true;
+            flags.push(MachoFlags::TwoLevel);
         }
         if (flag_data & force_flat) != 0 {
-            flags.force_flat = true;
+            flags.push(MachoFlags::ForceFlat);
         }
         if (flag_data & no_multi_defs) != 0 {
-            flags.no_multi_definitions = true;
+            flags.push(MachoFlags::NoMultiDefinitions);
         }
         if (flag_data & no_fix_prebinding) != 0 {
-            flags.no_fix_prebinding = true;
+            flags.push(MachoFlags::NoFixPrebinding);
         }
         if (flag_data & all_mods_bound) != 0 {
-            flags.all_modules_bound = true;
+            flags.push(MachoFlags::AllModulesBound);
         }
         if (flag_data & subsections_symbols) != 0 {
-            flags.subsections_via_symbols = true;
+            flags.push(MachoFlags::SubsectionsViaSymbol);
         }
         if (flag_data & canonical) != 0 {
-            flags.canonical = true;
+            flags.push(MachoFlags::Canonical);
         }
         if (flag_data & weak_defines) != 0 {
-            flags.weak_defines = true;
+            flags.push(MachoFlags::WeakDefines);
         }
         if (flag_data & binds_to_weak) != 0 {
-            flags.binds_to_weak = true;
+            flags.push(MachoFlags::BindToWeak);
         }
         if (flag_data & allow_stack_execution) != 0 {
-            flags.allow_stack_execution = true;
+            flags.push(MachoFlags::AllowStackExecution);
         }
         if (flag_data & root_safe) != 0 {
-            flags.root_safe = true;
+            flags.push(MachoFlags::RootSafe);
         }
         if (flag_data & setuid_safe) != 0 {
-            flags.setuid_safe = true;
+            flags.push(MachoFlags::SetuidSafe);
         }
         if (flag_data & no_reexported_dylibs) != 0 {
-            flags.no_reexported_dylibs = true;
+            flags.push(MachoFlags::NoReexportedDylib);
         }
         if (flag_data & pie) != 0 {
-            flags.pie = true;
+            flags.push(MachoFlags::Pie);
         }
         if (flag_data & dead_strip_dylib) != 0 {
-            flags.allow_stack_execution = true;
+            flags.push(MachoFlags::DeadStrippableDylib);
         }
         if (flag_data & has_tlv) != 0 {
-            flags.has_tlv_descriptions = true;
+            flags.push(MachoFlags::HasTlvDescription);
         }
         if (flag_data & no_heap_execution) != 0 {
-            flags.no_heap_execution = true;
+            flags.push(MachoFlags::NoHeapExecution);
         }
         if (flag_data & app_extension) != 0 {
-            flags.app_extension_safe = true;
+            flags.push(MachoFlags::AppExtensionSafe);
+        }
+        if (flag_data & sim) != 0 {
+            flags.push(MachoFlags::SimSupport);
+        }
+        if (flag_data & nlist) != 0 {
+            flags.push(MachoFlags::NlistAutofsyncWithDyldinfo);
+        }
+        if (flag_data & prebind) != 0 {
+            flags.push(MachoFlags::Prebindable);
         }
 
         flags
@@ -335,6 +318,7 @@ impl MachoHeader {
 #[cfg(test)]
 mod tests {
     use super::MachoHeader;
+    use crate::artifacts::os::macos::macho::header::MachoFlags;
 
     #[test]
     fn test_parse_intel_header() {
@@ -349,34 +333,15 @@ mod tests {
         assert_eq!(result.filetype, "EXECUTE");
         assert_eq!(result.number_commands, 18);
         assert_eq!(result.commands_size, 1816);
-        assert_eq!(result.flags.no_undefines, true);
-        assert_eq!(result.flags.incremental_link, false);
-        assert_eq!(result.flags.dynamic_link, true);
-        assert_eq!(result.flags.bind_at_load, false);
-        assert_eq!(result.flags.prebound, false);
-        assert_eq!(result.flags.split_segs, false);
-        assert_eq!(result.flags.lazy_init, false);
-        assert_eq!(result.flags.two_level, true);
-        assert_eq!(result.flags.force_flat, false);
-        assert_eq!(result.flags.no_multi_definitions, false);
-        assert_eq!(result.flags.no_fix_prebinding, false);
-        assert_eq!(result.flags.prebindable, false);
-        assert_eq!(result.flags.all_modules_bound, false);
-        assert_eq!(result.flags.subsections_via_symbols, false);
-        assert_eq!(result.flags.canonical, false);
-        assert_eq!(result.flags.weak_defines, false);
-        assert_eq!(result.flags.binds_to_weak, false);
-        assert_eq!(result.flags.allow_stack_execution, false);
-        assert_eq!(result.flags.root_safe, false);
-        assert_eq!(result.flags.setuid_safe, false);
-        assert_eq!(result.flags.no_reexported_dylibs, false);
-        assert_eq!(result.flags.pie, true);
-        assert_eq!(result.flags.dead_strippable_dylib, false);
-        assert_eq!(result.flags.has_tlv_descriptions, false);
-        assert_eq!(result.flags.no_heap_execution, false);
-        assert_eq!(result.flags.app_extension_safe, false);
-        assert_eq!(result.flags.nlist_outofsync_with_dyldinfo, false);
-        assert_eq!(result.flags.sim_support, false);
+        assert_eq!(
+            result.flags,
+            vec![
+                MachoFlags::NoUndefines,
+                MachoFlags::DynamicLink,
+                MachoFlags::TwoLevel,
+                MachoFlags::Pie
+            ]
+        );
     }
 
     #[test]
@@ -392,34 +357,15 @@ mod tests {
         assert_eq!(result.filetype, "EXECUTE");
         assert_eq!(result.number_commands, 19);
         assert_eq!(result.commands_size, 1728);
-        assert_eq!(result.flags.no_undefines, true);
-        assert_eq!(result.flags.incremental_link, false);
-        assert_eq!(result.flags.dynamic_link, true);
-        assert_eq!(result.flags.bind_at_load, false);
-        assert_eq!(result.flags.prebound, false);
-        assert_eq!(result.flags.split_segs, false);
-        assert_eq!(result.flags.lazy_init, false);
-        assert_eq!(result.flags.two_level, true);
-        assert_eq!(result.flags.force_flat, false);
-        assert_eq!(result.flags.no_multi_definitions, false);
-        assert_eq!(result.flags.no_fix_prebinding, false);
-        assert_eq!(result.flags.prebindable, false);
-        assert_eq!(result.flags.all_modules_bound, false);
-        assert_eq!(result.flags.subsections_via_symbols, false);
-        assert_eq!(result.flags.canonical, false);
-        assert_eq!(result.flags.weak_defines, false);
-        assert_eq!(result.flags.binds_to_weak, false);
-        assert_eq!(result.flags.allow_stack_execution, false);
-        assert_eq!(result.flags.root_safe, false);
-        assert_eq!(result.flags.setuid_safe, false);
-        assert_eq!(result.flags.no_reexported_dylibs, false);
-        assert_eq!(result.flags.pie, true);
-        assert_eq!(result.flags.dead_strippable_dylib, false);
-        assert_eq!(result.flags.has_tlv_descriptions, false);
-        assert_eq!(result.flags.no_heap_execution, false);
-        assert_eq!(result.flags.app_extension_safe, false);
-        assert_eq!(result.flags.nlist_outofsync_with_dyldinfo, false);
-        assert_eq!(result.flags.sim_support, false);
+        assert_eq!(
+            result.flags,
+            vec![
+                MachoFlags::NoUndefines,
+                MachoFlags::DynamicLink,
+                MachoFlags::TwoLevel,
+                MachoFlags::Pie
+            ]
+        );
     }
 
     #[test]
@@ -455,33 +401,14 @@ mod tests {
     fn test_get_flags() {
         let test_data = 0x00200085;
         let result = MachoHeader::get_flags(&test_data);
-        assert_eq!(result.no_undefines, true);
-        assert_eq!(result.incremental_link, false);
-        assert_eq!(result.dynamic_link, true);
-        assert_eq!(result.bind_at_load, false);
-        assert_eq!(result.prebound, false);
-        assert_eq!(result.split_segs, false);
-        assert_eq!(result.lazy_init, false);
-        assert_eq!(result.two_level, true);
-        assert_eq!(result.force_flat, false);
-        assert_eq!(result.no_multi_definitions, false);
-        assert_eq!(result.no_fix_prebinding, false);
-        assert_eq!(result.prebindable, false);
-        assert_eq!(result.all_modules_bound, false);
-        assert_eq!(result.subsections_via_symbols, false);
-        assert_eq!(result.canonical, false);
-        assert_eq!(result.weak_defines, false);
-        assert_eq!(result.binds_to_weak, false);
-        assert_eq!(result.allow_stack_execution, false);
-        assert_eq!(result.root_safe, false);
-        assert_eq!(result.setuid_safe, false);
-        assert_eq!(result.no_reexported_dylibs, false);
-        assert_eq!(result.pie, true);
-        assert_eq!(result.dead_strippable_dylib, false);
-        assert_eq!(result.has_tlv_descriptions, false);
-        assert_eq!(result.no_heap_execution, false);
-        assert_eq!(result.app_extension_safe, false);
-        assert_eq!(result.nlist_outofsync_with_dyldinfo, false);
-        assert_eq!(result.sim_support, false);
+        assert_eq!(
+            result,
+            vec![
+                MachoFlags::NoUndefines,
+                MachoFlags::DynamicLink,
+                MachoFlags::TwoLevel,
+                MachoFlags::Pie
+            ]
+        );
     }
 }

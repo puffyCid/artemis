@@ -1,0 +1,3 @@
+kind: Changed
+body: Reduced memory usage of eventlogs parser
+time: 2024-09-24T21:57:15.271182696-04:00
