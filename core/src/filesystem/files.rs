@@ -1,4 +1,5 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
+use crate::utils::yara::scan_file;
 use common::files::Hashes;
 use log::{error, warn};
 use md5::{Digest, Md5};
@@ -11,7 +12,6 @@ use std::{
     io::{copy, Read},
     path::Path,
 };
-use yara_x::{Compiler, Scanner};
 
 /// Get a list of all files in a provided directory. Use `list_directories` to get only directories. Use `list_files_directories` to get both files and directories
 pub(crate) fn list_files(path: &str) -> Result<Vec<String>, FileSystemError> {
@@ -61,32 +61,15 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
 
 /// Scan a file using provided Yara rule
 pub(crate) fn scan_file_yara(path: &str, rule: &str) -> Result<Vec<String>, FileSystemError> {
-    let mut compile = Compiler::new();
-    compile.error_on_slow_pattern(true);
-    let status = compile.add_source(rule);
-    if status.is_err() {
-        error!(
-            "[artemis-core] Failed to add yara rule: {:?}",
-            status.unwrap_err()
-        );
-        return Err(FileSystemError::DecodeYara);
-    }
-
-    let rules = compile.build();
-    let mut scanner = Scanner::new(&rules);
-    let results = scanner.scan_file(path);
-    let hits = match results {
+    let hit_result = scan_file(path, rule);
+    let hits = match hit_result {
         Ok(result) => result,
-        Err(err) => {
-            error!("[artemis-core] Failed to scan file {path}: {err:?}",);
+        Err(_err) => {
             return Err(FileSystemError::DecodeYara);
         }
     };
-    let mut matches = Vec::new();
-    for hit in hits.matching_rules() {
-        matches.push(hit.identifier().to_string());
-    }
-    Ok(matches)
+
+    Ok(hits)
 }
 
 /// Check if path is a file
@@ -457,13 +440,13 @@ mod tests {
         test_location.push("tests/test_data/system/files/test.txt");
 
         let rule = r#"
-    rule hello_world {
-      strings:
+        rule hello_world {
+        strings:
         $ = "hello, world! Its Rust!"
-      condition:
+        condition:
         all of them
-    }
-"#;
+        }
+        "#;
 
         let result = scan_file_yara(test_location.to_str().unwrap(), rule).unwrap();
 

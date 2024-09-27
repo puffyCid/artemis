@@ -12,6 +12,9 @@ pub enum ArtemisError {
     Cleanup,
     ReadXml,
     UtfType,
+    Encoding,
+    YaraRule,
+    YaraScan,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -29,6 +32,9 @@ impl fmt::Display for ArtemisError {
             ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
             ArtemisError::ReadXml => write!(f, "Failed to read XML"),
             ArtemisError::UtfType => write!(f, "Failed to determine UTF XML type"),
+            ArtemisError::Encoding => write!(f, "Failed to parse decoding/encoding"),
+            ArtemisError::YaraRule => write!(f, "Failed to add rule"),
+            ArtemisError::YaraScan => write!(f, "Failed to scan file"),
         }
     }
 }

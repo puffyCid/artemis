@@ -11,3 +11,4 @@ pub(crate) mod regex_options;
 pub(crate) mod strings;
 pub(crate) mod time;
 pub(crate) mod uuid;
+pub(crate) mod yara;
