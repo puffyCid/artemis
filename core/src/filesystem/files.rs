@@ -1,5 +1,4 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
-use crate::utils::yara::scan_file;
 use common::files::Hashes;
 use log::{error, warn};
 use md5::{Digest, Md5};
@@ -57,19 +56,6 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
     }
 
     Ok(data)
-}
-
-/// Scan a file using provided Yara rule
-pub(crate) fn scan_file_yara(path: &str, rule: &str) -> Result<Vec<String>, FileSystemError> {
-    let hit_result = scan_file(path, rule);
-    let hits = match hit_result {
-        Ok(result) => result,
-        Err(_err) => {
-            return Err(FileSystemError::DecodeYara);
-        }
-    };
-
-    Ok(hits)
 }
 
 /// Check if path is a file
@@ -342,7 +328,6 @@ mod tests {
         file_extension, file_lines, file_read_text, file_reader, file_too_large,
         file_too_large_custom, get_file_size, get_filename, hash_file, hash_file_data, is_file,
         list_files, list_files_directories, read_file, read_file_custom, read_text_file,
-        scan_file_yara,
     };
     use common::files::Hashes;
     use std::path::PathBuf;
@@ -432,25 +417,6 @@ mod tests {
         let result = read_text_file(&test_location.display().to_string()).unwrap();
 
         assert_eq!(result, "hello, world! Its Rust!");
-    }
-
-    #[test]
-    fn test_scan_file_yara() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let rule = r#"
-        rule hello_world {
-        strings:
-        $ = "hello, world! Its Rust!"
-        condition:
-        all of them
-        }
-        "#;
-
-        let result = scan_file_yara(test_location.to_str().unwrap(), rule).unwrap();
-
-        assert_eq!(result[0], "hello_world");
     }
 
     #[test]

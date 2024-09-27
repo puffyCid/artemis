@@ -10,14 +10,13 @@
 use super::error::FileError;
 use crate::artifacts::os::systeminfo::info::get_platform;
 use crate::artifacts::output::output_artifact;
-use crate::filesystem::files::{file_extension, hash_file, scan_file_yara};
+use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::metadata::get_timestamps;
 use crate::structs::toml::Output;
-use crate::utils::encoding::base64_decode_standard;
 use crate::utils::regex_options::{create_regex, regex_check};
-use crate::utils::strings::extract_utf8_string;
 use crate::utils::time::time_now;
+use crate::utils::yara::scan_file;
 use common::files::FileInfo;
 use common::files::Hashes;
 use log::{error, info, warn};
@@ -66,14 +65,6 @@ pub(crate) fn get_filelist(
     let path_filter = user_regex(&args.path_filter)?;
     let mut firmlink_paths: Vec<String> = Vec::new();
 
-    let mut rule = String::new();
-    if !args.yara.is_empty() {
-        let bytes_result = base64_decode_standard(&args.yara);
-        if let Ok(bytes) = bytes_result {
-            rule = extract_utf8_string(&bytes);
-        }
-    }
-
     let platform = get_platform();
     if platform == "Darwin" {
         let firmlink_paths_data = read_firmlinks();
@@ -96,15 +87,15 @@ pub(crate) fn get_filelist(
         };
 
         let mut scan = Vec::new();
-        if !rule.is_empty() {
+        if !args.yara.is_empty() {
             if !entry.file_type().is_file() {
                 continue;
             }
-            let scan_result = scan_file_yara(&entry.path().display().to_string(), &rule);
+            let scan_result = scan_file(&entry.path().display().to_string(), &args.yara);
             scan = match scan_result {
                 Ok(result) => result,
                 Err(err) => {
-                    warn!("[files] Failed scan with yara: {err:?}");
+                    warn!("[files] Failed to scan with yara: {err:?}");
                     continue;
                 }
             };
