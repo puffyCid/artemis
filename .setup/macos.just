@@ -1,3 +1,3 @@
-@_macos: (_rust-setup-unix) && (_cargo-plugins)
+@_macos: (_rust-setup-unix) && (_cargo-plugins) (_node_modules)
   echo "Installing dev dependencies!"
-  brew install podman cmake trunk deno
+  brew install cmake trunk deno nodejs
