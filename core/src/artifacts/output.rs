@@ -1,6 +1,6 @@
 use crate::{
     artifacts::error::CollectionError,
-    output::formats::{json::json_format, jsonl::jsonl_format},
+    output::formats::{csv::csv_format, json::json_format, jsonl::jsonl_format},
     runtime::deno::filter_script,
     structs::toml::Output,
 };
@@ -47,6 +47,8 @@ pub(crate) fn output_artifact(
         json_format(serde_data, output_name, output, start_time)
     } else if output.format.to_lowercase() == "jsonl" {
         jsonl_format(serde_data, output_name, output, start_time)
+    } else if output.format.to_lowercase() == "csv" {
+        csv_format(serde_data, output_name, output)
     } else {
         error!(
             "[artemis-core] Unknown formatter provided: {}",
