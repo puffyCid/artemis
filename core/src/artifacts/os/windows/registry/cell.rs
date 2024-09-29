@@ -263,6 +263,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::from("test\\test"),
         };
         let (_, result) = walk_registry(&buffer, 216, &mut params, 4).unwrap();
 

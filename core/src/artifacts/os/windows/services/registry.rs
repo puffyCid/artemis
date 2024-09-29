@@ -2,11 +2,11 @@ use super::error::ServicesError;
 use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
 };
-use common::windows::RegistryEntry;
+use common::windows::RegistryData;
 use log::error;
 
 /// Parse provided Registry file (SYSTEM) and get Services information
-pub(crate) fn get_services_data(path: &str) -> Result<Vec<RegistryEntry>, ServicesError> {
+pub(crate) fn get_services_data(path: &str) -> Result<Vec<RegistryData>, ServicesError> {
     let start_path = "";
     let regex = create_regex(r".*\\controlset([0-9]+)\\services\\.*").unwrap(); // always valid
 

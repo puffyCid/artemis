@@ -16,7 +16,7 @@ use crate::{
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
-use common::windows::{Amcache, RegistryEntry};
+use common::windows::{Amcache, RegistryData};
 use log::error;
 
 /// Get Windows `Amcache` for all users based on optional drive, otherwise default drive letter is used
@@ -101,6 +101,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
             size: String::new(),
             sha1: String::new(),
             reg_path: entry.path.clone(),
+            source_path: entry.registry_path.clone(),
         };
 
         let old_path_depth = 5;
@@ -118,7 +119,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
 }
 
 /// Older versions of `Amcache` (Windows 8 and 8.1) used numbers to represent Value names
-fn extract_old_path(entry: RegistryEntry, amcache_entry: &mut Amcache) {
+fn extract_old_path(entry: RegistryData, amcache_entry: &mut Amcache) {
     for value in entry.values {
         match value.value.as_str() {
             "0" => amcache_entry.product_name = value.data,
@@ -144,7 +145,7 @@ fn extract_old_path(entry: RegistryEntry, amcache_entry: &mut Amcache) {
 }
 
 /// Modern versions of `Amcache` have regular Value names
-fn extract_entry(entry: RegistryEntry, amcache_entry: &mut Amcache) {
+fn extract_entry(entry: RegistryData, amcache_entry: &mut Amcache) {
     // if entry.path contains \\File\\ parse as number or something
     for value in entry.values {
         match value.value.as_str() {

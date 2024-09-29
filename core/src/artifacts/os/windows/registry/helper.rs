@@ -5,7 +5,7 @@ use crate::filesystem::ntfs::{
     raw_files::{raw_read_by_file_ref, raw_read_file},
     setup::NtfsParser,
 };
-use common::windows::RegistryEntry;
+use common::windows::RegistryData;
 use log::error;
 use nom::bytes::complete::take;
 use ntfs::NtfsFileReference;
@@ -18,7 +18,7 @@ pub(crate) fn get_registry_keys(
     start_path: &str,
     regex: &Regex,
     file_path: &str,
-) -> Result<Vec<RegistryEntry>, RegistryError> {
+) -> Result<Vec<RegistryData>, RegistryError> {
     let mut params = Params {
         start_path: start_path.to_string(),
         path_regex: regex.clone(),
@@ -26,6 +26,7 @@ pub(crate) fn get_registry_keys(
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
         filter: false,
+        registry_path: file_path.to_string(),
     };
     let buffer = read_registry(file_path)?;
     let reg_entries_results = parse_raw_registry(&buffer, &mut params);
@@ -45,7 +46,7 @@ pub(crate) fn get_registry_keys_by_ref(
     regex: &Regex,
     file_ref: &NtfsFileReference,
     ntfs_parser: &mut NtfsParser,
-) -> Result<Vec<RegistryEntry>, RegistryError> {
+) -> Result<Vec<RegistryData>, RegistryError> {
     let mut params = Params {
         start_path: start_path.to_string(),
         path_regex: regex.clone(),
@@ -53,6 +54,7 @@ pub(crate) fn get_registry_keys_by_ref(
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
         filter: false,
+        registry_path: String::new(),
     };
     let buffer = read_registry_ref(file_ref, ntfs_parser)?;
     let reg_entries_results = parse_raw_registry(&buffer, &mut params);
@@ -69,7 +71,7 @@ pub(crate) fn get_registry_keys_by_ref(
 pub(crate) fn parse_raw_registry<'a>(
     data: &'a [u8],
     params: &mut Params,
-) -> nom::IResult<&'a [u8], Vec<RegistryEntry>> {
+) -> nom::IResult<&'a [u8], Vec<RegistryData>> {
     let (input, header) = RegHeader::parse_header(data)?;
 
     let (_, reg_data) = take(header.hive_bins_size)(input)?;

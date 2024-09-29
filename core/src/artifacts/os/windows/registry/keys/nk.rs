@@ -3,6 +3,7 @@ use crate::{
         cell::{walk_registry, walk_values},
         parser::Params,
     },
+    filesystem::files::get_filename,
     utils::{
         nom_helper::{
             nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -13,7 +14,7 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use common::windows::RegistryEntry;
+use common::windows::RegistryData;
 use log::error;
 use nom::bytes::complete::take;
 
@@ -102,7 +103,7 @@ impl NameKey {
             key_name,
         };
 
-        let mut registry_entry = RegistryEntry {
+        let mut registry_entry = RegistryData {
             path: String::new(),
             key: params.key_tracker.join("\\"),
             name: name_key.key_name.clone(),
@@ -110,6 +111,8 @@ impl NameKey {
             last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             depth: params.key_tracker.len(),
             security_offset: key_security_offset,
+            registry_file: get_filename(&params.registry_path),
+            registry_path: params.registry_path.clone(),
         };
 
         params.key_tracker.push(name_key.key_name);
@@ -207,6 +210,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::from("test/test"),
         };
 
         let (_, result) = NameKey::parse_name_key(&buffer, &test_data, &mut params, 4).unwrap();

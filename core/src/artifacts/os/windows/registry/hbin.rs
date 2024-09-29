@@ -6,7 +6,7 @@ use crate::{
     },
     utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
 };
-use common::windows::RegistryEntry;
+use common::windows::RegistryData;
 use nom::{bytes::complete::take, Needed};
 use serde::Serialize;
 
@@ -48,7 +48,7 @@ impl HiveBin {
         hive_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
-    ) -> nom::IResult<&'a [u8], Vec<RegistryEntry>> {
+    ) -> nom::IResult<&'a [u8], Vec<RegistryData>> {
         let skip_header: usize = 32;
         // We already parsed the header data. We can skip it
         let (input, _) = take(skip_header)(hive_data)?;
@@ -85,7 +85,7 @@ impl HiveBin {
             break;
         }
 
-        let mut reg_list: Vec<RegistryEntry> = Vec::new();
+        let mut reg_list: Vec<RegistryData> = Vec::new();
         reg_list.append(&mut params.registry_list);
 
         Ok((reg_data, reg_list))
@@ -139,6 +139,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::from("test\\test"),
         };
 
         let (_, result) = HiveBin::parse_hive_cells(&buffer, &buffer, &mut params, 4).unwrap();

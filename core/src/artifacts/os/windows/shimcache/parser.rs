@@ -47,7 +47,7 @@ fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
     let mut shimcache_entries = Vec::new();
 
     for entry in results {
-        let mut entries = parse_shimdata(&entry.shim_data, &entry.key_path)?;
+        let mut entries = parse_shimdata(&entry.shim_data, &entry.key_path, path)?;
         shimcache_entries.append(&mut entries);
     }
     Ok(shimcache_entries)

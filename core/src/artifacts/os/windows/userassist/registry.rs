@@ -4,11 +4,11 @@ use crate::{
     filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     utils::regex_options::create_regex,
 };
-use common::windows::RegistryEntry;
+use common::windows::RegistryData;
 use log::error;
 
 pub(crate) struct UserAssistReg {
-    pub(crate) regs: Vec<RegistryEntry>,
+    pub(crate) regs: Vec<RegistryData>,
     pub(crate) reg_file: String,
 }
 
@@ -96,8 +96,8 @@ pub(crate) fn alt_userassist(path: &str) -> Result<Vec<UserAssistReg>, UserAssis
 }
 
 /// Filter Registry that only contain `Count` in the key name
-fn filter_userassist(reg_data: &[RegistryEntry]) -> Vec<RegistryEntry> {
-    let mut userassist_entries: Vec<RegistryEntry> = Vec::new();
+fn filter_userassist(reg_data: &[RegistryData]) -> Vec<RegistryData> {
+    let mut userassist_entries: Vec<RegistryData> = Vec::new();
     for entry in reg_data {
         if entry.name != "Count" {
             continue;
