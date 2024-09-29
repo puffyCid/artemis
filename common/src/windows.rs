@@ -87,6 +87,7 @@ pub struct Amcache {
     pub usn: String,
     pub sha1: String, // Only first ~31MBs
     pub reg_path: String,
+    pub source_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -742,15 +743,8 @@ pub struct RecycleBin {
     pub recycle_path: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct RegistryData {
-    pub registry_path: String,
-    pub registry_file: String,
-    pub registry_entries: Vec<RegistryEntry>,
-}
-
 #[derive(Debug, Serialize, Clone)]
-pub struct RegistryEntry {
+pub struct RegistryData {
     pub path: String, // ROOT\...\CurrentVersion\Run
     pub key: String,  // ROOT\...\CurrentVersion
     pub name: String, // Run key
@@ -758,6 +752,8 @@ pub struct RegistryEntry {
     pub last_modified: String,
     pub depth: usize,
     pub security_offset: i32,
+    pub registry_path: String,
+    pub registry_file: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -850,6 +846,7 @@ pub struct ShimcacheEntry {
     pub path: String,
     pub last_modified: String,
     pub key_path: String,
+    pub source_path: String,
 }
 
 #[derive(Debug, Serialize)]

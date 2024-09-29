@@ -12,6 +12,7 @@ use nom::bytes::complete::take;
 pub(crate) fn win7_format<'a>(
     data: &'a [u8],
     key_path: &str,
+    path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
     let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, entries) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -47,6 +48,7 @@ pub(crate) fn win7_format<'a>(
                     path: String::new(),
                     last_modified: String::new(),
                     key_path: key_path.to_string(),
+                    source_path: path.to_string(),
                 };
                 entry += 1;
                 shim_vec.push(shim_entry);
@@ -61,6 +63,7 @@ pub(crate) fn win7_format<'a>(
                 path: extract_utf16_string(path_data),
                 last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
                 key_path: key_path.to_string(),
+                source_path: path.to_string(),
             };
             entry += 1;
             shim_vec.push(shim_entry);
@@ -86,6 +89,7 @@ pub(crate) fn win7_format<'a>(
                 path: String::new(),
                 last_modified: String::new(),
                 key_path: key_path.to_string(),
+                source_path: path.to_string(),
             };
             entry += 1;
             shim_vec.push(shim_entry);
@@ -100,6 +104,7 @@ pub(crate) fn win7_format<'a>(
             path: extract_utf16_string(path_data),
             last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             key_path: key_path.to_string(),
+            source_path: path.to_string(),
         };
         entry += 1;
         shim_vec.push(shim_entry);
@@ -118,7 +123,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/shimcache/win7/win7x86.bin");
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, shim_data) = win7_format(&buffer, "test").unwrap();
+        let (_, shim_data) = win7_format(&buffer, "test", "test/test").unwrap();
         assert_eq!(shim_data.len(), 91);
         assert_eq!(
             shim_data[34].path,
@@ -133,7 +138,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/shimcache/win7/win7x64.bin");
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, shim_data) = win7_format(&buffer, "test").unwrap();
+        let (_, shim_data) = win7_format(&buffer, "test", "test/test").unwrap();
         assert_eq!(shim_data.len(), 304);
         assert_eq!(
             shim_data[34].path,

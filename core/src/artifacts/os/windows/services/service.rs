@@ -4,7 +4,7 @@ use super::{
     registry::get_services_data,
 };
 use common::windows::{
-    KeyValue, RegistryEntry, ServiceError, ServiceState, ServicesData, StartMode,
+    KeyValue, RegistryData, ServiceError, ServiceState, ServicesData, StartMode,
 };
 
 /// Parse Services data from provided Registry file
@@ -47,7 +47,7 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
 }
 
 /// Collect data associated with Service
-fn collect_service(service_data: &Vec<RegistryEntry>, service_name: &str) -> ServicesData {
+fn collect_service(service_data: &Vec<RegistryData>, service_name: &str) -> ServicesData {
     let name = service_name.to_string();
 
     let mut service = ServicesData {

@@ -42,6 +42,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::from("path/NTUSER.dat"),
         };
 
         let (_, result) =

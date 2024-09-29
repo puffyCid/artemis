@@ -71,6 +71,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::from("path/NTUSER.dat"),
         };
 
         let (_, result) = LeafItem::parse_leaf_item(&buffer, &test_data, &mut params, 4).unwrap();

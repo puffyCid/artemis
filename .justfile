@@ -46,6 +46,10 @@ outlook: (_test "artifacts::os::windows::outlook")
 [group('artifacts')]
 spotlight: (_test "artifacts::os::macos::spotlight")
 
+# Test only the Registry parsing functions
+[group('artifacts')]
+registry: (_test "artifacts::os::windows::registry")
+
 # Test only the JavaScript runtime
 runtime: (_test "runtime::")
 

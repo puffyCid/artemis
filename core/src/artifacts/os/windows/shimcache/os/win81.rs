@@ -13,6 +13,7 @@ use nom::bytes::complete::take;
 pub(crate) fn win81_format<'a>(
     data: &'a [u8],
     key_path: &str,
+    path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
     // Shimcache header on Windows 8 and 8.1 is 128 bytes in size
     let header_size: u8 = 128;
@@ -44,6 +45,7 @@ pub(crate) fn win81_format<'a>(
                 path: String::new(),
                 last_modified: String::new(),
                 key_path: key_path.to_string(),
+                source_path: path.to_string(),
             };
             entry += 1;
             shim_vec.push(shim_entry);
@@ -64,6 +66,7 @@ pub(crate) fn win81_format<'a>(
             path: extract_utf16_string(path_data),
             last_modified: unixepoch_to_iso(&filetime_to_unixepoch(&last_modified)),
             key_path: key_path.to_string(),
+            source_path: path.to_string(),
         };
         entry += 1;
 
@@ -84,7 +87,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/shimcache/win81shim.raw");
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, shim_data) = win81_format(&buffer, "test").unwrap();
+        let (_, shim_data) = win81_format(&buffer, "test", "test/test").unwrap();
         assert_eq!(shim_data.len(), 3);
         assert_eq!(shim_data[0].entry, 0);
         assert_eq!(

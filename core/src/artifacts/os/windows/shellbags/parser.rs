@@ -18,7 +18,7 @@ use crate::{
         regex_options::create_regex,
     },
 };
-use common::windows::{RegistryEntry, ShellItem, ShellType};
+use common::windows::{RegistryData, ShellItem, ShellType};
 use log::error;
 use serde::Serialize;
 use serde_json::Value;
@@ -178,7 +178,7 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
 
 /// Extract `Shellbag` data from Registry data
 fn extract_shellbags(
-    shellbags: &[RegistryEntry],
+    shellbags: &[RegistryData],
     reg_filename: &str,
     reg_path: &str,
     clsids: &HashMap<String, String>,
