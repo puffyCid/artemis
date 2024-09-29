@@ -310,6 +310,7 @@ mod tests {
                 size: String::new(),
                 sha1: String::new(),
                 reg_path: entry.path.clone(),
+                source_path: entry.registry_path.clone(),
             };
 
             let old_path_depth = 5;
@@ -359,6 +360,7 @@ mod tests {
                 size: String::new(),
                 sha1: String::new(),
                 reg_path: entry.path.clone(),
+                source_path: entry.registry_path.clone(),
             };
 
             if entry.path.contains("InventoryApplicationFile") {

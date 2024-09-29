@@ -289,6 +289,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::new(),
         };
         parse_user_hives(&'C', &mut output, &mut params).unwrap();
     }
@@ -303,6 +304,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::new(),
         };
         parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
     }
@@ -317,6 +319,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::new(),
         };
         parse_user_hives(&'C', &mut output, &mut params).unwrap();
     }
@@ -331,6 +334,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::new(),
         };
         parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
     }
@@ -360,14 +364,9 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: test_location.to_str().unwrap().to_string(),
         };
-        parse_registry_file(
-            &test_location.display().to_string(),
-            "NTUSER.DAT",
-            &mut output,
-            &mut params,
-        )
-        .unwrap();
+        parse_registry_file(&mut output, &mut params).unwrap();
     }
 
     #[test]

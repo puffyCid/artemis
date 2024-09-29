@@ -162,6 +162,7 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             filter: false,
+            registry_path: String::new(),
         };
         let (_, result) = parse_raw_registry(&buffer, &mut params).unwrap();
         assert!(result.len() > 100)

@@ -96,7 +96,12 @@ mod tests {
         assert!(result.len() > 0);
 
         for entry in result {
-            let shim_data = parse_shimdata(&entry.shim_data, &entry.key_path).unwrap();
+            let shim_data = parse_shimdata(
+                &entry.shim_data,
+                &entry.key_path,
+                "C:\\Windows\\System32\\config\\SYSTEM",
+            )
+            .unwrap();
             assert!(shim_data.len() > 3);
         }
     }
