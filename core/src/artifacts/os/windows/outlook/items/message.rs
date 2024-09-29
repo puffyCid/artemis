@@ -1,8 +1,6 @@
 use crate::{
     artifacts::os::windows::outlook::{
-        blocks::descriptors::DescriptorData,
-        header::NodeID,
-        tables::{context::TableRows, properties::PropertyName, property::PropertyContext},
+        blocks::descriptors::DescriptorData, header::NodeID, tables::context::TableRows,
     },
     utils::{
         compression::decompress::decompress_rtf,
@@ -11,6 +9,7 @@ use crate::{
         strings::{extract_ascii_utf16_string, extract_utf8_string_lossy},
     },
 };
+use common::{outlook::PropertyName, windows::PropertyContext};
 use log::error;
 use std::collections::BTreeMap;
 

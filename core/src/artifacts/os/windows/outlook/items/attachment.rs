@@ -1,7 +1,5 @@
 use super::message::{get_attach_method, AttachMethod};
-use crate::artifacts::os::windows::outlook::tables::{
-    properties::PropertyName, property::PropertyContext,
-};
+use common::{outlook::PropertyName, windows::PropertyContext};
 
 #[derive(Debug)]
 pub(crate) struct Attachment {

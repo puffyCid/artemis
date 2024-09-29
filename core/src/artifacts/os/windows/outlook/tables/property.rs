@@ -1,7 +1,4 @@
-use super::{
-    context::{get_property_type, PropertyType},
-    properties::{property_id_to_name, PropertyName},
-};
+use super::{context::get_property_type, properties::property_id_to_name};
 use crate::{
     artifacts::os::windows::outlook::{
         blocks::descriptors::DescriptorData,
@@ -21,6 +18,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use common::windows::{PropertyContext, PropertyType};
 use log::{error, warn};
 use nom::{
     bytes::complete::take,
@@ -30,17 +28,6 @@ use nom::{
 use ntfs::NtfsFile;
 use serde_json::Value;
 use std::collections::BTreeMap;
-
-/// Property Context Table (also called 0xbc table)
-#[derive(Debug, Clone)]
-pub(crate) struct PropertyContext {
-    pub(crate) name: Vec<PropertyName>,
-    pub(crate) property_type: PropertyType,
-    pub(crate) prop_id: u16,
-    pub(crate) property_number: u16,
-    pub(crate) reference: u32,
-    pub(crate) value: Value,
-}
 
 pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
     fn parse_property_context(
@@ -617,14 +604,11 @@ mod tests {
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
             pages::btree::{BlockType, LeafBlockData},
-            tables::{
-                context::PropertyType,
-                properties::PropertyName,
-                property::{extract_property_value, OutlookPropertyContext},
-            },
+            tables::property::{extract_property_value, OutlookPropertyContext},
         },
         filesystem::files::file_reader,
     };
+    use common::{outlook::PropertyName, windows::PropertyType};
     use serde_json::Value;
     use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
 

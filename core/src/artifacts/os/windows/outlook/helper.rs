@@ -13,7 +13,7 @@ use super::{
     },
     tables::{
         context::{TableBranchInfo, TableInfo, TableRows},
-        property::{OutlookPropertyContext, PropertyContext},
+        property::OutlookPropertyContext,
     },
 };
 use crate::{
@@ -23,6 +23,7 @@ use crate::{
     },
     filesystem::ntfs::reader::read_bytes,
 };
+use common::windows::PropertyContext;
 use log::{error, warn};
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};

@@ -2,6 +2,8 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, Utc};
 use log::error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use super::error::ArtemisError;
+
 /// Return time now in seconds or 0
 pub(crate) fn time_now() -> u64 {
     SystemTime::now()
@@ -135,6 +137,33 @@ pub(crate) fn unixepoch_microseconds_to_iso(timestamp: &i64) -> String {
     }
 }
 
+/// Check if `time1` is greater than `time2`. Timestamps must be in RFC 3339 format. (YYYY-MM-DDTHH:mm:ss.000Z)
+pub(crate) fn compare_timestamps(time1: &str, time2: &str) -> Result<bool, ArtemisError> {
+    let time1_result = DateTime::parse_from_rfc3339(time1);
+    let timestamp1 = match time1_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Failed to parse timestamp {time1}: {err:?}");
+            return Err(ArtemisError::BadTime);
+        }
+    };
+
+    let time2_result = DateTime::parse_from_rfc3339(time2);
+    let timestamp2 = match time2_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Failed to parse timestamp {time2}: {err:?}");
+            return Err(ArtemisError::BadTime);
+        }
+    };
+
+    if timestamp1 > timestamp2 {
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
 /// Parse the bits in FAT timestamp
 fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
     use super::nom_helper::nom_unsigned_two_bytes;
@@ -150,8 +179,9 @@ fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
-        cocoatime_to_unixepoch, fattime_utc_to_unixepoch, filetime_to_unixepoch, get_fat_bits,
-        ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso, unixepoch_to_iso,
+        cocoatime_to_unixepoch, compare_timestamps, fattime_utc_to_unixepoch,
+        filetime_to_unixepoch, get_fat_bits, ole_automationtime_to_unixepoch,
+        unixepoch_microseconds_to_iso, unixepoch_to_iso,
     };
 
     #[test]
@@ -219,5 +249,13 @@ mod tests {
         let test = 3453120824;
         let result = hfs_to_unixepoch(&test);
         assert_eq!(result, 1370276024);
+    }
+
+    #[test]
+    fn test_compare_timestamps() {
+        let timestamp = unixepoch_to_iso(&1574819646);
+        let timestamp2 = unixepoch_to_iso(&1474819646);
+
+        assert!(compare_timestamps(&timestamp, &timestamp2).unwrap());
     }
 }
