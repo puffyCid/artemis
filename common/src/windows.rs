@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 
+use crate::outlook::PropertyName;
+
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
     pub last_logon: String,
@@ -1457,9 +1459,10 @@ pub struct OutlookMessage {
     pub delivered: String,
     pub recipients: Vec<String>,
     pub attachments: Vec<OutlookAttachment>,
-    pub properties: Vec<String>,
+    pub properties: Vec<PropertyContext>,
     pub folder_path: String,
     pub source_file: String,
+    pub yara_hits: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -1470,5 +1473,53 @@ pub struct OutlookAttachment {
     pub mime: String,
     pub extension: String,
     pub data: String,
-    pub properties: Vec<String>,
+    pub properties: Vec<PropertyContext>,
+}
+
+/// Property Context Table (also called 0xbc table)
+#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+pub struct PropertyContext {
+    pub name: Vec<PropertyName>,
+    pub property_type: PropertyType,
+    pub prop_id: u16,
+    pub property_number: u16,
+    pub reference: u32,
+    pub value: Value,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+pub enum PropertyType {
+    Int16,
+    Int32,
+    Float32,
+    Float64,
+    Currency,
+    FloatTime,
+    ErrorCode,
+    Bool,
+    Int64,
+    String,
+    String8,
+    Time,
+    Guid,
+    ServerId,
+    Restriction,
+    Binary,
+    MultiInt16,
+    MultiInt32,
+    MultiFloat32,
+    MultiFloat64,
+    MultiCurrency,
+    MultiFloatTime,
+    MultiInt64,
+    MultiString,
+    MultiString8,
+    MultiTime,
+    MultiGuid,
+    MultiBinary,
+    Unspecified,
+    Null,
+    Object,
+    RuleAction,
+    Unknown,
 }

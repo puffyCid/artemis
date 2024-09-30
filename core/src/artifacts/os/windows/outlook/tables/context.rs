@@ -1,8 +1,4 @@
-use super::{
-    header::HeapNode,
-    properties::{property_id_to_name, PropertyName},
-    property::get_property_data,
-};
+use super::{header::HeapNode, properties::property_id_to_name, property::get_property_data};
 use crate::{
     artifacts::os::windows::outlook::{
         blocks::descriptors::DescriptorData,
@@ -20,6 +16,7 @@ use crate::{
         nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
     },
 };
+use common::{outlook::PropertyName, windows::PropertyType};
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
@@ -40,43 +37,6 @@ pub(crate) struct ColumnDescriptor {
     offset: u16,
     size: u8,
     index: u8,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) enum PropertyType {
-    Int16,
-    Int32,
-    Float32,
-    Float64,
-    Currency,
-    FloatTime,
-    ErrorCode,
-    Bool,
-    Int64,
-    String,
-    String8,
-    Time,
-    Guid,
-    ServerId,
-    Restriction,
-    Binary,
-    MultiInt16,
-    MultiInt32,
-    MultiFloat32,
-    MultiFloat64,
-    MultiCurrency,
-    MultiFloatTime,
-    MultiInt64,
-    MultiString,
-    MultiString8,
-    MultiTime,
-    MultiGuid,
-    MultiBinary,
-    Unspecified,
-    Null,
-    Object,
-    RuleAction,
-    Unknown,
 }
 
 pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
@@ -950,9 +910,9 @@ mod tests {
         tables::{
             context::{PropertyType, TableInfo},
             header::HeapNode,
-            properties::PropertyName,
         },
     };
+    use common::outlook::PropertyName;
     use serde_json::Value;
     use std::collections::BTreeMap;
 

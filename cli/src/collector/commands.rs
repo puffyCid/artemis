@@ -234,7 +234,7 @@ pub(crate) enum CommandArgs {
         /// Include messages after the start date. Format needs to be ISO 8601. Ex: YYYY-MM-ddTHH:mm:ss.000Z. By default all messages are returned
         #[arg(long, default_value = None)]
         start_date: Option<String>,
-        /// Include messages before the start date. Format needs to be ISO 8601. Ex: YYYY-MM-ddTHH:mm:ss.000Z. By default all messages are returned
+        /// Include messages before the end date. Format needs to be ISO 8601. Ex: YYYY-MM-ddTHH:mm:ss.000Z. By default all messages are returned
         #[arg(long, default_value = None)]
         end_date: Option<String>,
         /// Run the provided base64 encoded Yara-X rule against the message. Only matched results will be returned

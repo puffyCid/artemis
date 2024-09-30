@@ -3,10 +3,9 @@ use crate::artifacts::os::windows::outlook::{
     tables::{
         context::{TableInfo, TableRows},
         header::HeapNode,
-        properties::PropertyName,
-        property::PropertyContext,
     },
 };
+use common::{outlook::PropertyName, windows::PropertyContext};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]

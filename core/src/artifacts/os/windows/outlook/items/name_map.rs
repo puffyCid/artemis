@@ -1,9 +1,6 @@
 use super::ids::property_name_ids;
 use crate::{
-    artifacts::os::windows::outlook::{
-        error::OutlookError,
-        tables::{properties::PropertyName, property::PropertyContext},
-    },
+    artifacts::os::windows::outlook::error::OutlookError,
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
@@ -11,6 +8,7 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
+use common::{outlook::PropertyName, windows::PropertyContext};
 use log::{error, warn};
 use nom::bytes::complete::take;
 use serde_json::Value;

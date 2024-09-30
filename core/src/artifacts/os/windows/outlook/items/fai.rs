@@ -1,6 +1,4 @@
-use crate::artifacts::os::windows::outlook::tables::{
-    properties::PropertyName, property::PropertyContext,
-};
+use common::{outlook::PropertyName, windows::PropertyContext};
 
 #[derive(Debug)]
 pub(crate) struct FolderMeta {

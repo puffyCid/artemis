@@ -24,7 +24,11 @@ use crate::{
     artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
     filesystem::{metadata::glob_paths, ntfs::setup::setup_ntfs_parser},
     structs::{artifacts::os::windows::OutlookOptions, toml::Output},
-    utils::{environment::get_systemdrive, time::time_now},
+    utils::{
+        environment::get_systemdrive,
+        time::{compare_timestamps, time_now},
+        yara::{scan_base64_bytes, scan_bytes},
+    },
 };
 use common::windows::{OutlookAttachment, OutlookMessage};
 use log::error;
@@ -208,7 +212,10 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     folder_path,
                     &results.name,
                 )?;
-                entries.push(entry);
+                if entry.is_none() {
+                    continue;
+                }
+                entries.push(entry.unwrap());
             }
 
             output_messages(&entries, options, output)?;
@@ -233,7 +240,11 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     folder_path,
                     &results.name,
                 )?;
-                entries.push(entry);
+
+                if entry.is_none() {
+                    continue;
+                }
+                entries.push(entry.unwrap());
             }
             output_messages(&entries, options, output)?;
         }
@@ -285,7 +296,11 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                         &results.name,
                     )?;
 
-                    entries.push(entry);
+                    if entry.is_none() {
+                        continue;
+                    }
+
+                    entries.push(entry.unwrap());
                 }
 
                 output_messages(&entries, options, output)?;
@@ -311,7 +326,10 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                         folder_path,
                         &results.name,
                     )?;
-                    entries.push(entry);
+                    if entry.is_none() {
+                        continue;
+                    }
+                    entries.push(entry.unwrap());
                 }
 
                 output_messages(&entries, options, output)?;
@@ -345,7 +363,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
     options: &OutlookRunner,
     folder_path: &str,
     folder: &str,
-) -> Result<OutlookMessage, OutlookError> {
+) -> Result<Option<OutlookMessage>, OutlookError> {
     let mut message_result = OutlookMessage {
         body: message.body,
         subject: message.subject,
@@ -354,16 +372,38 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         delivered: message.delivered,
         recipients: Vec::new(),
         attachments: Vec::new(),
-        properties: Vec::new(),
+        properties: message.props,
         folder_path: format!("{folder_path}/{folder}"),
         source_file: options.source.clone(),
+        yara_hits: Vec::new(),
     };
-    if let Some(_start) = &options.start_date {
-        println!("filter by start date");
+
+    // Check if message body matches Yara rule
+    if let Some(rule) = &options.yara_rule_message {
+        let result = scan_bytes(message_result.body.as_bytes(), rule).unwrap_or_default();
+        if result.is_empty() {
+            return Ok(None);
+        }
+
+        message_result.yara_hits = result;
     }
-    if let Some(_end) = &options.end_date {
-        println!("filter by end date");
+
+    // Check if message occurs after our start data
+    if let Some(start) = &options.start_date {
+        let compare_result = compare_timestamps(&message_result.delivered, start);
+        if compare_result.is_ok_and(|x| !x) {
+            return Ok(None);
+        }
     }
+
+    // Check if message occurs before our end date
+    if let Some(end) = &options.end_date {
+        let compare_result = compare_timestamps(&message_result.delivered, end);
+        if compare_result.is_ok_and(|x| x) {
+            return Ok(None);
+        }
+    }
+
     let mut attachments = Vec::new();
 
     if options.include_attachments {
@@ -378,21 +418,26 @@ fn message_details<T: std::io::Seek + std::io::Read>(
                 mime: attach_info.mime,
                 extension: attach_info.extension,
                 data: attach_info.data,
-                properties: Vec::new(),
+                properties: attach_info.props,
             };
+
+            // Check if attachment matches Yara rule
+            if let Some(rule) = &options.yara_rule_attachment {
+                let result = scan_base64_bytes(&message_attach.data, rule).unwrap_or_default();
+                if result.is_empty() {
+                    continue;
+                }
+
+                attachments.push(message_attach);
+                continue;
+            }
             attachments.push(message_attach);
-        }
-        if let Some(_rule) = &options.yara_rule_attachment {
-            println!("scan with yara!");
         }
 
         message_result.attachments = attachments;
     }
 
-    if let Some(_rule) = &options.yara_rule_message {
-        println!("scan message with yara!");
-    }
-    Ok(message_result)
+    Ok(Some(message_result))
 }
 
 /// Output the extract messages

@@ -6,4 +6,4 @@ mod items;
 mod pages;
 pub(crate) mod parser;
 mod reader;
-mod tables;
+pub(crate) mod tables;
