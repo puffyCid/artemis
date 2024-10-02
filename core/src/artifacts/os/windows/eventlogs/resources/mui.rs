@@ -1,0 +1,114 @@
+use log::error;
+use nom::{bytes::complete::take, error::ErrorKind};
+
+use crate::{
+    artifacts::os::windows::{
+        eventlogs::message::parse_resource, pe::resources::read_eventlog_resource,
+    },
+    filesystem::{directory::get_parent_directory, files::get_filename},
+    utils::{
+        nom_helper::{nom_unsigned_four_bytes, Endian},
+        strings::extract_utf16_string,
+    },
+};
+
+pub(crate) fn parse_mui<'a>(data: &'a [u8], path: &str) -> nom::IResult<&'a [u8], ()> {
+    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    // Size is the entire data
+    let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, version) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, file_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, attributes) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, fallback_location) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let checksum_size: u8 = 16;
+    let (input, service_checksum) = take(checksum_size)(input)?;
+    let (input, checksum) = take(checksum_size)(input)?;
+
+    let unknown_size: u8 = 24;
+    let (input, _unknown2) = take(unknown_size)(input)?;
+
+    let (input, main_name_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, main_name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let (input, main_id_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, main_id_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let (input, main_name_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, main_name_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let (input, main_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, main_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let (input, lang_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, lang_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let (input, fallback_lang_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (_input, fallback_lang_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+    let empty = 0;
+    let lang = if lang_offset == empty && lang_size == empty {
+        let (lang_start, _) = take(fallback_lang_offset)(data)?;
+        let (_, lang_data) = take(fallback_lang_size)(lang_start)?;
+        extract_utf16_string(lang_data)
+    } else {
+        let (lang_start, _) = take(lang_offset)(data)?;
+        let (_, lang_data) = take(lang_size)(lang_start)?;
+        extract_utf16_string(lang_data)
+    };
+
+    let parent = get_parent_directory(path);
+    let filename = get_filename(path);
+    let real_path = format!("{parent}\\{lang}\\{filename}.mui");
+
+    let resource_result = read_eventlog_resource(&real_path);
+    let resource = match resource_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[eventlogs] Could not parse MUI file at {real_path}: {err:?}");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
+    };
+
+    let mui_result = parse_resource(&resource);
+    let mui = match mui_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[eventlogs] Could not parse MUI resource at {real_path}: {err:?}");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
+    };
+
+    Ok((&[], ()))
+}
+
+#[cfg(test)]
+#[cfg(target_os = "windows")]
+mod tests {
+    use super::parse_mui;
+
+    #[test]
+    fn test_parse_mui() {
+        let test = [
+            205, 254, 205, 254, 240, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 2,
+            0, 0, 0, 26, 143, 14, 5, 117, 105, 8, 126, 13, 52, 84, 38, 75, 63, 119, 183, 88, 247,
+            216, 48, 42, 28, 12, 12, 115, 100, 155, 217, 179, 57, 173, 215, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 136, 0, 0, 0, 42, 0, 0, 0, 184, 0, 0,
+            0, 4, 0, 0, 0, 192, 0, 0, 0, 14, 0, 0, 0, 208, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 224, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 87, 0, 69, 0, 86, 0, 84, 0, 95, 0, 84, 0,
+            69, 0, 77, 0, 80, 0, 76, 0, 65, 0, 84, 0, 69, 0, 0, 0, 77, 0, 85, 0, 73, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 77, 0, 85, 0, 73, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 11, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 101, 0, 110, 0, 45,
+            0, 85, 0, 83, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let (_, result) = parse_mui(&test, "C:\\WINDOWS\\System32\\fdeploy.dll").unwrap();
+    }
+}

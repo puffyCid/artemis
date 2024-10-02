@@ -5,6 +5,7 @@ pub enum EventLogsError {
     DefaultDrive,
     Parser,
     Serialize,
+    EventLogServices,
 }
 
 impl std::error::Error for EventLogsError {}
@@ -15,6 +16,7 @@ impl fmt::Display for EventLogsError {
             EventLogsError::DefaultDrive => write!(f, "Failed to get default driver letter"),
             EventLogsError::Parser => write!(f, "Failed to parse event logs"),
             EventLogsError::Serialize => write!(f, "Failed to serialize event logs"),
+            EventLogsError::EventLogServices => write!(f, "Failed to parse registry for services"),
         }
     }
 }

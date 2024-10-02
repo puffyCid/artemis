@@ -5,10 +5,11 @@ use pelite::{
     Error, PeFile,
 };
 
-pub(crate) struct EventLogResourceType {
-    resource: ResourceType,
-    data: Vec<u8>,
-    path: String,
+#[derive(Debug)]
+pub(crate) struct EventLogResource {
+    pub(crate) resource: ResourceType,
+    pub(crate) data: Vec<u8>,
+    pub(crate) path: String,
 }
 
 #[derive(PartialEq, Debug)]
@@ -20,7 +21,7 @@ pub(crate) enum ResourceType {
 }
 
 /// Read the eventlog resource data from PE file
-pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResourceType, Error> {
+pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Error> {
     let pe_result = read_file(path);
     let pe_bytes = match pe_result {
         Ok(result) => result,
@@ -34,7 +35,7 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResourceType,
     let message_table = Name::Id(11);
     let mui = Name::Wide(&[77, 85, 73]);
     let wevt_template = Name::Wide(&[87, 69, 86, 84, 95, 84, 69, 77, 80, 76, 65, 84, 69]);
-    let mut message_source = EventLogResourceType {
+    let mut message_source = EventLogResource {
         resource: ResourceType::Unknown,
         data: Vec::new(),
         path: path.to_string(),
@@ -61,7 +62,10 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResourceType,
             if entry.is_dir() {
                 if let Some(entry_dir) = entry.entry()?.dir() {
                     message_source.data = read_dir(&entry_dir)?;
-                    break;
+                    if message_source.resource != ResourceType::Mui {
+                        break;
+                    }
+                    continue;
                 }
 
                 error!("[pe] Got None value on root resource directory");
