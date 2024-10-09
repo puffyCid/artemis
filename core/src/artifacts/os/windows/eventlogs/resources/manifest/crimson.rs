@@ -1,4 +1,4 @@
-use super::channel::Keywords;
+use super::{channel::Channel, opcode::Opcode, xml::TemplateElement};
 use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
     uuid::format_guid_le_bytes,
@@ -13,7 +13,10 @@ pub(crate) struct ManifestTemplate {
     pub(crate) offset: u32,
     pub(crate) message_table_id: i32,
     pub(crate) element_offsets: Vec<u32>,
-    pub(crate) keywords: Vec<Keywords>,
+    pub(crate) channels: Vec<Channel>,
+    pub(crate) keywords: Vec<String>,
+    pub(crate) opcodes: Vec<Opcode>,
+    pub(crate) templates: Vec<TemplateElement>,
 }
 
 pub(crate) fn parse_manifest(
@@ -42,6 +45,9 @@ pub(crate) fn parse_manifest(
             message_table_id: 0,
             element_offsets: Vec::new(),
             keywords: Vec::new(),
+            channels: Vec::new(),
+            templates: Vec::new(),
+            opcodes: Vec::new(),
         };
 
         templates.insert(guid, template);

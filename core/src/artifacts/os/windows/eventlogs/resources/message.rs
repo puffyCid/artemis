@@ -52,7 +52,6 @@ pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Messa
     for block in blocks {
         // Get the number of strings
         let string_count = block.last_id - block.first_id;
-        println!("count: {string_count}");
         count = 0;
         let (mut strings_start, _) = take(block.offset)(data)?;
         while count < string_count {
@@ -103,10 +102,11 @@ mod tests {
     #[test]
     fn test_parse_table() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\pe\\resources\\message_table.raw");
+        test_location.push("tests/test_data/windows/pe/resources/message_table.raw");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, result) = parse_table(&data).unwrap();
+        println!("{result:?}");
         assert_eq!(result.len(), 30);
     }
 }

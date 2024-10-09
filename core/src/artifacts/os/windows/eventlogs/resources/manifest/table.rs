@@ -1,25 +1,27 @@
 use super::crimson::ManifestTemplate;
-use crate::utils::{
-    nom_helper::{nom_signed_four_bytes, nom_unsigned_four_bytes, Endian},
-    strings::extract_utf16_string,
-    uuid::format_guid_le_bytes,
+use crate::{
+    artifacts::os::windows::eventlogs::resources::manifest::{self, xml::parse_xml},
+    utils::{
+        nom_helper::{
+            nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        },
+        uuid::format_guid_le_bytes,
+    },
 };
 use log::warn;
-use nom::bytes::complete::take;
+use nom::bytes::complete::{take, take_while};
 
 pub(crate) fn parse_table<'a>(
-    resource: &'a [u8],
     data: &'a [u8],
-    template: &mut ManifestTemplate,
+    manifest: &mut ManifestTemplate,
 ) -> nom::IResult<&'a [u8], ()> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (mut input, template_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let mut count = 0;
-    println!("temp count: {template_count}");
     while count < template_count {
-        let (remaining, _) = parse_template(input, template)?;
+        let (remaining, _) = parse_template(input, manifest)?;
         input = remaining;
         count += 1;
     }
@@ -28,7 +30,7 @@ pub(crate) fn parse_table<'a>(
 
 fn parse_template<'a>(
     data: &'a [u8],
-    template: &mut ManifestTemplate,
+    manifest: &mut ManifestTemplate,
 ) -> nom::IResult<&'a [u8], ()> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size includes sig and size itself
@@ -40,8 +42,8 @@ fn parse_template<'a>(
     }
     let (remaing_template, input) = take(size - adjust_size)(input)?;
     let (input, descriptor_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, name_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, template_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _name_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _template_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
     // Possibly EventType. Not 100% sure
     let (input, event_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -49,10 +51,26 @@ fn parse_template<'a>(
     let (input, guid_bytes) = take(guid_size)(input)?;
 
     let guid = format_guid_le_bytes(guid_bytes);
-    let event_type = get_event_type(&event_type_data);
-    println!("template GUID: {guid} - EventType: {event_type:?}");
+    let _event_type = get_event_type(&event_type_data);
 
-    // Binary XML remaining
+    // Binary XML slightly different from EVTX files
+    let (remaining, template) = parse_xml(input, guid)?;
+    manifest.templates.push(template);
+    let (input, _padding) = take_while(|b: u8| b == 0)(remaining)?;
+    if descriptor_count != 0 {
+        // Get first descriptor
+        let (input, _input_type) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, _output_type) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, _unknown) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+        let (input, _values_count) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _value_data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        // Offset is from the start of the file
+        let (_desc_input, _template_name_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    }
+
+    // Remaining parts is just Template item descriptors and Template item names. Not needed? Skipping for now
     Ok((remaing_template, ()))
 }
 
@@ -79,7 +97,7 @@ fn get_event_type(event: &u32) -> EventType {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_table, parse_template};
+    use super::parse_table;
     use crate::{
         artifacts::os::windows::eventlogs::resources::manifest::{
             channel::parse_channel, crimson::parse_manifest, provider::parse_provider,
@@ -105,6 +123,7 @@ mod tests {
 
         let start = 0x1cc;
         let (table_start, _) = nom_data(&data, start).unwrap();
-        let (_input, _) = parse_table(&data, table_start, manifest).unwrap();
+        let (_input, _) = parse_table(table_start, manifest).unwrap();
+        assert_eq!(manifest.templates.len(), 9);
     }
 }
