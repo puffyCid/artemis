@@ -1,4 +1,4 @@
-use super::{channel::Channel, opcode::Opcode, xml::TemplateElement};
+use super::{channel::Channel, level::Level, opcode::Opcode, xml::TemplateElement};
 use crate::utils::{
     nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
     uuid::format_guid_le_bytes,
@@ -16,6 +16,7 @@ pub(crate) struct ManifestTemplate {
     pub(crate) channels: Vec<Channel>,
     pub(crate) keywords: Vec<String>,
     pub(crate) opcodes: Vec<Opcode>,
+    pub(crate) levels: Vec<Level>,
     pub(crate) templates: Vec<TemplateElement>,
 }
 
@@ -48,6 +49,7 @@ pub(crate) fn parse_manifest(
             channels: Vec::new(),
             templates: Vec::new(),
             opcodes: Vec::new(),
+            levels: Vec::new(),
         };
 
         templates.insert(guid, template);
