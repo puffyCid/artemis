@@ -1,9 +1,8 @@
-mod channel;
 mod crimson;
-mod level;
-mod opcode;
-mod private;
+mod data;
+mod defintion;
 mod provider;
 mod table;
 mod task;
+pub(crate) mod wevt;
 mod xml;

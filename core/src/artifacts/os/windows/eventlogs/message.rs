@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet};
  * TODO:
  * 3. Parse each one:
  *    - MUI: Done
- *    - Wevt_template - in progress
+ *    - Wevt_template - Done
  *    - MessageTable: Done
  * 4. Map event log data to message string
  * 5. Provide optional directory containing DLL and other files

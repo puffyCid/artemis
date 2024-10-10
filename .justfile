@@ -50,6 +50,10 @@ spotlight: (_test "artifacts::os::macos::spotlight")
 [group('artifacts')]
 registry: (_test "artifacts::os::windows::registry")
 
+# Test only the Eventlog parsing functions
+[group('artifacts')]
+eventlogs: (_test "artifacts::os::windows::eventlogs")
+
 # Test only the JavaScript runtime
 runtime: (_test "runtime::")
 

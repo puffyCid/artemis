@@ -1,4 +1,4 @@
-use super::crimson::ManifestTemplate;
+use super::xml::TemplateElement;
 use crate::{
     artifacts::os::windows::eventlogs::resources::manifest::{self, xml::parse_xml},
     utils::{
@@ -11,34 +11,41 @@ use crate::{
 use log::warn;
 use nom::bytes::complete::{take, take_while};
 
-pub(crate) fn parse_table<'a>(
-    data: &'a [u8],
-    manifest: &mut ManifestTemplate,
-) -> nom::IResult<&'a [u8], ()> {
+pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], Vec<TemplateElement>> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (mut input, template_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let mut count = 0;
+    let mut temps = Vec::new();
     while count < template_count {
-        let (remaining, _) = parse_template(input, manifest)?;
+        let (remaining, template) = parse_template(input)?;
+        if template.guid.is_empty() {
+            break;
+        }
+
+        temps.push(template);
         input = remaining;
         count += 1;
     }
-    Ok((input, ()))
+
+    Ok((input, temps))
 }
 
-fn parse_template<'a>(
-    data: &'a [u8],
-    manifest: &mut ManifestTemplate,
-) -> nom::IResult<&'a [u8], ()> {
+fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size includes sig and size itself
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let adjust_size = 8;
     if adjust_size > size {
         panic!("[eventlogs] Template size is too small: {size}. Ending parsing");
-        return Ok((&[], ()));
+        let temp = TemplateElement {
+            template_id: String::new(),
+            event_data_type: String::new(),
+            elements: Vec::new(),
+            guid: String::new(),
+        };
+        return Ok((&[], temp));
     }
     let (remaing_template, input) = take(size - adjust_size)(input)?;
     let (input, descriptor_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -55,7 +62,6 @@ fn parse_template<'a>(
 
     // Binary XML slightly different from EVTX files
     let (remaining, template) = parse_xml(input, guid)?;
-    manifest.templates.push(template);
     let (input, _padding) = take_while(|b: u8| b == 0)(remaining)?;
     if descriptor_count != 0 {
         // Get first descriptor
@@ -71,7 +77,7 @@ fn parse_template<'a>(
     }
 
     // Remaining parts is just Template item descriptors and Template item names. Not needed? Skipping for now
-    Ok((remaing_template, ()))
+    Ok((remaing_template, template))
 }
 
 #[derive(Debug)]
@@ -98,13 +104,7 @@ fn get_event_type(event: &u32) -> EventType {
 #[cfg(test)]
 mod tests {
     use super::parse_table;
-    use crate::{
-        artifacts::os::windows::eventlogs::resources::manifest::{
-            channel::parse_channel, crimson::parse_manifest, provider::parse_provider,
-        },
-        filesystem::files::read_file,
-        utils::nom_helper::nom_data,
-    };
+    use crate::{filesystem::files::read_file, utils::nom_helper::nom_data};
     use std::path::PathBuf;
 
     #[test]
@@ -113,17 +113,10 @@ mod tests {
         test_location.push("tests/test_data/windows/pe/resources/wevt_template.raw");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let (input, mut template) = parse_manifest(&data).unwrap();
-        let manifest = template
-            .get_mut("9799276c-fb04-47e8-845e-36946045c218")
-            .unwrap();
-
-        let (input, _) = parse_provider(input, manifest).unwrap();
-        let _ = parse_channel(&data, input, manifest).unwrap();
 
         let start = 0x1cc;
         let (table_start, _) = nom_data(&data, start).unwrap();
-        let (_input, _) = parse_table(table_start, manifest).unwrap();
-        assert_eq!(manifest.templates.len(), 9);
+        let (_input, templates) = parse_table(table_start).unwrap();
+        assert_eq!(templates.len(), 9);
     }
 }

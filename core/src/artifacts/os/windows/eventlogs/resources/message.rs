@@ -106,7 +106,6 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, result) = parse_table(&data).unwrap();
-        println!("{result:?}");
         assert_eq!(result.len(), 30);
     }
 }

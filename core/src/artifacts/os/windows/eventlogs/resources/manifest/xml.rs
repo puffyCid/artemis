@@ -12,10 +12,10 @@ use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct TemplateElement {
-    template_id: String,
-    event_data_type: String,
-    elements: Vec<Element>,
-    guid: String,
+    pub(crate) template_id: String,
+    pub(crate) event_data_type: String,
+    pub(crate) elements: Vec<Element>,
+    pub(crate) guid: String,
 }
 
 /// Parse binary xml data to get template info
@@ -83,7 +83,7 @@ fn fragment_header(data: &[u8]) -> nom::IResult<&[u8], TokenType> {
 }
 
 #[derive(Debug)]
-struct Element {
+pub(crate) struct Element {
     token: TokenType,
     token_number: u8,
     depedency_id: i16,
