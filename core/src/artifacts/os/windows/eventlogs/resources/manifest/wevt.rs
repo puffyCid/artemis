@@ -94,6 +94,7 @@ pub(crate) enum SigType {
     Unknown,
 }
 
+/// Get data signature
 fn get_sig_type(sig: &u32) -> SigType {
     match sig {
         0x4e414843 => SigType::Chan,
