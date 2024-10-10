@@ -8,6 +8,7 @@ use super::{
     xml::TemplateElement,
 };
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use log::error;
 use nom::bytes::complete::take;
 use std::collections::HashMap;
 
@@ -71,7 +72,7 @@ pub(crate) fn parse_manifest(
                     let (_, definitions) = parse_definition(element_start)?;
                     value.definitions = definitions;
                 }
-                _ => println!("[eventlogs] Unknown manifest sig: {sig_type:?}"),
+                _ => error!("[eventlogs] Unknown manifest sig: {sig}"),
             }
         }
     }
@@ -103,7 +104,7 @@ fn get_sig_type(sig: &u32) -> SigType {
         0x4b534154 => SigType::Task,
         0x5759454b => SigType::Keyw,
         0x544e5645 => SigType::Evnt,
-        _ => panic!("{sig}"),
+        _ => SigType::Unknown,
     }
 }
 
