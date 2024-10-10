@@ -7,17 +7,11 @@ use pelite::{
 
 #[derive(Debug)]
 pub(crate) struct EventLogResource {
-    pub(crate) resource: ResourceType,
-    pub(crate) data: Vec<u8>,
+    pub(crate) mui_data: Vec<u8>,
+    pub(crate) wevt_data: Vec<u8>,
+    pub(crate) message_data: Vec<u8>,
     pub(crate) path: String,
-}
-
-#[derive(PartialEq, Debug)]
-pub(crate) enum ResourceType {
-    Mui,
-    WevtTemplate,
-    MessageTable,
-    Unknown,
+    pub(crate) registry_path: String,
 }
 
 /// Read the eventlog resource data from PE file
@@ -36,9 +30,11 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
     let mui = Name::Wide(&[77, 85, 73]);
     let wevt_template = Name::Wide(&[87, 69, 86, 84, 95, 84, 69, 77, 80, 76, 65, 84, 69]);
     let mut message_source = EventLogResource {
-        resource: ResourceType::Unknown,
-        data: Vec::new(),
+        mui_data: Vec::new(),
+        wevt_data: Vec::new(),
+        message_data: Vec::new(),
         path: path.to_string(),
+        registry_path: String::new(),
     };
 
     if let Ok(resources) = pe.resources() {
@@ -51,19 +47,14 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
                 continue;
             }
 
-            if entry.name()? == wevt_template {
-                message_source.resource = ResourceType::WevtTemplate;
-            } else if entry.name()? == message_table {
-                message_source.resource = ResourceType::MessageTable;
-            } else if entry.name()? == mui {
-                message_source.resource = ResourceType::Mui;
-            }
-
             if entry.is_dir() {
                 if let Some(entry_dir) = entry.entry()?.dir() {
-                    message_source.data = read_dir(&entry_dir)?;
-                    if message_source.resource != ResourceType::Mui {
-                        break;
+                    if entry.name()? == wevt_template {
+                        message_source.wevt_data = read_dir(&entry_dir)?;
+                    } else if entry.name()? == message_table {
+                        message_source.message_data = read_dir(&entry_dir)?;
+                    } else if entry.name()? == mui {
+                        message_source.mui_data = read_dir(&entry_dir)?;
                     }
                     continue;
                 }
@@ -73,8 +64,14 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
             }
 
             if let Some(data) = entry.entry()?.data() {
-                message_source.data = data.bytes()?.to_vec();
-                break;
+                if entry.name()? == wevt_template {
+                    message_source.wevt_data = data.bytes()?.to_vec();
+                } else if entry.name()? == message_table {
+                    message_source.message_data = data.bytes()?.to_vec();
+                } else if entry.name()? == mui {
+                    message_source.mui_data = data.bytes()?.to_vec();
+                }
+                continue;
             }
             error!("[pe] Got None value on root resource bytes");
             return Err(Error::Invalid);
@@ -112,8 +109,7 @@ fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
 mod tests {
     use super::read_dir;
     use crate::{
-        artifacts::os::windows::pe::resources::{read_eventlog_resource, ResourceType},
-        filesystem::files::read_file,
+        artifacts::os::windows::pe::resources::read_eventlog_resource, filesystem::files::read_file,
     };
     use pelite::PeFile;
     use std::path::PathBuf;
@@ -124,8 +120,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\pe\\resources\\wer.dll");
 
         let results = read_eventlog_resource(test_location.to_str().unwrap()).unwrap();
-        assert_eq!(results.data.len(), 9538);
-        assert_eq!(results.resource, ResourceType::WevtTemplate);
+        assert_eq!(results.wevt_data.len(), 9538);
     }
 
     #[test]
@@ -134,8 +129,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\pe\\resources\\eventlog_provider.dll");
 
         let results = read_eventlog_resource(test_location.to_str().unwrap()).unwrap();
-        assert_eq!(results.data.len(), 180);
-        assert_eq!(results.resource, ResourceType::MessageTable);
+        assert_eq!(results.message_data.len(), 180);
     }
 
     #[test]
@@ -277,12 +271,7 @@ mod tests {
                     continue;
                 }
             }
-            let resources = read_eventlog_resource(&pe).unwrap();
-            if resources.resource == ResourceType::Unknown {
-                continue;
-            }
-
-            assert!(!resources.data.is_empty());
+            let _resources = read_eventlog_resource(&pe).unwrap();
         }
 
         for mut pe in parameter_paths {
@@ -296,12 +285,7 @@ mod tests {
                     continue;
                 }
             }
-            let resources = read_eventlog_resource(&pe).unwrap();
-            if resources.resource == ResourceType::Unknown {
-                continue;
-            }
-
-            assert!(!resources.data.is_empty());
+            let _resources = read_eventlog_resource(&pe).unwrap();
         }
     }
 }

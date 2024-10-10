@@ -1,7 +1,7 @@
 use super::error::EventLogsError;
 use crate::{
     artifacts::os::windows::{
-        pe::resources::{read_eventlog_resource, EventLogResource, ResourceType},
+        pe::resources::{read_eventlog_resource, EventLogResource},
         registry::helper::get_registry_keys,
     },
     filesystem::{
@@ -29,9 +29,6 @@ use std::collections::{HashMap, HashSet};
 pub(crate) fn get_resources() -> Result<(), EventLogsError> {
     let (message_resources, parameter_resources) = gather_resource_paths()?;
     for message in message_resources {
-        if message.resource != ResourceType::WevtTemplate {
-            continue;
-        }
         parse_resource(&message)?;
         break;
     }
@@ -178,7 +175,10 @@ fn gather_resource_paths() -> Result<(Vec<EventLogResource>, Vec<EventLogResourc
                 continue;
             }
         };
-        if resources.resource == ResourceType::Unknown {
+        if resources.message_data.is_empty()
+            && resources.mui_data.is_empty()
+            && resources.wevt_data.is_empty()
+        {
             continue;
         }
 
@@ -205,7 +205,10 @@ fn gather_resource_paths() -> Result<(Vec<EventLogResource>, Vec<EventLogResourc
                 continue;
             }
         };
-        if resources.resource == ResourceType::Unknown {
+        if resources.message_data.is_empty()
+            && resources.mui_data.is_empty()
+            && resources.wevt_data.is_empty()
+        {
             continue;
         }
 
