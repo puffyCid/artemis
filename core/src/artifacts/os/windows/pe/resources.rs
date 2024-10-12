@@ -11,7 +11,6 @@ pub(crate) struct EventLogResource {
     pub(crate) wevt_data: Vec<u8>,
     pub(crate) message_data: Vec<u8>,
     pub(crate) path: String,
-    pub(crate) registry_path: String,
 }
 
 /// Read the eventlog resource data from PE file
@@ -34,7 +33,6 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
         wevt_data: Vec::new(),
         message_data: Vec::new(),
         path: path.to_string(),
-        registry_path: String::new(),
     };
 
     if let Ok(resources) = pe.resources() {

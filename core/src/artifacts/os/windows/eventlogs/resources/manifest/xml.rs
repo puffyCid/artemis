@@ -21,7 +21,7 @@ pub(crate) struct TemplateElement {
 /// Parse binary xml data to get template info
 /**
 * Output is similar to
-```
+```xml
 <template tid="ClassArgs_V1">
  <data name="DeviceGUID" inType="win:GUID"/>
  <data name="DeviceNumber" inType="win:UInt32"/>
@@ -152,15 +152,20 @@ struct Attribute {
 fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
     let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let ending_data = 6;
+    let (remaining, mut attribute_data) = if (size + ending_data) as usize > input.len() {
+        take(size)(input)?
+    } else {
+        take(size + ending_data)(input)?
+    };
 
-    let (remaining, mut attribute_data) = take(size + ending_data)(input)?;
     let last_attribute = 0x6;
     let next_attribute = 0x46;
 
     let next_value = 0x45;
 
     let mut attributes = Vec::new();
-    loop {
+    let min_size = 10;
+    while attribute_data.len() > min_size {
         let (input, attribute_token_number) = nom_unsigned_one_byte(attribute_data, Endian::Le)?;
         let (input, name) = get_name(input)?;
 
@@ -175,11 +180,28 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, value_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let utf16 = 2;
-        let (mut value_input, value_data) = take(value_size * utf16)(input)?;
-        let mut value = extract_utf16_string(value_data);
+        let (value_input, value_data) = take(value_size * utf16)(input)?;
+        let value = extract_utf16_string(value_data);
+
+        if value_input.is_empty() {
+            let attribute = Attribute {
+                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token_number,
+                value,
+                value_token: get_token_type(&value_token_number),
+                value_token_number,
+                name,
+                input_type: InputType::Unknown,
+                substitution: TokenType::Unknown,
+                substitution_id: 0,
+            };
+            attributes.push(attribute);
+            break;
+        }
 
         // Check if we have another value. Have not seen this yet.
         while value_token_number == next_value {
+            panic!("whoah next attribute!");
             let (input, next_value_token_number) = nom_unsigned_one_byte(value_input, Endian::Le)?;
             let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
             let value_token_type = get_input_type(&value_token_type_number);
@@ -204,10 +226,31 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
             value_token_number = next_value_token_number;
         }
 
-        // Is this ending tag? Seems to always be 0x2
-        let (input, _unknown) = nom_unsigned_one_byte(value_input, Endian::Le)?;
+        if attribute_token_number == next_attribute {
+            attribute_data = value_input;
+            continue;
+        }
 
+        // Is this the ending tag? Seems to always be 0x2
+        let (input, _unknown) = nom_unsigned_one_byte(value_input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(input, Endian::Le)?;
+
+        if get_token_type(&substitution_type) == TokenType::EndElement {
+            let attribute = Attribute {
+                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token_number,
+                value,
+                value_token: get_token_type(&value_token_number),
+                value_token_number,
+                name,
+                input_type: InputType::Unknown,
+                substitution: TokenType::Unknown,
+                substitution_id: 0,
+            };
+            attributes.push(attribute);
+            break;
+        }
+
         let (input, substitution_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, input_type_data) = nom_unsigned_one_byte(input, Endian::Le)?;
 
@@ -245,6 +288,9 @@ fn get_name(data: &[u8]) -> nom::IResult<&[u8], String> {
 
     let adjust_size = 2;
     let utf16 = 2;
+    if (name_size * utf16) as usize > input.len() {
+        panic!("{data:?}");
+    }
     let (input, name_data) = take(name_size * utf16 + adjust_size)(input)?;
     let name = extract_utf16_string(name_data);
 

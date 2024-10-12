@@ -1,0 +1,58 @@
+{
+    "event_record_id": 117586,
+    "timestamp": "2024-09-23T06:02:38.999647000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Security-Auditing",
+                        "Guid": "54849625-5478-4994-A5BA-3E3B0328C30D"
+                    }
+                },
+                "EventID": 5379,
+                "Version": 0,
+                "Level": 0,
+                "Task": 13824,
+                "Opcode": 0,
+                "Keywords": "0x8020000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-09-23T06:02:38.999647Z"
+                    }
+                },
+                "EventRecordID": 117586,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "C4F62C20-0D7C-0001-BD2C-F6C47C0DDB01"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 1116,
+                        "ThreadID": 10144
+                    }
+                },
+                "Channel": "Security",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "SubjectUserSid": "S-1-5-21-549467458-3727351111-1684278619-1001",
+                "SubjectUserName": "bob",
+                "SubjectDomainName": "DESKTOP-9FSUKAJ",
+                "SubjectLogonId": "0x51a48",
+                "TargetName": "MicrosoftOffice16_Data:live:cid=*",
+                "Type": 0,
+                "CountOfCredentialsReturned": 0,
+                "ReadOperation": "%%8100",
+                "ReturnCode": 3221226021,
+                "ProcessCreationTime": "2024-09-23T06:02:37.610883Z",
+                "ClientProcessId": 12512
+            }
+        }
+    }
+}

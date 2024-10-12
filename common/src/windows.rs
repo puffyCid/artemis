@@ -367,7 +367,7 @@ pub enum ColumnType {
     Unknown,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EventLogRecord {
     pub event_record_id: u64,
     pub timestamp: String,

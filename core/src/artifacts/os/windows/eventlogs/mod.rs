@@ -1,4 +1,5 @@
+mod combine;
 mod error;
-mod message;
 pub(crate) mod parser;
 mod resources;
+mod strings;

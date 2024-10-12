@@ -3,16 +3,23 @@ use nom::{bytes::complete::take, error::ErrorKind};
 
 use crate::{
     artifacts::os::windows::{
-        eventlogs::message::parse_resource, pe::resources::read_eventlog_resource,
+        eventlogs::strings::parse_resource,
+        pe::resources::{read_eventlog_resource, EventLogResource},
     },
-    filesystem::{directory::get_parent_directory, files::get_filename},
+    filesystem::{
+        directory::get_parent_directory,
+        files::{get_filename, is_file},
+    },
     utils::{
         nom_helper::{nom_unsigned_four_bytes, Endian},
         strings::extract_utf16_string,
     },
 };
 
-pub(crate) fn parse_mui<'a>(data: &'a [u8], path: &str) -> nom::IResult<&'a [u8], ()> {
+pub(crate) fn parse_mui<'a>(
+    data: &'a [u8],
+    path: &str,
+) -> nom::IResult<&'a [u8], EventLogResource> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size is the entire data
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -62,6 +69,14 @@ pub(crate) fn parse_mui<'a>(data: &'a [u8], path: &str) -> nom::IResult<&'a [u8]
     let filename = get_filename(path);
     let real_path = format!("{parent}\\{lang}\\{filename}.mui");
 
+    if !is_file(&real_path) {
+        error!("[eventlogs] No MUI file at {real_path}");
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            &[],
+            ErrorKind::Fail,
+        )));
+    }
+
     let resource_result = read_eventlog_resource(&real_path);
     let resource = match resource_result {
         Ok(result) => result,
@@ -74,19 +89,7 @@ pub(crate) fn parse_mui<'a>(data: &'a [u8], path: &str) -> nom::IResult<&'a [u8]
         }
     };
 
-    let mui_result = parse_resource(&resource);
-    let mui = match mui_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[eventlogs] Could not parse MUI resource at {real_path}: {err:?}");
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                &[],
-                ErrorKind::Fail,
-            )));
-        }
-    };
-
-    Ok((&[], ()))
+    Ok((&[], resource))
 }
 
 #[cfg(test)]
@@ -110,5 +113,6 @@ mod tests {
         ];
 
         let (_, result) = parse_mui(&test, "C:\\WINDOWS\\System32\\fdeploy.dll").unwrap();
+        assert!(!result.message_data.is_empty());
     }
 }

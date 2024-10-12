@@ -36,11 +36,11 @@ fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16
         }
 
         // If Wide char does not contain 0, append separately. This can probably be removed now?
-        if !wide_char.contains(&0) && *adjust {
-            utf16_data.push(wide_char[0] as u16);
-            utf16_data.push(wide_char[1] as u16);
-            continue;
-        }
+        // if !wide_char.contains(&0) && *adjust {
+        //     utf16_data.push(wide_char[0] as u16);
+        //     utf16_data.push(wide_char[1] as u16);
+        //     continue;
+        //}
         if wide_char[0] == 0 {
             utf16_data.push(u16::from_ne_bytes([wide_char[1], wide_char[0]]));
             continue;

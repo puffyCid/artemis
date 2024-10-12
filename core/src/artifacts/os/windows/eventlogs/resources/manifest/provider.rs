@@ -13,7 +13,6 @@ pub(crate) fn parse_provider<'a>(data: &'a [u8]) -> nom::IResult<&'a [u8], Vec<u
 
     let mut count = 0;
     let mut offsets = Vec::new();
-    println!("{provider_count}");
     while count < provider_count - adjust_count {
         let (remaining, element_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (remaining, _unknown) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
