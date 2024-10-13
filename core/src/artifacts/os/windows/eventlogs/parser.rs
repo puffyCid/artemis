@@ -238,6 +238,9 @@ mod tests {
         test_location.push("tests/test_data/windows/eventlogs");
         let read_dir = read_dir(test_location.display().to_string()).unwrap();
         for file_path in read_dir {
+            if file_path.as_ref().unwrap().file_type().unwrap().is_dir() {
+                continue;
+            }
             let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
             let results = read_eventlogs(

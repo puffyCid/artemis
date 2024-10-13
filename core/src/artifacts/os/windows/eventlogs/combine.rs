@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn test_add_message_strings_complex() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/complex_log.json");
+        test_location.push("tests/test_data/windows/eventlogs/samples/complex_log.json");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn test_add_message_strings_log() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/eventlog.json");
+        test_location.push("tests/test_data/windows/eventlogs/samples/eventlog.json");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn test_add_message_strings_logon() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/logon_log.json");
+        test_location.push("tests/test_data/windows/eventlogs/samples/logon_log.json");
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
