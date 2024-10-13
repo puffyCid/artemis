@@ -33,7 +33,7 @@ pub(crate) fn parse_crimson(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, 
             opcodes: Vec::new(),
             levels: Vec::new(),
             tasks: Vec::new(),
-            definitions: Vec::new(),
+            definitions: HashMap::new(),
         };
 
         templates.insert(guid, template);

@@ -23,7 +23,7 @@ pub(crate) struct ManifestTemplate {
     pub(crate) levels: Vec<ManifestData>,
     pub(crate) templates: Vec<TemplateElement>,
     pub(crate) tasks: Vec<Task>,
-    pub(crate) definitions: Vec<Definition>,
+    pub(crate) definitions: HashMap<String, Definition>,
 }
 
 /// Parse `WEVT_TEMPLATE` resource
@@ -48,8 +48,9 @@ pub(crate) fn parse_manifest(
                     value.channels = channels;
                 }
                 SigType::Ttbl => {
-                    let (_, templates) = parse_table(element_start)?;
-                    value.templates = templates;
+                    //let (_, templates) = parse_table(element_start)?;
+                    //value.templates = templates;
+                    continue;
                 }
                 SigType::Opco => {
                     let (_, opcodes) = parse_manifest_data(data, element_start, &sig_type)?;
@@ -69,7 +70,7 @@ pub(crate) fn parse_manifest(
                     value.keywords = keywords;
                 }
                 SigType::Evnt => {
-                    let (_, definitions) = parse_definition(element_start)?;
+                    let (_, definitions) = parse_definition(data, element_start)?;
                     value.definitions = definitions;
                 }
                 _ => error!("[eventlogs] Unknown manifest sig: {sig}"),
@@ -129,7 +130,6 @@ mod tests {
         assert_eq!(value.offset, 36);
         assert_eq!(value.definitions.len(), 16);
         assert_eq!(value.keywords.len(), 22);
-        assert_eq!(value.templates.len(), 9);
         assert_eq!(value.opcodes.len(), 8);
     }
 }

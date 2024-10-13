@@ -32,7 +32,7 @@ pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], Vec<TemplateElemen
     Ok((input, temps))
 }
 
-fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement> {
+pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement> {
     let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size includes sig and size itself
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;

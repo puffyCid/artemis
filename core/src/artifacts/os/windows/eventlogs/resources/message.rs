@@ -7,10 +7,10 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct MessageTable {
-    id: u32,
+    pub(crate) id: u32,
     size: u16,
     flags: StringFlags,
-    message: String,
+    pub(crate) message: String,
 }
 
 struct Block {

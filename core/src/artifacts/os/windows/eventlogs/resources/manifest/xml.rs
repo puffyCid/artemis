@@ -84,12 +84,12 @@ fn fragment_header(data: &[u8]) -> nom::IResult<&[u8], TokenType> {
 
 #[derive(Debug)]
 pub(crate) struct Element {
-    token: TokenType,
-    token_number: u8,
-    depedency_id: i16,
-    size: u32,
-    attribute_list: Vec<Attribute>,
-    element_name: String,
+    pub(crate) token: TokenType,
+    pub(crate) token_number: u8,
+    pub(crate) depedency_id: i16,
+    pub(crate) size: u32,
+    pub(crate) attribute_list: Vec<Attribute>,
+    pub(crate) element_name: String,
 }
 
 /// Start parsing elements
@@ -136,16 +136,16 @@ fn element_start<'a>(
 }
 
 #[derive(Debug)]
-struct Attribute {
-    attribute_token: TokenType,
-    attribute_token_number: u8,
-    value: String,
-    value_token: TokenType,
-    value_token_number: u8,
-    name: String,
-    input_type: InputType,
-    substitution: TokenType,
-    substitution_id: u16,
+pub(crate) struct Attribute {
+    pub(crate) attribute_token: TokenType,
+    pub(crate) attribute_token_number: u8,
+    pub(crate) value: String,
+    pub(crate) value_token: TokenType,
+    pub(crate) value_token_number: u8,
+    pub(crate) name: String,
+    pub(crate) input_type: InputType,
+    pub(crate) substitution: TokenType,
+    pub(crate) substitution_id: u16,
 }
 
 /// Attempt to get attributes for the element
@@ -298,7 +298,7 @@ fn get_name(data: &[u8]) -> nom::IResult<&[u8], String> {
 }
 
 #[derive(Debug, PartialEq)]
-enum TokenType {
+pub(crate) enum TokenType {
     Eof,
     OpenStartElement,
     CloseStartElement,
@@ -342,7 +342,7 @@ fn get_token_type(token: &u8) -> TokenType {
 }
 
 #[derive(Debug, PartialEq)]
-enum InputType {
+pub(crate) enum InputType {
     Null,
     Unicode,
     Ansi,

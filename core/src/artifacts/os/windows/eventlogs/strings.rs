@@ -32,6 +32,11 @@ pub(crate) fn get_resources() -> Result<HashMap<String, StringResource>, EventLo
         }
 
         let _ = parse_resource(resource);
+
+        // We are done parsing the resource data. Empty the bytes so we are not carrying them around
+        resource.data.message_data = Vec::new();
+        resource.data.mui_data = Vec::new();
+        resource.data.wevt_data = Vec::new();
     }
 
     Ok(resources)
