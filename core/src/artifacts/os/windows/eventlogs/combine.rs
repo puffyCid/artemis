@@ -1,6 +1,6 @@
 use super::{
     resources::{manifest::defintion::Definition, message::MessageTable},
-    strings::StringResource,
+    strings::{ProviderInfo, StringResource},
 };
 use common::windows::EventLogRecord;
 use log::{error, warn};
@@ -18,7 +18,7 @@ use std::collections::HashMap;
 /// Combine eventlog strings with the template strings
 pub(crate) fn add_message_strings(
     log: &EventLogRecord,
-    resources: &HashMap<String, StringResource>,
+    resources: &StringResource,
     cache: &mut HashMap<String, StringResource>,
     parameters: &Regex,
 ) -> Option<String> {
@@ -27,34 +27,56 @@ pub(crate) fn add_message_strings(
     let provider = get_provider(&log.data)?;
     let guid = get_guid(&log.data)?;
 
-    let manifest = get_manifest(resources, provider);
+    let provider = resources.providers.get(provider);
 
     // There may not be a manifest associated with this eventlog record. We will try to make a message anyway
     // This is best effort
-    if manifest.is_none() {
+    if provider.is_none() {
         return merge_strings_no_manifest(&log.data);
     }
 
-    let table = manifest
-        .unwrap()
-        .message_table
-        .as_ref()?
-        .get(&(event_id as u32))?;
+    let message_files: &[String] = provider.unwrap().message_file.as_ref();
 
-    // Get the template based on the Provider GUID. Then get the template defitnition based on EventID and Version number
-    // Ex: Event ID 4624 version 3
-    let template = manifest
-        .unwrap()
-        .wevt_template
-        .as_ref()?
-        .get(&guid.to_lowercase())?
-        .definitions
-        .get(&format!("{}_{}", event_id, version))?;
+    let parameter_files: &[String] = provider.unwrap().parameter_file.as_ref();
 
-    // We have everthing needed to make an attempt to merge strings!
-    // But no guarantee of 100% perfect merge!
+    for message in message_files {
+        let template = resources.templates.get(message);
+        if template.is_none() {
+            continue;
+        }
 
-    merge_strings(&log.data, table, template, parameters)
+        let message_table = template.unwrap().message_table.as_ref();
+        let manifest = template.unwrap().wevt_template.as_ref();
+
+        // We need both
+        if message_table.is_none() || manifest.is_none() {
+            continue;
+        }
+
+        let table = message_table.unwrap().get(&(event_id as u32));
+        let manifest_template = manifest.unwrap().get(guid);
+
+        // We need both
+        if table.is_none() || manifest_template.is_none() {
+            continue;
+        }
+
+        let definition = manifest_template
+            .unwrap()
+            .definitions
+            .get(&format!("{event_id}_{version}"));
+
+        if definition.is_none() {
+            continue;
+        }
+
+        // We have everything needed to make an attempt to merge strings!
+        // But no guarantee of 100% perfect merge!
+        return merge_strings(&log.data, table.unwrap(), definition.unwrap(), parameters);
+    }
+
+    // If we failed to find anything. Try to make message anyway
+    return merge_strings_no_manifest(&log.data);
 }
 
 fn get_event_id(data: &Value) -> Option<u64> {
@@ -112,23 +134,6 @@ fn get_guid(data: &Value) -> Option<&str> {
             ["#attributes"]
             .as_object()?["Guid"]
     );
-    None
-}
-
-fn get_manifest<'a>(
-    resources: &'a HashMap<String, StringResource>,
-    provider: &str,
-) -> Option<&'a StringResource> {
-    for value in resources.values() {
-        for reg in &value.registry_info {
-            if !reg.registry_key.ends_with(provider) {
-                continue;
-            }
-
-            return Some(value);
-        }
-    }
-
     None
 }
 
