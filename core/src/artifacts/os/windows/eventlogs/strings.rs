@@ -87,6 +87,7 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
     Ok(())
 }
 
+#[derive(Debug)]
 pub(crate) struct StringResource {
     /**Registry info about providers. Key is provider name */
     pub(crate) providers: HashMap<String, ProviderInfo>,
@@ -94,6 +95,7 @@ pub(crate) struct StringResource {
     pub(crate) templates: HashMap<String, TemplateResource>,
 }
 
+#[derive(Debug)]
 pub(crate) struct ProviderInfo {
     pub(crate) registry_file_path: String,
     pub(crate) registry_path: String,
@@ -102,6 +104,7 @@ pub(crate) struct ProviderInfo {
     pub(crate) parameter_file: Vec<String>,
 }
 
+#[derive(Debug)]
 pub(crate) struct TemplateResource {
     pub(crate) path: String,
     pub(crate) resource_data: EventLogResource,
@@ -298,7 +301,7 @@ fn update_resource(templates: &mut HashMap<String, TemplateResource>, file: &str
         wevt_template: None,
     };
 
-    templates.insert(real_path, temp_info);
+    templates.insert(file.to_string(), temp_info);
 }
 
 #[cfg(test)]

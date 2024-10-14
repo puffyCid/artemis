@@ -5,7 +5,7 @@ use crate::utils::{
 use nom::bytes::complete::take;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct MessageTable {
     pub(crate) id: u32,
     size: u16,
@@ -19,7 +19,7 @@ struct Block {
     offset: u32,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 enum StringFlags {
     Ascii,
     Utf16,
@@ -54,7 +54,7 @@ pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Messa
         let string_count = block.last_id - block.first_id;
         count = 0;
         let (mut strings_start, _) = take(block.offset)(data)?;
-        while count < string_count {
+        while count <= string_count {
             let id = block.first_id + count;
             let (input, size) = nom_unsigned_two_bytes(strings_start, Endian::Le)?;
             let (input, flag) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -85,6 +85,7 @@ pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Messa
                 flags,
                 message,
             };
+
             table.insert(id, message_table);
             count += 1;
         }
@@ -106,6 +107,6 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, result) = parse_table(&data).unwrap();
-        assert_eq!(result.len(), 30);
+        assert_eq!(result.len(), 35);
     }
 }
