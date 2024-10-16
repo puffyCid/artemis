@@ -20,6 +20,7 @@ use crate::{
         regex_options::create_regex,
     },
 };
+use common::windows::RegistryData;
 use log::error;
 use std::collections::HashMap;
 
@@ -99,6 +100,7 @@ pub(crate) struct StringResource {
 pub(crate) struct ProviderInfo {
     pub(crate) registry_file_path: String,
     pub(crate) registry_path: String,
+    /** Will be either Provider name or GUID */
     pub(crate) name: String,
     pub(crate) message_file: Vec<String>,
     pub(crate) parameter_file: Vec<String>,
@@ -130,7 +132,21 @@ fn gather_resource_paths() -> Result<StringResource, EventLogsError> {
         &format!("{drive}:\\Windows\\System32\\config\\SYSTEM"),
     );
 
-    let reg_paths = match reg_result {
+    let mut reg_paths = match reg_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[eventlog] Could not parse registry for eventlog services: {err:?}");
+            return Err(EventLogsError::EventLogServices);
+        }
+    };
+
+    let reg_software_result = get_registry_keys(
+        "ROOT",
+        &create_regex(r".*\\microsoft\\windows\\currentversion\\winevt\\publishers\\.*").unwrap(),
+        &format!("{drive}:\\Windows\\System32\\config\\SOFTWARE"),
+    );
+
+    let mut reg_software_paths = match reg_software_result {
         Ok(result) => result,
         Err(err) => {
             error!("[eventlog] Could not parse registry for eventlog services: {err:?}");
@@ -150,100 +166,13 @@ fn gather_resource_paths() -> Result<StringResource, EventLogsError> {
         templates: HashMap::new(),
     };
 
-    for path in reg_paths {
-        for mut value in path.values {
-            // We only want EventMessageFile and ParameterMessageFile values, which contain path to PE file
-            if value.value != "EventMessageFile" && value.value != "ParameterMessageFile" {
-                continue;
-            }
+    registry_paths(&mut reg_paths, &mut resources.providers, &update_env);
 
-            if value.data.starts_with("\\SystemRoot\\") {
-                value.data = value.data.replace("\\SystemRoot\\", "%SystemRoot%");
-            }
-
-            let mut provider = ProviderInfo {
-                registry_file_path: path.registry_path.clone(),
-                registry_path: path.path.clone(),
-                name: path.name.clone(),
-                message_file: Vec::new(),
-                parameter_file: Vec::new(),
-            };
-
-            if value.data.contains(';') {
-                let multi_paths: Vec<&str> = value.data.split(';').collect();
-                for entry in multi_paths {
-                    if entry.contains('%') {
-                        let env_values: Vec<&str> = entry.split('%').collect();
-                        let mut real_path = String::new();
-                        for env_value in env_values {
-                            if env_value.is_empty() {
-                                continue;
-                            } else if env_value.contains('\\') {
-                                if !env_value.starts_with('\\') {
-                                    real_path += "\\";
-                                }
-                                real_path += env_value;
-                            } else {
-                                if let Some(path) = update_env.get(&env_value.to_lowercase()) {
-                                    real_path += path;
-                                }
-                            }
-                        }
-
-                        if value.value == "EventMessageFile" {
-                            provider.message_file.push(real_path);
-                        } else {
-                            provider.parameter_file.push(real_path);
-                        }
-                        continue;
-                    }
-
-                    if value.value == "EventMessageFile" {
-                        provider.message_file.push(entry.to_string());
-                    } else {
-                        provider.parameter_file.push(entry.to_string());
-                    }
-                }
-                resources.providers.insert(provider.name.clone(), provider);
-                continue;
-            } else if value.data.contains('%') {
-                let env_values: Vec<&str> = value.data.split('%').collect();
-                let mut real_path = String::new();
-
-                for env_value in env_values {
-                    if env_value.is_empty() {
-                        continue;
-                    } else if env_value.contains('\\') {
-                        if !env_value.starts_with('\\') {
-                            real_path += "\\";
-                        }
-                        real_path += env_value;
-                    } else {
-                        if let Some(path) = update_env.get(&env_value.to_lowercase()) {
-                            real_path += path;
-                        }
-                    }
-                }
-
-                if value.value == "EventMessageFile" {
-                    provider.message_file.push(real_path);
-                } else {
-                    provider.parameter_file.push(real_path);
-                }
-
-                resources.providers.insert(provider.name.clone(), provider);
-                continue;
-            }
-
-            if value.value == "EventMessageFile" {
-                provider.message_file.push(value.data);
-            } else {
-                provider.parameter_file.push(value.data);
-            }
-
-            resources.providers.insert(provider.name.clone(), provider);
-        }
-    }
+    registry_paths(
+        &mut reg_software_paths,
+        &mut resources.providers,
+        &update_env,
+    );
 
     // Now go through and parse all PE files associated with the EventLog providers
     for provider in resources.providers.values() {
@@ -302,6 +231,103 @@ fn update_resource(templates: &mut HashMap<String, TemplateResource>, file: &str
     };
 
     templates.insert(file.to_string(), temp_info);
+}
+
+fn registry_paths(
+    reg_paths: &mut [RegistryData],
+    providers: &mut HashMap<String, ProviderInfo>,
+    update_env: &HashMap<String, String>,
+) {
+    for path in reg_paths {
+        let mut provider = ProviderInfo {
+            registry_file_path: path.registry_path.clone(),
+            registry_path: path.path.clone(),
+            name: path.name.clone(),
+            message_file: Vec::new(),
+            parameter_file: Vec::new(),
+        };
+
+        for mut value in path.values.iter_mut() {
+            // We only want some values, which contain path to PE file
+            if value.value != "EventMessageFile"
+                && value.value != "ParameterMessageFile"
+                && value.value != "MessageFileName"
+                && value.value != "ParameterFileName"
+            {
+                continue;
+            }
+
+            if value.data.starts_with("\\SystemRoot\\") {
+                value.data = value.data.replace("\\SystemRoot\\", "%SystemRoot%");
+            }
+
+            if value.data.contains(';') {
+                let multi_paths: Vec<&str> = value.data.split(';').collect();
+                for entry in multi_paths {
+                    if entry.contains('%') {
+                        let env_values: Vec<&str> = entry.split('%').collect();
+                        let mut real_path = String::new();
+                        for env_value in env_values {
+                            if env_value.contains('\\') {
+                                if !env_value.starts_with('\\') {
+                                    real_path += "\\";
+                                }
+                                real_path += env_value;
+                            } else {
+                                if let Some(path) = update_env.get(&env_value.to_lowercase()) {
+                                    real_path += path;
+                                }
+                            }
+                        }
+
+                        if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                            provider.message_file.push(real_path);
+                        } else {
+                            provider.parameter_file.push(real_path);
+                        }
+                        continue;
+                    }
+
+                    if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                        provider.message_file.push(entry.to_string());
+                    } else {
+                        provider.parameter_file.push(entry.to_string());
+                    }
+                }
+                continue;
+            } else if value.data.contains('%') {
+                let env_values: Vec<&str> = value.data.split('%').collect();
+                let mut real_path = String::new();
+
+                for env_value in &env_values {
+                    if env_value.contains('\\') {
+                        if !env_value.starts_with('\\') {
+                            real_path += "\\";
+                        }
+                        real_path += env_value;
+                    } else {
+                        if let Some(path) = update_env.get(&env_value.to_lowercase()) {
+                            real_path += path;
+                        }
+                    }
+                }
+
+                if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                    provider.message_file.push(real_path);
+                } else {
+                    provider.parameter_file.push(real_path);
+                }
+                continue;
+            }
+
+            if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                provider.message_file.push(value.data.clone());
+            } else {
+                provider.parameter_file.push(value.data.clone());
+            }
+        }
+        providers.insert(provider.name.to_lowercase(), provider);
+    }
 }
 
 #[cfg(test)]

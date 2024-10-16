@@ -167,6 +167,25 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
         }
     }
 
+    if !eventlog_records.is_empty() {
+        let serde_data_result = serde_json::to_value(&eventlog_records);
+        let serde_data = match serde_data_result {
+            Ok(results) => results,
+            Err(err) => {
+                error!("[eventlogs] Failed to serialize last eventlogs: {err:?}");
+                return Err(EventLogsError::Serialize);
+            }
+        };
+
+        let result = output_data(&serde_data, "eventlogs", output, &start_time, filter);
+        match result {
+            Ok(_result) => {}
+            Err(err) => {
+                error!("[eventlogs] Could not output last eventlogs data: {err:?}");
+            }
+        }
+    }
+
     Ok(())
 }
 

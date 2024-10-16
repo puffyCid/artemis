@@ -9,7 +9,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 /**TODO
- * 3. Add support for precision formatters
+ * 3. Support UserData, ProcessingErrorData, complex EventData
  * 4. More tests
  * 4.5 Add caching!?
  * 5. Remove unwraps
@@ -33,17 +33,25 @@ pub(crate) fn add_message_strings(
     let provider_name = get_provider(&log.data)?;
     let guid = get_guid(&log.data)?.to_lowercase();
 
-    let provider_opt = resources.providers.get(provider_name);
+    let provider_opt = resources
+        .providers
+        .get(&format!("{{{}}}", guid.to_lowercase()));
     let provider = match provider_opt {
         Some(result) => result,
-        None => return merge_strings_no_manifest(&log.data),
+        None => {
+            // try provider name before we give up
+            match resources.providers.get(&provider_name.to_lowercase()) {
+                Some(result) => result,
+                None => return merge_strings_no_manifest(&log.data),
+            }
+        }
     };
 
     let message_files: &[String] = provider.message_file.as_ref();
     let parameter_files: &[String] = provider.parameter_file.as_ref();
 
     let mut param_message_table = HashMap::new();
-    // If we parameter files. Then we extract the message from it. There should only be one?
+    // If we have parameter files. Then we extract the message from it. There should only be one?
     for file in parameter_files {
         let template = resources.templates.get(file);
         if template.is_none() {
@@ -91,20 +99,24 @@ pub(crate) fn add_message_strings(
             continue;
         }
 
-        let table = message_table.unwrap().get(&(event_id as u32));
-        let manifest_template = manifest.unwrap().get(&guid);
+        let manifest_op = manifest.unwrap().get(&guid);
+        let manifist_template = match manifest_op {
+            Some(result) => result,
+            None => continue,
+        };
 
-        // We need both
-        if table.is_none() || manifest_template.is_none() {
-            continue;
-        }
-
-        let definition = manifest_template
-            .unwrap()
+        let event_definition = match manifist_template
             .definitions
-            .get(&format!("{event_id}_{version}"));
+            .get(&format!("{event_id}_{version}"))
+        {
+            Some(result) => result,
+            None => continue,
+        };
 
-        if definition.is_none() {
+        let table = message_table.unwrap().get(&event_definition.message_id);
+
+        // We need table
+        if table.is_none() {
             continue;
         }
 
@@ -113,7 +125,7 @@ pub(crate) fn add_message_strings(
         return merge_strings(
             &log.data,
             table.unwrap(),
-            definition.unwrap(),
+            event_definition,
             param_regex,
             &param_message_table,
         );
@@ -328,86 +340,76 @@ mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
-    fn test_add_message_strings_complex() {
+    fn test_add_message_strings() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/samples/complex_log.json");
+        test_location.push("tests/test_data/windows/eventlogs/samples/");
+        let samples = [
+            "complex_log.json",
+            "eventlog.json",
+            "logon_log.json",
+            "parameter_log.json",
+            "storage_log.json",
+            "processingerror_log.json",
+            "qualifiers_log.json",
+        ];
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
         let resources = get_resources().unwrap();
-
         let mut cache = HashMap::new();
         let params = create_regex(r"%\d+").unwrap();
-        let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
 
-        assert_eq!(
-            message,
-            "Credential Manager credentials were read.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-21-549467458-3727351111-1684278619-1001\n\tAccount Name:\t\tbob\n\tAccount Domain:\t\tDESKTOP-9FSUKAJ\n\tLogon ID:\t\t0x3311b1\n\tRead Operation:\t\tEnumerate Credentials\r\n\n\nThis event occurs when a user performs a read operation on stored credentials in Credential Manager.\r\n"
-        );
-    }
+        for sample in samples {
+            test_location.push(sample);
+            let data = read_file(test_location.to_str().unwrap()).unwrap();
+            let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
 
-    #[test]
-    fn test_add_message_strings_log() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/samples/eventlog.json");
+            test_location.pop();
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
-        let resources = get_resources().unwrap();
+            let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
 
-        let mut cache = HashMap::new();
-        let params = create_regex(r"%\d+").unwrap();
-        let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
+            assert!(!message.contains("%%"));
 
-        assert_eq!(
-            message,
-            "Message: Setting MSA Client Id for Token requests: {f0c62012-2cef-4831-b1f7-930682874c86}\nFunction: WinStoreAuth::AuthenticationInternal::SetMsaClientId\nError Code: -2147467259\nSource: onecoreuap\\enduser\\winstore\\auth\\lib\\winstoreauth.cpp\nLine Number: 265\nCorrelationVector: NULL\nProductId: NULL\n"
-        );
-    }
+            match sample {
+                "processingerror_log.json" => {
+                    // Windows Event Viewer shows "PSMFlags for Desktop AppX process %1 with applicationID %2 is %3." But i that is what a successful log entry is suppose to be
+                    assert_eq!(message,"ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n");
+                }
+                "complex_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Credential Manager credentials were read.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-21-549467458-3727351111-1684278619-1001\n\tAccount Name:\t\tbob\n\tAccount Domain:\t\tDESKTOP-9FSUKAJ\n\tLogon ID:\t\t0x3311b1\n\tRead Operation:\t\tEnumerate Credentials\r\n\n\nThis event occurs when a user performs a read operation on stored credentials in Credential Manager.\r\n"
+                    );
+                }
+                "eventlog.json" => {
+                    assert_eq!(
+                        message,
+                        "Setting MSA Client Id for Token requests: {f0c62012-2cef-4831-b1f7-930682874c86}\nError: -2147467259\nFunction: WinStoreAuth::AuthenticationInternal::SetMsaClientId\nSource: onecoreuap\\enduser\\winstore\\auth\\lib\\winstoreauth.cpp (265)\r\n"
+                    );
+                }
+                "logon_log.json" => {
+                    assert!(message.contains("An account was successfully logged on"));
+                    assert!(!message.contains("%%"));
 
-    #[test]
-    fn test_add_message_strings_logon() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/samples/logon_log.json");
-
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
-        let resources = get_resources().unwrap();
-
-        let mut cache = HashMap::new();
-        let params = create_regex(r"%\d+").unwrap();
-        let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
-
-        assert!(message.contains("An account was successfully logged on"));
-        assert!(!message.contains("%%"));
-
-        // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
-        if message.len() == 2212 {
-            assert_eq!(
-                message,
-                "An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n"
-            );
+                    // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
+                    if message.len() == 2212 {
+                        assert_eq!(message,"An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n");
+                    }
+                }
+                "parameter_log.json" => {
+                    assert!(!message.contains("%%"));
+                    assert_eq!(
+                            message,
+                            "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
+                    );
+                }
+                "storage_log.json" => {
+                    assert!(!message.contains("%%"));
+                    assert_eq!(
+                            message,
+                            "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
+                    );
+                }
+                _ => panic!("should not have an unknown sample?"),
+            }
         }
-    }
-
-    #[test]
-    fn test_add_message_strings_parameters() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/samples/parameter_log.json");
-
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
-        let resources = get_resources().unwrap();
-
-        let mut cache = HashMap::new();
-        let params = create_regex(r"%\d+").unwrap();
-        let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
-
-        assert!(!message.contains("%%"));
-
-        assert_eq!(
-                message,
-                "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
-            );
     }
 }

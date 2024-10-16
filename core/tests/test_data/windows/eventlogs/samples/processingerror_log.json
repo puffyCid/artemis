@@ -1,0 +1,50 @@
+{
+    "event_record_id": 1110,
+    "timestamp": "2024-08-31T02:21:02.200559000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-AppModel-Runtime",
+                        "Guid": "{f1ef270a-0d32-4352-ba52-dbab41e1d859}"
+                    }
+                },
+                "EventID": 219,
+                "Version": 0,
+                "Level": 4,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x2000000000000004",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-08-31T02:21:02.200559Z"
+                    }
+                },
+                "EventRecordID": 1110,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 6748,
+                        "ThreadID": 6772
+                    }
+                },
+                "Channel": "Microsoft-Windows-AppModel-Runtime/Admin",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-21-549467458-3727351111-1684278619-1001"
+                    }
+                }
+            },
+            "ProcessingErrorData": {
+                "ErrorCode": 15005,
+                "DataItemName": "PsmFlags",
+                "EventPayload": "4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110"
+            }
+        }
+    }
+}

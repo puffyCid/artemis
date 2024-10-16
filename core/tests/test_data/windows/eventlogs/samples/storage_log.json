@@ -1,0 +1,78 @@
+{
+    "event_record_id": 982,
+    "timestamp": "2024-10-10T06:15:18.626589000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-StorPort",
+                        "Guid": "C4636A1E-7986-4646-BF10-7BC3B4A76E8E"
+                    }
+                },
+                "EventID": 504,
+                "Version": 4,
+                "Level": 4,
+                "Task": 201,
+                "Opcode": 0,
+                "Keywords": "0x800000000600000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-10T06:15:18.626589Z"
+                    }
+                },
+                "EventRecordID": 982,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 0,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "Microsoft-Windows-Storage-Storport/Operational",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "PortNumber": 0,
+                "PathID": 2,
+                "TargetID": 0,
+                "LUN": 0,
+                "ClassDeviceGuid": "00000000-0000-0000-0000-000000000000",
+                "AdapterGuid": "03820A1F-4BB6-11EF-AEA8-806E6F6E6963",
+                "BusType": 11,
+                "MiniportName": "storahci",
+                "VendorId": "QEMU    ",
+                "ProductId": "QEMU DVD-ROM    ",
+                "SerialNumber": "",
+                "AdapterSerialNumber": "",
+                "SystemUptime_s": 660,
+                "Version": 5,
+                "TotalErrors": 730,
+                "TotalReadWriteErrors": 0,
+                "TotalImpendingDeviceFailureErrors": 0,
+                "TotalDeviceFailureErrors": 0,
+                "TimeoutsInMiniport": 0,
+                "HierarchicalResetSuccessCount": 0,
+                "LastError_RequestDuration_ms": 0,
+                "LastError_WaitDuration_ms": 0,
+                "LastError_Command": 0,
+                "LastError_SrbStatus": 4,
+                "LastError_ScsiStatus": 2,
+                "LastError_SenseKey": 2,
+                "LastError_AddSense": 58,
+                "LastError_AddSenseQ": 0,
+                "LastError_IoSize": 0,
+                "LastError_QueueDepth": 0,
+                "LastError_LBA": "0x0",
+                "SampledErrorLogArrayLength": 400,
+                "SampledErrorLogArray": "0402023A000000000000000000000000000000000000000000000000000000007F00000000000000040205240046000000000000000000000000000000000000000000000000000075000000000000000402023A0000000000000000000000000000000000000000000000000000000066000000000000000402023A000000000000000000000000000000000000000000000000000000009C010000000000000402023A00000000000000000000000000000000000000000000000000000000CB010000000000000402023A00000000000000000000000000000000000000000000000000000000E400000000000000040205240046000000000000000000000000000000000000000000000000000070000000000000000402023A0000000000000000000000000000000000000000000000000000000060020000000000000402023A0000000000000000000000000000000000000000000000000000000062020000000000000402023A00000000000000000000000000000000000000000000000000000000C002000000000000",
+                "UniqueErrorLogArrayLength": 120,
+                "UniqueErrorLogArray": "0402023A00250000000000000000000000000000000000000000000000000000BD020000000000000402052000AC000000000000000000000000000000000000000000000000000002000000000000000402052400460000000000000F000000000000000000000000000000000000001B00000000000000"
+            }
+        }
+    }
+}
