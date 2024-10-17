@@ -247,7 +247,7 @@ fn registry_paths(
             parameter_file: Vec::new(),
         };
 
-        for mut value in path.values.iter_mut() {
+        for value in path.values.iter_mut() {
             // We only want some values, which contain path to PE file
             if value.value != "EventMessageFile"
                 && value.value != "ParameterMessageFile"

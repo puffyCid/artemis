@@ -31,11 +31,14 @@ pub(crate) fn add_message_strings(
     let event_id = get_event_id(&log.data)?;
     let version = get_version(&log.data)?;
     let provider_name = get_provider(&log.data)?;
-    let guid = get_guid(&log.data)?.to_lowercase();
+    let guid_opt = get_guid(&log.data);
 
-    let provider_opt = resources
-        .providers
-        .get(&format!("{{{}}}", guid.to_lowercase()));
+    let guid = match guid_opt {
+        Some(result) => result.to_lowercase(),
+        None => String::new(),
+    };
+
+    let provider_opt = resources.providers.get(&format!("{{{guid}}}"));
     let provider = match provider_opt {
         Some(result) => result,
         None => {
@@ -91,15 +94,28 @@ pub(crate) fn add_message_strings(
             continue;
         }
 
-        let message_table = template.unwrap().message_table.as_ref();
-        let manifest = template.unwrap().wevt_template.as_ref();
+        let message_table = template?.message_table.as_ref();
+        let manifest = template?.wevt_template.as_ref();
 
-        // We need both
-        if message_table.is_none() || manifest.is_none() {
+        // We need at least one
+        if message_table.is_none() && manifest.is_none() {
             continue;
         }
 
-        let manifest_op = manifest.unwrap().get(&guid);
+        if guid.is_empty() {
+            let table = match message_table?.get(&(event_id.id as u32)) {
+                Some(result) => result,
+                None => continue,
+            };
+            return merge_strings_message_table(
+                &log.data,
+                table,
+                param_regex,
+                &param_message_table,
+            );
+        }
+
+        let manifest_op = manifest?.get(&guid);
         let manifist_template = match manifest_op {
             Some(result) => result,
             None => continue,
@@ -107,24 +123,23 @@ pub(crate) fn add_message_strings(
 
         let event_definition = match manifist_template
             .definitions
-            .get(&format!("{event_id}_{version}"))
+            .get(&format!("{}_{version}", event_id.id))
         {
             Some(result) => result,
             None => continue,
         };
 
-        let table = message_table.unwrap().get(&event_definition.message_id);
-
-        // We need table
-        if table.is_none() {
-            continue;
-        }
+        let table_opt = message_table?.get(&event_definition.message_id);
+        let table = match table_opt {
+            Some(result) => result,
+            None => continue,
+        };
 
         // We have everything needed to make an attempt to merge strings!
         // But no guarantee of 100% perfect merge!
         return merge_strings(
             &log.data,
-            table.unwrap(),
+            table,
             event_definition,
             param_regex,
             &param_message_table,
@@ -135,32 +150,79 @@ pub(crate) fn add_message_strings(
     return merge_strings_no_manifest(&log.data);
 }
 
-fn get_event_id(data: &Value) -> Option<u64> {
-    let id = &data.as_object()?["Event"].as_object()?["System"].as_object()?["EventID"];
+#[derive(Debug)]
+struct EventId {
+    id: u64,
+    qualifier: u64,
+}
+
+fn get_event_id(data: &Value) -> Option<EventId> {
+    let id = data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("EventID")?;
+
+    let mut event_id = EventId {
+        id: 0,
+        qualifier: 0,
+    };
+
     if id.is_u64() {
-        return id.as_u64();
+        event_id.id = id.as_u64()?;
+        return Some(event_id);
     }
 
-    panic!("handle qualifiers?");
+    for (attr_key, attr_value) in id.as_object()? {
+        if attr_key == "#attributes" {
+            for (key, value) in attr_value.as_object()? {
+                if key == "Qualifiers" {
+                    event_id.qualifier = value.as_u64()?;
+                }
+            }
+        } else if attr_key == "#text" {
+            event_id.id = attr_value.as_u64()?;
+        }
+    }
 
-    None
+    Some(event_id)
 }
 
 fn get_version(data: &Value) -> Option<u64> {
-    let version = &data.as_object()?["Event"].as_object()?["System"].as_object()?["Version"];
+    let version = &data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Version")?;
     if version.is_u64() {
         return version.as_u64();
     }
 
     panic!(
         "[eventlogs] Version number is not a number: {:?}",
-        &data.as_object()?["Event"].as_object()?["System"].as_object()?["Version"]
+        &data
+            .as_object()?
+            .get("Event")?
+            .as_object()?
+            .get("System")?
+            .as_object()?
+            .get("Version")?
     );
     None
 }
 
 fn get_provider(data: &Value) -> Option<&str> {
-    let provider = &data.as_object()?["Event"].as_object()?["System"].as_object()?["Provider"]
+    let provider = &data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Provider")?
         .as_object()?["#attributes"]
         .as_object()?["Name"];
     if provider.is_string() {
@@ -169,25 +231,46 @@ fn get_provider(data: &Value) -> Option<&str> {
 
     panic!(
         "[eventlogs] Provider is not a string: {:?}",
-        &data.as_object()?["Event"].as_object()?["System"].as_object()?["Provider"].as_object()?
-            ["#attributes"]
+        &data
+            .as_object()?
+            .get("Event")?
+            .as_object()?
+            .get("System")?
+            .as_object()?
+            .get("Provider")?
+            .as_object()?["#attributes"]
             .as_object()?["Name"]
     );
     None
 }
 
 fn get_guid(data: &Value) -> Option<&str> {
-    let guid = &data.as_object()?["Event"].as_object()?["System"].as_object()?["Provider"]
-        .as_object()?["#attributes"]
-        .as_object()?["Guid"];
+    let guid = data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Provider")?
+        .as_object()?
+        .get("#attributes")?
+        .as_object()?
+        .get("Guid")?;
+
     if guid.is_string() {
         return guid.as_str();
     }
 
     panic!(
         "[eventlogs] Guid is not a string: {:?}",
-        &data.as_object()?["Event"].as_object()?["System"].as_object()?["Provider"].as_object()?
-            ["#attributes"]
+        &data
+            .as_object()?
+            .get("Event")?
+            .as_object()?
+            .get("System")?
+            .as_object()?
+            .get("Provider")?
+            .as_object()?["#attributes"]
             .as_object()?["Guid"]
     );
     None
@@ -203,7 +286,8 @@ fn merge_strings(
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     // Manifest data type should? map to EventData, UserData, etc
-    let data = log.as_object()?["Event"].as_object()?[&manifest.template.as_ref()?.event_data_type]
+    let data = log.as_object()?.get("Event")?.as_object()?
+        [&manifest.template.as_ref()?.event_data_type]
         .as_object()?;
 
     let mut clean_message = clean_table(&table.message);
@@ -211,19 +295,20 @@ fn merge_strings(
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
         let mut param_num = 0;
-        // Should always be true
-        if param.starts_with('%') {
-            let num_result = param.get(1..)?.parse();
-            if num_result.is_err() {
-                error!(
-                    "[eventlogs] Could not get parameter for log message: {:?}",
-                    num_result.unwrap_err()
-                );
-                continue;
-            }
-
-            param_num = num_result.unwrap_or_default();
+        if !param.starts_with('%') {
+            continue;
         }
+        let num_result = param.get(1..)?.parse();
+        if num_result.is_err() {
+            error!(
+                "[eventlogs] Could not get parameter for log message: {:?}",
+                num_result.unwrap_err()
+            );
+            continue;
+        }
+
+        param_num = num_result.unwrap_or_default();
+
         if param_num <= 0 {
             warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
             continue;
@@ -240,6 +325,7 @@ fn merge_strings(
 
         for attribute in element_attributes {
             let value = data.get(&attribute.value)?;
+
             if value.as_str().is_some_and(|s| s.starts_with("%%")) {
                 let num_result = value.as_str()?.get(2..)?.parse();
                 if num_result.is_err() {
@@ -268,6 +354,7 @@ fn merge_strings(
                 clean_message = clean_message.replacen(param, &param_message_value.message, 1);
                 continue;
             }
+
             clean_message = clean_message.replacen(
                 param,
                 &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
@@ -280,7 +367,7 @@ fn merge_strings(
 }
 
 fn merge_strings_no_manifest(log: &Value) -> Option<String> {
-    let data = log.as_object()?["Event"].as_object()?;
+    let data = log.as_object()?.get("Event")?.as_object()?;
     let mut clean_string = String::new();
     for (key, value) in data {
         // Key should? be one of the following: EventData, UserData, DebugData, ProcessingErrorData, BinaryEventData
@@ -291,6 +378,102 @@ fn merge_strings_no_manifest(log: &Value) -> Option<String> {
         clean_string = build_string(&clean_string, value)?;
     }
     Some(clean_string)
+}
+
+fn merge_strings_message_table(
+    log: &Value,
+    table: &MessageTable,
+    param_regex: &Regex,
+    parameter_message: &HashMap<u32, MessageTable>,
+) -> Option<String> {
+    let mut clean_message = clean_table(&table.message);
+    let data = log.as_object()?.get("Event")?.as_object()?;
+    let mut values = Vec::new();
+    for (key, value) in data {
+        // Key should? be one of the following: EventData, UserData, DebugData, ProcessingErrorData, BinaryEventData
+        if !key.ends_with("Data") {
+            continue;
+        }
+
+        for (key_data, value_data) in value.as_object()? {
+            if value_data.is_null() {
+                continue;
+            }
+
+            for (text_key, text_value) in value_data.as_object()? {
+                if !text_value.is_array() {
+                    continue;
+                }
+                values = text_value.as_array()?.to_vec();
+            }
+        }
+    }
+
+    for found in param_regex.find_iter(&clean_message.clone()) {
+        let param = found.as_str();
+        let mut param_num = 0;
+
+        if !param.starts_with('%') {
+            continue;
+        }
+        let num_result = param.get(1..)?.parse();
+        if num_result.is_err() {
+            error!(
+                "[eventlogs] Could not get parameter for log message: {:?}",
+                num_result.unwrap_err()
+            );
+            continue;
+        }
+
+        param_num = num_result.unwrap_or_default();
+
+        if param_num <= 0 {
+            warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
+            continue;
+        }
+
+        let adjust_id = 1;
+        let value = values.get(param_num - adjust_id)?;
+
+        if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+            let num_result = value.as_str()?.get(2..)?.parse();
+            if num_result.is_err() {
+                warn!(
+                    "[eventlogs] Could not get parameter message id for log message: {:?}",
+                    num_result.unwrap_err()
+                );
+                continue;
+            }
+
+            let param_message_id: u32 = num_result.unwrap_or_default();
+            if parameter_message.is_empty() {
+                warn!(
+                    "[eventlogs] Got parameter message id {value:?} but no parameter message table"
+                );
+                continue;
+            }
+
+            let final_param = parameter_message.get(&param_message_id);
+            let param_message_value = match final_param {
+                Some(message) => message,
+                None => {
+                    warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
+                    continue;
+                }
+            };
+
+            clean_message = clean_message.replacen(param, &param_message_value.message, 1);
+            continue;
+        }
+
+        clean_message = clean_message.replacen(
+            param,
+            &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
+            1,
+        );
+    }
+
+    Some(clean_message)
 }
 
 fn build_string(message: &str, data: &Value) -> Option<String> {
@@ -406,6 +589,13 @@ mod tests {
                     assert_eq!(
                             message,
                             "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
+                    );
+                }
+                "qualifiers_log.json" => {
+                    assert!(!message.contains("%%"));
+                    assert_eq!(
+                            message,
+                            "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
                     );
                 }
                 _ => panic!("should not have an unknown sample?"),
