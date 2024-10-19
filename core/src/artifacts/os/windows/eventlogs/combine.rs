@@ -12,7 +12,6 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 /**TODO
- * 3. Support UserData, ProcessingErrorData, complex EventData
  * 4. More tests
  * 4.5 Add caching!?
  * 5. Remove unwraps
@@ -161,6 +160,7 @@ struct EventId {
     qualifier: u64,
 }
 
+/// Get Event ID and Qualifier if available
 fn get_event_id(data: &Value) -> Option<EventId> {
     let id = data
         .as_object()?
@@ -195,6 +195,7 @@ fn get_event_id(data: &Value) -> Option<EventId> {
     Some(event_id)
 }
 
+/// Get log entry version
 fn get_version(data: &Value) -> Option<u64> {
     let version = &data
         .as_object()?
@@ -220,6 +221,7 @@ fn get_version(data: &Value) -> Option<u64> {
     None
 }
 
+/// Get log provider
 fn get_provider(data: &Value) -> Option<&str> {
     let provider = &data
         .as_object()?
@@ -249,6 +251,7 @@ fn get_provider(data: &Value) -> Option<&str> {
     None
 }
 
+/// Get GUID for log if available
 fn get_guid(data: &Value) -> Option<&str> {
     let guid = data
         .as_object()?
@@ -358,132 +361,80 @@ fn merge_strings(
                     };
 
                     let string_data = other_messages.get(&(message_id.message_id as u32))?;
-
                     new_value = serde_json::to_value(string_data.message.strip_suffix("\r\n"))
                         .unwrap_or(Value::Null);
-                    if new_value.as_str().is_some_and(|s| s.starts_with("%%")) {
-                        let num_result = new_value.as_str()?.get(2..)?.parse();
-                        if num_result.is_err() {
-                            warn!(
-                                "[eventlogs] Could not get parameter message id for log message: {:?}",
-                                num_result.unwrap_err()
-                            );
-                            continue;
-                        }
 
-                        let param_message_id: u32 = num_result.unwrap_or_default();
-                        if parameter_message.is_empty() {
-                            warn!("[eventlogs] Got parameter message id {new_value:?} but no parameter message table");
-                            continue;
-                        }
-
-                        let final_param = parameter_message.get(&param_message_id);
-                        let param_message_value = match final_param {
-                            Some(message) => message,
-                            None => {
-                                warn!("[eventlogs] Could not find parameter message for {new_value:?} in message table");
-                                continue;
-                            }
-                        };
-
-                        clean_message =
-                            clean_message.replacen(param, &param_message_value.message, 1);
-                        continue;
-                    }
-
-                    clean_message = clean_message.replacen(
-                        param,
-                        &serde_json::from_value(new_value.clone()).unwrap_or(new_value.to_string()),
-                        1,
-                    );
+                    clean_message =
+                        add_event_string(&new_value, clean_message, param, parameter_message)?;
 
                     break;
                 }
+
                 if !new_value.is_null() {
                     continue;
                 }
             }
-
-            if value.as_str().is_some_and(|s| s.starts_with("%%")) {
-                let num_result = value.as_str()?.get(2..)?.parse();
-                if num_result.is_err() {
-                    warn!(
-                        "[eventlogs] Could not get parameter message id for log message: {:?}",
-                        num_result.unwrap_err()
-                    );
-                    continue;
-                }
-
-                let param_message_id: u32 = num_result.unwrap_or_default();
-                if parameter_message.is_empty() {
-                    warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
-                    continue;
-                }
-
-                let final_param = parameter_message.get(&param_message_id);
-                let param_message_value = match final_param {
-                    Some(message) => message,
-                    None => {
-                        warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
-                        continue;
-                    }
-                };
-
-                clean_message = clean_message.replacen(param, &param_message_value.message, 1);
-                continue;
-            }
-
-            clean_message = clean_message.replacen(
-                param,
-                &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
-                1,
-            );
+            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
             continue;
         }
 
         for attribute in element_attributes {
             let value = event_data.get(&attribute.value)?;
-
-            if value.as_str().is_some_and(|s| s.starts_with("%%")) {
-                let num_result = value.as_str()?.get(2..)?.parse();
-                if num_result.is_err() {
-                    warn!(
-                        "[eventlogs] Could not get parameter message id for log message: {:?}",
-                        num_result.unwrap_err()
-                    );
-                    continue;
-                }
-
-                let param_message_id: u32 = num_result.unwrap_or_default();
-                if parameter_message.is_empty() {
-                    warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
-                    continue;
-                }
-
-                let final_param = parameter_message.get(&param_message_id);
-                let param_message_value = match final_param {
-                    Some(message) => message,
-                    None => {
-                        warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
-                        continue;
-                    }
-                };
-
-                clean_message = clean_message.replacen(param, &param_message_value.message, 1);
-                continue;
-            }
-
-            clean_message = clean_message.replacen(
-                param,
-                &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
-                1,
-            );
+            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
         }
     }
 
     Some(clean_message)
 }
 
+/// Add the eventlog data to our message
+fn add_event_string(
+    value: &Value,
+    mut message: String,
+    param: &str,
+    parameter_message: &HashMap<u32, MessageTable>,
+) -> Option<String> {
+    if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+        let num_result = value.as_str()?.get(2..)?.parse();
+        if num_result.is_err() {
+            warn!(
+                "[eventlogs] Could not get parameter message id for log message: {:?}",
+                num_result.unwrap_err()
+            );
+            return None;
+        }
+
+        let param_message_id: u32 = num_result.unwrap_or_default();
+        if parameter_message.is_empty() {
+            warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
+            return None;
+        }
+
+        let final_param = parameter_message.get(&param_message_id);
+        let param_message_value = match final_param {
+            Some(message) => message,
+            None => {
+                warn!(
+                    "[eventlogs] Could not find parameter message for {value:?} in message table"
+                );
+                return None;
+            }
+        };
+
+        message = message.replacen(param, &param_message_value.message, 1);
+        return Some(message);
+    }
+
+    message = message.replacen(
+        param,
+        &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
+        1,
+    );
+
+    Some(message)
+}
+
+/// Combine eventlog data if we have neither `MESSAGETABLE` or `WEVT_TEMPLATE`. Sometimes neither will exist
 fn merge_strings_no_manifest(log: &Value) -> Option<String> {
     let data = log.as_object()?.get("Event")?.as_object()?;
     let mut clean_string = String::new();
@@ -498,6 +449,7 @@ fn merge_strings_no_manifest(log: &Value) -> Option<String> {
     Some(clean_string)
 }
 
+/// Combine eventlog data if we only have `MESSAGETABLE`
 fn merge_strings_message_table(
     log: &Value,
     table: &MessageTable,
@@ -551,48 +503,13 @@ fn merge_strings_message_table(
 
         let adjust_id = 1;
         let value = values.get(param_num - adjust_id)?;
-
-        if value.as_str().is_some_and(|s| s.starts_with("%%")) {
-            let num_result = value.as_str()?.get(2..)?.parse();
-            if num_result.is_err() {
-                warn!(
-                    "[eventlogs] Could not get parameter message id for log message: {:?}",
-                    num_result.unwrap_err()
-                );
-                continue;
-            }
-
-            let param_message_id: u32 = num_result.unwrap_or_default();
-            if parameter_message.is_empty() {
-                warn!(
-                    "[eventlogs] Got parameter message id {value:?} but no parameter message table"
-                );
-                continue;
-            }
-
-            let final_param = parameter_message.get(&param_message_id);
-            let param_message_value = match final_param {
-                Some(message) => message,
-                None => {
-                    warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
-                    continue;
-                }
-            };
-
-            clean_message = clean_message.replacen(param, &param_message_value.message, 1);
-            continue;
-        }
-
-        clean_message = clean_message.replacen(
-            param,
-            &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
-            1,
-        );
+        clean_message = add_event_string(value, clean_message, param, parameter_message)?;
     }
 
     Some(clean_message)
 }
 
+/// Iterate through all eventlog data keys and get values
 fn build_string(message: &str, data: &Value) -> Option<String> {
     let mut clean_message = message.to_string();
     for (key, value) in data.as_object()? {
@@ -614,7 +531,7 @@ fn build_string(message: &str, data: &Value) -> Option<String> {
     Some(clean_message)
 }
 
-// Windows uses % for formatting. Clean these up
+/// Windows uses % for formatting. Clean these up
 fn clean_table(message: &str) -> String {
     let mut clean = message.replace("%t", "\t");
     clean = clean.replace("%r%n", "\n");
@@ -631,12 +548,17 @@ fn clean_table(message: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::add_message_strings;
+    use super::{add_message_strings, build_string, get_event_id};
     use crate::{
-        artifacts::os::windows::eventlogs::strings::get_resources, filesystem::files::read_file,
+        artifacts::os::windows::eventlogs::{
+            combine::{clean_table, get_guid, get_provider, get_version},
+            strings::get_resources,
+        },
+        filesystem::files::read_file,
         utils::regex_options::create_regex,
     };
     use common::windows::EventLogRecord;
+    use serde_json::json;
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
@@ -671,7 +593,7 @@ mod tests {
 
             match sample {
                 "processingerror_log.json" => {
-                    // Windows Event Viewer shows "PSMFlags for Desktop AppX process %1 with applicationID %2 is %3." But i that is what a successful log entry is suppose to be
+                    // Windows Event Viewer shows "PSMFlags for Desktop AppX process %1 with applicationID %2 is %3." But i think that is what a successful log entry is suppose to be
                     assert_eq!(message,"ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n");
                 }
                 "complex_log.json" => {
@@ -726,5 +648,64 @@ mod tests {
                 _ => panic!("should not have an unknown sample?"),
             }
         }
+    }
+
+    #[test]
+    fn test_clean_table() {
+        let test = "%1 hello Rust!%n";
+        assert_eq!(clean_table(test), "%1 hello Rust!\n");
+    }
+
+    #[test]
+    fn test_build_string() {
+        let test = "hello ";
+        let data = json!({"test": "value"});
+        let result = build_string(test, &data).unwrap();
+        assert_eq!(result, "hello test: value\n");
+    }
+
+    #[test]
+    fn test_get_event_id() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_event_id(&log.data).unwrap();
+        assert_eq!(result.id, 2);
+        assert_eq!(result.qualifier, 0);
+    }
+
+    #[test]
+    fn test_get_version() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_version(&log.data).unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_get_provider() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_provider(&log.data).unwrap();
+        assert_eq!(result, "Microsoft-Windows-Servicing");
+    }
+
+    #[test]
+    fn test_get_guid() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_guid(&log.data).unwrap();
+        assert_eq!(result, "BD12F3B8-FC40-4A61-A307-B7A013A069C1");
     }
 }

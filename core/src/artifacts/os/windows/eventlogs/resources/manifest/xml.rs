@@ -174,7 +174,7 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, attribute_token_number) = nom_unsigned_one_byte(attribute_data, Endian::Le)?;
         let (input, name) = get_name(input)?;
 
-        let (input, mut value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let value_token_type = get_input_type(&value_token_type_number);
 
@@ -427,7 +427,9 @@ fn get_input_type(data: &u8) -> InputType {
 
 #[cfg(test)]
 mod tests {
-    use super::{element_start, fragment_header, get_name, get_token_type, parse_xml};
+    use super::{
+        attribute_list, element_start, fragment_header, get_name, get_token_type, parse_xml,
+    };
     use crate::{
         artifacts::os::windows::eventlogs::resources::manifest::xml::{
             get_input_type, InputType, TokenType,
@@ -497,6 +499,16 @@ mod tests {
             let result = get_token_type(&entry);
             assert!(result != TokenType::Unknown);
         }
+    }
+
+    #[test]
+    fn test_attribute_list() {
+        let test = [
+            39, 0, 0, 0, 6, 75, 149, 4, 0, 78, 0, 97, 0, 109, 0, 101, 0, 0, 0, 5, 1, 10, 0, 68, 0,
+            101, 0, 118, 0, 105, 0, 99, 0, 101, 0, 71, 0, 85, 0, 73, 0, 68, 0, 2, 13, 0, 0, 15, 4,
+        ];
+        let (_, result) = attribute_list(&test).unwrap();
+        assert_eq!(result.len(), 1);
     }
 
     #[test]

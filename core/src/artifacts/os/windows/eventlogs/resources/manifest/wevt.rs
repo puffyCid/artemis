@@ -46,16 +46,11 @@ pub(crate) fn parse_manifest(
                     let (_, channels) = parse_manifest_data(data, element_start, &sig_type)?;
                     value.channels = channels;
                 }
-                SigType::Ttbl => {
-                    //let (_, templates) = parse_table(element_start)?;
-                    //value.templates = templates;
-                    continue;
-                }
+                SigType::Ttbl | SigType::Evta | SigType::Priva => continue,
                 SigType::Opco => {
                     let (_, opcodes) = parse_manifest_data(data, element_start, &sig_type)?;
                     value.opcodes = opcodes;
                 }
-                SigType::Priva => continue,
                 SigType::Levl => {
                     let (_, levels) = parse_manifest_data(data, element_start, &sig_type)?;
                     value.levels = levels;
@@ -84,7 +79,7 @@ pub(crate) fn parse_manifest(
     Ok((&[], manifests))
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum SigType {
     Chan,
     Evnt,
@@ -95,6 +90,7 @@ pub(crate) enum SigType {
     Task,
     Ttbl,
     Priva,
+    Evta,
     Unknown,
 }
 
@@ -110,6 +106,7 @@ fn get_sig_type(sig: &u32) -> SigType {
         0x5759454b => SigType::Keyw,
         0x544e5645 => SigType::Evnt,
         0x5350414d => SigType::Maps,
+        0x41545645 => SigType::Evta,
         _ => SigType::Unknown,
     }
 }
@@ -117,7 +114,10 @@ fn get_sig_type(sig: &u32) -> SigType {
 #[cfg(test)]
 mod tests {
     use super::parse_manifest;
-    use crate::filesystem::files::read_file;
+    use crate::{
+        artifacts::os::windows::eventlogs::resources::manifest::wevt::{get_sig_type, SigType},
+        filesystem::files::read_file,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -135,6 +135,11 @@ mod tests {
         assert_eq!(value.definitions.len(), 16);
         assert_eq!(value.keywords.len(), 22);
         assert_eq!(value.opcodes.len(), 8);
+    }
+
+    #[test]
+    fn test_get_sig_type() {
+        assert_eq!(get_sig_type(&0), SigType::Unknown);
     }
 
     #[test]
