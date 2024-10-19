@@ -233,6 +233,7 @@ fn update_resource(templates: &mut HashMap<String, TemplateResource>, file: &str
     templates.insert(file.to_string(), temp_info);
 }
 
+/// Extract data from the Registry paths
 fn registry_paths(
     reg_paths: &mut [RegistryData],
     providers: &mut HashMap<String, ProviderInfo>,
@@ -273,10 +274,8 @@ fn registry_paths(
                                     real_path += "\\";
                                 }
                                 real_path += env_value;
-                            } else {
-                                if let Some(path) = update_env.get(&env_value.to_lowercase()) {
-                                    real_path += path;
-                                }
+                            } else if let Some(path) = update_env.get(&env_value.to_lowercase()) {
+                                real_path += path;
                             }
                         }
 
@@ -305,10 +304,8 @@ fn registry_paths(
                             real_path += "\\";
                         }
                         real_path += env_value;
-                    } else {
-                        if let Some(path) = update_env.get(&env_value.to_lowercase()) {
-                            real_path += path;
-                        }
+                    } else if let Some(path) = update_env.get(&env_value.to_lowercase()) {
+                        real_path += path;
                     }
                 }
 
@@ -326,7 +323,14 @@ fn registry_paths(
                 provider.parameter_file.push(value.data.clone());
             }
         }
-        providers.insert(provider.name.to_lowercase(), provider);
+        providers.insert(
+            provider
+                .name
+                .to_lowercase()
+                .replace('{', "")
+                .replace('}', ""),
+            provider,
+        );
     }
 }
 
@@ -345,5 +349,6 @@ mod tests {
     #[test]
     fn test_get_resources() {
         let result = get_resources().unwrap();
+        assert!(!result.providers.is_empty())
     }
 }

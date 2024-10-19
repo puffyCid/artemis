@@ -13,3 +13,4 @@ output = "local"
 artifact_name = "eventlogs"
 [artifacts.eventlogs]
 # alt_file = "C:\\Artifacts\\Security.evtx" # Optional
+include_template_strings = true

@@ -1,11 +1,5 @@
-use log::error;
-use nom::{bytes::complete::take, error::ErrorKind};
-
 use crate::{
-    artifacts::os::windows::{
-        eventlogs::strings::parse_resource,
-        pe::resources::{read_eventlog_resource, EventLogResource},
-    },
+    artifacts::os::windows::pe::resources::{read_eventlog_resource, EventLogResource},
     filesystem::{
         directory::get_parent_directory,
         files::{get_filename, is_file},
@@ -15,38 +9,41 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
+use log::error;
+use nom::{bytes::complete::take, error::ErrorKind};
 
+/// Parse MUI files. Used mainly for international languages
 pub(crate) fn parse_mui<'a>(
     data: &'a [u8],
     path: &str,
 ) -> nom::IResult<&'a [u8], EventLogResource> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size is the entire data
-    let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, version) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _version) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, file_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, attributes) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, fallback_location) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _file_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _attributes) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _fallback_location) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let checksum_size: u8 = 16;
-    let (input, service_checksum) = take(checksum_size)(input)?;
-    let (input, checksum) = take(checksum_size)(input)?;
+    let (input, _service_checksum) = take(checksum_size)(input)?;
+    let (input, _checksum) = take(checksum_size)(input)?;
 
     let unknown_size: u8 = 24;
     let (input, _unknown2) = take(unknown_size)(input)?;
 
-    let (input, main_name_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, main_name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_name_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let (input, main_id_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, main_id_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_id_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_id_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let (input, main_name_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, main_name_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_name_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_name_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let (input, main_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, main_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_type_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _main_type_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, lang_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, lang_size) = nom_unsigned_four_bytes(input, Endian::Le)?;

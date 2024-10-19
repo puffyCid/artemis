@@ -71,7 +71,7 @@ pub(crate) fn parse_manifest(
                     let (_, maps) = parse_map(data, element_start)?;
                     value.maps = maps;
                 }
-                _ => println!("[eventlogs] Unknown manifest sig: {sig}"),
+                SigType::Unknown => println!("[eventlogs] Unknown manifest sig: {sig}"),
             }
         }
     }

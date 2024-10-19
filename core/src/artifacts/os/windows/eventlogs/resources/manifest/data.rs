@@ -33,10 +33,9 @@ pub(crate) fn parse_manifest_data<'a>(
     // Only some Signature types have similar format
     match sig_type {
         SigType::Chan => parse_channel(resource, input, &data_count),
-        SigType::Levl => parse_opcode(resource, input, &data_count),
-        SigType::Opco => parse_opcode(resource, input, &data_count),
+        SigType::Levl | SigType::Opco => parse_opcode(resource, input, &data_count),
         SigType::Keyw => parse_keyword(resource, input, &data_count),
-        _ => return Ok((input, Vec::new())),
+        _ => Ok((input, Vec::new())),
     }
 }
 

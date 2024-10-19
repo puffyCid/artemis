@@ -283,9 +283,13 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.bits = Some(options);
             collect.artifact_name = String::from("bits");
         }
-        CommandArgs::Eventlogs { alt_file } => {
+        CommandArgs::Eventlogs {
+            alt_file,
+            include_template_strings,
+        } => {
             let options = EventLogsOptions {
                 alt_file: alt_file.clone(),
+                include_template_strings: include_template_strings.clone(),
             };
             collect.eventlogs = Some(options);
             collect.artifact_name = String::from("eventlogs");
@@ -753,7 +757,10 @@ mod tests {
     #[test]
     fn test_run_collector_eventlogs() {
         let command = Commands::Acquire {
-            artifact: Some(Eventlogs { alt_file: None }),
+            artifact: Some(Eventlogs {
+                alt_file: None,
+                include_template_strings: false,
+            }),
             format: String::from("json"),
         };
 

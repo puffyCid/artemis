@@ -75,7 +75,7 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
             return Err(Error::Invalid);
         }
     }
-    return Ok(message_source);
+    Ok(message_source)
 }
 
 /// Read nested resource directory

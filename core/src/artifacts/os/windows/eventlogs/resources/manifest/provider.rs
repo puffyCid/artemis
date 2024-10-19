@@ -1,13 +1,14 @@
 use crate::utils::nom_helper::{nom_signed_four_bytes, nom_unsigned_four_bytes, Endian};
 
-pub(crate) fn parse_provider<'a>(data: &'a [u8]) -> nom::IResult<&'a [u8], Vec<u32>> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+/// Get provider info from `WEVT_TEMPLATE`
+pub(crate) fn parse_provider(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
+    let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size includes sig and size itself
-    let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, _size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     // -1 if not set
-    let (input, message_id) = nom_signed_four_bytes(input, Endian::Le)?;
+    let (input, _message_id) = nom_signed_four_bytes(input, Endian::Le)?;
     let (input, provider_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (mut input, unknown_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (mut input, _unknown_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let adjust_count = 1;
 

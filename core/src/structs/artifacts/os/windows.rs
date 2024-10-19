@@ -8,6 +8,7 @@ pub struct PrefetchOptions {
 #[derive(Debug, Deserialize)]
 pub struct EventLogsOptions {
     pub alt_file: Option<String>,
+    pub include_template_strings: bool,
 }
 
 #[derive(Debug, Deserialize)]

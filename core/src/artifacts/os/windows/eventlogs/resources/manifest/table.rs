@@ -1,6 +1,6 @@
 use super::xml::TemplateElement;
 use crate::{
-    artifacts::os::windows::eventlogs::resources::manifest::{self, xml::parse_xml},
+    artifacts::os::windows::eventlogs::resources::manifest::xml::parse_xml,
     utils::{
         nom_helper::{
             nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
@@ -11,34 +11,14 @@ use crate::{
 use log::warn;
 use nom::bytes::complete::{take, take_while};
 
-pub(crate) fn parse_table(data: &[u8]) -> nom::IResult<&[u8], Vec<TemplateElement>> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
-    let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (mut input, template_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-    let mut count = 0;
-    let mut temps = Vec::new();
-    while count < template_count {
-        let (remaining, template) = parse_template(input)?;
-        if template.guid.is_empty() {
-            break;
-        }
-
-        temps.push(template);
-        input = remaining;
-        count += 1;
-    }
-
-    Ok((input, temps))
-}
-
+/// Parse template containing binary XML
 pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size includes sig and size itself
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let adjust_size = 8;
     if adjust_size > size {
-        panic!("[eventlogs] Template size is too small: {size}. Ending parsing");
+        warn!("[eventlogs] Template size is too small: {size}. Ending parsing");
         let temp = TemplateElement {
             template_id: String::new(),
             event_data_type: String::new(),
@@ -80,7 +60,7 @@ pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement
     Ok((remaing_template, template))
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum EventType {
     EventData,
     UserData,
@@ -90,6 +70,7 @@ enum EventType {
     Unknown,
 }
 
+/// Get `EventLog` data type
 fn get_event_type(event: &u32) -> EventType {
     match event {
         1 => EventType::EventData,
@@ -103,8 +84,14 @@ fn get_event_type(event: &u32) -> EventType {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_table;
-    use crate::{filesystem::files::read_file, utils::nom_helper::nom_data};
+    use super::parse_template;
+    use crate::{
+        artifacts::os::windows::eventlogs::resources::manifest::table::{
+            get_event_type, EventType,
+        },
+        filesystem::files::read_file,
+        utils::nom_helper::nom_data,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -114,9 +101,15 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let start = 0x1cc;
+        let start = 472;
         let (table_start, _) = nom_data(&data, start).unwrap();
-        let (_input, templates) = parse_table(table_start).unwrap();
-        assert_eq!(templates.len(), 9);
+
+        let (_, result) = parse_template(&table_start).unwrap();
+        assert_eq!(result.elements.len(), 17);
+    }
+
+    #[test]
+    fn test_get_event_type() {
+        assert_eq!(get_event_type(&3), EventType::DebugData);
     }
 }

@@ -63,9 +63,12 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse EventLogs
     Eventlogs {
-        /// Alternative full path to an Event Log
+        /// Alternative full path to an EventLog
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
+        /// Attempt to include template strings in the output. This will attempt to add strings from PE files to the log data. Only works on Windows
+        #[arg(long)]
+        include_template_strings: bool,
     },
     /// windows: Parse NTFS to get filelisting
     Rawfilelisting {

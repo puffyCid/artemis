@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /**
  * Windows `EventLogs` are the primary files associated with logging with system activity.  
  * They are stored in a binary format, typically at C:\Windows\System32\winevt\Logs
@@ -9,12 +11,16 @@
  *  `https://github.com/Velocidex/velociraptor`
  *  Windows Event Viewer
  */
-use super::error::EventLogsError;
+use super::{
+    combine::add_message_strings,
+    error::EventLogsError,
+    strings::{get_resources, StringResource},
+};
 use crate::{
     artifacts::os::windows::artifacts::output_data,
     filesystem::files::{file_extension, list_files},
     structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
-    utils::{environment::get_systemdrive, time::time_now},
+    utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
 use chrono::SecondsFormat;
 use common::windows::EventLogRecord;
@@ -28,10 +34,10 @@ pub(crate) fn grab_eventlogs(
     filter: &bool,
 ) -> Result<(), EventLogsError> {
     if let Some(file) = &options.alt_file {
-        return alt_eventlogs(file, output, filter);
+        return alt_eventlogs(file, output, filter, &options.include_template_strings);
     }
 
-    default_eventlogs(output, filter)
+    default_eventlogs(output, filter, &options.include_template_strings)
 }
 
 /// Parse the `EventLog` evtx file at provided path
@@ -66,7 +72,11 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
 }
 
 /// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
-fn default_eventlogs(output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
+fn default_eventlogs(
+    output: &mut Output,
+    filter: &bool,
+    include_templates: &bool,
+) -> Result<(), EventLogsError> {
     let drive_result = get_systemdrive();
     let drive = match drive_result {
         Ok(result) => result,
@@ -76,16 +86,30 @@ fn default_eventlogs(output: &mut Output, filter: &bool) -> Result<(), EventLogs
         }
     };
     let path = format!("{drive}:\\Windows\\System32\\winevt\\Logs");
-    read_directory(&path, output, filter)
+    read_directory(&path, output, filter, include_templates)
 }
 
 /// Read and parse `EventLog` files with alternative path
-fn alt_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
-    read_eventlogs(path, output, filter)
+fn alt_eventlogs(
+    path: &str,
+    output: &mut Output,
+    filter: &bool,
+    include_templates: &bool,
+) -> Result<(), EventLogsError> {
+    let mut templates = None;
+    if *include_templates {
+        templates = Some(get_resources()?);
+    }
+    read_eventlogs(path, output, filter, &templates)
 }
 
 /// Read all files at provided path
-fn read_directory(path: &str, output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
+fn read_directory(
+    path: &str,
+    output: &mut Output,
+    filter: &bool,
+    include_templates: &bool,
+) -> Result<(), EventLogsError> {
     let dir_results = list_files(path);
     let read_dir = match dir_results {
         Ok(result) => result,
@@ -94,6 +118,10 @@ fn read_directory(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
             return Err(EventLogsError::Parser);
         }
     };
+    let mut templates = None;
+    if *include_templates {
+        templates = Some(get_resources()?);
+    }
 
     for evtx_file in read_dir {
         // Skip non-eventlog files
@@ -101,7 +129,7 @@ fn read_directory(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
             continue;
         }
 
-        let eventlogs_results = read_eventlogs(&evtx_file, output, filter);
+        let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
         match eventlogs_results {
             Ok(_) => continue,
             Err(err) => {
@@ -115,7 +143,12 @@ fn read_directory(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
 }
 
 /// Read and parse the `EventLog` file
-fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), EventLogsError> {
+fn read_eventlogs(
+    path: &str,
+    output: &mut Output,
+    filter: &bool,
+    resources: &Option<StringResource>,
+) -> Result<(), EventLogsError> {
     let start_time = time_now();
 
     let evt_parser_results = EvtxParser::from_path(path);
@@ -129,6 +162,10 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
 
     let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
     let limit = 10000;
+    let mut cache = HashMap::new();
+    // Regex always correct
+    let param_regex = create_regex(r"%\d+").unwrap();
+
     for record in evt_parser.records_json_value() {
         match record {
             Ok(data) => {
@@ -146,6 +183,14 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
         }
 
         if eventlog_records.len() == limit {
+            if let Some(resource) = resources {
+                for record in &eventlog_records {
+                    println!("{record:?}");
+                    let message = add_message_strings(record, resource, &mut cache, &param_regex);
+                    panic!("my message: {message:?}");
+                }
+            }
+
             let serde_data_result = serde_json::to_value(&eventlog_records);
             let serde_data = match serde_data_result {
                 Ok(results) => results,
@@ -168,6 +213,14 @@ fn read_eventlogs(path: &str, output: &mut Output, filter: &bool) -> Result<(), 
     }
 
     if !eventlog_records.is_empty() {
+        if let Some(resource) = resources {
+            for record in &eventlog_records {
+                println!("{record:?}");
+                let message =
+                    add_message_strings(record, resource, &mut cache, &param_regex).unwrap();
+                println!("my message: {message:?}");
+            }
+        }
         let serde_data_result = serde_json::to_value(&eventlog_records);
         let serde_data = match serde_data_result {
             Ok(results) => results,
@@ -215,7 +268,10 @@ mod tests {
 
     #[test]
     fn test_grab_eventlogs() {
-        let options = EventLogsOptions { alt_file: None };
+        let options = EventLogsOptions {
+            alt_file: None,
+            include_template_strings: false,
+        };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
         let results = grab_eventlogs(&options, &mut output, &false).unwrap();
@@ -226,7 +282,7 @@ mod tests {
     fn test_default_eventlogs() {
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = default_eventlogs(&mut output, &false).unwrap();
+        let results = default_eventlogs(&mut output, &false, &false).unwrap();
         assert_eq!(results, ())
     }
 
@@ -236,7 +292,7 @@ mod tests {
         let path = "madeup";
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = alt_eventlogs(&path, &mut output, &false).unwrap();
+        let results = alt_eventlogs(&path, &mut output, &false, &false).unwrap();
         assert_eq!(results, ())
     }
 
@@ -246,8 +302,13 @@ mod tests {
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
-        let results =
-            read_directory(&test_location.display().to_string(), &mut output, &false).unwrap();
+        let results = read_directory(
+            &test_location.display().to_string(),
+            &mut output,
+            &false,
+            &false,
+        )
+        .unwrap();
         assert_eq!(results, ())
     }
 
@@ -266,6 +327,7 @@ mod tests {
                 &file_path.unwrap().path().display().to_string(),
                 &mut output,
                 &false,
+                &None,
             )
             .unwrap();
             assert_eq!(results, ())

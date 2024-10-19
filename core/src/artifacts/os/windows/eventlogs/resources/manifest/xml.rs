@@ -1,6 +1,3 @@
-// Parse binary xml. Its similar to the xml in event logs but slight different
-// See: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#4-binary-xml and notes about template resource
-
 use crate::utils::{
     nom_helper::{
         nom_signed_two_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
@@ -58,7 +55,7 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
     let next_element2 = 0x1;
     let mut template_elements = Vec::new();
     while input
-        .get(0)
+        .first()
         .is_some_and(|x| *x == next_element || *x == next_element2)
     {
         let (remaining, (element, _)) = element_start(input, &false)?;
@@ -79,9 +76,9 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
 /// Parse binary xml header
 fn fragment_header(data: &[u8]) -> nom::IResult<&[u8], TokenType> {
     let (input, token) = nom_unsigned_one_byte(data, Endian::Le)?;
-    let (input, major_version) = nom_unsigned_one_byte(input, Endian::Le)?;
-    let (input, minor_version) = nom_unsigned_one_byte(input, Endian::Le)?;
-    let (input, flags) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let (input, _major_version) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let (input, _minor_version) = nom_unsigned_one_byte(input, Endian::Le)?;
+    let (input, _flags) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     Ok((input, get_token_type(&token)))
 }

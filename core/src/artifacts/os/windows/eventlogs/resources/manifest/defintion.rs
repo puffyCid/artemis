@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
-use nom::bytes::complete::take;
-
 use super::{table::parse_template, xml::TemplateElement};
 use crate::utils::nom_helper::{
-    nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
-    nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    nom_unsigned_two_bytes, Endian,
 };
+use nom::bytes::complete::take;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct Definition {

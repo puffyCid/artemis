@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 /**TODO
- * 4. More tests
+ * 4. More tests - insane_log.json next
  * 4.5 Add caching!?
  * 5. Remove unwraps
  * 6. Return a struct instead of string? Struct has:
@@ -20,6 +20,10 @@ use std::collections::HashMap;
  *   - event id
  *   - provider
  *   - guid?
+ *   - include source evtx file
+ *   - message_table entry? (like macos unified logs)
+ *   - event source name
+ *   - provider info?
  */
 
 /// Combine eventlog strings with the template strings
@@ -31,16 +35,25 @@ pub(crate) fn add_message_strings(
     param_regex: &Regex,
 ) -> Option<String> {
     let event_id = get_event_id(&log.data)?;
+    let qualifier_check = 16;
+    // https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#message-string-identifier
+    let real_event_id = (event_id.qualifier << qualifier_check) | event_id.id;
+
     let version = get_version(&log.data)?;
     let provider_name = get_provider(&log.data)?;
     let guid_opt = get_guid(&log.data);
 
     let guid = match guid_opt {
-        Some(result) => result.to_lowercase(),
+        Some(result) => result.to_lowercase().replace('{', "").replace('}', ""),
         None => String::new(),
     };
 
-    let provider_opt = resources.providers.get(&format!("{{{guid}}}"));
+    let source = match get_event_source_name(&log.data) {
+        Some(result) => result,
+        None => "",
+    };
+
+    let provider_opt = resources.providers.get(&format!("{guid}"));
     let provider = match provider_opt {
         Some(result) => result,
         None => {
@@ -51,6 +64,18 @@ pub(crate) fn add_message_strings(
             }
         }
     };
+
+    // If we have ProcessingErrorData, there is nothing we can do to assemble the log message.
+    // We just combine everything and return that
+    if let Some(_) = log
+        .data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("ProcessingErrorData")
+    {
+        return merge_strings_no_manifest(&log.data);
+    }
 
     let message_files: &[String] = provider.message_file.as_ref();
     let parameter_files: &[String] = provider.parameter_file.as_ref();
@@ -105,10 +130,11 @@ pub(crate) fn add_message_strings(
         }
 
         if guid.is_empty() {
-            let table = match message_table?.get(&(event_id.id as u32)) {
+            let table = match message_table?.get(&(real_event_id as u32)) {
                 Some(result) => result,
                 None => continue,
             };
+
             return merge_strings_message_table(
                 &log.data,
                 table,
@@ -137,6 +163,16 @@ pub(crate) fn add_message_strings(
             None => continue,
         };
 
+        // If we do not have any templates. Can just try messagetable only
+        if event_definition.template.is_none() {
+            return merge_strings_message_table(
+                &log.data,
+                table,
+                param_regex,
+                &param_message_table,
+            );
+        }
+
         // We have everything needed to make an attempt to merge strings!
         // But no guarantee of 100% perfect merge!
         return merge_strings(
@@ -151,7 +187,7 @@ pub(crate) fn add_message_strings(
     }
 
     // If we failed to find anything. Try to make message anyway
-    return merge_strings_no_manifest(&log.data);
+    merge_strings_no_manifest(&log.data)
 }
 
 #[derive(Debug)]
@@ -284,6 +320,26 @@ fn get_guid(data: &Value) -> Option<&str> {
     None
 }
 
+fn get_event_source_name(data: &Value) -> Option<&str> {
+    let name = data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Provider")?
+        .as_object()?
+        .get("#attributes")?
+        .as_object()?
+        .get("EventSourceName")?;
+
+    if name.is_string() {
+        return name.as_str();
+    }
+
+    None
+}
+
 /// Attempt to merge template eventlog strings with the eventlog data  
 /// We *try* to follow the approach defined at [libyal docs](https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#parsing-event-data)
 fn merge_strings(
@@ -296,8 +352,9 @@ fn merge_strings(
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     let mut data = log.as_object()?.get("Event")?;
-    let mut event_data = &Map::new();
+    let mut clean_message = clean_table(&table.message);
 
+    let mut event_data = &Map::new();
     // Loop through keys until we get to our data
     while data.is_object() {
         for (key, value) in data.as_object()? {
@@ -306,13 +363,16 @@ fn merge_strings(
                 continue;
             }
 
+            if value.is_null() {
+                return Some(clean_message);
+            }
+
             event_data = value.as_object()?;
             data = &Value::Null;
             break;
         }
     }
 
-    let mut clean_message = clean_table(&table.message);
     let element_list = &manifest.template.as_ref()?.elements;
     let mut element_names = Vec::new();
     for element in element_list {
@@ -335,7 +395,7 @@ fn merge_strings(
 
         let param_num = num_result.unwrap_or(0);
 
-        if param_num <= 0 {
+        if param_num == 0 {
             warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
             continue;
         }
@@ -458,11 +518,22 @@ fn merge_strings_message_table(
 ) -> Option<String> {
     let mut clean_message = clean_table(&table.message);
     let data = log.as_object()?.get("Event")?.as_object()?;
+
     let mut values = Vec::new();
+    let event_defaults = vec![
+        "EventData",
+        "UserData",
+        "ProcessingErrorData",
+        "BinaryEventData",
+        "DebugData",
+    ];
     for (key, value) in data {
         // Key should? be one of the following: EventData, UserData, DebugData, ProcessingErrorData, BinaryEventData
         if !key.ends_with("Data") {
             continue;
+        }
+        if value.is_null() && event_defaults.contains(&key.as_str()) {
+            return Some(clean_message);
         }
 
         for (key_data, value_data) in value.as_object()? {
@@ -474,7 +545,7 @@ fn merge_strings_message_table(
                 if !text_value.is_array() {
                     continue;
                 }
-                values = text_value.as_array()?.to_vec();
+                values = text_value.as_array()?.clone();
             }
         }
     }
@@ -496,7 +567,7 @@ fn merge_strings_message_table(
 
         let param_num = num_result.unwrap_or(0);
 
-        if param_num <= 0 {
+        if param_num == 0 {
             warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
             continue;
         }
@@ -574,6 +645,8 @@ mod tests {
             "processingerror_log.json",
             "qualifiers_log.json",
             "userdata_log.json",
+            "null_log.json",
+            "qualifier_non_zero_log.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -610,7 +683,6 @@ mod tests {
                 }
                 "logon_log.json" => {
                     assert!(message.contains("An account was successfully logged on"));
-                    assert!(!message.contains("%%"));
 
                     // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
                     if message.len() == 2212 {
@@ -618,32 +690,40 @@ mod tests {
                     }
                 }
                 "parameter_log.json" => {
-                    assert!(!message.contains("%%"));
                     assert_eq!(
                             message,
                             "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
                     );
                 }
                 "storage_log.json" => {
-                    assert!(!message.contains("%%"));
                     assert_eq!(
                             message,
                             "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
                     );
                 }
                 "qualifiers_log.json" => {
-                    assert!(!message.contains("%%"));
                     assert_eq!(
                             message,
                             "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
                     );
                 }
                 "userdata_log.json" => {
-                    assert!(!message.contains("%%"));
                     assert_eq!(
                         message,
                         "Package KB5044033 was successfully changed to the Installed state.\r\n"
                     );
+                }
+                "null_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Windows Management Instrumentation Service started sucessfully\r\n"
+                    );
+                }
+                "qualifier_non_zero_log.json" => {
+                    assert!(
+                        message.starts_with("The Software Protection service has completed licensing status check.\nApplication Id=55c92734-d682-4d71-983e-d6ec3f16059f")
+                    );
+                    assert_eq!(message.len(), 6291);
                 }
                 _ => panic!("should not have an unknown sample?"),
             }
