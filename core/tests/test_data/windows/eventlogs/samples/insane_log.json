@@ -1,0 +1,153 @@
+{
+    "event_record_id": 1719,
+    "timestamp": "2024-08-03T06:50:04.072688000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Resource-Exhaustion-Detector",
+                        "Guid": "9988748E-C2E8-4054-85F6-0C3E1CAD2470"
+                    }
+                },
+                "EventID": 2004,
+                "Version": 0,
+                "Level": 3,
+                "Task": 3,
+                "Opcode": 33,
+                "Keywords": "0x8000000020000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-08-03T06:50:04.072688Z"
+                    }
+                },
+                "EventRecordID": 1719,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "9EAA533D-165D-47BB-B253-309A7A2CD547"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 6500,
+                        "ThreadID": 6412
+                    }
+                },
+                "Channel": "System",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "UserData": {
+                "MemoryExhaustionInfo": {
+                    "#attributes": {
+                        "xmlns": "http://www.microsoft.com/Windows/Resource/Exhaustion/Detector/Events"
+                    },
+                    "SystemInfo": {
+                        "SystemCommitLimit": 47906598912,
+                        "SystemCommitCharge": 47858802688,
+                        "ProcessCommitCharge": 3422089216,
+                        "PagedPoolUsage": 240447488,
+                        "PhysicalMemorySize": 17159340032,
+                        "PhysicalMemoryUsage": 3671191552,
+                        "NonPagedPoolUsage": 248324096,
+                        "Processes": 142
+                    },
+                    "PagedPoolInfo": {
+                        "Tag_1": {
+                            "Name": "MmSt",
+                            "PoolUsed": 34301200
+                        },
+                        "Tag_2": {
+                            "Name": "Ntff",
+                            "PoolUsed": 25314432
+                        },
+                        "Tag_3": {
+                            "Name": "FMfn",
+                            "PoolUsed": 23435776
+                        }
+                    },
+                    "NonPagedPoolInfo": {
+                        "Tag_1": {
+                            "Name": "EtwB",
+                            "PoolUsed": 127418624
+                        },
+                        "Tag_2": {
+                            "Name": "FMsc",
+                            "PoolUsed": 10174592
+                        },
+                        "Tag_3": {
+                            "Name": "File",
+                            "PoolUsed": 7281872
+                        }
+                    },
+                    "ProcessInfo": {
+                        "Process_1": {
+                            "Name": "rustc.exe",
+                            "ID": 11372,
+                            "CreationTime": "2024-08-03T06:49:52.779537Z",
+                            "CommitCharge": 1446383616,
+                            "HandleCount": 406,
+                            "Version": "0.0.0.0",
+                            "TypeInfo": 201
+                        },
+                        "Process_2": {
+                            "Name": "MsMpEng.exe",
+                            "ID": 4036,
+                            "CreationTime": "2024-08-03T06:49:02.860027Z",
+                            "CommitCharge": 325812224,
+                            "HandleCount": 997,
+                            "Version": "0.0.0.0",
+                            "TypeInfo": 66
+                        },
+                        "Process_3": {
+                            "Name": "msedge.exe",
+                            "ID": 4276,
+                            "CreationTime": "2024-08-03T06:49:34.094588Z",
+                            "CommitCharge": 109355008,
+                            "HandleCount": 580,
+                            "Version": "127.0.2651.86",
+                            "TypeInfo": 211
+                        },
+                        "Process_4": {
+                            "Name": "cargo.exe",
+                            "ID": 11212,
+                            "CreationTime": "2024-08-03T06:49:32.391991Z",
+                            "CommitCharge": 107757568,
+                            "HandleCount": 159,
+                            "Version": "0.0.0.0",
+                            "TypeInfo": 152
+                        },
+                        "Process_5": {
+                            "Name": "",
+                            "ID": 0,
+                            "CreationTime": "1601-01-01T00:00:00.000000Z",
+                            "CommitCharge": 0,
+                            "HandleCount": 0,
+                            "Version": "0.0.0.0",
+                            "TypeInfo": 0
+                        },
+                        "Process_6": {
+                            "Name": "",
+                            "ID": 0,
+                            "CreationTime": "1601-01-01T00:00:00.000000Z",
+                            "CommitCharge": 0,
+                            "HandleCount": 0,
+                            "Version": "0.0.0.0",
+                            "TypeInfo": 0
+                        }
+                    },
+                    "ExhaustionEventInfo": {
+                        "Time": "2024-08-03T06:50:03.060374Z"
+                    }
+                }
+            }
+        }
+    }
+}

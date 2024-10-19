@@ -1,11 +1,14 @@
 use super::{
-    resources::{manifest::defintion::Definition, message::MessageTable},
+    resources::{
+        manifest::{defintion::Definition, maps::MapInfo},
+        message::MessageTable,
+    },
     strings::StringResource,
 };
 use common::windows::EventLogRecord;
 use log::{error, warn};
 use regex::Regex;
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 /**TODO
@@ -140,7 +143,9 @@ pub(crate) fn add_message_strings(
         return merge_strings(
             &log.data,
             table,
+            message_table?,
             event_definition,
+            &manifist_template.maps,
             param_regex,
             &param_message_table,
         );
@@ -281,20 +286,38 @@ fn get_guid(data: &Value) -> Option<&str> {
 fn merge_strings(
     log: &Value,
     table: &MessageTable,
+    other_messages: &HashMap<u32, MessageTable>,
     manifest: &Definition,
+    maps: &[MapInfo],
     param_regex: &Regex,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
-    // Manifest data type should? map to EventData, UserData, etc
-    let data = log.as_object()?.get("Event")?.as_object()?
-        [&manifest.template.as_ref()?.event_data_type]
-        .as_object()?;
+    let mut data = log.as_object()?.get("Event")?;
+    let mut event_data = &Map::new();
+
+    // Loop through keys until we get to our data
+    while data.is_object() {
+        for (key, value) in data.as_object()? {
+            if key != &manifest.template.as_ref()?.event_data_type {
+                data = value;
+                continue;
+            }
+
+            event_data = value.as_object()?;
+            data = &Value::Null;
+            break;
+        }
+    }
 
     let mut clean_message = clean_table(&table.message);
+    let element_list = &manifest.template.as_ref()?.elements;
+    let mut element_names = Vec::new();
+    for element in element_list {
+        element_names.push(element.element_name.as_str());
+    }
 
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
-        let mut param_num = 0;
         if !param.starts_with('%') {
             continue;
         }
@@ -307,7 +330,7 @@ fn merge_strings(
             continue;
         }
 
-        param_num = num_result.unwrap_or_default();
+        let param_num = num_result.unwrap_or(0);
 
         if param_num <= 0 {
             warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
@@ -316,15 +339,110 @@ fn merge_strings(
 
         // Parameter ID starts at 0
         let adjust_id = 1;
-        let element_attributes = &manifest
-            .template
-            .as_ref()?
-            .elements
-            .get(param_num - adjust_id)?
-            .attribute_list;
+        let element_attributes = &element_list.get(param_num - adjust_id)?.attribute_list;
+
+        // If we do not have an attribute list. Then we have to use the element_names
+        // Seen for UserData entries: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#event-data
+        if element_attributes.is_empty() {
+            let name = *element_names.get(param_num - adjust_id)?;
+            let value = event_data.get(name)?;
+
+            if value.is_number() {
+                let mut new_value = Value::Null;
+                // The EventLog data may not actually be a real number. Could be an enum that maps to the messagetable
+                // Check out maps array/hashmap and messagetable
+                for map in maps {
+                    let message_id = match map.data.get(&(value.as_u64()? as u32)) {
+                        Some(result) => result,
+                        None => continue,
+                    };
+
+                    let string_data = other_messages.get(&(message_id.message_id as u32))?;
+
+                    new_value = serde_json::to_value(string_data.message.strip_suffix("\r\n"))
+                        .unwrap_or(Value::Null);
+                    if new_value.as_str().is_some_and(|s| s.starts_with("%%")) {
+                        let num_result = new_value.as_str()?.get(2..)?.parse();
+                        if num_result.is_err() {
+                            warn!(
+                                "[eventlogs] Could not get parameter message id for log message: {:?}",
+                                num_result.unwrap_err()
+                            );
+                            continue;
+                        }
+
+                        let param_message_id: u32 = num_result.unwrap_or_default();
+                        if parameter_message.is_empty() {
+                            warn!("[eventlogs] Got parameter message id {new_value:?} but no parameter message table");
+                            continue;
+                        }
+
+                        let final_param = parameter_message.get(&param_message_id);
+                        let param_message_value = match final_param {
+                            Some(message) => message,
+                            None => {
+                                warn!("[eventlogs] Could not find parameter message for {new_value:?} in message table");
+                                continue;
+                            }
+                        };
+
+                        clean_message =
+                            clean_message.replacen(param, &param_message_value.message, 1);
+                        continue;
+                    }
+
+                    clean_message = clean_message.replacen(
+                        param,
+                        &serde_json::from_value(new_value.clone()).unwrap_or(new_value.to_string()),
+                        1,
+                    );
+
+                    break;
+                }
+                if !new_value.is_null() {
+                    continue;
+                }
+            }
+
+            if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+                let num_result = value.as_str()?.get(2..)?.parse();
+                if num_result.is_err() {
+                    warn!(
+                        "[eventlogs] Could not get parameter message id for log message: {:?}",
+                        num_result.unwrap_err()
+                    );
+                    continue;
+                }
+
+                let param_message_id: u32 = num_result.unwrap_or_default();
+                if parameter_message.is_empty() {
+                    warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
+                    continue;
+                }
+
+                let final_param = parameter_message.get(&param_message_id);
+                let param_message_value = match final_param {
+                    Some(message) => message,
+                    None => {
+                        warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
+                        continue;
+                    }
+                };
+
+                clean_message = clean_message.replacen(param, &param_message_value.message, 1);
+                continue;
+            }
+
+            clean_message = clean_message.replacen(
+                param,
+                &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
+                1,
+            );
+            continue;
+        }
 
         for attribute in element_attributes {
-            let value = data.get(&attribute.value)?;
+            let value = event_data.get(&attribute.value)?;
 
             if value.as_str().is_some_and(|s| s.starts_with("%%")) {
                 let num_result = value.as_str()?.get(2..)?.parse();
@@ -411,7 +529,6 @@ fn merge_strings_message_table(
 
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
-        let mut param_num = 0;
 
         if !param.starts_with('%') {
             continue;
@@ -425,7 +542,7 @@ fn merge_strings_message_table(
             continue;
         }
 
-        param_num = num_result.unwrap_or_default();
+        let param_num = num_result.unwrap_or(0);
 
         if param_num <= 0 {
             warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
@@ -534,6 +651,7 @@ mod tests {
             "storage_log.json",
             "processingerror_log.json",
             "qualifiers_log.json",
+            "userdata_log.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -596,6 +714,13 @@ mod tests {
                     assert_eq!(
                             message,
                             "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
+                    );
+                }
+                "userdata_log.json" => {
+                    assert!(!message.contains("%%"));
+                    assert_eq!(
+                        message,
+                        "Package KB5044033 was successfully changed to the Installed state.\r\n"
                     );
                 }
                 _ => panic!("should not have an unknown sample?"),

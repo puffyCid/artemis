@@ -2,13 +2,12 @@ use super::{
     crimson::parse_crimson,
     data::{parse_manifest_data, ManifestData},
     defintion::{parse_definition, Definition},
+    maps::{parse_map, MapInfo},
     provider::parse_provider,
-    table::parse_table,
     task::{parse_task, Task},
-    xml::TemplateElement,
 };
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
-use log::error;
+use log::warn;
 use nom::bytes::complete::take;
 use std::collections::HashMap;
 
@@ -21,7 +20,7 @@ pub(crate) struct ManifestTemplate {
     pub(crate) keywords: Vec<ManifestData>,
     pub(crate) opcodes: Vec<ManifestData>,
     pub(crate) levels: Vec<ManifestData>,
-    pub(crate) templates: Vec<TemplateElement>,
+    pub(crate) maps: Vec<MapInfo>,
     pub(crate) tasks: Vec<Task>,
     pub(crate) definitions: HashMap<String, Definition>,
 }
@@ -73,7 +72,11 @@ pub(crate) fn parse_manifest(
                     let (_, definitions) = parse_definition(data, element_start)?;
                     value.definitions = definitions;
                 }
-                _ => error!("[eventlogs] Unknown manifest sig: {sig}"),
+                SigType::Maps => {
+                    let (_, maps) = parse_map(data, element_start)?;
+                    value.maps = maps;
+                }
+                _ => println!("[eventlogs] Unknown manifest sig: {sig}"),
             }
         }
     }
@@ -106,6 +109,7 @@ fn get_sig_type(sig: &u32) -> SigType {
         0x4b534154 => SigType::Task,
         0x5759454b => SigType::Keyw,
         0x544e5645 => SigType::Evnt,
+        0x5350414d => SigType::Maps,
         _ => SigType::Unknown,
     }
 }
@@ -131,5 +135,28 @@ mod tests {
         assert_eq!(value.definitions.len(), 16);
         assert_eq!(value.keywords.len(), 22);
         assert_eq!(value.opcodes.len(), 8);
+    }
+
+    #[test]
+    fn test_parse_manifest_userdata() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/pe/resources/cbsmsg_wevt.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (_, manifest) = parse_manifest(&data).unwrap();
+
+        let value = manifest
+            .get("bd12f3b8-fc40-4a61-a307-b7a013a069c1")
+            .unwrap();
+
+        assert_eq!(value.offset, 36);
+        assert_eq!(value.maps.len(), 1);
+        assert_eq!(
+            value.maps[0].data.get(&5112).unwrap().message_id,
+            -805306358
+        );
+        assert_eq!(value.definitions.len(), 132);
+        assert_eq!(value.keywords.len(), 1);
+        assert_eq!(value.opcodes.len(), 3);
     }
 }

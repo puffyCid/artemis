@@ -55,8 +55,12 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
     let (remaining, (start, mut input)) = element_start(input, &false)?;
 
     let next_element = 0x41;
+    let next_element2 = 0x1;
     let mut template_elements = Vec::new();
-    while input.get(0).is_some_and(|x| *x == next_element) {
+    while input
+        .get(0)
+        .is_some_and(|x| *x == next_element || *x == next_element2)
+    {
         let (remaining, (element, _)) = element_start(input, &false)?;
         input = remaining;
         template_elements.push(element);
@@ -129,10 +133,10 @@ fn element_start<'a>(
     }
 
     // If token is 0x41, we have attributes to get
-    let (_, attributes) = attribute_list(input)?;
+    let (data_remaining, attributes) = attribute_list(input)?;
     start.attribute_list = attributes;
 
-    Ok((remaining, (start, &[])))
+    Ok((remaining, (start, data_remaining)))
 }
 
 #[derive(Debug)]
@@ -150,13 +154,14 @@ pub(crate) struct Attribute {
 
 /// Attempt to get attributes for the element
 fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
-    let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (remaining_input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let ending_data = 6;
-    let (remaining, mut attribute_data) = if (size + ending_data) as usize > input.len() {
-        take(size)(input)?
-    } else {
-        take(size + ending_data)(input)?
-    };
+    let (mut remaining, mut attribute_data) =
+        if (size + ending_data) as usize > remaining_input.len() {
+            take(size)(remaining_input)?
+        } else {
+            take(size + ending_data)(remaining_input)?
+        };
 
     let last_attribute = 0x6;
     let next_attribute = 0x46;
@@ -232,10 +237,11 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         }
 
         // Is this the ending tag? Seems to always be 0x2
-        let (input, _unknown) = nom_unsigned_one_byte(value_input, Endian::Le)?;
+        let (input, _end) = nom_unsigned_one_byte(value_input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let is_substitution = get_token_type(&substitution_type);
 
-        if get_token_type(&substitution_type) == TokenType::EndElement {
+        if is_substitution == TokenType::EndElement {
             let attribute = Attribute {
                 attribute_token: get_token_type(&attribute_token_number),
                 attribute_token_number,
@@ -249,13 +255,33 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
             };
             attributes.push(attribute);
             break;
+        } else if is_substitution == TokenType::OpenStartElement {
+            let attribute = Attribute {
+                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token_number,
+                value,
+                value_token: get_token_type(&value_token_number),
+                value_token_number,
+                name,
+                input_type: InputType::Unknown,
+                substitution: TokenType::Unknown,
+                substitution_id: 0,
+            };
+            attributes.push(attribute);
+
+            // We were wrong about the remaining data above. Get the actual remaining bytes now
+            let (real_remaining, _) = take(size)(remaining_input)?;
+            let (real_remaining, _end) = nom_unsigned_one_byte(real_remaining, Endian::Le)?;
+
+            remaining = real_remaining;
+            break;
         }
 
         let (input, substitution_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, input_type_data) = nom_unsigned_one_byte(input, Endian::Le)?;
 
         // Is this ending element tag? Seems to always be 0x4
-        let (input, _unknown) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
 
         let attribute = Attribute {
             attribute_token: get_token_type(&attribute_token_number),
@@ -265,7 +291,7 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
             value_token_number,
             name,
             input_type: get_input_type(&input_type_data),
-            substitution: get_token_type(&substitution_type),
+            substitution: is_substitution,
             substitution_id,
         };
 

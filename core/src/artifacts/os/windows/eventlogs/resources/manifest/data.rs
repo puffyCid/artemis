@@ -9,10 +9,10 @@ use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct ManifestData {
-    message_id: i32,
+    pub(crate) message_id: i32,
     /**Bitmask? */
-    id: u64,
-    value: String,
+    pub(crate) id: u64,
+    pub(crate) value: String,
 }
 
 /// Parse similar template data signatures
