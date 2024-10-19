@@ -353,6 +353,7 @@ fn merge_strings(
 ) -> Option<String> {
     let mut data = log.as_object()?.get("Event")?;
     let mut clean_message = clean_table(&table.message);
+    println!("{clean_message:?}");
 
     let mut event_data = &Map::new();
     // Loop through keys until we get to our data
@@ -647,6 +648,7 @@ mod tests {
             "userdata_log.json",
             "null_log.json",
             "qualifier_non_zero_log.json",
+            "formater_log.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -724,6 +726,12 @@ mod tests {
                         message.starts_with("The Software Protection service has completed licensing status check.\nApplication Id=55c92734-d682-4d71-983e-d6ec3f16059f")
                     );
                     assert_eq!(message.len(), 6291);
+                }
+                "formater_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Windows Management Instrumentation Service started sucessfully\r\n"
+                    );
                 }
                 _ => panic!("should not have an unknown sample?"),
             }

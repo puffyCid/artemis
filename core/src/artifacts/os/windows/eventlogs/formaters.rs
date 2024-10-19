@@ -1,10 +1,6 @@
 use nom::bytes::complete::is_a;
 use serde_json::Value;
 
-/* Unable to find an example eventlog record that requires formatting.
- * Disable this code until an example can be found.
- */
-
 /// Try to format strings for log messages
 pub(crate) fn parse_formater<'a>(formater: &'a str, data: &Value) -> nom::IResult<&'a str, String> {
     let (input, (value_string, value_number)) = get_number(formater)?;
@@ -53,6 +49,9 @@ pub(crate) fn parse_formater<'a>(formater: &'a str, data: &Value) -> nom::IResul
     };
 
     let formater_type = get_type(input);
+
+    // Make function that takes everything. Only formater_type is required
+    // Everything else is optional
 
     Ok(("", String::new()))
 }
