@@ -1,4 +1,5 @@
 use super::{
+    formaters::{formater_message, formater_message_table},
     resources::{
         manifest::{defintion::Definition, maps::MapInfo},
         message::MessageTable,
@@ -11,19 +12,40 @@ use regex::Regex;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
-/**TODO
- * 4. More tests - insane_log.json next
+struct EventMessage {
+    message: String,
+    template_message: String,
+    raw_event_data: Value,
+    event_id: u64,
+    qualifier: u64,
+    version: u64,
+    guid: String,
+    provider: String,
+    source_name: String,
+    record_id: u64,
+    task: u64,
+    level: u64,
+    opcode: u64,
+    keywords: String,
+    generated: String,
+    system_time: String,
+    activity_id: String,
+    process_id: u64,
+    thread_id: u64,
+    sid: String,
+    channel: String,
+    computer: String,
+    source_file: String,
+    message_file: String,
+    parameter_file: String,
+}
+
+/*TODO
  * 4.5 Add caching!?
  * 5. Remove unwraps
- * 6. Return a struct instead of string? Struct has:
- *   - message
- *   - event id
- *   - provider
- *   - guid?
- *   - include source evtx file
- *   - message_table entry? (like macos unified logs)
- *   - event source name
- *   - provider info?
+ *
+ * 7. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
+ *   - repo reuses data from other repos with mix licensing. so avoid including any files if possible
  */
 
 /// Combine eventlog strings with the template strings
@@ -44,16 +66,12 @@ pub(crate) fn add_message_strings(
     let guid_opt = get_guid(&log.data);
 
     let guid = match guid_opt {
-        Some(result) => result.to_lowercase().replace('{', "").replace('}', ""),
+        Some(result) => result.to_lowercase().replace(['{', '}'], ""),
         None => String::new(),
     };
 
-    let source = match get_event_source_name(&log.data) {
-        Some(result) => result,
-        None => "",
-    };
-
-    let provider_opt = resources.providers.get(&format!("{guid}"));
+    let source = get_event_source_name(&log.data).unwrap_or_default();
+    let provider_opt = resources.providers.get(&guid);
     let provider = match provider_opt {
         Some(result) => result,
         None => {
@@ -67,12 +85,13 @@ pub(crate) fn add_message_strings(
 
     // If we have ProcessingErrorData, there is nothing we can do to assemble the log message.
     // We just combine everything and return that
-    if let Some(_) = log
+    if log
         .data
         .as_object()?
         .get("Event")?
         .as_object()?
         .get("ProcessingErrorData")
+        .is_some()
     {
         return merge_strings_no_manifest(&log.data);
     }
@@ -88,7 +107,7 @@ pub(crate) fn add_message_strings(
             continue;
         }
 
-        param_message_table = template.unwrap().message_table.as_ref()?.clone();
+        param_message_table = template?.message_table.as_ref()?.clone();
     }
 
     // If we do not have a parameter message file. Fallback to the default parameter file(s), just incase
@@ -129,7 +148,7 @@ pub(crate) fn add_message_strings(
             continue;
         }
 
-        if guid.is_empty() {
+        if guid.is_empty() || manifest.is_none() {
             let table = match message_table?.get(&(real_event_id as u32)) {
                 Some(result) => result,
                 None => continue,
@@ -244,16 +263,7 @@ fn get_version(data: &Value) -> Option<u64> {
         return version.as_u64();
     }
 
-    panic!(
-        "[eventlogs] Version number is not a number: {:?}",
-        &data
-            .as_object()?
-            .get("Event")?
-            .as_object()?
-            .get("System")?
-            .as_object()?
-            .get("Version")?
-    );
+    panic!("[eventlogs] Version number is not a number: {version:?}",);
     None
 }
 
@@ -266,24 +276,15 @@ fn get_provider(data: &Value) -> Option<&str> {
         .get("System")?
         .as_object()?
         .get("Provider")?
-        .as_object()?["#attributes"]
-        .as_object()?["Name"];
+        .as_object()?
+        .get("#attributes")?
+        .as_object()?
+        .get("Name")?;
     if provider.is_string() {
         return provider.as_str();
     }
 
-    panic!(
-        "[eventlogs] Provider is not a string: {:?}",
-        &data
-            .as_object()?
-            .get("Event")?
-            .as_object()?
-            .get("System")?
-            .as_object()?
-            .get("Provider")?
-            .as_object()?["#attributes"]
-            .as_object()?["Name"]
-    );
+    panic!("[eventlogs] Provider is not a string: {provider:?}",);
     None
 }
 
@@ -305,21 +306,11 @@ fn get_guid(data: &Value) -> Option<&str> {
         return guid.as_str();
     }
 
-    panic!(
-        "[eventlogs] Guid is not a string: {:?}",
-        &data
-            .as_object()?
-            .get("Event")?
-            .as_object()?
-            .get("System")?
-            .as_object()?
-            .get("Provider")?
-            .as_object()?["#attributes"]
-            .as_object()?["Guid"]
-    );
+    panic!("[eventlogs] Guid is not a string: {guid:?}",);
     None
 }
 
+/// Get `EventLog` record source name
 fn get_event_source_name(data: &Value) -> Option<&str> {
     let name = data
         .as_object()?
@@ -353,7 +344,6 @@ fn merge_strings(
 ) -> Option<String> {
     let mut data = log.as_object()?.get("Event")?;
     let mut clean_message = clean_table(&table.message);
-    println!("{clean_message:?}");
 
     let mut event_data = &Map::new();
     // Loop through keys until we get to our data
@@ -375,16 +365,26 @@ fn merge_strings(
     }
 
     let element_list = &manifest.template.as_ref()?.elements;
-    let mut element_names = Vec::new();
-    for element in element_list {
-        element_names.push(element.element_name.as_str());
-    }
+    let mut data_values = Vec::new();
+    grab_data_values(event_data, &mut data_values);
 
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
         if !param.starts_with('%') {
             continue;
         }
+
+        if param.contains('!') {
+            let update_message = match formater_message(param, event_data, element_list) {
+                Ok((_, result)) => result,
+                Err(_err) => continue,
+            };
+
+            clean_message = clean_message.replacen(param, &update_message, 1);
+
+            continue;
+        }
+
         let num_result = param.get(1..)?.parse();
         if num_result.is_err() {
             error!(
@@ -403,13 +403,19 @@ fn merge_strings(
 
         // Parameter ID starts at 0
         let adjust_id = 1;
-        let element_attributes = &element_list.get(param_num - adjust_id)?.attribute_list;
+        // If element list is too small, then we use the list of values from the event data
+        if element_list.len() < (param_num - adjust_id) {
+            let value = data_values.get(param_num - adjust_id)?;
+            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
+            continue;
+        }
+
+        let element_attributes = element_list.get(param_num - adjust_id)?;
 
         // If we do not have an attribute list. Then we have to use the element_names
         // Seen for UserData entries: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#event-data
-        if element_attributes.is_empty() {
-            let name = *element_names.get(param_num - adjust_id)?;
-            let value = event_data.get(name)?;
+        if element_attributes.attribute_list.is_empty() {
+            let value = event_data.get(&element_attributes.element_name)?;
 
             if value.is_number() {
                 let mut new_value = Value::Null;
@@ -439,7 +445,7 @@ fn merge_strings(
             continue;
         }
 
-        for attribute in element_attributes {
+        for attribute in &element_attributes.attribute_list {
             let value = event_data.get(&attribute.value)?;
             clean_message = add_event_string(value, clean_message, param, parameter_message)?;
         }
@@ -472,14 +478,11 @@ fn add_event_string(
         }
 
         let final_param = parameter_message.get(&param_message_id);
-        let param_message_value = match final_param {
-            Some(message) => message,
-            None => {
-                warn!(
-                    "[eventlogs] Could not find parameter message for {value:?} in message table"
-                );
-                return None;
-            }
+        let param_message_value = if let Some(message) = final_param {
+            message
+        } else {
+            warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
+            return None;
         };
 
         message = message.replacen(param, &param_message_value.message, 1);
@@ -521,7 +524,7 @@ fn merge_strings_message_table(
     let data = log.as_object()?.get("Event")?.as_object()?;
 
     let mut values = Vec::new();
-    let event_defaults = vec![
+    let event_defaults = [
         "EventData",
         "UserData",
         "ProcessingErrorData",
@@ -537,26 +540,43 @@ fn merge_strings_message_table(
             return Some(clean_message);
         }
 
-        for (key_data, value_data) in value.as_object()? {
+        for value_data in value.as_object()?.values() {
             if value_data.is_null() {
                 continue;
             }
 
-            for (text_key, text_value) in value_data.as_object()? {
-                if !text_value.is_array() {
+            if !value_data.is_object() {
+                values.push(value_data.clone());
+                continue;
+            }
+
+            for text_value in value_data.as_object()?.values() {
+                if text_value.is_array() {
+                    values.append(&mut text_value.as_array()?.to_vec());
                     continue;
                 }
-                values = text_value.as_array()?.clone();
+                values.push(text_value.clone());
             }
         }
     }
 
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
-
         if !param.starts_with('%') {
             continue;
         }
+
+        if param.contains('!') {
+            let update_message = match formater_message_table(param, &values) {
+                Ok((_, result)) => result,
+                Err(_err) => continue,
+            };
+
+            clean_message = clean_message.replacen(param, &update_message, 1);
+
+            continue;
+        }
+
         let num_result = param.get(1..)?.parse();
         if num_result.is_err() {
             error!(
@@ -603,6 +623,24 @@ fn build_string(message: &str, data: &Value) -> Option<String> {
     Some(clean_message)
 }
 
+/// Extract all values from keys and any nested keys
+fn grab_data_values(value: &Map<String, Value>, values: &mut Vec<Value>) -> Option<()> {
+    for (key, data) in value {
+        // Skip attributes
+        if key.starts_with('#') {
+            continue;
+        }
+        if data.is_object() {
+            grab_data_values(data.as_object()?, values);
+            continue;
+        }
+
+        values.push(data.clone());
+    }
+
+    Some(())
+}
+
 /// Windows uses % for formatting. Clean these up
 fn clean_table(message: &str) -> String {
     let mut clean = message.replace("%t", "\t");
@@ -620,7 +658,7 @@ fn clean_table(message: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{add_message_strings, build_string, get_event_id};
+    use super::{add_message_strings, build_string, get_event_id, grab_data_values};
     use crate::{
         artifacts::os::windows::eventlogs::{
             combine::{clean_table, get_guid, get_provider, get_version},
@@ -649,11 +687,14 @@ mod tests {
             "null_log.json",
             "qualifier_non_zero_log.json",
             "formater_log.json",
+            "insane_log.json",
+            "application_log.json",
+            "formater_messagetable_log.json",
         ];
 
         let resources = get_resources().unwrap();
         let mut cache = HashMap::new();
-        let params = create_regex(r"%\d+").unwrap();
+        let params = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
         for sample in samples {
             test_location.push(sample);
@@ -684,7 +725,7 @@ mod tests {
                     );
                 }
                 "logon_log.json" => {
-                    assert!(message.contains("An account was successfully logged on"));
+                    assert!(message.starts_with("An account was successfully logged on"));
 
                     // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
                     if message.len() == 2212 {
@@ -730,7 +771,25 @@ mod tests {
                 "formater_log.json" => {
                     assert_eq!(
                         message,
-                        "Windows Management Instrumentation Service started sucessfully\r\n"
+                        "The Open procedure for service \"MSDTC\" in DLL \"C:\\WINDOWS\\system32\\msdtcuiu.DLL\" failed with error code 2147944538. Performance data for this service will not be available.\r\n"
+                    );
+                }
+                "insane_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: rustc.exe (11372) consumed 1446383616 bytes, MsMpEng.exe (4036) consumed 325812224 bytes, and msedge.exe (4276) consumed 109355008 bytes.\r\n"
+                    );
+                }
+                "application_log.json" => {
+                    assert_eq!(
+                        message,
+                        "The COM+ sub system is suppressing duplicate event log entries for a duration of 86400 seconds.  The suppression timeout can be controlled by a REG_DWORD value named SuppressDuplicateDuration under the following registry key: HKLM\\Software\\Microsoft\\COM3\\Eventlog.\r\n"
+                    );
+                }
+                "formater_messagetable_log.json" => {
+                    assert_eq!(
+                        message,
+                        "[11596:12792:0802/205026.025:INFO:rlz_lib.cc(438)] Attempting to send RLZ ping brand=GCEA\r\n"
                     );
                 }
                 _ => panic!("should not have an unknown sample?"),
@@ -795,5 +854,32 @@ mod tests {
 
         let result = get_guid(&log.data).unwrap();
         assert_eq!(result, "BD12F3B8-FC40-4A61-A307-B7A013A069C1");
+    }
+
+    #[test]
+    fn test_grab_data_values() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/insane_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let test = &log.data["Event"]["UserData"];
+        let mut values = Vec::new();
+
+        grab_data_values(test.as_object().unwrap(), &mut values).unwrap();
+        assert_eq!(values.len(), 63);
+
+        assert_eq!(values[20], "rustc.exe");
+        assert_eq!(values[21], 11372);
+        assert_eq!(values[23], 1446383616);
+        assert_eq!(values[27], "MsMpEng.exe");
+        assert_eq!(values[28], 4036);
+
+        assert_eq!(values[30], 325812224);
+        assert_eq!(values[34], "msedge.exe");
+        assert_eq!(values[35], 4276);
+        assert_eq!(values[37], 109355008);
+
+        assert_eq!(values[48], "");
     }
 }

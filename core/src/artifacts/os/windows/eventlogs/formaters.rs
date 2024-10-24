@@ -1,79 +1,189 @@
+use super::resources::manifest::xml::Element;
 use nom::bytes::complete::is_a;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
-/// Try to format strings for log messages
-pub(crate) fn parse_formater<'a>(formater: &'a str, data: &Value) -> nom::IResult<&'a str, String> {
-    let (input, (value_string, value_number)) = get_number(formater)?;
+pub(crate) fn formater_message_table<'a>(
+    formater: &'a str,
+    values: &[Value],
+) -> nom::IResult<&'a str, String> {
+    let (input, (_value_string, value_number)) = get_number(formater)?;
+    // Index number starts at 0
+    let adjust_id = 1;
+    let value;
+    if let Some(result) = values.get((value_number - adjust_id) as usize) {
+        value = result;
+    } else {
+        return Ok(("", String::from("Failed to get element index")));
+    }
 
     // Remove exclaimation points. Now we only have formating characters left
     let remaining_string = input.replace('!', "");
+    let text_result = parse_formats(&remaining_string, value, &value_number);
+    let text = match text_result {
+        Ok((_, result)) => result,
+        Err(_err) => String::from("Failed to get element index"),
+    };
 
+    Ok(("", text))
+}
+
+/// Try to format strings for log messages. This is uncommon?
+pub(crate) fn formater_message<'a>(
+    formater: &'a str,
+    values: &Map<String, Value>,
+    elements: &[Element],
+) -> nom::IResult<&'a str, String> {
+    let (input, (_value_string, value_number)) = get_number(formater)?;
+    // Index number starts at 0
+    let adjust_id = 1;
+    let element;
+    if let Some(result) = elements.get((value_number - adjust_id) as usize) {
+        element = result;
+    } else {
+        return Ok(("", String::from("Failed to get element index")));
+    }
+
+    let mut data = &Value::Null;
+    if element.attribute_list.is_empty() {
+        data = values.get(&element.element_name).unwrap_or(&Value::Null);
+    } else {
+        for attr in &element.attribute_list {
+            if let Some(result) = values.get(&attr.value) {
+                data = result;
+                break;
+            }
+        }
+    }
+
+    // Remove exclaimation points. Now we only have formating characters left
+    let remaining_string = input.replace('!', "");
+    let text_result = parse_formats(&remaining_string, data, &value_number);
+    let text = match text_result {
+        Ok((_, result)) => result,
+        Err(_err) => String::from("Failed to get element index"),
+    };
+
+    Ok(("", text))
+}
+
+fn parse_formats<'a>(
+    input: &'a str,
+    data: &Value,
+    value_number: &u8,
+) -> nom::IResult<&'a str, String> {
     // Get formater flags if any. If we do not have any, do not throw error, we just move on
-    let flags_result = get_flags(&remaining_string);
+    let flags_result = get_flags(input);
     let (input, flags) = match flags_result {
         Ok(result) => result,
-        Err(_err) => (remaining_string.as_str(), Vec::new()),
+        Err(_err) => (input, None),
     };
 
     // Get formater width if any. If we do not have any, do not throw error, we just move on
-    let width_result = get_width(&input);
+    let width_result = get_width(input);
     let (input, width) = match width_result {
         Ok(result) => result,
-        Err(_err) => (
-            remaining_string.as_str(),
-            FormaterWidth {
-                is_asterick: false,
-                width: 0,
-            },
-        ),
+        Err(_err) => (input, None),
     };
 
     // Get formater precision if any. If we do not have any, do not throw error, we just move on
-    let precision_result = get_precision(&input);
+    let precision_result = get_precision(input);
     let (input, precision) = match precision_result {
         Ok(result) => result,
-        Err(_err) => (
-            remaining_string.as_str(),
-            FormaterWidth {
-                is_asterick: false,
-                width: 0,
-            },
-        ),
+        Err(_err) => (input, None),
     };
 
     // Get formater size if any. If we do not have any, do not throw error, we just move on
-    let size_result = get_size(&input);
+    let size_result = get_size(input);
     let (input, size) = match size_result {
         Ok(result) => result,
-        Err(_err) => (remaining_string.as_str(), FormaterSize::Unknown),
+        Err(_err) => (input, None),
     };
 
     let formater_type = get_type(input);
 
-    // Make function that takes everything. Only formater_type is required
-    // Everything else is optional
+    let options = FormatOptions {
+        flags,
+        width,
+        precision,
+        _size: size,
+    };
 
-    Ok(("", String::new()))
+    Ok((
+        "",
+        format_message(&options, &formater_type, value_number, data),
+    ))
+}
+
+struct FormatOptions {
+    flags: Option<Vec<Flags>>,
+    width: Option<FormaterWidth>,
+    precision: Option<FormaterWidth>,
+    _size: Option<FormaterSize>,
 }
 
 fn format_message(
-    flags: &[Flags],
-    width: &FormaterWidth,
-    precision: &FormaterWidth,
-    size: &FormaterSize,
-    formater_type: &FormaterType,
-    number: &u8,
+    options: &FormatOptions,
+    _formater_type: &FormaterType,
+    _number: &u8,
     data: &Value,
-) -> Option<String> {
-    let sign = String::new();
+) -> String {
+    let mut plus_option = String::new();
+    let mut width_value = 0;
+    let mut precision_value = 0;
+    let mut _width_asterick = false;
+    let mut _precision_asterick = false;
+    let message;
 
-    let mut param_number = number;
-    let adjust_id = 1;
+    if options
+        .flags
+        .as_ref()
+        .is_some_and(|f| f.contains(&Flags::AddSign))
+    {
+        plus_option = String::from("+");
+    }
 
-    None
+    if let Some(width_opt) = &options.width {
+        width_value = width_opt.width;
+        _width_asterick = width_opt.is_asterick;
+    }
+
+    if let Some(precision_opt) = &options.precision {
+        precision_value = precision_opt.width;
+        _precision_asterick = precision_opt.is_asterick;
+    }
+
+    if options
+        .flags
+        .as_ref()
+        .is_some_and(|f| f.contains(&Flags::AlignLeft) && f.contains(&Flags::Spaces))
+    {
+        message = format!(
+            "{plus_symbol}{:<width$.precision$}",
+            &serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
+            width = width_value as usize,
+            precision = precision_value as usize,
+            plus_symbol = plus_option
+        );
+    } else if options
+        .flags
+        .as_ref()
+        .is_some_and(|f| f.contains(&Flags::AlignLeft) && f.contains(&Flags::Zeros))
+    {
+        message = format!(
+            "{plus_symbol}{:0<width$.precision$}",
+            &serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
+            width = width_value as usize,
+            precision = precision_value as usize,
+            plus_symbol = plus_option
+        );
+    } else {
+        message = serde_json::from_value(data.clone()).unwrap_or(data.to_string());
+    }
+
+    message
 }
 
-// Get the %# number from string. Ex: %1!s! returns: (!s!, (%1, 1))
+/// Get the %# number from string. Ex: %1!s! returns: (!s!, (%1, 1))
 fn get_number(formater: &str) -> nom::IResult<&str, (&str, u8)> {
     let value_chars = "%1234567890";
     let (input, value_data) = is_a(value_chars)(formater)?;
@@ -90,7 +200,7 @@ struct FormaterWidth {
 }
 
 /// Get formater width
-fn get_width(formater: &str) -> nom::IResult<&str, FormaterWidth> {
+fn get_width(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
     let width_chars = "*1234567890";
     let (input, value_data) = is_a(width_chars)(formater)?;
 
@@ -106,11 +216,11 @@ fn get_width(formater: &str) -> nom::IResult<&str, FormaterWidth> {
 
     let width_value = FormaterWidth { is_asterick, width };
 
-    Ok((input, width_value))
+    Ok((input, Some(width_value)))
 }
 
 /// Get formater precision
-fn get_precision(formater: &str) -> nom::IResult<&str, FormaterWidth> {
+fn get_precision(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
     let precision_chars = ".*1234567890";
     let (input, value_data) = is_a(precision_chars)(formater)?;
 
@@ -128,7 +238,7 @@ fn get_precision(formater: &str) -> nom::IResult<&str, FormaterWidth> {
 
     let width_value = FormaterWidth { is_asterick, width };
 
-    Ok((input, width_value))
+    Ok((input, Some(width_value)))
 }
 
 #[derive(Debug, PartialEq)]
@@ -146,7 +256,7 @@ enum FormaterSize {
 }
 
 /// Determine formater size
-fn get_size(formater: &str) -> nom::IResult<&str, FormaterSize> {
+fn get_size(formater: &str) -> nom::IResult<&str, Option<FormaterSize>> {
     let size_chars = "hI3264jlLtzw";
     let (input, value_data) = is_a(size_chars)(formater)?;
 
@@ -160,13 +270,10 @@ fn get_size(formater: &str) -> nom::IResult<&str, FormaterSize> {
         "t" | "I" => FormaterSize::Ptr,
         "z" => FormaterSize::Size,
         "w" => FormaterSize::Wide,
-        _ => {
-            panic!("[eventlogs] Unknown size formater: {value_data}");
-            FormaterSize::Unknown;
-        }
+        _ => FormaterSize::Unknown,
     };
 
-    Ok((input, size))
+    Ok((input, Some(size)))
 }
 
 #[derive(Debug, PartialEq)]
@@ -180,7 +287,7 @@ enum Flags {
 }
 
 /// Get formatter flags
-fn get_flags(formater: &str) -> nom::IResult<&str, Vec<Flags>> {
+fn get_flags(formater: &str) -> nom::IResult<&str, Option<Vec<Flags>>> {
     let flags_char = "-+0 #";
     let (input, flags_data) = is_a(flags_char)(formater)?;
 
@@ -196,7 +303,7 @@ fn get_flags(formater: &str) -> nom::IResult<&str, Vec<Flags>> {
         }
     }
 
-    Ok((input, flags))
+    Ok((input, Some(flags)))
 }
 
 #[derive(Debug, PartialEq)]
@@ -237,14 +344,34 @@ fn get_type(formater: &str) -> FormaterType {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_flags, get_number};
-    use crate::artifacts::os::windows::eventlogs::formaters::{
-        get_precision, get_size, get_type, get_width, Flags, FormaterSize, FormaterType,
+    use super::{formater_message, get_flags, get_number};
+    use crate::artifacts::os::windows::eventlogs::{
+        formaters::{
+            get_precision, get_size, get_type, get_width, Flags, FormaterSize, FormaterType,
+        },
+        resources::manifest::xml::{Element, TokenType},
     };
+    use serde_json::{Map, Value};
 
     #[test]
-    fn parse_formater() {
+    fn test_formater_message() {
         let test = "%1!s!";
+        let mut value = Map::new();
+        value.insert(
+            String::from("test"),
+            Value::String(String::from("hello rust!")),
+        );
+
+        let element = Element {
+            token: TokenType::Attribute,
+            token_number: 0,
+            depedency_id: 0,
+            size: 2,
+            attribute_list: Vec::new(),
+            element_name: String::from("test"),
+        };
+        let (_, result) = formater_message(test, &value, &[element]).unwrap();
+        assert_eq!(result, "hello rust!");
     }
 
     #[test]
@@ -260,7 +387,10 @@ mod tests {
     fn test_get_flags() {
         let test = "-+05";
         let (width, flags) = get_flags(test).unwrap();
-        assert_eq!(flags, vec![Flags::AlignLeft, Flags::AddSign, Flags::Zeros]);
+        assert_eq!(
+            flags.unwrap(),
+            vec![Flags::AlignLeft, Flags::AddSign, Flags::Zeros]
+        );
         assert_eq!(width, "5");
     }
 
@@ -268,8 +398,8 @@ mod tests {
     fn test_get_width() {
         let test = "11.s";
         let (input, width) = get_width(test).unwrap();
-        assert_eq!(width.is_asterick, false);
-        assert_eq!(width.width, 11);
+        assert_eq!(width.as_ref().unwrap().is_asterick, false);
+        assert_eq!(width.unwrap().width, 11);
         assert_eq!(input, ".s");
     }
 
@@ -277,8 +407,8 @@ mod tests {
     fn test_get_precision() {
         let test = ".*s";
         let (input, precision) = get_precision(test).unwrap();
-        assert_eq!(precision.is_asterick, true);
-        assert_eq!(precision.width, 0);
+        assert_eq!(precision.as_ref().unwrap().is_asterick, true);
+        assert_eq!(precision.unwrap().width, 0);
         assert_eq!(input, "s");
     }
 
@@ -286,7 +416,7 @@ mod tests {
     fn test_get_size() {
         let test = "hhx";
         let (input, size) = get_size(test).unwrap();
-        assert_eq!(size, FormaterSize::Char);
+        assert_eq!(size.unwrap(), FormaterSize::Char);
         assert_eq!(input, "x");
     }
 

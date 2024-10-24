@@ -164,7 +164,7 @@ fn read_eventlogs(
     let limit = 10000;
     let mut cache = HashMap::new();
     // Regex always correct
-    let param_regex = create_regex(r"%\d+").unwrap();
+    let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
     for record in evt_parser.records_json_value() {
         match record {
@@ -186,8 +186,9 @@ fn read_eventlogs(
             if let Some(resource) = resources {
                 for record in &eventlog_records {
                     println!("{record:?}");
-                    let message = add_message_strings(record, resource, &mut cache, &param_regex);
-                    panic!("my message: {message:?}");
+                    let message =
+                        add_message_strings(record, resource, &mut cache, &param_regex).unwrap();
+                    println!("my message: {message}");
                 }
             }
 

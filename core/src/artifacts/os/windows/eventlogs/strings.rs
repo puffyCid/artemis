@@ -324,11 +324,7 @@ fn registry_paths(
             }
         }
         providers.insert(
-            provider
-                .name
-                .to_lowercase()
-                .replace('{', "")
-                .replace('}', ""),
+            provider.name.to_lowercase().replace(['{', '}'], ""),
             provider,
         );
     }

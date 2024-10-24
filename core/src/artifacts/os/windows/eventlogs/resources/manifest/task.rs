@@ -18,7 +18,7 @@ pub(crate) fn parse_task<'a>(
     resource: &'a [u8],
     data: &'a [u8],
 ) -> nom::IResult<&'a [u8], Vec<Task>> {
-    let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
+    let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let empty = 0;
     if size == empty {
