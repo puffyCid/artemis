@@ -1,0 +1,46 @@
+{
+    "event_record_id": 186,
+    "timestamp": "2024-10-15T07:05:07.007731000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-AppReadiness",
+                        "Guid": "F0BE35F8-237B-4814-86B5-ADE51192E503"
+                    }
+                },
+                "EventID": 103,
+                "Version": 0,
+                "Level": 4,
+                "Task": 14,
+                "Opcode": 2,
+                "Keywords": "0x4000000000000001",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-15T07:05:07.007731Z"
+                    }
+                },
+                "EventRecordID": 186,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 3092,
+                        "ThreadID": 3272
+                    }
+                },
+                "Channel": "Microsoft-Windows-AppReadiness/Operational",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "EventData": null
+        }
+    }
+}

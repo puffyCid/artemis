@@ -24,7 +24,7 @@ struct EventMessage {
     source_name: String,
     record_id: u64,
     task: u64,
-    level: u64,
+    level: EventLevel,
     opcode: u64,
     keywords: String,
     generated: String,
@@ -40,9 +40,16 @@ struct EventMessage {
     parameter_file: String,
 }
 
+enum EventLevel {
+    Information,
+    Warning,
+    Critical,
+    Verbose,
+    Error,
+}
+
 /*TODO
  * 4.5 Add caching!?
- * 5. Remove unwraps
  *
  * 7. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
  *   - repo reuses data from other repos with mix licensing. so avoid including any files if possible
@@ -175,11 +182,22 @@ pub(crate) fn add_message_strings(
             Some(result) => result,
             None => continue,
         };
-
-        let table_opt = message_table?.get(&event_definition.message_id);
+        let mut id = event_definition.message_id;
+        let no_id = 4294967295;
+        if id == no_id {
+            id = event_id.id as u32;
+        }
+        let table_opt = message_table?.get(&id);
         let table = match table_opt {
             Some(result) => result,
-            None => continue,
+            None => {
+                // try one more time
+                let adjust = 0xb0000000;
+                match message_table?.get(&(id + adjust)) {
+                    Some(result) => result,
+                    None => continue,
+                }
+            }
         };
 
         // If we do not have any templates. Can just try messagetable only
@@ -344,6 +362,9 @@ fn merge_strings(
 ) -> Option<String> {
     let mut data = log.as_object()?.get("Event")?;
     let mut clean_message = clean_table(&table.message);
+    if data.is_null() {
+        return Some(clean_message);
+    }
 
     let mut event_data = &Map::new();
     // Loop through keys until we get to our data
@@ -501,11 +522,16 @@ fn add_event_string(
 /// Combine eventlog data if we have neither `MESSAGETABLE` or `WEVT_TEMPLATE`. Sometimes neither will exist
 fn merge_strings_no_manifest(log: &Value) -> Option<String> {
     let data = log.as_object()?.get("Event")?.as_object()?;
+
     let mut clean_string = String::new();
+
     for (key, value) in data {
         // Key should? be one of the following: EventData, UserData, DebugData, ProcessingErrorData, BinaryEventData
         if !key.ends_with("Data") {
             continue;
+        }
+        if !value.is_object() {
+            return Some(value.to_string());
         }
 
         clean_string = build_string(&clean_string, value)?;
@@ -521,7 +547,10 @@ fn merge_strings_message_table(
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     let mut clean_message = clean_table(&table.message);
-    let data = log.as_object()?.get("Event")?.as_object()?;
+    let data = log.as_object()?.get("Event")?;
+    if !data.is_object() {
+        return Some(clean_message);
+    }
 
     let mut values = Vec::new();
     let event_defaults = [
@@ -531,7 +560,7 @@ fn merge_strings_message_table(
         "BinaryEventData",
         "DebugData",
     ];
-    for (key, value) in data {
+    for (key, value) in data.as_object()? {
         // Key should? be one of the following: EventData, UserData, DebugData, ProcessingErrorData, BinaryEventData
         if !key.ends_with("Data") {
             continue;
@@ -690,6 +719,7 @@ mod tests {
             "insane_log.json",
             "application_log.json",
             "formater_messagetable_log.json",
+            "null_no_provider_log.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -791,6 +821,9 @@ mod tests {
                         message,
                         "[11596:12792:0802/205026.025:INFO:rlz_lib.cc(438)] Attempting to send RLZ ping brand=GCEA\r\n"
                     );
+                }
+                "null_no_provider_log.json" => {
+                    assert_eq!(message, "null");
                 }
                 _ => panic!("should not have an unknown sample?"),
             }
