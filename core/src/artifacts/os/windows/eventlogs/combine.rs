@@ -6,91 +6,115 @@ use super::{
     },
     strings::StringResource,
 };
-use common::windows::EventLogRecord;
+use common::windows::{EventLevel, EventLogRecord, EventMessage};
 use log::{error, warn};
 use regex::Regex;
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 use std::collections::HashMap;
 
-struct EventMessage {
-    message: String,
-    template_message: String,
-    raw_event_data: Value,
-    event_id: u64,
-    qualifier: u64,
-    version: u64,
-    guid: String,
-    provider: String,
-    source_name: String,
-    record_id: u64,
-    task: u64,
-    level: EventLevel,
-    opcode: u64,
-    keywords: String,
-    generated: String,
-    system_time: String,
-    activity_id: String,
-    process_id: u64,
-    thread_id: u64,
-    sid: String,
-    channel: String,
-    computer: String,
-    source_file: String,
-    message_file: String,
-    parameter_file: String,
-}
-
-enum EventLevel {
-    Information,
-    Warning,
-    Critical,
-    Verbose,
-    Error,
-}
-
 /*TODO
- * 4.5 Add caching!?
- * 5. Cache is HashMap<String, LogCache>
- *   - key is either guid or provider name with event id
- *   - LogCache is custom struct containing everything needed to make log
- * 7. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
+ * 1. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
  *   - repo reuses data from other repos with mix licensing. so avoid including any files if possible
+ * 2. Add more tests
+ * 3. Handle failed parsing. Make array to track raw eventlogs entries that failed and output that
  */
 
-/// Combine eventlog strings with the template strings
+/// Combine raw `EventLog` data with template strings
 pub(crate) fn add_message_strings(
     log: &EventLogRecord,
     resources: &StringResource,
-    /*Cache provider_name and event_id as key. Make another struct for very fast lookups? */
-    cache: &mut HashMap<String, StringResource>,
     param_regex: &Regex,
-) -> Option<String> {
-    let event_id = get_event_id(&log.data)?;
-    let qualifier_check = 16;
-    // https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#message-string-identifier
-    let real_event_id = (event_id.qualifier << qualifier_check) | event_id.id;
+) -> Option<EventMessage> {
+    let mut message = EventMessage {
+        message: String::new(),
+        template_message: String::new(),
+        raw_event_data: Value::Null,
+        event_id: 0,
+        qualifier: 0,
+        version: 0,
+        guid: String::new(),
+        provider: String::new(),
+        source_name: String::new(),
+        record_id: log.event_record_id,
+        task: 0,
+        level: EventLevel::Unknown,
+        opcode: 0,
+        keywords: String::new(),
+        generated: log.timestamp.clone(),
+        system_time: String::new(),
+        activity_id: String::new(),
+        process_id: 0,
+        thread_id: 0,
+        sid: String::new(),
+        channel: String::new(),
+        computer: String::new(),
+        source_file: String::new(),
+        message_file: String::new(),
+        parameter_file: String::new(),
+        registry_file: String::new(),
+        registry_path: String::new(),
+    };
+    let meta = log
+        .data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?;
 
-    let version = get_version(&log.data)?;
-    let provider_name = get_provider(&log.data)?;
+    let event_id = get_event_id(&log.data)?;
+    message.version = get_meta_number(meta, "Version")?;
+    message.provider = get_provider(&log.data)?.to_string();
     let guid_opt = get_guid(&log.data);
 
-    let guid = match guid_opt {
+    message.guid = match guid_opt {
         Some(result) => result.to_lowercase().replace(['{', '}'], ""),
         None => String::new(),
     };
 
-    let source = get_event_source_name(&log.data).unwrap_or_default();
-    let provider_opt = resources.providers.get(&guid);
+    message.source_name = get_event_source_name(&log.data)
+        .unwrap_or_default()
+        .to_string();
+    message.event_id = event_id.id;
+    message.qualifier = event_id.qualifier;
+    message.raw_event_data = raw_data(&log.data)?;
+
+    let level = get_meta_number(meta, "Level")?;
+    message.level = get_level(&level);
+    message.opcode = get_meta_number(meta, "Opcode")?;
+    message.task = get_meta_number(meta, "Task")?;
+
+    message.channel = get_meta_string(meta, "Channel")?;
+    message.computer = get_meta_string(meta, "Computer")?;
+    message.keywords = get_meta_string(meta, "Keywords")?;
+    message.system_time = get_systemtime(&log.data)?;
+
+    let (proc, thread) = get_proc_thread(&log.data)?;
+    message.process_id = proc;
+    message.thread_id = thread;
+
+    message.sid = get_sid(&log.data)?;
+    message.activity_id = get_activity_id(&log.data)?;
+
+    let qualifier_check = 16;
+    // https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#message-string-identifier
+    let real_event_id = (event_id.qualifier << qualifier_check) | event_id.id;
+
+    let provider_opt = resources.providers.get(&message.guid);
     let provider = match provider_opt {
         Some(result) => result,
         None => {
             // try provider name before we give up
-            match resources.providers.get(&provider_name.to_lowercase()) {
+            match resources.providers.get(&message.provider.to_lowercase()) {
                 Some(result) => result,
-                None => return merge_strings_no_manifest(&log.data),
+                None => {
+                    message.message = merge_strings_no_manifest(&log.data)?;
+                    return Some(message);
+                }
             }
         }
     };
+    message.registry_file = provider.registry_file_path.clone();
+    message.registry_path = provider.registry_path.clone();
 
     // If we have ProcessingErrorData, there is nothing we can do to assemble the log message.
     // We just combine everything and return that
@@ -102,7 +126,8 @@ pub(crate) fn add_message_strings(
         .get("ProcessingErrorData")
         .is_some()
     {
-        return merge_strings_no_manifest(&log.data);
+        message.message = merge_strings_no_manifest(&log.data)?;
+        return Some(message);
     }
 
     let message_files: &[String] = provider.message_file.as_ref();
@@ -117,6 +142,10 @@ pub(crate) fn add_message_strings(
         }
 
         param_message_table = template?.message_table.as_ref()?.clone();
+        if !param_message_table.is_empty() {
+            message.parameter_file = file.clone();
+            break;
+        }
     }
 
     // If we do not have a parameter message file. Fallback to the default parameter file(s), just incase
@@ -139,6 +168,7 @@ pub(crate) fn add_message_strings(
             if value.message_table.is_none() {
                 continue;
             }
+            message.parameter_file = value.path.clone();
 
             let table = value.message_table.as_ref()?;
 
@@ -146,11 +176,12 @@ pub(crate) fn add_message_strings(
         }
     }
 
-    for message in message_files {
-        let template = resources.templates.get(message);
+    for message_file in message_files {
+        let template = resources.templates.get(message_file);
         if template.is_none() {
             continue;
         }
+        message.message_file = message_file.clone();
 
         let message_table = template?.message_table.as_ref();
         let manifest = template?.wevt_template.as_ref();
@@ -160,21 +191,20 @@ pub(crate) fn add_message_strings(
             continue;
         }
 
-        if guid.is_empty() || manifest.is_none() {
+        if message.guid.is_empty() || manifest.is_none() {
             let table = match message_table?.get(&(real_event_id as u32)) {
                 Some(result) => result,
                 None => continue,
             };
 
-            return merge_strings_message_table(
-                &log.data,
-                table,
-                param_regex,
-                &param_message_table,
-            );
+            message.template_message = table.message.clone();
+
+            message.message =
+                merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            return Some(message);
         }
 
-        let manifest_op = manifest?.get(&guid);
+        let manifest_op = manifest?.get(&message.guid);
         let manifist_template = match manifest_op {
             Some(result) => result,
             None => continue,
@@ -182,7 +212,7 @@ pub(crate) fn add_message_strings(
 
         let event_definition = match manifist_template
             .definitions
-            .get(&format!("{}_{version}", event_id.id))
+            .get(&format!("{}_{}", event_id.id, message.version))
         {
             Some(result) => result,
             None => continue,
@@ -204,20 +234,18 @@ pub(crate) fn add_message_strings(
                 }
             }
         };
+        message.template_message = table.message.clone();
 
         // If we do not have any templates. Can just try messagetable only
         if event_definition.template.is_none() {
-            return merge_strings_message_table(
-                &log.data,
-                table,
-                param_regex,
-                &param_message_table,
-            );
+            message.message =
+                merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            return Some(message);
         }
 
         // We have everything needed to make an attempt to merge strings!
         // But no guarantee of 100% perfect merge!
-        return merge_strings(
+        message.message = merge_strings(
             &log.data,
             table,
             message_table?,
@@ -225,11 +253,35 @@ pub(crate) fn add_message_strings(
             &manifist_template.maps,
             param_regex,
             &param_message_table,
-        );
+        )?;
+        break;
     }
 
-    // If we failed to find anything. Try to make message anyway
-    merge_strings_no_manifest(&log.data)
+    Some(message)
+}
+
+/// Get the raw `EventLog` data values
+fn raw_data(data: &Value) -> Option<Value> {
+    let raw = data.as_object()?.get("Event")?;
+
+    if !raw.is_object() {
+        return Some(raw.clone());
+    }
+    let event_defaults = [
+        "EventData",
+        "UserData",
+        "ProcessingErrorData",
+        "BinaryEventData",
+        "DebugData",
+    ];
+
+    for (key, value) in raw.as_object()? {
+        if !event_defaults.contains(&key.as_str()) {
+            continue;
+        }
+        return Some(value.clone());
+    }
+    None
 }
 
 #[derive(Debug)]
@@ -256,6 +308,12 @@ fn get_event_id(data: &Value) -> Option<EventId> {
     if id.is_u64() {
         event_id.id = id.as_u64()?;
         return Some(event_id);
+    } else if id.is_string() {
+        // Sometimes the EventID is recorded as a string...
+        // Microsoft-Windows-Windows Defender/Operational
+        let id_string = id.as_str()?;
+        event_id.id = id_string.parse().unwrap_or_default();
+        return Some(event_id);
     }
 
     for (attr_key, attr_value) in id.as_object()? {
@@ -273,21 +331,133 @@ fn get_event_id(data: &Value) -> Option<EventId> {
     Some(event_id)
 }
 
-/// Get log entry version
-fn get_version(data: &Value) -> Option<u64> {
-    let version = &data
+/// Determine log level
+fn get_level(level: &u64) -> EventLevel {
+    match level {
+        0 | 4 => EventLevel::Information,
+        1 => EventLevel::Critical,
+        2 => EventLevel::Error,
+        3 => EventLevel::Warning,
+        5 => EventLevel::Verbose,
+        _ => EventLevel::Unknown,
+    }
+}
+
+fn get_systemtime(data: &Value) -> Option<String> {
+    let time = &data
         .as_object()?
         .get("Event")?
         .as_object()?
         .get("System")?
         .as_object()?
-        .get("Version")?;
-    if version.is_u64() {
-        return version.as_u64();
+        .get("TimeCreated")?
+        .as_object()?
+        .get("#attributes")?
+        .as_object()?
+        .get("SystemTime")?;
+    let value: String = if time.is_string() {
+        time.as_str()?.to_string()
+    } else {
+        time.to_string()
+    };
+
+    Some(value)
+}
+
+/// Get process and thread IDs if available
+fn get_proc_thread(data: &Value) -> Option<(u64, u64)> {
+    let proc_thread = &data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Execution")
+        .unwrap_or(&Value::Null);
+
+    if !proc_thread.is_object() {
+        return Some((0, 0));
     }
 
-    panic!("[eventlogs] Version number is not a number: {version:?}",);
-    None
+    let proc_data = proc_thread.get("#attributes")?;
+
+    let proc = get_meta_number(proc_data, "ProcessID")?;
+    let thread = get_meta_number(proc_data, "ThreadID")?;
+
+    Some((proc, thread))
+}
+
+fn get_sid(data: &Value) -> Option<String> {
+    let sid = &data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Security")
+        .unwrap_or(&Value::Null);
+
+    if !sid.is_object() {
+        return Some(String::new());
+    }
+    let sid_value = sid.get("#attributes")?;
+
+    get_meta_string(&sid_value, "UserID")
+}
+
+fn get_activity_id(data: &Value) -> Option<String> {
+    let id = &data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("System")?
+        .as_object()?
+        .get("Correlation")
+        .unwrap_or(&Value::Null);
+
+    if !id.is_object() {
+        return Some(String::new());
+    }
+    let id_value = id.get("#attributes")?;
+
+    get_meta_string(&id_value, "ActivityID")
+}
+
+/// Get number values for various log keys
+fn get_meta_number(data: &Value, key: &str) -> Option<u64> {
+    // Sometimes key may not be included in log data
+    // Seen in System Restore provider
+    let default = Value::Number(Number::from(0));
+    let value = &data.as_object()?.get(key).unwrap_or(&default);
+
+    let number = if value.is_u64() {
+        value.as_u64()?
+    } else if value.is_string() {
+        // Sometimes the number values may be recorded as a string...
+        // Seen in Microsoft-Windows-Windows Defender/Operational
+        let value_string = value.as_str()?;
+        value_string.parse().unwrap_or_default()
+    } else {
+        0
+    };
+
+    Some(number)
+}
+
+/// Get strings values for various log keys
+fn get_meta_string(data: &Value, key: &str) -> Option<String> {
+    // Sometimes key may not be included in log data
+    // Seen in System Restore provider
+    let default = Value::String(String::new());
+    let value = &data.as_object()?.get(key).unwrap_or(&default);
+
+    let value_string = if value.is_string() {
+        value.as_str()?.to_string()
+    } else {
+        value.to_string()
+    };
+
+    Some(value_string)
 }
 
 /// Get log provider
@@ -303,11 +473,12 @@ fn get_provider(data: &Value) -> Option<&str> {
         .get("#attributes")?
         .as_object()?
         .get("Name")?;
+
     if provider.is_string() {
         return provider.as_str();
     }
 
-    panic!("[eventlogs] Provider is not a string: {provider:?}",);
+    error!("[eventlogs] Provider is not a string: {provider:?}",);
     None
 }
 
@@ -329,7 +500,7 @@ fn get_guid(data: &Value) -> Option<&str> {
         return guid.as_str();
     }
 
-    panic!("[eventlogs] Guid is not a string: {guid:?}",);
+    error!("[eventlogs] Guid is not a string: {guid:?}",);
     None
 }
 
@@ -393,7 +564,6 @@ fn merge_strings(
     let element_list = &manifest.template.as_ref()?.elements;
     let mut data_values = Vec::new();
     grab_data_values(event_data, &mut data_values);
-
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
         if !param.starts_with('%') {
@@ -419,11 +589,8 @@ fn merge_strings(
             );
             continue;
         }
-
         let param_num = num_result.unwrap_or(0);
-
         if param_num == 0 {
-            warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
             continue;
         }
 
@@ -638,7 +805,6 @@ fn merge_strings_message_table(
         let param_num = num_result.unwrap_or(0);
 
         if param_num == 0 {
-            warn!("[eventlogs] Got zero or lower as parameter value. This is wrong");
             continue;
         }
 
@@ -715,7 +881,7 @@ mod tests {
     use super::{add_message_strings, build_string, get_event_id, grab_data_values};
     use crate::{
         artifacts::os::windows::eventlogs::{
-            combine::{clean_table, get_guid, get_provider, get_version},
+            combine::{clean_table, get_guid, get_provider},
             strings::get_resources,
         },
         filesystem::files::read_file,
@@ -723,7 +889,7 @@ mod tests {
     };
     use common::windows::EventLogRecord;
     use serde_json::json;
-    use std::{collections::HashMap, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_add_message_strings() {
@@ -748,10 +914,10 @@ mod tests {
             "too_many_params_log.json",
             "parameter_large_log.json",
             "params_with_percent_log.json",
+            "userdata_event_log.json",
         ];
 
         let resources = get_resources().unwrap();
-        let mut cache = HashMap::new();
         let params = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
         for sample in samples {
@@ -761,114 +927,122 @@ mod tests {
 
             test_location.pop();
 
-            let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
+            let message = add_message_strings(&log, &resources, &params).unwrap();
 
-            assert!(!message.contains("%%"));
-            assert!(!message.contains("TEMP_ARTEMIS_VALUE"));
+            assert!(!message.message.contains("%%"));
+            assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));
 
             match sample {
                 "processingerror_log.json" => {
                     // Windows Event Viewer shows "PSMFlags for Desktop AppX process %1 with applicationID %2 is %3." But i think that is what a successful log entry is suppose to be
-                    assert_eq!(message,"ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n");
+                    assert_eq!(message.message,"ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n");
                 }
                 "complex_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Credential Manager credentials were read.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-21-549467458-3727351111-1684278619-1001\n\tAccount Name:\t\tbob\n\tAccount Domain:\t\tDESKTOP-9FSUKAJ\n\tLogon ID:\t\t0x3311b1\n\tRead Operation:\t\tEnumerate Credentials\r\n\n\nThis event occurs when a user performs a read operation on stored credentials in Credential Manager.\r\n"
                     );
                 }
                 "eventlog.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Setting MSA Client Id for Token requests: {f0c62012-2cef-4831-b1f7-930682874c86}\nError: -2147467259\nFunction: WinStoreAuth::AuthenticationInternal::SetMsaClientId\nSource: onecoreuap\\enduser\\winstore\\auth\\lib\\winstoreauth.cpp (265)\r\n"
                     );
                 }
                 "logon_log.json" => {
-                    assert!(message.starts_with("An account was successfully logged on"));
+                    assert!(message
+                        .message
+                        .starts_with("An account was successfully logged on"));
 
                     // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
-                    if message.len() == 2212 {
-                        assert_eq!(message,"An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n");
+                    if message.message.len() == 2212 {
+                        assert_eq!(message.message,"An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n");
                     }
                 }
                 "parameter_log.json" => {
                     assert_eq!(
-                            message,
+                            message.message,
                             "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
                     );
                 }
                 "storage_log.json" => {
                     assert_eq!(
-                            message,
+                            message.message,
                             "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
                     );
                 }
                 "qualifiers_log.json" => {
                     assert_eq!(
-                            message,
+                            message.message,
                             "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
                     );
                 }
                 "userdata_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Package KB5044033 was successfully changed to the Installed state.\r\n"
                     );
                 }
                 "null_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Windows Management Instrumentation Service started sucessfully\r\n"
                     );
                 }
                 "qualifier_non_zero_log.json" => {
                     assert!(
-                        message.starts_with("The Software Protection service has completed licensing status check.\nApplication Id=55c92734-d682-4d71-983e-d6ec3f16059f")
+                        message.message.starts_with("The Software Protection service has completed licensing status check.\nApplication Id=55c92734-d682-4d71-983e-d6ec3f16059f")
                     );
-                    assert_eq!(message.len(), 6291);
+                    assert_eq!(message.message.len(), 6291);
                 }
                 "formater_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "The Open procedure for service \"MSDTC\" in DLL \"C:\\WINDOWS\\system32\\msdtcuiu.DLL\" failed with error code 2147944538. Performance data for this service will not be available.\r\n"
                     );
                 }
                 "insane_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: rustc.exe (11372) consumed 1446383616 bytes, MsMpEng.exe (4036) consumed 325812224 bytes, and msedge.exe (4276) consumed 109355008 bytes.\r\n"
                     );
                 }
                 "application_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "The COM+ sub system is suppressing duplicate event log entries for a duration of 86400 seconds.  The suppression timeout can be controlled by a REG_DWORD value named SuppressDuplicateDuration under the following registry key: HKLM\\Software\\Microsoft\\COM3\\Eventlog.\r\n"
                     );
                 }
                 "formater_messagetable_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "[11596:12792:0802/205026.025:INFO:rlz_lib.cc(438)] Attempting to send RLZ ping brand=GCEA\r\n"
                     );
                 }
                 "null_no_provider_log.json" => {
-                    assert_eq!(message, "null");
+                    assert!(message.message.is_empty());
                 }
                 "too_many_params_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "Compositor Type: 1OUTLOOKP1: %3P2: %4P3: %5P4: %6\r\n"
                     );
                 }
                 "parameter_large_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
                         "The Background Intelligent Transfer Service service terminated with the following service-specific error: \nA system shutdown is in progress.\r\n\r\n"
                     );
                 }
                 "params_with_percent_log.json" => {
                     assert_eq!(
-                        message,
+                        message.message,
+                        "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}\nFunction: DecodeCustomPolicy\nSource: onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp (50)\r\n"
+                    );
+                }
+                "userdata_evet_log.json" => {
+                    assert_eq!(
+                        message.message,
                         "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}\nFunction: DecodeCustomPolicy\nSource: onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp (50)\r\n"
                     );
                 }
@@ -901,17 +1075,6 @@ mod tests {
         let result = get_event_id(&log.data).unwrap();
         assert_eq!(result.id, 2);
         assert_eq!(result.qualifier, 0);
-    }
-
-    #[test]
-    fn test_get_version() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
-
-        let result = get_version(&log.data).unwrap();
-        assert_eq!(result, 0);
     }
 
     #[test]

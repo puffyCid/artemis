@@ -1523,3 +1523,44 @@ pub enum PropertyType {
     RuleAction,
     Unknown,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EventMessage {
+    pub message: String,
+    pub template_message: String,
+    pub raw_event_data: Value,
+    pub event_id: u64,
+    pub qualifier: u64,
+    pub version: u64,
+    pub guid: String,
+    pub provider: String,
+    pub source_name: String,
+    pub record_id: u64,
+    pub task: u64,
+    pub level: EventLevel,
+    pub opcode: u64,
+    pub keywords: String,
+    pub generated: String,
+    pub system_time: String,
+    pub activity_id: String,
+    pub process_id: u64,
+    pub thread_id: u64,
+    pub sid: String,
+    pub channel: String,
+    pub computer: String,
+    pub source_file: String,
+    pub message_file: String,
+    pub parameter_file: String,
+    pub registry_file: String,
+    pub registry_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum EventLevel {
+    Information,
+    Warning,
+    Critical,
+    Verbose,
+    Error,
+    Unknown,
+}

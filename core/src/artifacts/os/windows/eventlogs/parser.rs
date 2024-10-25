@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 /**
  * Windows `EventLogs` are the primary files associated with logging with system activity.  
  * They are stored in a binary format, typically at C:\Windows\System32\winevt\Logs
@@ -128,7 +126,6 @@ fn read_directory(
         if file_extension(&evtx_file) != "evtx" {
             continue;
         }
-        println!("{evtx_file}");
 
         let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
         match eventlogs_results {
@@ -163,7 +160,6 @@ fn read_eventlogs(
 
     let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
     let limit = 10000;
-    let mut cache = HashMap::new();
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
@@ -184,16 +180,18 @@ fn read_eventlogs(
         }
 
         if eventlog_records.len() == limit {
-            if let Some(resource) = resources {
-                for record in &eventlog_records {
-                    println!("{record:?}");
-                    let message =
-                        add_message_strings(record, resource, &mut cache, &param_regex).unwrap();
-                    println!("my message: {message}");
+            let serde_data_result = if let Some(resource) = resources {
+                let mut all_messages = Vec::new();
+                for record in eventlog_records {
+                    let mut message = add_message_strings(&record, resource, &param_regex).unwrap();
+                    message.source_file = path.to_string();
+                    all_messages.push(message);
                 }
-            }
+                serde_json::to_value(&all_messages)
+            } else {
+                serde_json::to_value(&eventlog_records)
+            };
 
-            let serde_data_result = serde_json::to_value(&eventlog_records);
             let serde_data = match serde_data_result {
                 Ok(results) => results,
                 Err(err) => {
@@ -215,15 +213,19 @@ fn read_eventlogs(
     }
 
     if !eventlog_records.is_empty() {
-        if let Some(resource) = resources {
-            for record in &eventlog_records {
-                println!("{record:?}");
-                let message =
-                    add_message_strings(record, resource, &mut cache, &param_regex).unwrap();
-                println!("my message: {message:?}");
+        let serde_data_result = if let Some(resource) = resources {
+            let mut all_messages = Vec::new();
+
+            for record in eventlog_records {
+                let mut message = add_message_strings(&record, resource, &param_regex).unwrap();
+                message.source_file = path.to_string();
+                all_messages.push(message);
             }
-        }
-        let serde_data_result = serde_json::to_value(&eventlog_records);
+            serde_json::to_value(&all_messages)
+        } else {
+            serde_json::to_value(&eventlog_records)
+        };
+
         let serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {

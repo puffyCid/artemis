@@ -42,11 +42,8 @@ pub(crate) struct TemplateElement {
 except as `TemplateElement` struct
 */
 pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], TemplateElement> {
-    let (input, token) = fragment_header(data)?;
+    let (input, _token) = fragment_header(data)?;
 
-    if token != TokenType::FragmentHeaderToken {
-        panic!("hmm thats not right");
-    }
     // First element is the start header/tag?
     // remaining is the remaining bytes of the template. Will get parsed by parse_template
     let (remaining, (start, mut input)) = element_start(input, &false)?;
@@ -171,7 +168,7 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, attribute_token_number) = nom_unsigned_one_byte(attribute_data, Endian::Le)?;
         let (input, name) = get_name(input)?;
 
-        let (input, value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, mut value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let value_token_type = get_input_type(&value_token_type_number);
 
@@ -182,8 +179,8 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, value_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let utf16 = 2;
-        let (value_input, value_data) = take(value_size * utf16)(input)?;
-        let value = extract_utf16_string(value_data);
+        let (mut value_input, value_data) = take(value_size * utf16)(input)?;
+        let mut value = extract_utf16_string(value_data);
 
         if value_input.is_empty() {
             let attribute = Attribute {
@@ -203,7 +200,6 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
 
         // Check if we have another value. Have not seen this yet.
         while value_token_number == next_value {
-            panic!("whoah next attribute!");
             let (input, next_value_token_number) = nom_unsigned_one_byte(value_input, Endian::Le)?;
             let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
             let value_token_type = get_input_type(&value_token_type_number);
@@ -311,9 +307,7 @@ fn get_name(data: &[u8]) -> nom::IResult<&[u8], String> {
 
     let adjust_size = 2;
     let utf16 = 2;
-    if (name_size * utf16) as usize > input.len() {
-        panic!("{data:?}");
-    }
+
     let (input, name_data) = take(name_size * utf16 + adjust_size)(input)?;
     let name = extract_utf16_string(name_data);
 

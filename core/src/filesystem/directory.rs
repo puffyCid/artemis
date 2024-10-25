@@ -118,7 +118,7 @@ pub(crate) fn get_parent_directory(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[artemis-core] Failed to split {path}");
+        warn!("[artemis-core] Failed to get parent directory for path: {path}");
         return path.to_string();
     }
 
