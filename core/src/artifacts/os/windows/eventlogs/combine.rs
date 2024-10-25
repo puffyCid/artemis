@@ -50,7 +50,9 @@ enum EventLevel {
 
 /*TODO
  * 4.5 Add caching!?
- *
+ * 5. Cache is HashMap<String, LogCache>
+ *   - key is either guid or provider name with event id
+ *   - LogCache is custom struct containing everything needed to make log
  * 7. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
  *   - repo reuses data from other repos with mix licensing. so avoid including any files if possible
  */
@@ -118,7 +120,10 @@ pub(crate) fn add_message_strings(
     }
 
     // If we do not have a parameter message file. Fallback to the default parameter file(s), just incase
-    if param_message_table.is_empty() {
+    if param_message_table.is_empty()
+        && (provider.registry_path.to_lowercase().contains("security")
+            || provider.registry_path.to_lowercase().contains("system"))
+    {
         for (key, value) in &resources.templates {
             // Are there more? How unique are the IDs?
             // https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#parameter-expansion mentions two
@@ -424,6 +429,11 @@ fn merge_strings(
 
         // Parameter ID starts at 0
         let adjust_id = 1;
+        if (param_num - adjust_id) >= element_list.len()
+            && (param_num - adjust_id) >= data_values.len()
+        {
+            continue;
+        }
         // If element list is too small, then we use the list of values from the event data
         if element_list.len() < (param_num - adjust_id) {
             let value = data_values.get(param_num - adjust_id)?;
@@ -472,6 +482,10 @@ fn merge_strings(
         }
     }
 
+    if clean_message.contains("TEMP_ARTEMIS_VALUE") {
+        clean_message = clean_message.replace("TEMP_ARTEMIS_VALUE", "%");
+    }
+
     Some(clean_message)
 }
 
@@ -489,32 +503,38 @@ fn add_event_string(
                 "[eventlogs] Could not get parameter message id for log message: {:?}",
                 num_result.unwrap_err()
             );
-            return None;
+            return Some(message);
         }
 
         let param_message_id: u32 = num_result.unwrap_or_default();
         if parameter_message.is_empty() {
             warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
-            return None;
+            return Some(message);
         }
 
-        let final_param = parameter_message.get(&param_message_id);
-        let param_message_value = if let Some(message) = final_param {
-            message
-        } else {
-            warn!("[eventlogs] Could not find parameter message for {value:?} in message table");
-            return None;
+        let param_message_value = match parameter_message.get(&param_message_id) {
+            Some(result) => result,
+            None => {
+                // Try one more time
+                let adjust = 0xffff;
+                match parameter_message.get(&(param_message_id & adjust)) {
+                    Some(result) => result,
+                    None => return Some(message),
+                }
+            }
         };
 
         message = message.replacen(param, &param_message_value.message, 1);
         return Some(message);
     }
 
-    message = message.replacen(
-        param,
-        &serde_json::from_value(value.clone()).unwrap_or(value.to_string()),
-        1,
-    );
+    let mut event_value = serde_json::from_value(value.clone()).unwrap_or(value.to_string());
+    if event_value.contains('%') {
+        // To avoid false postives in our regex from replacement event values. Remove % values
+        event_value = event_value.replace('%', "TEMP_ARTEMIS_VALUE");
+    }
+
+    message = message.replacen(param, &event_value, 1);
 
     Some(message)
 }
@@ -565,7 +585,7 @@ fn merge_strings_message_table(
         if !key.ends_with("Data") {
             continue;
         }
-        if value.is_null() && event_defaults.contains(&key.as_str()) {
+        if !value.is_object() && event_defaults.contains(&key.as_str()) {
             return Some(clean_message);
         }
 
@@ -623,6 +643,11 @@ fn merge_strings_message_table(
         }
 
         let adjust_id = 1;
+
+        if values.len() <= (param_num - adjust_id) {
+            break;
+        }
+
         let value = values.get(param_num - adjust_id)?;
         clean_message = add_event_string(value, clean_message, param, parameter_message)?;
     }
@@ -720,6 +745,9 @@ mod tests {
             "application_log.json",
             "formater_messagetable_log.json",
             "null_no_provider_log.json",
+            "too_many_params_log.json",
+            "parameter_large_log.json",
+            "params_with_percent_log.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -736,6 +764,7 @@ mod tests {
             let message = add_message_strings(&log, &resources, &mut cache, &params).unwrap();
 
             assert!(!message.contains("%%"));
+            assert!(!message.contains("TEMP_ARTEMIS_VALUE"));
 
             match sample {
                 "processingerror_log.json" => {
@@ -824,6 +853,24 @@ mod tests {
                 }
                 "null_no_provider_log.json" => {
                     assert_eq!(message, "null");
+                }
+                "too_many_params_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Compositor Type: 1OUTLOOKP1: %3P2: %4P3: %5P4: %6\r\n"
+                    );
+                }
+                "parameter_large_log.json" => {
+                    assert_eq!(
+                        message,
+                        "The Background Intelligent Transfer Service service terminated with the following service-specific error: \nA system shutdown is in progress.\r\n\r\n"
+                    );
+                }
+                "params_with_percent_log.json" => {
+                    assert_eq!(
+                        message,
+                        "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}\nFunction: DecodeCustomPolicy\nSource: onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp (50)\r\n"
+                    );
                 }
                 _ => panic!("should not have an unknown sample?"),
             }

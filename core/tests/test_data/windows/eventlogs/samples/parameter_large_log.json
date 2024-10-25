@@ -1,0 +1,52 @@
+{
+    "event_record_id": 8693,
+    "timestamp": "2024-10-10T05:58:29.846617000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Service Control Manager",
+                        "Guid": "{555908d1-a6d7-4695-8e1e-26931d2012f4}",
+                        "EventSourceName": "Service Control Manager"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 49152
+                    },
+                    "#text": 7024
+                },
+                "Version": 0,
+                "Level": 2,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x8080000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-10T05:58:29.846617Z"
+                    }
+                },
+                "EventRecordID": 8693,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 1120,
+                        "ThreadID": 4824
+                    }
+                },
+                "Channel": "System",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "param1": "Background Intelligent Transfer Service",
+                "param2": "%%2147943515",
+                "Binary": "42004900540053000000"
+            }
+        }
+    }
+}

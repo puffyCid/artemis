@@ -128,6 +128,7 @@ fn read_directory(
         if file_extension(&evtx_file) != "evtx" {
             continue;
         }
+        println!("{evtx_file}");
 
         let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
         match eventlogs_results {

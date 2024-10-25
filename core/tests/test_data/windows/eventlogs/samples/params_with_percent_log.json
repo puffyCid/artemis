@@ -1,0 +1,51 @@
+{
+    "event_record_id": 39731,
+    "timestamp": "2024-10-10T08:33:01.717625000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Store",
+                        "Guid": "9C2A37F3-E5FD-5CAE-BCD1-43DAFEEE1FF0"
+                    }
+                },
+                "EventID": 8001,
+                "Version": 0,
+                "Level": 4,
+                "Task": 8001,
+                "Opcode": 14,
+                "Keywords": "0x8000100000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-10T08:33:01.717625Z"
+                    }
+                },
+                "EventRecordID": 39731,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 2912,
+                        "ThreadID": 3148
+                    }
+                },
+                "Channel": "Microsoft-Windows-Store/Operational",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "EventData": {
+                "Message": "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}",
+                "Function": "DecodeCustomPolicy",
+                "Source": "onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp",
+                "Line Number": 50
+            }
+        }
+    }
+}
