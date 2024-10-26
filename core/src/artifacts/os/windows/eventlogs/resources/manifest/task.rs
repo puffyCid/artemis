@@ -4,8 +4,9 @@ use crate::utils::{
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Task {
     message_id: i32,
     /**Bitmask? */
@@ -14,6 +15,7 @@ pub(crate) struct Task {
     value: String,
 }
 
+/// Parse WEVT task info
 pub(crate) fn parse_task<'a>(
     resource: &'a [u8],
     data: &'a [u8],

@@ -9,9 +9,10 @@ use super::{
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
 use log::warn;
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ManifestTemplate {
     /**Offset to start of Provider */
     pub(crate) offset: u32,
@@ -71,7 +72,7 @@ pub(crate) fn parse_manifest(
                     let (_, maps) = parse_map(data, element_start)?;
                     value.maps = maps;
                 }
-                SigType::Unknown => println!("[eventlogs] Unknown manifest sig: {sig}"),
+                SigType::Unknown => warn!("[eventlogs] Unknown manifest sig: {sig}"),
             }
         }
     }

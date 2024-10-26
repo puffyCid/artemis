@@ -6,8 +6,9 @@ use crate::utils::{
     strings::extract_utf16_string,
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ManifestData {
     pub(crate) message_id: i32,
     /**Bitmask? */

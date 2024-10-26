@@ -6,8 +6,9 @@ use crate::utils::{
     strings::extract_utf16_string,
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct TemplateElement {
     pub(crate) template_id: String,
     pub(crate) event_data_type: String,
@@ -80,7 +81,7 @@ fn fragment_header(data: &[u8]) -> nom::IResult<&[u8], TokenType> {
     Ok((input, get_token_type(&token)))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Element {
     pub(crate) token: TokenType,
     pub(crate) token_number: u8,
@@ -88,6 +89,9 @@ pub(crate) struct Element {
     pub(crate) size: u32,
     pub(crate) attribute_list: Vec<Attribute>,
     pub(crate) element_name: String,
+    pub(crate) input_type: InputType,
+    pub(crate) substitution: TokenType,
+    pub(crate) substitution_id: u16,
 }
 
 /// Start parsing elements
@@ -103,6 +107,9 @@ fn element_start<'a>(
         size: 0,
         attribute_list: Vec::new(),
         element_name: String::new(),
+        input_type: InputType::Unknown,
+        substitution: TokenType::Unknown,
+        substitution_id: 0,
     };
 
     if !*is_substituion {
@@ -121,8 +128,26 @@ fn element_start<'a>(
 
     let no_elements = 0x1;
     if start.token_number == no_elements {
-        // We are done. Just get the closing element tag (0x2)
+        // We are done. Just get the closing element tag (0x2) and check for substitution
+        let (data_input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
+        let (input, substitution_type) = nom_unsigned_one_byte(data_input, Endian::Le)?;
+        let is_substitution = get_token_type(&substitution_type);
+        if is_substitution != TokenType::OptionalSubstitution
+            && is_substitution != TokenType::NormalSubstitution
+        {
+            return Ok((remaining, (start, data_input)));
+        }
+
+        let (input, substitution_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, input_type_data) = nom_unsigned_one_byte(input, Endian::Le)?;
+
+        // Is this ending element tag? Seems to always be 0x4
         let (input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
+
+        start.substitution = is_substitution;
+        start.substitution_id = substitution_id;
+        start.input_type = get_input_type(&input_type_data);
+
         return Ok((remaining, (start, input)));
     }
 
@@ -133,7 +158,7 @@ fn element_start<'a>(
     Ok((remaining, (start, data_remaining)))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Attribute {
     pub(crate) attribute_token: TokenType,
     pub(crate) attribute_token_number: u8,
@@ -314,7 +339,7 @@ fn get_name(data: &[u8]) -> nom::IResult<&[u8], String> {
     Ok((input, name))
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) enum TokenType {
     Eof,
     OpenStartElement,
@@ -358,7 +383,7 @@ fn get_token_type(token: &u8) -> TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) enum InputType {
     Null,
     Unicode,
@@ -457,8 +482,8 @@ mod tests {
     #[test]
     fn test_element_start() {
         let test = [
-            1, 255, 255, 25, 0, 0, 0, 68, 130, 9, 0, 69, 0, 118, 0, 101, 0, 110, 0, 116, 0, 68, 0,
-            97, 0, 116, 0, 97, 0, 0, 0, 2,
+            1, 255, 255, 26, 0, 0, 0, 68, 130, 9, 0, 69, 0, 118, 0, 101, 0, 110, 0, 116, 0, 68, 0,
+            97, 0, 116, 0, 97, 0, 0, 0, 2, 99,
         ];
 
         let (_, (result, _)) = element_start(&test, &false).unwrap();
@@ -467,7 +492,7 @@ mod tests {
         assert_eq!(result.token, TokenType::OpenStartElement);
         assert_eq!(result.token_number, 1);
         assert!(result.attribute_list.is_empty());
-        assert_eq!(result.size, 25);
+        assert_eq!(result.size, 26);
     }
 
     #[test]

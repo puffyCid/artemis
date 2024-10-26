@@ -4,8 +4,9 @@ use pelite::{
     resources::{Directory, Name},
     Error, PeFile,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EventLogResource {
     pub(crate) mui_data: Vec<u8>,
     pub(crate) wevt_data: Vec<u8>,

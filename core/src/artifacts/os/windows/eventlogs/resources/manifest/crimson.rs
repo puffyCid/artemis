@@ -6,6 +6,7 @@ use crate::utils::{
 use nom::bytes::complete::take;
 use std::collections::HashMap;
 
+/// Parse WEVT header
 pub(crate) fn parse_crimson(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, ManifestTemplate>> {
     let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     // Size is the entire file

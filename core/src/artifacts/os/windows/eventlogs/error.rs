@@ -6,9 +6,10 @@ pub enum EventLogsError {
     Parser,
     Serialize,
     EventLogServices,
-    OnlyWevtTemplate,
     NoMessageTable,
     NoWevtTemplate,
+    ReadTemplateFile,
+    DeserializeTemplate,
 }
 
 impl std::error::Error for EventLogsError {}
@@ -20,12 +21,10 @@ impl fmt::Display for EventLogsError {
             EventLogsError::Parser => write!(f, "Failed to parse eventlogs"),
             EventLogsError::Serialize => write!(f, "Failed to serialize eventlogs"),
             EventLogsError::EventLogServices => write!(f, "Failed to parse registry for services"),
-            EventLogsError::OnlyWevtTemplate => write!(
-                f,
-                "Only have WEVT_TEMPLATE resource. Cannot add eventlog strings with just this."
-            ),
             EventLogsError::NoMessageTable => write!(f, "No MESSAGETABLE resource found"),
             EventLogsError::NoWevtTemplate => write!(f, "No WEVT_TEMPLATE resource found"),
+            EventLogsError::ReadTemplateFile => write!(f, "Could not read provided template file"),
+            EventLogsError::DeserializeTemplate => write!(f, "Could not deserialize template data"),
         }
     }
 }

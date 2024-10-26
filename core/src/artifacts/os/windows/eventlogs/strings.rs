@@ -22,6 +22,7 @@ use crate::{
 };
 use common::windows::RegistryData;
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Parse and extract eventlog string resources
@@ -47,7 +48,21 @@ pub(crate) fn get_resources() -> Result<StringResource, EventLogsError> {
 
 /// Parse the PE resource data and get eventlog related strings
 pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), EventLogsError> {
-    if resource.resource_data.message_data.is_empty() {
+    /* We check several PE resources:
+     * MESSAGETABLE, WEVT_TEMPLATE, and MUI
+     *
+     * If neither MESSAGETABLE or WEVT_TEMPLATE are found, we fallback to the MUI resource and check for a localized language
+     * MUI resource should then point to a file that contains the MESSAGETABLE or/and WEVT_TEMPLATE data
+     */
+
+    // MESSAGETABLE not empty, we parse it. Otherwise we check MUI
+    if !resource.resource_data.message_data.is_empty() {
+        let message = match parse_table(&resource.resource_data.message_data) {
+            Ok((_, result)) => result,
+            Err(_err) => return Err(EventLogsError::NoMessageTable),
+        };
+        resource.message_table = Some(message);
+    } else {
         let mui_result = parse_mui(
             &resource.resource_data.mui_data,
             &resource.resource_data.path,
@@ -59,15 +74,20 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
         if mui_resource.message_data.is_empty() {
             return Err(EventLogsError::NoMessageTable);
         }
-        let (_, message) = parse_table(&mui_resource.message_data).unwrap();
-        resource.message_table = Some(message);
-    } else {
-        let (_, message) = parse_table(&resource.resource_data.message_data).unwrap();
+
+        let message = match parse_table(&mui_resource.message_data) {
+            Ok((_, result)) => result,
+            Err(_err) => return Err(EventLogsError::NoMessageTable),
+        };
         resource.message_table = Some(message);
     }
 
+    // WEVT_TEMPLATE not empty, we parse it. Otherwise we check MUI
     if !resource.resource_data.wevt_data.is_empty() {
-        let (_, template) = parse_manifest(&resource.resource_data.wevt_data).unwrap();
+        let template = match parse_manifest(&resource.resource_data.wevt_data) {
+            Ok((_, result)) => result,
+            Err(_err) => return Err(EventLogsError::NoWevtTemplate),
+        };
         resource.wevt_template = Some(template);
     } else {
         let mui_result = parse_mui(
@@ -81,14 +101,18 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
         if mui_resource.wevt_data.is_empty() {
             return Err(EventLogsError::NoWevtTemplate);
         }
-        let (_, template) = parse_manifest(&mui_resource.wevt_data).unwrap();
+
+        let template = match parse_manifest(&mui_resource.wevt_data) {
+            Ok((_, result)) => result,
+            Err(_err) => return Err(EventLogsError::NoWevtTemplate),
+        };
         resource.wevt_template = Some(template);
     }
 
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct StringResource {
     /**Registry info about providers. Key is provider name */
     pub(crate) providers: HashMap<String, ProviderInfo>,
@@ -96,7 +120,7 @@ pub(crate) struct StringResource {
     pub(crate) templates: HashMap<String, TemplateResource>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ProviderInfo {
     pub(crate) registry_file_path: String,
     pub(crate) registry_path: String,
@@ -106,7 +130,7 @@ pub(crate) struct ProviderInfo {
     pub(crate) parameter_file: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct TemplateResource {
     pub(crate) path: String,
     pub(crate) resource_data: EventLogResource,

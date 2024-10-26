@@ -3,9 +3,10 @@ use crate::utils::{
     strings::{extract_ascii_utf16_string, extract_utf8_string},
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct MessageTable {
     pub(crate) id: u32,
     size: u16,
@@ -19,7 +20,7 @@ struct Block {
     offset: u32,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 enum StringFlags {
     Ascii,
     Utf16,

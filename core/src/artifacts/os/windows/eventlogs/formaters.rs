@@ -349,7 +349,7 @@ mod tests {
         formaters::{
             get_precision, get_size, get_type, get_width, Flags, FormaterSize, FormaterType,
         },
-        resources::manifest::xml::{Element, TokenType},
+        resources::manifest::xml::{Element, InputType, TokenType},
     };
     use serde_json::{Map, Value};
 
@@ -369,6 +369,9 @@ mod tests {
             size: 2,
             attribute_list: Vec::new(),
             element_name: String::from("test"),
+            input_type: InputType::Unknown,
+            substitution: TokenType::Unknown,
+            substitution_id: 0,
         };
         let (_, result) = formater_message(test, &value, &[element]).unwrap();
         assert_eq!(result, "hello rust!");

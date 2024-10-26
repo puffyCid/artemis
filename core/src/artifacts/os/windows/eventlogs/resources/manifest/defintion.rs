@@ -4,9 +4,10 @@ use crate::utils::nom_helper::{
     nom_unsigned_two_bytes, Endian,
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Definition {
     pub(crate) id: u16,
     pub(crate) version: u8,

@@ -16,14 +16,16 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::artifacts::output_data,
-    filesystem::files::{file_extension, list_files},
+    filesystem::files::{file_extension, list_files, read_file},
+    output::formats::json::raw_json,
     structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
     utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
 use chrono::SecondsFormat;
 use common::windows::EventLogRecord;
 use evtx::EvtxParser;
-use log::error;
+use log::{error, warn};
+use serde_json::{Error, Value};
 
 /// Parse `EventLogs` based on `EventLogsOptions`
 pub(crate) fn grab_eventlogs(
@@ -32,10 +34,10 @@ pub(crate) fn grab_eventlogs(
     filter: &bool,
 ) -> Result<(), EventLogsError> {
     if let Some(file) = &options.alt_file {
-        return alt_eventlogs(file, output, filter, &options.include_template_strings);
+        return alt_eventlogs(file, output, filter, options);
     }
 
-    default_eventlogs(output, filter, &options.include_template_strings)
+    default_eventlogs(output, filter, options)
 }
 
 /// Parse the `EventLog` evtx file at provided path
@@ -73,18 +75,23 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
 fn default_eventlogs(
     output: &mut Output,
     filter: &bool,
-    include_templates: &bool,
+    options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[prefetch] Could not determine systemdrive: {err:?}");
-            return Err(EventLogsError::DefaultDrive);
-        }
+    let path = if options.alt_dir.is_some() {
+        options.alt_dir.as_ref().unwrap()
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[prefetch] Could not determine systemdrive: {err:?}");
+                return Err(EventLogsError::DefaultDrive);
+            }
+        };
+        &format!("{drive}:\\Windows\\System32\\winevt\\Logs")
     };
-    let path = format!("{drive}:\\Windows\\System32\\winevt\\Logs");
-    read_directory(&path, output, filter, include_templates)
+
+    read_directory(path, output, filter, options)
 }
 
 /// Read and parse `EventLog` files with alternative path
@@ -92,12 +99,42 @@ fn alt_eventlogs(
     path: &str,
     output: &mut Output,
     filter: &bool,
-    include_templates: &bool,
+    options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
-    let mut templates = None;
-    if *include_templates {
-        templates = Some(get_resources()?);
+    let templates = if options.include_templates && options.alt_template_file.is_none() {
+        Some(get_resources()?)
+    } else if options.alt_template_file.is_some() {
+        let template_file = options.alt_template_file.as_ref().unwrap();
+        let bytes = match read_file(template_file) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to read template file: {err:?}");
+                return Err(EventLogsError::ReadTemplateFile);
+            }
+        };
+
+        match serde_json::from_slice(&bytes) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                return Err(EventLogsError::DeserializeTemplate);
+            }
+        }
+    } else {
+        None
+    };
+
+    if templates.is_some() && options.dump_templates {
+        output_logs(
+            &serde_json::to_value(&templates),
+            output,
+            filter,
+            &0,
+            "eventlog_templates",
+            &true,
+        )?;
     }
+
     read_eventlogs(path, output, filter, &templates)
 }
 
@@ -106,7 +143,7 @@ fn read_directory(
     path: &str,
     output: &mut Output,
     filter: &bool,
-    include_templates: &bool,
+    options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let dir_results = list_files(path);
     let read_dir = match dir_results {
@@ -116,9 +153,39 @@ fn read_directory(
             return Err(EventLogsError::Parser);
         }
     };
-    let mut templates = None;
-    if *include_templates {
-        templates = Some(get_resources()?);
+
+    let templates = if options.include_templates && options.alt_template_file.is_none() {
+        Some(get_resources()?)
+    } else if options.alt_template_file.is_some() {
+        let template_file = options.alt_template_file.as_ref().unwrap();
+        let bytes = match read_file(template_file) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to read template file: {err:?}");
+                return Err(EventLogsError::ReadTemplateFile);
+            }
+        };
+
+        match serde_json::from_slice(&bytes) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                return Err(EventLogsError::DeserializeTemplate);
+            }
+        }
+    } else {
+        None
+    };
+
+    if templates.is_some() && options.dump_templates {
+        output_logs(
+            &serde_json::to_value(&templates),
+            output,
+            filter,
+            &0,
+            "eventlog_templates",
+            &true,
+        )?;
     }
 
     for evtx_file in read_dir {
@@ -180,66 +247,133 @@ fn read_eventlogs(
         }
 
         if eventlog_records.len() == limit {
-            let serde_data_result = if let Some(resource) = resources {
+            let (serde_data_result, raw_output) = if let Some(resource) = resources {
                 let mut all_messages = Vec::new();
+                let mut raw_messages = Vec::new();
                 for record in eventlog_records {
-                    let mut message = add_message_strings(&record, resource, &param_regex).unwrap();
+                    let mut message = if let Some(result) =
+                        add_message_strings(&record, resource, &param_regex)
+                    {
+                        result
+                    } else {
+                        warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                        raw_messages.push(record);
+                        continue;
+                    };
+
                     message.source_file = path.to_string();
                     all_messages.push(message);
                 }
-                serde_json::to_value(&all_messages)
+                (serde_json::to_value(&all_messages), raw_messages)
             } else {
-                serde_json::to_value(&eventlog_records)
+                (serde_json::to_value(&eventlog_records), Vec::new())
             };
 
-            let serde_data = match serde_data_result {
-                Ok(results) => results,
-                Err(err) => {
-                    error!("[eventlogs] Failed to serialize eventlogs: {err:?}");
-                    return Err(EventLogsError::Serialize);
-                }
-            };
-
-            let result = output_data(&serde_data, "eventlogs", output, &start_time, filter);
-            match result {
-                Ok(_result) => {}
-                Err(err) => {
-                    error!("[eventlogs] Could not output eventlogs data: {err:?}");
-                }
+            // If we failed to combine log data and strings. Then output the raw data
+            if !raw_output.is_empty() {
+                output_logs(
+                    &serde_json::to_value(&raw_output),
+                    output,
+                    filter,
+                    &start_time,
+                    "eventlogs",
+                    &false,
+                )?;
             }
+
+            output_logs(
+                &serde_data_result,
+                output,
+                filter,
+                &start_time,
+                "eventlogs",
+                &false,
+            )?;
 
             eventlog_records = Vec::new();
         }
     }
 
     if !eventlog_records.is_empty() {
-        let serde_data_result = if let Some(resource) = resources {
+        let (serde_data_result, raw_output) = if let Some(resource) = resources {
             let mut all_messages = Vec::new();
-
+            let mut raw_messages = Vec::new();
             for record in eventlog_records {
-                let mut message = add_message_strings(&record, resource, &param_regex).unwrap();
+                let mut message = if let Some(result) =
+                    add_message_strings(&record, resource, &param_regex)
+                {
+                    result
+                } else {
+                    warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                    raw_messages.push(record);
+                    continue;
+                };
                 message.source_file = path.to_string();
                 all_messages.push(message);
             }
-            serde_json::to_value(&all_messages)
+            (serde_json::to_value(&all_messages), raw_messages)
         } else {
-            serde_json::to_value(&eventlog_records)
+            (serde_json::to_value(&eventlog_records), Vec::new())
         };
 
-        let serde_data = match serde_data_result {
-            Ok(results) => results,
-            Err(err) => {
-                error!("[eventlogs] Failed to serialize last eventlogs: {err:?}");
-                return Err(EventLogsError::Serialize);
-            }
-        };
+        // If we failed to combine log data and strings. Then output the raw data
+        if !raw_output.is_empty() {
+            output_logs(
+                &serde_json::to_value(&raw_output),
+                output,
+                filter,
+                &start_time,
+                "eventlogs",
+                &false,
+            )?;
+        }
 
-        let result = output_data(&serde_data, "eventlogs", output, &start_time, filter);
-        match result {
-            Ok(_result) => {}
-            Err(err) => {
-                error!("[eventlogs] Could not output last eventlogs data: {err:?}");
-            }
+        output_logs(
+            &serde_data_result,
+            output,
+            filter,
+            &start_time,
+            "eventlogs",
+            &false,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Output log results
+fn output_logs(
+    result: &Result<Value, Error>,
+    output: &mut Output,
+    filter: &bool,
+    start_time: &u64,
+    name: &str,
+    raw: &bool,
+) -> Result<(), EventLogsError> {
+    let serde_data = match result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[eventlogs] Failed to serialize last eventlogs: {err:?}");
+            return Err(EventLogsError::Serialize);
+        }
+    };
+
+    // Skip adding metadata to the output if we are just dumping templates
+    if *raw {
+        let status = raw_json(serde_data, name, output);
+        if status.is_err() {
+            error!(
+                "[eventlogs] Could not output raw json results: {:?}",
+                status.unwrap_err()
+            );
+        }
+        return Ok(());
+    }
+
+    match output_data(serde_data, name, output, start_time, filter) {
+        Ok(_result) => {}
+        Err(err) => {
+            error!("[eventlogs] Could not output last eventlogs data: {err:?}");
         }
     }
 
@@ -249,7 +383,12 @@ fn read_eventlogs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
+    use serde_json::json;
+
+    use super::{
+        alt_eventlogs, default_eventlogs, grab_eventlogs, output_logs, read_directory,
+        read_eventlogs,
+    };
     use crate::{structs::artifacts::os::windows::EventLogsOptions, structs::toml::Output};
     use std::{fs::read_dir, path::PathBuf};
 
@@ -274,7 +413,10 @@ mod tests {
     fn test_grab_eventlogs() {
         let options = EventLogsOptions {
             alt_file: None,
-            include_template_strings: false,
+            include_templates: false,
+            dump_templates: false,
+            alt_dir: None,
+            alt_template_file: None,
         };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
@@ -285,8 +427,15 @@ mod tests {
     #[test]
     fn test_default_eventlogs() {
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
+        let options = EventLogsOptions {
+            alt_file: None,
+            include_templates: false,
+            dump_templates: false,
+            alt_dir: None,
+            alt_template_file: None,
+        };
 
-        let results = default_eventlogs(&mut output, &false, &false).unwrap();
+        let results = default_eventlogs(&mut output, &false, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -296,7 +445,15 @@ mod tests {
         let path = "madeup";
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = alt_eventlogs(&path, &mut output, &false, &false).unwrap();
+        let options = EventLogsOptions {
+            alt_file: None,
+            include_templates: false,
+            dump_templates: false,
+            alt_dir: None,
+            alt_template_file: None,
+        };
+
+        let results = alt_eventlogs(&path, &mut output, &false, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -305,12 +462,19 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+        let options = EventLogsOptions {
+            alt_file: None,
+            include_templates: false,
+            dump_templates: false,
+            alt_dir: None,
+            alt_template_file: None,
+        };
 
         let results = read_directory(
             &test_location.display().to_string(),
             &mut output,
             &false,
-            &false,
+            &options,
         )
         .unwrap();
         assert_eq!(results, ())
@@ -336,5 +500,15 @@ mod tests {
             .unwrap();
             assert_eq!(results, ())
         }
+    }
+
+    #[test]
+    fn test_output_log() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs");
+        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+
+        let test = json!({"key": "value"});
+        output_logs(&Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
     }
 }

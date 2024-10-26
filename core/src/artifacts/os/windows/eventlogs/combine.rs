@@ -1,9 +1,6 @@
 use super::{
     formaters::{formater_message, formater_message_table},
-    resources::{
-        manifest::{defintion::Definition, maps::MapInfo},
-        message::MessageTable,
-    },
+    resources::{manifest::defintion::Definition, message::MessageTable},
     strings::StringResource,
 };
 use common::windows::{EventLevel, EventLogRecord, EventMessage};
@@ -11,13 +8,6 @@ use log::{error, warn};
 use regex::Regex;
 use serde_json::{Map, Number, Value};
 use std::collections::HashMap;
-
-/*TODO
- * 1. create toml file (similar to dfir muesume) for optional test against https://github.com/Yamato-Security/hayabusa-sample-evtx
- *   - repo reuses data from other repos with mix licensing. so avoid including any files if possible
- * 2. Add more tests
- * 3. Handle failed parsing. Make array to track raw eventlogs entries that failed and output that
- */
 
 /// Combine raw `EventLog` data with template strings
 pub(crate) fn add_message_strings(
@@ -62,10 +52,14 @@ pub(crate) fn add_message_strings(
         .get("System")?;
 
     let event_id = get_event_id(&log.data)?;
-    message.version = get_meta_number(meta, "Version")?;
+    message.event_id = event_id.id;
+    message.qualifier = event_id.qualifier;
+
+    // Some logs may not have a version number. Seen in logs with RenderingInfo element
+    // Are these forwarded logs?
+    message.version = get_meta_number(meta, "Version").unwrap_or(0);
     message.provider = get_provider(&log.data)?.to_string();
     let guid_opt = get_guid(&log.data);
-
     message.guid = match guid_opt {
         Some(result) => result.to_lowercase().replace(['{', '}'], ""),
         None => String::new(),
@@ -74,13 +68,17 @@ pub(crate) fn add_message_strings(
     message.source_name = get_event_source_name(&log.data)
         .unwrap_or_default()
         .to_string();
-    message.event_id = event_id.id;
-    message.qualifier = event_id.qualifier;
+
     message.raw_event_data = raw_data(&log.data)?;
 
     let level = get_meta_number(meta, "Level")?;
     message.level = get_level(&level);
-    message.opcode = get_meta_number(meta, "Opcode")?;
+
+    // Some logs may not have a opcode number. Seen in logs with RenderingInfo element
+    // Instead opcode is in RenderInfo and its a string...
+    // Are these forwarded logs?
+    message.opcode = get_meta_number(meta, "Opcode").unwrap_or(0);
+
     message.task = get_meta_number(meta, "Task")?;
 
     message.channel = get_meta_string(meta, "Channel")?;
@@ -104,12 +102,11 @@ pub(crate) fn add_message_strings(
         Some(result) => result,
         None => {
             // try provider name before we give up
-            match resources.providers.get(&message.provider.to_lowercase()) {
-                Some(result) => result,
-                None => {
-                    message.message = merge_strings_no_manifest(&log.data)?;
-                    return Some(message);
-                }
+            if let Some(result) = resources.providers.get(&message.provider.to_lowercase()) {
+                result
+            } else {
+                message.message = merge_strings_no_manifest(&log.data)?;
+                return Some(message);
             }
         }
     };
@@ -217,23 +214,25 @@ pub(crate) fn add_message_strings(
             Some(result) => result,
             None => continue,
         };
+
         let mut id = event_definition.message_id;
         let no_id = 4294967295;
         if id == no_id {
             id = event_id.id as u32;
         }
+
         let table_opt = message_table?.get(&id);
-        let table = match table_opt {
-            Some(result) => result,
-            None => {
-                // try one more time
-                let adjust = 0xb0000000;
-                match message_table?.get(&(id + adjust)) {
-                    Some(result) => result,
-                    None => continue,
-                }
+        let table = if let Some(result) = table_opt {
+            result
+        } else {
+            // try one more time
+            let adjust = 0xb0000000;
+            match message_table?.get(&(id + adjust)) {
+                Some(result) => result,
+                None => continue,
             }
         };
+
         message.template_message = table.message.clone();
 
         // If we do not have any templates. Can just try messagetable only
@@ -248,9 +247,7 @@ pub(crate) fn add_message_strings(
         message.message = merge_strings(
             &log.data,
             table,
-            message_table?,
             event_definition,
-            &manifist_template.maps,
             param_regex,
             &param_message_table,
         )?;
@@ -281,7 +278,10 @@ fn raw_data(data: &Value) -> Option<Value> {
         }
         return Some(value.clone());
     }
-    None
+
+    // No Event data found. Could be artificial log (no value)
+    // May be generated when forwarding is first enabled
+    Some(Value::Null)
 }
 
 #[derive(Debug)]
@@ -320,10 +320,24 @@ fn get_event_id(data: &Value) -> Option<EventId> {
         if attr_key == "#attributes" {
             for (key, value) in attr_value.as_object()? {
                 if key == "Qualifiers" {
+                    if value.is_string() {
+                        // Sometimes the Qualifiers is recorded as a string...
+                        // PowerShell
+                        let id_string = value.as_str()?;
+                        event_id.qualifier = id_string.parse().unwrap_or_default();
+                        continue;
+                    }
                     event_id.qualifier = value.as_u64()?;
                 }
             }
         } else if attr_key == "#text" {
+            // Sometimes the EventID is recorded as a string...
+            // PowerShell
+            if attr_value.is_string() {
+                let id_string = attr_value.as_str()?;
+                event_id.id = id_string.parse().unwrap_or_default();
+                continue;
+            }
             event_id.id = attr_value.as_u64()?;
         }
     }
@@ -343,6 +357,7 @@ fn get_level(level: &u64) -> EventLevel {
     }
 }
 
+/// Grab systemtime from entry
 fn get_systemtime(data: &Value) -> Option<String> {
     let time = &data
         .as_object()?
@@ -387,6 +402,7 @@ fn get_proc_thread(data: &Value) -> Option<(u64, u64)> {
     Some((proc, thread))
 }
 
+/// Get `SID` is available
 fn get_sid(data: &Value) -> Option<String> {
     let sid = &data
         .as_object()?
@@ -402,9 +418,10 @@ fn get_sid(data: &Value) -> Option<String> {
     }
     let sid_value = sid.get("#attributes")?;
 
-    get_meta_string(&sid_value, "UserID")
+    get_meta_string(sid_value, "UserID")
 }
 
+/// Get activity ID is available
 fn get_activity_id(data: &Value) -> Option<String> {
     let id = &data
         .as_object()?
@@ -420,7 +437,7 @@ fn get_activity_id(data: &Value) -> Option<String> {
     }
     let id_value = id.get("#attributes")?;
 
-    get_meta_string(&id_value, "ActivityID")
+    get_meta_string(id_value, "ActivityID")
 }
 
 /// Get number values for various log keys
@@ -428,7 +445,7 @@ fn get_meta_number(data: &Value, key: &str) -> Option<u64> {
     // Sometimes key may not be included in log data
     // Seen in System Restore provider
     let default = Value::Number(Number::from(0));
-    let value = &data.as_object()?.get(key).unwrap_or(&default);
+    let value = data.as_object()?.get(key).unwrap_or(&default);
 
     let number = if value.is_u64() {
         value.as_u64()?
@@ -504,7 +521,7 @@ fn get_guid(data: &Value) -> Option<&str> {
     None
 }
 
-/// Get `EventLog` record source name
+/// Get `EventLog` record source name if available
 fn get_event_source_name(data: &Value) -> Option<&str> {
     let name = data
         .as_object()?
@@ -530,9 +547,7 @@ fn get_event_source_name(data: &Value) -> Option<&str> {
 fn merge_strings(
     log: &Value,
     table: &MessageTable,
-    other_messages: &HashMap<u32, MessageTable>,
     manifest: &Definition,
-    maps: &[MapInfo],
     param_regex: &Regex,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
@@ -564,6 +579,7 @@ fn merge_strings(
     let element_list = &manifest.template.as_ref()?.elements;
     let mut data_values = Vec::new();
     grab_data_values(event_data, &mut data_values);
+
     for found in param_regex.find_iter(&clean_message.clone()) {
         let param = found.as_str();
         if !param.starts_with('%') {
@@ -613,11 +629,32 @@ fn merge_strings(
         // If we do not have an attribute list. Then we have to use the element_names
         // Seen for UserData entries: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#event-data
         if element_attributes.attribute_list.is_empty() {
-            let value = event_data.get(&element_attributes.element_name)?;
-
-            if value.is_number() {
+            let default = Value::String(param.to_string());
+            // If we fail to find the element name. Return the parameter (%1)
+            // Sometimes happens if we try to mix eventlogs and template strings from different systems
+            /* Windows Event Viewer shows
+             * Process Information:
+             * Process ID:		0x9c0
+             * New Process Name:	C:\Windows\System32\wevtutil.exe
+             * Token Elevation Type:	TokenElevationTypeDefault (1)
+             * Mandatory Label:		%15
+             * Creator Process ID:	%8
+             * Creator Process Name:	%14!S!
+             * Process Command Line:	%9!S!
+             */
+            let value = event_data
+                .get(&element_attributes.element_name)
+                .unwrap_or(&default);
+            // Sometimes the value may be an integer that maps to an enum
+            // Ex: IntendedPackageState - 5112. 5112 = "Installed"
+            // Event Viewer can resolve these enums somehow (Ex: IntendedPackageState - Installed). Currently we cannot
+            // Other EventLog parsers also cannot seem to resolve either
+            /*
+            if value.is_number()
+                && (element_attributes.input_type == InputType::Unicode
+                    || element_attributes.input_type == InputType::Ansi)
+            {
                 let mut new_value = Value::Null;
-                // The EventLog data may not actually be a real number. Could be an enum that maps to the messagetable
                 // Check out maps array/hashmap and messagetable
                 for map in maps {
                     let message_id = match map.data.get(&(value.as_u64()? as u32)) {
@@ -639,12 +676,17 @@ fn merge_strings(
                     continue;
                 }
             }
+            */
+
             clean_message = add_event_string(value, clean_message, param, parameter_message)?;
             continue;
         }
 
         for attribute in &element_attributes.attribute_list {
-            let value = event_data.get(&attribute.value)?;
+            let default = Value::String(param.to_string());
+            // If we fail to find the attribute name. Return the parameter (%1)
+            // Sometimes happens if we try to mix eventlogs and template strings from different systems
+            let value = event_data.get(&attribute.value).unwrap_or(&default);
             clean_message = add_event_string(value, clean_message, param, parameter_message)?;
         }
     }
@@ -664,6 +706,11 @@ fn add_event_string(
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+        if parameter_message.is_empty() {
+            warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
+            return Some(message);
+        }
+
         let num_result = value.as_str()?.get(2..)?.parse();
         if num_result.is_err() {
             warn!(
@@ -674,20 +721,15 @@ fn add_event_string(
         }
 
         let param_message_id: u32 = num_result.unwrap_or_default();
-        if parameter_message.is_empty() {
-            warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
-            return Some(message);
-        }
 
-        let param_message_value = match parameter_message.get(&param_message_id) {
-            Some(result) => result,
-            None => {
-                // Try one more time
-                let adjust = 0xffff;
-                match parameter_message.get(&(param_message_id & adjust)) {
-                    Some(result) => result,
-                    None => return Some(message),
-                }
+        let param_message_value = if let Some(result) = parameter_message.get(&param_message_id) {
+            result
+        } else {
+            // Try one more time
+            let adjust = 0xffff;
+            match parameter_message.get(&(param_message_id & adjust)) {
+                Some(result) => result,
+                None => return Some(message),
             }
         };
 
@@ -768,7 +810,7 @@ fn merge_strings_message_table(
 
             for text_value in value_data.as_object()?.values() {
                 if text_value.is_array() {
-                    values.append(&mut text_value.as_array()?.to_vec());
+                    values.append(&mut text_value.as_array()?.clone());
                     continue;
                 }
                 values.push(text_value.clone());
@@ -811,7 +853,7 @@ fn merge_strings_message_table(
         let adjust_id = 1;
 
         if values.len() <= (param_num - adjust_id) {
-            break;
+            continue;
         }
 
         let value = values.get(param_num - adjust_id)?;
@@ -881,15 +923,18 @@ mod tests {
     use super::{add_message_strings, build_string, get_event_id, grab_data_values};
     use crate::{
         artifacts::os::windows::eventlogs::{
-            combine::{clean_table, get_guid, get_provider},
+            combine::{
+                add_event_string, clean_table, get_guid, get_level, get_meta_number,
+                get_meta_string, get_proc_thread, get_provider, get_sid, get_systemtime, raw_data,
+            },
             strings::get_resources,
         },
         filesystem::files::read_file,
         utils::regex_options::create_regex,
     };
-    use common::windows::EventLogRecord;
-    use serde_json::json;
-    use std::path::PathBuf;
+    use common::windows::{EventLevel, EventLogRecord};
+    use serde_json::{json, Value};
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_add_message_strings() {
@@ -980,7 +1025,7 @@ mod tests {
                 "userdata_log.json" => {
                     assert_eq!(
                         message.message,
-                        "Package KB5044033 was successfully changed to the Installed state.\r\n"
+                        "Package KB5044033 was successfully changed to the 5112 state.\r\n"
                     );
                 }
                 "null_log.json" => {
@@ -1006,6 +1051,41 @@ mod tests {
                         message.message,
                         "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: rustc.exe (11372) consumed 1446383616 bytes, MsMpEng.exe (4036) consumed 325812224 bytes, and msedge.exe (4276) consumed 109355008 bytes.\r\n"
                     );
+                    assert_eq!(message.activity_id, "9EAA533D-165D-47BB-B253-309A7A2CD547");
+                    assert_eq!(message.process_id, 6500);
+                    assert_eq!(message.thread_id, 6412);
+                    assert_eq!(
+                        message.provider,
+                        "Microsoft-Windows-Resource-Exhaustion-Detector"
+                    );
+                    assert_eq!(message.channel, "System");
+                    assert_eq!(message.keywords, "0x8000000020000000");
+                    assert!(message
+                        .raw_event_data
+                        .to_string()
+                        .contains("NonPagedPoolInfo"));
+                    assert_eq!(
+                        message.registry_file,
+                        "C:\\Windows\\System32\\config\\SOFTWARE"
+                    );
+                    assert_eq!(message.registry_path, "ROOT\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\{9988748e-c2e8-4054-85f6-0c3e1cad2470}");
+                    assert_eq!(message.source_file, "");
+                    assert_eq!(message.source_name, "");
+                    assert_eq!(message.computer, "DESKTOP-9FSUKAJ");
+                    assert_eq!(message.generated, "2024-08-03T06:50:04.072688000Z");
+                    assert_eq!(message.guid, "9988748e-c2e8-4054-85f6-0c3e1cad2470");
+                    assert_eq!(message.event_id, 2004);
+                    assert_eq!(message.level, EventLevel::Warning);
+                    assert_eq!(message.message_file, "C:\\WINDOWS\\system32\\radardt.dll");
+                    assert_eq!(message.parameter_file, "");
+                    assert_eq!(message.opcode, 33);
+                    assert_eq!(message.qualifier, 0);
+                    assert_eq!(message.sid, "S-1-5-18");
+                    assert_eq!(message.system_time, "2024-08-03T06:50:04.072688Z");
+                    assert_eq!(message.task, 3);
+                    assert_eq!(message.template_message, "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: %21 (%22) consumed %24 bytes, %28 (%29) consumed %31 bytes, and %35 (%36) consumed %38 bytes.\r\n");
+                    assert_eq!(message.record_id, 1719);
+                    assert_eq!(message.version, 0);
                 }
                 "application_log.json" => {
                     assert_eq!(
@@ -1040,10 +1120,10 @@ mod tests {
                         "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}\nFunction: DecodeCustomPolicy\nSource: onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp (50)\r\n"
                     );
                 }
-                "userdata_evet_log.json" => {
+                "userdata_event_log.json" => {
                     assert_eq!(
                         message.message,
-                        "Decoding: {\"entitlementId\":\"dc2ebe13-256e-1e37-cd33-0e158d309957\",\"entitlementSatisfaction\":\"Device\",\"isOffline\":true,\"leaseEnforcement\":\"None\",\"leaseUri\":\"https://licensing.md.mp.microsoft.com/v7.0/licenses/?beneficiaryId=msahw%3a6825829526824795&contentId=4903ca77-f59a-7237-66c2-81e8ec5f13f2&entitlementId=dc2ebe13-256e-1e37-cd33-0e158d309957&market=US&policyType=Device\",\"keyIds\":[\"4a0b0c27-6994-19e9-b724-acfa845b95b8\"],\"kind\":\"Content\",\"packages\":[{\"packageIdentifier\":\"4903ca77-f59a-7237-66c2-81e8ec5f13f2\",\"packageType\":\"msix\",\"productAddOns\":[],\"productId\":\"9NHT9RB2F4HD\",\"skuId\":\"0010\"}],\"pollAt\":\"2024-10-23T22:12:01.7267614+00:00\",\"refreshOnStartup\":false,\"version\":7}\nFunction: DecodeCustomPolicy\nSource: onecoreuap\\enduser\\winstore\\licensemanager\\lib\\clipdocument.cpp (50)\r\n"
+                        "Send RDMA Endpoint notification failure - 6\r\n"
                     );
                 }
                 _ => panic!("should not have an unknown sample?"),
@@ -1124,5 +1204,86 @@ mod tests {
         assert_eq!(values[37], 109355008);
 
         assert_eq!(values[48], "");
+    }
+
+    #[test]
+    fn test_raw_data() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = raw_data(&log.data).unwrap();
+        assert!(result.to_string().contains("Installed"));
+    }
+
+    #[test]
+    fn test_get_level() {
+        let result = get_level(&99);
+        assert_eq!(result, EventLevel::Unknown);
+    }
+
+    #[test]
+    fn test_get_systemtime() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_systemtime(&log.data).unwrap();
+        assert_eq!(result, "2024-10-10T06:04:54.618233Z");
+    }
+
+    #[test]
+    fn test_get_proc_thread() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let (proc, thread) = get_proc_thread(&log.data).unwrap();
+        assert_eq!(proc, 2524);
+        assert_eq!(thread, 2620);
+    }
+
+    #[test]
+    fn test_get_sid() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_sid(&log.data).unwrap();
+        assert_eq!(result, "S-1-5-18");
+    }
+
+    #[test]
+    fn test_get_meta_number() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_meta_number(&log.data["Event"]["System"], "Version").unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_get_meta_string() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/eventlogs/samples/userdata_log.json");
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
+
+        let result = get_meta_string(&log.data["Event"]["System"], "Keywords").unwrap();
+        assert_eq!(result, "0x8000000000000000");
+    }
+
+    #[test]
+    fn test_add_event_string() {
+        let value = Value::String(String::from("love"));
+        let test = String::from("i really %1 windows eventlogs! /s");
+        let result = add_event_string(&value, test, "%1", &HashMap::new()).unwrap();
+        assert_eq!(result, "i really love windows eventlogs! /s");
     }
 }

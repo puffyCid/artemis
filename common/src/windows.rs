@@ -1555,7 +1555,7 @@ pub struct EventMessage {
     pub registry_path: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum EventLevel {
     Information,
     Warning,
