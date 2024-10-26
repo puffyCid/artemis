@@ -919,6 +919,7 @@ fn clean_table(message: &str) -> String {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::{add_message_strings, build_string, get_event_id, grab_data_values};
     use crate::{
