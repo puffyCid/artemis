@@ -105,6 +105,7 @@ fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::read_dir;
     use crate::{
