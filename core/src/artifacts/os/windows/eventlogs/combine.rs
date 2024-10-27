@@ -1119,10 +1119,13 @@ mod tests {
                     assert!(message.message.is_empty());
                 }
                 "too_many_params_log.json" => {
-                    assert_eq!(
-                        message.message,
-                        "Compositor Type: 1OUTLOOKP1: %3P2: %4P3: %5P4: %6\r\n"
-                    );
+                    // Outlook may not be installed on system
+                    if message.message.starts_with("Compositor") {
+                        assert_eq!(
+                            message.message,
+                            "Compositor Type: 1OUTLOOKP1: %3P2: %4P3: %5P4: %6\r\n"
+                        );
+                    }
                 }
                 "parameter_large_log.json" => {
                     assert_eq!(
