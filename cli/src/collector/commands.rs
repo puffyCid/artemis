@@ -78,6 +78,9 @@ pub(crate) enum CommandArgs {
         /// Dump EventLog provider templates. Only works on Windows
         #[arg(long)]
         dump_templates: bool,
+        /// Only output EventLog templates. Only works on Windows
+        #[arg(long)]
+        only_templates: bool,
     },
     /// windows: Parse NTFS to get filelisting
     Rawfilelisting {

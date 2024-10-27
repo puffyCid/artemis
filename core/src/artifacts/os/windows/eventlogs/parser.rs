@@ -84,7 +84,7 @@ fn default_eventlogs(
         let drive = match drive_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[prefetch] Could not determine systemdrive: {err:?}");
+                error!("[eventlogs] Could not determine systemdrive: {err:?}");
                 return Err(EventLogsError::DefaultDrive);
             }
         };
@@ -133,6 +133,10 @@ fn alt_eventlogs(
             "eventlog_templates",
             &true,
         )?;
+
+        if options.only_templates {
+            return Ok(());
+        }
     }
 
     read_eventlogs(path, output, filter, &templates)
@@ -186,6 +190,10 @@ fn read_directory(
             "eventlog_templates",
             &true,
         )?;
+
+        if options.only_templates {
+            return Ok(());
+        }
     }
 
     for evtx_file in read_dir {
@@ -417,6 +425,7 @@ mod tests {
             dump_templates: false,
             alt_dir: None,
             alt_template_file: None,
+            only_templates: false,
         };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
@@ -433,6 +442,7 @@ mod tests {
             dump_templates: false,
             alt_dir: None,
             alt_template_file: None,
+            only_templates: false,
         };
 
         let results = default_eventlogs(&mut output, &false, &options).unwrap();
@@ -451,6 +461,7 @@ mod tests {
             dump_templates: false,
             alt_dir: None,
             alt_template_file: None,
+            only_templates: false,
         };
 
         let results = alt_eventlogs(&path, &mut output, &false, &options).unwrap();
@@ -468,6 +479,7 @@ mod tests {
             dump_templates: false,
             alt_dir: None,
             alt_template_file: None,
+            only_templates: false,
         };
 
         let results = read_directory(

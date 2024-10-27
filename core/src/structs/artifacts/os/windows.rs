@@ -12,6 +12,7 @@ pub struct EventLogsOptions {
     pub include_templates: bool,
     pub dump_templates: bool,
     pub alt_template_file: Option<String>,
+    pub only_templates: bool,
 }
 
 #[derive(Debug, Deserialize)]

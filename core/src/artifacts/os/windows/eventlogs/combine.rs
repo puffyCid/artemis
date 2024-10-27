@@ -212,7 +212,18 @@ pub(crate) fn add_message_strings(
             .get(&format!("{}_{}", event_id.id, message.version))
         {
             Some(result) => result,
-            None => continue,
+            None => {
+                // try one more time
+                let previous_version = 1;
+                match manifist_template.definitions.get(&format!(
+                    "{}_{}",
+                    event_id.id,
+                    (message.version - previous_version)
+                )) {
+                    Some(result) => result,
+                    None => continue,
+                }
+            }
         };
 
         let mut id = event_definition.message_id;
@@ -996,6 +1007,7 @@ mod tests {
                     );
                 }
                 "logon_log.json" => {
+                    println!("{message:?}");
                     assert!(message
                         .message
                         .starts_with("An account was successfully logged on"));

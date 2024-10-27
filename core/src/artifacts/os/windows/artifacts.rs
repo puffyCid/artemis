@@ -642,6 +642,7 @@ mod tests {
             dump_templates: false,
             include_templates: false,
             alt_template_file: None,
+            only_templates: false,
         };
         let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 

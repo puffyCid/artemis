@@ -289,6 +289,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             alt_dir,
             alt_template_file,
             dump_templates,
+            only_templates,
         } => {
             let options = EventLogsOptions {
                 alt_file: alt_file.clone(),
@@ -296,6 +297,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_template_file: alt_template_file.clone(),
                 include_templates: *include_templates,
                 dump_templates: *dump_templates,
+                only_templates: *only_templates,
             };
             collect.eventlogs = Some(options);
             collect.artifact_name = String::from("eventlogs");
@@ -769,6 +771,7 @@ mod tests {
                 dump_templates: false,
                 alt_dir: None,
                 alt_template_file: None,
+                only_templates: false,
             }),
             format: String::from("json"),
         };
