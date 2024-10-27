@@ -307,6 +307,10 @@ fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
+    if !path.contains(['/', '\\']) {
+        return path.to_string();
+    }
+
     let entry_opt = if path.contains('/') {
         path.rsplit_once('/')
     } else {
@@ -314,7 +318,7 @@ pub(crate) fn get_filename(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[artemis-core] Failed to split {path}");
+        warn!("[artemis-core] Failed to get filename from: {path}");
         return path.to_string();
     }
 

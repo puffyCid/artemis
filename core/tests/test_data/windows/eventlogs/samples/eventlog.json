@@ -1,0 +1,54 @@
+{
+    "event_record_id": 25817,
+    "timestamp": "2024-09-10T05:16:25.787335000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Install-Agent",
+                        "Guid": "E0C6F6DE-258A-50E0-AC1A-103482D118BC"
+                    }
+                },
+                "EventID": 2006,
+                "Version": 0,
+                "Level": 4,
+                "Task": 2002,
+                "Opcode": 14,
+                "Keywords": "0x8000000020000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-09-10T05:16:25.787335Z"
+                    }
+                },
+                "EventRecordID": 25817,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 12588,
+                        "ThreadID": 13020
+                    }
+                },
+                "Channel": "Microsoft-Windows-Store/Operational",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "EventData": {
+                "Message": "Setting MSA Client Id for Token requests: {f0c62012-2cef-4831-b1f7-930682874c86}",
+                "Function": "WinStoreAuth::AuthenticationInternal::SetMsaClientId",
+                "Error Code": -2147467259,
+                "Source": "onecoreuap\\enduser\\winstore\\auth\\lib\\winstoreauth.cpp",
+                "Line Number": 265,
+                "CorrelationVector": "NULL",
+                "ProductId": "NULL"
+            }
+        }
+    }
+}

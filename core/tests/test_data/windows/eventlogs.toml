@@ -13,3 +13,8 @@ output = "local"
 artifact_name = "eventlogs"
 [artifacts.eventlogs]
 # alt_file = "C:\\Artifacts\\Security.evtx" # Optional
+# alt_dir = "C:\\LogFiles" # Optional
+# alt_template_file = "C:\\Resources\\templates.json" # Optional 
+include_templates = true
+dump_templates = false
+only_templates = false

@@ -1,0 +1,75 @@
+{
+    "event_record_id": 117651,
+    "timestamp": "2024-09-23T06:02:40.336486000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Security-Auditing",
+                        "Guid": "54849625-5478-4994-A5BA-3E3B0328C30D"
+                    }
+                },
+                "EventID": 4624,
+                "Version": 3,
+                "Level": 0,
+                "Task": 12544,
+                "Opcode": 0,
+                "Keywords": "0x8020000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-09-23T06:02:40.336486Z"
+                    }
+                },
+                "EventRecordID": 117651,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "C4F62C20-0D7C-0001-BD2C-F6C47C0DDB01"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 1116,
+                        "ThreadID": 10144
+                    }
+                },
+                "Channel": "Security",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "SubjectUserSid": "S-1-5-18",
+                "SubjectUserName": "DESKTOP-9FSUKAJ$",
+                "SubjectDomainName": "WORKGROUP",
+                "SubjectLogonId": "0x3e7",
+                "TargetUserSid": "S-1-5-18",
+                "TargetUserName": "SYSTEM",
+                "TargetDomainName": "NT AUTHORITY",
+                "TargetLogonId": "0x3e7",
+                "LogonType": 5,
+                "LogonProcessName": "Advapi  ",
+                "AuthenticationPackageName": "Negotiate",
+                "WorkstationName": "-",
+                "LogonGuid": "00000000-0000-0000-0000-000000000000",
+                "TransmittedServices": "-",
+                "LmPackageName": "-",
+                "KeyLength": 0,
+                "ProcessId": "0x444",
+                "ProcessName": "C:\\Windows\\System32\\services.exe",
+                "IpAddress": "-",
+                "IpPort": "-",
+                "ImpersonationLevel": "%%1833",
+                "RestrictedAdminMode": "-",
+                "RemoteCredentialGuard": "-",
+                "TargetOutboundUserName": "-",
+                "TargetOutboundDomainName": "-",
+                "VirtualAccount": "%%1843",
+                "TargetLinkedLogonId": "0x0",
+                "ElevatedToken": "%%1842"
+            }
+        }
+    }
+}

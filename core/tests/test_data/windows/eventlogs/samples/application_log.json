@@ -1,0 +1,52 @@
+{
+    "event_record_id": 100,
+    "timestamp": "2024-07-27T03:18:03.445854000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Complus",
+                        "Guid": "{0f177893-4a9c-4709-b921-f432d67f43d5}",
+                        "EventSourceName": "COM+"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 16384
+                    },
+                    "#text": 781
+                },
+                "Version": 0,
+                "Level": 4,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-07-27T03:18:03.445854Z"
+                    }
+                },
+                "EventRecordID": 100,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 5404,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "Application",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "param1": "86400",
+                "param2": "SuppressDuplicateDuration",
+                "param3": "Software\\Microsoft\\COM3\\Eventlog"
+            }
+        }
+    }
+}

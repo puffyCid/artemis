@@ -1,0 +1,58 @@
+{
+    "event_record_id": 809,
+    "timestamp": "2024-10-15T07:02:27.533548000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-SMBServer",
+                        "Guid": "D48CE617-33A2-4BC3-A5C7-11AA4F29619E"
+                    }
+                },
+                "EventID": 1034,
+                "Version": 0,
+                "Level": 4,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x2000000000000200",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-15T07:02:27.533548Z"
+                    }
+                },
+                "EventRecordID": 809,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 4,
+                        "ThreadID": 468
+                    }
+                },
+                "Channel": "Microsoft-Windows-SMBServer/Operational",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "UserData": {
+                "EventData": {
+                    "#attributes": {
+                        "xmlns": "Smb2Namespace"
+                    },
+                    "FailureType": 6,
+                    "InterfaceIndex": 0,
+                    "Error": "0xc0000034",
+                    "DeviceNameLength": 35,
+                    "DeviceName": "\\Device\\RdmaSmbIpv4_169.254.183.223",
+                    "ExtraInformation": 0
+                }
+            }
+        }
+    }
+}

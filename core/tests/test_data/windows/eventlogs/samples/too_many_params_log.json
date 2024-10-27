@@ -1,0 +1,54 @@
+{
+    "event_record_id": 8,
+    "timestamp": "2024-09-12T03:03:16.060222000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft Office 16 Alerts"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 0
+                    },
+                    "#text": 300
+                },
+                "Version": 0,
+                "Level": 4,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-09-12T03:03:16.060222Z"
+                    }
+                },
+                "EventRecordID": 8,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 4728,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "OAlerts",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "Data": {
+                    "#text": [
+                        "Compositor Type: 1",
+                        "OUTLOOK"
+                    ]
+                },
+                "Binary": null
+            }
+        }
+    }
+}

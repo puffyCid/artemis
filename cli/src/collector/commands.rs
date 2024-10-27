@@ -63,9 +63,24 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse EventLogs
     Eventlogs {
-        /// Alternative full path to an Event Log
+        /// Alternative full path to an EventLog
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
+        /// Alternative directory containing EventLog files
+        #[arg(long, default_value = None)]
+        alt_dir: Option<String>,
+        /// Alternative full path to template file. Can create one using `--dump_templates`
+        #[arg(long, default_value = None)]
+        alt_template_file: Option<String>,
+        /// Attempt to include template strings in the output. Only works on Windows
+        #[arg(long)]
+        include_templates: bool,
+        /// Dump EventLog provider templates. Only works on Windows
+        #[arg(long)]
+        dump_templates: bool,
+        /// Only output EventLog templates. Only works on Windows
+        #[arg(long)]
+        only_templates: bool,
     },
     /// windows: Parse NTFS to get filelisting
     Rawfilelisting {

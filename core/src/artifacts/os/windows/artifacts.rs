@@ -636,7 +636,14 @@ mod tests {
 
     #[test]
     fn test_eventlogs() {
-        let evt = EventLogsOptions { alt_file: None };
+        let evt = EventLogsOptions {
+            alt_file: None,
+            alt_dir: None,
+            dump_templates: false,
+            include_templates: false,
+            alt_template_file: None,
+            only_templates: false,
+        };
         let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 
         let status = eventlogs(&evt, &mut output, &false).unwrap();

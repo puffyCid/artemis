@@ -1,0 +1,59 @@
+{
+    "event_record_id": 135380,
+    "timestamp": "2024-10-09T03:33:07.769882000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Security-Auditing",
+                        "Guid": "54849625-5478-4994-A5BA-3E3B0328C30D"
+                    }
+                },
+                "EventID": 4826,
+                "Version": 0,
+                "Level": 0,
+                "Task": 13573,
+                "Opcode": 0,
+                "Keywords": "0x8020000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-09T03:33:07.769882Z"
+                    }
+                },
+                "EventRecordID": 135380,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 4,
+                        "ThreadID": 124
+                    }
+                },
+                "Channel": "Security",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "SubjectUserSid": "S-1-5-18",
+                "SubjectUserName": "-",
+                "SubjectDomainName": "-",
+                "SubjectLogonId": "0x3e7",
+                "LoadOptions": "-",
+                "AdvancedOptions": "%%1843",
+                "ConfigAccessPolicy": "%%1846",
+                "RemoteEventLogging": "%%1843",
+                "KernelDebug": "%%1843",
+                "VsmLaunchType": "%%1848",
+                "TestSigning": "%%1843",
+                "FlightSigning": "%%1843",
+                "DisableIntegrityChecks": "%%1843",
+                "HypervisorLoadOptions": "-",
+                "HypervisorLaunchType": "%%1848",
+                "HypervisorDebug": "%%1843"
+            }
+        }
+    }
+}

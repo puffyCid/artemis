@@ -1,0 +1,58 @@
+{
+    "event_record_id": 129520,
+    "timestamp": "2024-10-01T02:50:30.430396000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Security-Auditing",
+                        "Guid": "54849625-5478-4994-A5BA-3E3B0328C30D"
+                    }
+                },
+                "EventID": 5379,
+                "Version": 0,
+                "Level": 0,
+                "Task": 13824,
+                "Opcode": 0,
+                "Keywords": "0x8020000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-01T02:50:30.430396Z"
+                    }
+                },
+                "EventRecordID": 129520,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "210D6E60-13AB-0001-F16E-0D21AB13DB01"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 1144,
+                        "ThreadID": 2216
+                    }
+                },
+                "Channel": "Security",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": null
+            },
+            "EventData": {
+                "SubjectUserSid": "S-1-5-21-549467458-3727351111-1684278619-1001",
+                "SubjectUserName": "bob",
+                "SubjectDomainName": "DESKTOP-9FSUKAJ",
+                "SubjectLogonId": "0x3311b1",
+                "TargetName": "MicrosoftAccount:user=testemail@outlook.com",
+                "Type": 0,
+                "CountOfCredentialsReturned": 1,
+                "ReadOperation": "%%8100",
+                "ReturnCode": 0,
+                "ProcessCreationTime": "2024-10-01T02:49:28.150359Z",
+                "ClientProcessId": 1848
+            }
+        }
+    }
+}

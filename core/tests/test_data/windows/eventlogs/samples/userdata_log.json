@@ -1,0 +1,61 @@
+{
+    "event_record_id": 36,
+    "timestamp": "2024-10-10T06:04:54.618233000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Servicing",
+                        "Guid": "BD12F3B8-FC40-4A61-A307-B7A013A069C1"
+                    }
+                },
+                "EventID": 2,
+                "Version": 0,
+                "Level": 0,
+                "Task": 1,
+                "Opcode": 0,
+                "Keywords": "0x8000000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-10-10T06:04:54.618233Z"
+                    }
+                },
+                "EventRecordID": 36,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "3E54B668-1ADA-0007-B5B7-543EDA1ADB01"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 2524,
+                        "ThreadID": 2620
+                    }
+                },
+                "Channel": "Setup",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "UserData": {
+                "CbsPackageChangeState": {
+                    "#attributes": {
+                        "xmlns": "http://manifests.microsoft.com/win/2004/08/windows/setup_provider"
+                    },
+                    "PackageIdentifier": "KB5044033",
+                    "IntendedPackageState": 5112,
+                    "IntendedPackageStateTextized": "Installed",
+                    "ErrorCode": "0x0",
+                    "Client": "WindowsUpdateAgent"
+                }
+            }
+        }
+    }
+}

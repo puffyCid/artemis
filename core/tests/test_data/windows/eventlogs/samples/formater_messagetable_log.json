@@ -1,0 +1,57 @@
+{
+    "event_record_id": 700,
+    "timestamp": "2024-08-03T03:50:26.026110000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Chrome"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 32768
+                    },
+                    "#text": 256
+                },
+                "Version": 0,
+                "Level": 4,
+                "Task": 1,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2024-08-03T03:50:26.026110Z"
+                    }
+                },
+                "EventRecordID": 700,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 11596,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "Application",
+                "Computer": "DESKTOP-9FSUKAJ",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-21-549467458-3727351111-1684278619-1001"
+                    }
+                }
+            },
+            "EventData": {
+                "Data": {
+                    "#text": [
+                        "[11596:12792:0802/205026.025:INFO:rlz_lib.cc(438)] Attempting to send RLZ ping brand=GCEA"
+                    ]
+                },
+                "Binary": null
+            }
+        }
+    }
+}
