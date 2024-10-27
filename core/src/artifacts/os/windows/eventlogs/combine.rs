@@ -1007,7 +1007,6 @@ mod tests {
                     );
                 }
                 "logon_log.json" => {
-                    println!("{message:?}");
                     assert!(message
                         .message
                         .starts_with("An account was successfully logged on"));
