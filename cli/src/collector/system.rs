@@ -54,7 +54,11 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         artifacts: Vec::new(),
     };
     match command {
-        Commands::Acquire { artifact, format, output_dir } => {
+        Commands::Acquire {
+            artifact,
+            format,
+            output_dir,
+        } => {
             if artifact.is_none() {
                 println!("No artifact provided");
                 return;
@@ -69,12 +73,11 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             if !output_dir.is_empty() {
                 collector.output.directory = output_dir.to_string();
             }
-            
+
             println!(
                 "[artemis] Writing output to: {}",
                 collector.output.directory
             );
-
         }
     }
 
