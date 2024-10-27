@@ -1089,7 +1089,10 @@ mod tests {
                     assert_eq!(message.guid, "9988748e-c2e8-4054-85f6-0c3e1cad2470");
                     assert_eq!(message.event_id, 2004);
                     assert_eq!(message.level, EventLevel::Warning);
-                    assert_eq!(message.message_file, "C:\\WINDOWS\\system32\\radardt.dll");
+                    assert_eq!(
+                        message.message_file.to_lowercase(),
+                        "c:\\windows\\system32\\radardt.dll"
+                    );
                     assert_eq!(message.parameter_file, "");
                     assert_eq!(message.opcode, 33);
                     assert_eq!(message.qualifier, 0);
