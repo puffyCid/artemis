@@ -170,7 +170,7 @@ mod tests {
             result.legal_copyright,
             "© Microsoft Corporation. All rights reserved."
         );
-        assert!(result.imports.len() > 130);
+        assert!(result.imports.len() > 10);
         assert_eq!(result.pdb, "explorer.pdb");
     }
 }

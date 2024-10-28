@@ -101,7 +101,19 @@ impl PageHeader {
         let tag_size = 4;
         let tag_data: usize = (first_available_page_tag * tag_size).into();
 
-        let (tag_start, _) = take(data.len() - tag_data)(data)?;
+        // Tag data size is obtained from first_available_page_tag
+        // If the start is larger than the data we have (seen in Windows 24H2)
+        // We have to obtain the tag data size a different way
+        let start = if data.len() < tag_data {
+            // first_available_page_tag is really large. Reverse the subtraction
+            let start = tag_data - data.len();
+            // Now we have the start
+            data.len() - start
+        } else {
+            data.len() - tag_data
+        };
+
+        let (tag_start, _) = take(start)(data)?;
         // We now have start of tag data
         let (_, page_tags) = PageTag::parse_tags(tag_start, &data.len())?;
         header.page_tags = page_tags;
@@ -244,5 +256,17 @@ mod tests {
                 PageFlags::NewRecord
             ]
         );
+    }
+
+    #[test]
+    fn test_page_win11_24h2() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\ese\\win11\\catalog_24h2.raw");
+        let test = read_file(test_location.to_str().unwrap()).unwrap();
+
+        let (_, results) = PageHeader::parse_header(&test).unwrap();
+
+        assert_eq!(results.first_available_page_tag, 4183);
+        assert_eq!(results.page_tags.len(), 87);
     }
 }

@@ -169,7 +169,7 @@ mod tests {
             service_group.push(entry);
         }
 
-        assert!(service_group.len() > 10);
+        assert!(services.len() > 10);
     }
 
     #[test]
