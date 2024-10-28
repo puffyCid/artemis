@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn test_page_win11_24h2() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win11\\catalog_24h2.raw");
+        test_location.push("tests/test_data/windows/ese/win11/catalog_24h2.raw");
         let test = read_file(test_location.to_str().unwrap()).unwrap();
 
         let (_, results) = PageHeader::parse_header(&test).unwrap();
