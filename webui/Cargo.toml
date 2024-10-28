@@ -18,5 +18,5 @@ leptos_meta = { version = "0.6.15", features = ["csr"] }
 common = { path = "../common" }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
-web-sys = { version = "0.3.70", features = ["Location", "Window"] }
+web-sys = { version = "0.3.72", features = ["Location", "Window"] }
 chrono = "0.4.38"

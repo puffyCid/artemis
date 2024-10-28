@@ -32,7 +32,11 @@ pub fn proc_list(hashes: &Hashes, binary_data: bool) -> Result<Vec<Processes>, P
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
 
-    proc.refresh_processes_specifics(ProcessesToUpdate::All, ProcessRefreshKind::everything());
+    proc.refresh_processes_specifics(
+        ProcessesToUpdate::All,
+        false,
+        ProcessRefreshKind::everything(),
+    );
     if proc.processes().is_empty() {
         return Err(ProcessError::Empty);
     }
@@ -179,7 +183,7 @@ mod tests {
         let mut proc = System::new();
         let mut processes_list: Vec<Processes> = Vec::new();
 
-        proc.refresh_processes(ProcessesToUpdate::All);
+        proc.refresh_processes(ProcessesToUpdate::All, false);
 
         let hashes = Hashes {
             md5: true,

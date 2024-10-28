@@ -82,16 +82,20 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
     }
 
     /*
-     * Now ready to delete output. Since we run in elevated privileges we need to be careful.
+     * Now ready to delete output. Since we often run in elevated privileges we need to be careful.
      * To maximize safety we only delete:
-     *  - Files that end in .json, .jsonl, .log, or .gz
-     *  - Only delete the output directory if its empty. Which means all the files above must be gone
+     *  - Files that end in .json, .jsonl, .log, .gz, or .csv
+     *  - Also we only delete the output directory if its empty. Which means all the files above must be gone
      */
     let check = list_files(&output_dir);
     match check {
         Ok(results) => {
             for entry in results {
-                if !entry.ends_with(".json") && !entry.ends_with(".log") && !entry.ends_with(".gz")
+                if !entry.ends_with(".json")
+                    && !entry.ends_with(".log")
+                    && !entry.ends_with(".gz")
+                    && !entry.ends_with(".csv")
+                    && !entry.ends_with(".jsonl")
                 {
                     continue;
                 }
