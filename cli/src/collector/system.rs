@@ -33,6 +33,9 @@ pub(crate) enum Commands {
         /// Output format. JSON or JSONL or CSV.
         #[arg(long, default_value_t = String::from("JSON"))]
         format: String,
+        /// Optional output directory for storing results
+        #[arg(long, default_value_t = String::from("./tmp"))]
+        output_dir: String,
     },
 }
 
@@ -50,13 +53,12 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         output,
         artifacts: Vec::new(),
     };
-    println!(
-        "[artemis] Writing output to: {}",
-        collector.output.directory
-    );
-
     match command {
-        Commands::Acquire { artifact, format } => {
+        Commands::Acquire {
+            artifact,
+            format,
+            output_dir,
+        } => {
             if artifact.is_none() {
                 println!("No artifact provided");
                 return;
@@ -68,6 +70,14 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             if !format.is_empty() {
                 collector.output.format = format.to_string().to_lowercase();
             }
+            if !output_dir.is_empty() {
+                collector.output.directory = output_dir.to_string();
+            }
+
+            println!(
+                "[artemis] Writing output to: {}",
+                collector.output.directory
+            );
         }
     }
 
@@ -524,6 +534,7 @@ mod tests {
                 metadata: false,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -544,6 +555,7 @@ mod tests {
                 yara_rule: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -555,6 +567,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Chromiumdownloads {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -563,6 +576,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Chromiumhistory {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -571,6 +585,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Firefoxdownloads {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -579,6 +594,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Firefoxhistory {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -587,6 +603,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Launchd { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -595,6 +612,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(UsersMacos { alt_path: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -605,6 +623,7 @@ mod tests {
                 logarchive_path: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -613,6 +632,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Cron {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -621,6 +641,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Systeminfo {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -629,6 +650,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(GroupsMacos { alt_path: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -637,6 +659,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Execpolicy { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -645,6 +668,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Shellhistory {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -653,6 +677,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Fsevents { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -661,6 +686,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Emond { alt_path: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -669,6 +695,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(SafariDownloads {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -677,6 +704,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(SafariHistory {}),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -691,6 +719,7 @@ mod tests {
                 logarchive_path: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -705,6 +734,7 @@ mod tests {
                 include_additional: false,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -722,6 +752,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Logons { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -732,6 +763,7 @@ mod tests {
                 alt_path: Some(String::from(".")),
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -740,6 +772,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(SudologsLinux { alt_path: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -756,6 +789,7 @@ mod tests {
                 path_regex: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -774,6 +808,7 @@ mod tests {
                 only_templates: false,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -785,6 +820,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Prefetch { alt_dir: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -796,6 +832,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Services { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -804,6 +841,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Shimcache { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -812,6 +850,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Shimdb { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -820,6 +859,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Recyclebin { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -828,6 +868,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(UsersWindows { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -836,6 +877,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Tasks { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -844,6 +886,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Amcache { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -858,6 +901,7 @@ mod tests {
                 alt_file: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -869,6 +913,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(Srum { alt_file: None }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -883,6 +928,7 @@ mod tests {
                 alt_file: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();
@@ -905,6 +951,7 @@ mod tests {
                 filename_regex: None,
             }),
             format: String::from("json"),
+            output_dir: String::from("./tmp"),
         };
 
         let out = output();

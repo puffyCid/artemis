@@ -211,6 +211,7 @@ mod tests {
                     yara_rule: None,
                 }),
                 format: String::from("json"),
+                output_dir: String::from("./tmp"),
             }),
         };
 
@@ -230,6 +231,7 @@ mod tests {
                     path: String::from("C:\\"),
                 }),
                 format: String::from("json"),
+                output_dir: String::from("./tmp"),
             }),
         };
 
@@ -254,6 +256,7 @@ mod tests {
                     metadata: false,
                 }),
                 format: String::from("json"),
+                output_dir: String::from("./tmp"),
             }),
         };
 
