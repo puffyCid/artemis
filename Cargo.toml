@@ -19,18 +19,18 @@ license = "MIT"
 edition = "2021"
 
 [workspace.dependencies]
-serde = { version = "1.0.210", features = ["derive"] }
+serde = { version = "1.0.213", features = ["derive"] }
 log = "0.4.22"
-serde_json = "1.0.128"
+serde_json = "1.0.132"
 toml = "0.8.19"
 base64 = "0.22.1"
-tokio = { version = "1.40.0", features = ["full"] }
-flate2 = { version = "1.0.33", features = ["any_zlib", "zlib-ng"] }
+tokio = { version = "1.41.0", features = ["full"] }
+flate2 = { version = "1.0.34", features = ["any_zlib", "zlib-ng"] }
 glob = "0.3.1"
-reqwest = { version = "0.12.7", features = [
+reqwest = { version = "0.12.8", features = [
     "json",
     "blocking",
     "native-tls-vendored",
 ] }
-sysinfo = "0.31.4"
-uuid = { version = "1.10.0", features = ["v4"] }
+sysinfo = "0.32.0"
+uuid = { version = "1.11.0", features = ["v4"] }

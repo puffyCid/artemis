@@ -79,7 +79,7 @@ jobs:
         if: matrix.info.os == 'windows-latest'
         run: just --shell pwsh.exe --shell-arg -c _coverage
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.2.0
+        uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info

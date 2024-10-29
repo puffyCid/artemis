@@ -25,6 +25,8 @@ kinds:
     auto: patch
   - label: ArtemisApi
     autho: patch
+  - label: New Contributors
+    autho: patch
 newlines:
   afterChangelogHeader: 1
   beforeChangelogVersion: 1

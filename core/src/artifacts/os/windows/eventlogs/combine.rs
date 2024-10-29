@@ -207,22 +207,21 @@ pub(crate) fn add_message_strings(
             None => continue,
         };
 
-        let event_definition = match manifist_template
+        let event_definition = if let Some(result) = manifist_template
             .definitions
             .get(&format!("{}_{}", event_id.id, message.version))
         {
-            Some(result) => result,
-            None => {
-                // try one more time
-                let previous_version = 1;
-                match manifist_template.definitions.get(&format!(
-                    "{}_{}",
-                    event_id.id,
-                    (message.version - previous_version)
-                )) {
-                    Some(result) => result,
-                    None => continue,
-                }
+            result
+        } else {
+            // try one more time
+            let previous_version = 1;
+            match manifist_template.definitions.get(&format!(
+                "{}_{}",
+                event_id.id,
+                (message.version - previous_version)
+            )) {
+                Some(result) => result,
+                None => continue,
             }
         };
 
