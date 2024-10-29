@@ -9,8 +9,8 @@ use log::error;
 /// Expose parsing a single eventlog file (evtx) to `Deno`
 pub(crate) fn get_eventlogs(
     #[string] path: String,
-    #[bigint] offset: u64,
-    #[bigint] limit: u64,
+    offset: u32,
+    limit: u32,
     include_templates: bool,
     #[string] template_file: String,
 ) -> Result<String, AnyError> {
