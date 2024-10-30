@@ -11,9 +11,10 @@ use crate::{
 };
 use common::{outlook::PropertyName, windows::PropertyContext};
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MessageDetails {
     pub(crate) props: Vec<PropertyContext>,
     pub(crate) body: String,
@@ -25,7 +26,7 @@ pub(crate) struct MessageDetails {
     pub(crate) recipients: Vec<Vec<TableRows>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AttachmentInfo {
     name: String,
     size: u64,
@@ -35,7 +36,7 @@ pub(crate) struct AttachmentInfo {
     pub(crate) descriptor_id: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 
 pub(crate) enum AttachMethod {
     None,
@@ -286,10 +287,11 @@ pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePr
             }
 
             if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
-                info.push(mess);
                 break;
             }
         }
+
+        info.push(mess);
     }
 
     info

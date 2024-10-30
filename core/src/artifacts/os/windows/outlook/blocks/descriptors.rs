@@ -9,9 +9,10 @@ use crate::{
     },
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub(crate) struct DescriptorData {
     pub(crate) node_level: NodeLevel,
     pub(crate) node: Node,

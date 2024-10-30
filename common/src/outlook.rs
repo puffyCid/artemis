@@ -1,9 +1,9 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /**
  * Generated using python script `tools/Outlook/generate_properties.py`
  */
-#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Deserialize)]
 pub enum PropertyName {
     PidTag7BitDisplayName,
     PidTagAccess,

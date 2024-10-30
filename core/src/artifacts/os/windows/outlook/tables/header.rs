@@ -6,6 +6,7 @@ use crate::{
 };
 use log::warn;
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub(crate) struct TableHeader {
@@ -93,7 +94,7 @@ fn get_table_type(table: &u8) -> TableType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct HeapNode {
     pub(crate) node: NodeID,
     pub(crate) index: u32,

@@ -4,6 +4,7 @@ use crate::utils::nom_helper::{
 };
 use log::error;
 use nom::error::ErrorKind;
+use serde::{Deserialize, Serialize};
 
 use super::tables::header::get_heap_node_id;
 
@@ -228,14 +229,14 @@ fn get_encryption(data: &u8) -> EncryptionType {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Node {
     pub(crate) node_id: NodeID,
     pub(crate) node_id_num: u64,
     pub(crate) node: u32,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug, Clone)]
+#[derive(Eq, Hash, PartialEq, Debug, Clone, Serialize, Deserialize)]
 /**See: `<https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/18d7644e-cb33-4e11-95c0-34d8a84fbff6>` */
 pub(crate) enum NodeID {
     HeapNode,

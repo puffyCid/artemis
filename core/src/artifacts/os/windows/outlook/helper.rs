@@ -606,8 +606,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         branch: Option<&TableBranchInfo>,
     ) -> Result<Vec<MessageDetails>, OutlookError> {
         if info.rows.len() > info.total_rows as usize {
-            error!("[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available.", info.rows.len(), info.total_rows);
-            return Err(OutlookError::MessageCount);
+            warn!("[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available. We will return {}", info.rows.len(), info.total_rows, info.total_rows);
+            // return Err(OutlookError::MessageCount);
         }
         // First we parse the table that points to our messages
         // The number of messages is dependent on many the caller wants to get
@@ -619,7 +619,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
 
         let table_info = table_message_preview(&table_meta);
-
         let mut mess = LeafNodeData {
             node: Node {
                 node_id: NodeID::InternalNode,

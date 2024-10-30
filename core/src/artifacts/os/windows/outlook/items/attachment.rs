@@ -1,7 +1,8 @@
 use super::message::{get_attach_method, AttachMethod};
 use common::{outlook::PropertyName, windows::PropertyContext};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Attachment {
     pub(crate) data: String,
     pub(crate) size: u64,

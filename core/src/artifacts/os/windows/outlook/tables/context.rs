@@ -20,16 +20,17 @@ use common::{outlook::PropertyName, windows::PropertyType};
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableRows {
     pub(crate) value: Value,
     pub(crate) column: ColumnDescriptor,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ColumnDescriptor {
     pub(crate) property_type: PropertyType,
     pub(crate) id: u16,
@@ -83,7 +84,7 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableInfo {
     pub(crate) block_data: Vec<Vec<u8>>,
     pub(crate) block_descriptors: BTreeMap<u64, DescriptorData>,
@@ -98,7 +99,7 @@ pub(crate) struct TableInfo {
     pub(crate) has_branch: Option<Vec<TableBranchInfo>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableBranchInfo {
     pub(crate) node: HeapNode,
     pub(crate) rows_info: RowsInfo,
@@ -481,7 +482,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct RowsInfo {
     pub(crate) row_end: u16,
     pub(crate) count: u64,
@@ -647,6 +648,9 @@ fn parse_descriptors<'a>(
 
     let mut count = 0;
     for entry in &info.rows {
+        if entry >= &info.total_rows {
+            break;
+        }
         let mut index = *entry;
 
         while index as usize >= max_rows {
@@ -737,6 +741,10 @@ fn get_row_data<'a>(
 
     // Get the rows we want
     for entry in &info.rows {
+        // If row larger than data. We are done
+        if (entry * info.row_size as u64) as usize > data.len() || entry >= &info.total_rows {
+            break;
+        }
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
         let (_, row_data) = take(info.row_size)(row_start)?;

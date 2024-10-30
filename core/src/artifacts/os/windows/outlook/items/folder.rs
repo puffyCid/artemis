@@ -6,9 +6,10 @@ use crate::artifacts::os::windows::outlook::{
     },
 };
 use common::{outlook::PropertyName, windows::PropertyContext};
+use serde::Serialize;
 use std::collections::BTreeMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct FolderInfo {
     /**Name of the folder */
     pub(crate) name: String,
@@ -30,7 +31,7 @@ pub(crate) struct FolderInfo {
     pub(crate) messages_table: TableInfo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct SubFolder {
     pub(crate) name: String,
     pub(crate) node: u64,

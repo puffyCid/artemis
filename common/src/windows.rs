@@ -1465,7 +1465,7 @@ pub struct OutlookMessage {
     pub yara_hits: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutlookAttachment {
     pub name: String,
     pub size: u64,
@@ -1477,7 +1477,7 @@ pub struct OutlookAttachment {
 }
 
 /// Property Context Table (also called 0xbc table)
-#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Deserialize)]
 pub struct PropertyContext {
     pub name: Vec<PropertyName>,
     pub property_type: PropertyType,
@@ -1487,7 +1487,7 @@ pub struct PropertyContext {
     pub value: Value,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Deserialize)]
 pub enum PropertyType {
     Int16,
     Int32,
