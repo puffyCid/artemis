@@ -7,12 +7,31 @@ use log::error;
 #[op2]
 #[string]
 /// Expose parsing a single eventlog file (evtx) to `Deno`
-pub(crate) fn get_eventlogs(#[string] path: String) -> Result<String, AnyError> {
+pub(crate) fn get_eventlogs(
+    #[string] path: String,
+    offset: u32,
+    limit: u32,
+    include_templates: bool,
+    #[string] template_file: String,
+) -> Result<String, AnyError> {
     if path.is_empty() {
         error!("[runtime] Empty path to eventlog file");
         return Err(RuntimeError::ExecuteScript.into());
     }
-    let logs = parse_eventlogs(&path)?;
+
+    let temp_option = if template_file.is_empty() {
+        None
+    } else {
+        Some(template_file)
+    };
+
+    let logs = parse_eventlogs(
+        &path,
+        &(offset as usize),
+        &(limit as usize),
+        &include_templates,
+        &temp_option,
+    )?;
 
     let results = serde_json::to_string(&logs)?;
     Ok(results)
@@ -44,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_get_eventlogs() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZXZlbnRsb2dzKHBhdGgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9ldmVudGxvZ3MocGF0aCk7CiAgICBjb25zdCBsb2dfYXJyYXkgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIGxvZ19hcnJheTsKfQpmdW5jdGlvbiBnZXRFdmVudExvZ3MocGF0aCkgewogICAgcmV0dXJuIGdldF9ldmVudGxvZ3MocGF0aCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHBhdGggPSAiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFx3aW5ldnRcXExvZ3NcXFN5c3RlbS5ldnR4IjsKICAgIGNvbnN0IHJlY29yZHMgPSBnZXRFdmVudExvZ3MocGF0aCk7CiAgICBjb25zdCBzZXJ2aWNlX2luc3RhbGxzID0gW107CiAgICBmb3IgKGNvbnN0IHJlY29yZCBvZiByZWNvcmRzKXsKICAgICAgICBpZiAocmVjb3JkLmRhdGFbIkV2ZW50Il1bIlN5c3RlbSJdWyJFdmVudElEIl0gIT0gNzA0NSkgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgc2VydmljZV9pbnN0YWxscy5wdXNoKHJlY29yZCk7CiAgICB9CiAgICByZXR1cm4gc2VydmljZV9pbnN0YWxsczsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gcGxhdGZvcm0oKSB7CiAgY29uc3QgZGF0YSA9IHN5c3RlbS5wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy9ldmVudGxvZ3MudHMKZnVuY3Rpb24gZ2V0RXZlbnRsb2dzKHBhdGgsIG9mZnNldCwgbGltaXQsIGluY2x1ZGVfdGVtcGxhdGVzID0gZmFsc2UsIHRlbXBsYXRlX2ZpbGUgPSAiIikgewogIGlmIChpbmNsdWRlX3RlbXBsYXRlcyAmJiBwbGF0Zm9ybSgpICE9ICJXaW5kb3dzIiAmJiB0ZW1wbGF0ZV9maWxlID09ICIiKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigKICAgICAgIkVWRU5UTE9HIiwKICAgICAgYGNhbm5vdCBpbmNsdWRlIHRlbXBsYXRlIHN0cmluZ3Mgb24gbm9uLVdpbmRvd3MgcGxhdGZvcm0gd2l0aG91dCBhIHRlbXBsYXRlIGZpbGVgCiAgICApOwogIH0KICB0cnkgewogICAgY29uc3QgcmVzdWx0cyA9IERlbm8uY29yZS5vcHMuZ2V0X2V2ZW50bG9ncygKICAgICAgcGF0aCwKICAgICAgb2Zmc2V0LAogICAgICBsaW1pdCwKICAgICAgaW5jbHVkZV90ZW1wbGF0ZXMsCiAgICAgIHRlbXBsYXRlX2ZpbGUKICAgICk7CiAgICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShyZXN1bHRzKTsKICAgIHJldHVybiBkYXRhOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoCiAgICAgICJFVkVOVExPRyIsCiAgICAgIGBmYWlsZWQgdG8gcGFyc2UgZXZlbnRsb2cgJHtwYXRofTogJHtlcnJ9YAogICAgKTsKICB9Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRoID0gIkM6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcd2luZXZ0XFxMb2dzXFxBcHBsaWNhdGlvbi5ldnR4IjsKICBjb25zdCBsb2dzID0gZ2V0RXZlbnRsb2dzKAogICAgcGF0aCwKICAgIDEwLAogICAgMTAsCiAgICB0cnVlCiAgKTsKICBpZiAobG9ncyBpbnN0YW5jZW9mIFdpbmRvd3NFcnJvcikgewogICAgY29uc29sZS5lcnJvcihsb2dzKTsKICAgIHJldHVybjsKICB9CiAgY29uc3QgbWVzc2FnZXMgPSBsb2dzWzBdOwogIGNvbnN0IHJhdyA9IGxvZ3NbMV07CiAgY29uc29sZS5sb2cobWVzc2FnZXMpOwogIGNvbnNvbGUubG9nKHJhdyk7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("service_installs"),

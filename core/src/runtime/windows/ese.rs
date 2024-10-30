@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::artifacts::os::windows::ese::{
     helper::{
         dump_table_columns, get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data,
@@ -7,6 +5,7 @@ use crate::artifacts::os::windows::ese::{
     tables::TableInfo,
 };
 use deno_core::{error::AnyError, op2};
+use std::collections::HashMap;
 
 #[op2]
 #[string]

@@ -22,7 +22,7 @@ use crate::{
     utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
 use chrono::SecondsFormat;
-use common::windows::EventLogRecord;
+use common::windows::{EventLogRecord, EventMessage};
 use evtx::EvtxParser;
 use log::{error, warn};
 use serde_json::{Error, Value};
@@ -41,7 +41,36 @@ pub(crate) fn grab_eventlogs(
 }
 
 /// Parse the `EventLog` evtx file at provided path
-pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLogsError> {
+pub(crate) fn parse_eventlogs(
+    path: &str,
+    offset: &usize,
+    limit: &usize,
+    include_templates: &bool,
+    template_file: &Option<String>,
+) -> Result<(Vec<EventMessage>, Vec<EventLogRecord>), EventLogsError> {
+    let templates = if *include_templates && template_file.is_none() {
+        Some(get_resources()?)
+    } else if template_file.is_some() {
+        let file = template_file.as_ref().unwrap();
+        let bytes = match read_file(file) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to read template file: {err:?}");
+                return Err(EventLogsError::ReadTemplateFile);
+            }
+        };
+
+        match serde_json::from_slice(&bytes) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                return Err(EventLogsError::DeserializeTemplate);
+            }
+        }
+    } else {
+        None
+    };
+
     let evt_parser_results = EvtxParser::from_path(path);
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
@@ -51,8 +80,11 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
         }
     };
 
-    let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
-    for record in evt_parser.records_json_value() {
+    let mut eventlog_records = Vec::new();
+    // Regex always correct
+    let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
+
+    for record in evt_parser.records_json_value().skip(*offset) {
         match record {
             Ok(data) => {
                 let event_record = EventLogRecord {
@@ -67,8 +99,34 @@ pub(crate) fn parse_eventlogs(path: &str) -> Result<Vec<EventLogRecord>, EventLo
                 continue;
             }
         }
+
+        if eventlog_records.len() == *limit {
+            break;
+        }
     }
-    Ok(eventlog_records)
+    let (messages, raw_message) = if let Some(resource) = &templates {
+        let mut all_messages = Vec::new();
+        let mut raw_messages = Vec::new();
+        for record in eventlog_records {
+            let mut message = if let Some(result) =
+                add_message_strings(&record, &resource, &param_regex)
+            {
+                result
+            } else {
+                warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                raw_messages.push(record);
+                continue;
+            };
+
+            message.source_file = path.to_string();
+            all_messages.push(message);
+        }
+        (all_messages, raw_messages)
+    } else {
+        (Vec::new(), eventlog_records)
+    };
+
+    Ok((messages, raw_message))
 }
 
 /// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
