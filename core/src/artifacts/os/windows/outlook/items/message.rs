@@ -12,7 +12,7 @@ use crate::{
 use common::{outlook::PropertyName, windows::PropertyContext};
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MessageDetails {
@@ -23,7 +23,7 @@ pub(crate) struct MessageDetails {
     pub(crate) recipient: String,
     pub(crate) delivered: String,
     pub(crate) attachments: Vec<AttachmentInfo>,
-    pub(crate) recipients: Vec<Vec<TableRows>>,
+    pub(crate) recipients: HashSet<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,7 +63,7 @@ pub(crate) fn message_details(
         recipient: String::new(),
         delivered: String::new(),
         attachments: Vec::new(),
-        recipients: Vec::new(),
+        recipients: HashSet::new(),
     };
 
     let mut keep = Vec::new();
@@ -314,6 +314,22 @@ fn clean_subject(sub: &str) -> String {
     } else {
         sub.to_string()
     }
+}
+
+/// Grab other recipients
+pub(crate) fn recipients(data: &Vec<Vec<TableRows>>) -> HashSet<String> {
+    let mut info = HashSet::new();
+    for entry in data {
+        for row in entry {
+            if !row.value.is_string() || row.value.as_str().is_some_and(|s| !s.contains('@')) {
+                continue;
+            }
+
+            let address = row.value.as_str().unwrap_or("").to_string();
+            info.insert(address.replace('\'', ""));
+        }
+    }
+    info
 }
 
 #[cfg(test)]

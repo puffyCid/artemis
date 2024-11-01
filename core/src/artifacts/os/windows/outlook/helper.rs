@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::outlook::{
-        items::message::{message_details, table_message_preview},
+        items::message::{message_details, recipients, table_message_preview},
         tables::context::OutlookTableContext,
     },
     filesystem::ntfs::reader::read_bytes,
@@ -700,7 +700,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
             let mut recipient_rows = Vec::new();
             // Get Recipient data if we have any
-            if recipient_block_id != 0 && recipient_block_descriptors != 0 {
+            if recipient_block_id != 0 {
                 let table = self.recipient_table(
                     ntfs_file,
                     &recipient_block_id,
@@ -747,7 +747,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             }
 
             let mut details = message_details(&mut message, &attach_rows, &mess_value.descriptors);
-            details.recipients = recipient_rows;
+            details.recipients = recipients(&recipient_rows);
             messages.push(details);
         }
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::outlook::PropertyName;
 
@@ -1457,7 +1457,7 @@ pub struct OutlookMessage {
     pub from: String,
     pub recipient: String,
     pub delivered: String,
-    pub recipients: Vec<String>,
+    pub recipients: HashSet<String>,
     pub attachments: Vec<OutlookAttachment>,
     pub properties: Vec<PropertyContext>,
     pub folder_path: String,
