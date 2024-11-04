@@ -236,7 +236,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let section_size = 8;
         let size = info.total_rows * section_size;
         let (input, _) = take(size)(input)?;
-
         get_row_data(input, info)
     }
 
@@ -271,7 +270,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 descriptor_data = match desc_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[outlook] Failed to parse descriptor data: {err:?}");
+                        error!("[outlook] Failed to parse descriptor data for branch: {err:?}");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -476,6 +475,33 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 break;
             }
         }
+
+        // If still zero may be the block_data_id may be off by 1.
+        // This may be a 0 vs 1 issue when determining the "first" number?
+        if leaf_block.block_offset == 0 && leaf_block.size == 0 {
+            let adjust = 1;
+            for block_tree in &self.block_btree {
+                if let Some(block_data) = block_tree.get(&(descriptor.block_data_id - adjust)) {
+                    leaf_block = *block_data;
+
+                    if descriptor.block_descriptor_id == 0 {
+                        break;
+                    }
+                }
+                if descriptor.block_descriptor_id != 0 {
+                    if let Some(block_data) =
+                        block_tree.get(&(descriptor.block_descriptor_id - adjust))
+                    {
+                        leaf_descriptor = Some(*block_data);
+                    }
+                }
+
+                if leaf_descriptor.is_none() && leaf_block.size != 0 {
+                    break;
+                }
+            }
+        }
+
         let value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
 
         Ok(value.data)

@@ -178,7 +178,15 @@ fn extract_xblock_entries<'a>(
     data: &'a [u8],
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<u64>> {
-    let (input, _sig) = nom_unsigned_one_byte(data, Endian::Le)?;
+    let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
+    let block_sig = 1;
+    if sig != block_sig {
+        error!("[outlook] Got wrong xblock sig {sig} value should be 1");
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            &[],
+            ErrorKind::Fail,
+        )));
+    }
     let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     if array_level != 1 {

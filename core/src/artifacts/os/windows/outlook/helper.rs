@@ -145,6 +145,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         block: &LeafBlockData,
         descriptor: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError> {
+        if block.block_offset == 0 && block.size == 0 {
+            error!(
+                "[outlook] Got offset and size value of 0. Cannot parse blocks with these values."
+            );
+            return Err(OutlookError::NoBlocks);
+        }
         self.parse_blocks(ntfs_file, block, descriptor)
     }
 
@@ -354,7 +360,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let rows_to_get = (0..hierarchy_info.total_rows).collect();
         hierarchy_info.rows = rows_to_get;
         let hierarchy_rows = self.get_rows(&hierarchy_info, ntfs_file)?;
-
         let content_value =
             self.get_block_data(ntfs_file, &contents_block, contents_descriptor.as_ref())?;
 
@@ -632,7 +637,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
 
         let mut messages = Vec::new();
         // Loop through each message we want
-        for info in table_info {
+        for info in &table_info {
             // Search until we find the Message node in the BTree
             for nodes in &self.node_btree {
                 if let Some(id) = nodes.btree.get(&(info.node as u32)) {
@@ -698,19 +703,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 }
             }
 
-            let mut recipient_rows = Vec::new();
-            // Get Recipient data if we have any
-            if recipient_block_id != 0 {
-                let table = self.recipient_table(
-                    ntfs_file,
-                    &recipient_block_id,
-                    &recipient_block_descriptors,
-                )?;
-                recipient_rows = table;
-            }
-
             let mut attach_rows = Vec::new();
-            // Get attachments previews if we have any
+
+            // Get attachment previews if we have any
             for (block_id, descriptor_id) in attach {
                 let mut table_block = LeafBlockData {
                     block_type: BlockType::Internal,
@@ -741,12 +736,24 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 // We get all attachment preview metadata. The data is not that large
                 let rows_to_get = (0..attach_info.total_rows).collect();
                 attach_info.rows = rows_to_get;
-                let mut rows = self.get_rows(&attach_info, ntfs_file)?;
+
+                let mut rows = self.get_rows(&attach_info, ntfs_file).unwrap();
 
                 attach_rows.append(&mut rows);
             }
 
             let mut details = message_details(&mut message, &attach_rows, &mess_value.descriptors);
+
+            let mut recipient_rows = Vec::new();
+            // Get Recipient data if we have any
+            if recipient_block_id != 0 {
+                let table = self.recipient_table(
+                    ntfs_file,
+                    &recipient_block_id,
+                    &recipient_block_descriptors,
+                )?;
+                recipient_rows = table;
+            }
             details.recipients = recipients(&recipient_rows);
             messages.push(details);
         }
