@@ -268,7 +268,7 @@ pub(crate) enum NodeID {
 pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
     let (input, value) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
-    let id = get_heap_node_id(&value);
+    let id = get_heap_node_id(value);
 
     let node = Node {
         node_id: id.node,

@@ -232,8 +232,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
-        let key = (reference >> 5) & 0x07ffffff;
-        if let Some(value) = block_descriptors.get(&(key as u64)) {
+        if let Some(value) = block_descriptors.get(&(*reference as u64)) {
             let mut leaf_block = LeafBlockData {
                 block_type: BlockType::Internal,
                 index_id: 0,

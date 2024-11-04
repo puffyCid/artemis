@@ -165,7 +165,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         let mut descriptor_data = Vec::new();
         if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
                 let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
                 descriptor_data = match desc_result {
                     Ok(result) => result,
@@ -265,7 +265,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let mut descriptor_data = Vec::new();
 
         if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
                 let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
                 descriptor_data = match desc_result {
                     Ok(result) => result,
@@ -326,7 +326,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, _table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let row = get_heap_node_id(&values_array_index_reference);
+        let row = get_heap_node_id(values_array_index_reference);
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
@@ -591,7 +591,7 @@ fn extract_branch_details<'a>(
     while count < row_count {
         let (input, _id) = nom_unsigned_four_bytes(row_data, Endian::Le)?;
         let (input, table_ref) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let results = get_heap_node_id(&table_ref);
+        let results = get_heap_node_id(table_ref);
         row_data = input;
         count += 1;
 
@@ -1066,6 +1066,7 @@ mod tests {
                 node: NodeID::HeapNode,
                 index: 4,
                 block_index: 0,
+                node_index: 0,
             },
             total_rows: 2,
             has_branch: None,

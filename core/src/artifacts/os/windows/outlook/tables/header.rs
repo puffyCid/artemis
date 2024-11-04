@@ -46,6 +46,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
                 node: NodeID::Unknown,
                 index: 0,
                 block_index: 0,
+                node_index: 0,
             },
             page_map: HeapPageMap {
                 _allocation_count: 0,
@@ -61,7 +62,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let (input, table_type) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     let (input, root_heap) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let heap_node = get_heap_node_id(&root_heap);
+    let heap_node = get_heap_node_id(root_heap);
     let (input, _fill_level) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let table = TableHeader {
@@ -99,10 +100,11 @@ pub(crate) struct HeapNode {
     pub(crate) node: NodeID,
     pub(crate) index: u32,
     pub(crate) block_index: u32,
+    pub(crate) node_index: u32,
 }
 
 /// Extract the Heap Node info from the table header
-pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
+pub(crate) fn get_heap_node_id(value: u32) -> HeapNode {
     let id = match value & 0x1f {
         0x0 => NodeID::HeapNode,
         0x1 => NodeID::InternalNode,
@@ -138,6 +140,7 @@ pub(crate) fn get_heap_node_id(value: &u32) -> HeapNode {
         node: id,
         index,
         block_index,
+        node_index: value,
     }
 }
 

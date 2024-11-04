@@ -160,6 +160,7 @@ pub(crate) fn search_folder_details(
                 node: NodeID::Unknown,
                 index: 0,
                 block_index: 0,
+                node_index: 0,
             },
             total_rows: 0,
             has_branch: None,
