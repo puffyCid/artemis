@@ -6,6 +6,7 @@ use super::{
     eventlogs::get_eventlogs,
     jumplists::{get_jumplist_file, get_jumplists},
     ntfs::{read_ads_data, read_raw_file},
+    outlook::{get_root_folder, read_attachment, read_folder, read_messages},
     pe::get_pe,
     prefetch::{get_prefetch, get_prefetch_path},
     recyclebin::{get_recycle_bin, get_recycle_bin_file},
@@ -80,6 +81,10 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_table_columns(),
         js_get_shellitem(),
         get_wmipersist(),
+        get_root_folder(),
+        read_folder(),
+        read_messages(),
+        read_attachment(),
     ];
 
     exts

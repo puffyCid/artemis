@@ -21,7 +21,7 @@ pub(crate) fn parse_btree_heap(data: &[u8]) -> nom::IResult<&[u8], HeapBtree> {
     let (input, level) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, node_value) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let node = get_heap_node_id(&node_value);
+    let node = get_heap_node_id(node_value);
 
     let table = HeapBtree {
         _sig,

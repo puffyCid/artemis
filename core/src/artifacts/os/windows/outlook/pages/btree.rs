@@ -16,6 +16,7 @@ use nom::{
     number::complete::{le_u32, le_u64},
 };
 use ntfs::NtfsFile;
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, io::BufReader};
 
 #[derive(Debug)]
@@ -29,7 +30,7 @@ pub(crate) struct BtreeTable {
     page_type: PageType,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum NodeLevel {
     LeafNode,
     BranchNode,

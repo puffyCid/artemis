@@ -11,9 +11,10 @@ use crate::{
 };
 use common::{outlook::PropertyName, windows::PropertyContext};
 use log::error;
-use std::collections::BTreeMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashSet};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MessageDetails {
     pub(crate) props: Vec<PropertyContext>,
     pub(crate) body: String,
@@ -22,10 +23,10 @@ pub(crate) struct MessageDetails {
     pub(crate) recipient: String,
     pub(crate) delivered: String,
     pub(crate) attachments: Vec<AttachmentInfo>,
-    pub(crate) recipients: Vec<Vec<TableRows>>,
+    pub(crate) recipients: HashSet<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AttachmentInfo {
     name: String,
     size: u64,
@@ -35,7 +36,7 @@ pub(crate) struct AttachmentInfo {
     pub(crate) descriptor_id: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 
 pub(crate) enum AttachMethod {
     None,
@@ -62,7 +63,7 @@ pub(crate) fn message_details(
         recipient: String::new(),
         delivered: String::new(),
         attachments: Vec::new(),
-        recipients: Vec::new(),
+        recipients: HashSet::new(),
     };
 
     let mut keep = Vec::new();
@@ -286,10 +287,11 @@ pub(crate) fn table_message_preview(rows: &Vec<Vec<TableRows>>) -> Vec<MessagePr
             }
 
             if !mess.subject.is_empty() && mess.node != 0 && !mess.delivery.is_empty() {
-                info.push(mess);
                 break;
             }
         }
+
+        info.push(mess);
     }
 
     info
@@ -312,6 +314,22 @@ fn clean_subject(sub: &str) -> String {
     } else {
         sub.to_string()
     }
+}
+
+/// Grab other recipients
+pub(crate) fn recipients(data: &Vec<Vec<TableRows>>) -> HashSet<String> {
+    let mut info = HashSet::new();
+    for entry in data {
+        for row in entry {
+            if !row.value.is_string() || row.value.as_str().is_some_and(|s| !s.contains('@')) {
+                continue;
+            }
+
+            let address = row.value.as_str().unwrap_or("").to_string();
+            info.insert(address.replace('\'', ""));
+        }
+    }
+    info
 }
 
 #[cfg(test)]

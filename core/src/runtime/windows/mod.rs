@@ -6,6 +6,7 @@ mod eventlogs;
 pub(crate) mod extensions;
 mod jumplists;
 mod ntfs;
+mod outlook;
 mod pe;
 mod prefetch;
 mod recyclebin;

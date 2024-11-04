@@ -21,7 +21,7 @@ fn test_chromium_parser_windows() {
 
 #[test]
 #[cfg(target_os = "linux")]
-fn test_chromium_parser_windows() {
+fn test_chromium_parser_linux() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/browser/chromiumlinux.toml");
 

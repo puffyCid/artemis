@@ -109,7 +109,7 @@ pub(crate) fn parse_eventlogs(
         let mut raw_messages = Vec::new();
         for record in eventlog_records {
             let mut message = if let Some(result) =
-                add_message_strings(&record, &resource, &param_regex)
+                add_message_strings(&record, resource, &param_regex)
             {
                 result
             } else {

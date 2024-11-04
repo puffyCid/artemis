@@ -9,9 +9,10 @@ use crate::{
     },
 };
 use nom::bytes::complete::take;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub(crate) struct DescriptorData {
     pub(crate) node_level: NodeLevel,
     pub(crate) node: Node,
@@ -100,7 +101,7 @@ pub(crate) fn parse_descriptor_block<'a>(
         tree.block_descriptor_id = block_descriptor_id;
         input = remaining;
 
-        descriptor_tree.insert(tree.node.node_id_num, tree);
+        descriptor_tree.insert(tree.node.node as u64, tree);
     }
 
     Ok((input, descriptor_tree))
@@ -168,7 +169,7 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         assert_eq!(
-            result.get(&41).unwrap(),
+            result.get(&1313).unwrap(),
             &DescriptorData {
                 node_level: LeafNode,
                 node: Node {
@@ -209,7 +210,7 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         assert_eq!(
-            result.get(&1049).unwrap(),
+            result.get(&33599).unwrap(),
             &DescriptorData {
                 node_level: LeafNode,
                 node: Node {

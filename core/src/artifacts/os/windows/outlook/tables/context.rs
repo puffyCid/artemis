@@ -20,16 +20,17 @@ use common::{outlook::PropertyName, windows::PropertyType};
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableRows {
     pub(crate) value: Value,
     pub(crate) column: ColumnDescriptor,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ColumnDescriptor {
     pub(crate) property_type: PropertyType,
     pub(crate) id: u16,
@@ -83,7 +84,7 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableInfo {
     pub(crate) block_data: Vec<Vec<u8>>,
     pub(crate) block_descriptors: BTreeMap<u64, DescriptorData>,
@@ -98,7 +99,7 @@ pub(crate) struct TableInfo {
     pub(crate) has_branch: Option<Vec<TableBranchInfo>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableBranchInfo {
     pub(crate) node: HeapNode,
     pub(crate) rows_info: RowsInfo,
@@ -164,7 +165,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         let mut descriptor_data = Vec::new();
         if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
                 let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
                 descriptor_data = match desc_result {
                     Ok(result) => result,
@@ -235,7 +236,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let section_size = 8;
         let size = info.total_rows * section_size;
         let (input, _) = take(size)(input)?;
-
         get_row_data(input, info)
     }
 
@@ -265,12 +265,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let mut descriptor_data = Vec::new();
 
         if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.index as u64)) {
+            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
                 let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
                 descriptor_data = match desc_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[outlook] Failed to parse descriptor data: {err:?}");
+                        error!("[outlook] Failed to parse descriptor data for branch: {err:?}");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -326,7 +326,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let (input, array_end_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, _table_context_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, values_array_index_reference) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let row = get_heap_node_id(&values_array_index_reference);
+        let row = get_heap_node_id(values_array_index_reference);
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
@@ -475,13 +475,40 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 break;
             }
         }
+
+        // If still zero may be the block_data_id may be off by 1.
+        // This may be a 0 vs 1 issue when determining the "first" number?
+        if leaf_block.block_offset == 0 && leaf_block.size == 0 {
+            let adjust = 1;
+            for block_tree in &self.block_btree {
+                if let Some(block_data) = block_tree.get(&(descriptor.block_data_id - adjust)) {
+                    leaf_block = *block_data;
+
+                    if descriptor.block_descriptor_id == 0 {
+                        break;
+                    }
+                }
+                if descriptor.block_descriptor_id != 0 {
+                    if let Some(block_data) =
+                        block_tree.get(&(descriptor.block_descriptor_id - adjust))
+                    {
+                        leaf_descriptor = Some(*block_data);
+                    }
+                }
+
+                if leaf_descriptor.is_none() && leaf_block.size != 0 {
+                    break;
+                }
+            }
+        }
+
         let value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
 
         Ok(value.data)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct RowsInfo {
     pub(crate) row_end: u16,
     pub(crate) count: u64,
@@ -564,7 +591,7 @@ fn extract_branch_details<'a>(
     while count < row_count {
         let (input, _id) = nom_unsigned_four_bytes(row_data, Endian::Le)?;
         let (input, table_ref) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let results = get_heap_node_id(&table_ref);
+        let results = get_heap_node_id(table_ref);
         row_data = input;
         count += 1;
 
@@ -647,6 +674,9 @@ fn parse_descriptors<'a>(
 
     let mut count = 0;
     for entry in &info.rows {
+        if entry >= &info.total_rows {
+            break;
+        }
         let mut index = *entry;
 
         while index as usize >= max_rows {
@@ -737,6 +767,10 @@ fn get_row_data<'a>(
 
     // Get the rows we want
     for entry in &info.rows {
+        // If row larger than data. We are done
+        if (entry * info.row_size as u64) as usize > data.len() || entry >= &info.total_rows {
+            break;
+        }
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
         let (_, row_data) = take(info.row_size)(row_start)?;
@@ -1032,6 +1066,7 @@ mod tests {
                 node: NodeID::HeapNode,
                 index: 4,
                 block_index: 0,
+                node_index: 0,
             },
             total_rows: 2,
             has_branch: None,

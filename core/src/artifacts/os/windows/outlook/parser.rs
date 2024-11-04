@@ -370,7 +370,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         from: message.from,
         recipient: message.recipient,
         delivered: message.delivered,
-        recipients: Vec::new(),
+        recipients: message.recipients,
         attachments: Vec::new(),
         properties: message.props,
         folder_path: format!("{folder_path}/{folder}"),

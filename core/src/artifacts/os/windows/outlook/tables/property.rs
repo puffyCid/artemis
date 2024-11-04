@@ -232,8 +232,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         block_descriptors: &BTreeMap<u64, DescriptorData>,
         reference: &u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
-        let key = (reference >> 5) & 0x07ffffff;
-        if let Some(value) = block_descriptors.get(&(key as u64)) {
+        if let Some(value) = block_descriptors.get(&(*reference as u64)) {
             let mut leaf_block = LeafBlockData {
                 block_type: BlockType::Internal,
                 index_id: 0,
@@ -514,21 +513,20 @@ pub(crate) fn extract_property_value<'a>(
             value = serde_json::to_value(int_values).unwrap_or_default();
         }
         PropertyType::MultiGuid => {
-            warn!("[outlook] Got multi-guid property. Attempting to parse");
             let guid_size = 16;
             let guid_count = value_data.len() / guid_size;
             let mut remaining = value_data;
             let mut count = 0;
 
-            let mut int_values = Vec::new();
+            let mut guid_values = Vec::new();
             while count < guid_count {
                 let (input, guid_value) = take(guid_size)(remaining)?;
                 remaining = input;
-                int_values.push(format_guid_le_bytes(guid_value));
+                guid_values.push(format_guid_le_bytes(guid_value));
                 count += 1;
             }
 
-            value = serde_json::to_value(&int_values).unwrap_or_default();
+            value = serde_json::to_value(&guid_values).unwrap_or_default();
         }
         PropertyType::MultiBinary => {
             let (offset_start, bin_count) = nom_unsigned_four_bytes(value_data, Endian::Le)?;
