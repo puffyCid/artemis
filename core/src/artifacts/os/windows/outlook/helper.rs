@@ -728,6 +728,26 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     }
                 }
 
+                // If still zero the block_data_id may be off by 1.
+                // This may be a 0 vs 1 issue when determining the "first" number?
+                if table_block.block_offset == 0 && table_block.size == 0 {
+                    let adjust = 1;
+                    for blocks in &self.block_btree {
+                        if let Some(block_data) = blocks.get(&(block_id - adjust)) {
+                            table_block = *block_data;
+
+                            if descriptor_id == 0 {
+                                break;
+                            }
+                        }
+                        if descriptor_id != 0 {
+                            if let Some(block_data) = blocks.get(&(descriptor_id - adjust)) {
+                                table_descriptor = Some(*block_data);
+                            }
+                        }
+                    }
+                }
+
                 let table_value =
                     self.get_block_data(ntfs_file, &table_block, table_descriptor.as_ref())?;
 
