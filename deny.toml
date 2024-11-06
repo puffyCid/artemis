@@ -117,6 +117,7 @@ allow = [
     "Zlib",
     "LicenseRef-ring",
     "MPL-2.0",
+    "Unicode-3.0",
 ]
 # List of explicitly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses

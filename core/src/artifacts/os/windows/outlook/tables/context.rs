@@ -134,6 +134,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         info: &TableInfo,
         ntfs_file: Option<&NtfsFile<'_>>,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
+        // If we have no columns, then we have no rows
+        if info.columns.is_empty() {
+            return Ok(Vec::new());
+        }
         let first_block = info.block_data.first();
         let block = match first_block {
             Some(result) => result,
@@ -245,6 +249,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         info: &TableInfo,
         branch: &TableBranchInfo,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
+        // If we have no columns, then we have no rows
+        if info.columns.is_empty() {
+            return Ok(Vec::new());
+        }
         let rows_result = self.parse_branch_rows(ntfs_file, info, branch);
         let rows = match rows_result {
             Ok((_, result)) => result,
@@ -476,7 +484,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             }
         }
 
-        // If still zero may be the block_data_id may be off by 1.
+        // If still zero the block_data_id may be off by 1.
         // This may be a 0 vs 1 issue when determining the "first" number?
         if leaf_block.block_offset == 0 && leaf_block.size == 0 {
             let adjust = 1;
@@ -773,6 +781,14 @@ fn get_row_data<'a>(
         }
         // Go to the start of the row
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
+        if info.row_size as usize > row_start.len() {
+            warn!(
+                "[outlook] Row size {} value greater than data len {}",
+                info.row_size,
+                row_start.len()
+            );
+            return Ok((data, rows));
+        }
         let (_, row_data) = take(info.row_size)(row_start)?;
 
         // Give each row column info
