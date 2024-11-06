@@ -40,7 +40,7 @@ pub(crate) async fn webui_assets(uri: Uri) -> Result<Response, StatusCode> {
 #[cfg(test)]
 mod tests {
     use crate::frontend::webui::{webui, webui_assets};
-    use axum::http::{StatusCode, Uri};
+    use axum::http::Uri;
 
     #[tokio::test]
     async fn test_webui() {

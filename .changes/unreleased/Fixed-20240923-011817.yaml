@@ -1,3 +1,0 @@
-kind: Fixed
-body: Panic in huffman decompression code when running with Rust 1.81
-time: 2024-09-23T01:18:17.499629303-04:00
