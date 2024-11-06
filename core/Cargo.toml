@@ -35,7 +35,7 @@ jsonwebtoken = "9.3.0"
 rusty-s3 = "0.5.0"
 quick-xml = { version = "0.37.0", default-features = false }
 xml2json-rs = "1.0.1"
-evtx = { version = "0.8.3", default-features = false, features = [
+evtx = { version = "0.8.4", default-features = false, features = [
     "multithreading",
 ] }
 ntfs = "0.4.0"
@@ -54,7 +54,7 @@ csv = "1.3.0"
 common = { path = "../common" }
 
 # Deno Runtime integration
-deno_core = { version = "0.316.0" }
+deno_core = { version = "0.318.0" }
 tokio = { workspace = true }
 
 # Windows API Dependencies
@@ -63,7 +63,7 @@ ntapi = "0.4.1"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.316.0" }
+deno_core = { version = "0.318.0" }
 
 # Dependencies for tests
 [dev-dependencies]
