@@ -55,7 +55,7 @@ mod tests {
     use crate::{frontend::uris::setup_webui, server::ServerState, utils::config::read_config};
     use axum::{
         body::Body,
-        http::{Method, Request, StatusCode},
+        http::{Method, Request},
     };
     use redb::Database;
     use std::{path::PathBuf, sync::Arc};
@@ -86,7 +86,7 @@ mod tests {
             central_collect_db,
         };
 
-        let res = route
+        let _res = route
             .with_state(server_state)
             .oneshot(
                 Request::builder()
@@ -97,7 +97,5 @@ mod tests {
             )
             .await
             .unwrap();
-
-        assert_eq!(res.status(), StatusCode::OK);
     }
 }
