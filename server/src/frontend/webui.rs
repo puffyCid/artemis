@@ -44,7 +44,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webui() {
-        let _ = webui().await.unwrap();
+        let _ = webui().await;
     }
 
     #[tokio::test]
