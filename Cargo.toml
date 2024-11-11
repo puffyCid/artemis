@@ -1,5 +1,13 @@
 [workspace]
-members = ["cli", "core", "server", "webui", "common", "client"]
+members = [
+    "cli",
+    "core",
+    "server",
+    "webui",
+    "common",
+    "client",
+    "app/src-tauri",
+]
 resolver = "2"
 
 [profile.release]
@@ -34,3 +42,4 @@ reqwest = { version = "0.12.9", features = [
 ] }
 sysinfo = "0.32.0"
 uuid = { version = "1.11.0", features = ["v4"] }
+rusqlite = { version = "0.32.1", features = ["bundled", "serde_json"] }

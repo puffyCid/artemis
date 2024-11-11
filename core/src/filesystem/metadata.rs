@@ -3,6 +3,7 @@ use crate::utils::time::unixepoch_to_iso;
 use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
+use std::time::SystemTime;
 use std::{fs::Metadata, io::Error};
 
 // Timestamps containing number of seconds since UNIXEPOCH
@@ -31,6 +32,7 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_access_time()));
         timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_write_time()));
         timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(&meta.creation_time()));
+        timestamps.changed = String::from("1970-01-01T00:00:00Z");
     }
 
     #[cfg(target_family = "unix")]
@@ -43,6 +45,18 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
         timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
         timestamps.changed = unixepoch_to_iso(&meta.st_ctime());
+
+        #[cfg(target_os = "linux")]
+        {
+            timestamps.created = String::from("1970-01-01T00:00:00Z");
+            let created = meta
+                .created()
+                .unwrap_or(SystemTime::UNIX_EPOCH)
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            timestamps.created = unixepoch_to_iso(&(created as i64));
+        }
         #[cfg(target_os = "macos")]
         {
             timestamps.created = unixepoch_to_iso(&meta.st_birthtime());
@@ -127,9 +141,7 @@ mod tests {
         test_location.push("tests");
 
         let result = get_timestamps(&test_location.display().to_string()).unwrap();
-        #[cfg(target_os = "windows")]
         assert!(result.created != "");
-        #[cfg(target_os = "macos")]
         assert!(result.created != "");
 
         assert!(result.modified != "");
