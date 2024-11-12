@@ -12,8 +12,8 @@
     <Menu />
     <div class="stats col-span-full shadow p-2">
         <div class="stat place-items-center">
-            <div class="stat-value">{data.artemis}</div>
-            <div class="stat-desc text-zinc-600">Artemis version</div>
+            <div class="stat-value">{data.apollo}</div>
+            <div class="stat-desc text-zinc-600">Apollo version</div>
         </div>
         <div class="stat place-items-center">
             <div class="stat-value">{data.rust}</div>

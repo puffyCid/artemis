@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "apollo"
 license = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }

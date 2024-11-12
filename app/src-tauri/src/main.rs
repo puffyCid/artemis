@@ -76,7 +76,9 @@
 
 mod about;
 mod app;
+mod artifacts;
 mod db;
+mod timeline;
 mod utils;
 
 use crate::app::run;

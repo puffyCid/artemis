@@ -9,7 +9,7 @@ pub(crate) fn setup_tables(path: &str) -> Result<(), Error> {
         "CREATE TABLE IF NOT EXISTS artifacts (row INTEGER PRIMARY KEY, name TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS files (row INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, filename TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, artifact TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS metadata (row INTEGER PRIMARY KEY, endpoint_id TEXT NOT NULL, uuid TEXT NOT NULL, id INTEGER NOT NULL, artifact_name TEXT NOT NULL, complete_time TEXT NOT NULL, start_time TEXT NOT NULL, hostname TEXT NOT NULL, os_version TEXT NOT NULL, kernel_version TEXT NOT NULL, platform TEXT NOT NULL, avg_one_min REAL NOT NULL, avg_five_min REAL NOT NULL, avg_fifteen_min REAL NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS timeline (row INTEGER PRIMARY KEY, message TEXT NOT NULL, artifact TEXT NOT NULL, datetime TEXT NOT NULL, timestamp_desc TEXT NOT NULL, data_type TEXT NOT NULL, data BLOB NOT NULL)"
+        "CREATE TABLE IF NOT EXISTS timeline (row INTEGER PRIMARY KEY, message TEXT NOT NULL, artifact TEXT NOT NULL, datetime TEXT DEFAULT '1970-01-01T00:00:00' NOT NULL, timestamp_desc TEXT NOT NULL, data_type TEXT NOT NULL, tags TEXT DEFAULT '' NOT NULL, notes TEXT DEFAULT '' NOT NULL, data BLOB NOT NULL)"
     ];
 
     for table in tables {
@@ -157,7 +157,6 @@ mod tests {
         create_table, insert_artifact, insert_files, insert_metadata, insert_row, insert_timeline,
         setup_tables, FileInfo, Metadata,
     };
-    use crate::utils::filesystem::is_file;
     use common::system::LoadPerformance;
     use rusqlite::params;
     use serde_json::Value;
@@ -173,9 +172,6 @@ mod tests {
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
-        if is_file(test_location.to_str().unwrap()) {
-            return;
-        }
 
         setup_tables(test_location.to_str().unwrap()).unwrap();
     }
@@ -187,12 +183,9 @@ mod tests {
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
-        if is_file(test_location.to_str().unwrap()) {
-            return;
-        }
 
         create_table(
-            "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
             test_location.to_str().unwrap(),
         )
         .unwrap();
@@ -205,9 +198,7 @@ mod tests {
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
 
         insert_artifact("test", test_location.to_str().unwrap()).unwrap()
     }
@@ -219,9 +210,7 @@ mod tests {
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
 
         let test = FileInfo {
             filename: String::from("test.jsonl"),
@@ -241,9 +230,7 @@ mod tests {
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
 
         let test = Metadata {
             endpoint_id: String::from("1234"),
@@ -274,9 +261,8 @@ mod tests {
 
         test_location.push("test.db");
         let db_path = test_location.clone();
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
+
         test_location.pop();
         test_location.pop();
         test_location.push("tests/timelines/no_metadata.jsonl");
@@ -305,9 +291,8 @@ mod tests {
         test_location.push("test.db");
         let binding = test_location.clone();
         let db_path = binding.to_str().unwrap();
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
+
         test_location.pop();
         test_location.pop();
         test_location.push("tests/timelines/metadata.jsonl");
@@ -364,9 +349,8 @@ mod tests {
 
         test_location.push("test.db");
 
-        if !is_file(test_location.to_str().unwrap()) {
-            setup_tables(test_location.to_str().unwrap()).unwrap();
-        }
+        setup_tables(test_location.to_str().unwrap()).unwrap();
+
         insert_row(
             "INSERT INTO artifacts(name) VALUES (?1)",
             params!["anything"],

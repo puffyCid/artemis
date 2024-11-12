@@ -1,10 +1,10 @@
+use crate::db::query::{about, artifact_list};
+use log::error;
 use serde::Serialize;
-
-use crate::db::query::about;
 
 #[derive(Serialize)]
 pub struct AboutMe {
-    artemis: String,
+    apollo: String,
     tauri: String,
     rust: String,
     build: String,
@@ -13,11 +13,11 @@ pub struct AboutMe {
     db: u64,
 }
 
-/// Get basic info about artemis
+/// Get basic info about apollo
 #[tauri::command]
 pub(crate) fn about_me(path: &str) -> AboutMe {
     let mut info = AboutMe {
-        artemis: env!("CARGO_PKG_VERSION").to_string(),
+        apollo: env!("CARGO_PKG_VERSION").to_string(),
         tauri: String::from("2.1.0"),
         rust: env!("VERGEN_RUSTC_SEMVER").to_string(),
         build: env!("VERGEN_BUILD_DATE").to_string(),
@@ -38,9 +38,21 @@ pub(crate) fn about_me(path: &str) -> AboutMe {
     info
 }
 
+/// Get list of artifacts ingested into the database
+#[tauri::command]
+pub(crate) fn artifacts(path: &str) -> Vec<String> {
+    match artifact_list(path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[app] could not get artifact list: {err:?}");
+            Vec::new()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::about_me;
+    use super::{about_me, artifacts};
     use std::path::PathBuf;
 
     #[test]
@@ -49,8 +61,17 @@ mod tests {
         test_location.push("tests/timelines/test.db");
 
         let about = about_me(test_location.to_str().unwrap());
-        assert!(!about.artemis.is_empty());
+        assert!(!about.apollo.is_empty());
         assert_eq!(about.db, 2088960);
         assert_eq!(about.artifacts, 1);
+    }
+
+    #[test]
+    fn test_artifacts() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/timelines/test22.db");
+
+        let result = artifacts(test_location.to_str().unwrap());
+        assert!(result.is_empty());
     }
 }

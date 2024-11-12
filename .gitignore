@@ -23,5 +23,5 @@ vite.config.ts.timestamp-*
 # will have schema files for capabilities auto-completion
 /app/src-tauri/gen/schemas
 /app/src-tauri/tmp
-/app/src-tauri/icons
+#/app/src-tauri/icons
 /app/src/output.css

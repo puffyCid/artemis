@@ -1,9 +1,9 @@
 /**
- * Some about info related to artemis
+ * Some about info related to apollo
  */
 export interface About {
-    /**Artemis version */
-    artemis: string;
+    /**Apollo version */
+    apollo: string;
     /**Rust version */
     rust: string;
     /**Tauri version */
