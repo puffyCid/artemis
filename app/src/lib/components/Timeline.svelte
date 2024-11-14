@@ -13,11 +13,14 @@
         ThSort,
         ThFilter,
     } from "@vincjo/datatables";
+    import Details from "./Details.svelte";
 
     let entries: TimelineEntry[] = [];
     const table = new TableHandler(entries, {
         rowsPerPage: 100,
     });
+
+    table.createView([{ index: 3, name: "raw", isVisible: false }]);
 
     /**
      * List timeline entries
@@ -62,33 +65,32 @@
     {#await getTimeline("")}
         <p>Loading...</p>
     {:then}
-        <Datatable basic {table}>
-            <table>
-                <thead>
-                    <tr>
-                        <ThSort {table} field="datetime">Datetime</ThSort>
-                        <ThSort {table} field="timestamp_desc"
-                            >Datetime Description</ThSort
-                        >
-                        <ThSort {table} field="message">Message</ThSort>
-                    </tr>
-                    <tr>
-                        <ThFilter {table} field="datetime" />
-                        <ThFilter {table} field="timestamp_desc" />
-                        <ThFilter {table} field="message" />
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each table.rows as row}
+        <div class="w-full">
+            <Datatable basic {table}>
+                <table>
+                    <thead>
                         <tr>
-                            <td>{row.datetime}</td>
-                            <td>{row.timestamp_desc}</td>
-                            <td>{row.message}</td>
+                            <ThSort {table} field="datetime">Datetime</ThSort>
+                            <ThSort {table} field="timestamp_desc"
+                                >Datetime Description</ThSort
+                            >
+                            <ThSort {table} field="message">Message</ThSort>
+                            <ThSort {table} field="raw">Raw Data</ThSort>
                         </tr>
-                    {/each}
-                </tbody>
-            </table>
-        </Datatable>
+                        <tr>
+                            <ThFilter {table} field="datetime" />
+                            <ThFilter {table} field="timestamp_desc" />
+                            <ThFilter {table} field="message" />
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each table.rows as row}
+                            <Details data={row} />
+                        {/each}
+                    </tbody>
+                </table>
+            </Datatable>
+        </div>
     {:catch error}
         <li>Query failed</li>
     {/await}
