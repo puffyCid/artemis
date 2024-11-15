@@ -58,7 +58,6 @@ pub(crate) fn artifact_list(path: &str) -> Result<Vec<String>, Error> {
 }
 
 #[derive(Serialize, Deserialize)]
-/// Kind of inspired by `https://vincjo.fr/datatables/docs/server/getting-started/overview`
 pub(crate) struct QueryState {
     pub(crate) limit: u16,
     pub(crate) offset: u64,
@@ -85,7 +84,7 @@ pub(crate) enum ColumnName {
 /// Get array of timeline entries from database
 pub(crate) fn timeline(path: &str, state: &QueryState) -> Result<Vec<Map<String, Value>>, Error> {
     let connection = query_connection(path)?;
-    let ordering = if state.order == 1 { "ASC" } else { "DSC" };
+    let ordering = if state.order == 1 { "ASC" } else { "DESC" };
     let compare = if state.comparison == 1 {
         "= (?1)"
     } else {

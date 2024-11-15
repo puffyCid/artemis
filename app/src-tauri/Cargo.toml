@@ -9,7 +9,7 @@ repository = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tauri = { version = "2.1.0", features = [] }
+tauri = { version = "2.1.1", features = [] }
 tauri-plugin-shell = "2.0.2"
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -20,4 +20,4 @@ common = { path = "../../common" }
 
 [build-dependencies]
 tauri-build = { version = "2.0.3", features = [] }
-vergen = { version = "9.0.0", features = ["build", "rustc"] }
+vergen = { version = "9.0.1", features = ["build", "rustc"] }

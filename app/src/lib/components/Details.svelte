@@ -38,19 +38,22 @@
                                 <td>{key}</td>
                                 <td>{value}</td>
                             </tr>
-                        {/if}
+                        {:else}
                         <!--Now iterate through the JSON-->
-                        {#if key === "data"}
                             {#each Object.entries(JSON.parse(value as string)) as [raw_key, raw_value]}
-                            <!--Already got the artifact name above-->
-                            {#if raw_key != "artifact"}
+                            <!--Already got the keys above-->
+                            {#if !["artifact", "message"].includes(raw_key) }
                                 <tr>
                                     <td>{raw_key}</td>
-                                    <td>{raw_value}</td>
+                                    {#if raw_value instanceof Object}
+                                        <td>{JSON.stringify(raw_value)}</td>
+                                    {:else}
+                                        <td>{raw_value}</td>
+                                    {/if}
                                 </tr>
                             {/if}
                             {/each}
-                        {/if}
+                        {/if}                        
                     {/each}
                 </tbody>
             </table>

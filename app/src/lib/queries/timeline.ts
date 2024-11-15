@@ -13,8 +13,8 @@ export async function queryTimeline(
     query: QueryState,
 ): Promise<TimelineEntry[]> {
     return await invoke("query_timeline", {
-        path:
-            "/home/puffycid/Projects/artemis/app/src-tauri/tests/timelines/test.db",
+        path: "./artemis/app/src-tauri/tests/timelines/test.db",
+
         state: query,
     });
 }

@@ -7,7 +7,6 @@ import { invoke } from "@tauri-apps/api/core";
  */
 export async function listArtifacts(path: string): Promise<string[]> {
     return await invoke("artifacts", {
-        path:
-            "/home/puffycid/Projects/artemis/app/src-tauri/tests/timelines/test.db",
+        path: "./artemis/app/src-tauri/tests/timelines/test.db",
     });
 }

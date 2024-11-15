@@ -9,11 +9,47 @@ pub(crate) fn setup_tables(path: &str) -> Result<(), Error> {
         "CREATE TABLE IF NOT EXISTS artifacts (row INTEGER PRIMARY KEY, name TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS files (row INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, filename TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, artifact TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS metadata (row INTEGER PRIMARY KEY, endpoint_id TEXT NOT NULL, uuid TEXT NOT NULL, id INTEGER NOT NULL, artifact_name TEXT NOT NULL, complete_time TEXT NOT NULL, start_time TEXT NOT NULL, hostname TEXT NOT NULL, os_version TEXT NOT NULL, kernel_version TEXT NOT NULL, platform TEXT NOT NULL, avg_one_min REAL NOT NULL, avg_five_min REAL NOT NULL, avg_fifteen_min REAL NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS timeline (row INTEGER PRIMARY KEY, message TEXT NOT NULL, artifact TEXT NOT NULL, datetime TEXT DEFAULT '1970-01-01T00:00:00' NOT NULL, timestamp_desc TEXT NOT NULL, data_type TEXT NOT NULL, tags TEXT DEFAULT '' NOT NULL, notes TEXT DEFAULT '' NOT NULL, data BLOB NOT NULL)"
+        "CREATE TABLE IF NOT EXISTS timeline (row INTEGER PRIMARY KEY, message TEXT NOT NULL, artifact TEXT NOT NULL, datetime TEXT DEFAULT '1970-01-01T00:00:00' NOT NULL, timestamp_desc TEXT NOT NULL, data_type TEXT NOT NULL, tags TEXT DEFAULT '' NOT NULL, notes TEXT DEFAULT '' NOT NULL, data BLOB NOT NULL)",
     ];
 
     for table in tables {
-        let _size = create_table(table, path)?;
+        let _size = update_table(table, path)?;
+    }
+
+    Ok(())
+}
+
+/// Setup indexes for fast queries. Indexes should be created after data is ingested, otherwise ingestion will be slower
+pub(crate) fn setup_indexes(path: &str) -> Result<(), Error> {
+    let indexes = [
+        "CREATE INDEX IF NOT EXISTS timeline_index_datetime ON timeline(datetime)",
+        "CREATE INDEX IF NOT EXISTS timeline_index_message ON timeline(message)",
+        "CREATE INDEX IF NOT EXISTS timeline_index_data ON timeline(data)",
+        "CREATE INDEX IF NOT EXISTS timeline_index_artifact ON timeline(artifact)",
+        "CREATE INDEX IF NOT EXISTS timeline_index_timestamp_desc ON timeline(timestamp_desc)",
+        "CREATE INDEX IF NOT EXISTS timeline_index_data_type ON timeline(data_type)",
+    ];
+
+    for table in indexes {
+        let _size = update_table(table, path)?;
+    }
+
+    Ok(())
+}
+
+/// Remove indexes prior to ingesting data. Indexes should be created after ingestion is complete
+pub(crate) fn delete_indexes(path: &str) -> Result<(), Error> {
+    let indexes = [
+        "DROP INDEX IF EXISTS timeline_index_datetime",
+        "DROP INDEX IF EXISTS timeline_index_message",
+        "DROP INDEX IF EXISTS timeline_index_data",
+        "DROP INDEX IF EXISTS timeline_index_artifact",
+        "DROP INDEX IF EXISTS timeline_index_timestamp_desc",
+        "DROP INDEX IF EXISTS timeline_index_data_type",
+    ];
+
+    for table in indexes {
+        let _size = update_table(table, path)?;
     }
 
     Ok(())
@@ -140,7 +176,7 @@ pub(crate) fn insert_timeline(entries: Vec<Value>, path: &str) -> Result<(), Err
 }
 
 /// Create a provided sqlite table at path
-fn create_table(table: &str, path: &str) -> Result<usize, Error> {
+fn update_table(table: &str, path: &str) -> Result<usize, Error> {
     let connection = Connection::open(path)?;
     connection.execute(table, ())
 }
@@ -154,8 +190,8 @@ fn insert_row(query: &str, params: &[&dyn ToSql], path: &str) -> Result<usize, E
 #[cfg(test)]
 mod tests {
     use super::{
-        create_table, insert_artifact, insert_files, insert_metadata, insert_row, insert_timeline,
-        setup_tables, FileInfo, Metadata,
+        delete_indexes, insert_artifact, insert_files, insert_metadata, insert_row,
+        insert_timeline, setup_indexes, setup_tables, update_table, FileInfo, Metadata,
     };
     use common::system::LoadPerformance;
     use rusqlite::params;
@@ -177,14 +213,36 @@ mod tests {
     }
 
     #[test]
-    fn test_create_tables() {
+    fn test_setup_indexes() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tmp/");
         let _ = create_dir(test_location.to_str().unwrap());
 
         test_location.push("test.db");
 
-        create_table(
+        setup_indexes(test_location.to_str().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn test_delete_indexes() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tmp/");
+        let _ = create_dir(test_location.to_str().unwrap());
+
+        test_location.push("test.db");
+
+        delete_indexes(test_location.to_str().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn test_update_tables() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tmp/");
+        let _ = create_dir(test_location.to_str().unwrap());
+
+        test_location.push("test.db");
+
+        update_table(
             "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
             test_location.to_str().unwrap(),
         )
