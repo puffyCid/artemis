@@ -57,7 +57,7 @@ pub(crate) fn artifact_list(path: &str) -> Result<Vec<String>, Error> {
     Ok(artifacts)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct QueryState {
     pub(crate) limit: u16,
     pub(crate) offset: u64,
@@ -69,7 +69,7 @@ pub(crate) struct QueryState {
     pub(crate) json_key: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum ColumnName {
     Message,
     Artifact,
@@ -81,8 +81,14 @@ pub(crate) enum ColumnName {
     Data,
 }
 
+#[derive(Serialize)]
+pub(crate) struct QueryResults {
+    pub(crate) data: Vec<Map<String, Value>>,
+    pub(crate) total_rows: u64,
+}
+
 /// Get array of timeline entries from database
-pub(crate) fn timeline(path: &str, state: &QueryState) -> Result<Vec<Map<String, Value>>, Error> {
+pub(crate) fn timeline(path: &str, state: &QueryState) -> Result<QueryResults, Error> {
     let connection = query_connection(path)?;
     let ordering = if state.order == 1 { "ASC" } else { "DESC" };
     let compare = if state.comparison == 1 {
@@ -107,6 +113,7 @@ pub(crate) fn timeline(path: &str, state: &QueryState) -> Result<Vec<Map<String,
         statement.query((&state.filter, state.limit, state.offset))?
     };
     let mut data = Vec::new();
+    println!("{state:?}");
 
     // Loop through all rows based on provided query
     while let Some(row) = rows.next()? {
@@ -119,8 +126,28 @@ pub(crate) fn timeline(path: &str, state: &QueryState) -> Result<Vec<Map<String,
         }
         data.push(json_data);
     }
+    println!("query 1 done");
 
-    Ok(data)
+    let total_rows = format!("SELECT COUNT(row) AS rows FROM timeline WHERE {col} {compare}");
+    let mut statement = connection.prepare(&total_rows)?;
+    let mut rows = if state.filter.is_string() {
+        statement.query([state.filter.as_str().unwrap_or_default()])?
+    } else {
+        statement.query([&state.filter])?
+    };
+
+    let mut results = QueryResults {
+        data,
+        total_rows: 0,
+    };
+
+    // Rows should only be the count of total rows from the executed query without the LIMIT
+    while let Some(row) = rows.next()? {
+        results.total_rows = row.get("rows").unwrap_or(0);
+    }
+
+    println!("done");
+    Ok(results)
 }
 
 /// Determine the column name provided in the queyr
@@ -133,7 +160,13 @@ fn get_column_name(name: &ColumnName, key: &str) -> String {
         ColumnName::DataType => String::from("data_type"),
         ColumnName::Tags => String::from("tags"),
         ColumnName::Notes => String::from("notes"),
-        ColumnName::Data => format!("JSON_EXTRACT(data, '{}')", key),
+        ColumnName::Data => {
+            if key.is_empty() {
+                String::from("JSON(data)")
+            } else {
+                format!("JSON_EXTRACT(data, '{}')", key)
+            }
+        }
     }
 }
 
@@ -211,24 +244,24 @@ mod tests {
         };
 
         let result = timeline(test_location.to_str().unwrap(), &state).unwrap();
-        assert_eq!(result.len(), 5);
+        assert_eq!(result.data.len(), 5);
         assert_eq!(
-            result[0].get("message").unwrap().as_str().unwrap(),
+            result.data[0].get("message").unwrap().as_str().unwrap(),
             "/Volumes/Preboot"
         );
         assert_eq!(
-            result[1].get("artifact").unwrap().as_str().unwrap(),
+            result.data[1].get("artifact").unwrap().as_str().unwrap(),
             "FsEvents"
         );
         assert_eq!(
-            result[2].get("datetime").unwrap().as_str().unwrap(),
+            result.data[2].get("datetime").unwrap().as_str().unwrap(),
             "2024-07-25T23:48:13.000Z"
         );
         assert_eq!(
-            result[3].get("data_type").unwrap().as_str().unwrap(),
+            result.data[3].get("data_type").unwrap().as_str().unwrap(),
             "macos:fsevents:entry"
         );
-        assert_eq!(result[4].get("data").unwrap().to_string().len(), 869);
+        assert_eq!(result.data[4].get("data").unwrap().to_string().len(), 869);
     }
 
     #[test]
@@ -248,17 +281,21 @@ mod tests {
         };
 
         let result = timeline(test_location.to_str().unwrap(), &state).unwrap();
-        assert_eq!(result.len(), 3);
+        assert_eq!(result.data.len(), 3);
         assert_eq!(
-            result[0].get("message").unwrap().as_str().unwrap(),
+            result.data[0].get("message").unwrap().as_str().unwrap(),
             "/Volumes/Preboot"
         );
         assert_eq!(
-            result[1].get("timestamp_desc").unwrap().as_str().unwrap(),
+            result.data[1]
+                .get("timestamp_desc")
+                .unwrap()
+                .as_str()
+                .unwrap(),
             "Source Changed"
         );
         assert_eq!(
-            result[2].get("datetime").unwrap().as_str().unwrap(),
+            result.data[2].get("datetime").unwrap().as_str().unwrap(),
             "2024-11-10T04:39:20.000Z"
         );
     }
@@ -280,17 +317,21 @@ mod tests {
         };
 
         let result = timeline(test_location.to_str().unwrap(), &state).unwrap();
-        assert_eq!(result.len(), 5);
+        assert_eq!(result.data.len(), 5);
         assert_eq!(
-            result[0].get("message").unwrap().as_str().unwrap(),
+            result.data[0].get("message").unwrap().as_str().unwrap(),
             "/Volumes/Preboot/0A81F3B1-51D9-3335-B3E3-169C3640360D/System/Library/Caches/com.apple.corestorage/.dat.nosync007f.9a5dgx"
         );
         assert_eq!(
-            result[1].get("timestamp_desc").unwrap().as_str().unwrap(),
+            result.data[1]
+                .get("timestamp_desc")
+                .unwrap()
+                .as_str()
+                .unwrap(),
             "Source Created Source Modified"
         );
         assert_eq!(
-            result[2].get("datetime").unwrap().as_str().unwrap(),
+            result.data[2].get("datetime").unwrap().as_str().unwrap(),
             "2024-07-25T23:48:13.000Z"
         );
     }

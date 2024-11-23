@@ -1,15 +1,17 @@
-use crate::db::query::{timeline, QueryState};
+use crate::db::query::{timeline, QueryResults, QueryState};
 use log::error;
-use serde_json::{Map, Value};
 
 /// Get list timeline entries based on query values
 #[tauri::command]
-pub(crate) fn query_timeline(path: &str, state: QueryState) -> Vec<Map<String, Value>> {
+pub(crate) fn query_timeline(path: &str, state: QueryState) -> QueryResults {
     match timeline(path, &state) {
         Ok(result) => result,
         Err(err) => {
             error!("[app] could not get timeline entries: {err:?}");
-            Vec::new()
+            QueryResults {
+                data: Vec::new(),
+                total_rows: 0,
+            }
         }
     }
 }
@@ -40,6 +42,7 @@ mod tests {
         };
 
         let result = query_timeline(test_location.to_str().unwrap(), state);
-        assert_eq!(result.len(), 50);
+        assert_eq!(result.data.len(), 50);
+        assert_eq!(result.total_rows, 2208);
     }
 }

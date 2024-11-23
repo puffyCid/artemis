@@ -1,4 +1,14 @@
 /**
+ * Timeline query interface that can used to review data from the SQLITE database
+ */
+export interface TimelineQuery {
+    /**Array of `TimelineEntry` entries */
+    data: TimelineEntry[];
+    /**Total rows from executed queries without a LIMIT */
+    total_rows: number;
+}
+
+/**
  * Timeline interface for ingesting data into the SQLITE database.
  * Based on [Timesketch](https://timesketch.org/)
  */
