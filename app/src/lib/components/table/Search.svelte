@@ -4,9 +4,9 @@
     import Count from "./Count.svelte";
     import Navigation from "./Navigation.svelte";
 
-    const props: { table: TableHandler; db_path: string } = $props();
+    const props: { table: TableHandler; index: string } = $props();
     const table = props.table;
-    const db_path = props.db_path;
+    const index = props.index;
     let value = $state();
 
     function rawSearch() {
@@ -16,7 +16,9 @@
         } else {
             table.filters = [{ field: "data", value }];
         }
-        table.load((state: State) => queryCallback(state, db_path, table));
+        table.load((state: State) =>
+            queryCallback(state, index, table, "match_all"),
+        );
         table.invalidate();
     }
 </script>
@@ -28,6 +30,6 @@
         bind:value
         placeholder="Raw search"
     />
-    <Count {table} {db_path} />
-    <Navigation {table} {db_path} />
+    <Count {table} {index} />
+    <Navigation {table} {index} />
 </form>

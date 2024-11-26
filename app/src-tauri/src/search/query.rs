@@ -1,0 +1,130 @@
+use super::index::setup_client;
+use log::error;
+use opensearch::http::{response::Response, StatusCode};
+use opensearch::nodes::NodesStatsParts;
+use opensearch::SearchParts;
+use opensearch::{indices::IndicesGetParts, Error};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+/// Get a list of all index in opensearch. Should be one per timeline/sketch
+pub(crate) async fn list_indexes() -> Result<Value, Error> {
+    let client = setup_client()?;
+
+    let res = client
+        .indices()
+        .get(IndicesGetParts::Index(&["*"]))
+        .send()
+        .await?;
+
+    Ok(check_response(res).await)
+}
+
+/// Get info on the metadata index
+pub(crate) async fn get_metadata() -> Result<Value, Error> {
+    let client = setup_client()?;
+
+    let res = client
+        .indices()
+        .get(IndicesGetParts::Index(&["metadata"]))
+        .send()
+        .await?;
+
+    Ok(check_response(res).await)
+}
+
+/// Get info on opensearch resources
+pub(crate) async fn get_resources() -> Result<Value, Error> {
+    let client = setup_client()?;
+
+    let res = client.nodes().stats(NodesStatsParts::None).send().await?;
+
+    Ok(check_response(res).await)
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct QueryState {
+    pub(crate) limit: i64,
+    pub(crate) offset: i64,
+    pub(crate) query: Value,
+    pub(crate) order: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct Query {
+    fields: Vec<String>,
+    query: String,
+}
+
+/// Return entries in our Indexed timeline
+pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Error> {
+    let client = setup_client()?;
+    let res = client
+        .search(SearchParts::Index(&[index]))
+        .from(state.offset)
+        .size(state.limit)
+        .sort(&[&format!("datetime:{}", state.order)])
+        .body(state.query)
+        .send()
+        .await?;
+
+    Ok(check_response(res).await)
+}
+
+/// Check to make sure the OpenSearch response was 200 Status Code. Returns JSON on success
+async fn check_response(res: Response) -> Value {
+    let code = res.status_code();
+
+    let body = res
+        .text()
+        .await
+        .unwrap_or(String::from("could not process query response"));
+
+    if code != StatusCode::OK {
+        error!("bad opensearch query response: {body}",);
+    }
+
+    serde_json::from_str(&body).unwrap_or(Value::Null)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::search::query::{get_metadata, get_resources, list_indexes, timeline, QueryState};
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn test_list_indexes() {
+        let test = list_indexes().await.unwrap();
+        assert!(test.is_object());
+    }
+
+    #[tokio::test]
+    async fn test_get_metadata() {
+        let test = get_metadata().await.unwrap();
+        assert!(test.is_object());
+    }
+
+    #[tokio::test]
+    async fn test_get_resources() {
+        let test = get_resources().await.unwrap();
+        assert!(test.is_object());
+    }
+
+    #[tokio::test]
+    async fn test_timeline() {
+        let index = "test";
+        let query = json!({
+            "query": {
+                "match_all": {}
+            }
+        });
+        let state = QueryState {
+            limit: 50,
+            offset: 0,
+            query,
+            order: String::from("asc"),
+        };
+
+        let result = timeline(index, state).await.unwrap();
+        assert!(result.is_object());
+    }
+}

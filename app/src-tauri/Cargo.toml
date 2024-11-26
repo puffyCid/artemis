@@ -13,8 +13,12 @@ tauri = { version = "2.1.1", features = [] }
 tauri-plugin-shell = "2.0.2"
 serde = { workspace = true }
 serde_json = { workspace = true }
-rusqlite = { workspace = true }
 log = { workspace = true }
+tokio = { workspace = true }
+
+opensearch = { version = "2.3.0", default-features = false, features = [
+    "native-tls",
+] }
 
 common = { path = "../../common" }
 

@@ -1,3 +1,5 @@
+import type { Resources } from "./search";
+
 /**
  * Some about info related to apollo
  */
@@ -10,10 +12,6 @@ export interface About {
     tauri: string;
     /**Compile timestamp */
     build: string;
-    /**Number of artifactas ingested */
-    artifacts: number;
-    /**Number of JSONL files read */
-    files: number;
-    /**SQLITE db size */
-    db: number;
+    /**OpenSearch resource usage */
+    resources: Resources;
 }

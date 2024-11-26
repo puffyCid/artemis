@@ -1,14 +1,18 @@
 <script lang="ts">
     import { listArtifacts } from "$lib/queries/artifacts";
-
+    import { isError } from "$lib/queries/error";
+    import type { ErrorStatus } from "$lib/types/search";
     let artifacts: string[];
 
     /**
      * List of artifacts
-     * @param path path to the SQLITE database
+     * @param path path
      */
     async function getList(path: string) {
-        artifacts = await listArtifacts(path);
+        const meta = await listArtifacts(path);
+        if (isError(meta)) {
+            return;
+        }
     }
 </script>
 

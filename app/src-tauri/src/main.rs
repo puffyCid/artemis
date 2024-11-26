@@ -77,7 +77,7 @@
 mod about;
 mod app;
 mod artifacts;
-mod db;
+mod search;
 mod timeline;
 mod utils;
 

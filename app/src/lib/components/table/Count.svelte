@@ -2,9 +2,9 @@
     import { queryCallback } from "$lib/queries/timeline";
     import type { State, TableHandler } from "@vincjo/datatables/server";
 
-    const props: { table: TableHandler; db_path: string } = $props();
+    const props: { table: TableHandler; index: string } = $props();
     const table = props.table;
-    const db_path = props.db_path;
+    const index = props.index;
 
     const rows = [5, 10, 20, 50, 100];
 
@@ -17,7 +17,9 @@
             const limit = 100;
             table.rowsPerPage = limit;
         }
-        table.load((state: State) => queryCallback(state, db_path, table));
+        table.load((state: State) =>
+            queryCallback(state, index, table, "match_all"),
+        );
         table.setPage(1);
         table.invalidate();
     }

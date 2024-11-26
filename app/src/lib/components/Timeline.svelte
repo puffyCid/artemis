@@ -1,10 +1,11 @@
 <script lang="ts">
     import { queryCallback } from "$lib/queries/timeline";
-    import type { TimelineEntry } from "$lib/types/timeline";
+    import type { Hit, TimelineEntry } from "$lib/types/timeline";
     import {
         TableHandler,
         Datatable,
         ThSort,
+        Th,
         ThFilter,
         type State,
     } from "@vincjo/datatables/server";
@@ -12,15 +13,15 @@
     import Navigation from "./table/Navigation.svelte";
     import Search from "./table/Search.svelte";
 
-    let entries: TimelineEntry[] = [];
+    let entries: Hit[] = [];
     const table = new TableHandler(entries, { rowsPerPage: 100 });
 
-    table.createView([{ index: 3, name: "raw", isVisible: false }]);
+    let index = "";
+    table.load((state: State) =>
+        queryCallback(state, index, table, "match_all"),
+    );
 
-    let db_path = "";
-    table.load((state: State) => queryCallback(state, db_path, table));
-
-    let sort = table.createSort("message");
+    //let sort = table.createSort("_source");
     table.invalidate();
 
     function sortColumn(name: string) {}
@@ -28,32 +29,62 @@
 
 <div class="col-span-full">
     <div class="w-full">
-        <Search {table} {db_path} />
+        <Search {table} {index} />
 
         <Datatable {table}>
             <table>
                 <thead>
                     <tr>
-                        <ThSort {table} field="datetime">Datetime</ThSort>
-                        <ThSort {table} field="timestamp_desc">
+                        <ThSort
+                            {table}
+                            field={(row) => {
+                                console.log(row._source);
+                                row._source.datetime;
+                            }}>Datetime</ThSort
+                        >
+                        <ThSort
+                            {table}
+                            field={(row) => {
+                                row._source.timestamp_desc;
+                            }}
+                        >
                             Datetime Description
                         </ThSort>
-                        <ThSort {table} field="message">Message</ThSort>
-                        <ThSort {table} field="raw">Raw Data</ThSort>
+                        <ThSort
+                            {table}
+                            field={(row) => {
+                                row._source.message;
+                            }}>Message</ThSort
+                        >
                     </tr>
                     <tr>
-                        <ThFilter {table} field="datetime" />
-                        <ThFilter {table} field="timestamp_desc" />
-                        <ThFilter {table} field="message" />
+                        <ThFilter
+                            {table}
+                            field={(row) => {
+                                row._source.datetime;
+                            }}
+                        />
+                        <ThFilter
+                            {table}
+                            field={(row) => {
+                                row._source.timestamp_desc;
+                            }}
+                        />
+                        <ThFilter
+                            {table}
+                            field={(row) => {
+                                row._source.message;
+                            }}
+                        />
                     </tr>
                 </thead>
                 <tbody>
                     {#each table.rows as row}
-                        <Details data={row} />
+                        <Details data={row._source} />
                     {/each}
                 </tbody>
             </table>
         </Datatable>
-        <Navigation {table} {db_path} />
+        <Navigation {table} {index} />
     </div>
 </div>

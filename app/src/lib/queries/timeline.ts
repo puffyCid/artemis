@@ -1,112 +1,75 @@
-import {
-    ColumnName,
-    Comparison,
-    Ordering,
-    type QueryState,
-} from "$lib/types/queries";
-import type { TimelineEntry, TimelineQuery } from "$lib/types/timeline";
+import { Ordering, type QueryState } from "$lib/types/queries";
+import type { ErrorStatus } from "$lib/types/search";
+import type { Hit, OpenSearchData, TimelineEntry } from "$lib/types/timeline";
 import { invoke } from "@tauri-apps/api/core";
 import type { State, TableHandler } from "@vincjo/datatables/server";
+import { isError } from "./error";
 
 /**
- * Get list of timeline entries ingested in the SQLITE database
- * @param path Path to the SQLITE database
+ * Get list of timeline entries ingested in OpenSearch
+ * @param index Name of index
  * @param query Query to execute
  * @returns Array of TimelineEntry values
  */
 export async function queryTimeline(
-    path: string,
+    index: string,
     query: QueryState,
-): Promise<TimelineQuery> {
+): Promise<OpenSearchData | ErrorStatus> {
     return await invoke("query_timeline", {
-        path:
-            //"./artemis/app/src-tauri/tests/timelines/test.db",
-            "/home/puffycid/Downloads/temp.db",
-
+        index: "",
         state: query,
     });
 }
 
 /**
- * Function to query the SQLITE database based current DataTable state
+ * Function to query the OpenSearch instance
  * @param state The DataTable state
- * @param db_path Path to the SQLITE database
+ * @param index Name of OpenSearch index
  * @param rows_per_page Rows per page to display
- * @returns Array of `TimelineEntry` entries
+ * @returns Array of `Hit` entries
  */
 export async function queryCallback(
     state: State,
-    db_path: string,
-    table: TableHandler<TimelineEntry>,
-): Promise<TimelineEntry[]> {
+    index: string,
+    table: TableHandler<Hit>,
+    match: string,
+): Promise<Hit[]> {
     const { currentPage, rowsPerPage, sort, filters } = state;
     const offset = (currentPage - 1) * rowsPerPage;
 
-    let order_column = ColumnName.DATETIME;
-    let ordering = Ordering.ASC;
-    switch (sort?.field) {
-        case "datetime":
-            order_column = ColumnName.DATETIME;
-        case "message":
-            order_column = ColumnName.MESSAGE;
-        case "timestamp_desc":
-            order_column = ColumnName.TIMESTAMP_DESC;
-        default:
-            order_column = ColumnName.DATETIME;
-    }
-
-    if (sort?.direction === "desc") {
-        ordering = Ordering.DSC;
-    }
     state.rowsPerPage = table.rowsPerPage;
 
-    const filter = (filters?.at(0)?.value as string) || "";
-    let column_name = ColumnName.MESSAGE;
-    switch (filters?.at(0)?.field) {
-        case "datetime":
-            column_name = ColumnName.DATETIME;
-            break;
-        case "message":
-            column_name = ColumnName.MESSAGE;
-            break;
-        case "timestamp_desc":
-            column_name = ColumnName.TIMESTAMP_DESC;
-            break;
-        case "data":
-            column_name = ColumnName.DATA;
-            break;
-        default:
-            column_name = ColumnName.MESSAGE;
+    let query: Record<string, any> = {
+        "query": {
+            [match]: {},
+        },
+    };
+    for (const filter of filters || []) {
+        query.query[match] = {
+            [filter.field]: filter.value,
+        };
+    }
+    let ordering = Ordering.ASC;
+    if (sort?.direction === "desc") {
+        ordering = Ordering.DSC;
     }
 
     const query_limit = table.rowsPerPage;
     const results = await getTimeline(
-        db_path,
+        index,
         query_limit,
         offset,
-        column_name,
-        order_column,
         ordering,
-        filter,
+        query,
     );
 
-    const entries = results.data;
-    state.setTotalRows(results.total_rows);
-    if (filter === "") {
-        state.setTotalRows(results.total_rows);
-    } else {
-        state.setTotalRows(results.total_rows);
-        /**
-         * If the current page is greater than all pages. Reset to first page
-         * This will happen if we are on page 100 and we apply filter that returns less than 100 pages
-         * We go back to page 1
-         */
-        if (state.currentPage > table.pages.length) {
-            table.setPage(1);
-        }
+    if (isError(results)) {
+        return [];
     }
 
-    return entries;
+    state.setTotalRows(results.hits.total.value);
+
+    return results.hits.hits;
 }
 
 /**
@@ -125,24 +88,16 @@ async function getTimeline(
     path: string,
     limit = 100,
     offset = 0,
-    column = ColumnName.MESSAGE,
-    order_column = ColumnName.DATETIME,
     order = Ordering.ASC,
-    filter = "",
-    comparison = Comparison.LIKE,
-    json_key = "",
-): Promise<TimelineQuery> {
-    const query: QueryState = {
+    query: Record<string, unknown>,
+): Promise<OpenSearchData | ErrorStatus> {
+    const state: QueryState = {
         limit,
         offset,
-        filter,
-        column,
         order,
-        order_column,
-        comparison,
-        json_key,
+        query,
     };
     console.log(query);
 
-    return queryTimeline(path, query);
+    return queryTimeline(path, state);
 }

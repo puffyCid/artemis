@@ -7,7 +7,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             info::about_me,
-            info::artifacts,
+            info::metadata,
             query::query_timeline
         ])
         .run(tauri::generate_context!())

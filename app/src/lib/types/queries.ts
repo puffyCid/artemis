@@ -1,23 +1,15 @@
 /**
- * Basic interface to make simple queries against the SQLITE timeline table
+ * Basic interface to make simple queries against OpenSearch
  */
 export interface QueryState {
     /**How many rows to return */
     limit: number;
     /**Row offset to start at */
     offset: number;
-    /**Data that should be filtered on*/
-    filter: unknown;
-    /**Timeline column name to filter on */
-    column: ColumnName;
     /**Order direction */
     order: Ordering;
-    /**TImeline column to order on */
-    order_column: ColumnName;
-    /**EQUAL or LIKE comparison */
-    comparison: Comparison;
-    /**JSON key to filter on for the raw json data column */
-    json_key: string;
+    /**JSON search query that follows one of the OpenSearch query specs: https://opensearch.org/docs/latest/search-plugins/ */
+    query: Record<string, unknown>;
 }
 
 export enum Comparison {
@@ -26,17 +18,6 @@ export enum Comparison {
 }
 
 export enum Ordering {
-    ASC = 1,
-    DSC = 0,
-}
-
-export enum ColumnName {
-    MESSAGE = "Message",
-    ARTIFACT = "Artifact",
-    DATETIME = "Datetime",
-    TIMESTAMP_DESC = "TimestampDesc",
-    DATA_TYPE = "DataType",
-    TAGS = "Tags",
-    NOTES = "Notes",
-    DATA = "Data",
+    ASC = "asc",
+    DSC = "desc",
 }

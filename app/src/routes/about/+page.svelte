@@ -3,6 +3,17 @@
     import type { About } from "$lib/types/about";
 
     let { data }: { data: About } = $props();
+
+    let memory_used = $state(0);
+    let cpu = $state(0);
+    let name = $state("");
+    for (const key in data.resources.nodes) {
+        const node = data.resources.nodes[key];
+        memory_used = node.os.mem.used_percent;
+        cpu = node.os.cpu.percent;
+        name = node.name;
+        break;
+    }
     const kb = 1000;
     const mb = kb * 1000;
     const gb = mb * 1000;
@@ -30,26 +41,16 @@
     </div>
     <div class="stats col-span-3 shadow p-2">
         <div class="stat place-items-center">
-            <div class="stat-value">{data.artifacts}</div>
-            <div class="stat-desc text-zinc-600">Artifacts Ingested</div>
+            <div class="stat-value">{memory_used}%</div>
+            <div class="stat-desc text-zinc-600">OS Memory Used</div>
         </div>
         <div class="stat place-items-center">
-            <div class="stat-value">{data.files}</div>
-            <div class="stat-desc text-zinc-600">Files Read</div>
+            <div class="stat-value">{cpu}%</div>
+            <div class="stat-desc text-zinc-600">OS CPU Usage</div>
         </div>
         <div class="stat place-items-center">
-            <div class="stat-value">
-                {#if data.db < kb}
-                    {Math.round(data.db)} bytes
-                {:else if data.db < mb}
-                    {Math.round(data.db / kb)} KBs
-                {:else if data.db < gb}
-                    {Math.round(data.db / mb)} MBs
-                {:else}
-                    {Math.round(data.db / gb)} GBs
-                {/if}
-            </div>
-            <div class="stat-desc text-zinc-600">DB Size</div>
+            <div class="stat-value">{name}</div>
+            <div class="stat-desc text-zinc-600">Cluster Name</div>
         </div>
     </div>
 </main>

@@ -1,11 +1,44 @@
 /**
  * Timeline query interface that can used to review data from the SQLITE database
  */
-export interface TimelineQuery {
-    /**Array of `TimelineEntry` entries */
-    data: TimelineEntry[];
-    /**Total rows from executed queries without a LIMIT */
-    total_rows: number;
+export interface OpenSearchData {
+    /**How long OpenSearch took in milliseconds */
+    took: number;
+    /**If query timed out */
+    timed_out: boolean;
+    /**Shard info */
+    "_shards": {
+        total: number;
+        successful: number;
+        skipped: number;
+        failed: number;
+    };
+    /**Hit info */
+    hits: {
+        /**Info on total entries */
+        total: {
+            /**Max number of entries in Index */
+            value: number;
+            relation: string;
+        };
+        max_score: unknown;
+        /**Array of `Hit` details */
+        hits: Hit[];
+    };
+}
+
+/**
+ * Details on OpenSearch search hits
+ */
+export interface Hit {
+    /**Index name */
+    "_index": string;
+    /**ID name */
+    "_id": string;
+    "_score": unknown;
+    /**Timeline object */
+    "_source": TimelineEntry;
+    "sort": number[];
 }
 
 /**
