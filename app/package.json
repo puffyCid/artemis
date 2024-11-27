@@ -24,7 +24,7 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tailwindcss/typography": "^0.5.15",
     "@tauri-apps/cli": "^2.1.0",
-    "@vincjo/datatables": "^2.0.5",
+    "@vincjo/datatables": "^2.1.0",
     "daisyui": "^4.12.14",
     "jsdom": "^25.0.1",
     "svelte": "^5.1.13",

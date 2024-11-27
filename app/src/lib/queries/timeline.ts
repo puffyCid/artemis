@@ -26,27 +26,30 @@ export async function queryTimeline(
  * @param state The DataTable state
  * @param index Name of OpenSearch index
  * @param rows_per_page Rows per page to display
- * @returns Array of `Hit` entries
+ * @returns Array of `TimelineEntry` entries
  */
 export async function queryCallback(
     state: State,
     index: string,
-    table: TableHandler<Hit>,
-    match: string,
-): Promise<Hit[]> {
+    table: TableHandler<TimelineEntry>,
+): Promise<TimelineEntry[]> {
     const { currentPage, rowsPerPage, sort, filters } = state;
     const offset = (currentPage - 1) * rowsPerPage;
 
     state.rowsPerPage = table.rowsPerPage;
 
+    let query_string = "match_all";
+    if (filters != undefined) {
+        query_string = "query_string";
+    }
     let query: Record<string, any> = {
         "query": {
-            [match]: {},
+            [query_string]: {},
         },
     };
     for (const filter of filters || []) {
-        query.query[match] = {
-            [filter.field]: filter.value,
+        query.query[query_string] = {
+            "query": `${String(filter.field)}: ${filter.value}`,
         };
     }
     let ordering = Ordering.ASC;
@@ -64,28 +67,29 @@ export async function queryCallback(
     );
 
     if (isError(results)) {
+        state.setTotalRows(0);
         return [];
     }
 
     state.setTotalRows(results.hits.total.value);
+    const entries = [];
+    for (const hit of results.hits.hits) {
+        entries.push(hit._source);
+    }
 
-    return results.hits.hits;
+    return entries;
 }
 
 /**
  * List timeline entries
- * @param path Path to SQLITE database
- * @param limit How many rows to return. Default is 10,000
+ * @param index OpenSearch index name
+ * @param limit How many rows to return. Default is 100
  * @param offset Row to start at. Default is 0
- * @param column Column to filter on. Default is `message` with no filter
- * @param order_column Column to order on. Default is `datetime`
  * @param order Ordering direction. Default is ascending
- * @param filter Data to filter on. Default is no filter
- * @param comparison Comparison operator to use. Default is LIKE
- * @param json_key json key to filter for on raw json data. Default is empty string
+ * @param query Search query to execute
  */
 async function getTimeline(
-    path: string,
+    index: string,
     limit = 100,
     offset = 0,
     order = Ordering.ASC,
@@ -99,5 +103,5 @@ async function getTimeline(
     };
     console.log(query);
 
-    return queryTimeline(path, state);
+    return queryTimeline(index, state);
 }

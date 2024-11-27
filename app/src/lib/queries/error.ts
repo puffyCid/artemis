@@ -6,5 +6,6 @@ import type { ErrorStatus } from "$lib/types/search";
  * @returns Validation if OpenSearch response is `ErrorStatus`
  */
 export function isError(data: any): data is ErrorStatus {
-    return "root_cause" in data;
+    return ((data as ErrorStatus).error != undefined &&
+        (data as ErrorStatus).error.root_cause != undefined);
 }

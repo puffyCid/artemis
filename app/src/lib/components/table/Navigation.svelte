@@ -8,9 +8,7 @@
 
     function jumpPage(page: number) {
         table.setPage(page);
-        table.load((state: State) =>
-            queryCallback(state, index, table, "match_all"),
-        );
+        table.load((state: State) => queryCallback(state, index, table));
         //table.invalidate();
     }
     const { start, end, total } = $derived(table.rowCount);

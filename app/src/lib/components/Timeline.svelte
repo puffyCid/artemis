@@ -13,18 +13,13 @@
     import Navigation from "./table/Navigation.svelte";
     import Search from "./table/Search.svelte";
 
-    let entries: Hit[] = [];
+    let entries: TimelineEntry[] = [];
     const table = new TableHandler(entries, { rowsPerPage: 100 });
 
     let index = "";
-    table.load((state: State) =>
-        queryCallback(state, index, table, "match_all"),
-    );
+    table.load((state: State) => queryCallback(state, index, table));
 
-    //let sort = table.createSort("_source");
     table.invalidate();
-
-    function sortColumn(name: string) {}
 </script>
 
 <div class="col-span-full">
@@ -35,52 +30,21 @@
             <table>
                 <thead>
                     <tr>
-                        <ThSort
-                            {table}
-                            field={(row) => {
-                                console.log(row._source);
-                                row._source.datetime;
-                            }}>Datetime</ThSort
-                        >
-                        <ThSort
-                            {table}
-                            field={(row) => {
-                                row._source.timestamp_desc;
-                            }}
-                        >
+                        <ThSort {table} field="datetime">Datetime</ThSort>
+                        <ThSort {table} field="timestamp_desc">
                             Datetime Description
                         </ThSort>
-                        <ThSort
-                            {table}
-                            field={(row) => {
-                                row._source.message;
-                            }}>Message</ThSort
-                        >
+                        <ThSort {table} field="message">Message</ThSort>
                     </tr>
                     <tr>
-                        <ThFilter
-                            {table}
-                            field={(row) => {
-                                row._source.datetime;
-                            }}
-                        />
-                        <ThFilter
-                            {table}
-                            field={(row) => {
-                                row._source.timestamp_desc;
-                            }}
-                        />
-                        <ThFilter
-                            {table}
-                            field={(row) => {
-                                row._source.message;
-                            }}
-                        />
+                        <ThFilter {table} field="datetime" />
+                        <ThFilter {table} field="timestamp_desc" />
+                        <ThFilter {table} field="message" />
                     </tr>
                 </thead>
                 <tbody>
                     {#each table.rows as row}
-                        <Details data={row._source} />
+                        <Details data={row} />
                     {/each}
                 </tbody>
             </table>

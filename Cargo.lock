@@ -165,7 +165,7 @@ checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
 
 [[package]]
 name = "apollo"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "common",
  "log",
@@ -208,7 +208,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "artemis"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "artemis-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "axum",
  "common",
@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "artemis-webui"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "chrono",
  "common",
@@ -1177,7 +1177,7 @@ checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
 
 [[package]]
 name = "client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "common",
  "core",
@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "plist",
  "serde",
@@ -1351,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "core"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "aes",
  "base64 0.22.1",

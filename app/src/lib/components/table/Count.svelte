@@ -17,9 +17,7 @@
             const limit = 100;
             table.rowsPerPage = limit;
         }
-        table.load((state: State) =>
-            queryCallback(state, index, table, "match_all"),
-        );
+        table.load((state: State) => queryCallback(state, index, table));
         table.setPage(1);
         table.invalidate();
     }
