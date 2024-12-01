@@ -6,7 +6,7 @@ members = [
     "webui",
     "common",
     "client",
-    "app/src-tauri",
+    "apollo/src-tauri",
 ]
 resolver = "2"
 

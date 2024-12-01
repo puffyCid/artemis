@@ -10,7 +10,7 @@ describe("run query tests", () => {
             }
             return [];
         });
-        const result = await listArtifacts("");
+        const result = await listArtifacts();
         expect(result).toStrictEqual(["fsevents"]);
     });
 });

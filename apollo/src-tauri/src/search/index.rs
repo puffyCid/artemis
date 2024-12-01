@@ -1,6 +1,4 @@
 use common::system::LoadPerformance;
-use log::error;
-use opensearch::http::{response::Response, StatusCode};
 use opensearch::{
     http::transport::Transport,
     indices::{IndicesCreateParts, IndicesDeleteParts},
@@ -8,6 +6,8 @@ use opensearch::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
+use super::query::check_response;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Metadata {
@@ -34,10 +34,10 @@ pub(crate) async fn create_index(name: &str) -> Result<Value, Error> {
             {
                 "mappings": {
                     "properties": {
-                        "message": {"type": "text"},
+                        "message": {"type": "keyword"},
                         "artifact": {"type": "text"},
-                        "datetime": {"type": "text"},
-                        "timestamp_desc": {"type": "text"},
+                        "datetime": {"type": "date"},
+                        "timestamp_desc": {"type": "keyword"},
                         "data_type": {"type": "text"},
                         "tags": {"type": "text"},
                         "notes": {"type": "text"},
@@ -76,7 +76,7 @@ pub(crate) async fn upload_metadata(data: BulkOperations) -> Result<Value, Error
     Ok(check_response(res).await)
 }
 
-/// Bulk upload data to OpenSearch. Returns `None` on success
+/// Bulk upload data to `OpenSearch`. Returns `None` on success
 pub(crate) async fn upload_data(data: BulkOperations, name: &str) -> Result<Value, Error> {
     let client = setup_client()?;
     let res = client
@@ -88,26 +88,10 @@ pub(crate) async fn upload_data(data: BulkOperations, name: &str) -> Result<Valu
     Ok(check_response(res).await)
 }
 
-/// Setup the OpenSearch client to make requests
+/// Setup the `OpenSearch` client to make requests
 pub(crate) fn setup_client() -> Result<OpenSearch, Error> {
     let transport = Transport::single_node("http://192.168.1.193:9200")?;
     Ok(OpenSearch::new(transport))
-}
-
-/// Check to make sure the OpenSearch response was 200 Status Code.
-async fn check_response(res: Response) -> Value {
-    let code = res.status_code();
-
-    let body = res
-        .text()
-        .await
-        .unwrap_or(String::from("could not process response"));
-
-    if code != StatusCode::OK {
-        error!("bad opensearch index response: {body}");
-    }
-
-    serde_json::from_str(&body).unwrap_or(Value::Null)
 }
 
 #[cfg(test)]

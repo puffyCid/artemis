@@ -1,15 +1,13 @@
 <script lang="ts">
     import { listArtifacts } from "$lib/queries/artifacts";
     import { isError } from "$lib/queries/error";
-    import type { ErrorStatus } from "$lib/types/search";
     let artifacts: string[];
 
     /**
      * List of artifacts
-     * @param path path
      */
-    async function getList(path: string) {
-        const meta = await listArtifacts(path);
+    async function getList() {
+        const meta = await listArtifacts();
         if (isError(meta)) {
             return;
         }
@@ -26,7 +24,7 @@
                     <details>
                         <summary>Artifacts</summary>
                         <ul class="bg-base-100 rounded-t-none p-2">
-                            {#await getList("")}
+                            {#await getList}
                                 <li>Loading...</li>
                             {:then}
                                 {#each artifacts as entry}

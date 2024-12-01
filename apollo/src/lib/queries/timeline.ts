@@ -16,7 +16,7 @@ export async function queryTimeline(
     query: QueryState,
 ): Promise<OpenSearchData | ErrorStatus> {
     return await invoke("query_timeline", {
-        index: "",
+        index,
         state: query,
     });
 }
@@ -53,8 +53,14 @@ export async function queryCallback(
         };
     }
     let ordering = Ordering.ASC;
-    if (sort?.direction === "desc") {
-        ordering = Ordering.DSC;
+    let order_column = "datetime";
+    if (sort != undefined) {
+        if (sort.direction === "desc") {
+            ordering = Ordering.DSC;
+        }
+        if (typeof sort.field === "string") {
+            order_column = sort.field;
+        }
     }
 
     const query_limit = table.rowsPerPage;
@@ -62,6 +68,7 @@ export async function queryCallback(
         index,
         query_limit,
         offset,
+        order_column,
         ordering,
         query,
     );
@@ -85,6 +92,7 @@ export async function queryCallback(
  * @param index OpenSearch index name
  * @param limit How many rows to return. Default is 100
  * @param offset Row to start at. Default is 0
+ * @param order_column Column to sort by. Default is `datetime`
  * @param order Ordering direction. Default is ascending
  * @param query Search query to execute
  */
@@ -92,16 +100,17 @@ async function getTimeline(
     index: string,
     limit = 100,
     offset = 0,
+    order_column = "datetime",
     order = Ordering.ASC,
     query: Record<string, unknown>,
 ): Promise<OpenSearchData | ErrorStatus> {
     const state: QueryState = {
         limit,
         offset,
+        order_column,
         order,
         query,
     };
-    console.log(query);
 
     return queryTimeline(index, state);
 }

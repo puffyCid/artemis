@@ -14,7 +14,7 @@ pub struct AboutMe {
 
 /// Get basic info about apollo
 #[tauri::command]
-pub(crate) async fn about_me(path: &str) -> Result<AboutMe, ()> {
+pub(crate) async fn about_me() -> Result<AboutMe, ()> {
     let mut info = AboutMe {
         apollo: env!("CARGO_PKG_VERSION").to_string(),
         tauri: String::from("2.1.0"),
@@ -23,19 +23,16 @@ pub(crate) async fn about_me(path: &str) -> Result<AboutMe, ()> {
         resources: Value::Null,
     };
 
-    let result = get_resources().await;
-    match result {
-        Ok(value) => {
-            info.resources = value;
-        }
-        Err(_) => {}
+    if let Ok(value) = get_resources().await {
+        info.resources = value;
     }
+
     Ok(info)
 }
 
 /// Get info on the metadata index in opensearch
 #[tauri::command]
-pub(crate) async fn metadata(path: &str) -> Result<Value, ()> {
+pub(crate) async fn metadata() -> Result<Value, ()> {
     let meta = match get_metadata().await {
         Ok(result) => result,
         Err(err) => {
@@ -50,22 +47,15 @@ pub(crate) async fn metadata(path: &str) -> Result<Value, ()> {
 #[cfg(test)]
 mod tests {
     use super::{about_me, metadata};
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_about_me() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/timelines/test.db");
-
-        let about = about_me(test_location.to_str().unwrap()).await.unwrap();
+        let about = about_me().await.unwrap();
         assert!(!about.apollo.is_empty());
     }
 
     #[tokio::test]
     async fn test_metadata() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/timelines/test22.db");
-
-        let result = metadata(test_location.to_str().unwrap()).await.unwrap();
+        let result = metadata().await.unwrap();
     }
 }

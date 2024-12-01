@@ -6,6 +6,8 @@ export interface QueryState {
     limit: number;
     /**Row offset to start at */
     offset: number;
+    /**Column to sort by */
+    order_column: string;
     /**Order direction */
     order: Ordering;
     /**JSON search query that follows one of the OpenSearch query specs: https://opensearch.org/docs/latest/search-plugins/ */

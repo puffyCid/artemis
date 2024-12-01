@@ -32,6 +32,7 @@ mod tests {
         let state = QueryState {
             limit: 50,
             offset: 0,
+            order_column: String::from("message"),
             order: String::from("asc"),
             query,
         };

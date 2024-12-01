@@ -7,7 +7,7 @@ use opensearch::{indices::IndicesGetParts, Error};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// Get a list of all index in opensearch. Should be one per timeline/sketch
+/// Get a list of all index in `OpenSearch`. Should be one per timeline/sketch
 pub(crate) async fn list_indexes() -> Result<Value, Error> {
     let client = setup_client()?;
 
@@ -33,7 +33,7 @@ pub(crate) async fn get_metadata() -> Result<Value, Error> {
     Ok(check_response(res).await)
 }
 
-/// Get info on opensearch resources
+/// Get info on `OpenSearch` resources
 pub(crate) async fn get_resources() -> Result<Value, Error> {
     let client = setup_client()?;
 
@@ -46,6 +46,7 @@ pub(crate) struct QueryState {
     pub(crate) limit: i64,
     pub(crate) offset: i64,
     pub(crate) query: Value,
+    pub(crate) order_column: String,
     pub(crate) order: String,
 }
 
@@ -58,11 +59,12 @@ pub(crate) struct Query {
 /// Return entries in our Indexed timeline
 pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Error> {
     let client = setup_client()?;
+    let sort = format!("{}:{}", state.order_column, state.order);
     let res = client
         .search(SearchParts::Index(&[index]))
         .from(state.offset)
         .size(state.limit)
-        .sort(&[&format!("datetime:{}", state.order)])
+        .sort(&[&sort])
         .body(state.query)
         .send()
         .await?;
@@ -70,8 +72,8 @@ pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Er
     Ok(check_response(res).await)
 }
 
-/// Check to make sure the OpenSearch response was 200 Status Code. Returns JSON on success
-async fn check_response(res: Response) -> Value {
+/// Check to make sure the `OpenSearch` response was 200 Status Code
+pub(crate) async fn check_response(res: Response) -> Value {
     let code = res.status_code();
 
     let body = res
@@ -121,6 +123,7 @@ mod tests {
             limit: 50,
             offset: 0,
             query,
+            order_column: String::from("message"),
             order: String::from("asc"),
         };
 

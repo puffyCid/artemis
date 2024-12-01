@@ -16,7 +16,7 @@
     let entries: TimelineEntry[] = [];
     const table = new TableHandler(entries, { rowsPerPage: 100 });
 
-    let index = "";
+    let index = "test";
     table.load((state: State) => queryCallback(state, index, table));
 
     table.invalidate();
