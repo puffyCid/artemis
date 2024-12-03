@@ -64,7 +64,7 @@ jobs:
 
       - name: Install Podman on macOS
         if: matrix.info.os == 'macOS-latest'
-        run: brew install podman && podman machine init && podman machine start
+        run: arch -x86_64 brew install podman && podman machine init && podman machine start
 
       - name: Install Podman on Windows
         if: matrix.info.os == 'windows-latest'
