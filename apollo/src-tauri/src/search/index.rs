@@ -1,7 +1,12 @@
 use super::query::check_response;
 use common::system::LoadPerformance;
 use opensearch::{
-    http::transport::Transport,
+    auth::Credentials,
+    cert::CertificateValidation,
+    http::{
+        transport::{SingleNodeConnectionPool, TransportBuilder},
+        Url,
+    },
     indices::{IndicesCreateParts, IndicesDeleteParts},
     BulkOperations, BulkParts, Error, OpenSearch,
 };
@@ -89,7 +94,16 @@ pub(crate) async fn upload_data(data: BulkOperations, name: &str) -> Result<Valu
 
 /// Setup the `OpenSearch` client to make requests
 pub(crate) fn setup_client() -> Result<OpenSearch, Error> {
-    let transport = Transport::single_node("http://192.168.1.193:9200")?;
+    let builder = TransportBuilder::new(SingleNodeConnectionPool::new(Url::parse(
+        "https://127.0.0.1:9200",
+    )?))
+    .auth(Credentials::Basic(
+        String::from("admin"),
+        String::from("Ughsocomplex123567890!"),
+    ))
+    .cert_validation(CertificateValidation::None);
+
+    let transport = builder.build()?;
     Ok(OpenSearch::new(transport))
 }
 
