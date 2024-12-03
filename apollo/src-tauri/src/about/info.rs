@@ -57,5 +57,6 @@ mod tests {
     #[tokio::test]
     async fn test_metadata() {
         let result = metadata().await.unwrap();
+        assert!(result.is_object());
     }
 }

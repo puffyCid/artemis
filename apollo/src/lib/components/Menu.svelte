@@ -1,15 +1,23 @@
 <script lang="ts">
     import { listArtifacts } from "$lib/queries/artifacts";
     import { isError } from "$lib/queries/error";
-    let artifacts: string[];
+    let artifacts: string[] = [];
+
+    let index = "test";
 
     /**
      * List of artifacts
      */
     async function getList() {
-        const meta = await listArtifacts();
-        if (isError(meta)) {
+        const status = await listArtifacts(index);
+        console.log(status);
+        if (isError(status)) {
             return;
+        }
+
+        // Loop and get each artifact name
+        for (const entry of status.aggregations.artifacts.buckets) {
+            artifacts.push(entry.key);
         }
     }
 </script>
@@ -24,14 +32,14 @@
                     <details>
                         <summary>Artifacts</summary>
                         <ul class="bg-base-100 rounded-t-none p-2">
-                            {#await getList}
+                            {#await getList()}
                                 <li>Loading...</li>
                             {:then}
                                 {#each artifacts as entry}
                                     <li class="text-black"><a>{entry}</a></li>
                                 {/each}
                             {:catch error}
-                                <li>Query failed</li>
+                                <li>Query failed: {error}</li>
                             {/await}
                         </ul>
                     </details>

@@ -97,3 +97,39 @@ interface Nodes {
         };
     };
 }
+
+/**
+ * Info count on number of artifacts ingested
+ */
+export interface Artifacts {
+    "_shards": {
+        failed: number;
+        skipped: number;
+        successful: number;
+        total: number;
+    };
+    aggregations: {
+        /**Array of artifacts ingested */
+        artifacts: {
+            buckets: {
+                /**Artifact count */
+                doc_count: number;
+                /**Artifact name */
+                key: string;
+            }[];
+            doc_count_error_upper_bound: number;
+            sum_other_doc_count: number;
+        };
+    };
+    /**Total hit count of artifacts */
+    hits: {
+        hits: unknown[];
+        max_score: null;
+        total: {
+            relation: string;
+            value: number;
+        };
+    };
+    timed_out: boolean;
+    took: number;
+}

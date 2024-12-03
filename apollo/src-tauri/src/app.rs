@@ -8,7 +8,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             info::about_me,
             info::metadata,
-            query::query_timeline
+            query::query_timeline,
+            query::list_artifacts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

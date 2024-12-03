@@ -1,3 +1,4 @@
+use super::query::check_response;
 use common::system::LoadPerformance;
 use opensearch::{
     http::transport::Transport,
@@ -6,8 +7,6 @@ use opensearch::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-
-use super::query::check_response;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Metadata {
@@ -35,7 +34,7 @@ pub(crate) async fn create_index(name: &str) -> Result<Value, Error> {
                 "mappings": {
                     "properties": {
                         "message": {"type": "keyword"},
-                        "artifact": {"type": "text"},
+                        "artifact": {"type": "keyword"},
                         "datetime": {"type": "date"},
                         "timestamp_desc": {"type": "keyword"},
                         "data_type": {"type": "text"},
@@ -155,8 +154,12 @@ mod tests {
                     Value::String(test_location.to_str().unwrap().to_string());
                 ops_meta.push(BulkOperation::index(&meta)).unwrap();
             }
-            value["timeline_source"] = Value::String(test_location.to_str().unwrap().to_string());
-            ops.push(BulkOperation::index(value)).unwrap();
+            let data = value["data"].as_object_mut().unwrap();
+            data.insert(
+                String::from("timeline_source"),
+                Value::String(test_location.to_str().unwrap().to_string()),
+            );
+            ops.push(BulkOperation::index(data)).unwrap();
         }
 
         let test = upload_data(ops, "test").await.unwrap();

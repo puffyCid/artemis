@@ -5,7 +5,7 @@ use opensearch::nodes::NodesStatsParts;
 use opensearch::SearchParts;
 use opensearch::{indices::IndicesGetParts, Error};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 /// Get a list of all index in `OpenSearch`. Should be one per timeline/sketch
 pub(crate) async fn list_indexes() -> Result<Value, Error> {
@@ -72,6 +72,30 @@ pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Er
     Ok(check_response(res).await)
 }
 
+/// Get counts of ingested artifacts
+pub(crate) async fn artifacts(index: &str) -> Result<Value, Error> {
+    let client = setup_client()?;
+    let artifacts = json!(
+        {
+            "aggs": {
+                "artifacts": {
+                    "terms": {
+                        "field": "artifact"
+                    }
+                }
+            }
+        }
+    );
+    let res = client
+        .search(SearchParts::Index(&[index]))
+        .size(0)
+        .body(artifacts)
+        .send()
+        .await?;
+
+    Ok(check_response(res).await)
+}
+
 /// Check to make sure the `OpenSearch` response was 200 Status Code
 pub(crate) async fn check_response(res: Response) -> Value {
     let code = res.status_code();
@@ -90,12 +114,20 @@ pub(crate) async fn check_response(res: Response) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::query::{get_metadata, get_resources, list_indexes, timeline, QueryState};
+    use crate::search::query::{
+        artifacts, get_metadata, get_resources, list_indexes, timeline, QueryState,
+    };
     use serde_json::json;
 
     #[tokio::test]
     async fn test_list_indexes() {
         let test = list_indexes().await.unwrap();
+        assert!(test.is_object());
+    }
+
+    #[tokio::test]
+    async fn test_artifacts() {
+        let test = artifacts("test").await.unwrap();
         assert!(test.is_object());
     }
 
