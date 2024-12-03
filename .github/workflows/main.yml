@@ -58,17 +58,24 @@ jobs:
         with:
           version: "latest"
 
+      - name: Tauri build dependencies on Linux
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo apt install libgtk-3-dev
+
       - name: Install Podman on macOS
         if: matrix.info.os == 'macOS-latest'
-        run: brew install podman && podman machine init
+        run: brew install podman && podman machine init && podman.exe machine start
 
-      - name: Setup Podman on non-Windows
-        if: matrix.info.os != 'windows-latest'
+      - name: Install Podman on Windows
+        if: matrix.info.os == 'windows-latest'
+        run: choco install podman-cli && podman.exe machine init && podman.exe machine start
+
+      - name: Setup Podman
         run: mkdir -p ~/.config/containers && echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
 
       - name: Download OpenSearch on Windows
         if: matrix.info.os == 'windows-latest'
-        run: docker.exe run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+        run: podman.exe run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
         
       - name: Download OpenSearch on non-Windows
         if: matrix.info.os != 'windows-latest'
