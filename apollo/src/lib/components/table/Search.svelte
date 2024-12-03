@@ -10,11 +10,11 @@
     let value = $state();
 
     function rawSearch() {
-        console.log(`raw now`);
         if (String(value).length === 0) {
             table.filters = [];
         } else {
-            table.filters = [{ field: "data", value }];
+            // Search all properties
+            table.filters = [{ field: "*", value }];
         }
         table.load((state: State) => queryCallback(state, index, table));
         table.invalidate();

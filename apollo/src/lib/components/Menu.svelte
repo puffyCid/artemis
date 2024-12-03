@@ -10,7 +10,6 @@
      */
     async function getList() {
         const status = await listArtifacts(index);
-        console.log(status);
         if (isError(status)) {
             return;
         }
