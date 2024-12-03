@@ -94,7 +94,7 @@ build:(_wasm)
 
 # Run tests for code coverage. Used by CI
 _coverage:(_wasm)
-  cargo llvm-cov --release --workspace --exclude artemis-webui apollo server --lcov --output-path lcov.info
+  cargo llvm-cov --release --workspace --exclude artemis-webui --exclude apollo --exclude server --lcov --output-path lcov.info
 
 # Build Artemis for GitHub Actions
 _ci_release target:

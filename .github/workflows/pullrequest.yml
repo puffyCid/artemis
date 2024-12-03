@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
+          - { os: "macos-latest-large", target: "x86_64-apple-darwin", cross: false }
           - {
               os: "ubuntu-latest",
               target: "x86_64-unknown-linux-gnu",
@@ -57,7 +57,7 @@ jobs:
 
       - name: Install Podman on Windows
         if: matrix.info.os == 'windows-latest'
-        run: choco install podman-cli && podman.exe machine init && podman.exe machine start
+        run: mkdir -p ~/.ssh && choco install -y podman-cli && podman.exe machine init && podman.exe machine start
 
       - name: Setup Podman user config directory
         if: matrix.info.os != 'windows-latest'
