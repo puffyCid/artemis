@@ -51,13 +51,9 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - name: Reinstall Homebrew
+      - name: Install Docker and Colima on macOS
         if: matrix.info.os == 'macos-latest'
-        run: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" && NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      
-      - name: Install Podman on macOS
-        if: matrix.info.os == 'macos-latest'
-        run: brew install podman && podman machine init && podman machine start
+        run: brew install docker colima && colima start
 
       - name: Install Podman on Windows
         if: matrix.info.os == 'windows-latest'
@@ -69,13 +65,18 @@ jobs:
 
       - name: Register docker.io for Podman
         run: echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
+      
       - name: Download OpenSearch on Windows
         if: matrix.info.os == 'windows-latest'
         run: podman.exe run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
         
-      - name: Download OpenSearch on non-Windows
-        if: matrix.info.os != 'windows-latest'
+      - name: Download OpenSearch on Linux
+        if: matrix.info.os == 'ubuntu-latest'
         run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+
+      - name: Download OpenSearch on macOS
+        if: matrix.info.os == 'macos-latest'
+        run: docker run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.7.3
