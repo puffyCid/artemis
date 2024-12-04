@@ -58,7 +58,11 @@ jobs:
       - name: Register docker.io for Podman
         if: matrix.info.os == 'ubuntu-latest'
         run: echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
-      
+
+      - name: Download OpenSearch on Linux
+        if: matrix.info.os == 'ubuntu-latest'
+        run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.7.3
         with:
@@ -94,10 +98,6 @@ jobs:
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --no-run --release
-
-      - name: Download OpenSearch on Linux
-        if: matrix.info.os == 'ubuntu-latest'
-        run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
 
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
