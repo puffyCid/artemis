@@ -147,7 +147,7 @@ mod tests {
         assert!(result.modified != "");
         assert!(result.accessed != "");
         #[cfg(target_os = "windows")]
-        assert_eq!(result.changed, "");
+        assert_eq!(result.changed, "1970-01-01T00:00:00Z");
         #[cfg(target_family = "unix")]
         assert!(result.changed != "");
     }

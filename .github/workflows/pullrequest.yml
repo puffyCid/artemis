@@ -51,8 +51,12 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
+      - name: Reinstall Homebrew
+        if: matrix.info.os == 'macos-latest'
+        run: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" && NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      
       - name: Install Podman on macOS
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         run: brew install podman && podman machine init && podman machine start
 
       - name: Install Podman on Windows
