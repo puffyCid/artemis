@@ -62,32 +62,13 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - name: Install Docker and Colima on macOS
-        if: matrix.info.os == 'macos-latest'
-        run: brew install docker colima && colima start
-
-      - name: Install Podman on Windows
-        if: matrix.info.os == 'windows-latest'
-        run: mkdir -p ~/.ssh && choco install -y podman-cli && podman.exe machine init && podman.exe machine start
-
       - name: Setup Podman user config directory
-        if: matrix.info.os != 'windows-latest'
+        if: matrix.info.os == 'ubuntu-latest'
         run: mkdir -p ~/.config/containers
 
       - name: Register docker.io for Podman
-        run: echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
-
-      - name: Download OpenSearch on Windows
-        if: matrix.info.os == 'windows-latest'
-        run: podman.exe run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
-        
-      - name: Download OpenSearch on Linux
         if: matrix.info.os == 'ubuntu-latest'
-        run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
-
-      - name: Download OpenSearch on macOS
-        if: matrix.info.os == 'macos-latest'
-        run: docker run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+        run: echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
 
       - name: Fmt Check
         run: cargo fmt -- --check
@@ -108,9 +89,15 @@ jobs:
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable && sudo env "PATH=$PATH" rustup target add wasm32-unknown-unknown
+      
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --no-run --release
+
+      - name: Download OpenSearch on Linux
+        if: matrix.info.os == 'ubuntu-latest'
+        run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --release
@@ -118,6 +105,7 @@ jobs:
       - name: Build tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --no-run --release
+
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --release

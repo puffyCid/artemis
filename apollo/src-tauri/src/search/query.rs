@@ -113,6 +113,7 @@ pub(crate) async fn check_response(res: Response) -> Value {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::search::query::{
         artifacts, get_metadata, get_resources, list_indexes, timeline, QueryState,

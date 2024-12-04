@@ -31,6 +31,7 @@ pub(crate) async fn list_artifacts(index: &str) -> Result<Value, ()> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::{
         search::query::QueryState,

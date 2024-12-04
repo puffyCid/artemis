@@ -45,6 +45,7 @@ pub(crate) async fn metadata() -> Result<Value, ()> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use super::{about_me, metadata};
 

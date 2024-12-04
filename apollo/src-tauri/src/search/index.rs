@@ -108,6 +108,7 @@ pub(crate) fn setup_client() -> Result<OpenSearch, Error> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::search::index::{create_index, delete_index, upload_data, upload_metadata};
     use opensearch::{BulkOperation, BulkOperations};
