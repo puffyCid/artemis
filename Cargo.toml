@@ -32,6 +32,6 @@ reqwest = { version = "0.12.9", features = [
     "blocking",
     "native-tls-vendored",
 ] }
-sysinfo = "0.32.1"
+sysinfo = "0.33.0"
 uuid = { version = "1.11.0", features = ["v4"] }
 rusqlite = { version = "0.32.1", features = ["bundled", "serde_json"] }
