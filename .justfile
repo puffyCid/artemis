@@ -1,7 +1,6 @@
 # Small Justfile (https://github.com/casey/just and https://just.systems/man/en). 
 # `just` is recommended. 
 # Its useful when you want to run groups of tests and do not want to type the full test path
-# Its very useful to prebuild WASM code before compiling the rest of artemis
 # Windows users will need to use PowerShell `just --shell pwsh.exe --shell-arg -c`
 
 import ".setup/ubuntu.just"
@@ -75,19 +74,13 @@ client:
   cd client && cargo build --release --examples
   cd target/release/examples && ./start_client ../../../client/tests/test_data/client.toml
 
-# Compile WASM and server code then start the server
-[group('workspace')]
-server:
-  cd server && cargo build --release --examples
-  cd target/release/examples/ && ./start_server ../../../server/tests/test_data/server.toml
-
 # Build the entire artemis project.
 build:
   cargo build --release
 
 # Run tests for code coverage. Used by CI
 _coverage:
-  cargo llvm-cov --release --workspace --exclude artemis-webui --exclude apollo --exclude server --lcov --output-path lcov.info
+  cargo llvm-cov --release --workspace --exclude apollo --lcov --output-path lcov.info
 
 # Build Artemis for GitHub Actions
 _ci_release target:
