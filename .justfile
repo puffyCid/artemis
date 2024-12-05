@@ -10,20 +10,13 @@ import ".setup/windows.just"
 import ".setup/macos.just"
 
 # Run cargo clippy on artemis project 
-default:(_wasm)
+default:
   cargo clippy
 
 _test target:
   cargo test --release {{target}}
 
-_wasm:
-  # Ignore Windows errors any prexisting directories
-  -mkdir -p target/dist/web
-  # Trying both trunk configs. Windows has seperate config. Continue if we get an error
-  -cd webui && trunk build --release
-  -cd webui && trunk build --config TrunkWin.toml --release
-
-_pretest:(_wasm)
+_pretest:
   cargo test --no-run --release
 
 # Test only the ESE parsing functions
@@ -84,16 +77,16 @@ client:
 
 # Compile WASM and server code then start the server
 [group('workspace')]
-server:(_wasm)
+server:
   cd server && cargo build --release --examples
   cd target/release/examples/ && ./start_server ../../../server/tests/test_data/server.toml
 
 # Build the entire artemis project.
-build:(_wasm)
+build:
   cargo build --release
 
 # Run tests for code coverage. Used by CI
-_coverage:(_wasm)
+_coverage:
   cargo llvm-cov --release --workspace --exclude artemis-webui --exclude apollo --exclude server --lcov --output-path lcov.info
 
 # Build Artemis for GitHub Actions
@@ -105,11 +98,11 @@ _ci_release_cross target:
   cross build --profile release-action --bin artemis --target {{target}}
 
 # Test the entire artemis project
-test:(_wasm)
+test:
   cargo test --release
 
 # Test the entire artemis project using nextest
-nextest:(_wasm)
+nextest:
   cargo nextest run --release
 
 # Just build the artemis binary

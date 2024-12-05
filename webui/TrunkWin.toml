@@ -1,8 +1,0 @@
-[build]
-target = "index.html"
-dist = "../target/dist/web"
-
-[[hooks]]
-stage = "pre_build"
-command = "pwsh.exe"
-command_arguments = ["-c", "npx tailwindcss -i input.css -o style/output.css"]
