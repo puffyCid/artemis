@@ -36,21 +36,13 @@ jobs:
       - name: Setup Stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown, ${{ matrix.info.target }}
+          targets: ${{ matrix.info.target }}
           components: clippy, rustfmt
       - name: Setup Auditable
         run: cargo install cargo-auditable
 
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
-
-      # Compile WASM before compiling binary
-      - if: matrix.info.os == 'windows-latest'
-        name: Compile WASM
-        run: just --shell pwsh.exe --shell-arg -c _wasm
-      - if: matrix.info.os != 'windows-latest'
-        name: Compile WASM
-        run: just _wasm
 
       - name: Tauri build dependencies on Linux
         if: matrix.info.os == 'ubuntu-latest'
