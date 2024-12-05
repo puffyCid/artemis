@@ -47,8 +47,6 @@ jobs:
         run: npm install -D daisyui@latest
       - name: Install TailwindCSS Typography
         run: npm install -D @tailwindcss/typography
-      - name: Add WASM Support
-        run: rustup target add wasm32-unknown-unknown
 
       - name: Tauri build dependencies on Linux
         if: matrix.info.os == 'ubuntu-latest'
@@ -82,7 +80,7 @@ jobs:
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" rustup default stable && sudo env "PATH=$PATH" rustup target add wasm32-unknown-unknown
+        run: sudo env "PATH=$PATH" rustup default stable
       - name: Generate code coverage (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" just _coverage

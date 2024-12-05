@@ -4,8 +4,6 @@
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   . "$HOME/.cargo/env"
 
-  echo "Adding WASM target to Rust toolchain"
-  rustup target add wasm32-unknown-unknown
 
 @_cargo-plugins:
   echo "Installing Cargo plugins and binaries: deny, audit, auditable, nextest, update, and cross"
