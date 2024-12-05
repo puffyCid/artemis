@@ -56,7 +56,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
     use sysinfo::Users;
 
     let mut users = Users::new();
-    users.refresh_list();
+    users.refresh();
 
     let passwd_lines = file_lines("/etc/passwd")?;
     let mut user_list: Vec<String> = Vec::new();

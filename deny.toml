@@ -76,7 +76,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
     { id = "RUSTSEC-2021-0153", "reason" = "Associated with evtx crate. Waiting for upstream update" },
     { id = "RUSTSEC-2023-0071", "reason" = "Associated with yara-x crate. Vuln not applicable" },
-    { id = "RUSTSEC-2024-0370", "reason" = "Associated with leptos crate. Only used in experimental webUI" },
+    { id = "RUSTSEC-2024-0370", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
     { id = "RUSTSEC-2024-0384", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
