@@ -170,7 +170,7 @@ fn xblock_data<'a>(
             }
         }
     }
-    return extract_xblock_entries(data, format);
+    extract_xblock_entries(data, format)
 }
 
 /// Extract xblock and xxblock entries

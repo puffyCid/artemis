@@ -176,7 +176,7 @@ fn create_worker_options() -> Result<JsRuntime, AnyError> {
         extension_transpiler: None,
         eval_context_code_cache_cbs: None,
         import_assertions_support: ImportAssertionsSupport::Error,
-        enable_stack_trace_arg_in_ops: false,
+        maybe_op_stack_trace_callback: None,
     });
 
     Ok(runtime)

@@ -39,7 +39,7 @@ pub(crate) fn query_sqlite(
     let columns = stmt.column_count();
 
     // Execute user query
-    let query_result = stmt.query([]);
+    let query_result = stmt.query(());
     let mut query_data = match query_result {
         Ok(result) => result,
         Err(err) => {
