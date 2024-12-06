@@ -1,0 +1,12 @@
+[package]
+name = "timeline"
+version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+log = { workspace = true }
+serde_json = { workspace = true }

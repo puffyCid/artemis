@@ -1,0 +1,80 @@
+use serde_json::Value;
+use std::collections::HashMap;
+
+/// Timeline filelisting info
+pub(crate) fn files(mut data: Value) -> Option<Value> {
+    let mut entries = Vec::new();
+    for values in data.as_array_mut()? {
+        let entry = if let Some(value) = values.get_mut("data") {
+            value
+        } else {
+            values
+        };
+        entry["artifact"] = Value::String(String::from("Files"));
+        entry["data_type"] = Value::String(String::from("system:fs:file"));
+        entry["message"] = Value::String(entry["full_path"].as_str()?.into());
+
+        let mut temp = entry.clone();
+        let times = extract_times(&mut temp)?;
+        for (key, value) in times {
+            entry["datetime"] = Value::String(key.into());
+            entry["timestamp_desc"] = Value::String(value);
+            entries.push(entry.clone());
+        }
+    }
+
+    Some(Value::Array(entries))
+}
+
+/// Extract each timestamp into its own separate file if required
+fn extract_times(data: &mut Value) -> Option<HashMap<&str, String>> {
+    let mut times = HashMap::new();
+    times.insert(data["created"].as_str()?, String::from("Created"));
+
+    if let Some(value) = times.get(data["modified"].as_str()?) {
+        times.insert(data["modified"].as_str()?, format!("{value} Modified"));
+    } else {
+        times.insert(data["modified"].as_str()?, String::from("Modified"));
+    }
+
+    if let Some(value) = times.get(data["accessed"].as_str()?) {
+        times.insert(data["accessed"].as_str()?, format!("{value} Accessed"));
+    } else {
+        times.insert(data["accessed"].as_str()?, String::from("Accessed"));
+    }
+
+    if let Some(value) = times.get(data["changed"].as_str()?) {
+        times.insert(data["changed"].as_str()?, format!("{value} Changed"));
+    } else if let Some(value) = data["changed"].as_str() {
+        // Skip default empty timestamps. Mainly on Windows for Changed timestamps
+        if !value.starts_with("1970") {
+            times.insert(data["changed"].as_str()?, String::from("Changed"));
+        }
+    }
+
+    Some(times)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::files;
+    use serde_json::json;
+
+    #[test]
+    fn test_files() {
+        let test = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "full_path": "/usr/bin/ls",
+            "modified": "2024-01-01T03:00:00.000Z",
+            "changed": "2024-01-01T02:00:00.000Z",
+            "accessed": "2024-01-01T01:00:00.000Z",
+
+        }]);
+
+        let result = files(test).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 4);
+        assert_eq!(result[0]["created"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(result[0]["artifact"], "Files");
+        assert_eq!(result[0]["message"], "/usr/bin/ls");
+    }
+}

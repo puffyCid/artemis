@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "core", "common", "client", "apollo/src-tauri"]
+members = ["cli", "core", "common", "client", "apollo/src-tauri", "timeline"]
 resolver = "2"
 
 [profile.release]
