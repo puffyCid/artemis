@@ -9,7 +9,6 @@ use timeline::timeline::{timeline_artifact, Artifacts};
 
 pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Error> {
     let status = create_index(name).await?;
-    println!("{status:?}");
 
     let file = File::open(path)?;
     let reader = BufReader::new(file);
@@ -73,7 +72,6 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
         bulk_append(&mut ops, timeline_data.as_array().unwrap());
 
         let test = upload_data(&ops, name).await?;
-        println!("{test:?}");
     }
 
     Ok(Value::Null)

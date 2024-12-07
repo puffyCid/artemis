@@ -16,6 +16,7 @@ pub(crate) fn parse_property_store(
     let end = [0, 0, 0, 0];
 
     let mut stores = Vec::new();
+    let mut count = 0;
     while !remaining_data.is_empty() && !remaining_data.starts_with(&end) {
         let version_sig = [49, 83, 80, 83];
         let (input, size_data) = take_until(version_sig.as_slice())(remaining_data)?;
@@ -36,7 +37,7 @@ pub(crate) fn parse_property_store(
         let (input, _version) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, guid_data) = take(size_of::<u128>())(input)?;
 
-        let (_, store) = parse_formats(input, &format_guid_le_bytes(guid_data))?;
+        let (_, store) = parse_formats(input, &format_guid_le_bytes(guid_data), &mut count)?;
         if store.is_empty() {
             continue;
         }

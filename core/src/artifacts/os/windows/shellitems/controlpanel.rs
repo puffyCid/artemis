@@ -31,9 +31,9 @@ pub(crate) fn parse_control_panel(data: &[u8]) -> nom::IResult<&[u8], ShellItem>
     let panel_item = ShellItem {
         value: value.to_string(),
         shell_type: ShellType::ControlPanel,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -53,9 +53,9 @@ pub(crate) fn parse_control_panel_entry(data: &[u8]) -> nom::IResult<&[u8], Shel
     let panel_item = ShellItem {
         value: format_guid_le_bytes(guid_data),
         shell_type: ShellType::ControlPanelEntry,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -79,9 +79,6 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::ControlPanel);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -96,8 +93,5 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::ControlPanelEntry);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
     }
 }

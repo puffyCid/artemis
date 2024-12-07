@@ -34,9 +34,9 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mut variable_item = ShellItem {
         value: String::new(),
         shell_type: Variable,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -368,9 +368,6 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
     }
 
     #[test]

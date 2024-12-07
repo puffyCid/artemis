@@ -9,12 +9,14 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse numeric `Property Store` type
-pub(crate) fn parse_numeric(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, Value>> {
+pub(crate) fn parse_numeric<'a>(
+    data: &'a [u8],
+    count: &mut u32,
+) -> nom::IResult<&'a [u8], HashMap<String, Value>> {
     let mut remaining_data = data;
 
     let end = [0, 0, 0, 0];
     let mut values = HashMap::new();
-    let mut count = 0;
 
     while !remaining_data.is_empty() && remaining_data != end {
         let (input, size) = nom_unsigned_four_bytes(remaining_data, Endian::Le)?;
@@ -36,7 +38,7 @@ pub(crate) fn parse_numeric(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, 
         let (prop_data, _padding) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
 
         let _ = parse_types(prop_data, &prop_type, &mut values, format!("value{count}"))?;
-        count += 1;
+        *count += 1;
     }
 
     Ok((remaining_data, values))
@@ -53,7 +55,7 @@ mod tests {
             223, 108, 13, 216, 242, 103, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let (_, value) = parse_numeric(&test_data).unwrap();
+        let (_, value) = parse_numeric(&test_data, &mut 0).unwrap();
         assert_eq!(
             value.get("value0").unwrap(),
             "c3693081-ccc2-4d8c-80df-6c0dd8f26709"

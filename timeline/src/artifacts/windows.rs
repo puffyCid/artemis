@@ -204,12 +204,36 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
         } else {
             values
         };
-        entry["message"] = entry["path"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("Jumplist"));
         entry["data_type"] = Value::String(String::from("windows:jumplist:entry"));
 
         let temp = entry.clone();
         let times = extract_shortcut_times(&temp["lnk_info"])?;
+
+        entry.as_object_mut()?.remove("lnk_info");
+
+        // Flatten lnk_info
+        for (key, value) in temp["lnk_info"].as_object()? {
+            if key == "path" {
+                entry["target_path"] = value.clone();
+                entry["message"] = value.clone();
+                continue;
+            }
+            entry[key] = value.clone();
+        }
+
+        // Flatten jumplist_metadata
+        for (key, value) in temp["jumplist_metadata"].as_object()? {
+            if key == "path" {
+                entry["jumplist_target"] = value.clone();
+                continue;
+            } else if key == "modified" {
+                entry["entry_modified"] = value.clone();
+            }
+            entry[key] = value.clone();
+        }
+        entry.as_object_mut()?.remove("jumplist_metadata");
+
         for (key, value) in times {
             entry["datetime"] = Value::String(key.into());
             entry["timestamp_desc"] = Value::String(value);
@@ -345,10 +369,13 @@ mod tests {
     #[test]
     fn test_jumplists() {
         let mut test = json!([{
-            "created": "2024-01-01T00:00:00.000Z",
-            "modified": "2024-01-01T00:00:00.000Z",
-            "accessed": "2024-01-01T00:00:00.000Z",
             "path":"C:\\Windows\\cmd.exe",
+            "lnk_info": {
+                "created": "2024-01-01T00:00:00.000Z",
+                "modified": "2024-01-01T00:00:00.000Z",
+                "accessed": "2024-01-01T00:00:00.000Z",
+            },
+            "jumplist_metadata": {},
         }]);
 
         jumplists(&mut test).unwrap();
