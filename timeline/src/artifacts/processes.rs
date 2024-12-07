@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 /// Timeline process info
-pub(crate) fn processes(mut data: Value) -> Option<Value> {
+pub(crate) fn processes(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -19,7 +19,7 @@ pub(crate) fn processes(mut data: Value) -> Option<Value> {
         ));
     }
 
-    Some(data)
+    Some(())
 }
 
 #[cfg(test)]
@@ -29,16 +29,16 @@ mod tests {
 
     #[test]
     fn test_processes() {
-        let test = json!([{
+        let mut test = json!([{
             "start_time": "2024-01-01T00:00:00.000Z",
             "full_path": "/usr/bin/ls",
             "arguments":" stuff",
             "binary_info": [{"data":"data1"}]
         }]);
 
-        let result = processes(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Processes");
-        assert_eq!(result[0]["message"], "/usr/bin/ls  stuff");
+        processes(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Processes");
+        assert_eq!(test[0]["message"], "/usr/bin/ls  stuff");
     }
 }

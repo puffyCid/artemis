@@ -412,7 +412,7 @@ fn get_proc_thread(data: &Value) -> Option<(u64, u64)> {
     Some((proc, thread))
 }
 
-/// Get `SID` is available
+/// Get `SID` if available
 fn get_sid(data: &Value) -> Option<String> {
     let sid = &data
         .as_object()?
@@ -431,7 +431,7 @@ fn get_sid(data: &Value) -> Option<String> {
     get_meta_string(sid_value, "UserID")
 }
 
-/// Get activity ID is available
+/// Get activity ID if available
 fn get_activity_id(data: &Value) -> Option<String> {
     let id = &data
         .as_object()?
@@ -659,34 +659,6 @@ fn merge_strings(
             // Ex: IntendedPackageState - 5112. 5112 = "Installed"
             // Event Viewer can resolve these enums somehow (Ex: IntendedPackageState - Installed). Currently we cannot
             // Other EventLog parsers also cannot seem to resolve either
-            /*
-            if value.is_number()
-                && (element_attributes.input_type == InputType::Unicode
-                    || element_attributes.input_type == InputType::Ansi)
-            {
-                let mut new_value = Value::Null;
-                // Check out maps array/hashmap and messagetable
-                for map in maps {
-                    let message_id = match map.data.get(&(value.as_u64()? as u32)) {
-                        Some(result) => result,
-                        None => continue,
-                    };
-
-                    let string_data = other_messages.get(&(message_id.message_id as u32))?;
-                    new_value = serde_json::to_value(string_data.message.strip_suffix("\r\n"))
-                        .unwrap_or(Value::Null);
-
-                    clean_message =
-                        add_event_string(&new_value, clean_message, param, parameter_message)?;
-
-                    break;
-                }
-
-                if !new_value.is_null() {
-                    continue;
-                }
-            }
-            */
 
             clean_message = add_event_string(value, clean_message, param, parameter_message)?;
             continue;

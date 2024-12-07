@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 /// Timeline Journal files
-pub(crate) fn journal(mut data: Value) -> Option<Value> {
+pub(crate) fn journal(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -14,11 +14,11 @@ pub(crate) fn journal(mut data: Value) -> Option<Value> {
         entry["timestamp_desc"] = Value::String(String::from("Journal Entry Generated"));
     }
 
-    Some(data)
+    Some(())
 }
 
 /// Timeline sudo entries in Journal files
-pub(crate) fn sudo_linux(mut data: Value) -> Option<Value> {
+pub(crate) fn sudo_linux(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -31,11 +31,11 @@ pub(crate) fn sudo_linux(mut data: Value) -> Option<Value> {
         entry["timestamp_desc"] = Value::String(String::from("Sudo Journal Entry Generated"));
     }
 
-    Some(data)
+    Some(())
 }
 
 /// Timeline Linux logons
-pub(crate) fn logons(mut data: Value) -> Option<Value> {
+pub(crate) fn logons(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -53,7 +53,7 @@ pub(crate) fn logons(mut data: Value) -> Option<Value> {
         ));
     }
 
-    Some(data)
+    Some(())
 }
 
 #[cfg(test)]
@@ -64,35 +64,35 @@ mod tests {
 
     #[test]
     fn test_journal() {
-        let test = json!([{
+        let mut test = json!([{
             "realtime": "2024-01-01T00:00:00.000Z",
             "message": "my log",
             "data1":"anything i want"
         }]);
 
-        let result = journal(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Journals");
-        assert_eq!(result[0]["data1"], "anything i want");
+        journal(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Journals");
+        assert_eq!(test[0]["data1"], "anything i want");
     }
 
     #[test]
     fn test_sudo_linux() {
-        let test = json!([{
+        let mut test = json!([{
             "realtime": "2024-01-01T00:00:00.000Z",
             "message": "my log",
             "data1":"anything i want"
         }]);
 
-        let result = sudo_linux(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Sudo Linux");
-        assert_eq!(result[0]["data1"], "anything i want");
+        sudo_linux(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Sudo Linux");
+        assert_eq!(test[0]["data1"], "anything i want");
     }
 
     #[test]
     fn test_logons() {
-        let test = json!([{
+        let mut test = json!([{
             "timestamp": "2024-01-01T00:00:00.000Z",
             "message": "my log",
             "data1":"anything i want",
@@ -100,9 +100,9 @@ mod tests {
             "status": "Success",
         }]);
 
-        let result = logons(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Logon Linux");
-        assert_eq!(result[0]["message"], "User: bob - Logon: Success");
+        logons(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Logon Linux");
+        assert_eq!(test[0]["message"], "User: bob - Logon: Success");
     }
 }

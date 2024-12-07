@@ -2,7 +2,7 @@ use crate::artifacts::{
     files::files,
     linux::{journal, logons, sudo_linux},
     processes::processes,
-    windows::{amcache, bits, users},
+    windows::{amcache, bits, eventlogs, jumplists, users},
 };
 use serde_json::Value;
 
@@ -33,10 +33,12 @@ pub enum Artifacts {
     Userassist,
     UsnJrnl,
     Wmi,
+
+    Unknown,
 }
 
 /// Timeline a parsed artifact
-pub fn timeline_artifact(data: Value, artifact: &Artifacts) -> Option<Value> {
+pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
     match artifact {
         Artifacts::Processes => processes(data),
         Artifacts::Files => files(data),
@@ -46,8 +48,8 @@ pub fn timeline_artifact(data: Value, artifact: &Artifacts) -> Option<Value> {
         Artifacts::UsersWindows => users(data),
         Artifacts::Amcache => amcache(data),
         Artifacts::Bits => bits(data),
-        Artifacts::Eventlogs => todo!(),
-        Artifacts::Jumplist => todo!(),
+        Artifacts::Eventlogs => eventlogs(data),
+        Artifacts::Jumplist => jumplists(data),
         Artifacts::RawFiles => todo!(),
         Artifacts::Outlook => todo!(),
         Artifacts::Prefetch => todo!(),
@@ -64,6 +66,8 @@ pub fn timeline_artifact(data: Value, artifact: &Artifacts) -> Option<Value> {
         Artifacts::Userassist => todo!(),
         Artifacts::UsnJrnl => todo!(),
         Artifacts::Wmi => todo!(),
+
+        Artifacts::Unknown => todo!(),
     }
 }
 
@@ -85,8 +89,9 @@ mod tests {
         {
             data.push(serde_json::from_str(line).unwrap())
         }
+        let mut result = Value::Array(data);
 
-        let result = timeline_artifact(Value::Array(data), &Artifacts::Files).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Files).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 20);
     }
 
@@ -102,8 +107,9 @@ mod tests {
         {
             data.push(serde_json::from_str(line).unwrap())
         }
+        let mut result = Value::Array(data);
 
-        let result = timeline_artifact(Value::Array(data), &Artifacts::Amcache).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Amcache).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 4);
     }
 
@@ -119,8 +125,27 @@ mod tests {
         {
             data.push(serde_json::from_str(line).unwrap())
         }
+        let mut result = Value::Array(data);
 
-        let result = timeline_artifact(Value::Array(data), &Artifacts::Bits).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Bits).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 82);
+    }
+
+    #[test]
+    fn test_timeline_artifact_jumplist() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/jumplist.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Jumplist).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 78);
     }
 }

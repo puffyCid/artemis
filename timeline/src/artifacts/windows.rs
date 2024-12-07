@@ -2,7 +2,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 /// Timeline Windows Users
-pub(crate) fn users(mut data: Value) -> Option<Value> {
+pub(crate) fn users(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -16,11 +16,11 @@ pub(crate) fn users(mut data: Value) -> Option<Value> {
         entry["timestamp_desc"] = Value::String(String::from("User Last Logon"));
     }
 
-    Some(data)
+    Some(())
 }
 
 /// Timeline Amcache
-pub(crate) fn amcache(mut data: Value) -> Option<Value> {
+pub(crate) fn amcache(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -34,11 +34,11 @@ pub(crate) fn amcache(mut data: Value) -> Option<Value> {
         entry["timestamp_desc"] = Value::String(String::from("Amcache Registry Last Modified"));
     }
 
-    Some(data)
+    Some(())
 }
 
 /// Timeline Windows BITS
-pub(crate) fn bits(mut data: Value) -> Option<Value> {
+pub(crate) fn bits(data: &mut Value) -> Option<()> {
     let mut entries = Vec::new();
 
     for values in data.as_array_mut()? {
@@ -59,8 +59,8 @@ pub(crate) fn bits(mut data: Value) -> Option<Value> {
             entry["artifact"] = Value::String(String::from("BITS"));
             entry["data_type"] = Value::String(String::from("windows:ese:bits:entry"));
 
-            let mut temp = entry.clone();
-            let times = extract_bits_times(&mut temp)?;
+            let temp = entry.clone();
+            let times = extract_bits_times(&temp)?;
             for (key, value) in times {
                 entry["datetime"] = Value::String(key.into());
                 entry["timestamp_desc"] = Value::String(value);
@@ -88,8 +88,8 @@ pub(crate) fn bits(mut data: Value) -> Option<Value> {
             entry["artifact"] = Value::String(String::from("BITS Carved Job"));
             entry["data_type"] = Value::String(String::from("windows:ese:bits:carve:job"));
 
-            let mut temp = entry.clone();
-            let times = extract_bits_times(&mut temp)?;
+            let temp = entry.clone();
+            let times = extract_bits_times(&temp)?;
             for (key, value) in times {
                 entry["datetime"] = Value::String(key.into());
                 entry["timestamp_desc"] = Value::String(format!("Carved {value}"));
@@ -121,11 +121,28 @@ pub(crate) fn bits(mut data: Value) -> Option<Value> {
         }
     }
 
-    Some(Value::Array(entries))
+    let mut has_meta = Value::Null;
+    for values in data.as_array()? {
+        if let Some(value) = values.get("metadata") {
+            has_meta = value.clone();
+        }
+        break;
+    }
+
+    if !has_meta.is_null() {
+        for entry in entries.iter_mut() {
+            entry["metadata"] = has_meta.clone();
+        }
+    }
+
+    data.as_array_mut()?.clear();
+    data.as_array_mut()?.append(&mut entries);
+
+    Some(())
 }
 
 /// Extract all BITS timestamps into separate timestamps
-fn extract_bits_times(data: &mut Value) -> Option<HashMap<&str, String>> {
+fn extract_bits_times(data: &Value) -> Option<HashMap<&str, String>> {
     let mut times = HashMap::new();
     times.insert(data["created"].as_str()?, String::from("BITS Created"));
 
@@ -156,40 +173,138 @@ fn extract_bits_times(data: &mut Value) -> Option<HashMap<&str, String>> {
     Some(times)
 }
 
+/// Timeline Eventlogs. Only Eventlog entries with template strings are supported
+pub(crate) fn eventlogs(data: &mut Value) -> Option<()> {
+    for values in data.as_array_mut()? {
+        let entry = if let Some(value) = values.get_mut("data") {
+            value
+        } else {
+            values
+        };
+
+        if entry["template_message"] == Value::Null {
+            continue;
+        }
+
+        entry["datetime"] = entry["generated"].as_str()?.into();
+        entry["artifact"] = Value::String(String::from("EventLogs"));
+        entry["data_type"] = Value::String(String::from("windows:eventlogs:entry"));
+        entry["timestamp_desc"] = Value::String(String::from("EventLog Entry Generated"));
+    }
+
+    Some(())
+}
+
+pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
+    let mut entries = Vec::new();
+
+    for values in data.as_array_mut()? {
+        let entry = if let Some(value) = values.get_mut("data") {
+            value
+        } else {
+            values
+        };
+        entry["message"] = entry["path"].as_str()?.into();
+        entry["artifact"] = Value::String(String::from("Jumplist"));
+        entry["data_type"] = Value::String(String::from("windows:jumplist:entry"));
+
+        let temp = entry.clone();
+        let times = extract_shortcut_times(&temp["lnk_info"])?;
+        for (key, value) in times {
+            entry["datetime"] = Value::String(key.into());
+            entry["timestamp_desc"] = Value::String(value);
+            entries.push(entry.clone());
+        }
+    }
+
+    let mut has_meta = Value::Null;
+    for values in data.as_array()? {
+        if let Some(value) = values.get("metadata") {
+            has_meta = value.clone();
+        }
+        break;
+    }
+
+    if !has_meta.is_null() {
+        for entry in entries.iter_mut() {
+            entry["metadata"] = has_meta.clone();
+        }
+    }
+
+    data.as_array_mut()?.clear();
+    data.as_array_mut()?.append(&mut entries);
+
+    Some(())
+}
+
+fn extract_shortcut_times(data: &Value) -> Option<HashMap<&str, String>> {
+    let mut times = HashMap::new();
+    times.insert(
+        data["created"].as_str()?,
+        String::from("Shortcut Target Created"),
+    );
+
+    if let Some(value) = times.get(data["modified"].as_str()?) {
+        times.insert(
+            data["modified"].as_str()?,
+            format!("{value} Shortcut Target Modified"),
+        );
+    } else {
+        times.insert(
+            data["modified"].as_str()?,
+            String::from("Shortcut Target Modified"),
+        );
+    }
+
+    if let Some(value) = times.get(data["accessed"].as_str()?) {
+        times.insert(
+            data["accessed"].as_str()?,
+            format!("{value} Shortcut Target Accessed"),
+        );
+    } else {
+        times.insert(
+            data["accessed"].as_str()?,
+            String::from("Shortcut Target Accessed"),
+        );
+    }
+
+    Some(times)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::windows::{amcache, bits, users};
+    use crate::artifacts::windows::{amcache, bits, eventlogs, jumplists, users};
     use serde_json::json;
 
     #[test]
     fn test_users() {
-        let test = json!([{
+        let mut test = json!([{
             "last_logon": "2024-01-01T00:00:00.000Z",
             "username":"anything i want"
         }]);
 
-        let result = users(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Windows User");
-        assert_eq!(result[0]["username"], "anything i want");
+        users(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Windows User");
+        assert_eq!(test[0]["username"], "anything i want");
     }
 
     #[test]
     fn test_amcache() {
-        let test = json!([{
+        let mut test = json!([{
             "last_modified": "2024-01-01T00:00:00.000Z",
             "path":"C:\\Windows\\cmd.exe"
         }]);
 
-        let result = amcache(test).unwrap();
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Amcache");
-        assert_eq!(result[0]["message"], "C:\\Windows\\cmd.exe");
+        amcache(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Amcache");
+        assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
     }
 
     #[test]
     fn test_bits() {
-        let test = json!([{
+        let mut test = json!([{
             "bits": [{
                 "modified": "2024-01-01T00:00:00.000Z",
                 "created": "2024-01-01T00:00:00.000Z",
@@ -203,13 +318,42 @@ mod tests {
 
         }]);
 
-        let result = bits(test).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 1);
-        assert_eq!(result[0]["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "BITS");
+        bits(&mut test).unwrap();
+        assert_eq!(test.as_array().unwrap().len(), 1);
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "BITS");
         assert_eq!(
-            result[0]["message"],
+            test[0]["message"],
             "Job: test - Target Path: C:\\Windows\\cmd.exe"
         );
+    }
+
+    #[test]
+    fn test_eventlogs() {
+        let mut test = json!([{
+            "generated": "2024-01-01T00:00:00.000Z",
+            "message":"C:\\Windows\\cmd.exe",
+            "template_message": "%1 data"
+        }]);
+
+        eventlogs(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "EventLogs");
+        assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
+    }
+
+    #[test]
+    fn test_jumplists() {
+        let mut test = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "modified": "2024-01-01T00:00:00.000Z",
+            "accessed": "2024-01-01T00:00:00.000Z",
+            "path":"C:\\Windows\\cmd.exe",
+        }]);
+
+        jumplists(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Jumplist");
+        assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
     }
 }

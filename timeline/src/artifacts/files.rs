@@ -2,7 +2,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 /// Timeline filelisting info
-pub(crate) fn files(mut data: Value) -> Option<Value> {
+pub(crate) fn files(data: &mut Value) -> Option<()> {
     let mut entries = Vec::new();
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
@@ -10,12 +10,13 @@ pub(crate) fn files(mut data: Value) -> Option<Value> {
         } else {
             values
         };
+
         entry["artifact"] = Value::String(String::from("Files"));
         entry["data_type"] = Value::String(String::from("system:fs:file"));
         entry["message"] = Value::String(entry["full_path"].as_str()?.into());
 
-        let mut temp = entry.clone();
-        let times = extract_times(&mut temp)?;
+        let temp = entry.clone();
+        let times = extract_times(&temp)?;
         for (key, value) in times {
             entry["datetime"] = Value::String(key.into());
             entry["timestamp_desc"] = Value::String(value);
@@ -23,11 +24,27 @@ pub(crate) fn files(mut data: Value) -> Option<Value> {
         }
     }
 
-    Some(Value::Array(entries))
+    let mut has_meta = Value::Null;
+    for values in data.as_array()? {
+        if let Some(value) = values.get("metadata") {
+            has_meta = value.clone();
+        }
+        break;
+    }
+    if !has_meta.is_null() {
+        for entry in entries.iter_mut() {
+            entry["metadata"] = has_meta.clone();
+        }
+    }
+
+    data.as_array_mut()?.clear();
+    data.as_array_mut()?.append(&mut entries);
+
+    Some(())
 }
 
 /// Extract each timestamp into its own separate file if required
-fn extract_times(data: &mut Value) -> Option<HashMap<&str, String>> {
+fn extract_times(data: &Value) -> Option<HashMap<&str, String>> {
     let mut times = HashMap::new();
     times.insert(data["created"].as_str()?, String::from("Created"));
 
@@ -62,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_files() {
-        let test = json!([{
+        let mut test = json!([{
             "created": "2024-01-01T00:00:00.000Z",
             "full_path": "/usr/bin/ls",
             "modified": "2024-01-01T03:00:00.000Z",
@@ -71,10 +88,10 @@ mod tests {
 
         }]);
 
-        let result = files(test).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 4);
-        assert_eq!(result[0]["created"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(result[0]["artifact"], "Files");
-        assert_eq!(result[0]["message"], "/usr/bin/ls");
+        files(&mut test).unwrap();
+        assert_eq!(test.as_array().unwrap().len(), 4);
+        assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Files");
+        assert_eq!(test[0]["message"], "/usr/bin/ls");
     }
 }
