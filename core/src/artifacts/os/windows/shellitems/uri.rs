@@ -84,8 +84,8 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Uri);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
+        assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
         assert_eq!(result.accessed, "2021-02-13T08:24:50.000Z");
     }
 

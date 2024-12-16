@@ -437,7 +437,7 @@ pub(crate) fn search(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn searvices(data: &mut Value) -> Option<()> {
+pub(crate) fn services(data: &mut Value) -> Option<()> {
     for values in data.as_array_mut()? {
         let entry = if let Some(value) = values.get_mut("data") {
             value
@@ -879,11 +879,11 @@ mod tests {
     #[test]
     fn test_jumplists() {
         let mut test = json!([{
-            "path":"C:\\Windows\\cmd.exe",
             "lnk_info": {
                 "created": "2024-01-01T00:00:00.000Z",
                 "modified": "2024-01-01T00:00:00.000Z",
                 "accessed": "2024-01-01T00:00:00.000Z",
+                "path":"C:\\Windows\\cmd.exe",
             },
             "jumplist_metadata": {},
         }]);

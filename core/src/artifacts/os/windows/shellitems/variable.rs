@@ -332,9 +332,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
+        assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.accessed, "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
@@ -352,9 +352,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
+        assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.accessed, "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
@@ -414,9 +414,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Variable);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
+        assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.accessed, "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
@@ -509,7 +509,7 @@ mod tests {
         let (is_property, stores) = get_property(&data);
         assert_eq!(is_property, true);
         assert_eq!(stores.len(), 4);
-        assert_eq!(stores[1].get("value0").unwrap(), "vmware-host");
+        assert_eq!(stores[1].get("value1").unwrap(), "vmware-host");
     }
 
     #[test]

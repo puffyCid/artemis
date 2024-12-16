@@ -13,7 +13,7 @@ use std::{
 pub(crate) struct ObjectHeader {
     pub(crate) obj_type: ObjectType,
     pub(crate) flag: ObjectFlag,
-    _reserved: Vec<u8>,
+    reserved: Vec<u8>,
     size: u64,
     pub(crate) payload: Vec<u8>,
 }
@@ -68,7 +68,11 @@ impl ObjectHeader {
         }
 
         let header_meta_size = 16;
-        if header.size < header_meta_size {
+        // If the reserved data is not all zeros, three possibilities
+        // 1. Format changed
+        // 2. Corruption in the data
+        // 3. Remnants of possible future entries that were never written to disk? (ex: system was powered off)
+        if header.size < header_meta_size || header.reserved != [0, 0, 0, 0, 0, 0] {
             return Ok(header);
         }
         let mut payload_data: Vec<u8> = vec![0; (header.size - header_meta_size) as usize];
@@ -94,7 +98,7 @@ impl ObjectHeader {
         let object_header = ObjectHeader {
             obj_type: ObjectHeader::object_type(&obj_type),
             flag: ObjectHeader::object_flag(&flag),
-            _reserved: reserved_data.to_vec(),
+            reserved: reserved_data.to_vec(),
             size,
             payload: Vec::new(),
         };

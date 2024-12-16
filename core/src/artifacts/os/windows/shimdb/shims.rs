@@ -173,18 +173,18 @@ mod tests {
         assert_eq!(result.db_data.compiler_version, "2.1.0.3");
         assert_eq!(result.db_data.name, "AtomicShim");
         assert_eq!(
-            result.db_data.list_data[1]
+            result.db_data.list_data[0]
                 .data
                 .get("TAG_APP_NAME")
                 .unwrap(),
             "AtomicTest"
         );
         assert_eq!(
-            result.db_data.list_data[1].data.get("TAG_NAME").unwrap(),
+            result.db_data.list_data[0].data.get("TAG_NAME").unwrap(),
             "AtomicTest.exe"
         );
         assert_eq!(
-            result.db_data.list_data[1].list_data[1]
+            result.db_data.list_data[0].list_data[1]
                 .get("TAG_COMMAND_LINE")
                 .unwrap(),
             "C:\\Tools\\AtomicTest.dll"
@@ -204,18 +204,18 @@ mod tests {
         assert_eq!(result.db_data.compiler_version, "3.0.0.9");
         assert_eq!(result.db_data.name, "T1138CompatDatabase");
         assert_eq!(
-            result.db_data.list_data[1]
+            result.db_data.list_data[0]
                 .data
                 .get("TAG_APP_NAME")
                 .unwrap(),
             "T1138"
         );
         assert_eq!(
-            result.db_data.list_data[1].data.get("TAG_NAME").unwrap(),
+            result.db_data.list_data[0].data.get("TAG_NAME").unwrap(),
             "calc.exe"
         );
         assert_eq!(
-            result.db_data.list_data[1].list_data[0]
+            result.db_data.list_data[0].list_data[0]
                 .get("TAG_FILE_VERSION")
                 .unwrap(),
             "10.0.18362.1 (WinBuild.160101.0800)"

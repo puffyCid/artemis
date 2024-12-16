@@ -4,7 +4,7 @@ use crate::artifacts::{
     processes::processes,
     windows::{
         amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_files, recycle_bin, registry,
-        search, searvices, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist, users,
+        search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist, users,
         usnjrnl, wmi,
     },
 };
@@ -59,7 +59,7 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
         Artifacts::RecycleBin => recycle_bin(data),
         Artifacts::Registry => registry(data),
         Artifacts::Search => search(data),
-        Artifacts::Services => searvices(data),
+        Artifacts::Services => services(data),
         Artifacts::Shellbags => shellbags(data),
         Artifacts::Shimcache => shimcache(data),
         Artifacts::ShimDb => shimdb(data),

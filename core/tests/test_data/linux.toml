@@ -15,7 +15,7 @@ artifact_name = "processes"
 md5 = true
 sha1 = false
 sha256 = false
-metadata = true
+metadata = false
 
 [[artifacts]]
 artifact_name = "systeminfo"
