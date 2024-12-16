@@ -25,11 +25,10 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
     }
 
     let mut has_meta = Value::Null;
-    for values in data.as_array()? {
+    if let Some(values) = (data.as_array()?).iter().next() {
         if let Some(value) = values.get("metadata") {
             has_meta = value.clone();
         }
-        break;
     }
     if !has_meta.is_null() {
         for entry in entries.iter_mut() {
@@ -44,7 +43,7 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
 }
 
 /// Extract each timestamp into its own separate file if required
-fn extract_times(data: &Value) -> Option<HashMap<&str, String>> {
+pub(crate) fn extract_times(data: &Value) -> Option<HashMap<&str, String>> {
     let mut times = HashMap::new();
     times.insert(data["created"].as_str()?, String::from("Created"));
 
@@ -70,6 +69,59 @@ fn extract_times(data: &Value) -> Option<HashMap<&str, String>> {
     }
 
     Some(times)
+}
+
+pub(crate) fn extract_filename_times<'a>(
+    data: &'a Value,
+    times: &mut HashMap<&'a str, String>,
+) -> Option<()> {
+    if let Some(value) = times.get(data["filename_created"].as_str()?) {
+        times.insert(
+            data["filename_created"].as_str()?,
+            format!("{value} FilenameCreated"),
+        );
+    } else {
+        times.insert(
+            data["filename_created"].as_str()?,
+            String::from("FilenameCreated"),
+        );
+    }
+    if let Some(value) = times.get(data["filename_modified"].as_str()?) {
+        times.insert(
+            data["filename_modified"].as_str()?,
+            format!("{value} FilenameModified"),
+        );
+    } else {
+        times.insert(
+            data["filename_modified"].as_str()?,
+            String::from("FilenameModified"),
+        );
+    }
+
+    if let Some(value) = times.get(data["filename_accessed"].as_str()?) {
+        times.insert(
+            data["filename_accessed"].as_str()?,
+            format!("{value} FilenameAccessed"),
+        );
+    } else {
+        times.insert(
+            data["filename_accessed"].as_str()?,
+            String::from("FilenameAccessed"),
+        );
+    }
+
+    if let Some(value) = times.get(data["filename_changed"].as_str()?) {
+        times.insert(
+            data["filename_changed"].as_str()?,
+            format!("{value} FilenameChanged"),
+        );
+    } else {
+        times.insert(
+            data["filename_changed"].as_str()?,
+            String::from("FilenameChanged"),
+        );
+    }
+    Some(())
 }
 
 #[cfg(test)]
