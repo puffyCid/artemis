@@ -52,6 +52,9 @@ runtime: (_test "runtime::")
 # Test only the FileSystem functions
 filesystem: (_test "filesystem::")
 
+# Test only the timelining functions
+timeline: (_test "timeline::")
+
 # Test all the Windows artifacts
 [group('os')]
 windows: (_test "artifacts::os::windows")

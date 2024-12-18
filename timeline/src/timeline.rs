@@ -154,6 +154,78 @@ mod tests {
     }
 
     #[test]
+    fn test_timeline_artifact_registry() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/registry.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Registry).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 23);
+    }
+
+    #[test]
+    fn test_timeline_artifact_search() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/search.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Search).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 11);
+    }
+
+    #[test]
+    fn test_timeline_artifact_shortcuts() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/shortcuts.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Shortcuts).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 12);
+    }
+
+    #[test]
+    fn test_timeline_artifact_prefetch() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/prefetch.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Prefetch).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 27);
+    }
+
+    #[test]
     fn test_timeline_artifact_shimdb() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/shimdb.jsonl");

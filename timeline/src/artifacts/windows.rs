@@ -372,14 +372,14 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Prefetch"));
         entry["data_type"] = Value::String(String::from("windows:prefetch:file"));
         entry["message"] = Value::String(entry["path"].as_str()?.into());
-        entry["datetime"] = entry["last_runtime"].as_str()?.into();
+        entry["datetime"] = entry["last_run_time"].as_str()?.into();
         entry["timestamp_desc"] = Value::String(String::from("Prefetch Last Execution"));
         entries.push(entry.clone());
 
         let mut temp = entry.clone();
 
         for value in entry["all_run_times"].as_array()? {
-            temp["datetime"] = value["last_runtime"].as_str()?.into();
+            temp["datetime"] = value.as_str()?.into();
             temp["timestamp_desc"] = Value::String(String::from("Prefetch Execution"));
             entries.push(temp.clone());
         }
@@ -433,6 +433,17 @@ pub(crate) fn search(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Search"));
         entry["data_type"] = Value::String(String::from("windows:ese:search:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Entry Last Modified"));
+
+        let temp = entry["properties"].as_object()?.clone();
+        entry.as_object_mut()?.remove("properties")?;
+
+        for (key, value) in &temp {
+            entry[key] = value.clone();
+
+            if entry["message"].as_str()?.is_empty() && key.contains("System_ItemPathDisplay") {
+                entry["message"] = value.as_str()?.into();
+            }
+        }
     }
     Some(())
 }
@@ -518,7 +529,12 @@ pub(crate) fn registry(data: &mut Value) -> Option<()> {
             ));
             entry["value"] = value["value"].clone();
             entry["data"] = value["data"].clone();
-            entry["reg_data_type"] = value["reg_data_type"].clone();
+            entry["reg_data_type"] = value["data_type"].clone();
+            entries.push(entry.clone());
+        }
+
+        if temp["values"].as_array()?.is_empty() {
+            entry["message"] = entry["path"].clone();
             entries.push(entry.clone());
         }
     }
@@ -807,7 +823,10 @@ pub(crate) fn wmi(data: &mut Value) -> Option<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::windows::{amcache, bits, eventlogs, jumplists, registry, users};
+    use crate::artifacts::windows::{
+        amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_files, recycle_bin, registry,
+        users,
+    };
     use serde_json::json;
 
     #[test]
@@ -912,5 +931,66 @@ mod tests {
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Registry");
         assert_eq!(test[0]["message"], "HKEY\\Test\\Run | Value: test");
+    }
+
+    #[test]
+    fn test_raw_files() {
+        let mut test = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "full_path": "/usr/bin/ls",
+            "modified": "2024-01-01T03:00:00.000Z",
+            "changed": "2024-01-01T02:00:00.000Z",
+            "accessed": "2024-01-01T01:00:00.000Z",
+            "filename_changed": "2024-01-01T03:00:00.000Z",
+            "filename_created": "2024-01-01T03:00:00.000Z",
+            "filename_modified": "2024-01-01T03:00:00.000Z",
+            "filename_accessed": "2024-01-01T03:00:00.000Z",
+        }]);
+
+        raw_files(&mut test).unwrap();
+        assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "RawFiles");
+        assert_eq!(test[0]["message"], "/usr/bin/ls");
+    }
+
+    #[test]
+    fn test_outlook() {
+        let mut test = json!([{
+            "delivered": "2024-01-01T00:00:00.000Z",
+            "subject": "testing timelines",
+            "from": "me!"
+        }]);
+
+        outlook(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Outlook");
+        assert_eq!(test[0]["message"], "Subject: testing timelines From: me!");
+    }
+
+    #[test]
+    fn test_prefetch() {
+        let mut test = json!([{
+            "last_run_time": "2024-01-01T00:00:00.000Z",
+            "path": "test.pf",
+            "all_run_times": [],
+        }]);
+
+        prefetch(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Prefetch");
+        assert_eq!(test[0]["message"], "test.pf");
+    }
+
+    #[test]
+    fn test_recycle_bin() {
+        let mut test = json!([{
+            "deleted": "2024-01-01T00:00:00.000Z",
+            "full_path": "test.pf",
+        }]);
+
+        recycle_bin(&mut test).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "RecycleBin");
+        assert_eq!(test[0]["message"], "test.pf");
     }
 }
