@@ -78,6 +78,16 @@ ignore = [
     { id = "RUSTSEC-2023-0071", "reason" = "Associated with yara-x crate. Vuln not applicable" },
     { id = "RUSTSEC-2024-0370", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
     { id = "RUSTSEC-2024-0384", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0415", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0420", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0419", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0413", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0412", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0416", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0418", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0411", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0417", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
+    { id = "RUSTSEC-2024-0414", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories

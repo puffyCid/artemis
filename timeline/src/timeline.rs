@@ -1,6 +1,10 @@
 use crate::artifacts::{
     files::files,
     linux::{journal, logons, sudo_linux},
+    macos::{
+        emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
+        unifiedlogs, users_macos,
+    },
     processes::processes,
     windows::{
         amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_files, recycle_bin, registry,
@@ -8,14 +12,17 @@ use crate::artifacts::{
         usnjrnl, wmi,
     },
 };
+use log::warn;
 use serde_json::Value;
 
 pub enum Artifacts {
     Processes,
     Files,
+    // Linux
     Journal,
     Logons,
     SudoLinux,
+    // Windows
     UsersWindows,
     Amcache,
     Bits,
@@ -37,6 +44,17 @@ pub enum Artifacts {
     Userassist,
     UsnJrnl,
     Wmi,
+    // macOS
+    UsersMacos,
+    GroupsMacos,
+    LaunchDaemon,
+    Fsevents,
+    Emond,
+    ExecPolicy,
+    LoginItems,
+    Spotlight,
+    UnifiedLogs,
+    SudoMacos,
 
     Unknown,
 }
@@ -70,8 +88,20 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
         Artifacts::UsersWindows => users(data),
         Artifacts::UsnJrnl => usnjrnl(data),
         Artifacts::Wmi => wmi(data),
-
-        Artifacts::Unknown => todo!(),
+        Artifacts::UsersMacos => users_macos(data),
+        Artifacts::GroupsMacos => groups_macos(data),
+        Artifacts::Emond => emond(data),
+        Artifacts::LaunchDaemon => launchd(data),
+        Artifacts::Fsevents => fsevents(data),
+        Artifacts::ExecPolicy => execpolicy(data),
+        Artifacts::LoginItems => loginitems(data),
+        Artifacts::Spotlight => spotlight(data),
+        Artifacts::UnifiedLogs => unifiedlogs(data),
+        Artifacts::SudoMacos => sudo_macos(data),
+        Artifacts::Unknown => {
+            warn!("Got unknown artifact");
+            None
+        }
     }
 }
 
@@ -242,5 +272,24 @@ mod tests {
         timeline_artifact(&mut result, &Artifacts::ShimDb).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 1);
         assert_eq!(result.to_string().len(), 1266);
+    }
+
+    #[test]
+    fn test_timeline_artifact_spotlight() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/spotlight.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::Spotlight).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 18);
+        assert_eq!(result.to_string().len(), 80273);
     }
 }

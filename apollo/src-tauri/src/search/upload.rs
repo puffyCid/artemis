@@ -8,7 +8,7 @@ use std::{
 use timeline::timeline::{timeline_artifact, Artifacts};
 
 pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Error> {
-    let status = create_index(name).await?;
+    let _create_status = create_index(name).await?;
 
     let file = File::open(path)?;
     let reader = BufReader::new(file);
@@ -28,7 +28,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
                 meta["timeline_source"] = Value::String(path.to_string());
                 let mut ops_meta = BulkOperations::new();
                 ops_meta.push(BulkOperation::index(&meta))?;
-                let test_meta = upload_metadata(&ops_meta).await?;
+                let _upload_status = upload_metadata(&ops_meta).await?;
             }
         }
 
@@ -40,7 +40,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
             let mut ops = BulkOperations::new();
             if meta.is_null() {
                 ops.push(BulkOperation::index(&entries))?;
-                let test = upload_data(&ops, name).await?;
+                let _upload_status = upload_data(&ops, name).await?;
                 entries = Vec::new();
                 continue;
             }
@@ -51,7 +51,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
             timeline_artifact(&mut timeline_data, &artifact_name(artifact));
             bulk_append(&mut ops, timeline_data.as_array().unwrap());
 
-            let test = upload_data(&ops, name).await?;
+            let _upload_status = upload_data(&ops, name).await?;
 
             entries = Vec::new();
         }
@@ -61,7 +61,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
         let mut ops = BulkOperations::new();
         if meta.is_null() {
             bulk_append(&mut ops, &entries);
-            let test = upload_data(&ops, name).await?;
+            let _upload_status = upload_data(&ops, name).await?;
             return Ok(Value::Null);
         }
 
@@ -71,7 +71,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
         timeline_artifact(&mut timeline_data, &artifact_name(artifact));
         bulk_append(&mut ops, timeline_data.as_array().unwrap());
 
-        let test = upload_data(&ops, name).await?;
+        let _upload_status = upload_data(&ops, name).await?;
     }
 
     Ok(Value::Null)
@@ -103,7 +103,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../../timeline/tests/test_data/amcache.jsonl");
 
-        let result = upload_timeline(test_location.to_str().unwrap(), "test")
+        let _result = upload_timeline(test_location.to_str().unwrap(), "test")
             .await
             .unwrap();
     }
@@ -113,7 +113,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../../timeline/tests/test_data/bits.jsonl");
 
-        let result = upload_timeline(test_location.to_str().unwrap(), "test")
+        let _result = upload_timeline(test_location.to_str().unwrap(), "test")
             .await
             .unwrap();
     }
@@ -123,7 +123,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../../timeline/tests/test_data/files.jsonl");
 
-        let result = upload_timeline(test_location.to_str().unwrap(), "test")
+        let _result = upload_timeline(test_location.to_str().unwrap(), "test")
             .await
             .unwrap();
     }
@@ -133,7 +133,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../../timeline/tests/test_data/jumplist.jsonl");
 
-        let result = upload_timeline(test_location.to_str().unwrap(), "test")
+        let _result = upload_timeline(test_location.to_str().unwrap(), "test")
             .await
             .unwrap();
     }
