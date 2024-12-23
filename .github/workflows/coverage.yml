@@ -71,7 +71,7 @@ jobs:
         uses: taiki-e/install-action@just
 
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2.7.5
         with:
           save-if: false
       - name: Generate code coverage (macOS)

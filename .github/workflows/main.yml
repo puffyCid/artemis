@@ -46,7 +46,7 @@ jobs:
         run: npm install -D @tailwindcss/typography
 
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2.7.5
         with:
           cache-on-failure: true
       - name: Install just runner
