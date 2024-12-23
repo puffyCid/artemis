@@ -51,7 +51,7 @@ mod tests {
                 assert_eq!(data.name[0], "root");
                 assert_eq!(data.gid[0], "0");
                 assert_eq!(data.account_photo.len(), 0);
-                assert_eq!(data.password_last_set, "");
+                assert_eq!(data.password_last_set, "1970-01-01T00:00:00.000Z");
                 assert_eq!(data.shell[0].is_empty(), false);
                 assert_eq!(data.unlock_options.len(), 0);
                 assert_eq!(data.home_path[0], "/var/root");

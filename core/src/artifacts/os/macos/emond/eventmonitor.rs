@@ -1,3 +1,5 @@
+use self::metadata::get_timestamps;
+
 use super::{
     actions::{
         command::parse_action_run_command, log::parse_action_log,
@@ -10,7 +12,7 @@ use crate::{
         error::PlistError,
         property_list::{get_boolean, get_string},
     },
-    filesystem::files::list_files,
+    filesystem::{files::list_files, metadata},
 };
 use common::macos::{Actions, EmondData};
 use log::{error, warn};
@@ -53,6 +55,8 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
         }
     };
 
+    let meta = get_timestamps(path);
+
     if let Value::Array(plist_array) = emond_plist {
         let mut emond_data = EmondData {
             name: String::new(),
@@ -66,9 +70,21 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
             criterion: Vec::new(),
             variables: Vec::new(),
             allow_partial_criterion_match: false,
-            start_time: String::new(),
+            start_time: String::from("1970-01-01T00:00:00.000Z"),
             emond_clients_enabled: false,
+            source_file: path.to_string(),
+            plist_created: String::from("1970-01-01T00:00:00.000Z"),
+            plist_accessed: String::from("1970-01-01T00:00:00.000Z"),
+            plist_changed: String::from("1970-01-01T00:00:00.000Z"),
+            plist_modified: String::from("1970-01-01T00:00:00.000Z"),
         };
+
+        if let Ok(timestamps) = meta {
+            emond_data.plist_created = timestamps.created;
+            emond_data.plist_accessed = timestamps.accessed;
+            emond_data.plist_changed = timestamps.changed;
+            emond_data.plist_modified = timestamps.modified;
+        }
 
         for plist_values in plist_array {
             match plist_values {

@@ -46,7 +46,7 @@ jobs:
         run: npm install -D @tailwindcss/typography
 
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2.7.5
         with:
           cache-on-failure: true
       - name: Install just runner
@@ -54,7 +54,7 @@ jobs:
 
       - name: Tauri build dependencies on Linux
         if: matrix.info.os == 'ubuntu-latest'
-        run: sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+        run: sudo apt update && sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Setup Podman user config directory
         if: matrix.info.os == 'ubuntu-latest'

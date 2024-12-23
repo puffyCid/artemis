@@ -29,7 +29,7 @@ pub(crate) fn parse_index_gthr(
         let mut entry = SearchEntry {
             document_id: 0,
             entry: String::new(),
-            last_modified: String::new(),
+            last_modified: String::from("1970-01-01T00:00:00.000Z"),
             properties: HashMap::new(),
         };
 

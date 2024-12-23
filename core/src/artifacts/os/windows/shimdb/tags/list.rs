@@ -72,6 +72,10 @@ fn get_list_data<'a>(
         list_data = tag_data;
     }
 
+    if index_data.data.is_empty() && index_data.list_data.is_empty() {
+        return Ok((input, ()));
+    }
+
     shim_data.push(index_data);
 
     Ok((input, ()))

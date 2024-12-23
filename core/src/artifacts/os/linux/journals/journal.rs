@@ -118,7 +118,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         let mut entry_array = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[journal] Could walk journal entries. Exiting early");
+                error!("[journal] Could not walk journal entries. Exiting early");
                 break;
             }
         };
@@ -170,7 +170,7 @@ fn get_entries(
         let mut entry_array = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[journal] Could walk journal entries. Exiting early");
+                error!("[journal] Could not walk journal entries. Exiting early");
                 break;
             }
         };

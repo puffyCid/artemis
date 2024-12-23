@@ -1,0 +1,3 @@
+kind: Fixed
+body: Journal parsing bug where artemis would not parse all entries
+time: 2024-12-17T23:44:36.876862954-05:00

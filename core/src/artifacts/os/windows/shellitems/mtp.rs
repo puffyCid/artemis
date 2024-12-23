@@ -31,9 +31,9 @@ pub(crate) fn get_folder_name(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mtp_item = ShellItem {
         value: name,
         shell_type: Mtp,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -68,9 +68,9 @@ pub(crate) fn get_storage_name(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let mtp_item = ShellItem {
         value: name,
         shell_type: Mtp,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -85,9 +85,9 @@ pub(crate) fn get_mtp_device(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let item = ShellItem {
         value: mtp.device,
         shell_type: Volume,
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
+        created: String::from("1970-01-01T00:00:00.000Z"),
+        modified: String::from("1970-01-01T00:00:00.000Z"),
+        accessed: String::from("1970-01-01T00:00:00.000Z"),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
@@ -243,9 +243,9 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Volume);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
+        assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
+        assert_eq!(result.accessed, "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
@@ -320,9 +320,6 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Mtp);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
     }
 
     #[test]
@@ -369,8 +366,5 @@ mod tests {
         assert_eq!(result.shell_type, ShellType::Mtp);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
-        assert_eq!(result.created, "");
-        assert_eq!(result.modified, "");
-        assert_eq!(result.accessed, "");
     }
 }

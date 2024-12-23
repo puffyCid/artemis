@@ -28,7 +28,7 @@ pub(crate) struct Metadata {
     uuid: String,
 }
 
-/// Create an Index for timeline data. Returns `None` on success
+/// Create an Index for timeline data.
 pub(crate) async fn create_index(name: &str) -> Result<Value, Error> {
     let client = setup_client()?;
     let res = client
@@ -55,7 +55,7 @@ pub(crate) async fn create_index(name: &str) -> Result<Value, Error> {
     Ok(check_response(res).await)
 }
 
-/// Delete the provided index, will delete all data. Returns `None` on success
+/// Delete the provided index, will delete all data.
 pub(crate) async fn delete_index(name: &str) -> Result<Value, Error> {
     let client = setup_client()?;
     let res = client
@@ -67,8 +67,8 @@ pub(crate) async fn delete_index(name: &str) -> Result<Value, Error> {
     Ok(check_response(res).await)
 }
 
-/// Upload metadata about collection to metadata index. Returns `None` on success
-pub(crate) async fn upload_metadata(data: BulkOperations) -> Result<Value, Error> {
+/// Upload metadata about collection to metadata index.
+pub(crate) async fn upload_metadata(data: &BulkOperations) -> Result<Value, Error> {
     let client = setup_client()?;
 
     let res = client
@@ -80,8 +80,8 @@ pub(crate) async fn upload_metadata(data: BulkOperations) -> Result<Value, Error
     Ok(check_response(res).await)
 }
 
-/// Bulk upload data to `OpenSearch`. Returns `None` on success
-pub(crate) async fn upload_data(data: BulkOperations, name: &str) -> Result<Value, Error> {
+/// Bulk upload data to `OpenSearch`.
+pub(crate) async fn upload_data(data: &BulkOperations, name: &str) -> Result<Value, Error> {
     let client = setup_client()?;
     let res = client
         .bulk(BulkParts::Index(name))
@@ -144,7 +144,7 @@ mod tests {
             ops.push(BulkOperation::index(value)).unwrap();
         }
 
-        let test = upload_data(ops, "test").await.unwrap();
+        let test = upload_data(&ops, "test").await.unwrap();
         assert!(test.is_object());
     }
 
@@ -177,10 +177,10 @@ mod tests {
             ops.push(BulkOperation::index(data)).unwrap();
         }
 
-        let test = upload_data(ops, "test").await.unwrap();
+        let test = upload_data(&ops, "test").await.unwrap();
         assert!(test.is_object());
 
-        let test_meta = upload_metadata(ops_meta).await.unwrap();
+        let test_meta = upload_metadata(&ops_meta).await.unwrap();
         assert!(test_meta.is_object());
     }
 }

@@ -178,6 +178,11 @@ pub struct EmondData {
     pub criterion: Vec<Dictionary>,
     pub variables: Vec<Dictionary>,
     pub emond_clients_enabled: bool,
+    pub source_file: String,
+    pub plist_created: String,
+    pub plist_modified: String,
+    pub plist_changed: String,
+    pub plist_accessed: String,
 }
 
 #[derive(Debug)]
