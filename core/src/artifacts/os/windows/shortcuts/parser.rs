@@ -187,9 +187,9 @@ mod tests {
                 ShellItem {
                     value: "59031a47-3f72-44a7-89c5-5595fe6b30ee".to_string(),
                     shell_type: RootFolder,
-                    created: "".to_string(),
-                    modified: "".to_string(),
-                    accessed: "".to_string(),
+                    created: "1970-01-01T00:00:00.000Z".to_string(),
+                    modified: "1970-01-01T00:00:00.000Z".to_string(),
+                    accessed: "1970-01-01T00:00:00.000Z".to_string(),
                     mft_entry: 0,
                     mft_sequence: 0,
                     stores: Vec::new(),
