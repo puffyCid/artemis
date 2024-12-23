@@ -94,6 +94,7 @@ fn artifact_name(artifact: &str) -> Artifacts {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use crate::search::upload::upload_timeline;
     use std::path::PathBuf;
