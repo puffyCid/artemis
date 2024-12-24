@@ -322,7 +322,7 @@ fn user_regex(input: &str) -> Result<Regex, FileError> {
 /// Send filelisting to output based on `Output` parameter
 fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, filter: &bool) {
     let serde_data_result = serde_json::to_value(filelist);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[files] Failed to serialize filelisting: {err:?}");
@@ -330,7 +330,7 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, fil
         }
     };
 
-    let status = output_artifact(&serde_data, "files", output, start_time, filter);
+    let status = output_artifact(&mut serde_data, "files", output, start_time, filter);
     if status.is_err() {
         error!(
             "[artemis-core] Could not output data: {:?}",

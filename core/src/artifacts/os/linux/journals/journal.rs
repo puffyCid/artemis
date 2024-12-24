@@ -188,7 +188,7 @@ fn get_entries(
         if entries.entries.len() >= limit {
             let messages = parse_messages(&entries.entries);
             let serde_data_result = serde_json::to_value(messages);
-            let serde_data = match serde_data_result {
+            let mut serde_data = match serde_data_result {
                 Ok(results) => results,
                 Err(err) => {
                     error!("[journal] Failed to serialize journal data: {err:?}");
@@ -196,7 +196,7 @@ fn get_entries(
                 }
             };
 
-            let _ = output_data(&serde_data, "journal", output, start_time, filter);
+            let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
             // Now empty the vec
             entries.entries = Vec::new();
         }
@@ -204,7 +204,7 @@ fn get_entries(
 
     let messages = parse_messages(&entries.entries);
     let serde_data_result = serde_json::to_value(messages);
-    let serde_data: serde_json::Value = match serde_data_result {
+    let mut serde_data: serde_json::Value = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[journal] Failed to serialize last journal data: {err:?}");
@@ -212,7 +212,7 @@ fn get_entries(
         }
     };
 
-    let _ = output_data(&serde_data, "journal", output, start_time, filter);
+    let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
     Ok(())
 }
 

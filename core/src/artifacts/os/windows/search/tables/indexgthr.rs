@@ -71,14 +71,14 @@ pub(crate) fn parse_index_gthr(
         // We set a limit just in case a system has indexed a lot of data
         if entries.len() == limit {
             let serde_data_result = serde_json::to_value(&entries);
-            let serde_data = match serde_data_result {
+            let mut serde_data = match serde_data_result {
                 Ok(results) => results,
                 Err(err) => {
                     error!("[search] Failed to serialize Index Gthr table: {err:?}");
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&serde_data, "search", output, start_time, filter);
+            let result = output_data(&mut serde_data, "search", output, start_time, filter);
             match result {
                 Ok(_result) => {}
                 Err(err) => {
@@ -96,14 +96,14 @@ pub(crate) fn parse_index_gthr(
 
     // Output any leftover data
     let serde_data_result = serde_json::to_value(&entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[search] Failed to serialize Index Gthr table: {err:?}");
             return Err(SearchError::Serialize);
         }
     };
-    let result = output_data(&serde_data, "search", output, start_time, filter);
+    let result = output_data(&mut serde_data, "search", output, start_time, filter);
     match result {
         Ok(_result) => {}
         Err(err) => {

@@ -16,7 +16,7 @@ pub(crate) fn output_results(
     let sucess = true;
 
     let serde_result = serde_json::from_str(&data);
-    let serde_data: Value = match serde_result {
+    let mut serde_data: Value = match serde_result {
         Ok(results) => results,
         Err(err) => {
             error!("[runtime] Failed deserialize script data: {err:?}");
@@ -34,7 +34,7 @@ pub(crate) fn output_results(
     };
 
     let empty_start = 0;
-    let status = output_data(&serde_data, &output_name, &mut output, &empty_start);
+    let status = output_data(&mut serde_data, &output_name, &mut output, &empty_start);
     if status.is_err() {
         error!("[runtime] Failed could not output script data");
         return Err(status.unwrap_err().into());

@@ -9,7 +9,7 @@ use serde_json::Value;
 
 /// Output forensic artifacts
 pub(crate) fn output_artifact(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
@@ -93,8 +93,8 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        let status = output_artifact(&data, name, &mut output, &start_time, &false).unwrap();
+        let mut data = serde_json::Value::String(String::from("test"));
+        let status = output_artifact(&mut data, name, &mut output, &start_time, &false).unwrap();
         assert_eq!(status, ());
     }
 }

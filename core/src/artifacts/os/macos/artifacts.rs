@@ -47,7 +47,7 @@ pub(crate) fn loginitems(
     };
 
     let serde_data_result = serde_json::to_value(result);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize loginitems: {err:?}");
@@ -56,7 +56,7 @@ pub(crate) fn loginitems(
     };
 
     let output_name = "loginitems";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse macOS `Emond`
@@ -77,7 +77,7 @@ pub(crate) fn emond(
     };
 
     let serde_data_result = serde_json::to_value(emond_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize emond: {err:?}");
@@ -86,7 +86,7 @@ pub(crate) fn emond(
     };
 
     let output_name = "emond";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get macOS `Users`
@@ -99,7 +99,7 @@ pub(crate) fn users_macos(
 
     let users_data = grab_users(options);
     let serde_data_result = serde_json::to_value(users_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize users: {err:?}");
@@ -108,7 +108,7 @@ pub(crate) fn users_macos(
     };
 
     let output_name = "users-macos";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get macOS `Groups`
@@ -121,7 +121,7 @@ pub(crate) fn groups_macos(
 
     let groups_data = grab_groups(options);
     let serde_data_result = serde_json::to_value(groups_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize groups: {err:?}");
@@ -130,7 +130,7 @@ pub(crate) fn groups_macos(
     };
 
     let output_name = "groups-macos";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse macOS `FsEvents`
@@ -151,7 +151,7 @@ pub(crate) fn fseventsd(
     };
 
     let serde_data_result = serde_json::to_value(results);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize fseventsd: {err:?}");
@@ -160,7 +160,7 @@ pub(crate) fn fseventsd(
     };
 
     let output_name = "fseventsd";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse macOS `Launchd`
@@ -181,7 +181,7 @@ pub(crate) fn launchd(
     };
 
     let serde_data_result = serde_json::to_value(results);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize launchd: {err:?}");
@@ -190,7 +190,7 @@ pub(crate) fn launchd(
     };
 
     let output_name = "launchd";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get macOS `Unifiedlogs`
@@ -271,7 +271,7 @@ pub(crate) fn execpolicy(
     };
 
     let serde_data_result = serde_json::to_value(results);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize execpolicy: {err:?}");
@@ -280,7 +280,7 @@ pub(crate) fn execpolicy(
     };
 
     let output_name = "execpolicy";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse sudo logs on macOS
@@ -343,7 +343,7 @@ pub(crate) fn sudo_logs_macos(
     };
 
     let serde_data_result = serde_json::to_value(results);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
@@ -352,7 +352,7 @@ pub(crate) fn sudo_logs_macos(
     };
 
     let output_name = "sudologs-macos";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse spotlight on macOS
@@ -373,7 +373,7 @@ pub(crate) fn spotlight(
 
 /// Output macOS artifacts
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,

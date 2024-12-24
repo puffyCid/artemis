@@ -85,7 +85,7 @@ fn decode_script(
     } else {
         run_script(script, args)
     };
-    let script_value = match result {
+    let mut script_value = match result {
         Ok(result) => result,
         Err(err) => {
             error!("[runtime] Could not execute javascript: {err:?}");
@@ -97,13 +97,13 @@ fn decode_script(
         return Ok(());
     }
 
-    output_data(&script_value, script_name, output, &start_time)?;
+    output_data(&mut script_value, script_name, output, &start_time)?;
     Ok(())
 }
 
 /// Output Javascript results based on the output options provided from the TOML file
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
@@ -205,8 +205,8 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        let status = output_data(&data, name, &mut output, &start_time).unwrap();
+        let mut data = serde_json::Value::String(String::from("test"));
+        let status = output_data(&mut data, name, &mut output, &start_time).unwrap();
         assert_eq!(status, ());
     }
 }

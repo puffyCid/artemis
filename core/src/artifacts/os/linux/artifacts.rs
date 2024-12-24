@@ -37,7 +37,7 @@ pub(crate) fn logons(
 
     let result = grab_logons(options);
     let serde_data_result = serde_json::to_value(result);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize logons: {err:?}");
@@ -46,7 +46,7 @@ pub(crate) fn logons(
     };
 
     let output_name = "logons";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse sudo logs on Linux
@@ -67,7 +67,7 @@ pub(crate) fn sudo_logs_linux(
     };
 
     let serde_data_result = serde_json::to_value(cron_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
@@ -76,12 +76,12 @@ pub(crate) fn sudo_logs_linux(
     };
 
     let output_name = "sudologs-linux";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Output Linux artifacts
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
@@ -129,8 +129,8 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        let status = output_data(&data, name, &mut output, &start_time, &&false).unwrap();
+        let mut data = serde_json::Value::String(String::from("test"));
+        let status = output_data(&mut data, name, &mut output, &start_time, &&false).unwrap();
         assert_eq!(status, ());
     }
 

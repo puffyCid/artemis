@@ -53,7 +53,11 @@ pub(crate) fn jsonl_format(
             }
 
             let collection_data = json_lines.join("");
-            let status = write_json(collection_data.as_bytes(), output, &uuid);
+            let status = write_json(
+                &serde_json::to_value(collection_data).unwrap(),
+                output,
+                &uuid,
+            );
             if status.is_err() {
                 error!(
                     "[artemis-core] Failed to output {output_name} data: {:?}",
@@ -63,7 +67,7 @@ pub(crate) fn jsonl_format(
         }
     } else {
         let json_data = create_line(Some(&mut collection_output), serde_data)?;
-        let status = write_json(json_data.as_bytes(), output, &uuid);
+        let status = write_json(serde_data, output, &uuid);
 
         if status.is_err() {
             error!(
@@ -100,7 +104,11 @@ pub(crate) fn raw_jsonl(
         }
 
         let collection_data = json_lines.join("");
-        let status = write_json(collection_data.as_bytes(), output, &uuid);
+        let status = write_json(
+            &serde_json::to_value(&collection_data).unwrap(),
+            output,
+            &uuid,
+        );
         if status.is_err() {
             error!(
                 "[artemis-core] Failed to output {output_name} raw data: {:?}",
@@ -109,7 +117,7 @@ pub(crate) fn raw_jsonl(
         }
     } else {
         let json_data = create_line(None, serde_data)?;
-        let status = write_json(json_data.as_bytes(), output, &uuid);
+        let status = write_json(serde_data, output, &uuid);
 
         if status.is_err() {
             error!(
@@ -132,22 +140,23 @@ fn write_meta_json(
 ) -> Result<(), FormatError> {
     base_data["metadata"]["uuid"] = Value::String(generate_uuid());
     let metadata = serde_json::to_vec(base_data).unwrap_or_default();
-    write_json(&metadata, output, uuid)
+    write_json(&base_data, output, uuid)
 }
 
 /// Write JSONL bytes to file
-fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(), FormatError> {
-    let output_data = if output.compress {
+fn write_json(data: &Value, output: &mut Output, output_name: &str) -> Result<(), FormatError> {
+    let mut output_data = Vec::new();
+    if output.compress {
         let compressed_results = compress_gzip_data(data);
         match compressed_results {
-            Ok(result) => result,
+            Ok(result) => output_data = result,
             Err(err) => {
                 error!("[artemis-core] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         }
     } else {
-        data.to_vec()
+        serde_json::to_writer(&mut output_data, data).unwrap();
     };
 
     let output_result = final_output(&output_data, output, output_name);
@@ -275,7 +284,12 @@ mod tests {
             &serde_json::Value::String(String::from("test")),
         )
         .unwrap();
-        write_json(json_line.as_bytes(), &mut output, &uuid).unwrap();
+        write_json(
+            &serde_json::to_value(&json_line).unwrap(),
+            &mut output,
+            &uuid,
+        )
+        .unwrap();
     }
 
     #[test]

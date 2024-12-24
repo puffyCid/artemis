@@ -257,6 +257,7 @@ mod tests {
                 }),
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
+                compress: false,
             }),
         };
 

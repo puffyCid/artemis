@@ -64,7 +64,7 @@ pub(crate) fn parse_search(
         };
 
         let mut doc_ids =
-            get_document_ids(&gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -85,7 +85,7 @@ pub(crate) fn parse_search(
         };
 
         let mut doc_ids =
-            get_document_ids(&gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -158,7 +158,7 @@ pub(crate) fn get_properties(
             .entry(String::from("SystemIndex_PropertyStore"))
             .or_insert(Vec::new())
             .append(
-                &mut property_rows
+                property_rows
                     .get_mut("SystemIndex_PropertyStore")
                     .unwrap_or(&mut Vec::new()),
             );
@@ -193,7 +193,7 @@ pub(crate) fn get_properties(
             .entry(String::from("SystemIndex_PropertyStore"))
             .or_insert(Vec::new())
             .append(
-                &mut property_rows
+                property_rows
                     .get_mut("SystemIndex_PropertyStore")
                     .unwrap_or(&mut Vec::new()),
             );
@@ -296,7 +296,7 @@ pub(crate) fn parse_search_path(
         };
 
         let mut doc_ids =
-            get_document_ids(&gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -331,7 +331,7 @@ pub(crate) fn parse_search_path(
         };
 
         let mut doc_ids =
-            get_document_ids(&gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);

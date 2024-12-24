@@ -94,14 +94,14 @@ pub(crate) fn grab_logs(
         }
 
         let serde_data_result = serde_json::to_value(&results);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!("[unifiedlogs] Failed to serialize leftover unified logs: {err:?}");
                 continue;
             }
         };
-        output_data(&serde_data, "unifiedlogs", output, start_time, filter)?;
+        output_data(&mut serde_data, "unifiedlogs", output, start_time, filter)?;
     }
     Ok(())
 }
@@ -168,7 +168,7 @@ fn parse_trace_files(
         missing_data.push(missing_logs);
 
         let serde_data_result = serde_json::to_value(results);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!(
@@ -179,7 +179,7 @@ fn parse_trace_files(
             }
         };
         output_data(
-            &serde_data,
+            &mut serde_data,
             "unifiedlogs",
             output,
             &options.start_time,

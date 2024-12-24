@@ -450,7 +450,7 @@ fn output_messages(
         return Ok(());
     }
     let serde_data_result = serde_json::to_value(messages);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[outlook] Failed to serialize Outlook messages: {err:?}");
@@ -458,7 +458,7 @@ fn output_messages(
         }
     };
     let result = output_data(
-        &serde_data,
+        &mut serde_data,
         "outlook",
         output,
         &options.start_time,

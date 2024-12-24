@@ -12,7 +12,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), Syste
 
     let system_data = get_info();
     let serde_data_result = serde_json::to_value(system_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize systeminfo: {err:?}");
@@ -21,7 +21,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), Syste
     };
 
     let output_name = "systeminfo";
-    let status = output_data(&serde_data, output_name, output, &start_time, filter);
+    let status = output_data(&mut serde_data, output_name, output, &start_time, filter);
 
     if status.is_err() {
         error!(

@@ -76,14 +76,14 @@ pub(crate) fn parse_store(
 
         if entries.len() >= limit {
             let serde_data_result = serde_json::to_value(&entries);
-            let serde_data = match serde_data_result {
+            let mut serde_data = match serde_data_result {
                 Ok(results) => results,
                 Err(err) => {
                     error!("[spotlight] Failed to serialize spotlight data: {err:?}");
                     continue;
                 }
             };
-            let result = output_data(&serde_data, "spotlight", output, start_time, filter);
+            let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
             if result.is_err() {
                 error!(
                     "[spotlight] Could not output spotlight data: {:?}",
@@ -97,14 +97,14 @@ pub(crate) fn parse_store(
 
     if !entries.is_empty() {
         let serde_data_result = serde_json::to_value(&entries);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!("[spotlight] Failed to serialize last spotlight data: {err:?}");
                 return Err(SpotlightError::Serialize);
             }
         };
-        let result = output_data(&serde_data, "spotlight", output, start_time, filter);
+        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
         if result.is_err() {
             error!(
                 "[spotlight] Could not output last spotlight data: {:?}",

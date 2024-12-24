@@ -45,7 +45,7 @@ pub(crate) fn prefetch(
     };
 
     let serde_data_result = serde_json::to_value(pf_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize prefetch: {err:?}");
@@ -54,7 +54,7 @@ pub(crate) fn prefetch(
     };
 
     let output_name = "prefetch";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `EventLogs` artifact
@@ -128,7 +128,7 @@ pub(crate) fn shimdb(
     };
 
     let serde_data_result = serde_json::to_value(sdb_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Shimdb: {err:?}");
@@ -137,7 +137,7 @@ pub(crate) fn shimdb(
     };
 
     let output_name = "shimdb";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `UserAssist` entries
@@ -158,7 +158,7 @@ pub(crate) fn userassist(
     };
 
     let serde_data_result = serde_json::to_value(assist_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize UserAssist: {err:?}");
@@ -166,7 +166,7 @@ pub(crate) fn userassist(
         }
     };
     let output_name = "userassist";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `Shimcache` entries
@@ -187,7 +187,7 @@ pub(crate) fn shimcache(
     };
 
     let serde_data_result = serde_json::to_value(shim_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Shimcache: {err:?}");
@@ -195,7 +195,7 @@ pub(crate) fn shimcache(
         }
     };
     let output_name = "shimcache";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `Shellbag` entries
@@ -217,7 +217,7 @@ pub(crate) fn shellbags(
     }
 
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Shellbags: {err:?}");
@@ -225,7 +225,7 @@ pub(crate) fn shellbags(
         }
     };
     let output_name = "shellbags";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `Amcache` entries
@@ -247,7 +247,7 @@ pub(crate) fn amcache(
     }
 
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Amcache: {err:?}");
@@ -255,7 +255,7 @@ pub(crate) fn amcache(
         }
     };
     let output_name = "amcache";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `Shortcut` data
@@ -276,7 +276,7 @@ pub(crate) fn shortcuts(
     };
 
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize shortcuts: {err:?}");
@@ -284,7 +284,7 @@ pub(crate) fn shortcuts(
         }
     };
     let output_name = "shortcuts";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `UsnJrnl` data
@@ -305,7 +305,7 @@ pub(crate) fn usnjrnl(
     };
 
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize usnjrnl: {err:?}");
@@ -313,7 +313,7 @@ pub(crate) fn usnjrnl(
         }
     };
     let output_name = "usnjrnl";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `Bits` data
@@ -334,7 +334,7 @@ pub(crate) fn bits(
     };
 
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize bits: {err:?}");
@@ -342,7 +342,7 @@ pub(crate) fn bits(
         }
     };
     let output_name = "bits";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get Windows `SRUM` data
@@ -396,7 +396,7 @@ pub(crate) fn users_windows(
         }
     };
     let serde_data_result = serde_json::to_value(entries);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize users: {err:?}");
@@ -404,7 +404,7 @@ pub(crate) fn users_windows(
         }
     };
     let output_name = "users-windows";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `Schedule Tasks` artifact
@@ -425,7 +425,7 @@ pub(crate) fn tasks(
     };
 
     let serde_data_result = serde_json::to_value(task_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize tasks: {err:?}");
@@ -434,7 +434,7 @@ pub(crate) fn tasks(
     };
 
     let output_name = "tasks";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `Services` artifact
@@ -455,7 +455,7 @@ pub(crate) fn services(
     };
 
     let serde_data_result = serde_json::to_value(service_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize services: {err:?}");
@@ -464,7 +464,7 @@ pub(crate) fn services(
     };
 
     let output_name = "services";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `Jumplists` artifact
@@ -485,7 +485,7 @@ pub(crate) fn jumplists(
     };
 
     let serde_data_result = serde_json::to_value(jumplist_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize jumplists: {err:?}");
@@ -494,7 +494,7 @@ pub(crate) fn jumplists(
     };
 
     let output_name = "jumplists";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `Recycle Bin` artifact
@@ -515,7 +515,7 @@ pub(crate) fn recycle_bin(
     };
 
     let serde_data_result = serde_json::to_value(bin_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize recycle bin: {err:?}");
@@ -524,7 +524,7 @@ pub(crate) fn recycle_bin(
     };
 
     let output_name = "recyclebin";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `WMI Persist` artifact
@@ -545,7 +545,7 @@ pub(crate) fn wmi_persist(
     };
 
     let serde_data_result = serde_json::to_value(wmi_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize recycle bin: {err:?}");
@@ -554,7 +554,7 @@ pub(crate) fn wmi_persist(
     };
 
     let output_name = "wmipersist";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse the Windows `Outlook` artifact
@@ -577,7 +577,7 @@ pub(crate) fn outlook(
 
 /// Output Windows artifacts
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
