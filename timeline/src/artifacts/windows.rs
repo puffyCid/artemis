@@ -1,4 +1,7 @@
-use super::files::{extract_filename_times, extract_times};
+use super::{
+    files::{extract_filename_times, extract_times},
+    meta::check_meta,
+};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -122,23 +125,7 @@ pub(crate) fn bits(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 /// Extract all BITS timestamps into separate timestamps
@@ -241,23 +228,7 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 fn extract_shortcut_times(data: &Value) -> Option<HashMap<&str, String>> {
@@ -318,23 +289,7 @@ pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn outlook(data: &mut Value) -> Option<()> {
@@ -385,22 +340,7 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn recycle_bin(data: &mut Value) -> Option<()> {
@@ -539,23 +479,7 @@ pub(crate) fn registry(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
@@ -602,22 +526,7 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
         entries.push(entry.clone());
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
@@ -643,23 +552,7 @@ pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn srum(data: &mut Value) -> Option<()> {
@@ -750,23 +643,7 @@ pub(crate) fn tasks(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 pub(crate) fn userassist(data: &mut Value) -> Option<()> {

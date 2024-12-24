@@ -1,6 +1,8 @@
 use serde_json::Value;
 use std::collections::HashMap;
 
+use super::meta::check_meta;
+
 /// Timeline filelisting info
 pub(crate) fn files(data: &mut Value) -> Option<()> {
     let mut entries = Vec::new();
@@ -24,22 +26,7 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
         }
     }
 
-    let mut has_meta = Value::Null;
-    if let Some(values) = (data.as_array()?).iter().next() {
-        if let Some(value) = values.get("metadata") {
-            has_meta = value.clone();
-        }
-    }
-    if !has_meta.is_null() {
-        for entry in entries.iter_mut() {
-            entry["metadata"] = has_meta.clone();
-        }
-    }
-
-    data.as_array_mut()?.clear();
-    data.as_array_mut()?.append(&mut entries);
-
-    Some(())
+    check_meta(data, &mut entries)
 }
 
 /// Extract each timestamp into its own separate file if required

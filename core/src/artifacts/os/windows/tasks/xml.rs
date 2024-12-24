@@ -72,7 +72,6 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
                 b"Principal" => {
                     let prin_info = parse_principals(&mut reader);
                     principals.push(prin_info);
-                    task_xml.principals = Some(principals.clone());
                 }
                 b"Actions" => {
                     let action_info = parse_actions(&mut reader);
@@ -88,6 +87,7 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
             _ => continue,
         }
     }
+    task_xml.principals = Some(principals);
 
     Ok(task_xml)
 }

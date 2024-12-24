@@ -37,9 +37,9 @@ pub(crate) fn grab_logs(
         oversize: Vec::new(),
     };
 
-    let mut path = String::from("/private/var/db/diagnostics");
+    let mut path = "/private/var/db/diagnostics";
     if options.logarchive_path.is_some() {
-        path = options.logarchive_path.clone().unwrap_or_default();
+        path = options.logarchive_path.as_ref().unwrap().as_str();
     }
 
     // Exclude missing data from returned output. Keep separate until we parse all oversize entries.

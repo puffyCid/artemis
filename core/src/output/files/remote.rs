@@ -413,7 +413,6 @@ impl MicrosoftUpload for AcquireFileApiRemote {
                 "x-mx-meta-endpoint-id",
                 self.output
                     .endpoint_id
-                    .clone()
                     .parse()
                     .unwrap_or(HeaderValue::from_static("")),
             );

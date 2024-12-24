@@ -264,8 +264,7 @@ fn update_shellbags(
                     clsids
                         .get(&format!("{{{}}}", shell.value.to_uppercase()))
                         .unwrap_or(&shell.value)
-                })
-                .clone();
+                });
             format!("{}\\{}", entry.resolve_path, path)
         } else {
             format!("{}\\{}", entry.resolve_path, shell.value)
@@ -304,9 +303,8 @@ fn update_shellbags(
                     .get(&format!("{{{}}}", shell.value.to_uppercase()))
                     .unwrap_or(&shell.value)
             })
-            .clone()
     } else {
-        shell.value.clone()
+        shell.value.as_str()
     };
 
     let bag = Shellbag {
@@ -317,7 +315,7 @@ fn update_shellbags(
         mft_entry: shell.mft_entry,
         mft_sequence: shell.mft_sequence,
         shell_type: shell.shell_type.clone(),
-        resolve_path,
+        resolve_path: resolve_path.to_string(),
         reg_modified: reg_info.last_modified.clone(),
         reg_file: reg_info.reg_file.clone(),
         reg_file_path: reg_info.reg_file_path.clone(),
