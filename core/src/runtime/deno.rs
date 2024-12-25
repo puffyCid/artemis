@@ -123,6 +123,8 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
         runtime::deno::output_data,
@@ -205,7 +207,7 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let mut data = serde_json::Value::String(String::from("test"));
+        let mut data = json!({"test":"test"});
         let status = output_data(&mut data, name, &mut output, &start_time).unwrap();
         assert_eq!(status, ());
     }

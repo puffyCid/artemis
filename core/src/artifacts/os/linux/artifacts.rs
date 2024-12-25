@@ -101,6 +101,8 @@ pub(crate) fn output_data(
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
+    use serde_json::json;
+
     use crate::artifacts::os::linux::artifacts::{journals, logons, output_data, sudo_logs_linux};
     use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
     use crate::structs::toml::Output;
@@ -129,7 +131,7 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let mut data = serde_json::Value::String(String::from("test"));
+        let mut data = json!({"test":"test"});
         let status = output_data(&mut data, name, &mut output, &start_time, &&false).unwrap();
         assert_eq!(status, ());
     }

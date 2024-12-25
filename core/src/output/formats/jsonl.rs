@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
     utils::{
-        compression::compress::compress_gzip_data,
+        compression::compress::compress_gzip_bytes,
         logging::collection_status,
         output::final_output,
         time::{time_now, unixepoch_to_iso},
@@ -15,49 +15,66 @@ use serde_json::{json, Value};
 
 /// Output to `jsonl` files
 pub(crate) fn jsonl_format(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
 ) -> Result<(), FormatError> {
     // Get small amount of system metadata
     let info = get_info_metadata();
-    let mut collection_output = json![{
-        "metadata": {
-            "endpoint_id": output.endpoint_id,
-            "id": output.collection_id,
-            "artifact_name": output_name,
-            "complete_time": unixepoch_to_iso(&(time_now() as i64)),
-            "start_time": unixepoch_to_iso(&(*start_time as i64)),
-            "hostname": info.hostname,
-            "os_version": info.os_version,
-            "platform": info.platform,
-            "kernel_version": info.kernel_version,
-            "load_performance": info.performance
-        }
-    }];
 
     let uuid = generate_uuid();
+    let complete = unixepoch_to_iso(&(time_now() as i64));
+
     // If our data is an array loop through each element and output as a separate line
     if serde_data.is_array() {
-        let empty_vec = Vec::new();
-        let entries = serde_data.as_array().unwrap_or(&empty_vec);
+        let mut empty_vec = Vec::new();
+        let entries = serde_data.as_array_mut().unwrap_or(&mut empty_vec);
         // If array is empty just output metadata
         if entries.is_empty() {
-            write_meta_json(&mut collection_output, output, &uuid)?;
+            let collection_output = json![{
+                    "endpoint_id": output.endpoint_id,
+                    "id": output.collection_id,
+                    "uuid": uuid,
+                    "artifact_name": output_name,
+                    "complete_time": unixepoch_to_iso(&(time_now() as i64)),
+                    "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                    "hostname": info.hostname,
+                    "os_version": info.os_version,
+                    "platform": info.platform,
+                    "kernel_version": info.kernel_version,
+                    "load_performance": info.performance
+            }];
+            write_json(
+                &serde_json::to_vec(&collection_output).unwrap_or_default(),
+                output,
+                &uuid,
+            )?;
         } else {
             let mut json_lines = Vec::new();
             for entry in entries {
-                let line = create_line(Some(&mut collection_output), entry)?;
+                if entry.is_object() {
+                    entry["collection_metadata"] = json![{
+                            "endpoint_id": output.endpoint_id,
+                            "uuid": uuid,
+                            "id": output.collection_id,
+                            "artifact_name": output_name,
+                            "complete_time": complete,
+                            "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                            "hostname": info.hostname,
+                            "os_version": info.os_version,
+                            "platform": info.platform,
+                            "kernel_version": info.kernel_version,
+                            "load_performance": info.performance
+                    }];
+                }
+
+                let line = create_line(entry)?;
                 json_lines.push(line);
             }
 
             let collection_data = json_lines.join("");
-            let status = write_json(
-                &serde_json::to_value(collection_data).unwrap(),
-                output,
-                &uuid,
-            );
+            let status = write_json(collection_data.as_bytes(), output, &uuid);
             if status.is_err() {
                 error!(
                     "[artemis-core] Failed to output {output_name} data: {:?}",
@@ -66,8 +83,27 @@ pub(crate) fn jsonl_format(
             }
         }
     } else {
-        let json_data = create_line(Some(&mut collection_output), serde_data)?;
-        let status = write_json(serde_data, output, &uuid);
+        if serde_data.is_object() {
+            serde_data["collection_metadata"] = json![{
+                    "endpoint_id": output.endpoint_id,
+                    "uuid": uuid,
+                    "id": output.collection_id,
+                    "artifact_name": output_name,
+                    "complete_time": complete,
+                    "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                    "hostname": info.hostname,
+                    "os_version": info.os_version,
+                    "platform": info.platform,
+                    "kernel_version": info.kernel_version,
+                    "load_performance": info.performance
+            }];
+        }
+
+        let status = write_json(
+            &serde_json::to_vec(serde_data).unwrap_or_default(),
+            output,
+            &uuid,
+        );
 
         if status.is_err() {
             error!(
@@ -99,16 +135,12 @@ pub(crate) fn raw_jsonl(
 
         let mut json_lines = Vec::new();
         for entry in entries {
-            let line = create_line(None, entry)?;
+            let line = create_line(entry)?;
             json_lines.push(line);
         }
 
         let collection_data = json_lines.join("");
-        let status = write_json(
-            &serde_json::to_value(&collection_data).unwrap(),
-            output,
-            &uuid,
-        );
+        let status = write_json(collection_data.as_bytes(), output, &uuid);
         if status.is_err() {
             error!(
                 "[artemis-core] Failed to output {output_name} raw data: {:?}",
@@ -116,8 +148,11 @@ pub(crate) fn raw_jsonl(
             );
         }
     } else {
-        let json_data = create_line(None, serde_data)?;
-        let status = write_json(serde_data, output, &uuid);
+        let status = write_json(
+            &serde_json::to_vec(serde_data).unwrap_or_default(),
+            output,
+            &uuid,
+        );
 
         if status.is_err() {
             error!(
@@ -132,34 +167,31 @@ pub(crate) fn raw_jsonl(
     Ok(())
 }
 
-/// Write only the metadata JSON to the file
-fn write_meta_json(
-    base_data: &mut Value,
-    output: &mut Output,
-    uuid: &str,
-) -> Result<(), FormatError> {
-    base_data["metadata"]["uuid"] = Value::String(generate_uuid());
-    let metadata = serde_json::to_vec(base_data).unwrap_or_default();
-    write_json(&base_data, output, uuid)
-}
-
 /// Write JSONL bytes to file
-fn write_json(data: &Value, output: &mut Output, output_name: &str) -> Result<(), FormatError> {
-    let mut output_data = Vec::new();
+fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(), FormatError> {
     if output.compress {
-        let compressed_results = compress_gzip_data(data);
-        match compressed_results {
-            Ok(result) => output_data = result,
+        let compressed_results = compress_gzip_bytes(data);
+        let compressed_data = match compressed_results {
+            Ok(result) => result,
             Err(err) => {
                 error!("[artemis-core] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
-        }
-    } else {
-        serde_json::to_writer(&mut output_data, data).unwrap();
-    };
+        };
 
-    let output_result = final_output(&output_data, output, output_name);
+        let output_result = final_output(&compressed_data, output, output_name);
+        match output_result {
+            Ok(_) => info!("[artemis-core] {output_name} jsonl output success"),
+            Err(err) => {
+                error!("[artemis-core] Failed to output {output_name} jsonl: {err:?}");
+                return Err(FormatError::Output);
+            }
+        }
+
+        return Ok(());
+    }
+
+    let output_result = final_output(data, output, output_name);
     match output_result {
         Ok(_) => info!("[artemis-core] {output_name} jsonl output success"),
         Err(err) => {
@@ -172,20 +204,8 @@ fn write_json(data: &Value, output: &mut Output, output_name: &str) -> Result<()
 }
 
 /// Create the a single JSON line
-fn create_line(
-    base_data: Option<&mut Value>,
-    artifact_data: &Value,
-) -> Result<String, FormatError> {
-    let value_data = if base_data.is_some() {
-        let base = base_data.unwrap();
-        base["data"] = artifact_data.clone();
-        base["metadata"]["uuid"] = Value::String(generate_uuid());
-        base
-    } else {
-        artifact_data
-    };
-
-    let serde_collection_results = serde_json::to_string(value_data);
+fn create_line(artifact_data: &Value) -> Result<String, FormatError> {
+    let serde_collection_results = serde_json::to_string(artifact_data);
     let serde_collection = match serde_collection_results {
         Ok(results) => format!("{results}\n"),
         Err(err) => {
@@ -198,13 +218,14 @@ fn create_line(
 
 #[cfg(test)]
 mod tests {
-    use super::{create_line, raw_jsonl, write_json, write_meta_json};
+    use serde_json::json;
+
+    use super::{create_line, raw_jsonl, write_json};
     use crate::{
         output::formats::jsonl::jsonl_format,
         structs::toml::Output,
         utils::{time::time_now, uuid::generate_uuid},
     };
-    use serde_json::json;
 
     #[test]
     fn test_jsonl_format() {
@@ -225,8 +246,8 @@ mod tests {
         let start_time = time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        jsonl_format(&data, name, &mut output, &start_time).unwrap();
+        let mut data = json!({"test":"test"});
+        jsonl_format(&mut data, name, &mut output, &start_time).unwrap();
     }
 
     #[test]
@@ -253,16 +274,6 @@ mod tests {
 
     #[test]
     fn test_write_json() {
-        let mut collection_output = json![{
-            "metadata":{
-                "endpoint_id": "test",
-                "id": "1",
-                "artifact_name": "test",
-                "complete_time": time_now(),
-                "start_time": 1,
-            }
-        }];
-
         let mut output = Output {
             name: String::from("format_test"),
             directory: String::from("./tmp"),
@@ -279,64 +290,15 @@ mod tests {
         };
 
         let uuid = generate_uuid();
-        let json_line = create_line(
-            Some(&mut collection_output),
-            &serde_json::Value::String(String::from("test")),
-        )
-        .unwrap();
-        write_json(
-            &serde_json::to_value(&json_line).unwrap(),
-            &mut output,
-            &uuid,
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn test_write_meta_json() {
-        let mut collection_output = json![{
-            "metadata":{
-                "endpoint_id": "test",
-                "id": "1",
-                "artifact_name": "test",
-                "complete_time": time_now(),
-                "start_time": 1,
-            }
-        }];
-        let mut output = Output {
-            name: String::from("format_test"),
-            directory: String::from("./tmp"),
-            format: String::from("jsonl"),
-            compress: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
-            endpoint_id: String::from("abcd"),
-            collection_id: 0,
-            output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
-        };
-
-        let uuid = generate_uuid();
-        write_meta_json(&mut collection_output, &mut output, &uuid).unwrap();
+        let json_line = create_line(&serde_json::Value::String(String::from("test"))).unwrap();
+        write_json(json_line.as_bytes(), &mut output, &uuid).unwrap();
     }
 
     #[test]
     fn test_create_line() {
-        let mut collection_output = json![{
-            "metadata":{
-                "endpoint_id": "test",
-                "id": "1",
-                "artifact_name": "test",
-                "complete_time": time_now(),
-                "start_time": 1,
-            }
-        }];
-
         let mut data = serde_json::Value::String(String::from("test"));
 
-        let line = create_line(Some(&mut collection_output), &mut data).unwrap();
+        let line = create_line(&mut data).unwrap();
         assert!(!line.is_empty());
     }
 }

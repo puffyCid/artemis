@@ -408,6 +408,7 @@ mod tests {
         },
         utils::time,
     };
+    use serde_json::json;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -539,7 +540,7 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
+        let mut data = json!({"test":"test"});
         let status = output_data(&data, name, &mut output, &start_time, &&false).unwrap();
         assert_eq!(status, ());
     }
