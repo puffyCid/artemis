@@ -541,7 +541,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&data, name, &mut output, &start_time, &&false).unwrap();
+        let status = output_data(&mut data, name, &mut output, &start_time, &&false).unwrap();
         assert_eq!(status, ());
     }
 }
