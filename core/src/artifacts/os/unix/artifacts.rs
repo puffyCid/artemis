@@ -22,7 +22,7 @@ pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), Unix
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize zsh history: {err:?}");
@@ -31,7 +31,7 @@ pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), Unix
     };
 
     let output_name = "zsh_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get bash history depending on target OS
@@ -48,7 +48,7 @@ pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), Uni
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize bash history: {err:?}");
@@ -57,7 +57,7 @@ pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), Uni
     };
 
     let output_name = "bash_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Get python history depending on target OS
@@ -74,7 +74,7 @@ pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), U
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize python history: {err:?}");
@@ -83,7 +83,7 @@ pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), U
     };
 
     let output_name = "python_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse cron data
@@ -100,7 +100,7 @@ pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArt
     };
 
     let serde_data_result = serde_json::to_value(cron_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize cron data: {err:?}");
@@ -109,12 +109,12 @@ pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArt
     };
 
     let output_name = "cron";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 // Output unix artifacts
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
@@ -139,6 +139,7 @@ mod tests {
         structs::toml::Output,
         utils::time,
     };
+    use serde_json::json;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -194,8 +195,8 @@ mod tests {
         let start_time = time::time_now();
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        let status = output_data(&data, name, &mut output, &start_time, &false).unwrap();
+        let mut data = json!({"test":"test"});
+        let status = output_data(&mut data, name, &mut output, &start_time, &false).unwrap();
         assert_eq!(status, ());
     }
 }

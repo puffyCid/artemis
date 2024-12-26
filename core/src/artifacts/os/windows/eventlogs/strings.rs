@@ -248,7 +248,7 @@ fn update_resource(templates: &mut HashMap<String, TemplateResource>, file: &str
     }
 
     let temp_info = TemplateResource {
-        path: real_path.clone(),
+        path: real_path,
         resource_data,
         message_table: None,
         wevt_template: None,

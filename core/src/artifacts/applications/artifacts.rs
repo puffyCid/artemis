@@ -23,7 +23,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Safari history: {err:?}");
@@ -32,7 +32,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
     };
 
     let output_name = "safari_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse macOS Safari downloads
@@ -51,7 +51,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
     };
 
     let serde_data_result = serde_json::to_value(download_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Safari downloads: {err:?}");
@@ -60,7 +60,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
     };
 
     let output_name = "safari_downloads";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse `Firefox` history
@@ -77,7 +77,7 @@ pub(crate) fn firefox_history(output: &mut Output, filter: &bool) -> Result<(), 
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Firefox history: {err:?}");
@@ -86,7 +86,7 @@ pub(crate) fn firefox_history(output: &mut Output, filter: &bool) -> Result<(), 
     };
 
     let output_name = "firefox_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse `Firefox` downloads
@@ -106,7 +106,7 @@ pub(crate) fn firefox_downloads(
     };
 
     let serde_data_result = serde_json::to_value(download_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Firefox downloads: {err:?}");
@@ -115,7 +115,7 @@ pub(crate) fn firefox_downloads(
     };
 
     let output_name = "firefox_downloads";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse Chromium history
@@ -132,7 +132,7 @@ pub(crate) fn chromium_history(output: &mut Output, filter: &bool) -> Result<(),
     };
 
     let serde_data_result = serde_json::to_value(history_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Chromium history: {err:?}");
@@ -141,7 +141,7 @@ pub(crate) fn chromium_history(output: &mut Output, filter: &bool) -> Result<(),
     };
 
     let output_name = "chromium_history";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 /// Parse Chromium downloads
@@ -161,7 +161,7 @@ pub(crate) fn chromium_downloads(
     };
 
     let serde_data_result = serde_json::to_value(download_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize Chromium downloads: {err:?}");
@@ -170,12 +170,12 @@ pub(crate) fn chromium_downloads(
     };
 
     let output_name = "chromium_downloads";
-    output_data(&serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, &start_time, filter)
 }
 
 // Output application artifacts
 pub(crate) fn output_data(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: &u64,

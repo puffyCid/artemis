@@ -37,9 +37,9 @@ pub(crate) fn grab_logs(
         oversize: Vec::new(),
     };
 
-    let mut path = String::from("/private/var/db/diagnostics");
+    let mut path = "/private/var/db/diagnostics";
     if options.logarchive_path.is_some() {
-        path = options.logarchive_path.clone().unwrap_or_default();
+        path = options.logarchive_path.as_ref().unwrap().as_str();
     }
 
     // Exclude missing data from returned output. Keep separate until we parse all oversize entries.
@@ -94,14 +94,14 @@ pub(crate) fn grab_logs(
         }
 
         let serde_data_result = serde_json::to_value(&results);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!("[unifiedlogs] Failed to serialize leftover unified logs: {err:?}");
                 continue;
             }
         };
-        output_data(&serde_data, "unifiedlogs", output, start_time, filter)?;
+        output_data(&mut serde_data, "unifiedlogs", output, start_time, filter)?;
     }
     Ok(())
 }
@@ -168,7 +168,7 @@ fn parse_trace_files(
         missing_data.push(missing_logs);
 
         let serde_data_result = serde_json::to_value(results);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!(
@@ -179,7 +179,7 @@ fn parse_trace_files(
             }
         };
         output_data(
-            &serde_data,
+            &mut serde_data,
             "unifiedlogs",
             output,
             &options.start_time,

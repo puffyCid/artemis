@@ -36,6 +36,9 @@ pub(crate) enum Commands {
         /// Optional output directory for storing results
         #[arg(long, default_value_t = String::from("./tmp"))]
         output_dir: String,
+        /// GZIP Compress results
+        #[arg(long)]
+        compress: bool,
     },
 }
 
@@ -58,6 +61,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             artifact,
             format,
             output_dir,
+            compress,
         } => {
             if artifact.is_none() {
                 println!("No artifact provided");
@@ -66,6 +70,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
 
             let arti = artifact.as_ref().unwrap();
             collector.artifacts.push(setup_artifact(arti));
+            collector.output.compress = *compress;
 
             if !format.is_empty() {
                 collector.output.format = format.to_string().to_lowercase();
@@ -535,6 +540,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -555,6 +561,7 @@ mod tests {
                 yara_rule: None,
             }),
             format: String::from("json"),
+            compress: false,
             output_dir: String::from("./tmp"),
         };
 
@@ -568,6 +575,7 @@ mod tests {
             artifact: Some(Chromiumdownloads {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -577,6 +585,7 @@ mod tests {
             artifact: Some(Chromiumhistory {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -586,6 +595,7 @@ mod tests {
             artifact: Some(Firefoxdownloads {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -595,6 +605,7 @@ mod tests {
             artifact: Some(Firefoxhistory {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -604,6 +615,7 @@ mod tests {
             artifact: Some(Launchd { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: true,
         };
 
         let out = output();
@@ -613,6 +625,7 @@ mod tests {
             artifact: Some(UsersMacos { alt_path: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -624,6 +637,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -633,6 +647,7 @@ mod tests {
             artifact: Some(Cron {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -642,6 +657,7 @@ mod tests {
             artifact: Some(Systeminfo {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -651,6 +667,7 @@ mod tests {
             artifact: Some(GroupsMacos { alt_path: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -660,6 +677,7 @@ mod tests {
             artifact: Some(Execpolicy { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -669,6 +687,7 @@ mod tests {
             artifact: Some(Shellhistory {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -678,6 +697,7 @@ mod tests {
             artifact: Some(Fsevents { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -687,6 +707,7 @@ mod tests {
             artifact: Some(Emond { alt_path: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -696,6 +717,7 @@ mod tests {
             artifact: Some(SafariDownloads {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -705,6 +727,7 @@ mod tests {
             artifact: Some(SafariHistory {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -720,6 +743,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -735,6 +759,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -753,6 +778,7 @@ mod tests {
             artifact: Some(Logons { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -764,6 +790,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -772,6 +799,7 @@ mod tests {
         let command = Commands::Acquire {
             artifact: Some(SudologsLinux { alt_path: None }),
             format: String::from("json"),
+            compress: false,
             output_dir: String::from("./tmp"),
         };
 
@@ -789,6 +817,8 @@ mod tests {
                 path_regex: None,
             }),
             format: String::from("json"),
+            compress: false,
+
             output_dir: String::from("./tmp"),
         };
 
@@ -809,6 +839,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -821,6 +852,7 @@ mod tests {
             artifact: Some(Prefetch { alt_dir: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -833,6 +865,7 @@ mod tests {
             artifact: Some(Services { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -842,6 +875,7 @@ mod tests {
             artifact: Some(Shimcache { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -851,6 +885,7 @@ mod tests {
             artifact: Some(Shimdb { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -860,6 +895,7 @@ mod tests {
             artifact: Some(Recyclebin { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -869,6 +905,7 @@ mod tests {
             artifact: Some(UsersWindows { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -878,6 +915,7 @@ mod tests {
             artifact: Some(Tasks { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -887,6 +925,7 @@ mod tests {
             artifact: Some(Amcache { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -902,6 +941,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -914,6 +954,7 @@ mod tests {
             artifact: Some(Srum { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -929,6 +970,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();
@@ -952,6 +994,7 @@ mod tests {
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
+            compress: false,
         };
 
         let out = output();

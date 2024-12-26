@@ -357,7 +357,7 @@ fn walk_ntfs(
 /// Send raw file data to configured output preference based on `Output` parameter
 fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, filter: &bool) {
     let serde_data_result = serde_json::to_value(filelist);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[ntfs] Failed to serialize raw files: {err:?}");
@@ -365,7 +365,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, f
         }
     };
 
-    let output_result = output_data(&serde_data, "rawfiles", output, start_time, filter);
+    let output_result = output_data(&mut serde_data, "rawfiles", output, start_time, filter);
     match output_result {
         Ok(_) => {}
         Err(err) => {

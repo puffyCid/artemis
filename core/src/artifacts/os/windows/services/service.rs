@@ -99,7 +99,7 @@ fn metadata(value: &KeyValue, service: &mut ServicesData) {
     match value.value.as_str() {
         "Description" => service.description.clone_from(&value.data),
         "DisplayName" => service.display_name.clone_from(&value.data),
-        "ErrorControl" => service.error_control = error_control(&value.data.clone()),
+        "ErrorControl" => service.error_control = error_control(&value.data),
         "FailureActions" => {
             // Attempt to Service actions if Service fails
             (service.failure_actions, service.reset_period) =
@@ -107,9 +107,9 @@ fn metadata(value: &KeyValue, service: &mut ServicesData) {
         }
         "ImagePath" => service.path.clone_from(&value.data),
         "ObjectName" => service.account.clone_from(&value.data),
-        "ServiceSidType" => service.state = service_state(&value.data.clone()),
-        "Start" => service.start_mode = start_mode(&value.data.clone()),
-        "Type" => service.service_type = service_type(&value.data.clone()),
+        "ServiceSidType" => service.state = service_state(&value.data),
+        "Start" => service.start_mode = start_mode(&value.data),
+        "Type" => service.service_type = service_type(&value.data),
         "FailureCommand" => service.failure_command.clone_from(&value.data),
         "RequiredPrivileges" => {
             service.required_privileges = value.data.split('\n').map(str::to_string).collect();

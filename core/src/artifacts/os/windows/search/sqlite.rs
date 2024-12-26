@@ -85,7 +85,7 @@ pub(crate) fn parse_search_sqlite(
                         // We set a limit just in case a system has indexed alot of data
                         if entries.len() == limit {
                             let serde_data_result = serde_json::to_value(&entries);
-                            let serde_data = match serde_data_result {
+                            let mut serde_data = match serde_data_result {
                                 Ok(results) => results,
                                 Err(err) => {
                                     error!(
@@ -95,7 +95,7 @@ pub(crate) fn parse_search_sqlite(
                                 }
                             };
                             let result =
-                                output_data(&serde_data, "search", output, &start_time, filter);
+                                output_data(&mut serde_data, "search", output, &start_time, filter);
                             match result {
                                 Ok(_result) => {}
                                 Err(err) => {
@@ -118,14 +118,14 @@ pub(crate) fn parse_search_sqlite(
 
             // Output any leftover data
             let serde_data_result = serde_json::to_value(&entries);
-            let serde_data = match serde_data_result {
+            let mut serde_data = match serde_data_result {
                 Ok(results) => results,
                 Err(err) => {
                     error!("[search] Failed to serialize search SQLITE data: {err:?}");
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&serde_data, "search", output, &start_time, filter);
+            let result = output_data(&mut serde_data, "search", output, &start_time, filter);
             match result {
                 Ok(_result) => {}
                 Err(err) => {

@@ -63,12 +63,8 @@ pub(crate) fn parse_search(
             }
         };
 
-        let mut doc_ids = get_document_ids(
-            &gather_rows
-                .get("SystemIndex_Gthr")
-                .unwrap_or(&Vec::new())
-                .clone(),
-        );
+        let mut doc_ids =
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -88,12 +84,8 @@ pub(crate) fn parse_search(
             }
         };
 
-        let mut doc_ids = get_document_ids(
-            &gather_rows
-                .get("SystemIndex_Gthr")
-                .unwrap_or(&Vec::new())
-                .clone(),
-        );
+        let mut doc_ids =
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -152,7 +144,7 @@ pub(crate) fn get_properties(
             "WorkID",
             doc_ids,
         );
-        let property_rows = match rows_results {
+        let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
                 error!(
@@ -166,10 +158,9 @@ pub(crate) fn get_properties(
             .entry(String::from("SystemIndex_PropertyStore"))
             .or_insert(Vec::new())
             .append(
-                &mut property_rows
-                    .get("SystemIndex_PropertyStore")
-                    .unwrap_or(&Vec::new())
-                    .clone(),
+                property_rows
+                    .get_mut("SystemIndex_PropertyStore")
+                    .unwrap_or(&mut Vec::new()),
             );
 
         if doc_ids.is_empty() {
@@ -188,7 +179,7 @@ pub(crate) fn get_properties(
             "WorkID",
             doc_ids,
         );
-        let property_rows = match rows_results {
+        let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
                 error!(
@@ -202,10 +193,9 @@ pub(crate) fn get_properties(
             .entry(String::from("SystemIndex_PropertyStore"))
             .or_insert(Vec::new())
             .append(
-                &mut property_rows
-                    .get("SystemIndex_PropertyStore")
-                    .unwrap_or(&Vec::new())
-                    .clone(),
+                property_rows
+                    .get_mut("SystemIndex_PropertyStore")
+                    .unwrap_or(&mut Vec::new()),
             );
     }
 
@@ -305,12 +295,8 @@ pub(crate) fn parse_search_path(
             }
         };
 
-        let mut doc_ids = get_document_ids(
-            &gather_rows
-                .get("SystemIndex_Gthr")
-                .unwrap_or(&Vec::new())
-                .clone(),
-        );
+        let mut doc_ids =
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
@@ -344,12 +330,8 @@ pub(crate) fn parse_search_path(
             }
         };
 
-        let mut doc_ids = get_document_ids(
-            &gather_rows
-                .get("SystemIndex_Gthr")
-                .unwrap_or(&Vec::new())
-                .clone(),
-        );
+        let mut doc_ids =
+            get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);

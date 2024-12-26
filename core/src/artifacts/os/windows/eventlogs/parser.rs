@@ -184,7 +184,7 @@ fn alt_eventlogs(
 
     if templates.is_some() && options.dump_templates {
         output_logs(
-            &serde_json::to_value(&templates),
+            &mut serde_json::to_value(&templates),
             output,
             filter,
             &0,
@@ -241,7 +241,7 @@ fn read_directory(
 
     if templates.is_some() && options.dump_templates {
         output_logs(
-            &serde_json::to_value(&templates),
+            &mut serde_json::to_value(&templates),
             output,
             filter,
             &0,
@@ -313,7 +313,7 @@ fn read_eventlogs(
         }
 
         if eventlog_records.len() == limit {
-            let (serde_data_result, raw_output) = if let Some(resource) = resources {
+            let (mut serde_data_result, raw_output) = if let Some(resource) = resources {
                 let mut all_messages = Vec::new();
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
@@ -338,7 +338,7 @@ fn read_eventlogs(
             // If we failed to combine log data and strings. Then output the raw data
             if !raw_output.is_empty() {
                 output_logs(
-                    &serde_json::to_value(&raw_output),
+                    &mut serde_json::to_value(&raw_output),
                     output,
                     filter,
                     &start_time,
@@ -348,7 +348,7 @@ fn read_eventlogs(
             }
 
             output_logs(
-                &serde_data_result,
+                &mut serde_data_result,
                 output,
                 filter,
                 &start_time,
@@ -361,7 +361,7 @@ fn read_eventlogs(
     }
 
     if !eventlog_records.is_empty() {
-        let (serde_data_result, raw_output) = if let Some(resource) = resources {
+        let (mut serde_data_result, raw_output) = if let Some(resource) = resources {
             let mut all_messages = Vec::new();
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
@@ -385,7 +385,7 @@ fn read_eventlogs(
         // If we failed to combine log data and strings. Then output the raw data
         if !raw_output.is_empty() {
             output_logs(
-                &serde_json::to_value(&raw_output),
+                &mut serde_json::to_value(&raw_output),
                 output,
                 filter,
                 &start_time,
@@ -395,7 +395,7 @@ fn read_eventlogs(
         }
 
         output_logs(
-            &serde_data_result,
+            &mut serde_data_result,
             output,
             filter,
             &start_time,
@@ -409,7 +409,7 @@ fn read_eventlogs(
 
 /// Output log results
 fn output_logs(
-    result: &Result<Value, Error>,
+    result: &mut Result<Value, Error>,
     output: &mut Output,
     filter: &bool,
     start_time: &u64,
@@ -578,7 +578,7 @@ mod tests {
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
-        let test = json!({"key": "value"});
-        output_logs(&Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
+        let mut test = json!({"key": "value"});
+        output_logs(&mut Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
     }
 }

@@ -31,7 +31,7 @@ pub(crate) fn processes(
     };
 
     let serde_data_result = serde_json::to_value(proc_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!("[artemis-core] Failed to serialize processes: {err:?}");
@@ -40,7 +40,7 @@ pub(crate) fn processes(
     };
 
     let output_name = "processes";
-    let status = output_artifact(&serde_data, output_name, output, &start_time, filter);
+    let status = output_artifact(&mut serde_data, output_name, output, &start_time, filter);
     if status.is_err() {
         error!(
             "[artemis-core] Could not output data: {:?}",

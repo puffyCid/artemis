@@ -147,7 +147,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
     };
 
     let serde_data_result = serde_json::to_value(&reg_data);
-    let serde_data = match serde_data_result {
+    let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
             error!(
@@ -158,7 +158,13 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         }
     };
 
-    let result = output_data(&serde_data, "registry", output, &start_time, &params.filter);
+    let result = output_data(
+        &mut serde_data,
+        "registry",
+        output,
+        &start_time,
+        &params.filter,
+    );
     match result {
         Ok(_) => Ok(()),
         Err(err) => {
@@ -225,7 +231,7 @@ fn parse_user_hives(
         };
 
         let serde_data_result = serde_json::to_value(&reg_data);
-        let serde_data = match serde_data_result {
+        let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
                 error!(
@@ -236,7 +242,13 @@ fn parse_user_hives(
             }
         };
 
-        let result = output_data(&serde_data, "registry", output, &start_time, &params.filter);
+        let result = output_data(
+            &mut serde_data,
+            "registry",
+            output,
+            &start_time,
+            &params.filter,
+        );
         match result {
             Ok(_) => {}
             Err(err) => {

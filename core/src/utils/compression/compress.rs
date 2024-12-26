@@ -2,21 +2,15 @@ use super::error::CompressionError;
 use crate::filesystem::files::read_file;
 use flate2::{write::GzEncoder, Compression};
 use log::{error, warn};
+use serde_json::Value;
 use std::{fs::File, io::Write};
 use walkdir::WalkDir;
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 /// Compress provided data with GZIP
-pub(crate) fn compress_gzip_data(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
+pub(crate) fn compress_gzip_data(serde_data: &Value) -> Result<Vec<u8>, CompressionError> {
     let mut gz = GzEncoder::new(Vec::new(), Compression::default());
-    let status = gz.write_all(data);
-    match status {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[compression] Could not compress data with gzip: {err:?}");
-            return Err(CompressionError::CompressCreate);
-        }
-    }
+    let _ = serde_json::to_writer(&mut gz, serde_data);
     let finish_status = gz.finish();
 
     let data = match finish_status {
@@ -26,6 +20,24 @@ pub(crate) fn compress_gzip_data(data: &[u8]) -> Result<Vec<u8>, CompressionErro
             return Err(CompressionError::GzipFinish);
         }
     };
+
+    Ok(data)
+}
+
+/// Compress provided bytes with GZIP
+pub(crate) fn compress_gzip_bytes(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
+    let mut gz = GzEncoder::new(Vec::new(), Compression::default());
+    let _ = gz.write_all(data);
+    let finish_status = gz.finish();
+
+    let data = match finish_status {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[compression] Could not finish gzip compressing data: {err:?}");
+            return Err(CompressionError::GzipFinish);
+        }
+    };
+
     Ok(data)
 }
 
@@ -110,13 +122,23 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::compress_gzip_data;
-    use crate::{filesystem::files::read_file, utils::compression::compress::compress_output_zip};
+    use crate::{
+        filesystem::files::read_file,
+        utils::compression::compress::{compress_gzip_bytes, compress_output_zip},
+    };
     use std::{fs::remove_file, path::PathBuf};
 
     #[test]
     fn test_compress_gzip_data() {
-        let data = "compressme".as_bytes();
-        let results = compress_gzip_data(data).unwrap();
+        let data = "compressme";
+        let results = compress_gzip_data(&serde_json::to_value(data).unwrap()).unwrap();
+        assert_eq!(results.len(), 32)
+    }
+
+    #[test]
+    fn test_compress_gzip_bytes() {
+        let data = "compressme";
+        let results = compress_gzip_bytes(&data.as_bytes()).unwrap();
         assert_eq!(results.len(), 30)
     }
 

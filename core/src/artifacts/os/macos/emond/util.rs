@@ -4,7 +4,7 @@ use plist::{Dictionary, Value};
 
 // Get the Vec of dictionaries value from the dictionary
 pub(crate) fn get_dictionary_values(dict_data: Value) -> Vec<Dictionary> {
-    let mut dictionary_vec: Vec<Dictionary> = Vec::new();
+    let mut dictionary_vec = Vec::new();
     if let Some(data) = dict_data.into_array() {
         for value in data {
             let dictionary_value = get_dictionary(&value).unwrap_or_default();
