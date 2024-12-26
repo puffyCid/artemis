@@ -579,6 +579,6 @@ mod tests {
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
         let mut test = json!({"key": "value"});
-        output_logs(&Ok(&mut test), &mut output, &false, &0, "testing", &true).unwrap();
+        output_logs(&mut Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
     }
 }
