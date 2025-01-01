@@ -461,8 +461,7 @@ fn get_facility(facility: &u32) -> Facility {
 
 #[cfg(test)]
 mod tests {
-    use common::linux::{Facility, Priority};
-
+    use super::{get_entries, parse_journal};
     use crate::{
         artifacts::os::linux::journals::{
             journal::{get_facility, get_priority, parse_journal_file},
@@ -474,9 +473,8 @@ mod tests {
         filesystem::files::file_reader,
         structs::toml::Output,
     };
+    use common::linux::{Facility, Priority};
     use std::path::PathBuf;
-
-    use super::{get_entries, parse_journal};
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

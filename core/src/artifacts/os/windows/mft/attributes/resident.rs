@@ -9,6 +9,7 @@ pub(crate) struct Resident {
 }
 
 impl Resident {
+    /// Parse Resident MFT metadata
     pub(crate) fn parse_resident(data: &[u8]) -> nom::IResult<&[u8], Resident> {
         let (input, size) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;

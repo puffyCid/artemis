@@ -4,21 +4,21 @@ use crate::utils::nom_helper::{
 
 #[derive(Debug)]
 pub(crate) struct MftHeader {
-    sig: u32,
-    fix_up_value_offset: u16,
-    fix_up_count: u16,
-    transaction_seq: u64,
-    sequence: u16,
-    ref_count: u16,
+    pub(crate) sig: u32,
+    pub(crate) fix_up_value_offset: u16,
+    pub(crate) fix_up_count: u16,
+    pub(crate) transaction_seq: u64,
+    pub(crate) sequence: u16,
+    pub(crate) ref_count: u16,
     attrib_offset: u16,
-    entry_flags: Vec<EntryFlags>,
-    used_size: u32,
-    total_size: u32,
-    mft_base_index: u32,
-    mft_base_seq: u16,
+    pub(crate) entry_flags: Vec<EntryFlags>,
+    pub(crate) used_size: u32,
+    pub(crate) total_size: u32,
+    pub(crate) mft_base_index: u32,
+    pub(crate) mft_base_seq: u16,
     first_attrib: u16,
     wfixup_patter: u16,
-    index: u32,
+    pub(crate) index: u32,
 }
 
 #[derive(Debug, PartialEq)]

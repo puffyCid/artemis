@@ -5,13 +5,19 @@ use log::warn;
 
 #[derive(Debug)]
 pub(crate) struct AttributeHeader {
-    attrib_type: AttributeType,
-    /**Does not include the attrib_type and size itself? Size+8=total size */
-    size: u32,
-    resident_flag: ResidentFlag,
+    pub(crate) attrib_type: AttributeType,
+    /**Includes the attrib_type and size itself */
+    pub(crate) size: u32,
+    /**
+     * Includes the attrib_type and size itself. Sometimes size will include "overloaded or remnant data?"
+     * https://github.com/libyal/libfsntfs/blob/main/documentation/New%20Technologies%20File%20System%20(NTFS).asciidoc
+     *   "Size (or record length) upper 2 bytes overloaded or remnant data?"
+     */
+    pub(crate) small_size: u16,
+    pub(crate) resident_flag: ResidentFlag,
     name_size: u8,
     name_offset: u16,
-    data_flags: Vec<AttributeFlags>,
+    pub(crate) data_flags: Vec<AttributeFlags>,
     attrib_id: u16,
 }
 
@@ -40,6 +46,7 @@ pub(crate) enum AttributeType {
     PropertySet,
     LoggedStream,
     UserDefined,
+    End,
     Unknown,
 }
 
@@ -62,6 +69,7 @@ pub(crate) enum AttributeFlags {
 impl AttributeHeader {
     pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], AttributeHeader> {
         let (input, type_data) = nom_unsigned_four_bytes(data, Endian::Le)?;
+        let (_, small_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, resident_data) = nom_unsigned_one_byte(input, Endian::Le)?;
 
@@ -73,6 +81,7 @@ impl AttributeHeader {
         let header = AttributeHeader {
             attrib_type: AttributeHeader::get_type(&type_data),
             size,
+            small_size,
             resident_flag: AttributeHeader::get_resident(&resident_data),
             name_size,
             name_offset,
@@ -103,6 +112,7 @@ impl AttributeHeader {
             0xf0 => AttributeType::PropertySet,
             0x100 => AttributeType::LoggedStream,
             0x1000 => AttributeType::UserDefined,
+            0xffffffff => AttributeType::End,
             _ => {
                 warn!("[mft] Got unknown attribyte type {data}");
                 AttributeType::Unknown

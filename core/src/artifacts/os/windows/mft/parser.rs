@@ -1,8 +1,9 @@
 /**
+ * Only NTFS 3.1 or higher supported
  * TODO:
  * 
- * 1. Parse Standard info - in progress
- * 2. Parse filename info
+ * 1. Parse Standard info - done
+ * 2. Parse filename info - done
  * 2.5 Support data runs for attributes outside of the MFT or data in another MFT entry?
  * 3. Ignore other attributes for now
  *    - maybe add Index?
