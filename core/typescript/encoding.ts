@@ -54,6 +54,14 @@ class Encoding {
     return core.ops.js_read_xml(data);
   };
   /**
+   * Parse provided Protobuf bytes
+   * @param data Protobuf bytes
+   * @returns JSON object representing the extracted Protobuf content
+   */
+  parse_protobuf = (data: Uint8Array) => {
+    return core.ops.js_parse_protobuf(data);
+  };
+  /**
    * Convert raw bytes to a hex string
    * @param data Raw bytes to convert to Hex string
    * @returns A Hexadecimal string

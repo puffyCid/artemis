@@ -16,6 +16,7 @@ pub enum ArtemisError {
     YaraRule,
     YaraScan,
     BadTime,
+    Protobuf,
 }
 
 impl std::error::Error for ArtemisError {}
@@ -37,6 +38,7 @@ impl fmt::Display for ArtemisError {
             ArtemisError::YaraRule => write!(f, "Failed to add rule"),
             ArtemisError::YaraScan => write!(f, "Failed to scan file"),
             ArtemisError::BadTime => write!(f, "Failed to parse rfc 33339 timestamp"),
+            ArtemisError::Protobuf => write!(f, "Failed to parse protobuf bytes"),
         }
     }
 }
