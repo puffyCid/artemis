@@ -5,6 +5,8 @@ use super::{
 use crate::{filesystem::files::read_file, utils::error::ArtemisError};
 use base64::{engine::general_purpose, DecodeError, Engine};
 use log::error;
+use std::collections::HashMap;
+use sunlight::light::{extract_protobuf, ProtoTag};
 
 /// Base64 encode data using the STANDARD engine (alphabet along with "+" and "/")
 pub(crate) fn base64_encode_standard(data: &[u8]) -> String {
@@ -53,10 +55,23 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     Ok(xml_string)
 }
 
+/// Extract Protobuf data from bytes
+pub(crate) fn parse_protobuf(data: &[u8]) -> Result<HashMap<usize, ProtoTag>, ArtemisError> {
+    let result = match extract_protobuf(data) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Could not parse protobuf: {err:?}");
+            return Err(ArtemisError::Protobuf);
+        }
+    };
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::utils::encoding::{
-        base64_decode_standard, base64_encode_standard, base64_encode_url, read_xml,
+        base64_decode_standard, base64_encode_standard, base64_encode_url, parse_protobuf, read_xml,
     };
     use std::path::PathBuf;
 
@@ -90,5 +105,23 @@ mod tests {
         assert!(result.starts_with("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
         assert!(result.contains("<URI>\\Microsoft\\VisualStudio\\VSIX Auto Update</URI>"));
         assert_eq!(result.len(), 1356);
+    }
+
+    #[test]
+    fn test_parse_protobuf() {
+        let test = [
+            18, 12, 103, 119, 115, 45, 119, 105, 122, 45, 115, 101, 114, 112, 34, 21, 100, 117, 99,
+            107, 100, 117, 99, 107, 103, 111, 32, 105, 115, 32, 97, 119, 101, 115, 111, 109, 101,
+            50, 10, 16, 0, 24, 176, 3, 24, 214, 4, 24, 71, 50, 10, 16, 0, 24, 176, 3, 24, 214, 4,
+            24, 71, 50, 10, 16, 0, 24, 176, 3, 24, 214, 4, 24, 71, 50, 10, 16, 0, 24, 176, 3, 24,
+            214, 4, 24, 71, 50, 10, 16, 0, 24, 176, 3, 24, 214, 4, 24, 71, 50, 10, 16, 0, 24, 176,
+            3, 24, 214, 4, 24, 71, 50, 10, 16, 0, 24, 176, 3, 24, 214, 4, 24, 71, 50, 10, 16, 0,
+            24, 176, 3, 24, 214, 4, 24, 71, 72, 160, 3, 80, 0, 88, 0, 112, 1, 120, 1, 144, 1, 0,
+            152, 1, 0, 160, 1, 0, 170, 1, 0, 184, 1, 3, 200, 1, 0, 152, 2, 1, 160, 2, 0, 152, 3, 0,
+            136, 6, 1, 144, 6, 8, 146, 7, 1, 49, 160, 7, 0,
+        ];
+
+        let result = parse_protobuf(&test).unwrap();
+        assert_eq!(result.len(), 21);
     }
 }

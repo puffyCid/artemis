@@ -1,8 +1,8 @@
-use crate::runtime::http::client::js_request;
+use crate::runtime::http::{client::js_request, url::url_parse};
 
 /// Link HTTP networking functions to `Deno core`
 pub(crate) fn http_functions() -> Vec<deno_core::OpDecl> {
-    vec![js_request()]
+    vec![js_request(), url_parse()]
 }
 
 #[cfg(test)]

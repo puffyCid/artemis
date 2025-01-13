@@ -1,6 +1,7 @@
 use crate::runtime::encoding::{
     base64::{js_base64_decode, js_base64_encode},
     bytes::js_encode_bytes,
+    protobuf::js_parse_protobuf,
     strings::{js_bytes_to_hex_string, js_extract_utf16_string, js_extract_utf8_string},
     uuid::{js_format_guid_be_bytes, js_format_guid_le_bytes, js_generate_uuid},
     xml::js_read_xml,
@@ -19,6 +20,7 @@ pub(crate) fn enocoding_functions() -> Vec<deno_core::OpDecl> {
         js_format_guid_be_bytes(),
         js_format_guid_le_bytes(),
         js_generate_uuid(),
+        js_parse_protobuf(),
     ]
 }
 

@@ -18,6 +18,9 @@ class Encoding {
     read_xml = (data) => {
         return core.ops.js_read_xml(data);
     };
+    parse_protobuf = (data) => {
+        return core.ops.js_parse_protobuf(data);
+    };
     bytes_to_hex_string = (data) => {
         return core.ops.js_bytes_to_hex_string(data);
     };

@@ -9,7 +9,7 @@ use flate2::{
 };
 use log::{error, warn};
 use lz4_flex::block::decompress_with_dict;
-use ruzstd::StreamingDecoder;
+use ruzstd::decoding::StreamingDecoder;
 use std::io::Read;
 use xz2::read::XzDecoder;
 
