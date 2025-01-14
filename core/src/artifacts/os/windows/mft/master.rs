@@ -96,7 +96,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         ) {
             Ok(result) => result,
             Err(err) => {
-                error!("[mft] Could not read entry bytes: {err:?}");
+                panic!("[mft] Could not read entry bytes: {err:?}");
                 break;
             }
         };
@@ -105,7 +105,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         let entry_bytes = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
             Ok((input, _fixup)) => input,
             Err(err) => {
-                error!("[mft] Could not parse mft fixup values: {err:?}");
+                panic!("[mft] Could not parse mft fixup values: {err:?}");
                 break;
             }
         };
@@ -113,7 +113,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         let entry = match grab_attributes(&entry_bytes) {
             Ok((_, result)) => result,
             Err(err) => {
-                error!("[mft] Could not parse mft attributes: {err:?}");
+                panic!("[mft] Could not parse mft attributes: {err:?}");
                 break;
             }
         };
@@ -121,10 +121,6 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         let mut parent = 0;
         let mut name = String::new();
         for value in &entry.filename {
-            if value.name == "Windowŧ" {
-                println!("{header:?}");
-                panic!("{:?}", entry.filename);
-            }
             if !value.file_attributes.contains(&FileAttributes::Directory)
                 || value.namespace == Namespace::Dos
             {
@@ -191,7 +187,7 @@ mod tests {
 
         parse_mft(
             // &test_location.display().to_string(),
-            "/home/puffycid/Downloads/$MFT",
+            "/home/ubunty/Downloads/$MFT",
             &mut output,
             &false,
             &0,

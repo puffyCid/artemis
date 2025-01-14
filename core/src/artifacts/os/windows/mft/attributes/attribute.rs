@@ -1,5 +1,12 @@
+use crate::{
+    artifacts::os::windows::mft::attributes::{
+        bitmap::parse_bitmap, index::IndexRoot, object::ObjectId, volume::VolumeInfo,
+    },
+    utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
+};
+
 use super::{
-    data::parse_data,
+    data::parse_data_run,
     filename::Filename,
     header::{AttributeHeader, AttributeType, ResidentFlag},
     nonresident::NonResident,
@@ -59,7 +66,7 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
             break;
         }
 
-        // We are done if we have Unkonwn attribute or End attribute
+        // We are done if we have Unknown attribute or End attribute
         if header.attrib_type == AttributeType::Unknown || header.attrib_type == AttributeType::End
         {
             break;
@@ -71,13 +78,24 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         }
         let (remaining, input) = take(attribute_size)(input)?;
         entry_data = remaining;
+        println!("{header:?}");
 
         let input = if header.resident_flag == ResidentFlag::Resident {
             let (input, resident) = Resident::parse_resident(input)?;
             input
         } else {
-            let (input, nonresdient) = NonResident::parse_nonresident(input)?;
+            let (nonres_input, nonresident) = NonResident::parse_nonresident(input)?;
+            println!("{nonresident:?} - input len: {}", input.len());
+            if nonresident.data_runs_offset as usize > input.len() {
+                continue;
+            }
+            // if header.attrib_type == AttributeType::Data {
+            // Go to data runs offset
+            let (input, _) = take(nonresident.data_runs_offset)(input)?;
             input
+            // } else {
+            //    nonres_input
+            //}
         };
 
         // Only support Standard and Filename attributes for now
@@ -87,8 +105,28 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         } else if header.attrib_type == AttributeType::FileName {
             let (_, filename) = Filename::parse_filename(input)?;
             entry_attributes.filename.push(filename);
+        } else if header.resident_flag == ResidentFlag::NonResident {
+            let (_, runs) = parse_data_run(input)?;
+        } else if header.attrib_type == AttributeType::Bitmap {
+            parse_bitmap(input)?;
+        } else if header.attrib_type == AttributeType::ObjectId {
+            let (_, object) = ObjectId::parse_object_id(input)?;
+            println!("{object:?}");
+        } else if header.attrib_type == AttributeType::VolumeName {
+            let name = extract_utf16_string(input);
+        } else if header.attrib_type == AttributeType::VolumeInformation {
+            let (_, info) = VolumeInfo::parse_volume_info(input)?;
+            println!("{info:?}");
         } else if header.attrib_type == AttributeType::Data {
-            parse_data(input).unwrap();
+            let attrib_data = if input.is_empty() {
+                String::new()
+            } else {
+                base64_encode_standard(input)
+            };
+            println!("{attrib_data}");
+        } else if header.attrib_type == AttributeType::IndexRoot {
+            let (_, index) = IndexRoot::parse_root(input)?;
+            println!("{index:?}");
         } else {
             panic!("{header:?}");
         }
