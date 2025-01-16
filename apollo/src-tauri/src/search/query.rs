@@ -153,7 +153,6 @@ mod tests {
     #[tokio::test]
     async fn test_tag() {
         let test = tag("test", "WurnYpQBg9z4_oJkAw0i", "bad").await.unwrap();
-        println!("{test:?}");
         assert!(test.is_object());
     }
 
@@ -180,7 +179,6 @@ mod tests {
         };
 
         let result = timeline(index, state).await.unwrap();
-        println!("{result:?}");
         assert!(result.is_object());
     }
 }

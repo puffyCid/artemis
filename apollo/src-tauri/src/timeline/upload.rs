@@ -18,7 +18,6 @@ pub(crate) async fn timeline_and_upload(index: &str, path: &str) -> Result<Value
                 continue;
             }
             let target = entry.path().display().to_string();
-            println!("{target}");
             result = match upload_timeline(&target, index).await {
                 Ok(result) => result,
                 Err(err) => {
