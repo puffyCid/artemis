@@ -14,9 +14,6 @@
         name = node.name;
         break;
     }
-    const kb = 1000;
-    const mb = kb * 1000;
-    const gb = mb * 1000;
 </script>
 
 <main class="grid grid-cols-4 space-x-2 space-y-5">

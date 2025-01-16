@@ -72,7 +72,7 @@ pub(crate) async fn upload_metadata(data: &BulkOperations) -> Result<Value, Erro
     let client = setup_client()?;
 
     let res = client
-        .bulk(BulkParts::Index("metadata"))
+        .bulk(BulkParts::Index("collection_metadata"))
         .body(vec![data])
         .send()
         .await?;
@@ -164,7 +164,8 @@ mod tests {
             let mut value: Value = serde_json::from_str(&line).unwrap();
 
             if meta.is_null() {
-                meta = serde_json::from_value(value.get("metadata").unwrap().clone()).unwrap();
+                meta = serde_json::from_value(value.get("collection_metadata").unwrap().clone())
+                    .unwrap();
                 meta["timeline_source"] =
                     Value::String(test_location.to_str().unwrap().to_string());
                 ops_meta.push(BulkOperation::index(&meta)).unwrap();

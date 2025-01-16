@@ -58,7 +58,7 @@ pub(crate) fn get_filelist(
 ) -> Result<(), FileError> {
     let start_time = time_now();
 
-    let start_walk = WalkDir::new(&args.start_directory).same_file_system(true);
+    let start_walk = WalkDir::new(&args.start_directory).same_file_system(false);
     let begin_walk = start_walk.max_depth(args.depth);
     let mut filelist_vec: Vec<FileInfo> = Vec::new();
 
