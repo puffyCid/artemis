@@ -2,8 +2,8 @@ use super::index::setup_client;
 use log::error;
 use opensearch::http::{response::Response, StatusCode};
 use opensearch::nodes::NodesStatsParts;
-use opensearch::SearchParts;
 use opensearch::{indices::IndicesGetParts, Error};
+use opensearch::{SearchParts, UpdateParts};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -26,7 +26,7 @@ pub(crate) async fn get_metadata() -> Result<Value, Error> {
 
     let res = client
         .indices()
-        .get(IndicesGetParts::Index(&["metadata"]))
+        .get(IndicesGetParts::Index(&["collection_metadata"]))
         .send()
         .await?;
 
@@ -66,6 +66,18 @@ pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Er
         .size(state.limit)
         .sort(&[&sort])
         .body(state.query)
+        .send()
+        .await?;
+
+    Ok(check_response(res).await)
+}
+
+/// Tag an entry in OpenSearch
+pub(crate) async fn tag(index: &str, id: &str, tag: &str) -> Result<Value, Error> {
+    let client = setup_client()?;
+    let res = client
+        .update(UpdateParts::IndexId(index, id))
+        .body(json!({"doc":{"tags":tag}}))
         .send()
         .await?;
 
@@ -116,7 +128,7 @@ pub(crate) async fn check_response(res: Response) -> Value {
 #[cfg(target_os = "linux")]
 mod tests {
     use crate::search::query::{
-        artifacts, get_metadata, get_resources, list_indexes, timeline, QueryState,
+        artifacts, get_metadata, get_resources, list_indexes, tag, timeline, QueryState,
     };
     use serde_json::json;
 
@@ -135,6 +147,13 @@ mod tests {
     #[tokio::test]
     async fn test_get_metadata() {
         let test = get_metadata().await.unwrap();
+        assert!(test.is_object());
+    }
+
+    #[tokio::test]
+    async fn test_tag() {
+        let test = tag("test", "WurnYpQBg9z4_oJkAw0i", "bad").await.unwrap();
+        println!("{test:?}");
         assert!(test.is_object());
     }
 
@@ -161,6 +180,7 @@ mod tests {
         };
 
         let result = timeline(index, state).await.unwrap();
+        println!("{result:?}");
         assert!(result.is_object());
     }
 }

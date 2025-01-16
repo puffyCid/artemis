@@ -1,6 +1,6 @@
 import { Ordering, type QueryState } from "$lib/types/queries";
 import type { ErrorStatus } from "$lib/types/search";
-import type { Hit, OpenSearchData, TimelineEntry } from "$lib/types/timeline";
+import type { OpenSearchData, TimelineEntry } from "$lib/types/timeline";
 import { invoke } from "@tauri-apps/api/core";
 import type { State, TableHandler } from "@vincjo/datatables/server";
 import { isError } from "./error";
@@ -78,9 +78,11 @@ export async function queryCallback(
         return [];
     }
 
+    console.log(results.hits.total);
     state.setTotalRows(results.hits.total.value);
     const entries = [];
     for (const hit of results.hits.hits) {
+        hit._source["_opensearch_document_id"] = hit._id;
         entries.push(hit._source);
     }
 

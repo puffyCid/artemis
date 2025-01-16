@@ -216,6 +216,7 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
                 continue;
             } else if key == "modified" {
                 entry["entry_modified"] = value.clone();
+                continue;
             }
             entry[key] = value.clone();
         }

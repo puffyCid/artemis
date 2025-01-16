@@ -102,12 +102,7 @@ interface Nodes {
  * Info count on number of artifacts ingested
  */
 export interface Artifacts {
-    "_shards": {
-        failed: number;
-        skipped: number;
-        successful: number;
-        total: number;
-    };
+    "_shards": Shards;
     aggregations: {
         /**Array of artifacts ingested */
         artifacts: {
@@ -132,4 +127,26 @@ export interface Artifacts {
     };
     timed_out: boolean;
     took: number;
+}
+
+interface Shards {
+    failed: number;
+    skipped: number;
+    successful: number;
+    total: number;
+}
+
+/**
+ * OpenSearch Update response
+ */
+export interface Update {
+    /**Document ID */
+    "_id": string;
+    /**Index name */
+    "_index": string;
+    "_primary_term": string;
+    "_seq_no": number;
+    "_shards": Shards;
+    "_version": number;
+    result: string;
 }

@@ -34,11 +34,13 @@
                         <ThSort {table} field="timestamp_desc">
                             Datetime Description
                         </ThSort>
+                        <Th></Th>
                         <ThSort {table} field="message">Message</ThSort>
                     </tr>
                     <tr>
                         <ThFilter {table} field="datetime" />
                         <ThFilter {table} field="timestamp_desc" />
+                        <Th></Th>
                         <ThFilter {table} field="message" />
                     </tr>
                 </thead>
