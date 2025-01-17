@@ -15,7 +15,8 @@ pub(crate) struct AttributeHeader {
      */
     pub(crate) small_size: u16,
     pub(crate) resident_flag: ResidentFlag,
-    name_size: u8,
+    pub(crate) name_size: u8,
+    pub(crate) name: String,
     name_offset: u16,
     pub(crate) data_flags: Vec<AttributeFlags>,
     attrib_id: u16,
@@ -84,6 +85,7 @@ impl AttributeHeader {
             small_size,
             resident_flag: AttributeHeader::get_resident(&resident_data),
             name_size,
+            name: String::new(),
             name_offset,
             data_flags: AttributeHeader::get_data_flags(&flag_data),
             attrib_id,
@@ -92,7 +94,7 @@ impl AttributeHeader {
         return Ok((input, header));
     }
 
-    fn get_type(data: &u32) -> AttributeType {
+    pub(crate) fn get_type(data: &u32) -> AttributeType {
         match data {
             0x0 => AttributeType::Unused,
             0x10 => AttributeType::StandardInformation,

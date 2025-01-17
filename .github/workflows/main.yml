@@ -84,13 +84,13 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
       
-      - name: Build tests (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --no-run --release
-
       - name: Download OpenSearch on Linux
         if: matrix.info.os == 'ubuntu-latest'
         run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
+
+      - name: Build tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" cargo test --no-run --release
 
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'

@@ -2,6 +2,7 @@ use crate::utils::nom_helper::{
     nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
 };
 
+#[derive(Debug)]
 pub(crate) struct Resident {
     size: u32,
     offset: u16,

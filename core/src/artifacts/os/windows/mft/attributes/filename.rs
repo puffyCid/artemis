@@ -10,8 +10,9 @@ use crate::utils::{
     strings::extract_utf16_string,
 };
 use nom::bytes::complete::take;
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Filename {
     pub(crate) parent_mft: u32,
     pub(crate) parent_sequence: u16,
@@ -89,9 +90,8 @@ impl Filename {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::mft::attributes::filename::Namespace;
-
     use super::Filename;
+    use crate::artifacts::os::windows::mft::attributes::filename::Namespace;
 
     #[test]
     fn test_parse_filename() {

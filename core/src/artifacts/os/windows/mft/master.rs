@@ -187,7 +187,7 @@ mod tests {
 
         parse_mft(
             // &test_location.display().to_string(),
-            "/home/ubunty/Downloads/$MFT",
+            "/home/puffycid/Downloads/$MFT",
             &mut output,
             &false,
             &0,

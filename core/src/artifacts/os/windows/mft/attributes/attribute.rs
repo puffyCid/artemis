@@ -1,10 +1,3 @@
-use crate::{
-    artifacts::os::windows::mft::attributes::{
-        bitmap::parse_bitmap, index::IndexRoot, object::ObjectId, volume::VolumeInfo,
-    },
-    utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
-};
-
 use super::{
     data::parse_data_run,
     filename::Filename,
@@ -13,7 +6,18 @@ use super::{
     resident::Resident,
     standard::Standard,
 };
+use crate::{
+    artifacts::os::windows::{
+        mft::attributes::{
+            index::IndexRoot, list::AttributeList, object::ObjectId, stream::LoggedStream,
+            volume::VolumeInfo,
+        },
+        securitydescriptor::descriptor::Descriptor,
+    },
+    utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
+};
 use nom::bytes::complete::take;
+use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) struct EntryAttributes {
@@ -21,7 +25,7 @@ pub(crate) struct EntryAttributes {
     pub(crate) filename: Vec<Filename>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum FileAttributes {
     ReadOnly,
     Hidden,
@@ -43,7 +47,7 @@ pub(crate) enum FileAttributes {
     Unknown,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Namespace {
     Posix,
     Windows,
@@ -61,7 +65,7 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         filename: Vec::new(),
     };
     while entry_data.len() > header_size {
-        let (input, header) = AttributeHeader::parse_header(entry_data)?;
+        let (input, mut header) = AttributeHeader::parse_header(entry_data)?;
         if header.size == 0 {
             break;
         }
@@ -78,7 +82,6 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         }
         let (remaining, input) = take(attribute_size)(input)?;
         entry_data = remaining;
-        println!("{header:?}");
 
         let input = if header.resident_flag == ResidentFlag::Resident {
             let (input, resident) = Resident::parse_resident(input)?;
@@ -98,6 +101,13 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
             //}
         };
 
+        // Name is UTF16
+        let (input, name_data) = take(header.name_size * 2)(input)?;
+        if !name_data.is_empty() {
+            header.name = extract_utf16_string(name_data);
+        }
+        println!("{header:?}");
+
         // Only support Standard and Filename attributes for now
         if header.attrib_type == AttributeType::StandardInformation {
             let (_, standard) = Standard::parse_standard_info(input)?;
@@ -108,7 +118,7 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         } else if header.resident_flag == ResidentFlag::NonResident {
             let (_, runs) = parse_data_run(input)?;
         } else if header.attrib_type == AttributeType::Bitmap {
-            parse_bitmap(input)?;
+            let bitmap_data = base64_encode_standard(input);
         } else if header.attrib_type == AttributeType::ObjectId {
             let (_, object) = ObjectId::parse_object_id(input)?;
             println!("{object:?}");
@@ -127,6 +137,17 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         } else if header.attrib_type == AttributeType::IndexRoot {
             let (_, index) = IndexRoot::parse_root(input)?;
             println!("{index:?}");
+        } else if header.attrib_type == AttributeType::LoggedStream {
+            if header.name == "$TXF_DATA" {
+                let (_, stream) = LoggedStream::parse_transactional_stream(input)?;
+                println!("{stream:?}");
+            }
+        } else if header.attrib_type == AttributeType::SecurityDescriptor {
+            let (_, sid) = Descriptor::parse_descriptor(input)?;
+            println!("{sid:?}");
+        } else if header.attrib_type == AttributeType::AttributeList {
+            let (_, list) = AttributeList::parse_list(input)?;
+            println!("{list:?}");
         } else {
             panic!("{header:?}");
         }

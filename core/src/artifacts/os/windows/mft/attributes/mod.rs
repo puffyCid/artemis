@@ -1,11 +1,12 @@
 pub(crate) mod attribute;
-mod bitmap;
 mod data;
 mod filename;
 mod header;
 mod index;
+mod list;
 mod nonresident;
 mod object;
 mod resident;
 mod standard;
+mod stream;
 mod volume;
