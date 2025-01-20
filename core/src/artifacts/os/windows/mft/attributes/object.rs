@@ -1,7 +1,8 @@
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::take;
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct ObjectId {
     droid_file_id: String,
     birth_droid_volume_id: String,

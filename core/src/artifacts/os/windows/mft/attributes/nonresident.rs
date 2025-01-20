@@ -1,6 +1,7 @@
 use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_two_bytes, Endian};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct NonResident {
     pub(crate) first_virtual_cluster: u64,
     pub(crate) last_virtual_cluster: u64,

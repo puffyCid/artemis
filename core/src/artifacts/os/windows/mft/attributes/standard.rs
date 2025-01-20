@@ -1,7 +1,8 @@
 use super::attribute::FileAttributes;
 use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Standard {
     pub(crate) created: u64,
     pub(crate) modified: u64,

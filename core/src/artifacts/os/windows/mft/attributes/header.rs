@@ -2,6 +2,7 @@ use crate::utils::nom_helper::{
     nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
 };
 use log::warn;
+use serde::Serialize;
 
 #[derive(Debug)]
 pub(crate) struct AttributeHeader {
@@ -22,7 +23,7 @@ pub(crate) struct AttributeHeader {
     attrib_id: u16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum AttributeType {
     Unused,
     StandardInformation,

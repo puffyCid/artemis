@@ -53,7 +53,7 @@ impl Filename {
 
         // adjust for UTF16. Double the name size
         let adjust = 2;
-        let (input, name_data) = take(name_size * adjust)(input)?;
+        let (input, name_data) = take(name_size as u16 * adjust)(input)?;
         let name = extract_utf16_string(name_data);
 
         let filename = Filename {

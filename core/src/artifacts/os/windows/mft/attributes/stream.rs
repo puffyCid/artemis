@@ -1,6 +1,7 @@
 use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_two_bytes, Endian};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct LoggedStream {
     manager_root_reference: u64,
     usn_index: u64,

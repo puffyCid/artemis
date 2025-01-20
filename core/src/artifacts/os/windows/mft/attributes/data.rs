@@ -1,6 +1,8 @@
 use crate::utils::nom_helper::{nom_unsigned_one_byte, Endian};
 use nom::bytes::complete::take;
+use serde::Serialize;
 
+#[derive(Serialize)]
 pub(crate) struct DataRun {
     cluster_offset: u64,
     cluster_length: u64,
@@ -9,6 +11,7 @@ pub(crate) struct DataRun {
     data: Vec<u8>,
 }
 
+#[derive(Serialize)]
 pub(crate) enum RunType {
     Standard,
     Sparse,
@@ -21,7 +24,8 @@ pub(crate) fn parse_data_run(data: &[u8]) -> nom::IResult<&[u8], Vec<DataRun>> {
     let offset_adjust = 4;
 
     let mut runs = Vec::new();
-    while !remaining.is_empty() {
+    let min_size = 3;
+    while remaining.len() >= min_size {
         println!("data run remainign: {remaining:?}");
 
         let (input, cluster_block) = nom_unsigned_one_byte(remaining, Endian::Le)?;
@@ -30,7 +34,7 @@ pub(crate) fn parse_data_run(data: &[u8]) -> nom::IResult<&[u8], Vec<DataRun>> {
 
         let (input, size) = nom_unsigned_one_byte(input, Endian::Le)?;
 
-        if size == 0 {
+        if size == 0 || input.len() < length as usize {
             break;
         }
 

@@ -1,10 +1,9 @@
-use serde_json::Value;
-
 use super::{
     filename::Filename,
     header::{AttributeHeader, AttributeType},
 };
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian};
+use serde_json::Value;
 
 #[derive(Debug)]
 pub(crate) struct IndexRoot {
@@ -100,10 +99,22 @@ impl IndexRoot {
         let (input, data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
+        // Sometimes entry does not have attribute data?
+        if input.is_empty() {
+            return Ok((input, Value::Null));
+        }
+
         if *attribute_type == AttributeType::FileName {
+            let min_size = 60;
+            if input.len() < min_size {
+                return Ok((input, Value::Null));
+            }
+            println!("{input:?}");
             let (input, filename) = Filename::parse_filename(input)?;
             println!("{filename:?}");
             return Ok((input, serde_json::to_value(filename).unwrap()));
+        } else if *attribute_type == AttributeType::Unused {
+            return Ok((&[], Value::Null));
         }
 
         println!("{attribute_type:?}");

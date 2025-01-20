@@ -9,20 +9,24 @@ use super::{
 use crate::{
     artifacts::os::windows::{
         mft::attributes::{
-            index::IndexRoot, list::AttributeList, object::ObjectId, stream::LoggedStream,
-            volume::VolumeInfo,
+            extended::ExtendedInfo, index::IndexRoot, list::AttributeList, object::ObjectId,
+            reparse::ReparsePoint, stream::LoggedStream, volume::VolumeInfo,
         },
         securitydescriptor::descriptor::Descriptor,
     },
     utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
 };
 use nom::bytes::complete::take;
+use ntfs::NtfsFile;
 use serde::Serialize;
+use serde_json::{json, Value};
+use std::io::BufReader;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct EntryAttributes {
     pub(crate) standard: Vec<Standard>,
     pub(crate) filename: Vec<Filename>,
+    pub(crate) attributes: Vec<Value>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -56,22 +60,29 @@ pub(crate) enum Namespace {
     Unknown,
 }
 
-pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttributes> {
+pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
+    data: &'a [u8],
+    reader: &mut BufReader<T>,
+    ntfs_file: Option<&NtfsFile<'a>>,
+    size: &u32,
+    current_mft: &u32,
+) -> nom::IResult<&'a [u8], EntryAttributes> {
     let mut entry_data = data;
     let header_size = 16;
 
     let mut entry_attributes = EntryAttributes {
         standard: Vec::new(),
         filename: Vec::new(),
+        attributes: Vec::new(),
     };
     while entry_data.len() > header_size {
         let (input, mut header) = AttributeHeader::parse_header(entry_data)?;
-        if header.size == 0 {
-            break;
-        }
+        println!("{header:?}");
 
         // We are done if we have Unknown attribute or End attribute
-        if header.attrib_type == AttributeType::Unknown || header.attrib_type == AttributeType::End
+        if header.attrib_type == AttributeType::Unknown
+            || header.attrib_type == AttributeType::End
+            || header.size == 0
         {
             break;
         }
@@ -83,15 +94,19 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
         let (remaining, input) = take(attribute_size)(input)?;
         entry_data = remaining;
 
-        let input = if header.resident_flag == ResidentFlag::Resident {
+        let mut input = if header.resident_flag == ResidentFlag::Resident {
             let (input, resident) = Resident::parse_resident(input)?;
             input
         } else {
             let (nonres_input, nonresident) = NonResident::parse_nonresident(input)?;
             println!("{nonresident:?} - input len: {}", input.len());
             if nonresident.data_runs_offset as usize > input.len() {
+                entry_attributes
+                    .attributes
+                    .push(json!({format!("{:?} - non-resident", header.attrib_type): nonresident}));
                 continue;
             }
+
             // if header.attrib_type == AttributeType::Data {
             // Go to data runs offset
             let (input, _) = take(nonresident.data_runs_offset)(input)?;
@@ -101,12 +116,17 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
             //}
         };
 
-        // Name is UTF16
-        let (input, name_data) = take(header.name_size * 2)(input)?;
-        if !name_data.is_empty() {
-            header.name = extract_utf16_string(name_data);
+        // Attributes may have a name, but the data could also be non-resident
+        if ((header.name_size * 2) as usize) < input.len()
+            && header.resident_flag == ResidentFlag::Resident
+        {
+            // Name is UTF16
+            let (remaining, name_data) = take(header.name_size * 2)(input)?;
+            if !name_data.is_empty() {
+                header.name = extract_utf16_string(name_data);
+            }
+            input = remaining;
         }
-        println!("{header:?}");
 
         // Only support Standard and Filename attributes for now
         if header.attrib_type == AttributeType::StandardInformation {
@@ -117,37 +137,87 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
             entry_attributes.filename.push(filename);
         } else if header.resident_flag == ResidentFlag::NonResident {
             let (_, runs) = parse_data_run(input)?;
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(runs).unwrap_or_default());
         } else if header.attrib_type == AttributeType::Bitmap {
             let bitmap_data = base64_encode_standard(input);
+            entry_attributes
+                .attributes
+                .push(json!({"bitmap":bitmap_data}));
         } else if header.attrib_type == AttributeType::ObjectId {
             let (_, object) = ObjectId::parse_object_id(input)?;
             println!("{object:?}");
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(object).unwrap_or_default());
         } else if header.attrib_type == AttributeType::VolumeName {
             let name = extract_utf16_string(input);
+            entry_attributes
+                .attributes
+                .push(json!({"volume_name":name}));
         } else if header.attrib_type == AttributeType::VolumeInformation {
             let (_, info) = VolumeInfo::parse_volume_info(input)?;
             println!("{info:?}");
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(info).unwrap_or_default());
         } else if header.attrib_type == AttributeType::Data {
             let attrib_data = if input.is_empty() {
                 String::new()
             } else {
                 base64_encode_standard(input)
             };
+            entry_attributes
+                .attributes
+                .push(json!({"data":attrib_data}));
             println!("{attrib_data}");
         } else if header.attrib_type == AttributeType::IndexRoot {
             let (_, index) = IndexRoot::parse_root(input)?;
             println!("{index:?}");
+            entry_attributes.attributes.push(index);
         } else if header.attrib_type == AttributeType::LoggedStream {
             if header.name == "$TXF_DATA" {
                 let (_, stream) = LoggedStream::parse_transactional_stream(input)?;
                 println!("{stream:?}");
+                entry_attributes
+                    .attributes
+                    .push(serde_json::to_value(stream).unwrap_or_default());
             }
         } else if header.attrib_type == AttributeType::SecurityDescriptor {
             let (_, sid) = Descriptor::parse_descriptor(input)?;
             println!("{sid:?}");
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(sid).unwrap_or_default());
         } else if header.attrib_type == AttributeType::AttributeList {
-            let (_, list) = AttributeList::parse_list(input)?;
+            let (_, list) = AttributeList::parse_list(input, reader, ntfs_file, size, current_mft)?;
             println!("{list:?}");
+
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(list).unwrap_or_default());
+        } else if header.attrib_type == AttributeType::ReparsePoint {
+            let (_, point) = ReparsePoint::parse_reparse(input)?;
+            println!("reparse point: {point:?}");
+
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(point).unwrap_or_default());
+        } else if header.attrib_type == AttributeType::ExtendedInfo {
+            let (_, info) = ExtendedInfo::parse_extended_info(input)?;
+            println!("extended info: {info:?}");
+
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(info).unwrap_or_default());
+        } else if header.attrib_type == AttributeType::Extended {
+            let (_, info) = ExtendedInfo::parse_extended_attribute(input)?;
+            println!("extended attrib: {info:?}");
+
+            entry_attributes
+                .attributes
+                .push(serde_json::to_value(info).unwrap_or_default());
         } else {
             panic!("{header:?}");
         }
@@ -159,6 +229,8 @@ pub(crate) fn grab_attributes(data: &[u8]) -> nom::IResult<&[u8], EntryAttribute
 #[cfg(test)]
 mod tests {
     use super::grab_attributes;
+    use crate::artifacts::os::windows::mft::reader::setup_mft_reader;
+    use std::io::BufReader;
 
     #[test]
     fn test_grab_attribtes() {
@@ -169,7 +241,10 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let (_, result) = grab_attributes(&test).unwrap();
+        let reader = setup_mft_reader("").unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, result) = grab_attributes(&test, &mut buf_reader, None, &0, &0).unwrap();
         assert_eq!(result.standard[0].created, 133665165395720108);
         assert_eq!(result.standard[0].modified, 133665165395720108);
         assert_eq!(result.standard[0].accessed, 133665165395720108);

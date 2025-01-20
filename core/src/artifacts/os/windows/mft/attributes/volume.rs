@@ -1,15 +1,17 @@
+use serde::Serialize;
+
 use crate::utils::nom_helper::{
     nom_unsigned_eight_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct VolumeInfo {
     major: u8,
     minor: u8,
     flags: Vec<VolumeFlags>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) enum VolumeFlags {
     Dirty,
     ResizeLogFIle,

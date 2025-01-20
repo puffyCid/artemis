@@ -4,10 +4,7 @@ use super::{
     header::MftHeader,
     reader::{setup_mft_reader, setup_mft_reader_windows},
 };
-use crate::{
-    artifacts::os::windows::mft::{attributes::attribute::Namespace, fixup::Fixup},
-    filesystem::ntfs::reader::read_bytes,
-};
+use crate::{artifacts::os::windows::mft::fixup::Fixup, filesystem::ntfs::reader::read_bytes};
 use crate::{
     artifacts::os::{
         systeminfo::info::get_platform, windows::mft::attributes::attribute::FileAttributes,
@@ -55,7 +52,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'a>>,
     output: &mut Output,
 ) -> Result<(), MftError> {
-    let mut tracker = HashMap::new();
+    let mut cache = HashMap::new();
 
     let header_size = 48;
     let mut offset = 0;
@@ -110,7 +107,13 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
             }
         };
 
-        let entry = match grab_attributes(&entry_bytes) {
+        let entry = match grab_attributes(
+            &entry_bytes,
+            reader,
+            ntfs_file,
+            &header.total_size,
+            &header.index,
+        ) {
             Ok((_, result)) => result,
             Err(err) => {
                 panic!("[mft] Could not parse mft attributes: {err:?}");
@@ -120,42 +123,157 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
 
         let mut parent = 0;
         let mut name = String::new();
+
         for value in &entry.filename {
-            if !value.file_attributes.contains(&FileAttributes::Directory)
-                || value.namespace == Namespace::Dos
-            {
-                continue;
-            }
             parent = value.parent_mft;
             name = value.name.clone();
-            if let Some(cache) = tracker.get(&value.parent_mft) {
-                let path = format!("{cache}\\{}", value.name);
-                println!("cache: {path}");
-                tracker.insert(header.index, path);
-            } else {
-                tracker.insert(header.index, value.name.clone());
+
+            let root = 5;
+            if value.parent_mft == root && header.index != root {
+                if value.file_attributes.contains(&FileAttributes::Directory) {
+                    cache.insert(header.index, format!(".\\{}", value.name));
+                    continue;
+                }
             }
+
+            if let Some(cache_hit) = cache.get(&value.parent_mft) {
+                let path = format!("{cache_hit}\\{}", value.name);
+                println!("cache: {path}");
+
+                if value.file_attributes.contains(&FileAttributes::Directory) {
+                    cache.insert(header.index, path);
+                }
+                continue;
+            }
+
+            let path = lookup_parent(
+                reader,
+                ntfs_file,
+                &value.parent_mft,
+                &header.total_size,
+                &mut cache,
+            )?;
+
+            println!("cache: {path}");
         }
 
         for value in &entry.standard {
-            if !value.file_attributes.contains(&FileAttributes::Directory) {
-                continue;
+            let root = 5;
+            if parent == root {
+                if value.file_attributes.contains(&FileAttributes::Directory) {
+                    cache.insert(header.index, format!(".\\{}", name));
+                    continue;
+                }
             }
-            if let Some(cache) = tracker.get(&parent) {
-                let path = format!("{cache}\\{name}");
+
+            if let Some(cache_hit) = cache.get(&parent) {
+                let path = format!("{cache_hit}\\{name}");
                 println!("cache: {path}");
-                tracker.insert(header.index, path);
-            } else {
-                tracker.insert(header.index, name.clone());
+                if value.file_attributes.contains(&FileAttributes::Directory) {
+                    cache.insert(header.index, path);
+                }
             }
         }
-
-        //println!("{:?}", entry);
     }
-    // println!("{tracker:?}");
+
+    for (key, value) in cache {
+        println!("MFT index: {key} - Path: {value}");
+    }
+
     Ok(())
 }
 
+fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
+    reader: &mut BufReader<T>,
+    ntfs_file: Option<&NtfsFile<'a>>,
+    parent_index: &u32,
+    size: &u32,
+    cache: &mut HashMap<u32, String>,
+) -> Result<String, MftError> {
+    let header_size = 48;
+    let offset = (parent_index * size) as u64;
+    println!("offset: {offset}");
+    let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
+    let header_bytes = match header_bytes_results {
+        Ok(result) => result,
+        Err(err) => {
+            panic!("[mft] Could not read header bytes: {err:?}");
+        }
+    };
+
+    let header_results = MftHeader::parse_header(&header_bytes);
+    let (_, header) = match header_results {
+        Ok(result) => result,
+        Err(err) => {
+            panic!("[mft] Could not parse header: {err:?}");
+        }
+    };
+    let remaining_size = header.total_size - header_size as u32;
+
+    let entry_bytes = match read_bytes(
+        &(&header_size + &offset),
+        remaining_size as u64,
+        ntfs_file,
+        reader,
+    ) {
+        Ok(result) => result,
+        Err(err) => {
+            panic!("[mft] Could not read entry bytes: {err:?}");
+        }
+    };
+
+    let entry_bytes = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
+        Ok((input, _fixup)) => input,
+        Err(err) => {
+            panic!("[mft] Could not parse mft fixup values: {err:?}");
+        }
+    };
+    let entry = match grab_attributes(
+        &entry_bytes,
+        reader,
+        ntfs_file,
+        &header.total_size,
+        &header.index,
+    ) {
+        Ok((_, result)) => result,
+        Err(err) => {
+            panic!("[mft] Could not parse mft attributes: {err:?}");
+        }
+    };
+
+    for value in &entry.filename {
+        let root = 5;
+        if value.parent_mft == root {
+            if value.file_attributes.contains(&FileAttributes::Directory) {
+                return Ok(format!(".\\{}", value.name));
+            }
+        }
+
+        if let Some(cache_hit) = cache.get(&value.parent_mft) {
+            let path = format!("{cache_hit}\\{}", value.name);
+            println!("cache: {path}");
+
+            if value.file_attributes.contains(&FileAttributes::Directory) {
+                cache.insert(header.index, path.clone());
+            }
+
+            return Ok(path);
+        }
+
+        let parents = lookup_parent(reader, ntfs_file, &value.parent_mft, size, cache)?;
+        let path = format!("{parents}\\{}", value.name);
+        if value.file_attributes.contains(&FileAttributes::Directory) {
+            cache.insert(header.index, path.clone());
+        }
+        return Ok(path);
+    }
+    if entry.filename.is_empty() {
+        return Ok(String::new());
+    }
+
+    println!("{entry:?}");
+    panic!("umm wrong?")
+}
 #[cfg(test)]
 mod tests {
     use super::parse_mft;
