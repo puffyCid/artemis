@@ -1564,3 +1564,59 @@ pub enum EventLevel {
     Error,
     Unknown,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MftEntry {
+    pub filename: String,
+    pub directory: String,
+    pub full_path: String,
+    pub extension: String,
+    pub created: String,
+    pub modified: String,
+    pub changed: String,
+    pub accessed: String,
+    pub filename_created: String,
+    pub filename_modified: String,
+    pub filename_changed: String,
+    pub filename_accessed: String,
+    pub size: u64,
+    pub inode: u32,
+    pub is_file: bool,
+    pub is_directory: bool,
+    pub attributes: Vec<FileAttributes>,
+    pub namespace: Namespace,
+    pub usn: u64,
+    pub parent_inode: u32,
+    pub attribute_list: Vec<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub enum FileAttributes {
+    ReadOnly,
+    Hidden,
+    System,
+    Volume,
+    Directory,
+    Archive,
+    Device,
+    Normal,
+    Temporary,
+    Sparse,
+    Reparse,
+    Compressed,
+    Offline,
+    NotIndexed,
+    Encrypted,
+    Virtual,
+    IndexView,
+    Unknown,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum Namespace {
+    Posix,
+    Windows,
+    Dos,
+    WindowsDos,
+    Unknown,
+}

@@ -6,12 +6,12 @@ use super::{
 };
 use crate::{artifacts::os::windows::mft::fixup::Fixup, filesystem::ntfs::reader::read_bytes};
 use crate::{
-    artifacts::os::{
-        systeminfo::info::get_platform, windows::mft::attributes::attribute::FileAttributes,
-    },
+    artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
     filesystem::ntfs::setup::setup_ntfs_parser,
     structs::toml::Output,
+    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
+use common::windows::{FileAttributes, MftEntry, Namespace};
 use log::error;
 use ntfs::NtfsFile;
 use std::{
@@ -30,7 +30,7 @@ pub(crate) fn parse_mft(
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(&mut buf_reader, None, output);
+        return read_mft(&mut buf_reader, None, output, start_time, filter);
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -44,19 +44,29 @@ pub(crate) fn parse_mft(
     };
     let ntfs_file = setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
-    read_mft(&mut ntfs_parser.fs, Some(&ntfs_file), output)
+    read_mft(
+        &mut ntfs_parser.fs,
+        Some(&ntfs_file),
+        output,
+        start_time,
+        filter,
+    )
 }
 
 fn read_mft<'a, T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'a>>,
     output: &mut Output,
+    start_time: &u64,
+    filter: &bool,
 ) -> Result<(), MftError> {
     let mut cache = HashMap::new();
 
     let header_size = 48;
     let mut offset = 0;
     let mut entry_size = 1024;
+
+    let mut entries = Vec::new();
     while reader.fill_buf().is_ok_and(|x| !x.is_empty()) {
         println!("offset: {offset}");
         let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
@@ -121,28 +131,97 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
             }
         };
 
-        let mut parent = 0;
-        let mut name = String::new();
-
         for value in &entry.filename {
-            parent = value.parent_mft;
-            name = value.name.clone();
+            let mut mft_entry = MftEntry {
+                filename: String::new(),
+                directory: String::new(),
+                full_path: String::new(),
+                extension: String::new(),
+                created: String::new(),
+                modified: String::new(),
+                changed: String::new(),
+                accessed: String::new(),
+                filename_created: String::new(),
+                filename_modified: String::new(),
+                filename_changed: String::new(),
+                filename_accessed: String::new(),
+                size: 0,
+                inode: 0,
+                is_file: false,
+                is_directory: false,
+                attributes: Vec::new(),
+                namespace: Namespace::Unknown,
+                usn: 0,
+                parent_inode: 0,
+                attribute_list: Vec::new(),
+            };
+
+            if let Some(standard) = entry.standard.first() {
+                mft_entry.created = unixepoch_to_iso(&filetime_to_unixepoch(&standard.created));
+                mft_entry.modified = unixepoch_to_iso(&filetime_to_unixepoch(&standard.modified));
+                mft_entry.changed = unixepoch_to_iso(&filetime_to_unixepoch(&standard.changed));
+                mft_entry.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&standard.accessed));
+                mft_entry.attributes = standard.file_attributes.clone();
+                mft_entry.usn = standard.usn;
+            }
+
+            if mft_entry.attributes.is_empty() {
+                mft_entry.attributes = value.file_attributes.clone();
+            }
+
+            let created = unixepoch_to_iso(&filetime_to_unixepoch(&value.created));
+            let modified = unixepoch_to_iso(&filetime_to_unixepoch(&value.modified));
+            let accessed = unixepoch_to_iso(&filetime_to_unixepoch(&value.accessed));
+            let changed = unixepoch_to_iso(&filetime_to_unixepoch(&value.changed));
+
+            mft_entry.filename = value.name.clone();
+            mft_entry.parent_inode = value.parent_mft;
+            mft_entry.inode = header.index;
+            mft_entry.size = value.size;
+            mft_entry.namespace = value.namespace.clone();
+            mft_entry.filename_created = created;
+            mft_entry.filename_modified = modified;
+            mft_entry.filename_accessed = accessed;
+            mft_entry.filename_changed = changed;
+            mft_entry.attribute_list = entry.attributes.clone();
+
+            if value.file_attributes.contains(&FileAttributes::Directory) {
+                mft_entry.is_directory = true;
+            } else {
+                mft_entry.is_file = true;
+            }
 
             let root = 5;
             if value.parent_mft == root && header.index != root {
-                if value.file_attributes.contains(&FileAttributes::Directory) {
+                mft_entry.full_path = format!(".\\{}", value.name);
+                mft_entry.directory = String::from(".");
+                entries.push(mft_entry);
+
+                if value.file_attributes.contains(&FileAttributes::Directory)
+                    && value.namespace != Namespace::Dos
+                {
                     cache.insert(header.index, format!(".\\{}", value.name));
                     continue;
                 }
+                continue;
             }
 
             if let Some(cache_hit) = cache.get(&value.parent_mft) {
                 let path = format!("{cache_hit}\\{}", value.name);
-                println!("cache: {path}");
+                mft_entry.full_path = path;
 
-                if value.file_attributes.contains(&FileAttributes::Directory) {
-                    cache.insert(header.index, path);
+                let path_components: Vec<&str> = mft_entry.full_path.split("\\").collect();
+                if let Some((_, components)) = path_components.split_last() {
+                    mft_entry.directory = components.join("\\");
                 }
+
+                if value.file_attributes.contains(&FileAttributes::Directory)
+                    && value.namespace != Namespace::Dos
+                {
+                    cache.insert(header.index, mft_entry.full_path.clone());
+                }
+                entries.push(mft_entry);
+
                 continue;
             }
 
@@ -154,32 +233,22 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 &mut cache,
             )?;
 
-            println!("cache: {path}");
+            mft_entry.full_path = format!("{path}\\{}", value.name);
+            mft_entry.directory = path;
+
+            entries.push(mft_entry);
         }
 
-        for value in &entry.standard {
-            let root = 5;
-            if parent == root {
-                if value.file_attributes.contains(&FileAttributes::Directory) {
-                    cache.insert(header.index, format!(".\\{}", name));
-                    continue;
-                }
-            }
-
-            if let Some(cache_hit) = cache.get(&parent) {
-                let path = format!("{cache_hit}\\{name}");
-                println!("cache: {path}");
-                if value.file_attributes.contains(&FileAttributes::Directory) {
-                    cache.insert(header.index, path);
-                }
-            }
+        let limit = 10000;
+        if entries.len() >= limit {
+            output_mft(&entries, output, filter, start_time);
+            entries = Vec::new();
         }
     }
-
-    for (key, value) in cache {
-        println!("MFT index: {key} - Path: {value}");
+    if !entries.is_empty() {
+        output_mft(&entries, output, filter, start_time);
+        entries = Vec::new();
     }
-
     Ok(())
 }
 
@@ -242,6 +311,12 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
     };
 
     for value in &entry.filename {
+        if !value.file_attributes.contains(&FileAttributes::Directory) {
+            return Ok(format!("Path Unknown"));
+        }
+        if value.namespace == Namespace::Dos && entry.filename.len() != 1 {
+            continue;
+        }
         let root = 5;
         if value.parent_mft == root {
             if value.file_attributes.contains(&FileAttributes::Directory) {
@@ -253,7 +328,9 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
             let path = format!("{cache_hit}\\{}", value.name);
             println!("cache: {path}");
 
-            if value.file_attributes.contains(&FileAttributes::Directory) {
+            if value.file_attributes.contains(&FileAttributes::Directory)
+                && value.namespace != Namespace::Dos
+            {
                 cache.insert(header.index, path.clone());
             }
 
@@ -262,17 +339,50 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
 
         let parents = lookup_parent(reader, ntfs_file, &value.parent_mft, size, cache)?;
         let path = format!("{parents}\\{}", value.name);
-        if value.file_attributes.contains(&FileAttributes::Directory) {
+        if value.file_attributes.contains(&FileAttributes::Directory)
+            && value.namespace != Namespace::Dos
+        {
             cache.insert(header.index, path.clone());
         }
         return Ok(path);
     }
+
     if entry.filename.is_empty() {
         return Ok(String::new());
     }
 
     println!("{entry:?}");
     panic!("umm wrong?")
+}
+
+fn output_mft(
+    entries: &[MftEntry],
+    output: &mut Output,
+    filter: &bool,
+    start_time: &u64,
+) -> Result<(), MftError> {
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
+    let mut serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[mft] Failed to serialize MFT entries: {err:?}");
+            return Err(MftError::Serialize);
+        }
+    };
+    let result = output_data(&mut serde_data, "mft", output, start_time, filter);
+    match result {
+        Ok(_result) => {}
+        Err(err) => {
+            error!("[mft] Could not output MFT messages: {err:?}");
+            return Err(MftError::OutputData);
+        }
+    }
+
+    Ok(())
 }
 #[cfg(test)]
 mod tests {

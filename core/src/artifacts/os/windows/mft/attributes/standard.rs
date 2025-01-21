@@ -1,5 +1,5 @@
-use super::attribute::FileAttributes;
 use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian};
+use common::windows::FileAttributes;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]

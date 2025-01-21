@@ -21,7 +21,7 @@ use std::io::BufReader;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AttributeList {
-    attribute_type: AttributeType,
+    pub(crate) attribute_type: AttributeType,
     size: u16,
     name_size: u8,
     name_offset: u8,
@@ -30,7 +30,7 @@ pub(crate) struct AttributeList {
     parent_mft: u32,
     parent_sequence: u16,
     attribute_id: u16,
-    attribute: EntryAttributes,
+    pub(crate) attribute: EntryAttributes,
 }
 
 impl AttributeList {

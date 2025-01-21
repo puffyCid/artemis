@@ -29,37 +29,6 @@ pub(crate) struct EntryAttributes {
     pub(crate) attributes: Vec<Value>,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum FileAttributes {
-    ReadOnly,
-    Hidden,
-    System,
-    Volume,
-    Directory,
-    Archive,
-    Device,
-    Normal,
-    Temporary,
-    Sparse,
-    Reparse,
-    Compressed,
-    Offline,
-    NotIndexed,
-    Encrypted,
-    Virtual,
-    IndexView,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub(crate) enum Namespace {
-    Posix,
-    Windows,
-    Dos,
-    WindowsDos,
-    Unknown,
-}
-
 pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
     data: &'a [u8],
     reader: &mut BufReader<T>,
@@ -191,9 +160,11 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .attributes
                 .push(serde_json::to_value(sid).unwrap_or_default());
         } else if header.attrib_type == AttributeType::AttributeList {
-            let (_, list) = AttributeList::parse_list(input, reader, ntfs_file, size, current_mft)?;
+            let (_, mut list) =
+                AttributeList::parse_list(input, reader, ntfs_file, size, current_mft)?;
             println!("{list:?}");
 
+            check_list(&mut list, &mut entry_attributes);
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(list).unwrap_or_default());
@@ -224,6 +195,18 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
     }
 
     Ok((entry_data, entry_attributes))
+}
+
+// Check if Attribute List contains any FILENAME or STANDARD attributes. Sometimes they are stored here
+fn check_list(attribs: &mut [AttributeList], entries: &mut EntryAttributes) {
+    for entry in attribs {
+        if entry.attribute_type == AttributeType::FileName {
+            entries.filename.append(&mut entry.attribute.filename);
+        }
+        if entry.attribute_type == AttributeType::StandardInformation {
+            entries.standard.append(&mut entry.attribute.standard);
+        }
+    }
 }
 
 #[cfg(test)]

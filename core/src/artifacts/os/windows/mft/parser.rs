@@ -2,12 +2,13 @@
  * Only NTFS 3.1 or higher supported
  * TODO:
  * 
- * 1. Parse Standard info - done
- * 2. Parse filename info - done
- * 2.5 Support data runs for attributes outside of the MFT or data in another MFT entry?
- * 3. Ignore other attributes for now
- *    - maybe add Index?
- * 4. If directory track via hashmap
- * 5. walk the MFT and parse each entry until end?
- * 6. Output every 10k files?
+ * 1. Add extension to MftEntry
+ * 1.5 Verify size is right?
+ * 2. Add limit to cache. 10k directories?
+ * 3. Check for recursive parent mfts. Cache should stop that?
+ * 4. Add tests
+ * 5. Fix clippy
+ * 6. Fix Windowŧ string?
+ * 7. Remove dupes?
+ * 8. Compare against another MFT parser. You should have same number of hits or very close
  */

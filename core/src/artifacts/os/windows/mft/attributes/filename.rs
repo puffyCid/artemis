@@ -1,7 +1,4 @@
-use super::{
-    attribute::{FileAttributes, Namespace},
-    standard::Standard,
-};
+use super::standard::Standard;
 use crate::utils::{
     nom_helper::{
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
@@ -9,6 +6,7 @@ use crate::utils::{
     },
     strings::extract_utf16_string,
 };
+use common::windows::{FileAttributes, Namespace};
 use nom::bytes::complete::take;
 use serde::Serialize;
 
