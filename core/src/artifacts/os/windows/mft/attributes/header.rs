@@ -159,7 +159,6 @@ mod tests {
     fn test_parse_header() {
         let test = [16, 0, 0, 0, 96, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0];
         let (_, result) = AttributeHeader::parse_header(&test).unwrap();
-        println!("{result:?}");
         assert_eq!(result.attrib_type, AttributeType::StandardInformation);
         assert_eq!(result.size, 96);
         assert_eq!(result.name_offset, 24);

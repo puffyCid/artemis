@@ -46,7 +46,6 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
     };
     while entry_data.len() > header_size {
         let (input, mut header) = AttributeHeader::parse_header(entry_data)?;
-        println!("{header:?}");
 
         // We are done if we have Unknown attribute or End attribute
         if header.attrib_type == AttributeType::Unknown
@@ -68,21 +67,14 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
             input
         } else {
             let (nonres_input, nonresident) = NonResident::parse_nonresident(input)?;
-            println!("{nonresident:?} - input len: {}", input.len());
             if nonresident.data_runs_offset as usize > input.len() {
                 entry_attributes
                     .attributes
                     .push(json!({format!("{:?} - non-resident", header.attrib_type): nonresident}));
                 continue;
             }
-
-            // if header.attrib_type == AttributeType::Data {
-            // Go to data runs offset
             let (input, _) = take(nonresident.data_runs_offset)(input)?;
             input
-            // } else {
-            //    nonres_input
-            //}
         };
 
         // Attributes may have a name, but the data could also be non-resident
@@ -116,7 +108,6 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .push(json!({"bitmap":bitmap_data}));
         } else if header.attrib_type == AttributeType::ObjectId {
             let (_, object) = ObjectId::parse_object_id(input)?;
-            println!("{object:?}");
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(object).unwrap_or_default());
@@ -127,7 +118,6 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .push(json!({"volume_name":name}));
         } else if header.attrib_type == AttributeType::VolumeInformation {
             let (_, info) = VolumeInfo::parse_volume_info(input)?;
-            println!("{info:?}");
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(info).unwrap_or_default());
@@ -140,51 +130,47 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
             entry_attributes
                 .attributes
                 .push(json!({"data":attrib_data}));
-            println!("{attrib_data}");
         } else if header.attrib_type == AttributeType::IndexRoot {
             let (_, index) = IndexRoot::parse_root(input)?;
-            println!("{index:?}");
+            if index.is_null() {
+                continue;
+            }
             entry_attributes.attributes.push(index);
         } else if header.attrib_type == AttributeType::LoggedStream {
             if header.name == "$TXF_DATA" {
                 let (_, stream) = LoggedStream::parse_transactional_stream(input)?;
-                println!("{stream:?}");
                 entry_attributes
                     .attributes
                     .push(serde_json::to_value(stream).unwrap_or_default());
             }
         } else if header.attrib_type == AttributeType::SecurityDescriptor {
             let (_, sid) = Descriptor::parse_descriptor(input)?;
-            println!("{sid:?}");
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(sid).unwrap_or_default());
         } else if header.attrib_type == AttributeType::AttributeList {
             let (_, mut list) =
                 AttributeList::parse_list(input, reader, ntfs_file, size, current_mft)?;
-            println!("{list:?}");
 
+            // Sometimes the attribute list contains the FILENAME and/or STANDARD attributes
             check_list(&mut list, &mut entry_attributes);
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(list).unwrap_or_default());
         } else if header.attrib_type == AttributeType::ReparsePoint {
             let (_, point) = ReparsePoint::parse_reparse(input)?;
-            println!("reparse point: {point:?}");
 
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(point).unwrap_or_default());
         } else if header.attrib_type == AttributeType::ExtendedInfo {
             let (_, info) = ExtendedInfo::parse_extended_info(input)?;
-            println!("extended info: {info:?}");
 
             entry_attributes
                 .attributes
                 .push(serde_json::to_value(info).unwrap_or_default());
         } else if header.attrib_type == AttributeType::Extended {
             let (_, info) = ExtendedInfo::parse_extended_attribute(input)?;
-            println!("extended attrib: {info:?}");
 
             entry_attributes
                 .attributes

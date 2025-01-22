@@ -4,7 +4,10 @@ use super::{
     header::MftHeader,
     reader::{setup_mft_reader, setup_mft_reader_windows},
 };
-use crate::{artifacts::os::windows::mft::fixup::Fixup, filesystem::ntfs::reader::read_bytes};
+use crate::{
+    artifacts::os::windows::mft::{fixup::Fixup, header::EntryFlags},
+    filesystem::ntfs::reader::read_bytes,
+};
 use crate::{
     artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
     filesystem::ntfs::setup::setup_ntfs_parser,
@@ -68,7 +71,6 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
 
     let mut entries = Vec::new();
     while reader.fill_buf().is_ok_and(|x| !x.is_empty()) {
-        println!("offset: {offset}");
         let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
         let header_bytes = match header_bytes_results {
             Ok(result) => result,
@@ -109,16 +111,19 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         };
         offset += header.total_size as u64;
 
-        let entry_bytes = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
-            Ok((input, _fixup)) => input,
+        let (entry_bytes, fixup) = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
+            Ok(result) => result,
             Err(err) => {
                 panic!("[mft] Could not parse mft fixup values: {err:?}");
                 break;
             }
         };
 
+        let mut mft_bytes = entry_bytes.to_vec();
+        Fixup::apply_fixup(&mut mft_bytes, &fixup);
+
         let entry = match grab_attributes(
-            &entry_bytes,
+            &mft_bytes,
             reader,
             ntfs_file,
             &header.total_size,
@@ -154,6 +159,11 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 usn: 0,
                 parent_inode: 0,
                 attribute_list: Vec::new(),
+                deleted: if header.entry_flags.contains(&EntryFlags::InUse) {
+                    false
+                } else {
+                    true
+                },
             };
 
             if let Some(standard) = entry.standard.first() {
@@ -189,6 +199,12 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 mft_entry.is_directory = true;
             } else {
                 mft_entry.is_file = true;
+                mft_entry.extension = value
+                    .name
+                    .split_terminator(".")
+                    .last()
+                    .unwrap_or_default()
+                    .to_string();
             }
 
             let root = 5;
@@ -200,13 +216,18 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 if value.file_attributes.contains(&FileAttributes::Directory)
                     && value.namespace != Namespace::Dos
                 {
-                    cache.insert(header.index, format!(".\\{}", value.name));
+                    cache.insert(
+                        format!("{}_{}", header.index, header.sequence),
+                        format!(".\\{}", value.name),
+                    );
                     continue;
                 }
                 continue;
             }
 
-            if let Some(cache_hit) = cache.get(&value.parent_mft) {
+            if let Some(cache_hit) =
+                cache.get(&format!("{}_{}", value.parent_mft, value.parent_sequence))
+            {
                 let path = format!("{cache_hit}\\{}", value.name);
                 mft_entry.full_path = path;
 
@@ -218,7 +239,10 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 if value.file_attributes.contains(&FileAttributes::Directory)
                     && value.namespace != Namespace::Dos
                 {
-                    cache.insert(header.index, mft_entry.full_path.clone());
+                    cache.insert(
+                        format!("{}_{}", header.index, header.sequence),
+                        mft_entry.full_path.clone(),
+                    );
                 }
                 entries.push(mft_entry);
 
@@ -229,6 +253,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 reader,
                 ntfs_file,
                 &value.parent_mft,
+                &value.parent_sequence,
                 &header.total_size,
                 &mut cache,
             )?;
@@ -256,12 +281,12 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'a>>,
     parent_index: &u32,
+    parent_sequence: &u16,
     size: &u32,
-    cache: &mut HashMap<u32, String>,
+    cache: &mut HashMap<String, String>,
 ) -> Result<String, MftError> {
     let header_size = 48;
     let offset = (parent_index * size) as u64;
-    println!("offset: {offset}");
     let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
@@ -277,6 +302,13 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
             panic!("[mft] Could not parse header: {err:?}");
         }
     };
+
+    if !header.entry_flags.contains(&EntryFlags::InUse) && *parent_sequence != header.sequence - 1 {
+        return Ok(String::from("$OrphanFiles"));
+    } else if *parent_sequence != header.sequence && *parent_sequence != header.sequence - 1 {
+        return Ok(String::from("$OrphanFiles"));
+    }
+
     let remaining_size = header.total_size - header_size as u32;
 
     let entry_bytes = match read_bytes(
@@ -291,14 +323,18 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
         }
     };
 
-    let entry_bytes = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
-        Ok((input, _fixup)) => input,
+    let (entry_bytes, fixup) = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
+        Ok(result) => result,
         Err(err) => {
             panic!("[mft] Could not parse mft fixup values: {err:?}");
         }
     };
+
+    let mut mft_bytes = entry_bytes.to_vec();
+    Fixup::apply_fixup(&mut mft_bytes, &fixup);
+
     let entry = match grab_attributes(
-        &entry_bytes,
+        &mft_bytes,
         reader,
         ntfs_file,
         &header.total_size,
@@ -310,9 +346,15 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
         }
     };
 
+    if *parent_index == 949315 || header.mft_base_index != 0 && header.mft_base_seq != 0 {
+        println!("{header:?}");
+        println!("parent seq: {parent_sequence}");
+        println!("{entry:?}");
+    }
+
     for value in &entry.filename {
         if !value.file_attributes.contains(&FileAttributes::Directory) {
-            return Ok(format!("Path Unknown"));
+            return Ok(String::from("$OrphanFiles"));
         }
         if value.namespace == Namespace::Dos && entry.filename.len() != 1 {
             continue;
@@ -324,25 +366,39 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
             }
         }
 
-        if let Some(cache_hit) = cache.get(&value.parent_mft) {
+        if let Some(cache_hit) =
+            cache.get(&format!("{}_{}", value.parent_mft, value.parent_sequence))
+        {
             let path = format!("{cache_hit}\\{}", value.name);
-            println!("cache: {path}");
 
             if value.file_attributes.contains(&FileAttributes::Directory)
                 && value.namespace != Namespace::Dos
             {
-                cache.insert(header.index, path.clone());
+                cache.insert(
+                    format!("{}_{}", header.index, header.sequence),
+                    path.clone(),
+                );
             }
 
             return Ok(path);
         }
 
-        let parents = lookup_parent(reader, ntfs_file, &value.parent_mft, size, cache)?;
+        let parents = lookup_parent(
+            reader,
+            ntfs_file,
+            &value.parent_mft,
+            &value.parent_sequence,
+            size,
+            cache,
+        )?;
         let path = format!("{parents}\\{}", value.name);
         if value.file_attributes.contains(&FileAttributes::Directory)
             && value.namespace != Namespace::Dos
         {
-            cache.insert(header.index, path.clone());
+            cache.insert(
+                format!("{}_{}", header.index, header.sequence),
+                path.clone(),
+            );
         }
         return Ok(path);
     }
@@ -384,6 +440,7 @@ fn output_mft(
 
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::parse_mft;
@@ -394,7 +451,7 @@ mod tests {
         Output {
             name: name.to_string(),
             directory: directory.to_string(),
-            format: String::from("json"),
+            format: String::from("csv"),
             compress,
             url: Some(String::new()),
             api_key: Some(String::new()),

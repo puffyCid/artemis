@@ -45,7 +45,6 @@ impl AttributeList {
         let min_size = 32;
         let mut lists = Vec::new();
         while remaining.len() >= min_size {
-            println!("llist loop len: {}", remaining.len());
             let (input, attribute_type) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
             let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;
             let (input, name_size) = nom_unsigned_one_byte(input, Endian::Le)?;
@@ -127,9 +126,11 @@ impl AttributeList {
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'a>>,
     ) -> nom::IResult<&'a [u8], EntryAttributes> {
-        println!("listheader len: {}", data.len());
         let (remaining, header) = MftHeader::parse_header(&data)?;
         let (remaining, fixup) = Fixup::get_fixup(remaining, header.fix_up_count)?;
+
+        let mut mft_bytes = remaining.to_vec();
+        Fixup::apply_fixup(&mut mft_bytes, &fixup);
 
         let (remaining, attribute) = grab_attributes(
             remaining,

@@ -1588,6 +1588,7 @@ pub struct MftEntry {
     pub usn: u64,
     pub parent_inode: u32,
     pub attribute_list: Vec<Value>,
+    pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]

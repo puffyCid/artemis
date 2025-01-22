@@ -45,14 +45,10 @@ pub(crate) struct NodeHeader {
 
 impl IndexRoot {
     pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], Value> {
-        println!("{data:?}");
         let (input, root_header) = IndexRoot::parse_root_header(data)?;
-        println!("{root_header:?}");
         let (input, node_header) = IndexRoot::parse_node_header(input)?;
-        println!("{node_header:?}");
         let (input, index_entry) =
             IndexRoot::parse_index_entry(input, &root_header.attribute_type)?;
-        println!("{input:?}");
         Ok((input, index_entry))
     }
 
@@ -109,9 +105,7 @@ impl IndexRoot {
             if input.len() < min_size {
                 return Ok((input, Value::Null));
             }
-            println!("{input:?}");
             let (input, filename) = Filename::parse_filename(input)?;
-            println!("{filename:?}");
             return Ok((input, serde_json::to_value(filename).unwrap()));
         } else if *attribute_type == AttributeType::Unused {
             return Ok((&[], Value::Null));

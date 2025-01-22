@@ -1,8 +1,7 @@
-use serde::Serialize;
-
 use crate::utils::nom_helper::{
     nom_unsigned_eight_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
 };
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct VolumeInfo {

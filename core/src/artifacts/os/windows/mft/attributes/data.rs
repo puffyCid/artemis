@@ -26,8 +26,6 @@ pub(crate) fn parse_data_run(data: &[u8]) -> nom::IResult<&[u8], Vec<DataRun>> {
     let mut runs = Vec::new();
     let min_size = 3;
     while remaining.len() >= min_size {
-        println!("data run remainign: {remaining:?}");
-
         let (input, cluster_block) = nom_unsigned_one_byte(remaining, Endian::Le)?;
         let offset = (cluster_block & bits) >> offset_adjust;
         let length = cluster_block & bits;
