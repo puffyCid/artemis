@@ -30,6 +30,7 @@ pub(crate) enum EntryFlags {
 }
 
 impl MftHeader {
+    /// Parse the MFT file entry header
     pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], MftHeader> {
         let (input, sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, fix_up_value_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -71,6 +72,7 @@ impl MftHeader {
         Ok((input, header))
     }
 
+    /// Determine entry flags
     fn get_flags(data: &u16) -> Vec<EntryFlags> {
         let mut flags = Vec::new();
         if (data & 0x1) == 0x1 {

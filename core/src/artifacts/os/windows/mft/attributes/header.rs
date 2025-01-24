@@ -19,7 +19,7 @@ pub(crate) struct AttributeHeader {
     pub(crate) name_size: u8,
     pub(crate) name: String,
     name_offset: u16,
-    pub(crate) data_flags: Vec<AttributeFlags>,
+    pub(crate) data_flags: Vec<DataFlags>,
     attrib_id: u16,
 }
 
@@ -60,7 +60,7 @@ pub(crate) enum ResidentFlag {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum AttributeFlags {
+pub(crate) enum DataFlags {
     /*Likely LZNT1? */
     Compressed,
     CompressionMask,
@@ -69,6 +69,7 @@ pub(crate) enum AttributeFlags {
 }
 
 impl AttributeHeader {
+    /// Parse the attribute header info
     pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], AttributeHeader> {
         let (input, type_data) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (_, small_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -95,6 +96,7 @@ impl AttributeHeader {
         return Ok((input, header));
     }
 
+    /// Determine attribute type
     pub(crate) fn get_type(data: &u32) -> AttributeType {
         match data {
             0x0 => AttributeType::Unused,
@@ -123,6 +125,7 @@ impl AttributeHeader {
         }
     }
 
+    /// Determine if data is resident or non-resident
     fn get_resident(data: &u8) -> ResidentFlag {
         match data {
             0x0 => ResidentFlag::Resident,
@@ -131,19 +134,20 @@ impl AttributeHeader {
         }
     }
 
-    fn get_data_flags(data: &u16) -> Vec<AttributeFlags> {
+    /// Determine data flags for the file
+    fn get_data_flags(data: &u16) -> Vec<DataFlags> {
         let mut flags = Vec::new();
         if (data & 0x1) == 0x1 {
-            flags.push(AttributeFlags::Compressed);
+            flags.push(DataFlags::Compressed);
         }
         if (data & 0xff) == 0xff {
-            flags.push(AttributeFlags::CompressionMask);
+            flags.push(DataFlags::CompressionMask);
         }
         if (data & 0x4000) == 0x4000 {
-            flags.push(AttributeFlags::Encrypted);
+            flags.push(DataFlags::Encrypted);
         }
         if (data & 0x8000) == 0x1 {
-            flags.push(AttributeFlags::Sparse);
+            flags.push(DataFlags::Sparse);
         }
 
         flags
@@ -153,7 +157,9 @@ impl AttributeHeader {
 #[cfg(test)]
 mod tests {
     use super::AttributeHeader;
-    use crate::artifacts::os::windows::mft::attributes::header::{AttributeType, ResidentFlag};
+    use crate::artifacts::os::windows::mft::attributes::header::{
+        AttributeType, DataFlags, ResidentFlag,
+    };
 
     #[test]
     fn test_parse_header() {
@@ -163,5 +169,29 @@ mod tests {
         assert_eq!(result.size, 96);
         assert_eq!(result.name_offset, 24);
         assert_eq!(result.resident_flag, ResidentFlag::Resident);
+    }
+
+    #[test]
+    fn test_get_type() {
+        let test = [
+            0x0, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xa0, 0xb0, 0xc0, 0xd0,
+            0xf0, 0x100, 0x1000, 0xffffffff,
+        ];
+        for entry in test {
+            let result = AttributeHeader::get_type(&entry);
+            assert_ne!(result, AttributeType::Unknown);
+        }
+    }
+
+    #[test]
+    fn test_get_resident() {
+        let result = AttributeHeader::get_resident(&3);
+        assert_eq!(result, ResidentFlag::Unknown);
+    }
+
+    #[test]
+    fn test_get_data_flags() {
+        let result = AttributeHeader::get_data_flags(&0x4000);
+        assert_eq!(result, vec![DataFlags::Encrypted]);
     }
 }

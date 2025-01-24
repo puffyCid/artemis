@@ -17,6 +17,7 @@ pub(crate) enum RunType {
     Sparse,
 }
 
+/// Try to get Data runs
 pub(crate) fn parse_data_run(data: &[u8]) -> nom::IResult<&[u8], Vec<DataRun>> {
     let mut remaining = data;
 

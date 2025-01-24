@@ -30,6 +30,7 @@ pub(crate) struct EntryAttributes {
     pub(crate) size: u64,
 }
 
+/// Parse and grab all `MFT` FILE attributes
 pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
     data: &'a [u8],
     reader: &mut BufReader<T>,
@@ -209,10 +210,13 @@ fn check_list(attribs: &mut [AttributeList], entries: &mut EntryAttributes) {
 mod tests {
     use super::grab_attributes;
     use crate::artifacts::os::windows::mft::reader::setup_mft_reader;
-    use std::io::BufReader;
+    use std::{io::BufReader, path::PathBuf};
 
     #[test]
     fn test_grab_attribtes() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
+
         let test = [
             16, 0, 0, 0, 96, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 72, 0, 0, 0, 24, 0, 0, 0, 172, 119,
             65, 126, 194, 223, 218, 1, 172, 119, 65, 126, 194, 223, 218, 1, 172, 119, 65, 126, 194,
@@ -220,7 +224,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let reader = setup_mft_reader("").unwrap();
+        let reader = setup_mft_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
 
         let (_, result) = grab_attributes(&test, &mut buf_reader, None, &0, &0).unwrap();

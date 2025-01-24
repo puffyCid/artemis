@@ -482,18 +482,11 @@ mod tests {
 
     #[test]
     fn test_parse_mft() {
-        //let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        // test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(
-            // &test_location.display().to_string(),
-            "/home/puffycid/Downloads/$MFT",
-            &mut output,
-            &false,
-            &0,
-        )
-        .unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, &false, &0).unwrap();
     }
 
     #[test]
