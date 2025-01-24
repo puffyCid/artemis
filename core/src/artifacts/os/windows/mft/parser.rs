@@ -2,8 +2,8 @@
  * Only NTFS 3.1 or higher supported
  * TODO:
  * 
- * 1.5 Verify size is right?
- * 2. Add limit to cache. 10k directories?
+ * 1.5 Verify size is right? <--- done
+ * 2. Add limit to cache. 1k directories <-- done
  * 3. Check for recursive parent mfts. Cache should stop that?
  *    - Check for recursive attribute list
  * 4. Add tests

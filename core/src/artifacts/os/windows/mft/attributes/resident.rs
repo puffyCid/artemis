@@ -4,7 +4,7 @@ use crate::utils::nom_helper::{
 
 #[derive(Debug)]
 pub(crate) struct Resident {
-    size: u32,
+    pub(crate) size: u32,
     offset: u16,
     indexed_flag: u8,
 }

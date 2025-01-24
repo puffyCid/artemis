@@ -1,4 +1,6 @@
-use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{
+    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -23,6 +25,8 @@ impl NonResident {
         let (input, last_virtual_cluster) = nom_unsigned_eight_bytes(input, Endian::Le)?;
         let (input, data_runs_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, compression_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+        let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let (input, allocated_size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
         let (input, size) = nom_unsigned_eight_bytes(input, Endian::Le)?;

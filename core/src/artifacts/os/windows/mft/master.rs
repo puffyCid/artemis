@@ -63,14 +63,24 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
     start_time: &u64,
     filter: &bool,
 ) -> Result<(), MftError> {
-    let mut cache = HashMap::new();
+    let mut cache: HashMap<String, String> = HashMap::new();
+    // Keep a directory cache limit of 1000 entries
+    let cache_limit = 1000;
 
     let header_size = 48;
     let mut offset = 0;
     let mut entry_size = 1024;
 
     let mut entries = Vec::new();
+
     while reader.fill_buf().is_ok_and(|x| !x.is_empty()) {
+        while cache.len() > cache_limit {
+            if let Some(key) = cache.keys().next() {
+                let key = key.clone();
+                cache.remove(&key);
+                break;
+            }
+        }
         let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
         let header_bytes = match header_bytes_results {
             Ok(result) => result,
@@ -110,6 +120,11 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
             }
         };
         offset += header.total_size as u64;
+
+        // Skip Extension MFT records
+        if header.mft_base_seq != 0 && header.mft_base_index != 0 {
+            continue;
+        }
 
         let (entry_bytes, fixup) = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
             Ok(result) => result,
@@ -187,7 +202,6 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
             mft_entry.filename = value.name.clone();
             mft_entry.parent_inode = value.parent_mft;
             mft_entry.inode = header.index;
-            mft_entry.size = value.size;
             mft_entry.namespace = value.namespace.clone();
             mft_entry.filename_created = created;
             mft_entry.filename_modified = modified;
@@ -199,6 +213,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 mft_entry.is_directory = true;
             } else {
                 mft_entry.is_file = true;
+                mft_entry.size = entry.size;
                 mft_entry.extension = value
                     .name
                     .split_terminator(".")
@@ -264,7 +279,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
             entries.push(mft_entry);
         }
 
-        let limit = 10000;
+        let limit = 1000;
         if entries.len() >= limit {
             output_mft(&entries, output, filter, start_time);
             entries = Vec::new();
@@ -274,6 +289,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         output_mft(&entries, output, filter, start_time);
         entries = Vec::new();
     }
+
     Ok(())
 }
 

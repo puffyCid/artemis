@@ -87,6 +87,7 @@ impl AttributeList {
                     filename: Vec::new(),
                     standard: Vec::new(),
                     attributes: Vec::new(),
+                    size: 0,
                 },
             };
 

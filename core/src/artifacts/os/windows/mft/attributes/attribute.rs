@@ -27,6 +27,7 @@ pub(crate) struct EntryAttributes {
     pub(crate) standard: Vec<Standard>,
     pub(crate) filename: Vec<Filename>,
     pub(crate) attributes: Vec<Value>,
+    pub(crate) size: u64,
 }
 
 pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
@@ -43,6 +44,7 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
         standard: Vec::new(),
         filename: Vec::new(),
         attributes: Vec::new(),
+        size: 0,
     };
     while entry_data.len() > header_size {
         let (input, mut header) = AttributeHeader::parse_header(entry_data)?;
@@ -64,9 +66,14 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
 
         let mut input = if header.resident_flag == ResidentFlag::Resident {
             let (input, resident) = Resident::parse_resident(input)?;
+            entry_attributes.size = resident.size as u64;
+
             input
         } else {
-            let (nonres_input, nonresident) = NonResident::parse_nonresident(input)?;
+            let (_nonres_input, nonresident) = NonResident::parse_nonresident(input)?;
+            if nonresident.first_virtual_cluster == 0 {
+                entry_attributes.size = nonresident.size;
+            }
             if nonresident.data_runs_offset as usize > input.len() {
                 entry_attributes
                     .attributes
@@ -95,6 +102,9 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
             entry_attributes.standard.push(standard);
         } else if header.attrib_type == AttributeType::FileName {
             let (_, filename) = Filename::parse_filename(input)?;
+            if entry_attributes.size == 0 {
+                entry_attributes.size = filename.size;
+            }
             entry_attributes.filename.push(filename);
         } else if header.resident_flag == ResidentFlag::NonResident {
             let (_, runs) = parse_data_run(input)?;
