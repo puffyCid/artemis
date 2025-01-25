@@ -8,6 +8,7 @@
  *    - Check for recursive attribute list
  * 4. Add tests
  * 5. Fix clippy
+ * 6. Missing entries when compared to mft_dump
  * 7. Remove dupes?
  * 8. Do not include base_extensions (ATTRIBUTE_LIST) entries in the final output. Instead combine them with base_entries
  *    1. Requires that we parse the MFT twice? :/ 

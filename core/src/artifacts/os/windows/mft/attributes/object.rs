@@ -11,6 +11,7 @@ pub(crate) struct ObjectId {
 }
 
 impl ObjectId {
+    /// Extract object IDs from attribute
     pub(crate) fn parse_object_id(data: &[u8]) -> nom::IResult<&[u8], ObjectId> {
         let guid_size: u8 = 16;
 
@@ -39,5 +40,20 @@ impl ObjectId {
         };
 
         Ok((input, id))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ObjectId;
+
+    #[test]
+    fn test_parse_object_id() {
+        let test = [
+            224, 40, 178, 130, 84, 215, 183, 74, 184, 24, 222, 128, 94, 186, 203, 148,
+        ];
+        let (_, result) = ObjectId::parse_object_id(&test).unwrap();
+
+        assert_eq!(result.droid_file_id, "82b228e0-d754-4ab7-b818-de805ebacb94");
     }
 }

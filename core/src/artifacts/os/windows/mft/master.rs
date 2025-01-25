@@ -123,7 +123,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
 
         // Skip Extension MFT records
         if header.mft_base_seq != 0 && header.mft_base_index != 0 {
-            continue;
+            //continue;
         }
 
         let (entry_bytes, fixup) = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {

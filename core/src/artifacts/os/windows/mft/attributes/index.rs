@@ -22,7 +22,7 @@ pub(crate) struct RootHeader {
     cluster_block_count: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum CollationType {
     Binary,
     Filename,
@@ -44,6 +44,7 @@ pub(crate) struct NodeHeader {
 }
 
 impl IndexRoot {
+    /// Parse the Index Root attribute
     pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], Value> {
         let (input, root_header) = IndexRoot::parse_root_header(data)?;
         let (input, node_header) = IndexRoot::parse_node_header(input)?;
@@ -52,6 +53,7 @@ impl IndexRoot {
         Ok((input, index_entry))
     }
 
+    /// Extract root header from Index
     fn parse_root_header(data: &[u8]) -> nom::IResult<&[u8], RootHeader> {
         let (input, attribute_type) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, collation_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -68,6 +70,7 @@ impl IndexRoot {
         Ok((input, header))
     }
 
+    /// Extract node header from Index
     fn parse_node_header(data: &[u8]) -> nom::IResult<&[u8], NodeHeader> {
         let (input, values_offset) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, node_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -84,6 +87,7 @@ impl IndexRoot {
         Ok((input, header))
     }
 
+    /// Grab attribute Index entry
     fn parse_index_entry<'a>(
         data: &'a [u8],
         attribute_type: &AttributeType,
@@ -115,6 +119,7 @@ impl IndexRoot {
         panic!("{input:?}");
     }
 
+    /// Determine collection type for Index
     fn get_collation_type(data: &u32) -> CollationType {
         match data {
             0x0 => CollationType::Binary,
@@ -132,6 +137,7 @@ impl IndexRoot {
 #[cfg(test)]
 mod tests {
     use super::IndexRoot;
+    use crate::artifacts::os::windows::mft::attributes::index::{AttributeType, CollationType};
 
     #[test]
     fn test_parse_root() {
@@ -146,5 +152,69 @@ mod tests {
         ];
 
         let (_, result) = IndexRoot::parse_root(&test).unwrap();
+        assert!(result.to_string().contains("DOCUME~1"));
+    }
+
+    #[test]
+    fn test_parse_root_header() {
+        let test = [
+            48, 0, 0, 0, 1, 0, 0, 0, 0, 16, 0, 0, 1, 0, 0, 0, 16, 0, 0, 0, 152, 0, 0, 0, 152, 0, 0,
+            0, 1, 0, 0, 0, 49, 124, 1, 0, 0, 0, 5, 0, 112, 0, 82, 0, 1, 0, 0, 0, 5, 0, 0, 0, 0, 0,
+            5, 0, 200, 193, 152, 167, 186, 223, 218, 1, 200, 193, 152, 167, 186, 223, 218, 1, 200,
+            193, 152, 167, 186, 223, 218, 1, 200, 193, 152, 167, 186, 223, 218, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 36, 0, 16, 3, 0, 0, 160, 8, 2, 68, 0, 79, 0, 67, 0,
+            85, 0, 77, 0, 69, 0, 126, 0, 49, 0, 107, 0, 46, 0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let (_, result) = IndexRoot::parse_root_header(&test).unwrap();
+        assert_eq!(result.cluster_block_count, 1);
+        assert_eq!(result.entry_size, 4096);
+        assert_eq!(result.attribute_type, AttributeType::FileName);
+        assert_eq!(result.collation_type, CollationType::Filename);
+    }
+
+    #[test]
+    fn test_parse_node_header() {
+        let test = [
+            16, 0, 0, 0, 152, 0, 0, 0, 152, 0, 0, 0, 1, 0, 0, 0, 49, 124, 1, 0, 0, 0, 5, 0, 112, 0,
+            82, 0, 1, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5, 0, 200, 193, 152, 167, 186, 223, 218, 1, 200,
+            193, 152, 167, 186, 223, 218, 1, 200, 193, 152, 167, 186, 223, 218, 1, 200, 193, 152,
+            167, 186, 223, 218, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 36, 0, 16, 3,
+            0, 0, 160, 8, 2, 68, 0, 79, 0, 67, 0, 85, 0, 77, 0, 69, 0, 126, 0, 49, 0, 107, 0, 46,
+            0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 3, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let (_, result) = IndexRoot::parse_node_header(&test).unwrap();
+        assert_eq!(result.allocated_size, 152);
+        assert_eq!(result.node_size, 152);
+        assert_eq!(result.values_offset, 16);
+        assert_eq!(result.is_branch, true);
+    }
+
+    #[test]
+    fn test_parse_index_entry() {
+        let test = [
+            49, 124, 1, 0, 0, 0, 5, 0, 112, 0, 82, 0, 1, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5, 0, 200, 193,
+            152, 167, 186, 223, 218, 1, 200, 193, 152, 167, 186, 223, 218, 1, 200, 193, 152, 167,
+            186, 223, 218, 1, 200, 193, 152, 167, 186, 223, 218, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 6, 36, 0, 16, 3, 0, 0, 160, 8, 2, 68, 0, 79, 0, 67, 0, 85, 0, 77, 0,
+            69, 0, 126, 0, 49, 0, 107, 0, 46, 0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 24, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let (_, result) = IndexRoot::parse_index_entry(&test, &AttributeType::FileName).unwrap();
+        assert!(result.to_string().contains("133665131729568200"));
+    }
+
+    #[test]
+    fn test_get_collation_type() {
+        let test = [0x0, 0x1, 0x2, 0x10, 0x11, 0x12, 0x13];
+
+        for entry in test {
+            let result = IndexRoot::get_collation_type(&entry);
+            assert_ne!(result, CollationType::Unknown);
+        }
     }
 }

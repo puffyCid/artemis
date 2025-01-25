@@ -34,6 +34,7 @@ pub(crate) struct AttributeList {
 }
 
 impl AttributeList {
+    /// Start parsing the AttributeList attribute
     pub(crate) fn parse_list<'a, T: std::io::Seek + std::io::Read>(
         data: &'a [u8],
         reader: &mut BufReader<T>,
@@ -122,6 +123,7 @@ impl AttributeList {
         Ok((remaining, lists))
     }
 
+    /// Parse each list entry
     fn grab_list_data<'a, T: std::io::Seek + std::io::Read>(
         data: &'a [u8],
         reader: &mut BufReader<T>,
@@ -142,5 +144,69 @@ impl AttributeList {
         )?;
 
         Ok((remaining, attribute))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AttributeList;
+    use crate::artifacts::os::windows::mft::reader::setup_mft_reader;
+    use std::{io::BufReader, path::PathBuf};
+
+    #[test]
+    fn test_parse_list() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
+
+        let test = [
+            16, 0, 0, 0, 32, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9, 0, 0, 0, 68,
+            67, 0, 0, 0, 0, 48, 0, 0, 0, 32, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9,
+            0, 7, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 35, 3,
+            0, 0, 0, 0, 1, 0, 0, 0, 36, 0, 83, 0, 68, 0, 83, 0, 0, 0, 0, 0, 0, 0, 144, 0, 0, 0, 40,
+            0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9, 0, 17, 0, 36, 0, 83, 0, 68, 0,
+            72, 0, 0, 0, 0, 0, 0, 0, 144, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0,
+            0, 0, 0, 9, 0, 16, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0, 160, 0, 0, 0, 40,
+            0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0, 0, 0, 1, 0, 1, 0, 36, 0, 83, 0, 68, 0,
+            72, 0, 0, 0, 0, 0, 0, 0, 160, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0,
+            0, 0, 0, 1, 0, 2, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0, 176, 0, 0, 0, 40, 0,
+            4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0, 0, 0, 1, 0, 3, 0, 36, 0, 83, 0, 68, 0, 72,
+            0, 0, 0, 0, 0, 0, 0, 176, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0,
+            0, 0, 1, 0, 4, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let reader = setup_mft_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, results) =
+            AttributeList::parse_list(&test, &mut buf_reader, None, &1024, &9).unwrap();
+        assert_eq!(results.len(), 9);
+    }
+
+    #[test]
+    #[should_panic(expected = "Eof")]
+    fn test_grab_list_data() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
+
+        let test = [
+            16, 0, 0, 0, 32, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9, 0, 0, 0, 68,
+            67, 0, 0, 0, 0, 48, 0, 0, 0, 32, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9,
+            0, 7, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 35, 3,
+            0, 0, 0, 0, 1, 0, 0, 0, 36, 0, 83, 0, 68, 0, 83, 0, 0, 0, 0, 0, 0, 0, 144, 0, 0, 0, 40,
+            0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9, 0, 17, 0, 36, 0, 83, 0, 68, 0,
+            72, 0, 0, 0, 0, 0, 0, 0, 144, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0,
+            0, 0, 0, 9, 0, 16, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0, 160, 0, 0, 0, 40,
+            0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0, 0, 0, 1, 0, 1, 0, 36, 0, 83, 0, 68, 0,
+            72, 0, 0, 0, 0, 0, 0, 0, 160, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0,
+            0, 0, 0, 1, 0, 2, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0, 176, 0, 0, 0, 40, 0,
+            4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0, 0, 0, 1, 0, 3, 0, 36, 0, 83, 0, 68, 0, 72,
+            0, 0, 0, 0, 0, 0, 0, 176, 0, 0, 0, 40, 0, 4, 26, 0, 0, 0, 0, 0, 0, 0, 0, 204, 9, 0, 0,
+            0, 0, 1, 0, 4, 0, 36, 0, 83, 0, 73, 0, 73, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let reader = setup_mft_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let _ = AttributeList::grab_list_data(&test, &mut buf_reader, None).unwrap();
     }
 }

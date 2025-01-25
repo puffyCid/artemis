@@ -51,3 +51,23 @@ impl NonResident {
         Ok((input, nonresident))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::NonResident;
+
+    #[test]
+    fn test_parse_nonresident() {
+        let test = [
+            0, 0, 0, 0, 0, 0, 0, 0, 41, 1, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 208, 9, 0,
+            0, 0, 0, 0, 0, 208, 9, 0, 0, 0, 0, 0, 0, 208, 9, 0, 0, 0, 0, 0, 50, 8, 1, 141, 172, 0,
+            33, 50, 115, 211, 0, 225, 116, 34, 178, 238,
+        ];
+
+        let (_, result) = NonResident::parse_nonresident(&test).unwrap();
+        assert_eq!(result.allocated_size, 643072);
+        assert_eq!(result.compression_size, 0);
+        assert_eq!(result.data_runs_offset, 64);
+        assert_eq!(result.last_virtual_cluster, 297);
+    }
+}

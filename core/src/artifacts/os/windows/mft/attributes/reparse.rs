@@ -14,6 +14,7 @@ pub(crate) struct ReparsePoint {
 }
 
 impl ReparsePoint {
+    /// Parse reparse attribute
     pub(crate) fn parse_reparse(data: &[u8]) -> nom::IResult<&[u8], ReparsePoint> {
         let (input, tag) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -27,5 +28,21 @@ impl ReparsePoint {
         };
 
         Ok((input, point))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ReparsePoint;
+
+    #[test]
+    fn test_parse_reparse() {
+        let test = [
+            23, 0, 0, 128, 16, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0,
+        ];
+        let (_, result) = ReparsePoint::parse_reparse(&test).unwrap();
+        assert_eq!(result.data, "AQAAAAIAAAABAAAAAgAAAA==");
+        assert_eq!(result.size, 16);
+        assert_eq!(result.tag, 2147483671);
     }
 }
