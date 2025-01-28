@@ -47,8 +47,9 @@ pub(crate) enum AttributeType {
     /*Removed in NTFS version 3.0 */
     PropertySet,
     LoggedStream,
-    UserDefined,
+    FirstUserDefined,
     End,
+    Undocumented,
     Unknown,
 }
 
@@ -116,7 +117,9 @@ impl AttributeHeader {
             0xe0 => AttributeType::Extended,
             0xf0 => AttributeType::PropertySet,
             0x100 => AttributeType::LoggedStream,
-            0x1000 => AttributeType::UserDefined,
+            0x1000 => AttributeType::FirstUserDefined,
+            // Are these user defined attributes?
+            0x200000 | 0x280000 | 0x300000 => AttributeType::Undocumented,
             0xffffffff => AttributeType::End,
             _ => {
                 warn!("[mft] Got unknown attribyte type {data}");

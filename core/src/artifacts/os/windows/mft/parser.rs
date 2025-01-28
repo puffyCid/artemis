@@ -1,21 +1,23 @@
+/**
+ * MFT (Master File Table) is part of the Windows NTFS filesystem.
+ * It keeps track of all files and directories on a system.
+ *
+ * By just parsing the $MFT file it is possible to create a filelisting without needing to iterate through a live system.
+ * Other parsers:
+ *   `https://github.com/Velocidex/velociraptor`
+ */
+use super::{error::MftError, master::parse_mft};
 use crate::{
     structs::{artifacts::os::windows::MftOptions, toml::Output},
     utils::{environment::get_systemdrive, time::time_now},
 };
 
-use super::{error::MftError, master::parse_mft};
-
 /**
  * Only NTFS 3.1 or higher supported
  * TODO:
  *
- * 1.5 Verify size is right? <--- done
- * 2. Add limit to cache. 1k directories <-- done
  * 3. Check for recursive parent mfts. Cache should stop that?
  *    - Check for recursive attribute list
- * 5. Fix clippy
- * 6. Missing entries when compared to mft_dump
- * 7. Remove dupes?
  * 8. Do not include base_extensions (ATTRIBUTE_LIST) entries in the final output. Instead combine them with base_entries
  *    1. Requires that we parse the MFT twice? :/
  *    2. First parse MFT and only grab the base_extensions. Cache them.
@@ -23,8 +25,11 @@ use super::{error::MftError, master::parse_mft};
  *    4. Combine the base_extensions with the base_entry. Via index and sequence matching?
  *    5. Once combined you have all of your attributes
  * 9. Remove panics
+ * 10. update file_attribute_flags function in attributes.rs
+ * 11. Test on MFT files in artifact musuem and windows
  */
 
+/// Try create a filelisting from provided MFT file
 pub(crate) fn grab_mft(
     options: &MftOptions,
     output: &mut Output,
@@ -49,6 +54,7 @@ pub(crate) fn grab_mft(
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_mft;
     use crate::structs::{artifacts::os::windows::MftOptions, toml::Output};

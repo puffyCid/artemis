@@ -6,7 +6,10 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::mft::{fixup::Fixup, header::EntryFlags},
-    filesystem::ntfs::reader::read_bytes,
+    filesystem::{
+        files::get_file_size,
+        ntfs::{attributes::get_raw_file_size, reader::read_bytes},
+    },
 };
 use crate::{
     artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
@@ -30,11 +33,13 @@ pub(crate) fn parse_mft(
     start_time: &u64,
 ) -> Result<(), MftError> {
     let plat = get_platform();
+    let size;
     if plat != "Windows" {
+        size = get_file_size(path);
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(&mut buf_reader, None, output, start_time, filter);
+        return read_mft(&mut buf_reader, None, output, start_time, filter, &size);
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -47,6 +52,14 @@ pub(crate) fn parse_mft(
         }
     };
     let ntfs_file = setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
+    // We use NTFS crate to parse NTFS filesystem to briefly parse part of the MFT to get the size of the MFT so we can later parse the full MFT ourselves...
+    let size = match get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[mft] Failed to determine size of $MFT file: {err:?}");
+            return Err(MftError::RawSize);
+        }
+    };
 
     read_mft(
         &mut ntfs_parser.fs,
@@ -54,6 +67,7 @@ pub(crate) fn parse_mft(
         output,
         start_time,
         filter,
+        &size,
     )
 }
 
@@ -64,6 +78,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     output: &mut Output,
     start_time: &u64,
     filter: &bool,
+    size: &u64,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
     // Keep a directory cache limit of 1000 entries
@@ -75,7 +90,11 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
     let mut entries = Vec::new();
 
-    while reader.fill_buf().is_ok_and(|x| !x.is_empty()) {
+    while let Ok(header_bytes) = read_bytes(&offset, header_size, ntfs_file, reader) {
+        // If our offset is larger than the MFT size. Then we are done
+        if offset > *size {
+            break;
+        }
         while cache.len() > cache_limit {
             if let Some(key) = cache.keys().next() {
                 let key = key.clone();
@@ -83,16 +102,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 break;
             }
         }
-        let header_bytes_results = read_bytes(&offset, header_size, ntfs_file, reader);
-        let header_bytes = match header_bytes_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[mft] Could not read header bytes: {err:?}");
-                break;
-            }
-        };
 
-        let header_results = MftHeader::parse_header(&header_bytes);
+        let header_results: Result<(&[u8], MftHeader), nom::Err<nom::error::Error<&[u8]>>> =
+            MftHeader::parse_header(&header_bytes);
         let (_, header) = match header_results {
             Ok(result) => result,
             Err(err) => {
@@ -101,7 +113,8 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             }
         };
 
-        if header.sig == 0 {
+        let file0 = 1162627398;
+        if header.sig != file0 {
             offset += entry_size;
             continue;
         }
@@ -125,7 +138,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
         // Skip Extension MFT records
         if header.mft_base_seq != 0 && header.mft_base_index != 0 {
-            //continue;
+            continue;
         }
 
         let (entry_bytes, fixup) = match Fixup::get_fixup(&entry_bytes, header.fix_up_count) {
@@ -282,10 +295,10 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             let _ = output_mft(&entries, output, filter, start_time);
             entries = Vec::new();
         }
+        reader.buffer().consume(reader.buffer().len());
     }
     if !entries.is_empty() {
         let _ = output_mft(&entries, output, filter, start_time);
-        entries = Vec::new();
     }
 
     Ok(())
