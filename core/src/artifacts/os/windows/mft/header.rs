@@ -5,19 +5,19 @@ use crate::utils::nom_helper::{
 #[derive(Debug)]
 pub(crate) struct MftHeader {
     pub(crate) sig: u32,
-    pub(crate) fix_up_value_offset: u16,
+    pub(crate) _fix_up_value_offset: u16,
     pub(crate) fix_up_count: u16,
-    pub(crate) transaction_seq: u64,
+    pub(crate) _transaction_seq: u64,
     pub(crate) sequence: u16,
-    pub(crate) ref_count: u16,
-    attrib_offset: u16,
+    pub(crate) _ref_count: u16,
+    _attrib_offset: u16,
     pub(crate) entry_flags: Vec<EntryFlags>,
-    pub(crate) used_size: u32,
+    pub(crate) _used_size: u32,
     pub(crate) total_size: u32,
     pub(crate) mft_base_index: u32,
     pub(crate) mft_base_seq: u16,
-    first_attrib: u16,
-    wfixup_patter: u16,
+    _first_attrib: u16,
+    _wfixup_patter: u16,
     pub(crate) index: u32,
 }
 
@@ -53,19 +53,19 @@ impl MftHeader {
 
         let header = MftHeader {
             sig,
-            fix_up_value_offset,
+            _fix_up_value_offset: fix_up_value_offset,
             fix_up_count,
-            transaction_seq,
+            _transaction_seq: transaction_seq,
             sequence,
-            ref_count,
-            attrib_offset,
+            _ref_count: ref_count,
+            _attrib_offset: attrib_offset,
             entry_flags: MftHeader::get_flags(&entry_data),
-            used_size,
+            _used_size: used_size,
             total_size,
             mft_base_index,
             mft_base_seq,
-            first_attrib,
-            wfixup_patter,
+            _first_attrib: first_attrib,
+            _wfixup_patter: wfixup_patter,
             index,
         };
 
@@ -105,11 +105,11 @@ mod tests {
         ];
 
         let (_, result) = MftHeader::parse_header(&test).unwrap();
-        assert_eq!(result.used_size, 592);
+        assert_eq!(result._used_size, 592);
         assert_eq!(result.total_size, 1024);
-        assert_eq!(result.transaction_seq, 29531818166);
+        assert_eq!(result._transaction_seq, 29531818166);
         assert_eq!(result.sequence, 1);
-        assert_eq!(result.ref_count, 1);
+        assert_eq!(result._ref_count, 1);
         assert_eq!(result.mft_base_index, 0);
         assert_eq!(result.entry_flags, vec![EntryFlags::InUse]);
     }

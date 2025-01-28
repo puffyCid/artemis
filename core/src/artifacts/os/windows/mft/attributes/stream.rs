@@ -13,6 +13,7 @@ pub(crate) struct LoggedStream {
 }
 
 impl LoggedStream {
+    /// Extract transaction stream data
     pub(crate) fn parse_transactional_stream(data: &[u8]) -> nom::IResult<&[u8], LoggedStream> {
         let (input, manager_root_reference) = nom_unsigned_eight_bytes(data, Endian::Le)?;
         let (input, usn_index) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -33,5 +34,26 @@ impl LoggedStream {
         };
 
         Ok((input, stream))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LoggedStream;
+
+    #[test]
+    fn test_parse_transactional_stream() {
+        let test = [
+            0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 135, 0, 27, 0, 0, 0, 2, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+
+        let (_, stream) = LoggedStream::parse_transactional_stream(&test).unwrap();
+        assert_eq!(stream.manager_root_reference, 1407374883553280);
+        assert_eq!(stream.usn_index, 281496451547136);
+        assert_eq!(stream.tx_id, 65536);
+        assert_eq!(stream.data_lsn, 0);
+        assert_eq!(stream.directory_lsn, 7061644215716937728);
     }
 }

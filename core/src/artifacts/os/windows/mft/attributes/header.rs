@@ -7,20 +7,20 @@ use serde::Serialize;
 #[derive(Debug)]
 pub(crate) struct AttributeHeader {
     pub(crate) attrib_type: AttributeType,
-    /**Includes the attrib_type and size itself */
+    /**Includes the `attrib_type` and size itself */
     pub(crate) size: u32,
     /**
-     * Includes the attrib_type and size itself. Sometimes size will include "overloaded or remnant data?"
-     * https://github.com/libyal/libfsntfs/blob/main/documentation/New%20Technologies%20File%20System%20(NTFS).asciidoc
+     * Includes the `attrib_type` and size itself. Sometimes size will include "overloaded or remnant data?"
+     * <https://github.com/libyal/libfsntfs/blob/main/documentation/New%20Technologies%20File%20System%20(NTFS).asciidoc>
      *   "Size (or record length) upper 2 bytes overloaded or remnant data?"
      */
     pub(crate) small_size: u16,
     pub(crate) resident_flag: ResidentFlag,
     pub(crate) name_size: u8,
     pub(crate) name: String,
-    name_offset: u16,
-    pub(crate) data_flags: Vec<DataFlags>,
-    attrib_id: u16,
+    _name_offset: u16,
+    pub(crate) _data_flags: Vec<DataFlags>,
+    _attrib_id: u16,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -88,12 +88,12 @@ impl AttributeHeader {
             resident_flag: AttributeHeader::get_resident(&resident_data),
             name_size,
             name: String::new(),
-            name_offset,
-            data_flags: AttributeHeader::get_data_flags(&flag_data),
-            attrib_id,
+            _name_offset: name_offset,
+            _data_flags: AttributeHeader::get_data_flags(&flag_data),
+            _attrib_id: attrib_id,
         };
 
-        return Ok((input, header));
+        Ok((input, header))
     }
 
     /// Determine attribute type
@@ -146,7 +146,7 @@ impl AttributeHeader {
         if (data & 0x4000) == 0x4000 {
             flags.push(DataFlags::Encrypted);
         }
-        if (data & 0x8000) == 0x1 {
+        if (data & 0x8000) == 0x8000 {
             flags.push(DataFlags::Sparse);
         }
 
@@ -167,7 +167,7 @@ mod tests {
         let (_, result) = AttributeHeader::parse_header(&test).unwrap();
         assert_eq!(result.attrib_type, AttributeType::StandardInformation);
         assert_eq!(result.size, 96);
-        assert_eq!(result.name_offset, 24);
+        assert_eq!(result._name_offset, 24);
         assert_eq!(result.resident_flag, ResidentFlag::Resident);
     }
 

@@ -3,7 +3,7 @@ use super::artifacts::os::macos::{
     EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
     MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
-use super::artifacts::os::windows::OutlookOptions;
+use super::artifacts::os::windows::{MftOptions, OutlookOptions};
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
@@ -82,4 +82,5 @@ pub struct Artifacts {
     pub recyclebin: Option<RecycleBinOptions>,
     pub wmipersist: Option<WmiPersistOptions>,
     pub outlook: Option<OutlookOptions>,
+    pub mft: Option<MftOptions>,
 }

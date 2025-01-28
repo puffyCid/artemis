@@ -22,6 +22,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+/// Parse the provided $MFT file and try to re-create filelisting
 pub(crate) fn parse_mft(
     path: &str,
     output: &mut Output,
@@ -56,9 +57,10 @@ pub(crate) fn parse_mft(
     )
 }
 
-fn read_mft<'a, T: std::io::Seek + std::io::Read>(
+/// Read the MFT in small chunks
+fn read_mft<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'a>>,
+    ntfs_file: Option<&NtfsFile<'_>>,
     output: &mut Output,
     start_time: &u64,
     filter: &bool,
@@ -108,7 +110,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
         let remaining_size = header.total_size - header_size as u32;
 
         let entry_bytes = match read_bytes(
-            &(&header_size + &offset),
+            &(header_size + offset),
             remaining_size as u64,
             ntfs_file,
             reader,
@@ -174,11 +176,7 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
                 usn: 0,
                 parent_inode: 0,
                 attribute_list: Vec::new(),
-                deleted: if header.entry_flags.contains(&EntryFlags::InUse) {
-                    false
-                } else {
-                    true
-                },
+                deleted: !header.entry_flags.contains(&EntryFlags::InUse),
             };
 
             if let Some(standard) = entry.standard.first() {
@@ -281,21 +279,22 @@ fn read_mft<'a, T: std::io::Seek + std::io::Read>(
 
         let limit = 1000;
         if entries.len() >= limit {
-            output_mft(&entries, output, filter, start_time);
+            let _ = output_mft(&entries, output, filter, start_time);
             entries = Vec::new();
         }
     }
     if !entries.is_empty() {
-        output_mft(&entries, output, filter, start_time);
+        let _ = output_mft(&entries, output, filter, start_time);
         entries = Vec::new();
     }
 
     Ok(())
 }
 
-fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
+/// Try to find parents of a MFT entry. We maintain a small cache to speed up lookup
+fn lookup_parent<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'a>>,
+    ntfs_file: Option<&NtfsFile<'_>>,
     parent_index: &u32,
     parent_sequence: &u16,
     size: &u32,
@@ -319,16 +318,16 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
         }
     };
 
-    if !header.entry_flags.contains(&EntryFlags::InUse) && *parent_sequence != header.sequence - 1 {
-        return Ok(String::from("$OrphanFiles"));
-    } else if *parent_sequence != header.sequence && *parent_sequence != header.sequence - 1 {
+    if (*parent_sequence != header.sequence || !header.entry_flags.contains(&EntryFlags::InUse))
+        && *parent_sequence != header.sequence - 1
+    {
         return Ok(String::from("$OrphanFiles"));
     }
 
     let remaining_size = header.total_size - header_size as u32;
 
     let entry_bytes = match read_bytes(
-        &(&header_size + &offset),
+        &(header_size + offset),
         remaining_size as u64,
         ntfs_file,
         reader,
@@ -362,12 +361,6 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
         }
     };
 
-    if *parent_index == 949315 || header.mft_base_index != 0 && header.mft_base_seq != 0 {
-        println!("{header:?}");
-        println!("parent seq: {parent_sequence}");
-        println!("{entry:?}");
-    }
-
     for value in &entry.filename {
         if !value.file_attributes.contains(&FileAttributes::Directory) {
             return Ok(String::from("$OrphanFiles"));
@@ -376,10 +369,8 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
             continue;
         }
         let root = 5;
-        if value.parent_mft == root {
-            if value.file_attributes.contains(&FileAttributes::Directory) {
-                return Ok(format!(".\\{}", value.name));
-            }
+        if value.parent_mft == root && value.file_attributes.contains(&FileAttributes::Directory) {
+            return Ok(format!(".\\{}", value.name));
         }
 
         if let Some(cache_hit) =
@@ -427,6 +418,7 @@ fn lookup_parent<'a, T: std::io::Seek + std::io::Read>(
     panic!("umm wrong?")
 }
 
+/// Output MFT data. Due to size of $MFT we will output every 10k entries we parse
 fn output_mft(
     entries: &[MftEntry],
     output: &mut Output,
@@ -487,6 +479,28 @@ mod tests {
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
         parse_mft(&test_location.to_str().unwrap(), &mut output, &false, &0).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_mft() {
+        use super::setup_ntfs_parser;
+        use crate::artifacts::os::windows::mft::master::{read_mft, setup_mft_reader_windows};
+
+        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+
+        let ntfs_file =
+            setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, "C:\\$MFT").unwrap();
+
+        let mut output = output_options("mft_test", "local", "./tmp", false);
+        read_mft(
+            &mut ntfs_parser.fs,
+            Some(&ntfs_file),
+            &mut output,
+            &0,
+            &false,
+        )
+        .unwrap();
     }
 
     #[test]

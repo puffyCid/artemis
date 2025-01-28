@@ -5,8 +5,8 @@ use crate::utils::nom_helper::{
 #[derive(Debug)]
 pub(crate) struct Resident {
     pub(crate) size: u32,
-    offset: u16,
-    indexed_flag: u8,
+    _offset: u16,
+    _indexed_flag: u8,
 }
 
 impl Resident {
@@ -19,8 +19,8 @@ impl Resident {
 
         let resident = Resident {
             size,
-            offset,
-            indexed_flag,
+            _offset: offset,
+            _indexed_flag: indexed_flag,
         };
 
         Ok((input, resident))
@@ -35,6 +35,6 @@ mod tests {
     fn test_parse_resident() {
         let test = [1, 0, 0, 0, 10, 11, 1, 0];
         let (_, result) = Resident::parse_resident(&test).unwrap();
-        assert_eq!(result.offset, 2826);
+        assert_eq!(result._offset, 2826);
     }
 }

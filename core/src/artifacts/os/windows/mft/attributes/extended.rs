@@ -24,7 +24,7 @@ pub(crate) struct ExtendedAttribute {
 }
 
 impl ExtendedInfo {
-    /// Parsed ExtendInfo attribute
+    /// Parsed `ExtendInfo` attribute
     pub(crate) fn parse_extended_info(data: &[u8]) -> nom::IResult<&[u8], ExtendedInfo> {
         let (input, entry_size) = nom_unsigned_two_bytes(data, Endian::Le)?;
         let (input, extend_count) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -39,7 +39,7 @@ impl ExtendedInfo {
         Ok((input, info))
     }
 
-    /// Parse ExtendedAttribute attribute
+    /// Parse `ExtendedAttribute` attribute
     pub(crate) fn parse_extended_attribute(data: &[u8]) -> nom::IResult<&[u8], ExtendedAttribute> {
         let (input, offset) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, flags) = nom_unsigned_one_byte(input, Endian::Le)?;

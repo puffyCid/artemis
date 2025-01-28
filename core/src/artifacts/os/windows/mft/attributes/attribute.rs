@@ -143,10 +143,10 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .push(json!({"data":attrib_data}));
         } else if header.attrib_type == AttributeType::IndexRoot {
             let (_, index) = IndexRoot::parse_root(input)?;
-            if index.is_null() {
+            if index.values.is_null() {
                 continue;
             }
-            entry_attributes.attributes.push(index);
+            entry_attributes.attributes.push(index.values);
         } else if header.attrib_type == AttributeType::LoggedStream {
             if header.name == "$TXF_DATA" {
                 let (_, stream) = LoggedStream::parse_transactional_stream(input)?;

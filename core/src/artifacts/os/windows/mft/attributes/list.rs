@@ -34,7 +34,7 @@ pub(crate) struct AttributeList {
 }
 
 impl AttributeList {
-    /// Start parsing the AttributeList attribute
+    /// Start parsing the `AttributeList` attribute
     pub(crate) fn parse_list<'a, T: std::io::Seek + std::io::Read>(
         data: &'a [u8],
         reader: &mut BufReader<T>,
@@ -129,7 +129,7 @@ impl AttributeList {
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'a>>,
     ) -> nom::IResult<&'a [u8], EntryAttributes> {
-        let (remaining, header) = MftHeader::parse_header(&data)?;
+        let (remaining, header) = MftHeader::parse_header(data)?;
         let (remaining, fixup) = Fixup::get_fixup(remaining, header.fix_up_count)?;
 
         let mut mft_bytes = remaining.to_vec();

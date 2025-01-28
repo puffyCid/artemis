@@ -121,7 +121,7 @@ pub(crate) fn extract_utf8_string_lossy(data: &[u8]) -> String {
 
 /// Try to detect ASCII or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
-    if data.is_ascii() && data.iter().filter(|&c| *c == 0).count() <= 1 {
+    if data.iter().filter(|&c| *c == 0).count() <= 1 {
         extract_utf8_string(data)
     } else {
         extract_utf16_string(data)

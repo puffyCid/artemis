@@ -7,19 +7,19 @@ use serde_json::Value;
 
 #[derive(Debug)]
 pub(crate) struct IndexRoot {
-    root_header: RootHeader,
-    node_header: NodeHeader,
+    _root_header: RootHeader,
+    _node_header: NodeHeader,
     /**May contain FILENAME or other attributes?*/
-    values: Value,
+    pub(crate) values: Value,
 }
 
 #[derive(Debug)]
 pub(crate) struct RootHeader {
     /**Same as MFT attributes */
     attribute_type: AttributeType,
-    collation_type: CollationType,
-    entry_size: u32,
-    cluster_block_count: u32,
+    _collation_type: CollationType,
+    _entry_size: u32,
+    _cluster_block_count: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,20 +37,27 @@ pub(crate) enum CollationType {
 
 #[derive(Debug)]
 pub(crate) struct NodeHeader {
-    values_offset: u32,
-    node_size: u32,
-    allocated_size: u32,
-    is_branch: bool,
+    _values_offset: u32,
+    _node_size: u32,
+    _allocated_size: u32,
+    _is_branch: bool,
 }
 
 impl IndexRoot {
     /// Parse the Index Root attribute
-    pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], Value> {
+    pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], IndexRoot> {
         let (input, root_header) = IndexRoot::parse_root_header(data)?;
         let (input, node_header) = IndexRoot::parse_node_header(input)?;
         let (input, index_entry) =
             IndexRoot::parse_index_entry(input, &root_header.attribute_type)?;
-        Ok((input, index_entry))
+
+        let index = IndexRoot {
+            _root_header: root_header,
+            _node_header: node_header,
+            values: index_entry,
+        };
+
+        Ok((input, index))
     }
 
     /// Extract root header from Index
@@ -62,9 +69,9 @@ impl IndexRoot {
 
         let header = RootHeader {
             attribute_type: AttributeHeader::get_type(&attribute_type),
-            collation_type: IndexRoot::get_collation_type(&collation_type),
-            entry_size,
-            cluster_block_count,
+            _collation_type: IndexRoot::get_collation_type(&collation_type),
+            _entry_size: entry_size,
+            _cluster_block_count: cluster_block_count,
         };
 
         Ok((input, header))
@@ -78,10 +85,10 @@ impl IndexRoot {
         let (input, flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let header = NodeHeader {
-            values_offset,
-            node_size,
-            allocated_size,
-            is_branch: if flags == 1 { true } else { false },
+            _values_offset: values_offset,
+            _node_size: node_size,
+            _allocated_size: allocated_size,
+            _is_branch: flags == 1,
         };
 
         Ok((input, header))
@@ -92,12 +99,12 @@ impl IndexRoot {
         data: &'a [u8],
         attribute_type: &AttributeType,
     ) -> nom::IResult<&'a [u8], Value> {
-        let (input, parent_mft) = nom_unsigned_four_bytes(data, Endian::Le)?;
+        let (input, _parent_mft) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, parent_sequence) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, key_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let (input, _parent_sequence) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _key_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, _flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         // Sometimes entry does not have attribute data?
         if input.is_empty() {
@@ -152,7 +159,7 @@ mod tests {
         ];
 
         let (_, result) = IndexRoot::parse_root(&test).unwrap();
-        assert!(result.to_string().contains("DOCUME~1"));
+        assert!(result.values.to_string().contains("DOCUME~1"));
     }
 
     #[test]
@@ -168,10 +175,10 @@ mod tests {
         ];
 
         let (_, result) = IndexRoot::parse_root_header(&test).unwrap();
-        assert_eq!(result.cluster_block_count, 1);
-        assert_eq!(result.entry_size, 4096);
+        assert_eq!(result._cluster_block_count, 1);
+        assert_eq!(result._entry_size, 4096);
         assert_eq!(result.attribute_type, AttributeType::FileName);
-        assert_eq!(result.collation_type, CollationType::Filename);
+        assert_eq!(result._collation_type, CollationType::Filename);
     }
 
     #[test]
@@ -187,10 +194,10 @@ mod tests {
         ];
 
         let (_, result) = IndexRoot::parse_node_header(&test).unwrap();
-        assert_eq!(result.allocated_size, 152);
-        assert_eq!(result.node_size, 152);
-        assert_eq!(result.values_offset, 16);
-        assert_eq!(result.is_branch, true);
+        assert_eq!(result._allocated_size, 152);
+        assert_eq!(result._node_size, 152);
+        assert_eq!(result._values_offset, 16);
+        assert_eq!(result._is_branch, true);
     }
 
     #[test]

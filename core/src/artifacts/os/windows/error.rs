@@ -25,6 +25,7 @@ pub(crate) enum WinArtifactError {
     RecycleBin,
     WmiPersist,
     Outlook,
+    Mft,
 }
 
 impl std::error::Error for WinArtifactError {}
@@ -55,6 +56,7 @@ impl fmt::Display for WinArtifactError {
             WinArtifactError::RecycleBin => write!(f, "Failed to parse Recycle Bin"),
             WinArtifactError::WmiPersist => write!(f, "Failed to parse WMI persist"),
             WinArtifactError::Outlook => write!(f, "Failed to parse Outlook"),
+            WinArtifactError::Mft => write!(f, "Failed to parse MFT"),
         }
     }
 }

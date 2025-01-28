@@ -113,7 +113,7 @@ cli:
 # Just build core library
 [group('workspace')]
 core:
-  cd artemis-core && cargo build --release
+  cd core && cargo build --release
 
 # Review complexity with scc
 complex:

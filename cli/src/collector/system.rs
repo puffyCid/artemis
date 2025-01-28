@@ -13,11 +13,11 @@ use core::{
             },
             processes::ProcessOptions,
             windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, OutlookOptions,
-                PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
-                SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
-                WindowsUserOptions, WmiPersistOptions,
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
+                OutlookOptions, PrefetchOptions, RawFilesOptions, RecycleBinOptions,
+                RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+                ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+                UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
             },
         },
         toml::{ArtemisToml, Artifacts, Output},
@@ -131,6 +131,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         recyclebin: None,
         wmipersist: None,
         outlook: None,
+        mft: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -493,6 +494,17 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 
             collect.outlook = Some(options);
             collect.artifact_name = String::from("outlook");
+        }
+        CommandArgs::Mft {
+            alt_file,
+            alt_drive,
+        } => {
+            let options = MftOptions {
+                alt_drive: alt_drive.clone(),
+                alt_file: alt_file.clone(),
+            };
+            collect.mft = Some(options);
+            collect.artifact_name = String::from("mft");
         }
     }
     collect

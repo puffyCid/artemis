@@ -1,4 +1,4 @@
-use crate::utils::{encoding::base64_encode_standard, strings::extract_utf16_string};
+use crate::utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string};
 use deno_core::{error::AnyError, op2};
 use log::error;
 use rusqlite::{
@@ -71,7 +71,7 @@ pub(crate) fn query_sqlite(
             // Need to extract strings and blobs. Everything else can be serialized directly
             match column_data {
                 ValueRef::Text(value) => {
-                    let result = extract_utf16_string(value);
+                    let result = extract_ascii_utf16_string(value);
                     let column_value = json!(result);
                     // add to json. Column name is key, column value is value
                     json_data.insert(column_name, column_value);
