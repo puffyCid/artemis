@@ -498,7 +498,10 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_read_mft() {
         use super::setup_ntfs_parser;
-        use crate::artifacts::os::windows::mft::master::{read_mft, setup_mft_reader_windows};
+        use crate::{
+            artifacts::os::windows::mft::master::{read_mft, setup_mft_reader_windows},
+            filesystem::ntfs::attributes::get_raw_file_size,
+        };
 
         let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
 
@@ -506,12 +509,14 @@ mod tests {
             setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, "C:\\$MFT").unwrap();
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
+        let size = get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs).unwrap();
         read_mft(
             &mut ntfs_parser.fs,
             Some(&ntfs_file),
             &mut output,
             &0,
             &false,
+            &size,
         )
         .unwrap();
     }

@@ -42,11 +42,11 @@ pub(crate) fn grab_mft(
     } else {
         // Check if alternative drive letter provided
         if let Some(drive) = &options.alt_drive {
-            format!("{drive}\\$MFT")
+            format!("{drive}:\\$MFT")
         } else {
             // Otherwise try to get the SystemDrive
             let drive = get_systemdrive().unwrap_or('C');
-            format!("{drive}\\$MFT")
+            format!("{drive}:\\$MFT")
         }
     };
 
