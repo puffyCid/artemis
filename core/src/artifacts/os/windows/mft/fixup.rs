@@ -9,14 +9,14 @@ pub(crate) struct Fixup {
 
 impl Fixup {
     /// Grab fixup values that need to be applied to entries
-    pub(crate) fn get_fixup(data: &[u8], count: u16) -> nom::IResult<&[u8], Fixup> {
+    pub(crate) fn get_fixup<'a>(data: &'a [u8], count: &u16) -> nom::IResult<&'a [u8], Fixup> {
         let fixup_size: u8 = 2;
 
         let (mut input, placeholder) = take(fixup_size)(data)?;
         let mut fixup_count = 0;
 
         let mut original = Vec::new();
-        while fixup_count < count {
+        while fixup_count < *count {
             let (remaining, value) = take(fixup_size)(input)?;
             original.push(value.to_vec());
             input = remaining;
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn test_get_fixup() {
         let mut test = vec![1, 0, 13, 0, 233, 12];
-        let (_, fixup) = Fixup::get_fixup(&mut test, 2).unwrap();
+        let (_, fixup) = Fixup::get_fixup(&mut test, &2).unwrap();
         assert_eq!(fixup.placeholder, [1, 0]);
         assert_eq!(fixup.original.len(), 2);
     }
