@@ -618,11 +618,17 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, mft, output_data, prefetch, raw_filelist, recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist, users_windows, usnjrnl, wmi_persist
+            amcache, bits, eventlogs, jumplists, mft, output_data, prefetch, raw_filelist,
+            recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum,
+            tasks, userassist, users_windows, usnjrnl, wmi_persist,
         },
         structs::{
             artifacts::os::windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions, PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
+                PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
+                SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
+                WindowsUserOptions, WmiPersistOptions,
             },
             toml::Output,
         },
