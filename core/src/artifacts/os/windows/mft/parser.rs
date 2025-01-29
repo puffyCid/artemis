@@ -16,17 +16,17 @@ use crate::{
  * Only NTFS 3.1 or higher supported
  * TODO:
  *
- * 3. Check for recursive parent mfts. Cache should stop that?
+ * 1. Check for recursive parent mfts. Cache should stop that?
  *    - Check for recursive attribute list
- * 8. Do not include base_extensions (ATTRIBUTE_LIST) entries in the final output. Instead combine them with base_entries
+ * 2. Do not include base_extensions (ATTRIBUTE_LIST) entries in the final output. Instead combine them with base_entries
  *    1. Requires that we parse the MFT twice? :/
  *    2. First parse MFT and only grab the base_extensions. Cache them.
  *    3. Next parse the MFT and only grab the base_entries.
  *    4. Combine the base_extensions with the base_entry. Via index and sequence matching?
  *    5. Once combined you have all of your attributes
- * 9. Remove panics
- * 10. update file_attribute_flags function in attributes.rs
- * 11. Test on MFT files in artifact musuem and windows
+ * 3. Remove panics
+ * 4. update file_attribute_flags function in attributes.rs
+ * 5. Test on MFT files in artifact musuem and windows
  */
 
 /// Try create a filelisting from provided MFT file
