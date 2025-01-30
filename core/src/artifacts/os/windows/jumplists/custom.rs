@@ -8,6 +8,7 @@ use log::warn;
 use nom::{
     branch::alt,
     bytes::complete::{take, take_until},
+    Parser,
 };
 
 /// Parse Custom `Jumplist` file. It contains an array of `Shortcut` (LNK) structures
@@ -49,7 +50,8 @@ pub(crate) fn parse_custom<'a>(
         let (next_lnk_data, lnk_data) = alt((
             take_until(lnk_start.as_slice()),
             take_until(footer.as_slice()),
-        ))(lnk_input)?;
+        ))
+        .parse(lnk_input)?;
 
         // Now take the header size and lnk_data size and nom them together
         let (_, lnk_data) = take(header.len() + lnk_data.len())(input)?;

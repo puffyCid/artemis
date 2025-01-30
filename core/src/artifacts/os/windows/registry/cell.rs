@@ -1,14 +1,14 @@
-use crate::utils::nom_helper::{nom_signed_four_bytes, Endian};
-
 use super::{
     keys::{nk::NameKey, vk::ValueKey},
     lists::{lf::Leaf, lh::HashLeaf, li::LeafItem, ri::RefItem},
     parser::Params,
 };
+use crate::utils::nom_helper::{nom_signed_four_bytes, Endian};
 use common::windows::KeyValue;
 use log::{error, warn};
 use nom::{
     bytes::complete::take, combinator::peek, error::ErrorKind, number::complete::le_u16, Needed,
+    Parser,
 };
 use std::mem::size_of;
 
@@ -28,7 +28,7 @@ pub(crate) enum CellType {
 /// Check for a cell type from provided bytes
 pub(crate) fn get_cell_type(data: &[u8]) -> nom::IResult<&[u8], CellType> {
     // Take a peek at the cell data to determine the type, but do not nom the data
-    let (cell_data, cell_type_data) = peek(take(size_of::<u16>()))(data)?;
+    let (cell_data, cell_type_data) = peek(take(size_of::<u16>())).parse(data)?;
     let (_, cell_type) = le_u16(cell_type_data)?;
 
     let cell = match cell_type {
