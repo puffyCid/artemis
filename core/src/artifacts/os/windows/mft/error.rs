@@ -7,6 +7,7 @@ pub(crate) enum MftError {
     Serialize,
     OutputData,
     RawSize,
+    EntrySize,
 }
 
 impl std::error::Error for MftError {}
@@ -19,6 +20,7 @@ impl fmt::Display for MftError {
             MftError::Serialize => write!(f, "Failed to serialize mft entries"),
             MftError::OutputData => write!(f, "Failed to output mft entries"),
             MftError::RawSize => write!(f, "Failed to determine size of mft file"),
+            MftError::EntrySize => write!(f, "Failed to determine file entry size"),
         }
     }
 }

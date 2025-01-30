@@ -604,7 +604,7 @@ pub enum DataFlags {
     KeepLocalDListForUncTarget,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum AttributeFlags {
     ReadOnly,
     Hidden,
@@ -614,13 +614,16 @@ pub enum AttributeFlags {
     Device,
     Normal,
     Temporary,
-    SparseFile,
-    ReparsePoint,
+    Sparse,
+    Reparse,
     Compressed,
     Offline,
-    NotConentIndexed,
+    NotIndexed,
     Encrypted,
     Virtual,
+    Unknown,
+    IndexView,
+    Volume,
 }
 
 /**  Return a `ShellItem` structure containing
@@ -1583,34 +1586,12 @@ pub struct MftEntry {
     pub inode: u32,
     pub is_file: bool,
     pub is_directory: bool,
-    pub attributes: Vec<FileAttributes>,
+    pub attributes: Vec<AttributeFlags>,
     pub namespace: Namespace,
     pub usn: u64,
     pub parent_inode: u32,
     pub attribute_list: Vec<Value>,
     pub deleted: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub enum FileAttributes {
-    ReadOnly,
-    Hidden,
-    System,
-    Volume,
-    Directory,
-    Archive,
-    Device,
-    Normal,
-    Temporary,
-    Sparse,
-    Reparse,
-    Compressed,
-    Offline,
-    NotIndexed,
-    Encrypted,
-    Virtual,
-    IndexView,
-    Unknown,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

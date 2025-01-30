@@ -113,7 +113,7 @@ impl AttributeList {
             list.attribute = match AttributeList::grab_list_data(&list_mft, reader, ntfs_file) {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    panic!("[mft] Failed to parse attribute list bytes");
+                    error!("[mft] Failed to parse attribute list bytes");
                     continue;
                 }
             };

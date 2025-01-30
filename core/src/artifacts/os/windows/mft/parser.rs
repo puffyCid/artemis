@@ -12,16 +12,6 @@ use crate::{
     utils::{environment::get_systemdrive, time::time_now},
 };
 
-/**
- * Only NTFS 3.1 or higher supported
- * TODO:
- *
- * 3. Remove panics
- * 4. update file_attribute_flags function in attributes.rs
- * 5. Test on MFT files in artifact musuem and windows
- * 6. Make sure .unwraps() are gone or checked
- */
-
 /// Try create a filelisting from provided MFT file
 pub(crate) fn grab_mft(
     options: &MftOptions,

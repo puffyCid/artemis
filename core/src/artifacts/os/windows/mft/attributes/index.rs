@@ -3,6 +3,7 @@ use super::{
     header::{AttributeHeader, AttributeType},
 };
 use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian};
+use log::error;
 use serde_json::Value;
 
 #[derive(Debug)]
@@ -117,13 +118,13 @@ impl IndexRoot {
                 return Ok((input, Value::Null));
             }
             let (input, filename) = Filename::parse_filename(input)?;
-            return Ok((input, serde_json::to_value(filename).unwrap()));
+            return Ok((input, serde_json::to_value(filename).unwrap_or_default()));
         } else if *attribute_type == AttributeType::Unused {
             return Ok((&[], Value::Null));
         }
 
-        println!("{attribute_type:?}");
-        panic!("{input:?}");
+        error!("[mft] Unknown AttributeList entry type: {attribute_type:?}");
+        Ok((&[], Value::Null))
     }
 
     /// Determine collection type for Index

@@ -163,71 +163,68 @@ fn read_attribute_data(
 }
 
 /// Determine attribute flags of a file
-pub(crate) fn file_attribute_flags(attributes: &u32) -> Vec<AttributeFlags> {
-    let mut attributes_vec: Vec<AttributeFlags> = Vec::new();
-    let readonly = 0x1;
-    let hidden = 0x2;
-    let system = 0x4;
-    let directory = 0x10;
-    let archive = 0x20;
-    let device = 0x40;
-    let normal = 0x80;
-    let temp = 0x100;
-    let sparse = 0x200;
-    let reparse = 0x400;
-    let compressed = 0x800;
-    let offline = 0x1000;
-    let indexed = 0x2000;
-    let encrypted = 0x4000;
-    let virtual_attr = 0x10000;
+pub(crate) fn file_attribute_flags(data: &u32) -> Vec<AttributeFlags> {
+    let mut attrs = Vec::new();
 
-    if (attributes & readonly) == readonly {
-        attributes_vec.push(AttributeFlags::ReadOnly);
+    if (data & 0x1) == 0x1 {
+        attrs.push(AttributeFlags::ReadOnly);
     }
-    if (attributes & hidden) == hidden {
-        attributes_vec.push(AttributeFlags::Hidden);
+    if (data & 0x2) == 0x2 {
+        attrs.push(AttributeFlags::Hidden);
     }
-    if (attributes & system) == system {
-        attributes_vec.push(AttributeFlags::System);
+    if (data & 0x4) == 0x4 {
+        attrs.push(AttributeFlags::System);
     }
-    if (attributes & directory) == directory {
-        attributes_vec.push(AttributeFlags::Directory);
+    if (data & 0x8) == 0x8 {
+        attrs.push(AttributeFlags::Volume);
     }
-    if (attributes & archive) == archive {
-        attributes_vec.push(AttributeFlags::Archive);
+    if (data & 0x10) == 0x10 {
+        attrs.push(AttributeFlags::Directory);
     }
-    if (attributes & device) == device {
-        attributes_vec.push(AttributeFlags::Device);
+    if (data & 0x20) == 0x20 {
+        attrs.push(AttributeFlags::Archive);
     }
-    if (attributes & normal) == normal {
-        attributes_vec.push(AttributeFlags::Normal);
+    if (data & 0x40) == 0x40 {
+        attrs.push(AttributeFlags::Device);
     }
-    if (attributes & temp) == temp {
-        attributes_vec.push(AttributeFlags::Temporary);
+    if (data & 0x80) == 0x80 {
+        attrs.push(AttributeFlags::Normal);
     }
-    if (attributes & sparse) == sparse {
-        attributes_vec.push(AttributeFlags::SparseFile);
+    if (data & 0x100) == 0x100 {
+        attrs.push(AttributeFlags::Temporary);
     }
-    if (attributes & reparse) == reparse {
-        attributes_vec.push(AttributeFlags::ReparsePoint);
+    if (data & 0x200) == 0x200 {
+        attrs.push(AttributeFlags::Sparse);
     }
-    if (attributes & compressed) == compressed {
-        attributes_vec.push(AttributeFlags::Compressed);
+    if (data & 0x400) == 0x400 {
+        attrs.push(AttributeFlags::Reparse);
     }
-    if (attributes & offline) == offline {
-        attributes_vec.push(AttributeFlags::Offline);
+    if (data & 0x800) == 0x800 {
+        attrs.push(AttributeFlags::Compressed);
     }
-    if (attributes & indexed) == indexed {
-        attributes_vec.push(AttributeFlags::NotConentIndexed);
+    if (data & 0x1000) == 0x1000 {
+        attrs.push(AttributeFlags::Offline);
     }
-    if (attributes & encrypted) == encrypted {
-        attributes_vec.push(AttributeFlags::Encrypted);
+    if (data & 0x2000) == 0x2000 {
+        attrs.push(AttributeFlags::NotIndexed);
     }
-    if (attributes & virtual_attr) == virtual_attr {
-        attributes_vec.push(AttributeFlags::Virtual);
+    if (data & 0x4000) == 0x4000 {
+        attrs.push(AttributeFlags::Encrypted);
+    }
+    if (data & 0x8000) == 0x8000 {
+        attrs.push(AttributeFlags::Unknown);
+    }
+    if (data & 0x10000) == 0x10000 {
+        attrs.push(AttributeFlags::Virtual);
+    }
+    if (data & 0x10000000) == 0x10000000 {
+        attrs.push(AttributeFlags::Directory);
+    }
+    if (data & 0x20000000) == 0x20000000 {
+        attrs.push(AttributeFlags::IndexView);
     }
 
-    attributes_vec
+    attrs
 }
 
 #[cfg(test)]

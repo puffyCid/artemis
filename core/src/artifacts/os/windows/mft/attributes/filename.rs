@@ -1,12 +1,14 @@
-use super::standard::Standard;
-use crate::utils::{
-    nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+use crate::{
+    filesystem::ntfs::attributes::file_attribute_flags,
+    utils::{
+        nom_helper::{
+            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_two_bytes, Endian,
+        },
+        strings::extract_utf16_string,
     },
-    strings::extract_utf16_string,
 };
-use common::windows::{FileAttributes, Namespace};
+use common::windows::{AttributeFlags, Namespace};
 use nom::bytes::complete::take;
 use serde::Serialize;
 
@@ -20,7 +22,7 @@ pub(crate) struct Filename {
     pub(crate) accessed: u64,
     pub(crate) allocated_size: u64,
     pub(crate) size: u64,
-    pub(crate) file_attributes: Vec<FileAttributes>,
+    pub(crate) file_attributes: Vec<AttributeFlags>,
     pub(crate) file_attributes_data: u32,
     pub(crate) extended_data: u32,
     pub(crate) name_size: u8,
@@ -63,7 +65,7 @@ impl Filename {
             accessed,
             allocated_size,
             size,
-            file_attributes: Standard::get_attributes(&flag_data),
+            file_attributes: file_attribute_flags(&flag_data),
             file_attributes_data: flag_data,
             extended_data,
             name_size,

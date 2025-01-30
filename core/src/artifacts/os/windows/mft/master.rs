@@ -18,7 +18,7 @@ use crate::{
     structs::toml::Output,
     utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
-use common::windows::{FileAttributes, MftEntry, Namespace};
+use common::windows::{AttributeFlags, MftEntry, Namespace};
 use log::{error, warn};
 use ntfs::NtfsFile;
 use std::{
@@ -86,13 +86,12 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     let cache_limit = 1000;
 
     let mut offset = 0;
-    let mut entry_size = 1024;
-
     let mut entries = Vec::new();
 
     let mut extended_attribs = HashMap::new();
     let mut first_pass = 0;
 
+    // We parse 1000 FILE entries at a time
     let file_entries = 1000;
 
     // We parse the $MFT twice :(
@@ -100,11 +99,13 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     // The second pass we parse FILE entries and check our cached extension entries and combine both if there is a match
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
+        // Read through the MFT. We read 1000 entries at time
         while let Ok(header) = determine_header_info(&offset, reader, ntfs_file) {
             // If our offset is larger than the MFT size. Then we are done
             if offset > *size {
                 break;
             }
+            // Cache 1000 directories. We use this for quick lookups for FILE entries
             while cache.len() > cache_limit {
                 if let Some(key) = cache.keys().next() {
                     let key = key.clone();
@@ -113,6 +114,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 }
             }
 
+            // Read 1000 MFT FILE entries
             let mut mft_bytes = match read_bytes(
                 &offset,
                 file_entries * header.total_size as u64,
@@ -121,27 +123,32 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             ) {
                 Ok(result) => result,
                 Err(err) => {
-                    panic!("[mft] Could not read entry bytes: {err:?}");
+                    error!("[mft] Could not read entry bytes: {err:?}");
                     break;
                 }
             };
 
+            // Parse 1000 entries
             while mft_bytes.len() >= header.total_size as usize {
                 let temp_bytes = mft_bytes.clone();
+                // Nom first FILE entry
                 let (remaining, entry_bytes) = match nom_data(&temp_bytes, header.total_size as u64)
                 {
                     Ok(result) => result,
                     Err(err) => {
-                        panic!("[mft] Could not parse entry bytes: {err:?}");
+                        error!("[mft] Could not parse entry bytes: {err:?}");
+                        break;
                     }
                 };
 
+                // Remaining entries. 1000->999->998->etc
                 mft_bytes = remaining.to_vec();
                 let header_results = MftHeader::parse_header(entry_bytes);
                 let (entry_bytes, mft_header) = match header_results {
                     Ok(result) => result,
                     Err(err) => {
-                        panic!("[mft] Could not parse header: {err:?}");
+                        error!("[mft] Could not parse header: {err:?}");
+                        break;
                     }
                 };
                 let file0 = 1162627398;
@@ -159,7 +166,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 ) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        panic!("[mft] Could not parse mft attributes: {err:?}");
+                        error!("[mft] Could not parse mft attributes: {err:?}");
                         break;
                     }
                 };
@@ -245,7 +252,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                     mft_entry.filename_changed = changed;
                     mft_entry.attribute_list = entry.attributes.clone();
 
-                    if value.file_attributes.contains(&FileAttributes::Directory) {
+                    if value.file_attributes.contains(&AttributeFlags::Directory) {
                         mft_entry.is_directory = true;
                     } else {
                         mft_entry.is_file = true;
@@ -264,7 +271,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         mft_entry.directory = String::from(".");
                         entries.push(mft_entry);
 
-                        if value.file_attributes.contains(&FileAttributes::Directory)
+                        if value.file_attributes.contains(&AttributeFlags::Directory)
                             && value.namespace != Namespace::Dos
                         {
                             cache.insert(
@@ -287,7 +294,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                             mft_entry.directory = components.join("\\");
                         }
 
-                        if value.file_attributes.contains(&FileAttributes::Directory)
+                        if value.file_attributes.contains(&AttributeFlags::Directory)
                             && value.namespace != Namespace::Dos
                         {
                             cache.insert(
@@ -329,206 +336,6 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             }
 
             offset += file_entries * header.total_size as u64;
-            /*
-            let file0 = 1162627398;
-            if header.sig != file0 {
-                offset += entry_size;
-                continue;
-            }
-            entry_size = header.total_size as u64;
-
-            let header_size = 48;
-            let remaining_size = header.total_size - header_size as u32;
-
-            let entry_bytes = match read_bytes(
-                &(header_size + offset),
-                remaining_size as u64,
-                ntfs_file,
-                reader,
-            ) {
-                Ok(result) => result,
-                Err(err) => {
-                    panic!("[mft] Could not read entry bytes: {err:?}");
-                    break;
-                }
-            };
-            offset += header.total_size as u64;
-
-            let mft_bytes = apply_fixup(&entry_bytes, &header.fix_up_count)?;
-
-            let mut entry = match grab_attributes(
-                &mft_bytes,
-                reader,
-                ntfs_file,
-                &header.total_size,
-                &header.index,
-            ) {
-                Ok((_, result)) => result,
-                Err(err) => {
-                    panic!("[mft] Could not parse mft attributes: {err:?}");
-                    break;
-                }
-            };
-
-            // On first pass we only get extension entries. On second pass we skip them
-            if header.mft_base_seq != 0 && header.mft_base_index != 0 || first_pass == 0 {
-                if first_pass == 0 {
-                    extended_attribs.insert(
-                        format!("{}_{}", header.mft_base_index, header.mft_base_seq),
-                        entry,
-                    );
-                }
-
-                continue;
-            }
-
-            let check_extended_attrib = format!("{}_{}", header.index, header.sequence);
-            // On second pass we check if FILE entry has an extended MFT entry. If it does we combine them
-            // Commonly seen with Hard links
-            if let Some(value) = extended_attribs.get_mut(&check_extended_attrib) {
-                entry.standard.append(&mut value.standard);
-                entry.filename.append(&mut value.filename);
-                entry.attributes.append(&mut value.attributes);
-                extended_attribs.remove(&check_extended_attrib);
-            }
-
-            for value in &entry.filename {
-                let mut mft_entry = MftEntry {
-                    filename: String::new(),
-                    directory: String::new(),
-                    full_path: String::new(),
-                    extension: String::new(),
-                    created: String::new(),
-                    modified: String::new(),
-                    changed: String::new(),
-                    accessed: String::new(),
-                    filename_created: String::new(),
-                    filename_modified: String::new(),
-                    filename_changed: String::new(),
-                    filename_accessed: String::new(),
-                    size: 0,
-                    inode: 0,
-                    is_file: false,
-                    is_directory: false,
-                    attributes: Vec::new(),
-                    namespace: Namespace::Unknown,
-                    usn: 0,
-                    parent_inode: 0,
-                    attribute_list: Vec::new(),
-                    deleted: !header.entry_flags.contains(&EntryFlags::InUse),
-                };
-
-                if let Some(standard) = entry.standard.first() {
-                    mft_entry.created = unixepoch_to_iso(&filetime_to_unixepoch(&standard.created));
-                    mft_entry.modified =
-                        unixepoch_to_iso(&filetime_to_unixepoch(&standard.modified));
-                    mft_entry.changed = unixepoch_to_iso(&filetime_to_unixepoch(&standard.changed));
-                    mft_entry.accessed =
-                        unixepoch_to_iso(&filetime_to_unixepoch(&standard.accessed));
-                    mft_entry.attributes = standard.file_attributes.clone();
-                    mft_entry.usn = standard.usn;
-                }
-
-                if mft_entry.attributes.is_empty() {
-                    mft_entry.attributes = value.file_attributes.clone();
-                }
-
-                let created = unixepoch_to_iso(&filetime_to_unixepoch(&value.created));
-                let modified = unixepoch_to_iso(&filetime_to_unixepoch(&value.modified));
-                let accessed = unixepoch_to_iso(&filetime_to_unixepoch(&value.accessed));
-                let changed = unixepoch_to_iso(&filetime_to_unixepoch(&value.changed));
-
-                mft_entry.filename = value.name.clone();
-                mft_entry.parent_inode = value.parent_mft;
-                mft_entry.inode = header.index;
-                mft_entry.namespace = value.namespace.clone();
-                mft_entry.filename_created = created;
-                mft_entry.filename_modified = modified;
-                mft_entry.filename_accessed = accessed;
-                mft_entry.filename_changed = changed;
-                mft_entry.attribute_list = entry.attributes.clone();
-
-                if value.file_attributes.contains(&FileAttributes::Directory) {
-                    mft_entry.is_directory = true;
-                } else {
-                    mft_entry.is_file = true;
-                    mft_entry.size = entry.size;
-                    mft_entry.extension = value
-                        .name
-                        .split_terminator(".")
-                        .last()
-                        .unwrap_or_default()
-                        .to_string();
-                }
-
-                let root = 5;
-                if value.parent_mft == root && header.index != root {
-                    mft_entry.full_path = format!(".\\{}", value.name);
-                    mft_entry.directory = String::from(".");
-                    entries.push(mft_entry);
-
-                    if value.file_attributes.contains(&FileAttributes::Directory)
-                        && value.namespace != Namespace::Dos
-                    {
-                        cache.insert(
-                            format!("{}_{}", header.index, header.sequence),
-                            format!(".\\{}", value.name),
-                        );
-                        continue;
-                    }
-                    continue;
-                }
-
-                if let Some(cache_hit) =
-                    cache.get(&format!("{}_{}", value.parent_mft, value.parent_sequence))
-                {
-                    let path = format!("{cache_hit}\\{}", value.name);
-                    mft_entry.full_path = path;
-
-                    let path_components: Vec<&str> = mft_entry.full_path.split("\\").collect();
-                    if let Some((_, components)) = path_components.split_last() {
-                        mft_entry.directory = components.join("\\");
-                    }
-
-                    if value.file_attributes.contains(&FileAttributes::Directory)
-                        && value.namespace != Namespace::Dos
-                    {
-                        cache.insert(
-                            format!("{}_{}", header.index, header.sequence),
-                            mft_entry.full_path.clone(),
-                        );
-                    }
-                    entries.push(mft_entry);
-
-                    continue;
-                }
-
-                let mut tracker = Lookups {
-                    parent_index: value.parent_mft,
-                    parent_sequence: value.parent_sequence,
-                    size: header.total_size,
-                    tracker: HashSet::new(),
-                };
-
-                let path = lookup_parent(
-                    reader,
-                    ntfs_file,
-                    &mut cache,
-                    &extended_attribs,
-                    &mut tracker,
-                )?;
-
-                mft_entry.full_path = format!("{path}\\{}", value.name);
-                mft_entry.directory = path;
-
-                entries.push(mft_entry);
-            }
-
-            let limit = 1000;
-            if entries.len() >= limit {
-                let _ = output_mft(&entries, output, filter, start_time);
-                entries = Vec::new();
-            }*/
         }
 
         offset = 0;
@@ -561,7 +368,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
         "{}_{}",
         tracker.parent_index, tracker.parent_sequence
     )) {
-        panic!("[mft] Got recursive parent. This is wrong. Stopping lookups now");
+        warn!("[mft] Got recursive parent. This is wrong. Stopping lookups now");
         return Ok(String::new());
     }
     let offset = (tracker.parent_index * tracker.size) as u64;
@@ -585,7 +392,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
                 if parent_filename.parent_mft == root
                     && parent_filename
                         .file_attributes
-                        .contains(&FileAttributes::Directory)
+                        .contains(&AttributeFlags::Directory)
                 {
                     return Ok(format!("$OrphanFiles\\.\\{}", parent_filename.name));
                 }
@@ -595,7 +402,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
 
                     if parent_filename
                         .file_attributes
-                        .contains(&FileAttributes::Directory)
+                        .contains(&AttributeFlags::Directory)
                         && parent_filename.namespace != Namespace::Dos
                     {
                         cache.insert(
@@ -612,7 +419,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
                 let path = format!("$OrphanFiles\\{parents}\\{}", parent_filename.name);
                 if parent_filename
                     .file_attributes
-                    .contains(&FileAttributes::Directory)
+                    .contains(&AttributeFlags::Directory)
                     && parent_filename.namespace != Namespace::Dos
                 {
                     cache.insert(
@@ -639,7 +446,8 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
     ) {
         Ok(result) => result,
         Err(err) => {
-            panic!("[mft] Could not read entry bytes: {err:?}");
+            error!("[mft] Could not read entry bytes: {err:?}");
+            return Ok(String::from("$OrphanFiles"));
         }
     };
 
@@ -654,19 +462,20 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
     ) {
         Ok((_, result)) => result,
         Err(err) => {
-            panic!("[mft] Could not parse mft attributes: {err:?}");
+            error!("[mft] Could not parse mft attributes: {err:?}");
+            return Ok(String::from("$OrphanFiles"));
         }
     };
 
     for value in &entry.filename {
-        if !value.file_attributes.contains(&FileAttributes::Directory) {
+        if !value.file_attributes.contains(&AttributeFlags::Directory) {
             return Ok(String::from("$OrphanFiles"));
         }
         if value.namespace == Namespace::Dos && entry.filename.len() != 1 {
             continue;
         }
         let root = 5;
-        if value.parent_mft == root && value.file_attributes.contains(&FileAttributes::Directory) {
+        if value.parent_mft == root && value.file_attributes.contains(&AttributeFlags::Directory) {
             return Ok(format!(".\\{}", value.name));
         }
 
@@ -674,7 +483,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
         if let Some(cache_hit) = cache.get(&parent_cache) {
             let path = format!("{cache_hit}\\{}", value.name);
 
-            if value.file_attributes.contains(&FileAttributes::Directory)
+            if value.file_attributes.contains(&AttributeFlags::Directory)
                 && value.namespace != Namespace::Dos
             {
                 cache.insert(
@@ -695,7 +504,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
 
         let parents = lookup_parent(reader, ntfs_file, cache, extended_attribs, tracker)?;
         let path = format!("{parents}\\{}", value.name);
-        if value.file_attributes.contains(&FileAttributes::Directory)
+        if value.file_attributes.contains(&AttributeFlags::Directory)
             && value.namespace != Namespace::Dos
         {
             cache.insert(
@@ -714,8 +523,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
         return Ok(String::new());
     }
 
-    println!("{entry:?}");
-    panic!("umm wrong?")
+    Ok(String::from("$OrphanFiles"))
 }
 
 /// Try to determine FILE entry size by parsing first 48 bytes of the header
@@ -729,7 +537,8 @@ fn determine_header_info<T: std::io::Seek + std::io::Read>(
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
         Err(err) => {
-            panic!("[mft] Could not read header bytes: {err:?}");
+            error!("[mft] Could not read header bytes: {err:?}");
+            return Err(MftError::EntrySize);
         }
     };
 
@@ -737,7 +546,8 @@ fn determine_header_info<T: std::io::Seek + std::io::Read>(
     let (_, header) = match header_results {
         Ok(result) => result,
         Err(err) => {
-            panic!("[mft] Could not parse header: {err:?}");
+            error!("[mft] Could not parse header: {err:?}");
+            return Err(MftError::EntrySize);
         }
     };
 
@@ -749,7 +559,8 @@ fn apply_fixup(data: &[u8], count: &u16) -> Result<Vec<u8>, MftError> {
     let (entry_bytes, fixup) = match Fixup::get_fixup(data, count) {
         Ok(result) => result,
         Err(err) => {
-            panic!("[mft] Could not parse mft fixup values: {err:?}");
+            error!("[mft] Could not parse mft fixup values: {err:?}");
+            return Err(MftError::EntrySize);
         }
     };
 

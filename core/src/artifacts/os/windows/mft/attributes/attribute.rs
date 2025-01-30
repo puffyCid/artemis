@@ -16,6 +16,7 @@ use crate::{
     },
     utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
 };
+use log::error;
 use nom::bytes::complete::take;
 use ntfs::NtfsFile;
 use serde::Serialize;
@@ -187,7 +188,7 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .attributes
                 .push(serde_json::to_value(info).unwrap_or_default());
         } else {
-            panic!("{header:?}");
+            error!("[mft] Unknown Attribute Type:{header:?}");
         }
     }
 

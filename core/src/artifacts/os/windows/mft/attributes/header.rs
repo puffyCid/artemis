@@ -122,7 +122,7 @@ impl AttributeHeader {
             0x200000 | 0x280000 | 0x300000 => AttributeType::Undocumented,
             0xffffffff => AttributeType::End,
             _ => {
-                warn!("[mft] Got unknown attribyte type {data}");
+                warn!("[mft] Got unknown attribute type {data}");
                 AttributeType::Unknown
             }
         }
