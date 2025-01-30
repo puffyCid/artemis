@@ -259,6 +259,15 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         yara_rule_attachment: Option<String>,
     },
+    /// windows: Parse MFT file
+    Mft {
+        /// Alternative path to a $MFT file
+        #[arg(long, default_value = None)]
+        alt_file: Option<String>,
+        /// Alternative Drive letter to used instead of SystemDrive. Windows only
+        #[arg(long)]
+        alt_drive: Option<char>,
+    },
     /// macos: Parse ExecPolicy
     Execpolicy {
         /// Alternative file path

@@ -6,6 +6,7 @@ pub(crate) mod error;
 pub(crate) mod ese;
 pub(crate) mod eventlogs;
 pub(crate) mod jumplists;
+pub(crate) mod mft;
 mod ntfs;
 mod ole;
 pub(crate) mod outlook;

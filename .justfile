@@ -46,6 +46,10 @@ registry: (_test "artifacts::os::windows::registry")
 [group('artifacts')]
 eventlogs: (_test "artifacts::os::windows::eventlogs")
 
+# Test only the MFT parsing functions
+[group('artifacts')]
+mft: (_test "artifacts::os::windows::mft")
+
 # Test only the JavaScript runtime
 runtime: (_test "runtime::")
 
@@ -109,7 +113,7 @@ cli:
 # Just build core library
 [group('workspace')]
 core:
-  cd artemis-core && cargo build --release
+  cd core && cargo build --release
 
 # Review complexity with scc
 complex:

@@ -132,3 +132,9 @@ pub struct RecycleBinOptions {
 pub struct WmiPersistOptions {
     pub alt_dir: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct MftOptions {
+    pub alt_file: Option<String>,
+    pub alt_drive: Option<char>,
+}

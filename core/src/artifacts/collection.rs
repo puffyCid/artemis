@@ -15,7 +15,7 @@ use super::{
         systeminfo::artifact::systeminfo,
         unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
         windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_filelist, recycle_bin,
+            amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_filelist, recycle_bin,
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
             userassist, users_windows, usnjrnl, wmi_persist,
         },
@@ -664,6 +664,20 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected outlook"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse outlook: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "mft" => {
+                let artifact = match &artifacts.mft {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = mft(artifact, &mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected MFT"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse MFT: {err:?}");
                         continue;
                     }
                 }

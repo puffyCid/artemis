@@ -76,14 +76,16 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
     }
 
     let mut buff_size = vec![0u8; bytes as usize];
-    let bytes_read = reader.read(&mut buff_size);
-    if bytes_read.is_err() {
-        error!("[artemis-core] Could not read bytes via API");
-        return Err(FileSystemError::ReadFile);
-    }
+    let bytes_read = match reader.read(&mut buff_size) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[artemis-core] Could not read bytes via API: {err:?}");
+            return Err(FileSystemError::ReadFile);
+        }
+    };
 
-    if bytes_read.unwrap_or_default() != buff_size.len() {
-        warn!("[artemis-core] Did not read expected number of bytes via API");
+    if bytes_read != buff_size.len() {
+        warn!("[artemis-core] Did not read expected number of bytes via API. Wanted {bytes} got {bytes_read}", );
     }
 
     Ok(buff_size)

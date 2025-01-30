@@ -1,4 +1,5 @@
 use super::jumplists::parser::grab_jumplists;
+use super::mft::parser::grab_mft;
 use super::ntfs::parser::ntfs_filelist;
 use super::outlook::parser::grab_outlook;
 use super::recyclebin::parser::grab_recycle_bin;
@@ -16,7 +17,7 @@ use super::{
 };
 use crate::artifacts::output::output_artifact;
 use crate::structs::artifacts::os::windows::{
-    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, OutlookOptions,
+    AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions, OutlookOptions,
     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
     ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions,
     SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
@@ -575,6 +576,24 @@ pub(crate) fn outlook(
     Ok(())
 }
 
+/// Parse the Windows `MFT` artifact
+pub(crate) fn mft(
+    options: &MftOptions,
+    output: &mut Output,
+    filter: &bool,
+) -> Result<(), WinArtifactError> {
+    let mft_results = grab_mft(options, output, filter);
+    match mft_results {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[artemis-core] Artemis failed to parse MFT: {err:?}");
+            return Err(WinArtifactError::Mft);
+        }
+    };
+
+    Ok(())
+}
+
 /// Output Windows artifacts
 pub(crate) fn output_data(
     serde_data: &mut Value,
@@ -599,15 +618,15 @@ pub(crate) fn output_data(
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, output_data, prefetch, raw_filelist, recycle_bin,
-            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
-            userassist, users_windows, usnjrnl, wmi_persist,
+            amcache, bits, eventlogs, jumplists, mft, output_data, prefetch, raw_filelist,
+            recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum,
+            tasks, userassist, users_windows, usnjrnl, wmi_persist,
         },
         structs::{
             artifacts::os::windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-                RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
-                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
+                PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
+                SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
                 ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
                 WindowsUserOptions, WmiPersistOptions,
             },
@@ -841,7 +860,7 @@ mod tests {
     }
 
     #[test]
-    fn tests_jumplists() {
+    fn test_jumplists() {
         let options = JumplistsOptions { alt_file: None };
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
@@ -850,11 +869,23 @@ mod tests {
     }
 
     #[test]
-    fn tests_recycle_bin() {
+    fn test_recycle_bin() {
         let options = RecycleBinOptions { alt_file: None };
         let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
 
         let status = recycle_bin(&options, &mut output, &false).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_mft() {
+        let options = MftOptions {
+            alt_drive: None,
+            alt_file: None,
+        };
+        let mut output = output_options("mft_temp", "json", "./tmp", false);
+
+        let status = mft(&options, &mut output, &false).unwrap();
         assert_eq!(status, ());
     }
 
