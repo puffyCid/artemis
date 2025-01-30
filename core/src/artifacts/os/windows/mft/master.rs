@@ -603,9 +603,7 @@ fn output_mft(
 
 #[cfg(test)]
 mod tests {
-    use super::parse_mft;
     use crate::structs::toml::Output;
-    use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -625,7 +623,11 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_parse_mft() {
+        use super::parse_mft;
+        use std::path::PathBuf;
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
@@ -661,7 +663,11 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_nonresident_large_record_length() {
+        use super::parse_mft;
+        use std::path::PathBuf;
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/mft/win11/nonresident.raw");
 
