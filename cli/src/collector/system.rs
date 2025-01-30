@@ -500,7 +500,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             alt_drive,
         } => {
             let options = MftOptions {
-                alt_drive: alt_drive.clone(),
+                alt_drive: *alt_drive,
                 alt_file: alt_file.clone(),
             };
             collect.mft = Some(options);
