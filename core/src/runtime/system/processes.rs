@@ -1,4 +1,4 @@
-use crate::artifacts::os::processes::process::proc_list;
+use crate::artifacts::os::processes::process::proc_list_entries;
 use common::files::Hashes;
 use deno_core::{error::AnyError, op2};
 
@@ -11,7 +11,7 @@ pub(crate) fn get_processes(#[string] hashes: String, metadata: bool) -> Result<
         sha1: false,
         sha256: false,
     });
-    let proc = proc_list(&hashes, metadata)?;
+    let proc = proc_list_entries(&hashes, &metadata)?;
     let results = serde_json::to_string(&proc)?;
     Ok(results)
 }

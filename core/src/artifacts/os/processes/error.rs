@@ -6,6 +6,7 @@ pub enum ProcessError {
     ParseProcFile,
     ProcessList,
     Serialize,
+    OutputData,
 }
 
 impl std::error::Error for ProcessError {}
@@ -24,6 +25,9 @@ impl fmt::Display for ProcessError {
             }
             ProcessError::Serialize => {
                 write!(f, "Failed to serialize process listing")
+            }
+            ProcessError::OutputData => {
+                write!(f, "Failed to output process listing")
             }
         }
     }

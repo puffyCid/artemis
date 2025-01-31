@@ -1,3 +1,3 @@
 kind: Changed
-body: Improved handling of attempting to extract strings from raw bytes
+body: Improved handling of extracting strings from bytes
 time: 2025-01-28T00:18:51.807489649-05:00

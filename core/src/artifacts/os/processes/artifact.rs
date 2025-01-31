@@ -1,11 +1,7 @@
 use super::{error::ProcessError, process::proc_list};
-use crate::{
-    artifacts::output::output_artifact,
-    structs::{artifacts::os::processes::ProcessOptions, toml::Output},
-    utils::time,
-};
+use crate::structs::{artifacts::os::processes::ProcessOptions, toml::Output};
 use common::files::Hashes;
-use log::{error, warn};
+use log::warn;
 
 /// Collect a process listing from a system
 pub(crate) fn processes(
@@ -13,41 +9,21 @@ pub(crate) fn processes(
     filter: &bool,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
-    let start_time = time::time_now();
-
     let hashes = Hashes {
         md5: options.md5,
         sha1: options.sha1,
         sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, options.metadata);
-    let proc_data = match results {
-        Ok(data) => data,
-        Err(err) => {
-            warn!("[artemis-core] Failed to get process list: {err:?}");
-            return Err(ProcessError::ProcessList);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(proc_data);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize processes: {err:?}");
-            return Err(ProcessError::Serialize);
-        }
-    };
-
-    let output_name = "processes";
-    let status = output_artifact(&mut serde_data, output_name, output, &start_time, filter);
-    if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
+    let results = proc_list(&hashes, &options.metadata, filter, output);
+    if results.is_err() {
+        warn!(
+            "[core] Failed to get process list: {:?}",
+            results.unwrap_err()
         );
         return Err(ProcessError::ProcessList);
     }
+
     Ok(())
 }
 
