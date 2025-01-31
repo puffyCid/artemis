@@ -17,7 +17,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to get Safari history: {err:?}");
+            warn!("[core] Artemis macOS failed to get Safari history: {err:?}");
             return Err(ApplicationError::SafariHistory);
         }
     };
@@ -26,7 +26,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Safari history: {err:?}");
+            error!("[core] Failed to serialize Safari history: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -45,7 +45,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to get Safari downloads: {err:?}");
+            warn!("[core] Artemis macOS failed to get Safari downloads: {err:?}");
             return Err(ApplicationError::SafariDownloads);
         }
     };
@@ -54,7 +54,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Safari downloads: {err:?}");
+            error!("[core] Failed to serialize Safari downloads: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -71,7 +71,7 @@ pub(crate) fn firefox_history(output: &mut Output, filter: &bool) -> Result<(), 
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis macOS failed to get Firefox history: {err:?}");
+            warn!("[core] Artemis macOS failed to get Firefox history: {err:?}");
             return Err(ApplicationError::FirefoxHistory);
         }
     };
@@ -80,7 +80,7 @@ pub(crate) fn firefox_history(output: &mut Output, filter: &bool) -> Result<(), 
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Firefox history: {err:?}");
+            error!("[core] Failed to serialize Firefox history: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -100,7 +100,7 @@ pub(crate) fn firefox_downloads(
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis failed to get Firefox downloads: {err:?}");
+            warn!("[core] Artemis failed to get Firefox downloads: {err:?}");
             return Err(ApplicationError::FirefoxDownloads);
         }
     };
@@ -109,7 +109,7 @@ pub(crate) fn firefox_downloads(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Firefox downloads: {err:?}");
+            error!("[core] Failed to serialize Firefox downloads: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -126,7 +126,7 @@ pub(crate) fn chromium_history(output: &mut Output, filter: &bool) -> Result<(),
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis failed to get Chromium history: {err:?}");
+            warn!("[core] Artemis failed to get Chromium history: {err:?}");
             return Err(ApplicationError::ChromiumHistory);
         }
     };
@@ -135,7 +135,7 @@ pub(crate) fn chromium_history(output: &mut Output, filter: &bool) -> Result<(),
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Chromium history: {err:?}");
+            error!("[core] Failed to serialize Chromium history: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -155,7 +155,7 @@ pub(crate) fn chromium_downloads(
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Artemis failed to get Chromium downloads: {err:?}");
+            warn!("[core] Artemis failed to get Chromium downloads: {err:?}");
             return Err(ApplicationError::ChromiumDownloads);
         }
     };
@@ -164,7 +164,7 @@ pub(crate) fn chromium_downloads(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize Chromium downloads: {err:?}");
+            error!("[core] Failed to serialize Chromium downloads: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -183,10 +183,7 @@ pub(crate) fn output_data(
 ) -> Result<(), ApplicationError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+        error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(ApplicationError::Output);
     }
     Ok(())

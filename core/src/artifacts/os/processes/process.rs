@@ -49,7 +49,7 @@ pub(crate) fn proc_list(
     }
 
     // We may encounter really large binaries. So to keep memory usage low
-    // We every 5 processes we parse, we output the results
+    // Every 5 processes we parse, we output the results
     // If we do not parse binary info. We gather all processes at once
     let binary_proc_limit = 5;
     for process in proc.processes().values() {
@@ -220,7 +220,7 @@ fn output_process(
             return Err(ProcessError::Serialize);
         }
     };
-    let result = output_artifact(&mut serde_data, "mft", output, start_time, filter);
+    let result = output_artifact(&mut serde_data, "processes", output, start_time, filter);
     match result {
         Ok(_result) => {}
         Err(err) => {

@@ -11,16 +11,25 @@
  */
 use super::{error::FsEventsError, fsevent::fsevents_data};
 use crate::{
-    filesystem::files::list_files, structs::artifacts::os::macos::FseventsOptions,
-    utils::compression::decompress::decompress_gzip,
+    artifacts::output::output_artifact,
+    filesystem::files::list_files,
+    structs::{artifacts::os::macos::FseventsOptions, toml::Output},
+    utils::{compression::decompress::decompress_gzip, time::time_now},
 };
 use common::macos::FsEvents;
 use log::error;
 
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
-pub(crate) fn grab_fseventsd(options: &FseventsOptions) -> Result<Vec<FsEvents>, FsEventsError> {
+pub(crate) fn grab_fseventsd(
+    options: &FseventsOptions,
+    filter: &bool,
+    output: &mut Output,
+) -> Result<(), FsEventsError> {
+    let start_time = time_now();
+
     if let Some(alt_file) = &options.alt_file {
-        return grab_fsventsd_file(alt_file);
+        let results = grab_fsventsd_file(alt_file)?;
+        return output_fsevents(&results, output, filter, &start_time);
     }
 
     let mut events = get_fseventsd()?;
@@ -29,7 +38,6 @@ pub(crate) fn grab_fseventsd(options: &FseventsOptions) -> Result<Vec<FsEvents>,
         events.append(&mut results);
     }
 
-    let mut fsevents_data: Vec<FsEvents> = Vec::new();
     for file in events {
         let decompress_result = decompress_gzip(&file);
         let decompress_data = match decompress_result {
@@ -40,13 +48,16 @@ pub(crate) fn grab_fseventsd(options: &FseventsOptions) -> Result<Vec<FsEvents>,
             }
         };
 
-        let results = parse_fsevents(&decompress_data, &file);
-        match results {
-            Ok((_, mut data)) => fsevents_data.append(&mut data),
-            Err(err) => error!("Failed to parse FsEvent file {file}, err: {err:?}"),
-        }
+        let results = match parse_fsevents(&decompress_data, &file) {
+            Ok((_, data)) => data,
+            Err(err) => {
+                error!("Failed to parse FsEvent file {file}, err: {err:?}");
+                continue;
+            }
+        };
+        let _ = output_fsevents(&results, output, filter, &start_time);
     }
-    Ok(fsevents_data)
+    Ok(())
 }
 
 /// Parse a single `FsEvent` file
@@ -64,7 +75,7 @@ pub(crate) fn grab_fsventsd_file(path: &str) -> Result<Vec<FsEvents>, FsEventsEr
     let results = parse_fsevents(&decompress_data, path);
     match results {
         Ok((_, mut data)) => fsevents_data.append(&mut data),
-        Err(err) => error!("Failed to parse FsEvent file {path}, err: {err:?}"),
+        Err(err) => error!("[fsevent] Failed to parse FsEvent file {path}, err: {err:?}"),
     }
 
     Ok(fsevents_data)
@@ -110,16 +121,64 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
     Ok(files)
 }
 
+/// Output `FsEvents` results
+fn output_fsevents(
+    entries: &[FsEvents],
+    output: &mut Output,
+    filter: &bool,
+    start_time: &u64,
+) -> Result<(), FsEventsError> {
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
+    let mut serde_data = match serde_data_result {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[fsevent] Failed to serialize fsevents entries: {err:?}");
+            return Err(FsEventsError::Serialize);
+        }
+    };
+    let result = output_artifact(&mut serde_data, "fseventsd", output, start_time, filter);
+    match result {
+        Ok(_result) => {}
+        Err(err) => {
+            error!("[fsevent] Could not output fsevents data: {err:?}");
+            return Err(FsEventsError::OutputData);
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
-        structs::artifacts::os::macos::FseventsOptions,
+        structs::{artifacts::os::macos::FseventsOptions, toml::Output},
         utils::compression::decompress::decompress_gzip,
     };
     use std::path::PathBuf;
+
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("jsonl"),
+            compress,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: output.to_string(),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        }
+    }
 
     #[test]
     fn test_get_fseventsd() {
@@ -129,8 +188,8 @@ mod tests {
 
     #[test]
     fn test_grab_fseventsd() {
-        let results = grab_fseventsd(&FseventsOptions { alt_file: None }).unwrap();
-        assert!(results.len() > 100);
+        let mut output = output_options("fsevents_test", "local", "./tmp", false);
+        grab_fseventsd(&FseventsOptions { alt_file: None }, &false, &mut output).unwrap();
     }
 
     #[test]

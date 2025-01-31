@@ -112,10 +112,7 @@ pub(crate) fn output_data(
     let filter = false;
     let status = output_artifact(serde_data, output_name, output, start_time, &filter);
     if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+        error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(RuntimeError::Output);
     }
     Ok(())
@@ -123,14 +120,13 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
     use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
         runtime::deno::output_data,
         structs::{artifacts::runtime::script::JSScript, toml::Output},
         utils::time,
     };
+    use serde_json::json;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

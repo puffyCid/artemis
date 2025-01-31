@@ -21,7 +21,7 @@ pub(crate) fn journals(
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[artemis-core] Failed to get journals: {err:?}");
+            error!("[core] Failed to get journals: {err:?}");
             Err(LinuxArtifactError::Journal)
         }
     }
@@ -40,7 +40,7 @@ pub(crate) fn logons(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize logons: {err:?}");
+            error!("[core] Failed to serialize logons: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
@@ -61,7 +61,7 @@ pub(crate) fn sudo_logs_linux(
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Failed to get sudo log data: {err:?}");
+            warn!("[core] Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
@@ -70,7 +70,7 @@ pub(crate) fn sudo_logs_linux(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            error!("[core] Failed to serialize sudo log data: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
@@ -89,10 +89,7 @@ pub(crate) fn output_data(
 ) -> Result<(), LinuxArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+        error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(LinuxArtifactError::Output);
     }
     Ok(())
