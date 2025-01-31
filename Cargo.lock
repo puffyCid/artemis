@@ -4018,7 +4018,8 @@ dependencies = [
 [[package]]
 name = "macos-unifiedlogs"
 version = "0.1.0"
-source = "git+https://github.com/mandiant/macos-UnifiedLogs?rev=6eade82fe9938c7818ab22c7ca24d133d90565c7#6eade82fe9938c7818ab22c7ca24d133d90565c7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f5fae9c2f754d7468c7b8ae3db8591d5b173c1150b42417dfe27b64874748c6"
 dependencies = [
  "base64 0.22.1",
  "byteorder",
@@ -4030,6 +4031,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "walkdir",
 ]
 
 [[package]]
