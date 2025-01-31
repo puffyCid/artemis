@@ -4017,9 +4017,9 @@ dependencies = [
 
 [[package]]
 name = "macos-unifiedlogs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f5fae9c2f754d7468c7b8ae3db8591d5b173c1150b42417dfe27b64874748c6"
+checksum = "3a5cd7d058fc4169d9cd414f6d7524ac1f4db84eb51e9b5507eef97ee048e380"
 dependencies = [
  "base64 0.22.1",
  "byteorder",
@@ -8375,9 +8375,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.7"
+version = "0.26.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d642ff16b7e79272ae451b7322067cdc17cadf68c23264be9d94a32319efe7e"
+checksum = "2210b291f7ea53617fbafcc4939f10914214ec15aace5ba62293a668f322c5c9"
 dependencies = [
  "rustls-pki-types",
 ]

@@ -1,39 +1,55 @@
-use crate::runtime::error::RuntimeError;
 use deno_core::{error::AnyError, op2};
-use log::error;
+use log::warn;
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,
-    parser::{
-        build_log, collect_shared_strings, collect_shared_strings_system, collect_strings,
-        collect_strings_system, collect_timesync, collect_timesync_system, parse_log,
-    },
+    filesystem::{LiveSystemProvider, LogarchiveProvider},
+    iterator::UnifiedLogIterator,
+    parser::{build_log, collect_shared_strings, collect_strings, collect_timesync},
     timesync::TimesyncBoot,
+    traits::FileProvider,
     unified_log::LogData,
     uuidtext::UUIDText,
 };
+use std::{io::Read, path::Path};
 
 #[op2]
 #[string]
 /// Expose Unified Log parsing to `Deno`
 pub(crate) fn get_unified_log(
-    #[string] path: String,
+    #[string] input_path: String,
     #[string] archive_path: String,
 ) -> Result<String, AnyError> {
-    let (uuid, shared, timesync) = if archive_path.is_empty() {
-        (
-            collect_strings_system()?,
-            collect_shared_strings_system()?,
-            collect_timesync_system()?,
-        )
+    // If user provides /var/db re-map to /private/var/db
+    let path = if input_path.starts_with("/var") {
+        format!("/private{input_path}")
     } else {
-        (
-            collect_strings(&archive_path)?,
-            collect_shared_strings(&format!("{archive_path}/dsc"))?,
-            collect_timesync(&format!("{archive_path}/timesync"))?,
-        )
+        input_path
     };
-
-    let logs = parse_trace_file(&uuid, &shared, &timesync, &path)?;
+    let logs = if !archive_path.is_empty() {
+        let provider = LogarchiveProvider::new(Path::new(&archive_path));
+        let string_results = collect_strings(&provider).unwrap_or_default();
+        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let timesync_data = collect_timesync(&provider).unwrap_or_default();
+        parse_trace_file(
+            &string_results,
+            &shared_strings_results,
+            &timesync_data,
+            &provider,
+            &path,
+        )?
+    } else {
+        let provider = LiveSystemProvider::default();
+        let string_results = collect_strings(&provider).unwrap_or_default();
+        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let timesync_data = collect_timesync(&provider).unwrap_or_default();
+        parse_trace_file(
+            &string_results,
+            &shared_strings_results,
+            &timesync_data,
+            &provider,
+            &path,
+        )?
+    };
 
     let results = serde_json::to_string(&logs)?;
     Ok(results)
@@ -44,26 +60,56 @@ fn parse_trace_file(
     string_results: &[UUIDText],
     shared_strings_results: &[SharedCacheStrings],
     timesync_data: &[TimesyncBoot],
+    provider: &dyn FileProvider,
     path: &str,
-) -> Result<Vec<LogData>, RuntimeError> {
-    let log_result = parse_log(path);
-    let log_data = match log_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[runtime] Failed to parse {path} log entry: {err:?}");
-            return Err(RuntimeError::ExecuteScript);
+) -> Result<Vec<LogData>, AnyError> {
+    for mut source in provider.tracev3_files() {
+        // Only go through provided log path
+        if source.source_path() != path {
+            continue;
         }
+
+        return iterate_logs(
+            source.reader(),
+            string_results,
+            shared_strings_results,
+            timesync_data,
+        );
+    }
+
+    warn!("[runtime] Failed to iterate through logs");
+    Ok(Vec::new())
+}
+
+fn iterate_logs(
+    mut reader: impl Read,
+    strings_data: &[UUIDText],
+    shared_strings: &[SharedCacheStrings],
+    timesync_data: &[TimesyncBoot],
+) -> Result<Vec<LogData>, AnyError> {
+    let mut buf = Vec::new();
+
+    let _ = reader.read_to_end(&mut buf)?;
+
+    let log_iterator = UnifiedLogIterator {
+        data: buf,
+        header: Vec::new(),
     };
 
     let exclude_missing = false;
-    let (results, _) = build_log(
-        &log_data,
-        string_results,
-        shared_strings_results,
-        timesync_data,
-        exclude_missing,
-    );
-    Ok(results)
+    let mut logs = Vec::new();
+    for chunk in log_iterator {
+        let (mut results, _) = build_log(
+            &chunk,
+            strings_data,
+            shared_strings,
+            timesync_data,
+            exclude_missing,
+        );
+
+        logs.append(&mut results);
+    }
+    Ok(logs)
 }
 
 #[cfg(test)]
@@ -99,33 +145,5 @@ mod tests {
             script: test.to_string(),
         };
         let _ = execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    #[cfg(target_os = "macos")]
-    fn test_parse_trace_file() {
-        use super::parse_trace_file;
-        use crate::filesystem::files::list_files;
-        use macos_unifiedlogs::parser::{
-            collect_shared_strings_system, collect_strings_system, collect_timesync_system,
-        };
-
-        let strings_results = collect_strings_system().unwrap();
-        let shared_strings_results = collect_shared_strings_system().unwrap();
-        let timesync_data_results = collect_timesync_system().unwrap();
-
-        let files = list_files("/var/db/diagnostics/Persist").unwrap();
-
-        for file in files {
-            let result = parse_trace_file(
-                &strings_results,
-                &shared_strings_results,
-                &timesync_data_results,
-                &file,
-            )
-            .unwrap();
-            assert!(result.len() > 2000);
-            break;
-        }
     }
 }

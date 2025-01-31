@@ -20,13 +20,9 @@ use crate::{
         },
         toml::Output,
     },
-    utils::time,
+    utils::time::{self, time_now},
 };
 use log::{error, warn};
-use macos_unifiedlogs::parser::{
-    collect_shared_strings, collect_shared_strings_system, collect_strings, collect_strings_system,
-    collect_timesync, collect_timesync_system,
-};
 use serde_json::Value;
 
 /// Parse macOS `LoginItems`
@@ -186,58 +182,7 @@ pub(crate) fn unifiedlogs(
     filter: &bool,
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
-    // Need to first get the strings and timestamp data first before parsing the actual logs
-    let (strings_results, shared_strings_results, timesync_data_results) =
-        if let Some(archive_path) = &options.logarchive_path {
-            (
-                collect_strings(archive_path),
-                collect_shared_strings(&format!("{archive_path}/dsc")),
-                collect_timesync(&format!("{archive_path}/timesync")),
-            )
-        } else {
-            (
-                collect_strings_system(),
-                collect_shared_strings_system(),
-                collect_timesync_system(),
-            )
-        };
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse UUIDText files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse dsc files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse timesync files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    // Based on provided log sources provided in TOML file, parse the logs
-    grab_logs(
-        &strings,
-        &shared_strings,
-        &timesync_data,
-        output,
-        &start_time,
-        options,
-        filter,
-    )
+    grab_logs(options, output, filter)
 }
 
 /// Get macOS `ExecPolicy`
@@ -276,51 +221,8 @@ pub(crate) fn sudo_logs_macos(
     filter: &bool,
     options: &MacosSudoOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-    let mut path = String::from("/var/db/diagnostics/Persist");
-
-    // Need to first get the strings and timestamp data first before parsing the actual logs
-    let (strings_results, shared_strings_results, timesync_data_results) =
-        if let Some(archive_path) = &options.logarchive_path {
-            path = format!("{archive_path}/Persist");
-            (
-                collect_strings(archive_path),
-                collect_shared_strings(&format!("{archive_path}/dsc")),
-                collect_timesync(&format!("{archive_path}/timesync")),
-            )
-        } else {
-            (
-                collect_strings_system(),
-                collect_shared_strings_system(),
-                collect_timesync_system(),
-            )
-        };
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse UUIDText files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse dsc files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to parse timesync files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let artifact_result = grab_sudo_logs(&strings, &shared_strings, &timesync_data, &path);
+    let start_time = time_now();
+    let artifact_result = grab_sudo_logs(options);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {

@@ -1,32 +1,22 @@
-use crate::{artifacts::os::macos::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError};
+use crate::{
+    artifacts::os::macos::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError,
+    structs::artifacts::os::macos::MacosSudoOptions,
+};
 use deno_core::{error::AnyError, op2};
 use log::error;
-use macos_unifiedlogs::parser::{
-    collect_shared_strings, collect_shared_strings_system, collect_strings, collect_strings_system,
-    collect_timesync, collect_timesync_system,
-};
 
 #[op2]
 #[string]
 /// Get `Sudo log` data
 pub(crate) fn get_sudologs_macos(#[string] logarchive_path: String) -> Result<String, AnyError> {
-    let mut path = String::from("/var/db/diagnostics/Persist");
-
-    let (strings, shared_strings, timesync_data) = if !logarchive_path.is_empty() {
-        path = format!("{logarchive_path}/Persist");
-        (
-            collect_strings(&logarchive_path)?,
-            collect_shared_strings(&format!("{logarchive_path}/dsc"))?,
-            collect_timesync(&format!("{logarchive_path}/timesync"))?,
-        )
-    } else {
-        (
-            collect_strings_system()?,
-            collect_shared_strings_system()?,
-            collect_timesync_system()?,
-        )
+    let options = MacosSudoOptions {
+        logarchive_path: if !logarchive_path.is_empty() {
+            Some(logarchive_path)
+        } else {
+            None
+        },
     };
-    let sudo_results = grab_sudo_logs(&strings, &shared_strings, &timesync_data, &path);
+    let sudo_results = grab_sudo_logs(&options);
     let sudo = match sudo_results {
         Ok(results) => results,
         Err(err) => {
