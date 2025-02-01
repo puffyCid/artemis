@@ -12,6 +12,7 @@ pub(crate) fn get_usnjrnl() -> Result<String, AnyError> {
     let options = UsnJrnlOptions {
         alt_drive: None,
         alt_path: None,
+        alt_mft: None,
     };
     let jrnl = grab_usnjrnl(&options)?;
 
@@ -32,6 +33,7 @@ pub(crate) fn get_alt_usnjrnl(#[string] drive: String) -> Result<String, AnyErro
     let options = UsnJrnlOptions {
         alt_drive: Some(drive_char.to_owned()),
         alt_path: None,
+        alt_mft: None,
     };
 
     let jrnl = grab_usnjrnl(&options)?;

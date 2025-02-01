@@ -1,5 +1,6 @@
 use crate::{
-    filesystem::ntfs::{attributes::file_attribute_flags, sector_reader::SectorReader},
+    artifacts::os::windows::mft::master::{lookup_parent, Lookups},
+    filesystem::{files::file_reader, ntfs::attributes::file_attribute_flags},
     utils::{
         nom_helper::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
@@ -8,20 +9,22 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use byteorder::{LittleEndian, ReadBytesExt};
 use common::windows::{AttributeFlags, Reason, Source};
-use log::{error, warn};
+use log::error;
 use nom::bytes::complete::{take, take_until, take_while};
-use ntfs::{structured_values::NtfsFileNamespace, Ntfs, NtfsError};
-use std::{collections::HashMap, fs::File, io::BufReader};
+use ntfs::NtfsFile;
+use std::{
+    collections::{HashMap, HashSet},
+    io::BufReader,
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct UsnJrnlFormat {
     _major_version: u16,
     _minor_version: u16,
-    pub(crate) mft_entry: u64,
+    pub(crate) mft_entry: u32,
     pub(crate) mft_sequence: u16,
-    pub(crate) parent_mft_entry: u64,
+    pub(crate) parent_mft_entry: u32,
     pub(crate) parent_mft_sequence: u16,
     pub(crate) update_time: String,
     pub(crate) update_reason: Vec<Reason>,
@@ -35,25 +38,19 @@ pub(crate) struct UsnJrnlFormat {
     pub(crate) full_path: String,
 }
 
-#[derive(Clone)]
-struct Parent {
-    name: String,
-    parent_id: u64,
-    parent_sequence: u16,
-    sequence_number: u16,
-}
-
 impl UsnJrnlFormat {
     /// Parse the `UsnJrnl` format and grab all the entries
-    pub(crate) fn parse_usnjrnl<'a>(
+    pub(crate) fn parse_usnjrnl<'a, T: std::io::Seek + std::io::Read>(
         data: &'a [u8],
-        ntfs: &Ntfs,
-        fs: &mut BufReader<SectorReader<File>>,
+        reader: &mut BufReader<T>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+        journal_cache: &mut HashMap<String, UsnJrnlFormat>,
     ) -> nom::IResult<&'a [u8], Vec<UsnJrnlFormat>> {
         let mut remaining_input = data;
 
         let mut entries = Vec::new();
-        let mut cache_ids: HashMap<u64, Parent> = HashMap::new();
+        let mut cache = HashMap::new();
+
         while !remaining_input.is_empty() {
             // Nom any padding data, if we nom'd everything then we are done
             let result = UsnJrnlFormat::nom_padding(remaining_input);
@@ -67,12 +64,12 @@ impl UsnJrnlFormat {
 
             let (input, _major_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
             let (input, _minor_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-            let entry_size: u8 = 6;
-            let (input, mut entry_data) = take(entry_size)(input)?;
+            let (input, mft_entry) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
             let (input, mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-            let (input, mut parent_entry_data) = take(entry_size)(input)?;
+            let (input, parent_mft) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
             let (input, parent_mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
             let (input, update_sequence_number) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -99,43 +96,136 @@ impl UsnJrnlFormat {
             let update_source_flags = UsnJrnlFormat::source_flag(&source);
 
             let file_attributes = file_attribute_flags(&flags);
-            let mut parents: Vec<String> = Vec::new();
-            let parent_entry = parent_entry_data.read_u48::<LittleEndian>().unwrap_or(5);
 
-            // Check our cache and if found make sure the sequence numbers match
-            if let Some(cache) = cache_ids.clone().get(&parent_entry) {
-                if parent_mft_seq != cache.sequence_number {
-                    parents.push(String::from("Could not find parent"));
-                } else {
-                    let path_result = UsnJrnlFormat::iterate_parents(
-                        parent_entry,
-                        parent_mft_seq,
-                        ntfs,
-                        &mut parents,
-                        fs,
-                        &mut cache_ids,
-                    );
-                    match path_result {
-                        Ok(_) => {}
-                        Err(err) => {
-                            error!("[usnjrnl] Could not determine parent directories: {err:?}");
-                        }
-                    };
-                }
+            let path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
+            {
+                cache_hit
             } else {
-                let path_result = UsnJrnlFormat::iterate_parents(
-                    parent_entry,
-                    parent_mft_seq,
-                    ntfs,
-                    &mut parents,
-                    fs,
-                    &mut cache_ids,
-                );
-                match path_result {
-                    Ok(_) => {}
-                    Err(err) => {
-                        error!("[usnjrnl] Could not determine parent directories: {err:?}");
-                    }
+                let mut tracker = Lookups {
+                    parent_index: parent_mft,
+                    parent_sequence: parent_mft_seq,
+                    size: 0,
+                    tracker: HashSet::new(),
+                };
+                &lookup_parent(reader, ntfs_file, &mut cache, &HashMap::new(), &mut tracker)
+                    .unwrap_or_default()
+            };
+            let entry = UsnJrnlFormat {
+                _major_version,
+                _minor_version,
+                update_time,
+                update_reason,
+                update_source_flags,
+                security_descriptor_id,
+                file_attributes,
+                _name_size: name_size,
+                _name_offset: name_offset,
+                name: name.clone(),
+                mft_entry,
+                mft_sequence: mft_seq,
+                parent_mft_entry: parent_mft,
+                parent_mft_sequence: parent_mft_seq,
+                update_sequence_number,
+                full_path: format!("{path}\\{name}"),
+            };
+
+            if entry.file_attributes.contains(&AttributeFlags::Directory) {
+                journal_cache.insert(format!("{}_{}", mft_entry, mft_seq), entry.clone());
+            }
+            entries.push(entry);
+
+            remaining_input = input;
+        }
+
+        Ok((remaining_input, entries))
+    }
+
+    /// Parse the `UsnJrnl` but do not lookup any parent info
+    pub(crate) fn parse_usnjrnl_no_parent<'a>(
+        data: &'a [u8],
+        mft_path: &Option<String>,
+        journal_cache: &mut HashMap<String, UsnJrnlFormat>,
+    ) -> nom::IResult<&'a [u8], Vec<UsnJrnlFormat>> {
+        let mut remaining_input = data;
+
+        let mut reader = if let Some(path) = mft_path {
+            match file_reader(path) {
+                Ok(result) => Some(BufReader::new(result)),
+                Err(err) => {
+                    error!("[usnjrnl] Could create reader for alt MFT file: {err:?}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let mut cache: HashMap<String, String> = HashMap::new();
+
+        let mut entries = Vec::new();
+        while !remaining_input.is_empty() {
+            // Nom any padding data, if we nom'd everything then we are done
+            let result = UsnJrnlFormat::nom_padding(remaining_input);
+            let input = match result {
+                Ok((usnjrnl_data, _)) => usnjrnl_data,
+                Err(_) => break,
+            };
+            if input.is_empty() {
+                break;
+            }
+
+            let (input, _major_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, _minor_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let (input, mft_entry) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let (input, parent_mft) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, _padding) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, parent_mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let (input, update_sequence_number) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+            let (input, usn_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+            let (input, reason) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, source) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, security_descriptor_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
+            let (input, name_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, name_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
+
+            let offset_position = 60;
+            if name_offset != offset_position {
+                remaining_input = input;
+                continue;
+            }
+
+            // The name always follows the name offset. So we actually do not need it
+            let (input, name_data) = take(name_size)(input)?;
+            let name = extract_utf16_string(name_data);
+
+            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
+            let update_reason = UsnJrnlFormat::reason_flags(&reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+
+            let file_attributes = file_attribute_flags(&flags);
+
+            let mut path = String::new();
+            if reader.is_some() {
+                path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
+                {
+                    cache_hit.to_string()
+                } else {
+                    let mut tracker = Lookups {
+                        parent_index: parent_mft,
+                        parent_sequence: parent_mft_seq,
+                        size: 0,
+                        tracker: HashSet::new(),
+                    };
+                    // unwrap is safe because we check to for some value above
+                    let lookup = reader.as_mut().unwrap();
+                    lookup_parent(lookup, None, &mut cache, &HashMap::new(), &mut tracker)
+                        .unwrap_or_default()
                 };
             }
 
@@ -149,94 +239,18 @@ impl UsnJrnlFormat {
                 file_attributes,
                 _name_size: name_size,
                 _name_offset: name_offset,
-                name,
-                mft_entry: entry_data.read_u48::<LittleEndian>().unwrap_or(0),
+                name: name.clone(),
+                mft_entry,
                 mft_sequence: mft_seq,
-                parent_mft_entry: parent_entry,
+                parent_mft_entry: parent_mft,
                 parent_mft_sequence: parent_mft_seq,
                 update_sequence_number,
-                full_path: parents.join("\\"),
+                full_path: format!("{path}\\{name}"),
             };
 
-            entries.push(entry);
-
-            remaining_input = input;
-        }
-
-        Ok((remaining_input, entries))
-    }
-
-    /// Parse the `UsnJrnl` but do not lookup any parent info
-    pub(crate) fn parse_usnjrnl_no_parent(data: &[u8]) -> nom::IResult<&[u8], Vec<UsnJrnlFormat>> {
-        let mut remaining_input = data;
-
-        let mut entries = Vec::new();
-        while !remaining_input.is_empty() {
-            // Nom any padding data, if we nom'd everything then we are done
-            let result = UsnJrnlFormat::nom_padding(remaining_input);
-            let input = match result {
-                Ok((usnjrnl_data, _)) => usnjrnl_data,
-                Err(_) => break,
-            };
-            if input.is_empty() {
-                break;
+            if entry.file_attributes.contains(&AttributeFlags::Directory) {
+                journal_cache.insert(format!("{}_{}", mft_entry, mft_seq), entry.clone());
             }
-
-            let (input, _major_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
-            let (input, _minor_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-            let entry_size: u8 = 6;
-            let (input, mut entry_data) = take(entry_size)(input)?;
-            let (input, mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-            let (input, mut parent_entry_data) = take(entry_size)(input)?;
-            let (input, parent_mft_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-            let (input, update_sequence_number) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-            let (input, usn_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-            let (input, reason) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, source) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, security_descriptor_id) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (input, name_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-            let (input, name_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-            let offset_position = 60;
-            if name_offset != offset_position {
-                remaining_input = input;
-                continue;
-            }
-
-            // The name always follows the name offset. So we actually do not need it
-            let (input, name_data) = take(name_size)(input)?;
-            let name = extract_utf16_string(name_data);
-
-            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
-            let update_reason = UsnJrnlFormat::reason_flags(&reason);
-            let update_source_flags = UsnJrnlFormat::source_flag(&source);
-
-            let file_attributes = file_attribute_flags(&flags);
-            let parent_entry = parent_entry_data.read_u48::<LittleEndian>().unwrap_or(5);
-
-            let entry = UsnJrnlFormat {
-                _major_version,
-                _minor_version,
-                update_time,
-                update_reason,
-                update_source_flags,
-                security_descriptor_id,
-                file_attributes,
-                _name_size: name_size,
-                _name_offset: name_offset,
-                name,
-                mft_entry: entry_data.read_u48::<LittleEndian>().unwrap_or(0),
-                mft_sequence: mft_seq,
-                parent_mft_entry: parent_entry,
-                parent_mft_sequence: parent_mft_seq,
-                update_sequence_number,
-                full_path: String::new(),
-            };
-
             entries.push(entry);
 
             remaining_input = input;
@@ -265,265 +279,74 @@ impl UsnJrnlFormat {
         Ok((remaining_input, ()))
     }
 
-    /// Recursively search for parents by looking up the parent MFT entry ID
-    fn iterate_parents(
-        entry: u64,
-        parent_sequence: u16,
-        ntfs: &Ntfs,
-        parents: &mut Vec<String>,
-        fs: &mut BufReader<SectorReader<File>>,
-        cache_ids: &mut HashMap<u64, Parent>,
-    ) -> Result<(), NtfsError> {
-        let root = 5;
-        if entry == root {
-            return Ok(());
-        }
-
-        // We should not encounter an infinite recursive loop. But just in case we have a hard limit of parent directories
-        let max_parents = 45;
-        if parents.len() > max_parents {
-            warn!("[usnjrnl] Reached {max_parents} parents. We might have encountered an infinite loop (parent-child point to each other as their respective parents)");
-            return Ok(());
-        }
-
-        if let Some(cache) = cache_ids.clone().get(&entry) {
-            let result = UsnJrnlFormat::iterate_parents(
-                cache.parent_id,
-                cache.parent_sequence,
-                ntfs,
-                parents,
-                fs,
-                cache_ids,
-            );
-            match result {
-                Ok(_) => parents.push(cache.name.clone()),
-                Err(_) => {
-                    // We do not have a parent, we can start building the full directory now
-                    parents.push(String::from("Could not find parent"));
-                }
-            }
-            return Ok(());
-        }
-
-        let parent = ntfs.file(fs, entry)?;
-        if let Some(fileinfo) = parent.name(fs, Some(NtfsFileNamespace::Win32AndDos), None) {
-            let info = fileinfo?;
-            let parent_ref = info.parent_directory_reference().file_record_number();
-            let parent_seq = info.parent_directory_reference().sequence_number();
-
-            if parent_sequence != parent.sequence_number() {
-                // If the sequence numbers do no match then that means the MFT record has been deleted and reused. Cannot recreate paths
-                parents.push(String::from("Could not find parent"));
-                cache_ids.insert(
-                    entry,
-                    Parent {
-                        name: info.name().to_string_lossy(),
-                        parent_id: parent_ref,
-                        parent_sequence: parent_seq,
-                        sequence_number: parent.sequence_number(),
-                    },
-                );
-                return Ok(());
-            }
-
-            let result = UsnJrnlFormat::iterate_parents(
-                parent_ref, parent_seq, ntfs, parents, fs, cache_ids,
-            );
-            match result {
-                Ok(_) => {
-                    parents.push(info.name().to_string_lossy());
-                    cache_ids.insert(
-                        entry,
-                        Parent {
-                            name: info.name().to_string_lossy(),
-                            parent_id: parent_ref,
-                            parent_sequence: parent_seq,
-                            sequence_number: parent.sequence_number(),
-                        },
-                    );
-                }
-                Err(_) => {
-                    // We do not have a parent, we can start building the full directory now
-                    parents.push(String::from("Could not find parent"));
-                }
-            }
-        } else if let Some(fileinfo) = parent.name(fs, Some(NtfsFileNamespace::Win32), None) {
-            let info = fileinfo?;
-            let parent_ref = info.parent_directory_reference().file_record_number();
-            let parent_seq = info.parent_directory_reference().sequence_number();
-
-            if parent_sequence != parent.sequence_number() {
-                // If the sequence numbers do no match then that means the MFT record has been deleted and reused. Cannot recreate paths
-                parents.push(String::from("Could not find parent"));
-                cache_ids.insert(
-                    entry,
-                    Parent {
-                        name: info.name().to_string_lossy(),
-                        parent_id: parent_ref,
-                        parent_sequence: parent_seq,
-                        sequence_number: parent.sequence_number(),
-                    },
-                );
-                return Ok(());
-            }
-
-            let result = UsnJrnlFormat::iterate_parents(
-                parent_ref, parent_seq, ntfs, parents, fs, cache_ids,
-            );
-            match result {
-                Ok(_) => {
-                    parents.push(info.name().to_string_lossy());
-                    cache_ids.insert(
-                        entry,
-                        Parent {
-                            name: info.name().to_string_lossy(),
-                            parent_id: parent_ref,
-                            parent_sequence: parent_seq,
-                            sequence_number: parent.sequence_number(),
-                        },
-                    );
-                }
-                Err(_) => {
-                    // We do not have a parent, we can start building the full directory now
-                    parents.push(String::from("Could not find parent"));
-                }
-            }
-        } else if let Some(fileinfo) = parent.name(fs, Some(NtfsFileNamespace::Posix), None) {
-            let info = fileinfo?;
-            let parent_ref = info.parent_directory_reference().file_record_number();
-            let parent_seq = info.parent_directory_reference().sequence_number();
-
-            if parent_sequence != parent.sequence_number() {
-                // If the sequence numbers do no match then that means the MFT record has been deleted and reused. Cannot recreate paths
-                parents.push(String::from("Could not find parent"));
-                cache_ids.insert(
-                    entry,
-                    Parent {
-                        name: info.name().to_string_lossy(),
-                        parent_id: parent_ref,
-                        parent_sequence: parent_seq,
-                        sequence_number: parent.sequence_number(),
-                    },
-                );
-                return Ok(());
-            }
-
-            let result = UsnJrnlFormat::iterate_parents(
-                parent_ref, parent_seq, ntfs, parents, fs, cache_ids,
-            );
-            match result {
-                Ok(_) => {
-                    parents.push(info.name().to_string_lossy());
-                    cache_ids.insert(
-                        entry,
-                        Parent {
-                            name: info.name().to_string_lossy(),
-                            parent_id: parent_ref,
-                            parent_sequence: parent_seq,
-                            sequence_number: parent.sequence_number(),
-                        },
-                    );
-                }
-                Err(_) => {
-                    // We do not have a parent, we can start building the full directory now
-                    parents.push(String::from("Could not find parent"));
-                }
-            }
-        }
-        Ok(())
-    }
-
     /// Get `UsnJrnl` update reason flags
     fn reason_flags(flag: &u32) -> Vec<Reason> {
         let mut reasons = Vec::new();
 
-        let overwrite = 0x1;
-        let extend = 0x2;
-        let truncate = 0x4;
-        let name_overwrite = 0x10;
-        let name_extend = 0x20;
-        let name_truncate = 0x40;
-        let file_create = 0x100;
-        let file_delete = 0x200;
-        let ea_change = 0x400;
-        let sec_change = 0x800;
-        let old_name = 0x1000;
-        let new_name = 0x2000;
-        let indexable = 0x4000;
-        let info_change = 0x8000;
-        let link_change = 0x10000;
-        let compression_change = 0x20000;
-        let encrypt_change = 0x40000;
-        let object_change = 0x80000;
-        let reparse_change = 0x100000;
-        let stream_change = 0x200000;
-        let transacted_change = 0x400000;
-        let close = 0x80000000;
-
-        if (flag & overwrite) == overwrite {
+        if (flag & 0x1) == 0x1 {
             reasons.push(Reason::Overwrite);
         }
-        if (flag & extend) == extend {
+        if (flag & 0x2) == 0x2 {
             reasons.push(Reason::Extend);
         }
-        if (flag & truncate) == truncate {
+        if (flag & 0x4) == 0x4 {
             reasons.push(Reason::Truncation);
         }
-        if (flag & name_overwrite) == name_overwrite {
+        if (flag & 0x10) == 0x10 {
             reasons.push(Reason::NamedOverwrite);
         }
-        if (flag & name_extend) == name_extend {
+        if (flag & 0x20) == 0x20 {
             reasons.push(Reason::NamedExtend);
         }
-        if (flag & name_truncate) == name_truncate {
+        if (flag & 0x40) == 0x40 {
             reasons.push(Reason::NamedTruncation);
         }
-        if (flag & file_create) == file_create {
+        if (flag & 0x100) == 0x100 {
             reasons.push(Reason::FileCreate);
         }
-        if (flag & file_delete) == file_delete {
+        if (flag & 0x200) == 0x200 {
             reasons.push(Reason::FileDelete);
         }
-        if (flag & ea_change) == ea_change {
+        if (flag & 0x400) == 0x400 {
             reasons.push(Reason::EAChange);
         }
-        if (flag & sec_change) == sec_change {
+        if (flag & 0x800) == 0x800 {
             reasons.push(Reason::SecurityChange);
         }
-        if (flag & old_name) == old_name {
+        if (flag & 0x1000) == 0x1000 {
             reasons.push(Reason::RenameOldName);
         }
-        if (flag & new_name) == new_name {
+        if (flag & 0x2000) == 0x2000 {
             reasons.push(Reason::RenameNewName);
         }
-        if (flag & indexable) == indexable {
+        if (flag & 0x4000) == 0x4000 {
             reasons.push(Reason::IndexableChange);
         }
-        if (flag & info_change) == info_change {
+        if (flag & 0x8000) == 0x8000 {
             reasons.push(Reason::BasicInfoChange);
         }
-        if (flag & link_change) == link_change {
+        if (flag & 0x10000) == 0x10000 {
             reasons.push(Reason::HardLinkChange);
         }
-        if (flag & compression_change) == compression_change {
+        if (flag & 0x20000) == 0x20000 {
             reasons.push(Reason::CompressionChange);
         }
-        if (flag & encrypt_change) == encrypt_change {
+        if (flag & 0x40000) == 0x40000 {
             reasons.push(Reason::EncryptionChange);
         }
-        if (flag & object_change) == object_change {
+        if (flag & 0x80000) == 0x80000 {
             reasons.push(Reason::ObjectIDChange);
         }
-        if (flag & reparse_change) == reparse_change {
+        if (flag & 0x100000) == 0x100000 {
             reasons.push(Reason::ReparsePointChange);
         }
-        if (flag & stream_change) == stream_change {
+        if (flag & 0x200000) == 0x200000 {
             reasons.push(Reason::StreamChange);
         }
-        if (flag & transacted_change) == transacted_change {
+        if (flag & 0x400000) == 0x400000 {
             reasons.push(Reason::TransactedChange);
         }
-        if (flag & close) == close {
+        if (flag & 0x80000000) == 0x80000000 {
             reasons.push(Reason::Close);
         }
         reasons
@@ -551,7 +374,8 @@ impl UsnJrnlFormat {
 #[cfg(target_os = "windows")]
 mod tests {
     use super::UsnJrnlFormat;
-    use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend, Overwrite};
+    use crate::artifacts::os::windows::mft::reader::setup_mft_reader_windows;
+    use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend};
     use crate::artifacts::os::windows::usnjrnl::journal::Source::{DataManagement, None};
     use crate::filesystem::ntfs::setup::setup_ntfs_parser;
     use common::windows::AttributeFlags::Archive;
@@ -568,8 +392,14 @@ mod tests {
             52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
         ];
         let mut parser = setup_ntfs_parser(&'C').unwrap();
-        let (_, results) =
-            UsnJrnlFormat::parse_usnjrnl(&test_data, &parser.ntfs, &mut parser.fs).unwrap();
+        let ntfs_file = setup_mft_reader_windows(&parser.ntfs, &mut parser.fs, "C:\\$MFT").unwrap();
+        let (_, results) = UsnJrnlFormat::parse_usnjrnl(
+            &test_data,
+            &mut parser.fs,
+            Some(&ntfs_file),
+            &mut HashMap::new(),
+        )
+        .unwrap();
         assert_eq!(results[0]._major_version, 2);
         assert_eq!(results[0]._minor_version, 0);
         assert_eq!(results[0].mft_entry, 350259);
@@ -599,7 +429,9 @@ mod tests {
             53, 0, 99, 0, 56, 0, 45, 0, 98, 0, 99, 0, 53, 0, 99, 0, 50, 0, 55, 0, 51, 0, 102, 0,
             52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
         ];
-        let (_, results) = UsnJrnlFormat::parse_usnjrnl_no_parent(&test_data).unwrap();
+        let (_, results) =
+            UsnJrnlFormat::parse_usnjrnl_no_parent(&test_data, &Option::None, &mut HashMap::new())
+                .unwrap();
         assert_eq!(results[0]._major_version, 2);
         assert_eq!(results[0]._minor_version, 0);
         assert_eq!(results[0].mft_entry, 350259);
@@ -620,25 +452,6 @@ mod tests {
     }
 
     #[test]
-    fn test_iterate_parents() {
-        let test = 955759;
-        let mut cache = HashMap::new();
-        let mut parents = Vec::new();
-        let mut parser = setup_ntfs_parser(&'C').unwrap();
-        let results = UsnJrnlFormat::iterate_parents(
-            test,
-            5,
-            &parser.ntfs,
-            &mut parents,
-            &mut parser.fs,
-            &mut cache,
-        )
-        .unwrap();
-
-        assert_eq!(results, ());
-    }
-
-    #[test]
     fn test_nom_padding() {
         let test = [0, 1, 2, 0, 0, 0];
         let (result, _) = UsnJrnlFormat::nom_padding(&test).unwrap();
@@ -647,9 +460,14 @@ mod tests {
 
     #[test]
     fn test_reason_flags() {
-        let test = 1;
-        let reason = UsnJrnlFormat::reason_flags(&test);
-        assert_eq!(reason[0], Overwrite);
+        let test = [
+            0x1, 0x2, 0x4, 0x10, 0x20, 0x40, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000,
+            0x8000, 0x10000, 0x20000, 0x80000, 0x100000, 0x200000, 0x400000, 0x80000000,
+        ];
+        for entry in test {
+            let reason = UsnJrnlFormat::reason_flags(&entry);
+            assert!(!reason.is_empty());
+        }
     }
 
     #[test]

@@ -22,10 +22,10 @@ use log::error;
 /// Parse `UsnJrnl` data and return list of entries
 pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     if let Some(alt) = options.alt_drive {
-        return parse_usnjrnl_data(&alt);
+        return parse_usnjrnl_data(&alt, &format!("{alt}:\\$MFT"));
     }
     if let Some(path) = &options.alt_path {
-        return grab_usnjrnl_path(path);
+        return grab_usnjrnl_path(path, &options.alt_path);
     }
     let systemdrive_result = get_systemdrive();
     let systemdrive = match systemdrive_result {
@@ -36,12 +36,15 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
         }
     };
 
-    parse_usnjrnl_data(&systemdrive)
+    parse_usnjrnl_data(&systemdrive, &format!("{systemdrive}:\\$MFT"))
 }
 
 /// Get `UsnJrnl` data at provided path
-pub(crate) fn grab_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
-    get_usnjrnl_path(path)
+pub(crate) fn grab_usnjrnl_path(
+    path: &str,
+    mft_path: &Option<String>,
+) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+    get_usnjrnl_path(path, mft_path)
 }
 
 #[cfg(test)]
@@ -52,11 +55,11 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "Takes a long time"]
     fn test_grab_usnjrnl() {
         let params = UsnJrnlOptions {
             alt_drive: None,
             alt_path: None,
+            alt_mft: None,
         };
         let results = grab_usnjrnl(&params).unwrap();
         assert!(results.len() > 10);
@@ -67,7 +70,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
 
-        let results = grab_usnjrnl_path(test_location.to_str().unwrap()).unwrap();
+        let results = grab_usnjrnl_path(test_location.to_str().unwrap(), &None).unwrap();
         assert_eq!(results.len(), 1);
     }
 }

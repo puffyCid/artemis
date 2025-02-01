@@ -1393,9 +1393,9 @@ pub struct UserAssistEntry {
 
 #[derive(Serialize)]
 pub struct UsnJrnlEntry {
-    pub mft_entry: u64,
+    pub mft_entry: u32,
     pub mft_sequence: u16,
-    pub parent_mft_entry: u64,
+    pub parent_mft_entry: u32,
     pub parent_mft_sequence: u16,
     pub update_sequence_number: u64,
     pub update_time: String,
@@ -1406,9 +1406,10 @@ pub struct UsnJrnlEntry {
     pub filename: String,
     pub extension: String,
     pub full_path: String,
+    pub drive: String,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum Reason {
     Overwrite,
     Extend,
@@ -1434,7 +1435,7 @@ pub enum Reason {
     Close,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum Source {
     DataManagement,
     AuxiliaryData,

@@ -1,5 +1,8 @@
 use crate::{
-    artifacts::os::windows::usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
+    artifacts::os::windows::{
+        mft::reader::setup_mft_reader_windows,
+        usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
+    },
     filesystem::{
         files::{file_extension, read_file},
         ntfs::{raw_files::read_attribute, setup::setup_ntfs_parser},
@@ -7,9 +10,13 @@ use crate::{
 };
 use common::windows::UsnJrnlEntry;
 use log::error;
+use std::collections::{HashMap, HashSet};
 
 /// Grab `UsnJrnl` entries by reading the $J ADS attribute and parsing its data runs
-pub(crate) fn parse_usnjrnl_data(drive: &char) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+pub(crate) fn parse_usnjrnl_data(
+    drive: &char,
+    mft: &str,
+) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     let data = get_data(drive)?;
     let ntfs_parser_result = setup_ntfs_parser(drive);
     let mut ntfs_parser = match ntfs_parser_result {
@@ -20,20 +27,36 @@ pub(crate) fn parse_usnjrnl_data(drive: &char) -> Result<Vec<UsnJrnlEntry>, UsnJ
         }
     };
 
+    let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[usnjrnl] Cannot read the MFT file: {err:?}");
+            return Err(UsnJrnlError::ReadFile);
+        }
+    };
+
     let mut usnjrnl_entries = Vec::new();
+    let mut journal_cache = HashMap::new();
     // UsnJrnl is composed of multiple data runs
     // Each data run we grabbed contain bytes that contain UsnJrnl entries
     // We do not need to concat the data in order to parse the UsnJrnl format, we can just loop through each data run
-    let usnjrnl_result =
-        UsnJrnlFormat::parse_usnjrnl(&data, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+    let usnjrnl_result = UsnJrnlFormat::parse_usnjrnl(
+        &data,
+        &mut ntfs_parser.fs,
+        Some(&ntfs_file),
+        &mut journal_cache,
+    );
     match usnjrnl_result {
         Ok((_, result)) => {
-            for jrnl_entry in result {
-                let path = if jrnl_entry.full_path.is_empty() {
-                    String::new()
-                } else {
-                    format!("\\{}", jrnl_entry.full_path)
-                };
+            for mut jrnl_entry in result {
+                // Try the cached usnjrnl paths before we give up
+                if jrnl_entry.full_path.starts_with("$OrphanFiles\\") {
+                    let mut tracker = HashSet::new();
+                    let path = lookup_journal_cache(&journal_cache, &jrnl_entry, &mut tracker);
+                    if !path.is_empty() {
+                        jrnl_entry.full_path = path;
+                    }
+                }
                 let entry = UsnJrnlEntry {
                     mft_entry: jrnl_entry.mft_entry,
                     mft_sequence: jrnl_entry.mft_sequence,
@@ -46,8 +69,9 @@ pub(crate) fn parse_usnjrnl_data(drive: &char) -> Result<Vec<UsnJrnlEntry>, UsnJ
                     security_descriptor_id: jrnl_entry.security_descriptor_id,
                     file_attributes: jrnl_entry.file_attributes,
                     extension: file_extension(&jrnl_entry.name),
-                    full_path: format!("{drive}:{}\\{}", path, jrnl_entry.name),
+                    full_path: jrnl_entry.full_path,
                     filename: jrnl_entry.name,
+                    drive: drive.to_string(),
                 };
                 usnjrnl_entries.push(entry);
             }
@@ -61,7 +85,10 @@ pub(crate) fn parse_usnjrnl_data(drive: &char) -> Result<Vec<UsnJrnlEntry>, UsnJ
 }
 
 /// Parse the `UsnJrnl` file at provided path
-pub(crate) fn get_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+pub(crate) fn get_usnjrnl_path(
+    path: &str,
+    mft_path: &Option<String>,
+) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     let data_result = read_file(path);
     let data = match data_result {
         Ok(result) => result,
@@ -70,8 +97,10 @@ pub(crate) fn get_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlE
             return Err(UsnJrnlError::ReadFile);
         }
     };
+    let mut journal_cache = HashMap::new();
 
-    let entries_result = UsnJrnlFormat::parse_usnjrnl_no_parent(&data);
+    let entries_result =
+        UsnJrnlFormat::parse_usnjrnl_no_parent(&data, mft_path, &mut journal_cache);
     let entries = match entries_result {
         Ok((_, results)) => results,
         Err(_err) => {
@@ -80,8 +109,15 @@ pub(crate) fn get_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlE
         }
     };
     let mut usnjrnl_entries = Vec::new();
-
-    for jrnl_entry in entries {
+    for mut jrnl_entry in entries {
+        // Try the cached usnjrnl paths before we give up
+        if jrnl_entry.full_path.starts_with("$OrphanFiles\\") {
+            let mut tracker = HashSet::new();
+            let path = lookup_journal_cache(&journal_cache, &jrnl_entry, &mut tracker);
+            if !path.is_empty() {
+                jrnl_entry.full_path = path;
+            }
+        }
         let entry = UsnJrnlEntry {
             mft_entry: jrnl_entry.mft_entry,
             mft_sequence: jrnl_entry.mft_sequence,
@@ -96,6 +132,7 @@ pub(crate) fn get_usnjrnl_path(path: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlE
             extension: file_extension(&jrnl_entry.name),
             full_path: String::new(),
             filename: jrnl_entry.name,
+            drive: String::new(),
         };
         usnjrnl_entries.push(entry);
     }
@@ -119,6 +156,30 @@ fn get_data(drive: &char) -> Result<Vec<u8>, UsnJrnlError> {
     Ok(data)
 }
 
+/// Lookup cached `UsnJrnl` paths
+fn lookup_journal_cache(
+    cache: &HashMap<String, UsnJrnlFormat>,
+    entry: &UsnJrnlFormat,
+    tracker: &mut HashSet<String>,
+) -> String {
+    let mut path = String::new();
+    let cache_path = format!("{}_{}", entry.parent_mft_entry, entry.parent_mft_sequence);
+
+    if let Some(cache_hit) = cache.get(&cache_path) {
+        if cache_hit.full_path.contains("$OrphanFiles\\") {
+            tracker.insert(format!(
+                "{}_{}",
+                entry.parent_mft_entry, entry.parent_mft_sequence
+            ));
+            let parent = lookup_journal_cache(cache, cache_hit, tracker);
+            path = format!("{parent}\\{}", entry.name);
+        } else {
+            path = format!("{}\\{}", cache_hit.full_path, entry.name);
+        }
+    }
+
+    path
+}
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
@@ -126,15 +187,12 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
-    #[ignore = "Parses the whole USNJrnl data"]
     fn test_parse_usnjrnl_data() {
-        let result = parse_usnjrnl_data(&'C').unwrap();
+        let result = parse_usnjrnl_data(&'C', "C:\\$MFT").unwrap();
         assert!(result.len() > 20)
     }
 
     #[test]
-    #[ignore = "Takes a long time"]
     fn test_get_data() {
         let result = get_data(&'C').unwrap();
         assert!(result.len() > 20)
@@ -145,7 +203,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
 
-        let results = get_usnjrnl_path(test_location.to_str().unwrap()).unwrap();
+        let results = get_usnjrnl_path(test_location.to_str().unwrap(), &None).unwrap();
         assert_eq!(results.len(), 1);
     }
 }
