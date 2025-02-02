@@ -152,7 +152,7 @@ impl UsnJrnlFormat {
             match file_reader(path) {
                 Ok(result) => Some(BufReader::new(result)),
                 Err(err) => {
-                    error!("[usnjrnl] Could create reader for alt MFT file: {err:?}");
+                    error!("[usnjrnl] Could not create reader for alt MFT file: {err:?}");
                     None
                 }
             }

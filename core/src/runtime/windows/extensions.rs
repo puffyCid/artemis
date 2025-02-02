@@ -21,7 +21,7 @@ use super::{
     srum::get_srum,
     tasks::{get_task_file, get_tasks},
     userassist::{get_alt_userassist, get_userassist},
-    usnjrnl::{get_alt_usnjrnl, get_usnjrnl},
+    usnjrnl::{get_alt_usnjrnl, get_alt_usnjrnl_path, get_usnjrnl},
     wmi::get_wmipersist,
 };
 use deno_core::Extension;
@@ -46,6 +46,7 @@ fn grab_functions() -> Vec<deno_core::OpDecl> {
         get_lnk_file(),
         get_usnjrnl(),
         get_alt_usnjrnl(),
+        get_alt_usnjrnl_path(),
         get_shellbags(),
         get_alt_shellbags(),
         read_raw_file(),

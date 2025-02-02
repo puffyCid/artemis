@@ -25,7 +25,7 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
         return parse_usnjrnl_data(&alt, &format!("{alt}:\\$MFT"));
     }
     if let Some(path) = &options.alt_path {
-        return grab_usnjrnl_path(path, &options.alt_path);
+        return grab_usnjrnl_path(path, &options.alt_mft);
     }
     let systemdrive_result = get_systemdrive();
     let systemdrive = match systemdrive_result {

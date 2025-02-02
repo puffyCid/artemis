@@ -130,7 +130,7 @@ pub(crate) fn get_usnjrnl_path(
             security_descriptor_id: jrnl_entry.security_descriptor_id,
             file_attributes: jrnl_entry.file_attributes,
             extension: file_extension(&jrnl_entry.name),
-            full_path: String::new(),
+            full_path: jrnl_entry.full_path,
             filename: jrnl_entry.name,
             drive: String::new(),
         };
