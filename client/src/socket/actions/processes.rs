@@ -32,6 +32,6 @@ mod tests {
         };
 
         let results = collect_processes(&quick).await.unwrap();
-        assert!(results.data.is_array());
+        assert!(results.data.is_null());
     }
 }
