@@ -2,6 +2,7 @@ use super::beef::beef0004;
 use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::{ShellItem, ShellType};
+use nom::Parser;
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
@@ -55,7 +56,7 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
 
     // Primary name is either ASCII or UTF16. No size is given for name size. But the next directory shellitem data is the signature 0xBEEF0004
     // We peek until we find the signature without nomming the input
-    let (input, primary_name_start) = peek(take_until([4, 0, 239, 190].as_slice()))(input)?;
+    let (input, primary_name_start) = peek(take_until([4, 0, 239, 190].as_slice())).parse(input)?;
 
     // Next 38 bytes after the primary name is unknown data, two GUIDs, and BEEF004 metadata
     let adjust_size = 38;

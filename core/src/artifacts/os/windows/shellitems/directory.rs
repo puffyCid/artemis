@@ -4,6 +4,7 @@ use common::windows::{ShellItem, ShellType};
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
+    Parser,
 };
 use std::mem::size_of;
 
@@ -17,7 +18,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
     // Primary name is either ASCII or UTF16. No size is given for name size. But the next directory `ShellItem` data is the signature 0xBEEF0004
     // We peek until we find the signature without nomming the input
-    let (input, primary_name_start) = peek(take_until([4, 0, 239, 190].as_slice()))(input)?;
+    let (input, primary_name_start) = peek(take_until([4, 0, 239, 190].as_slice())).parse(input)?;
 
     // Next 4 bytes after the primary name is metadata related to the signature
     let adjust_size = 4;

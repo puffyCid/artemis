@@ -349,15 +349,15 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
-struct Lookups {
-    parent_index: u32,
-    parent_sequence: u16,
-    size: u32,
-    tracker: HashSet<String>,
+pub(crate) struct Lookups {
+    pub(crate) parent_index: u32,
+    pub(crate) parent_sequence: u16,
+    pub(crate) size: u32,
+    pub(crate) tracker: HashSet<String>,
 }
 
 /// Try to find parents of a MFT entry. We maintain a small cache to speed up lookup
-fn lookup_parent<T: std::io::Seek + std::io::Read>(
+pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     cache: &mut HashMap<String, String>,
@@ -371,6 +371,14 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
         warn!("[mft] Got recursive parent. This is wrong. Stopping lookups now");
         return Ok(String::new());
     }
+
+    // If size is zero get FILE entry size of first MFT entry
+    let empty = 0;
+    if tracker.size == empty {
+        let header = determine_header_info(&0, reader, ntfs_file)?;
+        tracker.size = header.total_size;
+    }
+
     let offset = (tracker.parent_index * tracker.size) as u64;
     let header = determine_header_info(&offset, reader, ntfs_file)?;
 
@@ -423,7 +431,7 @@ fn lookup_parent<T: std::io::Seek + std::io::Read>(
                     && parent_filename.namespace != Namespace::Dos
                 {
                     cache.insert(
-                        format!("$OrphanFiles\\{}_{}", header.index, header.sequence),
+                        format!("{}_{}", header.index, header.sequence),
                         path.clone(),
                     );
                 }

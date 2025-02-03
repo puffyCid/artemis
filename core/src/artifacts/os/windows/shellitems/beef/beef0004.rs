@@ -6,11 +6,11 @@ use crate::utils::{
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use common::windows::{ShellItem, ShellType};
-use nom::Needed;
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
 };
+use nom::{Needed, Parser};
 use std::mem::size_of;
 
 /// Parse a 0xbeef0004 block. Contains a file/directory name, FAT timestamps, and MFT metadata
@@ -79,7 +79,7 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
     if version >= xp_version {
         // Just like Primary name no size is given for the long name (UTF16)
         // Peek until we get end of string character
-        let (_, long_string_end) = peek(take_until([0, 0, 0].as_slice()))(input)?;
+        let (_, long_string_end) = peek(take_until([0, 0, 0].as_slice())).parse(input)?;
         let adjust_string_size = 3;
         let name_size = long_string_end.len() + adjust_string_size; // Make sure to include end of string character
         let (long_name_input, name_data) = take(name_size)(input)?;

@@ -12,7 +12,7 @@ Notable features _so far_:
 
 - Setup collections using basic TOML files
 - Parsing support for large amount of forensic artifacts (25+)
-- Output to JSON or JSONL file(s)
+- Output to JSON, JSONL, or CSV file(s)
 - Can output results to local system or upload to cloud services.
 - Embedded JavaScript runtime via [Deno](https://deno.land/)
 
@@ -78,6 +78,7 @@ Commands:
   recyclebin         windows: Parse RecycleBin
   wmipersist         windows: Parse WMI Repository
   outlook            windows: Parse Outlook messages
+  mft                windows: Parse MFT file
   execpolicy         macos: Parse ExecPolicy
   users-macos        macos: Collect local users
   fsevents           macos: Parse FsEvents entries
@@ -98,8 +99,11 @@ Commands:
   help               Print this message or the help of the given subcommand(s)
 
 Options:
-      --format <FORMAT>  Output format. JSON or JSONL [default: JSON]
-  -h, --help             Print help
+      --format <FORMAT>          Output format. JSON or JSONL or CSV [default: JSON]
+      --output-dir <OUTPUT_DIR>  Optional output directory for storing results [default: ./tmp]
+      --compress                 GZIP Compress results
+  -h, --help                     Print help
+
 
 
 > artemis acquire processes

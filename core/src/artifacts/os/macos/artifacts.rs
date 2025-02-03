@@ -20,13 +20,9 @@ use crate::{
         },
         toml::Output,
     },
-    utils::time,
+    utils::time::{self, time_now},
 };
 use log::{error, warn};
-use macos_unifiedlogs::parser::{
-    collect_shared_strings, collect_shared_strings_system, collect_strings, collect_strings_system,
-    collect_timesync, collect_timesync_system,
-};
 use serde_json::Value;
 
 /// Parse macOS `LoginItems`
@@ -41,7 +37,7 @@ pub(crate) fn loginitems(
     let result = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to parse loginitems: {err:?}");
+            error!("[core] Failed to parse loginitems: {err:?}");
             return Err(MacArtifactError::LoginItem);
         }
     };
@@ -50,7 +46,7 @@ pub(crate) fn loginitems(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize loginitems: {err:?}");
+            error!("[core] Failed to serialize loginitems: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -71,7 +67,7 @@ pub(crate) fn emond(
     let emond_data = match results {
         Ok(result) => result,
         Err(err) => {
-            warn!("[artemis-core] Failed to parse emond rules: {err:?}");
+            warn!("[core] Failed to parse emond rules: {err:?}");
             return Err(MacArtifactError::Emond);
         }
     };
@@ -80,7 +76,7 @@ pub(crate) fn emond(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize emond: {err:?}");
+            error!("[core] Failed to serialize emond: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -102,7 +98,7 @@ pub(crate) fn users_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize users: {err:?}");
+            error!("[core] Failed to serialize users: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -124,7 +120,7 @@ pub(crate) fn groups_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize groups: {err:?}");
+            error!("[core] Failed to serialize groups: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -139,28 +135,15 @@ pub(crate) fn fseventsd(
     filter: &bool,
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
-    let artifact_result = grab_fseventsd(options);
-    let results = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse fseventsd: {err:?}");
-            return Err(MacArtifactError::FsEventsd);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(results);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to serialize fseventsd: {err:?}");
-            return Err(MacArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "fseventsd";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    let results = grab_fseventsd(options, filter, output);
+    if results.is_err() {
+        warn!(
+            "[core] Failed to parse fseventsd: {:?}",
+            results.unwrap_err()
+        );
+        return Err(MacArtifactError::FsEventsd);
+    }
+    Ok(())
 }
 
 /// Parse macOS `Launchd`
@@ -175,7 +158,7 @@ pub(crate) fn launchd(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to parse launchd: {err:?}");
+            error!("[core] Failed to parse launchd: {err:?}");
             return Err(MacArtifactError::Launchd);
         }
     };
@@ -184,7 +167,7 @@ pub(crate) fn launchd(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize launchd: {err:?}");
+            error!("[core] Failed to serialize launchd: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -199,58 +182,7 @@ pub(crate) fn unifiedlogs(
     filter: &bool,
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
-    // Need to first get the strings and timestamp data first before parsing the actual logs
-    let (strings_results, shared_strings_results, timesync_data_results) =
-        if let Some(archive_path) = &options.logarchive_path {
-            (
-                collect_strings(archive_path),
-                collect_shared_strings(&format!("{archive_path}/dsc")),
-                collect_timesync(&format!("{archive_path}/timesync")),
-            )
-        } else {
-            (
-                collect_strings_system(),
-                collect_shared_strings_system(),
-                collect_timesync_system(),
-            )
-        };
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse UUIDText files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse dsc files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse timesync files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    // Based on provided log sources provided in TOML file, parse the logs
-    grab_logs(
-        &strings,
-        &shared_strings,
-        &timesync_data,
-        output,
-        &start_time,
-        options,
-        filter,
-    )
+    grab_logs(options, output, filter)
 }
 
 /// Get macOS `ExecPolicy`
@@ -265,7 +197,7 @@ pub(crate) fn execpolicy(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to query execpolicy: {err:?}");
+            error!("[core] Failed to query execpolicy: {err:?}");
             return Err(MacArtifactError::ExecPolicy);
         }
     };
@@ -274,7 +206,7 @@ pub(crate) fn execpolicy(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize execpolicy: {err:?}");
+            error!("[core] Failed to serialize execpolicy: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -289,55 +221,12 @@ pub(crate) fn sudo_logs_macos(
     filter: &bool,
     options: &MacosSudoOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-    let mut path = String::from("/var/db/diagnostics/Persist");
-
-    // Need to first get the strings and timestamp data first before parsing the actual logs
-    let (strings_results, shared_strings_results, timesync_data_results) =
-        if let Some(archive_path) = &options.logarchive_path {
-            path = format!("{archive_path}/Persist");
-            (
-                collect_strings(archive_path),
-                collect_shared_strings(&format!("{archive_path}/dsc")),
-                collect_timesync(&format!("{archive_path}/timesync")),
-            )
-        } else {
-            (
-                collect_strings_system(),
-                collect_shared_strings_system(),
-                collect_timesync_system(),
-            )
-        };
-
-    let strings = match strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse UUIDText files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let shared_strings = match shared_strings_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse dsc files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let timesync_data = match timesync_data_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[artemis-core] Failed to parse timesync files: {err:?}");
-            return Err(MacArtifactError::UnifiedLogs);
-        }
-    };
-
-    let artifact_result = grab_sudo_logs(&strings, &shared_strings, &timesync_data, &path);
+    let start_time = time_now();
+    let artifact_result = grab_sudo_logs(options);
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Failed to get sudo log data: {err:?}");
+            warn!("[core] Failed to get sudo log data: {err:?}");
             return Err(MacArtifactError::SudoLog);
         }
     };
@@ -346,7 +235,7 @@ pub(crate) fn sudo_logs_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Failed to serialize sudo log data: {err:?}");
+            error!("[core] Failed to serialize sudo log data: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -365,7 +254,7 @@ pub(crate) fn spotlight(
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {
-            warn!("[artemis-core] Failed to get spotlight data: {err:?}");
+            warn!("[core] Failed to get spotlight data: {err:?}");
             Err(MacArtifactError::Spotlight)
         }
     }
@@ -381,10 +270,7 @@ pub(crate) fn output_data(
 ) -> Result<(), MacArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+        error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(MacArtifactError::Output);
     }
     Ok(())

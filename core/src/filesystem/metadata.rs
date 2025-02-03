@@ -3,7 +3,6 @@ use crate::utils::time::unixepoch_to_iso;
 use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
-use std::time::SystemTime;
 use std::{fs::Metadata, io::Error};
 
 // Timestamps containing number of seconds since UNIXEPOCH
@@ -48,6 +47,8 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
         #[cfg(target_os = "linux")]
         {
+            use std::time::SystemTime;
+
             timestamps.created = String::from("1970-01-01T00:00:00Z");
             let created = meta
                 .created()

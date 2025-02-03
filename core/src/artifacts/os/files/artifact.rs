@@ -32,7 +32,7 @@ pub(crate) fn filelisting(
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {
-            error!("[artemis-core] Failed to get file listing: {err:?}");
+            error!("[core] Failed to get file listing: {err:?}");
             Err(FileError::Filelisting)
         }
     }

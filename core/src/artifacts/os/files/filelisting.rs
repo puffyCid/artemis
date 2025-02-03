@@ -233,7 +233,7 @@ fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
             is_firmlink = entry
                 .path()
                 .to_str()
-                .map_or(false, |s| s.starts_with(firmlink));
+                .is_some_and(|s| s.starts_with(firmlink));
             if is_firmlink {
                 return is_firmlink;
             }

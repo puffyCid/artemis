@@ -72,7 +72,7 @@ pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Er
     Ok(check_response(res).await)
 }
 
-/// Tag an entry in OpenSearch
+/// Tag an entry in `OpenSearch`
 pub(crate) async fn tag(index: &str, id: &str, tag: &str) -> Result<Value, Error> {
     let client = setup_client()?;
     let res = client

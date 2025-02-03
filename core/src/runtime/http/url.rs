@@ -48,7 +48,7 @@ pub(crate) fn url_parse(#[string] url_string: String) -> Result<String, AnyError
     }
 
     for (key, value) in res.query_pairs() {
-        info.query_pairs.push(format!("{key}={value}"))
+        info.query_pairs.push(format!("{key}={value}"));
     }
 
     let results = serde_json::to_string(&info)?;

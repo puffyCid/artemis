@@ -180,6 +180,9 @@ pub(crate) enum CommandArgs {
         /// Alternative path to UsnJrnl
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
+        /// Alternative path to MFT
+        #[arg(long, default_value = None)]
+        alt_mft: Option<String>,
     },
     /// windows: Parse BITS
     Bits {

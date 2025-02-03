@@ -460,10 +460,12 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         CommandArgs::Usnjrnl {
             alt_drive,
             alt_path,
+            alt_mft,
         } => {
             let options = UsnJrnlOptions {
                 alt_drive: *alt_drive,
                 alt_path: alt_path.clone(),
+                alt_mft: alt_mft.clone(),
             };
             collect.usnjrnl = Some(options);
             collect.artifact_name = String::from("usnjrnl");

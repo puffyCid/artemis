@@ -7,6 +7,7 @@ use log::error;
 use nom::{
     branch::alt,
     bytes::complete::{take, take_until},
+    Parser,
 };
 use serde::Serialize;
 use std::{
@@ -115,7 +116,8 @@ impl Logon {
         let (remaining, _) = take(reserved_size)(remaining)?;
 
         let ipv4_end = [0, 0, 0, 0];
-        let (_, ip_data) = alt((take_until(ipv4_end.as_slice()), take(ip_data.len())))(ip_data)?;
+        let (_, ip_data) =
+            alt((take_until(ipv4_end.as_slice()), take(ip_data.len()))).parse(ip_data)?;
 
         // IP source is either IPv4 or IPv6. Based on data we nommed, convert to IP string. If the data is empty the IP is 0.0.0.0
         let ip = if ip_data.len() == 4 {

@@ -1,0 +1,3 @@
+kind: Added
+body: Option to provide alternative $MFT path when parsing UsnJrnl
+time: 2025-02-01T19:15:40.698365225-05:00

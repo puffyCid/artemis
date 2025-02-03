@@ -20,8 +20,8 @@ edition = "2021"
 
 [workspace.dependencies]
 serde = { version = "1.0.217", features = ["derive"] }
-log = "0.4.22"
-serde_json = "1.0.135"
+log = "0.4.25"
+serde_json = "1.0.138"
 toml = "0.8.19"
 base64 = "0.22.1"
 tokio = { version = "1.43.0", features = ["full"] }
@@ -33,5 +33,5 @@ reqwest = { version = "0.12.12", features = [
     "native-tls-vendored",
 ] }
 sysinfo = "0.33.1"
-uuid = { version = "1.11.1", features = ["v4"] }
-rusqlite = { version = "0.32.1", features = ["bundled", "serde_json"] }
+uuid = { version = "1.12.1", features = ["v4"] }
+rusqlite = { version = "0.33.0", features = ["bundled", "serde_json"] }
