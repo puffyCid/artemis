@@ -43,6 +43,7 @@ pub(crate) fn add_message_strings(
         parameter_file: String::new(),
         registry_file: String::new(),
         registry_path: String::new(),
+        rendering_info: None,
     };
     let meta = log
         .data
@@ -125,6 +126,18 @@ pub(crate) fn add_message_strings(
     {
         message.message = merge_strings_no_manifest(&log.data)?;
         return Some(message);
+    }
+
+    // Check for RenderingInfo
+    if let Some(render) = log
+        .data
+        .as_object()?
+        .get("Event")?
+        .as_object()?
+        .get("RenderingInfo")
+    {
+        message.rendering_info = Some(render.clone());
+        message.message = render.get("Message")?.as_str()?.to_string();
     }
 
     let message_files: &[String] = provider.message_file.as_ref();

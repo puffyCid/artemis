@@ -1557,6 +1557,7 @@ pub struct EventMessage {
     pub parameter_file: String,
     pub registry_file: String,
     pub registry_path: String,
+    pub rendering_info: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
