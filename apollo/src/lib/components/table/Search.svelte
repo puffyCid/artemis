@@ -4,9 +4,8 @@
     import Count from "./Count.svelte";
     import Navigation from "./Navigation.svelte";
 
-    const props: { table: TableHandler; index: string } = $props();
+    const props: { table: TableHandler } = $props();
     const table = props.table;
-    const index = props.index;
     let value = $state();
 
     function rawSearch() {
@@ -16,7 +15,7 @@
             // Search all properties
             table.filters = [{ field: "*", value }];
         }
-        table.load((state: State) => queryCallback(state, index, table));
+        table.load((state: State) => queryCallback(state, table));
         table.invalidate();
     }
 </script>
@@ -28,6 +27,6 @@
         bind:value
         placeholder="Raw search"
     />
-    <Count {table} {index} />
-    <Navigation {table} {index} />
+    <Count {table} />
+    <Navigation {table} />
 </form>

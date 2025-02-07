@@ -7,7 +7,7 @@
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
                 <li><a href="/timeline">Timeline</a></li>
-                <li><a>Settings</a></li>
+                <li><a href="/settings">Settings</a></li>
                 <li><a href="/about">About</a></li>
             </ul>
         </div>

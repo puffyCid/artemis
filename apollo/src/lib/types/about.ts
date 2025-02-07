@@ -15,3 +15,19 @@ export interface About {
     /**OpenSearch resource usage */
     resources: Resources;
 }
+
+/**
+ * Settings for Apollo to connect to OpenSearch
+ */
+export interface Settings {
+    /**Username for OpenSearch */
+    user: string;
+    /**Password for OpenSearch */
+    creds: string;
+    /**Domain name or IP for OpenSearch */
+    domain: string;
+    /**Current OpenSearch index to use */
+    index: string;
+    /**Array of OpenSearch indexes */
+    indexes: string[];
+}

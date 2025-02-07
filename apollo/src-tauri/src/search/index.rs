@@ -1,5 +1,6 @@
 use super::query::check_response;
 use common::system::LoadPerformance;
+use home::home_dir;
 use opensearch::{
     auth::Credentials,
     cert::CertificateValidation,
@@ -12,6 +13,7 @@ use opensearch::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::fs::{read, write};
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Metadata {
@@ -52,6 +54,7 @@ pub(crate) async fn create_index(name: &str) -> Result<Value, Error> {
         .send()
         .await?;
 
+    set_current_index(name);
     Ok(check_response(res).await)
 }
 
@@ -94,22 +97,138 @@ pub(crate) async fn upload_data(data: &BulkOperations, name: &str) -> Result<Val
 
 /// Setup the `OpenSearch` client to make requests
 pub(crate) fn setup_client() -> Result<OpenSearch, Error> {
-    let builder = TransportBuilder::new(SingleNodeConnectionPool::new(Url::parse(
-        "https://127.0.0.1:9200",
-    )?))
-    .auth(Credentials::Basic(
-        String::from("admin"),
-        String::from("Ughsocomplex123567890!"),
-    ))
-    .cert_validation(CertificateValidation::None);
+    let settings = opensearch_settings();
+
+    let builder =
+        TransportBuilder::new(SingleNodeConnectionPool::new(Url::parse(&settings.domain)?))
+            .auth(Credentials::Basic(settings.user, settings.creds))
+            .cert_validation(CertificateValidation::None);
 
     let transport = builder.build()?;
     Ok(OpenSearch::new(transport))
 }
 
+struct OpenSearchCreds {
+    user: String,
+    creds: String,
+    domain: String,
+}
+
+/// Read Apollo settings to get OpenSearch creds. If none available, assume default creds
+fn opensearch_settings() -> OpenSearchCreds {
+    let mut info = OpenSearchCreds {
+        user: String::from("admin"),
+        creds: String::from("Ughsocomplex123567890!"),
+        domain: String::from("https://127.0.0.1:9200"),
+    };
+
+    let home_path = home_dir();
+    if let Some(path) = home_path {
+        let settings = settings_path(path.to_str().unwrap_or_default());
+        let bytes = match read(&settings) {
+            Ok(result) => result,
+            Err(_err) => return info,
+        };
+
+        let settings_serde: Value = match serde_json::from_slice(&bytes) {
+            Ok(result) => result,
+            Err(_err) => return info,
+        };
+
+        if !settings_serde.is_object() {
+            return info;
+        }
+
+        info.user = settings_serde["user"]
+            .as_str()
+            .unwrap_or("admin")
+            .to_string();
+        info.creds = settings_serde["creds"]
+            .as_str()
+            .unwrap_or("Ughsocomplex123567890!")
+            .to_string();
+        info.domain = settings_serde["domain"]
+            .as_str()
+            .unwrap_or("127.0.0.1")
+            .to_string();
+    }
+
+    info
+}
+
+/// Try to set current index in settings.json file. If the file does not exist thats ok
+fn set_current_index(name: &str) {
+    let home_path = home_dir();
+    if home_path.is_none() {
+        return;
+    }
+    // Unwrap is ok since we check for None above
+    let settings = settings_path(home_path.unwrap().to_str().unwrap_or_default());
+    let bytes = match read(&settings) {
+        Ok(result) => result,
+        Err(_err) => return,
+    };
+
+    let mut settings_serde: Value = match serde_json::from_slice(&bytes) {
+        Ok(result) => result,
+        Err(_err) => return,
+    };
+
+    if !settings_serde.is_object() {
+        return;
+    }
+
+    settings_serde["index"] = serde_json::Value::String(name.to_string());
+    let _ = write(
+        &settings,
+        serde_json::to_vec(&settings_serde).unwrap_or_default(),
+    );
+}
+
+pub(crate) fn get_index() -> String {
+    let home_path = home_dir();
+    if home_path.is_none() {
+        return String::from("test");
+    }
+
+    // Unwrap is ok since we check for None above
+    let settings = settings_path(home_path.unwrap().to_str().unwrap_or_default());
+    let bytes = match read(&settings) {
+        Ok(result) => result,
+        Err(_err) => return String::from("test"),
+    };
+
+    let settings_serde: Value = match serde_json::from_slice(&bytes) {
+        Ok(result) => result,
+        Err(_err) => return String::from("test"),
+    };
+
+    if !settings_serde.is_object() {
+        return String::from("test");
+    }
+
+    settings_serde["index"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// Get path to settings.json file based on OS
+fn settings_path(home: &str) -> String {
+    #[cfg(target_os = "linux")]
+    let settings = format!("{home}/.local/share/com.puffycid.apollo/settings.json");
+    #[cfg(target_os = "windows")]
+    let settings = format!("{home}\\AppData\\Local\\com.puffycid.apollo\\settings.json");
+    #[cfg(target_os = "macos")]
+    let settings = format!("{home}/Library/Application Support/com.puffycid.apollo/settings.json");
+
+    settings
+}
+
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
+    use super::opensearch_settings;
     use crate::search::index::{create_index, delete_index, upload_data, upload_metadata};
     use opensearch::{BulkOperation, BulkOperations};
     use serde_json::Value;
@@ -126,6 +245,12 @@ mod tests {
     async fn test_delete_index() {
         let test = delete_index("test").await.unwrap();
         assert!(test.is_object());
+    }
+
+    #[test]
+    fn test_opensearch_settings() {
+        let settings = opensearch_settings();
+        assert!(!settings.user.is_empty())
     }
 
     #[tokio::test]

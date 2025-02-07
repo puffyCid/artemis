@@ -2,15 +2,15 @@
     import type { TimelineEntry } from "$lib/types/timeline";
     import Tags from "./Tags.svelte";
 
-    export let data: TimelineEntry;
+    let {data}: {data: TimelineEntry} = $props();
     const tags = [
         { color: "red", name: "bad" },
         { color: "orange", name: "sus" },
         { color: "green", name: "legit" },
     ];
 
-    let visible = false;
-    let modalOpen = false;
+    let visible = $state(false);
+    let modalOpen = $state(false);
 
     /**
      * Toggle timeline details
@@ -65,7 +65,7 @@
             </ul>
         </div>
     </td>
-    <td on:click={viewData}>
+    <td onclick={viewData}>
         <div class="join">
             {#if data["tags"] != undefined}
                 <svg
@@ -121,7 +121,7 @@
                                 <td>
                                     <button
                                         class="btn btn-xs btn-outline"
-                                        on:click={toggleModal}
+                                        onclick={toggleModal}
                                         >Details
                                     </button>
                                     <dialog
@@ -138,7 +138,7 @@
                                             >
                                                 <button
                                                     class="btn btn-xs btn-circle btn-ghost absolute right-2 top-2"
-                                                    on:click={toggleModal}
+                                                    onclick={toggleModal}
                                                     >X</button
                                                 >
                                             </form>

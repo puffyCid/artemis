@@ -1,4 +1,4 @@
-use super::index::setup_client;
+use super::index::{get_index, setup_client};
 use log::error;
 use opensearch::http::{response::Response, StatusCode};
 use opensearch::nodes::NodesStatsParts;
@@ -57,8 +57,9 @@ pub(crate) struct Query {
 }
 
 /// Return entries in our Indexed timeline
-pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Error> {
+pub(crate) async fn timeline(state: QueryState) -> Result<Value, Error> {
     let client = setup_client()?;
+    let index = &get_index();
     let sort = format!("{}:{}", state.order_column, state.order);
     let res = client
         .search(SearchParts::Index(&[index]))
@@ -73,8 +74,10 @@ pub(crate) async fn timeline(index: &str, state: QueryState) -> Result<Value, Er
 }
 
 /// Tag an entry in `OpenSearch`
-pub(crate) async fn tag(index: &str, id: &str, tag: &str) -> Result<Value, Error> {
+pub(crate) async fn tag(id: &str, tag: &str) -> Result<Value, Error> {
     let client = setup_client()?;
+    let index = &get_index();
+
     let res = client
         .update(UpdateParts::IndexId(index, id))
         .body(json!({"doc":{"tags":tag}}))
@@ -85,8 +88,10 @@ pub(crate) async fn tag(index: &str, id: &str, tag: &str) -> Result<Value, Error
 }
 
 /// Get counts of ingested artifacts
-pub(crate) async fn artifacts(index: &str) -> Result<Value, Error> {
+pub(crate) async fn artifacts() -> Result<Value, Error> {
     let client = setup_client()?;
+    let index = &get_index();
+
     let artifacts = json!(
         {
             "aggs": {
@@ -140,7 +145,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_artifacts() {
-        let test = artifacts("test").await.unwrap();
+        let test = artifacts().await.unwrap();
         assert!(test.is_object());
     }
 
@@ -152,7 +157,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_tag() {
-        let test = tag("test", "WurnYpQBg9z4_oJkAw0i", "bad").await.unwrap();
+        let test = tag("WurnYpQBg9z4_oJkAw0i", "bad").await.unwrap();
         assert!(test.is_object());
     }
 
@@ -164,7 +169,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_timeline() {
-        let index = "test";
         let query = json!({
             "query": {
                 "match_all": {}
@@ -178,7 +182,7 @@ mod tests {
             order: String::from("asc"),
         };
 
-        let result = timeline(index, state).await.unwrap();
+        let result = timeline(state).await.unwrap();
         assert!(result.is_object());
     }
 }
