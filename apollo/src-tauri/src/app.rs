@@ -11,6 +11,7 @@ pub fn run() {
             info::metadata,
             query::query_timeline,
             query::list_artifacts,
+            query::indexes,
             update::apply_tag,
             upload::timeline_and_upload,
         ])

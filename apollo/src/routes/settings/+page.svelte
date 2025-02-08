@@ -4,7 +4,6 @@
     import { load } from "@tauri-apps/plugin-store";
 
     let { data }: { data: Settings } = $props();
-    console.log(data);
 
     let user = $state(data.user);
     let creds = $state(data.creds);
@@ -46,9 +45,9 @@
         <label class="form-control w-full">
             <select class="select select-bordered select-primary">
                 <option disabled selected>Select index</option>
-                <option>index 111111111111111111111</option>
-                <option>index2</option>
-                <option>index3</option>
+                {#each data.indexes as index}
+                    <option>{index}</option>
+                {/each}
             </select>
         </label>
     </div>

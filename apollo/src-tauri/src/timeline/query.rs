@@ -1,4 +1,4 @@
-use crate::search::query::{artifacts, timeline, QueryState};
+use crate::search::query::{artifacts, list_indexes, timeline, QueryState};
 use log::error;
 use serde_json::Value;
 
@@ -23,6 +23,20 @@ pub(crate) async fn list_artifacts() -> Result<Value, ()> {
         Ok(result) => result,
         Err(err) => {
             error!("[app] could not get artifacts counts: {err:?}");
+            Value::Null
+        }
+    };
+
+    Ok(result)
+}
+
+/// Get list of indexes
+#[tauri::command]
+pub(crate) async fn indexes() -> Result<Value, ()> {
+    let result = match list_indexes().await {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[app] could not get indexes list: {err:?}");
             Value::Null
         }
     };

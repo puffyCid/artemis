@@ -9,7 +9,6 @@
      * Toggle the modal for closing folder selection
      */
     function toggleModal() {
-        console.log(modalOpen);
         modalOpen = !modalOpen;
     }
 

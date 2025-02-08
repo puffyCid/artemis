@@ -72,7 +72,6 @@ export async function queryCallback(
         return [];
     }
 
-    console.log(results.hits.total);
     state.setTotalRows(results.hits.total.value);
     const entries = [];
     for (const hit of results.hits.hits) {
