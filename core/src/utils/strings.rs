@@ -102,12 +102,20 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     match utf8_result {
         Ok(result) => result.trim_end_matches('\0').to_string(),
         Err(err) => {
+            // Try UTF16 just incase
+            let string_result = bytes_to_utf16_string(data, &false);
+            if string_result.is_ok() {
+                return string_result.unwrap();
+            } 
             warn!("[strings] Failed to get UTF8 string: {err:?}");
             let max_size = 2097152;
             let issue = if data.len() < max_size {
                 base64_encode_standard(data)
             } else {
-                format!("Binary data size larger than 2MB, size: {}", data.len())
+                format!(
+                    "[strings] Binary data size larger than 2MB, size: {}",
+                    data.len()
+                )
             };
             format!("[strings] Failed to get UTF8 string: {}", issue)
         }
@@ -119,11 +127,12 @@ pub(crate) fn extract_utf8_string_lossy(data: &[u8]) -> String {
     String::from_utf8_lossy(data).to_string()
 }
 
-/// Try to detect ASCII or UTF16 byte string
+/// Try to detect UTF8 or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     if data.iter().filter(|&c| *c == 0).count() <= 1 {
         let mut value = extract_utf8_string(data);
         if value.starts_with("[strings] Failed to get UTF8 string") {
+            // Try UTF16, if it fails, return original UTF8 string
             value = bytes_to_utf16_string(data, &true).unwrap_or(extract_utf8_string(data))
         }
         value
