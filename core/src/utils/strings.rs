@@ -1,6 +1,6 @@
 use crate::utils::encoding::base64_encode_standard;
 use log::warn;
-use std::string::FromUtf16Error;
+use std::string::{FromUtf16Error, FromUtf8Error};
 
 /// Get a UTF16 string from provided bytes data. Will attempt to fix malformed UTF16. Such as UTF16 missing zeros
 pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
@@ -55,6 +55,13 @@ fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16
     Ok(utf16_result)
 }
 
+/// Get a UTF8 string from provided bytes data
+fn bytes_to_utf8_string(data: &[u8]) -> Result<String, FromUtf8Error> {
+    let result = String::from_utf8(data.to_vec())?;
+    let value = result.trim_end_matches('\0').to_string();
+    Ok(value)
+}
+
 /// Get UTF16 strings that have new lines
 pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
     let mut utf16_data: Vec<u16> = Vec::new();
@@ -98,14 +105,10 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
 
 /// Get a UTF8 string from provided bytes data. Invalid UTF8 is base64 encoded. Use `extract_uf8_string_lossy` if replacing bytes is acceptable
 pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
-    let utf8_result = String::from_utf8(data.to_vec());
+    let utf8_result = bytes_to_utf8_string(data);
     match utf8_result {
-        Ok(result) => result.trim_end_matches('\0').to_string(),
+        Ok(result) => result,
         Err(err) => {
-            // Try UTF16 just incase
-            if let Ok(string_result) = bytes_to_utf16_string(data, &false) {
-                return string_result;
-            }
             warn!("[strings] Failed to get UTF8 string: {err:?}");
             let max_size = 2097152;
             let issue = if data.len() < max_size {
@@ -129,12 +132,11 @@ pub(crate) fn extract_utf8_string_lossy(data: &[u8]) -> String {
 /// Try to detect UTF8 or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     if data.iter().filter(|&c| *c == 0).count() <= 1 {
-        let mut value = extract_utf8_string(data);
-        if value.starts_with("[strings] Failed to get UTF8 string") {
-            // Try UTF16, if it fails, return original UTF8 string
-            value = bytes_to_utf16_string(data, &true).unwrap_or(extract_utf8_string(data));
+        let result = bytes_to_utf8_string(data);
+        match result {
+            Ok(value) => value,
+            Err(_err) => extract_utf16_string(data),
         }
-        value
     } else {
         extract_utf16_string(data)
     }
