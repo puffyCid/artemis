@@ -22,7 +22,7 @@ edition = "2021"
 serde = { version = "1.0.217", features = ["derive"] }
 log = "0.4.25"
 serde_json = "1.0.138"
-toml = "0.8.19"
+toml = "0.8.20"
 base64 = "0.22.1"
 tokio = { version = "1.43.0", features = ["full"] }
 flate2 = { version = "1.0.35", features = ["any_zlib", "zlib-ng"] }
@@ -33,5 +33,5 @@ reqwest = { version = "0.12.12", features = [
     "native-tls-vendored",
 ] }
 sysinfo = "0.33.1"
-uuid = { version = "1.12.1", features = ["v4"] }
+uuid = { version = "1.13.1", features = ["v4"] }
 rusqlite = { version = "0.33.0", features = ["bundled", "serde_json"] }

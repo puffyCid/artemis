@@ -1,11 +1,11 @@
-use crate::search::query::{artifacts, timeline, QueryState};
+use crate::search::query::{artifacts, list_indexes, timeline, QueryState};
 use log::error;
 use serde_json::Value;
 
 /// Get list timeline entries based on query values
 #[tauri::command]
-pub(crate) async fn query_timeline(index: &str, state: QueryState) -> Result<Value, ()> {
-    let result = match timeline(index, state).await {
+pub(crate) async fn query_timeline(state: QueryState) -> Result<Value, ()> {
+    let result = match timeline(state).await {
         Ok(result) => result,
         Err(err) => {
             error!("[app] could not get timeline entries: {err:?}");
@@ -18,11 +18,25 @@ pub(crate) async fn query_timeline(index: &str, state: QueryState) -> Result<Val
 
 /// Get count of ingested artifacts
 #[tauri::command]
-pub(crate) async fn list_artifacts(index: &str) -> Result<Value, ()> {
-    let result = match artifacts(index).await {
+pub(crate) async fn list_artifacts() -> Result<Value, ()> {
+    let result = match artifacts().await {
         Ok(result) => result,
         Err(err) => {
             error!("[app] could not get artifacts counts: {err:?}");
+            Value::Null
+        }
+    };
+
+    Ok(result)
+}
+
+/// Get list of indexes
+#[tauri::command]
+pub(crate) async fn indexes() -> Result<Value, ()> {
+    let result = match list_indexes().await {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[app] could not get indexes list: {err:?}");
             Value::Null
         }
     };
@@ -54,13 +68,13 @@ mod tests {
             query,
         };
 
-        let result = query_timeline("whatever", state).await.unwrap();
+        let result = query_timeline(state).await.unwrap();
         assert!(result.is_object());
     }
 
     #[tokio::test]
     async fn test_list_artifacts() {
-        let result = list_artifacts("test").await.unwrap();
+        let result = list_artifacts().await.unwrap();
         assert!(result.is_object());
     }
 }

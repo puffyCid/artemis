@@ -38,7 +38,7 @@ describe("run query tests", () => {
             }
             return [];
         });
-        const result = await listArtifacts("index") as Artifacts;
+        const result = await listArtifacts() as Artifacts;
         expect(result.aggregations.artifacts.buckets[0].key).toStrictEqual(
             "FsEvents",
         );
@@ -98,15 +98,14 @@ describe("run query tests", () => {
 
         let entries: TimelineEntry[] = [];
         const table = new TableHandler(entries, { rowsPerPage: 100 });
-        let index = "test";
         let state: State = {
             currentPage: 0,
             rowsPerPage: 0,
             offset: 0,
             setTotalRows,
         };
-        const result = await queryCallback(state, index, table);
-        table.load((state: State) => queryCallback(state, index, table));
+        const result = await queryCallback(state, table);
+        table.load((state: State) => queryCallback(state, table));
         expect(result[0].message).toStrictEqual(
             "/Volumes/Preboot",
         );

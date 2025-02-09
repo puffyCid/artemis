@@ -7,12 +7,14 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
 };
 
+/// Timeline and upload artemis data to `OpenSearch` Index name
 pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Error> {
     let _create_status = create_index(name).await?;
 
     let file = File::open(path).await?;
     let mut reader = BufReader::new(file).lines();
 
+    // Number of lines in JSONL to upload
     let limit = 500;
     let mut meta = Value::Null;
 
@@ -40,7 +42,7 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
 
         entries.push(value.clone());
 
-        // Upload 5000 entries at a time
+        // Upload 500 entries at a time
         if entries.len() == limit {
             let mut ops = BulkOperations::new();
             if meta.is_null() {
@@ -54,7 +56,12 @@ pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Err
 
             let artifact = meta["artifact_name"].as_str().unwrap_or_default();
             timeline_artifact(&mut timeline_data, &artifact_name(artifact));
-            bulk_append(&mut ops, timeline_data.as_array().unwrap_or(&Vec::new()));
+            let default = Vec::new();
+            let values = timeline_data.as_array().unwrap_or(&default);
+            for entry in values {
+                let _ = ops.push(BulkOperation::index(entry));
+            }
+            //bulk_append(&mut ops, timeline_data.as_array().unwrap_or(&Vec::new()));
 
             let _upload_status = upload_data(&ops, name).await?;
 
@@ -93,8 +100,40 @@ fn artifact_name(artifact: &str) -> Artifacts {
         "amcache" => Artifacts::Amcache,
         "bits" => Artifacts::Bits,
         "files" => Artifacts::Files,
-        "jumplists" => Artifacts::Jumplist,
         "journal" => Artifacts::Journal,
+        "registry" => Artifacts::Registry,
+        "processes" => Artifacts::Processes,
+        "prefetch" => Artifacts::Prefetch,
+        "mft" => Artifacts::Mft,
+        "srum" => Artifacts::Srum,
+        "search" => Artifacts::Search,
+        "rawfiles" => Artifacts::RawFiles,
+        "recyclebin" => Artifacts::RecycleBin,
+        "shimcache" => Artifacts::Shimcache,
+        "shimdb" => Artifacts::ShimDb,
+        "shellbags" => Artifacts::Shellbags,
+        "shortcuts" => Artifacts::Shortcuts,
+        "tasks" => Artifacts::Tasks,
+        "userassist" => Artifacts::Userassist,
+        "usnjrnl" => Artifacts::UsnJrnl,
+        "wmi" => Artifacts::Wmi,
+        "services" => Artifacts::Services,
+        "jumplist" => Artifacts::Jumplist,
+        "eventlogs" => Artifacts::Eventlogs,
+        "emond" => Artifacts::Emond,
+        "launchd" => Artifacts::LaunchDaemon,
+        "outlook" => Artifacts::Outlook,
+        "loginitems" => Artifacts::LoginItems,
+        "fseventsd" => Artifacts::Fsevents,
+        "users-macos" => Artifacts::UsersMacos,
+        "groups-macos" => Artifacts::GroupsMacos,
+        "execpolicy" => Artifacts::ExecPolicy,
+        "unifiedlogs" => Artifacts::UnifiedLogs,
+        "sudologs-macos" => Artifacts::SudoMacos,
+        "spotlight" => Artifacts::Spotlight,
+        "logon" => Artifacts::Logons,
+        "sudologs-linux" => Artifacts::SudoLinux,
+        "users-windows" => Artifacts::UsersWindows,
         _ => Artifacts::Unknown,
     }
 }

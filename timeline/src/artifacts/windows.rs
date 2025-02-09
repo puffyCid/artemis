@@ -699,11 +699,38 @@ pub(crate) fn wmi(data: &mut Value) -> Option<()> {
     Some(())
 }
 
+pub(crate) fn mft(data: &mut Value) -> Option<()> {
+    let mut entries = Vec::new();
+
+    for values in data.as_array_mut()? {
+        let entry = if let Some(value) = values.get_mut("data") {
+            value
+        } else {
+            values
+        };
+
+        entry["artifact"] = Value::String(String::from("MFT"));
+        entry["data_type"] = Value::String(String::from("windows:ntfs:mft::entry"));
+        entry["message"] = Value::String(entry["full_path"].as_str()?.into());
+
+        let temp = entry.clone();
+        let mut times = extract_times(&temp)?;
+        extract_filename_times(&temp, &mut times)?;
+        for (key, value) in times {
+            entry["datetime"] = Value::String(key.into());
+            entry["timestamp_desc"] = Value::String(value);
+            entries.push(entry.clone());
+        }
+    }
+
+    check_meta(data, &mut entries)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::artifacts::windows::{
-        amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_files, recycle_bin, registry,
-        users,
+        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_files, recycle_bin,
+        registry, users,
     };
     use serde_json::json;
 
@@ -828,6 +855,26 @@ mod tests {
         raw_files(&mut test).unwrap();
         assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
         assert_eq!(test[0]["artifact"], "RawFiles");
+        assert_eq!(test[0]["message"], "/usr/bin/ls");
+    }
+
+    #[test]
+    fn test_mft() {
+        let mut test = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "full_path": "/usr/bin/ls",
+            "modified": "2024-01-01T03:00:00.000Z",
+            "changed": "2024-01-01T02:00:00.000Z",
+            "accessed": "2024-01-01T01:00:00.000Z",
+            "filename_changed": "2024-01-01T03:00:00.000Z",
+            "filename_created": "2024-01-01T03:00:00.000Z",
+            "filename_modified": "2024-01-01T03:00:00.000Z",
+            "filename_accessed": "2024-01-01T03:00:00.000Z",
+        }]);
+
+        mft(&mut test).unwrap();
+        assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "MFT");
         assert_eq!(test[0]["message"], "/usr/bin/ls");
     }
 

@@ -16,15 +16,14 @@
     let entries: TimelineEntry[] = [];
     const table = new TableHandler(entries, { rowsPerPage: 100 });
 
-    let index = "test";
-    table.load((state: State) => queryCallback(state, index, table));
+    table.load((state: State) => queryCallback(state, table));
 
     table.invalidate();
 </script>
 
 <div class="col-span-full">
     <div class="w-full">
-        <Search {table} {index} />
+        <Search {table} />
 
         <Datatable {table}>
             <table>
@@ -51,6 +50,6 @@
                 </tbody>
             </table>
         </Datatable>
-        <Navigation {table} {index} />
+        <Navigation {table} />
     </div>
 </div>

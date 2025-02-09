@@ -33,7 +33,7 @@ home = "0.5.11"
 chrono = "0.4.39"
 simplelog = "0.12.2"
 zip = { version = "2.2.2", default-features = false }
-jsonwebtoken = "9.3.0"
+jsonwebtoken = "9.3.1"
 rusty-s3 = "0.7.0"
 quick-xml = { version = "0.37.2", default-features = false }
 xml2json-rs = "1.0.1"
@@ -50,7 +50,7 @@ macos-unifiedlogs = "0.1.1"
 plist = "1.7.0"
 aes = "0.8.4"
 cbc = "0.1.2"
-yara-x = "0.12.0"
+yara-x = "0.13.0"
 csv = "1.3.1"
 url = "2.5.4"
 common = { path = "../common" }

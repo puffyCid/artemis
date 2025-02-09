@@ -2,13 +2,12 @@
     import { queryCallback } from "$lib/queries/timeline";
     import type { State, TableHandler } from "@vincjo/datatables/server";
 
-    const props: { table: TableHandler; index: string } = $props();
+    const props: { table: TableHandler } = $props();
     const table = props.table;
-    const index = props.index;
 
     function jumpPage(page: number) {
         table.setPage(page);
-        table.load((state: State) => queryCallback(state, index, table));
+        table.load((state: State) => queryCallback(state, table));
         //table.invalidate();
     }
     const { start, end, total } = $derived(table.rowCount);

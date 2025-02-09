@@ -7,16 +7,13 @@ import { isError } from "./error";
 
 /**
  * Get list of timeline entries ingested in OpenSearch
- * @param index Name of index
  * @param query Query to execute
  * @returns Array of TimelineEntry values
  */
 export async function queryTimeline(
-    index: string,
     query: QueryState,
 ): Promise<OpenSearchData | ErrorStatus> {
     return await invoke("query_timeline", {
-        index,
         state: query,
     });
 }
@@ -24,13 +21,11 @@ export async function queryTimeline(
 /**
  * Function to query the OpenSearch instance
  * @param state The DataTable state
- * @param index Name of OpenSearch index
  * @param rows_per_page Rows per page to display
  * @returns Array of `TimelineEntry` entries
  */
 export async function queryCallback(
     state: State,
-    index: string,
     table: TableHandler<TimelineEntry>,
 ): Promise<TimelineEntry[]> {
     const { currentPage, rowsPerPage, sort, filters } = state;
@@ -65,7 +60,6 @@ export async function queryCallback(
 
     const query_limit = table.rowsPerPage;
     const results = await getTimeline(
-        index,
         query_limit,
         offset,
         order_column,
@@ -78,7 +72,6 @@ export async function queryCallback(
         return [];
     }
 
-    console.log(results.hits.total);
     state.setTotalRows(results.hits.total.value);
     const entries = [];
     for (const hit of results.hits.hits) {
@@ -91,7 +84,6 @@ export async function queryCallback(
 
 /**
  * List timeline entries
- * @param index OpenSearch index name
  * @param limit How many rows to return. Default is 100
  * @param offset Row to start at. Default is 0
  * @param order_column Column to sort by. Default is `datetime`
@@ -99,7 +91,6 @@ export async function queryCallback(
  * @param query Search query to execute
  */
 async function getTimeline(
-    index: string,
     limit = 100,
     offset = 0,
     order_column = "datetime",
@@ -114,5 +105,5 @@ async function getTimeline(
         query,
     };
 
-    return queryTimeline(index, state);
+    return queryTimeline(state);
 }

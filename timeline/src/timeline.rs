@@ -7,9 +7,9 @@ use crate::artifacts::{
     },
     processes::processes,
     windows::{
-        amcache, bits, eventlogs, jumplists, outlook, prefetch, raw_files, recycle_bin, registry,
-        search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist, users,
-        usnjrnl, wmi,
+        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_files, recycle_bin,
+        registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
+        userassist, users, usnjrnl, wmi,
     },
 };
 use log::warn;
@@ -44,6 +44,7 @@ pub enum Artifacts {
     Userassist,
     UsnJrnl,
     Wmi,
+    Mft,
     // macOS
     UsersMacos,
     GroupsMacos,
@@ -88,6 +89,7 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
         Artifacts::UsersWindows => users(data),
         Artifacts::UsnJrnl => usnjrnl(data),
         Artifacts::Wmi => wmi(data),
+        Artifacts::Mft => mft(data),
         Artifacts::UsersMacos => users_macos(data),
         Artifacts::GroupsMacos => groups_macos(data),
         Artifacts::Emond => emond(data),

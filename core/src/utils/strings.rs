@@ -102,14 +102,21 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     match utf8_result {
         Ok(result) => result.trim_end_matches('\0').to_string(),
         Err(err) => {
+            // Try UTF16 just incase
+            if let Ok(string_result) = bytes_to_utf16_string(data, &false) {
+                return string_result;
+            }
             warn!("[strings] Failed to get UTF8 string: {err:?}");
             let max_size = 2097152;
             let issue = if data.len() < max_size {
                 base64_encode_standard(data)
             } else {
-                format!("Binary data size larger than 2MB, size: {}", data.len())
+                format!(
+                    "[strings] Binary data size larger than 2MB, size: {}",
+                    data.len()
+                )
             };
-            format!("Failed to get UTF8 string: {}", issue)
+            format!("[strings] Failed to get UTF8 string: {}", issue)
         }
     }
 }
@@ -119,10 +126,15 @@ pub(crate) fn extract_utf8_string_lossy(data: &[u8]) -> String {
     String::from_utf8_lossy(data).to_string()
 }
 
-/// Try to detect ASCII or UTF16 byte string
+/// Try to detect UTF8 or UTF16 byte string
 pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
     if data.iter().filter(|&c| *c == 0).count() <= 1 {
-        extract_utf8_string(data)
+        let mut value = extract_utf8_string(data);
+        if value.starts_with("[strings] Failed to get UTF8 string") {
+            // Try UTF16, if it fails, return original UTF8 string
+            value = bytes_to_utf16_string(data, &true).unwrap_or(extract_utf8_string(data));
+        }
+        value
     } else {
         extract_utf16_string(data)
     }
@@ -163,6 +175,30 @@ mod tests {
             114, 111, 223, 41,
         ];
         assert_eq!(extract_utf16_string(&test_data), "Kontrast #1 (extragroß)")
+    }
+
+    #[test]
+    fn test_extract_utf8_utf16_no_zeros() {
+        let test_data = vec![
+            75, 111, 110, 116, 114, 97, 115, 116, 32, 35, 49, 32, 40, 101, 120, 116, 114, 97, 103,
+            114, 111, 223, 41,
+        ];
+        assert_eq!(
+            extract_ascii_utf16_string(&test_data),
+            "Kontrast #1 (extragroß)"
+        )
+    }
+
+    #[test]
+    fn test_extract_utf8_utf16_no_zeros_legit_strings_failed() {
+        let test_data = vec![
+            91, 115, 116, 114, 105, 110, 103, 115, 93, 32, 70, 97, 105, 108, 101, 100, 32, 116,
+            111, 32, 103, 101, 116, 32, 85, 84, 70, 56, 32, 115, 116, 114, 105, 110, 103, 58, 10,
+        ];
+        assert_eq!(
+            extract_ascii_utf16_string(&test_data),
+            "[strings] Failed to get UTF8 string:\n"
+        )
     }
 
     #[test]
@@ -217,7 +253,7 @@ mod tests {
 
         assert_eq!(
             extract_utf8_string(&test),
-            "Failed to get UTF8 string: MicrosoftCorporationOneMicrosoftWayRedmondWA9805"
+            "[strings] Failed to get UTF8 string: MicrosoftCorporationOneMicrosoftWayRedmondWA9805"
         );
     }
 
