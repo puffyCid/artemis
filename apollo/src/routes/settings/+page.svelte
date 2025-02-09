@@ -1,5 +1,6 @@
 <script lang="ts">
     import Menu from "$lib/components/Menu.svelte";
+    import Index from "$lib/components/opensearch/Index.svelte";
     import type { Settings } from "$lib/types/about";
     import { load } from "@tauri-apps/plugin-store";
 
@@ -8,7 +9,7 @@
     let user = $state(data.user);
     let creds = $state(data.creds);
     let domain = $state(data.domain);
-    let index = $state();
+    let index = $state(data.index);
 
     /**
      * Save OpenSearch settings configuration
@@ -29,6 +30,15 @@
 
         await store.save();
     }
+
+    /**
+     * Save the current OpenSearch Index to settings.json file
+     */
+    async function updateIndex() {
+        const store = await load("settings.json", { autoSave: false });
+        store.set("index", index);
+        await store.save();
+    }
 </script>
 
 <main class="grid grid-cols-2 space-x-2 space-y-5">
@@ -43,12 +53,19 @@
     </div>
     <div class="col-span-1 space-y-5 p-2">
         <label class="form-control w-full">
-            <select class="select select-bordered select-primary">
+            <select
+                class="select select-bordered select-primary"
+                bind:value={index}
+                onchange={() => updateIndex()}
+            >
                 <option disabled selected>Select index</option>
                 {#each data.indexes as index}
                     <option>{index}</option>
                 {/each}
             </select>
+            <div class="label">
+                <span class="label-text-alt">Current Index: {index}</span>
+            </div>
         </label>
     </div>
     <div class="col-span-1 space-y-3 p-2">
@@ -95,11 +112,9 @@
             />
         </label>
         <button
-            class="btn btn-outline btn-primary"
+            class="btn btn-outline btn-primary btn-wide rounded"
             onclick={() => saveOpenSearch()}>Save Creds</button
         >
     </div>
-    <div class="col-span-1 space-y-3 p-2">
-        <button class="btn btn-outline btn-accent">Upload Data</button>
-    </div>
+    <Index />
 </main>
