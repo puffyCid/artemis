@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { TimelineEntry } from "$lib/types/timeline";
+    import RowDetails from "./table/RowDetails.svelte";
     import Tags from "./Tags.svelte";
 
     let {data}: {data: TimelineEntry} = $props();
@@ -108,7 +109,7 @@
                     {#each Object.entries(data) as [key, value]}
                         <tr>
                             <td>{key}</td>
-                            {#if Array.isArray(value) && typeof value.at(0) != "object"}
+                            {#if Array.isArray(value) && typeof value.at(0) != "object" && value.length < 25}
                                 <td>
                                     {#each value as entry}
                                         <div class="badge badge-outline">
@@ -116,38 +117,11 @@
                                         </div>
                                     {/each}
                                 </td>
-                                <!--If we have nested objects or array of objects. Use modal to display-->
-                            {:else if typeof value === "object"}
-                                <td>
-                                    <button
-                                        class="btn btn-xs btn-outline"
-                                        onclick={toggleModal}
-                                        >Details
-                                    </button>
-                                    <dialog
-                                        class="modal"
-                                        class:modal-open={modalOpen}
-                                    >
-                                        <div class="modal-box">
-                                            <h3 class="text-lg font-bold">
-                                                Additional Details
-                                            </h3>
-                                            <form
-                                                method="dialog"
-                                                class="modal-action"
-                                            >
-                                                <button
-                                                    class="btn btn-xs btn-circle btn-ghost absolute right-2 top-2"
-                                                    onclick={toggleModal}
-                                                    >X</button
-                                                >
-                                            </form>
-                                            <pre>
-                                                {JSON.stringify(value, null, 2)}
-                                            </pre>
-                                        </div>
-                                    </dialog>
-                                </td>
+                            {:else if Array.isArray(value) && value.length >= 25}
+                                <RowDetails data={value} />
+                            <!--If we have nested objects or array of objects. Use modal to display-->
+                            {:else if typeof value === "object" && value != null}
+                                <RowDetails data={value} />
                             {:else}
                                 <td>{value}</td>
                             {/if}

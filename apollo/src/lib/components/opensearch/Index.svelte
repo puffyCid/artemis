@@ -34,7 +34,7 @@
         <div>
             <dialog class="modal" class:modal-open={modalOpen}>
                 <div class="modal-box space-y-3 p-3">
-                    <h3 class="text-lg font-bold">Upload Folder</h3>
+                    <h3 class="text-lg font-bold">Upload Data</h3>
                     <form method="dialog" class="modal-action">
                         <button
                             class="btn btn-xs btn-circle btn-ghost absolute right-2 top-2"
