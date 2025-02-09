@@ -103,10 +103,9 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
         Ok(result) => result.trim_end_matches('\0').to_string(),
         Err(err) => {
             // Try UTF16 just incase
-            let string_result = bytes_to_utf16_string(data, &false);
-            if string_result.is_ok() {
-                return string_result.unwrap();
-            } 
+            if let Ok(string_result) = bytes_to_utf16_string(data, &false) {
+                return string_result;
+            }
             warn!("[strings] Failed to get UTF8 string: {err:?}");
             let max_size = 2097152;
             let issue = if data.len() < max_size {
@@ -133,7 +132,7 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
         let mut value = extract_utf8_string(data);
         if value.starts_with("[strings] Failed to get UTF8 string") {
             // Try UTF16, if it fails, return original UTF8 string
-            value = bytes_to_utf16_string(data, &true).unwrap_or(extract_utf8_string(data))
+            value = bytes_to_utf16_string(data, &true).unwrap_or(extract_utf8_string(data));
         }
         value
     } else {

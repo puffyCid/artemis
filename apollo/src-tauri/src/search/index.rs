@@ -114,7 +114,7 @@ struct OpenSearchCreds {
     domain: String,
 }
 
-/// Read Apollo settings to get OpenSearch creds. If none available, assume default creds
+/// Read Apollo settings to get `OpenSearch` creds. If none available, assume default creds
 fn opensearch_settings() -> OpenSearchCreds {
     let mut info = OpenSearchCreds {
         user: String::from("admin"),

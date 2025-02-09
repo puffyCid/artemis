@@ -7,7 +7,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
 };
 
-/// Timeline and upload artemis data to OpenSearch Index name
+/// Timeline and upload artemis data to `OpenSearch` Index name
 pub(crate) async fn upload_timeline(path: &str, name: &str) -> Result<Value, Error> {
     let _create_status = create_index(name).await?;
 
