@@ -1,3 +1,0 @@
-kind: Fixed
-body: Search bug where artemis would treat alt-files as ESE db instead of sqlite
-time: 2024-12-17T23:45:46.934112589-05:00
