@@ -166,7 +166,7 @@ checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
 
 [[package]]
 name = "apollo"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "common",
  "home",
@@ -215,7 +215,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "artemis"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -1283,7 +1283,7 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "common",
  "core",
@@ -1363,7 +1363,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "plist",
  "serde",
@@ -1409,7 +1409,7 @@ dependencies = [
 
 [[package]]
 name = "core"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -7583,7 +7583,7 @@ dependencies = [
 
 [[package]]
 name = "timeline"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "log",
  "serde",
