@@ -1,3 +1,4 @@
+mod encoding;
 mod error;
 mod filesystem;
 mod helper;

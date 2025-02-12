@@ -1,4 +1,7 @@
-use super::{error::RuntimeError, filesystem::extensions::filesystem_functions};
+use super::{
+    encoding::extensions::encoding_functions, error::RuntimeError,
+    filesystem::extensions::filesystem_functions,
+};
 use boa_engine::{
     context::ContextBuilder,
     job::{FutureJob, JobQueue, NativeJob},
@@ -23,6 +26,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     }
 
     filesystem_functions(&mut context);
+    encoding_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -177,6 +181,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     }
 
     filesystem_functions(&mut context);
+    encoding_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
