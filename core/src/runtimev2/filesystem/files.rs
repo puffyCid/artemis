@@ -21,17 +21,15 @@ pub(crate) fn js_stat(
     let timestamps = match get_timestamps(&path) {
         Ok(result) => result,
         Err(err) => {
-            return Err(JsError::from_opaque(
-                js_string!("Could not get timestamps").into(),
-            ));
+            let issue = format!("Could not get timestamp for {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
     let meta = match get_metadata(&path) {
         Ok(result) => result,
         Err(err) => {
-            return Err(JsError::from_opaque(
-                js_string!("Could not get metadata").into(),
-            ));
+            let issue = format!("Could not get metadata for {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
@@ -84,13 +82,11 @@ pub(crate) fn js_glob(
     let globs = match glob_paths(&path) {
         Ok(result) => result,
         Err(err) => {
-            return Err(JsError::from_opaque(
-                js_string!(format!("Could not glob: {err:?}")).into(),
-            ));
+            let issue = format!("Could not glob for {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
     let data = serde_json::to_value(&globs).unwrap_or_default();
-
     let value = JsValue::from_json(&data, context)?;
 
     Ok(value)
@@ -122,8 +118,8 @@ pub(crate) fn js_hash_file(
         sha256: sha256_value,
     };
     let data = serde_json::to_value(&info).unwrap_or_default();
-
     let value = JsValue::from_json(&data, context)?;
+
     Ok(value)
 }
 
@@ -137,9 +133,8 @@ pub(crate) fn js_read_text_file(
     let data = match read_text_file(&path) {
         Ok(result) => result,
         Err(err) => {
-            return Err(JsError::from_opaque(
-                js_string!(format!("Could not read {path}: {err:?}")).into(),
-            ));
+            let issue = format!("Could not read text {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
     Ok(JsValue::String(data.into()))
@@ -155,9 +150,8 @@ pub(crate) fn js_read_file(
     let data = match read_file(&path) {
         Ok(result) => result,
         Err(err) => {
-            return Err(JsError::from_opaque(
-                js_string!(format!("Could not read {path}: {err:?}")).into(),
-            ));
+            let issue = format!("Could not read {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
     let bytes = serde_json::to_value(&data).unwrap_or_default();
@@ -192,7 +186,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_js_stat_mac() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UoZnMuc3RhdChwYXRoKSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB0YXJnZXQgPSAiL1VzZXJzIjsKICBjb25zdCBkYXRhID0gc3RhdCh0YXJnZXQpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3N0YXQocGF0aCkpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdGFyZ2V0ID0gIi9Vc2VycyI7CiAgY29uc3QgZGF0YSA9IHN0YXQodGFyZ2V0KTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("stat_path"),
@@ -228,7 +222,7 @@ mod tests {
     #[test]
     #[cfg(target_family = "unix")]
     fn test_js_hash_file() {
-        let test = "see deno";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIi9iaW4iOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),
@@ -240,7 +234,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_js_hash_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UoYXdhaXQgZnMucmVhZERpcihwYXRoKSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gaGFzaChwYXRoLCBtZDUsIHNoYTEsIHNoYTI1NikgewogIGNvbnN0IGRhdGEgPSBmcy5oYXNoKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIkM6XFwiOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIkM6XFwiOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),

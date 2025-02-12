@@ -1,4 +1,4 @@
-use boa_engine::{js_string, Context, JsArgs, JsError, JsObject, JsResult, JsValue};
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 use serde_json::Value;
 
 pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
