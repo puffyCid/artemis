@@ -1,5 +1,5 @@
 use crate::runtimev2::helper::string_arg;
-use boa_engine::{Context, JsResult, JsValue};
+use boa_engine::{object::builtins::JsUint8Array, Context, JsResult, JsValue};
 
 /// Convert string to bytes
 pub(crate) fn js_encode_bytes(
@@ -10,8 +10,8 @@ pub(crate) fn js_encode_bytes(
     let data = string_arg(args, &0)?;
 
     let input = data.as_bytes().to_vec();
-    let bytes = serde_json::to_value(&input).unwrap_or_default();
-    let value = JsValue::from_json(&bytes, context)?;
+    let bytes = JsUint8Array::from_iter(input, context)?;
+    let value = bytes.into();
 
     Ok(value)
 }

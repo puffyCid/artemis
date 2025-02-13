@@ -2,7 +2,7 @@ use crate::{
     runtimev2::helper::{bytes_arg, string_arg},
     utils::encoding::{base64_decode_standard, base64_encode_standard},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
 
 /// Decode Base64 data
 pub(crate) fn js_base64_decode(
@@ -19,9 +19,9 @@ pub(crate) fn js_base64_decode(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let bytes = serde_json::to_value(&decoded_data).unwrap_or_default();
+    let bytes = JsUint8Array::from_iter(decoded_data, context)?;
+    let value = bytes.into();
 
-    let value = JsValue::from_json(&bytes, context)?;
     Ok(value)
 }
 
