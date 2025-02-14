@@ -4,6 +4,7 @@ use super::{
     protobuf::js_parse_protobuf,
     strings::{js_bytes_to_hex_string, js_extract_utf16_string, js_extract_utf8_string},
     uuid::{js_format_guid_be_bytes, js_format_guid_le_bytes, js_generate_uuid},
+    xml::js_read_xml,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -67,6 +68,12 @@ pub(crate) fn encoding_functions(context: &mut Context) {
         JsString::from("js_generate_uuid"),
         0,
         NativeFunction::from_fn_ptr(js_generate_uuid),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_xml"),
+        0,
+        NativeFunction::from_fn_ptr(js_read_xml),
     );
 }
 

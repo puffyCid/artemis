@@ -1,12 +1,16 @@
+use crate::runtimev2::helper::string_arg;
+
 use super::{
-    encoding::extensions::encoding_functions, error::RuntimeError,
-    filesystem::extensions::filesystem_functions,
+    application::extensions::application_functions, encoding::extensions::encoding_functions,
+    error::RuntimeError, filesystem::extensions::filesystem_functions,
+    linux::extensions::linux_functions,
 };
 use boa_engine::{
+    builtins::promise::{Promise, PromiseState},
     context::ContextBuilder,
     job::{FutureJob, JobQueue, NativeJob},
     property::Attribute,
-    Context, Source,
+    Context, JsValue, NativeFunction, Source,
 };
 use boa_runtime::Console;
 use log::error;
@@ -27,6 +31,8 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
 
     filesystem_functions(&mut context);
     encoding_functions(&mut context);
+    application_functions(&mut context);
+    linux_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -182,6 +188,8 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
 
     filesystem_functions(&mut context);
     encoding_functions(&mut context);
+    application_functions(&mut context);
+    linux_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -190,6 +198,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
             return Err(RuntimeError::ExecuteScript);
         }
     };
+
     // Run and wait for our script to complete
     context.run_jobs();
 

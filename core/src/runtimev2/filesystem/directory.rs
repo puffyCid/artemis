@@ -7,7 +7,8 @@ use crate::{
     runtimev2::helper::string_arg,
 };
 use boa_engine::{
-    js_string, object::builtins::JsPromise, Context, JsError, JsResult, JsValue, NativeFunction,
+    builtins::promise::PromiseState, js_string, object::builtins::JsPromise, Context, JsError,
+    JsResult, JsValue, NativeFunction,
 };
 use log::{error, warn};
 use serde::Serialize;
@@ -133,16 +134,8 @@ pub(crate) fn js_read_dir(
         context,
     );
 
-    // Blocks Rust code but our script still runs with async
-    context.run_jobs();
-
-    // Wait for script to complete
-    let value = match promise.await_blocking(context) {
-        Ok(result) => result,
-        Err(err) => err,
-    };
-
-    Ok(value)
+    // Return a promise and let setup.rs handle the results
+    Ok(promise.into())
 }
 
 #[cfg(test)]
