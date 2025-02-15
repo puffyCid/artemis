@@ -5,7 +5,7 @@ use boa_engine::{Context, JsString, NativeFunction};
 pub(crate) fn application_functions(context: &mut Context) {
     let _ = context.register_global_callable(
         JsString::from("js_query_sqlite"),
-        1,
+        2,
         NativeFunction::from_fn_ptr(js_query_sqlite),
     );
 }

@@ -118,7 +118,7 @@ pub(crate) fn output_data(
 mod tests {
     use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
-        runtime::deno::output_data,
+        runtimev2::run::output_data,
         structs::{artifacts::runtime::script::JSScript, toml::Output},
         utils::time,
     };

@@ -6,7 +6,7 @@ use crate::{
     },
     runtimev2::helper::{bool_arg, string_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
 use common::files::Hashes;
 use serde::Serialize;
 use std::path::Path;
@@ -154,10 +154,9 @@ pub(crate) fn js_read_file(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let bytes = serde_json::to_value(&data).unwrap_or_default();
-    let value = JsValue::from_json(&bytes, context)?;
+    let value = JsUint8Array::from_iter(data, context)?;
 
-    Ok(value)
+    Ok(value.into())
 }
 
 #[cfg(test)]

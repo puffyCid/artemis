@@ -57,7 +57,7 @@ common = { path = "../common" }
 sunlight = "0.1.0"
 
 # Deno Runtime integration
-deno_core = { version = "0.328.0" }
+#deno_core = { version = "0.328.0" }
 
 # JS API
 boa_engine = { version = "0.20.0", default-features = false }
@@ -69,7 +69,7 @@ ntapi = "0.4.1"
 
 # Dependencies at compile time
 [build-dependencies]
-deno_core = { version = "0.328.0" }
+#deno_core = { version = "0.328.0" }
 
 # Dependencies for tests
 [dev-dependencies]

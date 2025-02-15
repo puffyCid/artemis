@@ -1,5 +1,6 @@
-use deno_core::{anyhow::anyhow, error::AnyError, op2, JsBuffer, ToJsBuffer};
-use nom::bytes::complete::{take, take_until, take_while};
+use crate::runtimev2::helper::{bytes_arg, number_arg, string_arg};
+use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
+use nom::bytes::complete::{take_until, take_while};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -7,85 +8,32 @@ struct NomStringJs {
     remaining: String,
     nommed: String,
 }
-/*
-#[op2]
-#[string]
-/// Expose nomming strings to Deno
-pub(crate) fn js_nom_take_string(
-    #[string] data: String,
-    #[bigint] input: usize,
-) -> Result<String, AnyError> {
-    let results = nom_take_string(&data, input);
-    let (remaining, nommed) = match results {
-        Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom string")),
-    };
-    let nom_string = NomStringJs {
-        remaining: remaining.to_string(),
-        nommed,
-    };
-    let results = serde_json::to_string(&nom_string)?;
 
-    Ok(results)
-}
-
-/// Expose `take` string function to Deno
-fn nom_take_string(data: &str, input: usize) -> nom::IResult<&str, String> {
-    let (remaining, nommed) = take(input)(data)?;
-    Ok((remaining, nommed.to_string()))
-}
-
-#[derive(Serialize)]
-pub(crate) struct NomBytesJs {
-    remaining: ToJsBuffer,
-    nommed: ToJsBuffer,
-}
-
-#[op2]
-#[serde]
-/// Expose nomming bytes to Deno
-pub(crate) fn js_nom_take_bytes(
-    #[buffer] data: JsBuffer,
-    #[bigint] input: usize,
-) -> Result<NomBytesJs, AnyError> {
-    let results = nom_take_bytes(&data, input);
-    let (remaining, nommed) = match results {
-        Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom bytes")),
-    };
-    let nom_bytes = NomBytesJs {
-        remaining: remaining.to_vec().into(),
-        nommed: nommed.into(),
-    };
-
-    Ok(nom_bytes)
-}
-
-/// Expose `take` bytes function to Deno
-fn nom_take_bytes(data: &[u8], input: usize) -> nom::IResult<&[u8], Vec<u8>> {
-    let (remaining, nommed) = take(input)(data)?;
-    Ok((remaining, nommed.to_vec()))
-}
-
-#[op2]
-#[string]
 /// Expose `take_until` string function to Deno
 pub(crate) fn js_nom_take_until_string(
-    #[string] data: String,
-    #[string] input: String,
-) -> Result<String, AnyError> {
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = string_arg(args, &0)?;
+    let input = string_arg(args, &1)?;
+
     let results = nom_take_until_string(&data, &input);
     let (remaining, nommed) = match results {
         Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom until string")),
+        Err(err) => {
+            let issue = format!("Failed to take until: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
         nommed,
     };
-    let results = serde_json::to_string(&nom_string)?;
+    let results = serde_json::to_value(&nom_string).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    Ok(results)
+    Ok(value)
 }
 
 /// Expose `take_until` string function to Deno
@@ -94,24 +42,27 @@ fn nom_take_until_string<'a>(data: &'a str, input: &str) -> nom::IResult<&'a str
     Ok((remaining, nommed.to_string()))
 }
 
-#[op2]
-#[serde]
 /// Expose `take_until` bytes function to Deno
 pub(crate) fn js_nom_take_until_bytes(
-    #[buffer] data: JsBuffer,
-    #[buffer] input: JsBuffer,
-) -> Result<NomBytesJs, AnyError> {
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, &0, context)?;
+    let input = bytes_arg(args, &1, context)?;
+
     let results = nom_take_until_bytes(&data, &input);
-    let (remaining, nommed) = match results {
+    let (_remaining, nommed) = match results {
         Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom until bytes")),
-    };
-    let nom_bytes = NomBytesJs {
-        remaining: remaining.to_vec().into(),
-        nommed: nommed.into(),
+        Err(err) => {
+            let issue = format!("Failed to take until: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    Ok(nom_bytes)
+    let bytes = JsUint8Array::from_iter(nommed, context)?;
+
+    Ok(bytes.into())
 }
 
 /// Expose `take_until` bytes function to Deno
@@ -120,25 +71,31 @@ fn nom_take_until_bytes<'a>(data: &'a [u8], input: &[u8]) -> nom::IResult<&'a [u
     Ok((remaining, nommed.to_vec()))
 }
 
-#[op2]
-#[string]
 /// Expose `take_while` string function to Deno
 pub(crate) fn js_nom_take_while_string(
-    #[string] data: String,
-    #[serde] input: char,
-) -> Result<String, AnyError> {
-    let results = nom_take_while_string(&data, input);
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = string_arg(args, &0)?;
+    let input = string_arg(args, &1)?;
+
+    let results = nom_take_while_string(&data, input.chars().next().unwrap_or_default());
     let (remaining, nommed) = match results {
         Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom while string")),
+        Err(err) => {
+            let issue = format!("Failed to take while: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
     let nom_string = NomStringJs {
         remaining: remaining.to_string(),
         nommed,
     };
-    let results = serde_json::to_string(&nom_string)?;
+    let results = serde_json::to_value(&nom_string).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    Ok(results)
+    Ok(value)
 }
 
 /// Expose `take_while` string function to Deno
@@ -147,24 +104,27 @@ fn nom_take_while_string(data: &str, input: char) -> nom::IResult<&str, String> 
     Ok((remaining, nommed.to_string()))
 }
 
-#[op2]
-#[serde]
 /// Expose `take_while` bytes function to Deno
 pub(crate) fn js_nom_take_while_bytes(
-    #[buffer] data: JsBuffer,
-    input: u8,
-) -> Result<NomBytesJs, AnyError> {
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, &0, context)?;
+    let input = number_arg(args, &1)? as u8;
+
     let results = nom_take_while_bytes(&data, input);
-    let (remaining, nommed) = match results {
+    let (_remaining, nommed) = match results {
         Ok(result) => result,
-        Err(_) => return Err(anyhow!("Failed to nom while bytes")),
-    };
-    let nom_bytes = NomBytesJs {
-        remaining: remaining.to_vec().into(),
-        nommed: nommed.into(),
+        Err(err) => {
+            let issue = format!("Failed to take while: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    Ok(nom_bytes)
+    let bytes = JsUint8Array::from_iter(nommed, context)?;
+
+    Ok(bytes.into())
 }
 
 /// Expose `take_while` bytes function to Deno
@@ -175,16 +135,12 @@ fn nom_take_while_bytes(data: &[u8], input: u8) -> nom::IResult<&[u8], Vec<u8>> 
 
 #[cfg(test)]
 mod tests {
+    use super::{
+        nom_take_until_bytes, nom_take_until_string, nom_take_while_bytes, nom_take_while_string,
+    };
     use crate::{
-        runtime::{
-            deno::execute_script,
-            nom::parsers::{
-                nom_take_bytes, nom_take_string, nom_take_until_bytes, nom_take_until_string,
-                nom_take_while_bytes, nom_take_while_string,
-            },
-        },
-        structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtimev2::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -205,48 +161,14 @@ mod tests {
     }
 
     #[test]
-    fn test_js_nom_take_string() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbmNvZGluZy9ieXRlcy50cwpmdW5jdGlvbiBlbmNvZGVCeXRlcyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuYnl0ZXNfZW5jb2RlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL25vbS9wYXJzZXJzLnRzCmZ1bmN0aW9uIHRha2UoZGF0YSwgaW5wdXQpIHsKICBpZiAoaW5wdXQgPCAwKSB7CiAgICBjb25zdCBlcnIgPSBuZXcgRXJyb3IoInByb3ZpZGVkIG5lZ2F0aXZlIG51bWJlciIpOwogICAgcmV0dXJuIGVycjsKICB9CiAgaWYgKHR5cGVvZiBkYXRhID09PSAic3RyaW5nIikgewogICAgY29uc3QgcmVzdWx0X3N0cmluZyA9IERlbm8uY29yZS5vcHMuanNfbm9tX3Rha2Vfc3RyaW5nKGRhdGEsIGlucHV0KTsKICAgIGNvbnN0IG5vbV9zdHJpbmcgPSBKU09OLnBhcnNlKHJlc3VsdF9zdHJpbmcpOwogICAgcmV0dXJuIG5vbV9zdHJpbmc7CiAgfQogIGNvbnN0IHJlc3VsdCA9IERlbm8uY29yZS5vcHMuanNfbm9tX3Rha2VfYnl0ZXMoZGF0YSwgaW5wdXQpOwogIGNvbnN0IG5vbSA9IHJlc3VsdDsKICByZXR1cm4gbm9tOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVzdWx0ID0gdGFrZSgiaGVsbG8gd29ybGQhIiwgNSk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gbm9tIHN0cmluZzogJHtyZXN1bHR9YCk7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zb2xlLmxvZygKICAgIGBJIG5vbW1lZDogJyR7cmVzdWx0Lm5vbW1lZH0nLiBJIGhhdmUgcmVtYWluaW5nOiAnJHtyZXN1bHQucmVtYWluaW5nfSdgLAogICk7CiAgY29uc3QgYnl0ZXMgPSBlbmNvZGVCeXRlcygiaGVsbG8gd29ybGQhIik7CiAgY29uc3QgcnN1bHRCeXRlcyA9IHRha2UoYnl0ZXMsIDUpOwogIGlmIChyc3VsdEJ5dGVzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBub20gYnl0ZXM6ICR7cmVzdWx0fWApOwogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc29sZS5sb2coCiAgICBgSSBub21tZWQgYnl0ZXM6ICR7cnN1bHRCeXRlcy5ub21tZWR9LiBTdHJpbmcgcmVtYWluaW5nICh2aWEgYnl0ZXMgdG8gc3RyaW5nKTogJHsKICAgICAgZXh0cmFjdFV0ZjhTdHJpbmcocnN1bHRCeXRlcy5yZW1haW5pbmcpCiAgICB9YCwKICApOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("nomming"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_js_nom_take_bytes() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbmNvZGluZy9ieXRlcy50cwpmdW5jdGlvbiBlbmNvZGVCeXRlcyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0gZW5jb2RpbmcuYnl0ZXNfZW5jb2RlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL25vbS9wYXJzZXJzLnRzCmZ1bmN0aW9uIHRha2UoZGF0YSwgaW5wdXQpIHsKICBpZiAoaW5wdXQgPCAwKSB7CiAgICBjb25zdCBlcnIgPSBuZXcgRXJyb3IoInByb3ZpZGVkIG5lZ2F0aXZlIG51bWJlciIpOwogICAgcmV0dXJuIGVycjsKICB9CiAgaWYgKHR5cGVvZiBkYXRhID09PSAic3RyaW5nIikgewogICAgY29uc3QgcmVzdWx0X3N0cmluZyA9IERlbm8uY29yZS5vcHMuanNfbm9tX3Rha2Vfc3RyaW5nKGRhdGEsIGlucHV0KTsKICAgIGNvbnN0IG5vbV9zdHJpbmcgPSBKU09OLnBhcnNlKHJlc3VsdF9zdHJpbmcpOwogICAgcmV0dXJuIG5vbV9zdHJpbmc7CiAgfQogIGNvbnN0IHJlc3VsdCA9IERlbm8uY29yZS5vcHMuanNfbm9tX3Rha2VfYnl0ZXMoZGF0YSwgaW5wdXQpOwogIGNvbnN0IG5vbSA9IHJlc3VsdDsKICByZXR1cm4gbm9tOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVzdWx0ID0gdGFrZSgiaGVsbG8gd29ybGQhIiwgNSk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gbm9tIHN0cmluZzogJHtyZXN1bHR9YCk7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zb2xlLmxvZygKICAgIGBJIG5vbW1lZDogJyR7cmVzdWx0Lm5vbW1lZH0nLiBJIGhhdmUgcmVtYWluaW5nOiAnJHtyZXN1bHQucmVtYWluaW5nfSdgLAogICk7CiAgY29uc3QgYnl0ZXMgPSBlbmNvZGVCeXRlcygiaGVsbG8gd29ybGQhIik7CiAgY29uc3QgcnN1bHRCeXRlcyA9IHRha2UoYnl0ZXMsIDUpOwogIGlmIChyc3VsdEJ5dGVzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBub20gYnl0ZXM6ICR7cmVzdWx0fWApOwogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc29sZS5sb2coCiAgICBgSSBub21tZWQgYnl0ZXM6ICR7cnN1bHRCeXRlcy5ub21tZWR9LiBTdHJpbmcgcmVtYWluaW5nICh2aWEgYnl0ZXMgdG8gc3RyaW5nKTogJHsKICAgICAgZXh0cmFjdFV0ZjhTdHJpbmcocnN1bHRCeXRlcy5yZW1haW5pbmcpCiAgICB9YCwKICApOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("nomming"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
     fn test_js_nom_take_while_until() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbm9tL3BhcnNlcnMudHMKZnVuY3Rpb24gdGFrZShkYXRhLCBpbnB1dCkgewogIGlmIChpbnB1dCA8IDApIHsKICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcigicHJvdmlkZWQgbmVnYXRpdmUgbnVtYmVyIik7CiAgICByZXR1cm4gZXJyOwogIH0KICBpZiAodHlwZW9mIGRhdGEgPT09ICJzdHJpbmciKSB7CiAgICBjb25zdCByZXN1bHRfc3RyaW5nID0gRGVuby5jb3JlLm9wcy5qc19ub21fdGFrZV9zdHJpbmcoZGF0YSwgaW5wdXQpOwogICAgY29uc3Qgbm9tX3N0cmluZyA9IEpTT04ucGFyc2UocmVzdWx0X3N0cmluZyk7CiAgICByZXR1cm4gbm9tX3N0cmluZzsKICB9CiAgY29uc3QgcmVzdWx0ID0gRGVuby5jb3JlLm9wcy5qc19ub21fdGFrZV9ieXRlcyhkYXRhLCBpbnB1dCk7CiAgcmV0dXJuIHJlc3VsdDsKfQpmdW5jdGlvbiB0YWtlX3VudGlsKGRhdGEsIGlucHV0KSB7CiAgaWYgKHR5cGVvZiBkYXRhID09PSAic3RyaW5nIiAmJiB0eXBlb2YgaW5wdXQgPT09ICJzdHJpbmciKSB7CiAgICBjb25zdCByZXN1bHRfc3RyaW5nID0gRGVuby5jb3JlLm9wcy5qc19ub21fdGFrZV91bnRpbF9zdHJpbmcoCiAgICAgIGRhdGEsCiAgICAgIGlucHV0CiAgICApOwogICAgY29uc3Qgbm9tX3N0cmluZyA9IEpTT04ucGFyc2UocmVzdWx0X3N0cmluZyk7CiAgICBpZiAobm9tX3N0cmluZy5ub21tZWQubGVuZ3RoID09PSAwICYmIG5vbV9zdHJpbmcucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2Ugc3RyaW5nIGRhdGEiKTsKICAgIH0KICAgIHJldHVybiBub21fc3RyaW5nOwogIH0gZWxzZSBpZiAoZGF0YSBpbnN0YW5jZW9mIFVpbnQ4QXJyYXkgJiYgaW5wdXQgaW5zdGFuY2VvZiBVaW50OEFycmF5KSB7CiAgICBjb25zdCByZXN1bHQgPSBEZW5vLmNvcmUub3BzLmpzX25vbV90YWtlX3VudGlsX2J5dGVzKAogICAgICBkYXRhLAogICAgICBpbnB1dAogICAgKTsKICAgIGlmIChyZXN1bHQubm9tbWVkLmxlbmd0aCA9PT0gMCAmJiByZXN1bHQucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2UgYnl0ZXMgZGF0YSIpOwogICAgfQogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgcmV0dXJuIG5ldyBFcnJvcigicHJvdmlkZWQgdW5zdXBwb3J0ZWQgZGF0YSBhbmQvb3IgaW5wdXQgdHlwZXMiKTsKfQpmdW5jdGlvbiB0YWtlX3doaWxlKGRhdGEsIGlucHV0KSB7CiAgaWYgKHR5cGVvZiBpbnB1dCA9PT0gInN0cmluZyIgJiYgaW5wdXQubGVuZ3RoICE9IDEpIHsKICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcigicHJvdmlkZWQgc3RyaW5nIGxlbmd0aCBncmVhdGVyIHRoYW4gMSIpOwogICAgcmV0dXJuIGVycjsKICB9IGVsc2UgaWYgKHR5cGVvZiBpbnB1dCA9PT0gIm51bWJlciIgJiYgaW5wdXQgPCAwKSB7CiAgICBjb25zdCBlcnIgPSBuZXcgRXJyb3IoInByb3ZpZGVkIG5lZ2F0aXZlIG51bWJlciIpOwogICAgcmV0dXJuIGVycjsKICB9CiAgaWYgKHR5cGVvZiBkYXRhID09PSAic3RyaW5nIiAmJiB0eXBlb2YgaW5wdXQgPT09ICJzdHJpbmciKSB7CiAgICBjb25zdCByZXN1bHRfc3RyaW5nID0gRGVuby5jb3JlLm9wcy5qc19ub21fdGFrZV93aGlsZV9zdHJpbmcoCiAgICAgIGRhdGEsCiAgICAgIGlucHV0CiAgICApOwogICAgY29uc3Qgbm9tX3N0cmluZyA9IEpTT04ucGFyc2UocmVzdWx0X3N0cmluZyk7CiAgICBpZiAobm9tX3N0cmluZy5ub21tZWQubGVuZ3RoID09PSAwICYmIG5vbV9zdHJpbmcucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2Ugc3RyaW5nIGRhdGEiKTsKICAgIH0KICAgIHJldHVybiBub21fc3RyaW5nOwogIH0gZWxzZSBpZiAoZGF0YSBpbnN0YW5jZW9mIFVpbnQ4QXJyYXkgJiYgdHlwZW9mIGlucHV0ID09PSAibnVtYmVyIikgewogICAgY29uc3QgcmVzdWx0ID0gRGVuby5jb3JlLm9wcy5qc19ub21fdGFrZV93aGlsZV9ieXRlcygKICAgICAgZGF0YSwKICAgICAgaW5wdXQKICAgICk7CiAgICBpZiAocmVzdWx0Lm5vbW1lZC5sZW5ndGggPT09IDAgJiYgcmVzdWx0LnJlbWFpbmluZy5sZW5ndGggPT09IDApIHsKICAgICAgcmV0dXJuIG5ldyBFcnJvcigiZmFpbGVkIHRvIHBhcnNlIGJ5dGVzIGRhdGEiKTsKICAgIH0KICAgIHJldHVybiByZXN1bHQ7CiAgfQogIHJldHVybiBuZXcgRXJyb3IoInByb3ZpZGVkIHVuc3VwcG9ydGVkIGRhdGEgYW5kL29yIGlucHV0IHR5cGVzIik7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCByZXN1bHQgPSB0YWtlX3doaWxlKCJhYWFhYWNyYWIhIiwgImEiKTsKICBpZiAocmVzdWx0IGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBub20gc3RyaW5nOiAke3Jlc3VsdH1gKTsKICAgIHJldHVybiByZXN1bHQ7CiAgfQogIGNvbnNvbGUubG9nKAogICAgYEkgbm9tbWVkOiAnJHtyZXN1bHQubm9tbWVkfScuIEkgaGF2ZSByZW1haW5pbmc6ICcke3Jlc3VsdC5yZW1haW5pbmd9J2AKICApOwogIGNvbnN0IGJ5dGVzID0gbmV3IFVpbnQ4QXJyYXkoWzAsIDAsIDAsIDAsIDFdKTsKICBjb25zdCByc3VsdEJ5dGVzID0gdGFrZV93aGlsZShieXRlcywgMCk7CiAgaWYgKHJzdWx0Qnl0ZXMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIG5vbSBieXRlczogJHtyc3VsdEJ5dGVzLm1lc3NhZ2V9YCk7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KICBjb25zb2xlLmxvZygKICAgIGBJIG5vbW1lZCBieXRlczogJHtyc3VsdEJ5dGVzLm5vbW1lZH0uIFN0cmluZyByZW1haW5pbmcgKHZpYSBieXRlcyB0byBzdHJpbmcpOiAke3JzdWx0Qnl0ZXMucmVtYWluaW5nfWAKICApOwogIGxldCB0ZXN0ID0gImEsc2ltcGxlLGNzdixzdHJpbmciOwogIHdoaWxlICh0ZXN0LmluY2x1ZGVzKCIsIikpIHsKICAgIGNvbnN0IHJlc3VsdDIgPSB0YWtlX3VudGlsKHRlc3QsICIsIik7CiAgICBpZiAocmVzdWx0MiBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBub20gc3RyaW5nOiAke3Jlc3VsdDJ9YCk7CiAgICAgIHJldHVybiByZXN1bHQyOwogICAgfQogICAgY29uc3QgcmVtYWluID0gdGFrZShyZXN1bHQyLnJlbWFpbmluZywgMSk7CiAgICBpZiAocmVtYWluIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIG5vbSByZW1haW4gc3RyaW5nOiAke3Jlc3VsdDJ9YCk7CiAgICAgIHJldHVybiByZXN1bHQyOwogICAgfQogICAgdGVzdCA9IHJlbWFpbi5yZW1haW5pbmc7CiAgICBjb25zb2xlLmxvZyhyZXN1bHQyLm5vbW1lZCk7CiAgfQogIGNvbnN0IGJ5dGVzMiA9IG5ldyBVaW50OEFycmF5KFsxLCAwLCAwLCAxMywgMjIzXSk7CiAgY29uc3Qgc3RvcCA9IG5ldyBVaW50OEFycmF5KFsyMjNdKTsKICBjb25zdCByZXN1bHRCeXRlcyA9IHRha2VfdW50aWwoYnl0ZXMyLCBzdG9wKTsKICBpZiAocmVzdWx0Qnl0ZXMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIG5vbSBieXRlcyB1bnRpbDogJHtyZXN1bHRCeXRlcy5tZXNzYWdlfWApOwogICAgcmV0dXJuIHJlc3VsdDsKICB9Cn0KbWFpbigpOwo=";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbm9tL3BhcnNlcnMudHMKZnVuY3Rpb24gdGFrZV91bnRpbChkYXRhLCBpbnB1dCkgewogIGlmICh0eXBlb2YgZGF0YSA9PT0gInN0cmluZyIgJiYgdHlwZW9mIGlucHV0ID09PSAic3RyaW5nIikgewogICAgY29uc3QgcmVzdWx0ID0ganNfbm9tX3Rha2VfdW50aWxfc3RyaW5nKAogICAgICBkYXRhLAogICAgICBpbnB1dAogICAgKTsKICAgIGlmIChyZXN1bHQubm9tbWVkLmxlbmd0aCA9PT0gMCAmJiByZXN1bHQucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2Ugc3RyaW5nIGRhdGEiKTsKICAgIH0KICAgIHJldHVybiByZXN1bHQ7CiAgfSBlbHNlIGlmIChkYXRhIGluc3RhbmNlb2YgVWludDhBcnJheSAmJiBpbnB1dCBpbnN0YW5jZW9mIFVpbnQ4QXJyYXkpIHsKICAgIGNvbnN0IHJlc3VsdCA9IGpzX25vbV90YWtlX3VudGlsX2J5dGVzKAogICAgICBkYXRhLAogICAgICBpbnB1dAogICAgKTsKICAgIGlmIChyZXN1bHQubm9tbWVkLmxlbmd0aCA9PT0gMCAmJiByZXN1bHQucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2UgYnl0ZXMgZGF0YSIpOwogICAgfQogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgcmV0dXJuIG5ldyBFcnJvcigicHJvdmlkZWQgdW5zdXBwb3J0ZWQgZGF0YSBhbmQvb3IgaW5wdXQgdHlwZXMiKTsKfQpmdW5jdGlvbiB0YWtlX3doaWxlKGRhdGEsIGlucHV0KSB7CiAgaWYgKHR5cGVvZiBpbnB1dCA9PT0gInN0cmluZyIgJiYgaW5wdXQubGVuZ3RoICE9IDEpIHsKICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcigicHJvdmlkZWQgc3RyaW5nIGxlbmd0aCBncmVhdGVyIHRoYW4gMSIpOwogICAgcmV0dXJuIGVycjsKICB9IGVsc2UgaWYgKHR5cGVvZiBpbnB1dCA9PT0gIm51bWJlciIgJiYgaW5wdXQgPCAwKSB7CiAgICBjb25zdCBlcnIgPSBuZXcgRXJyb3IoInByb3ZpZGVkIG5lZ2F0aXZlIG51bWJlciIpOwogICAgcmV0dXJuIGVycjsKICB9CiAgaWYgKHR5cGVvZiBkYXRhID09PSAic3RyaW5nIiAmJiB0eXBlb2YgaW5wdXQgPT09ICJzdHJpbmciKSB7CiAgICBjb25zdCByZXN1bHQgPSBqc19ub21fdGFrZV93aGlsZV9zdHJpbmcoCiAgICAgIGRhdGEsCiAgICAgIGlucHV0CiAgICApOwogICAgaWYgKHJlc3VsdC5ub21tZWQubGVuZ3RoID09PSAwICYmIHJlc3VsdC5yZW1haW5pbmcubGVuZ3RoID09PSAwKSB7CiAgICAgIHJldHVybiBuZXcgRXJyb3IoImZhaWxlZCB0byBwYXJzZSBzdHJpbmcgZGF0YSIpOwogICAgfQogICAgcmV0dXJuIHJlc3VsdDsKICB9IGVsc2UgaWYgKGRhdGEgaW5zdGFuY2VvZiBVaW50OEFycmF5ICYmIHR5cGVvZiBpbnB1dCA9PT0gIm51bWJlciIpIHsKICAgIGNvbnN0IHJlc3VsdCA9IGpzX25vbV90YWtlX3doaWxlX2J5dGVzKAogICAgICBkYXRhLAogICAgICBpbnB1dAogICAgKTsKICAgIGlmIChyZXN1bHQubm9tbWVkLmxlbmd0aCA9PT0gMCAmJiByZXN1bHQucmVtYWluaW5nLmxlbmd0aCA9PT0gMCkgewogICAgICByZXR1cm4gbmV3IEVycm9yKCJmYWlsZWQgdG8gcGFyc2UgYnl0ZXMgZGF0YSIpOwogICAgfQogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgcmV0dXJuIG5ldyBFcnJvcigicHJvdmlkZWQgdW5zdXBwb3J0ZWQgZGF0YSBhbmQvb3IgaW5wdXQgdHlwZXMiKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHJlc3VsdCA9IHRha2Vfd2hpbGUoImFhYWFhY3JhYiEiLCAiYSIpOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIG5vbSBzdHJpbmc6ICR7cmVzdWx0fWApOwogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc29sZS5sb2coCiAgICBgSSBub21tZWQ6ICcke3Jlc3VsdC5ub21tZWR9Jy4gSSBoYXZlIHJlbWFpbmluZzogJyR7cmVzdWx0LnJlbWFpbmluZ30nYAogICk7CiAgY29uc3QgYnl0ZXMgPSBuZXcgVWludDhBcnJheShbMCwgMCwgMCwgMCwgMV0pOwogIGNvbnN0IHJzdWx0Qnl0ZXMgPSB0YWtlX3doaWxlKGJ5dGVzLCAwKTsKICBpZiAocnN1bHRCeXRlcyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gbm9tIGJ5dGVzOiAke3JzdWx0Qnl0ZXMubWVzc2FnZX1gKTsKICAgIHJldHVybiByZXN1bHQ7CiAgfQogIGNvbnNvbGUubG9nKAogICAgYEkgbm9tbWVkIGJ5dGVzOiAke3JzdWx0Qnl0ZXMubm9tbWVkfS4gU3RyaW5nIHJlbWFpbmluZyAodmlhIGJ5dGVzIHRvIHN0cmluZyk6ICR7cnN1bHRCeXRlcy5yZW1haW5pbmd9YAogICk7CiAgbGV0IHRlc3QgPSAiYSxzaW1wbGUsY3N2LHN0cmluZyI7CiAgd2hpbGUgKHRlc3QuaW5jbHVkZXMoIiwiKSkgewogICAgY29uc3QgcmVzdWx0MiA9IHRha2VfdW50aWwodGVzdCwgIiwiKTsKICAgIGlmIChyZXN1bHQyIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIG5vbSBzdHJpbmc6ICR7cmVzdWx0Mn1gKTsKICAgICAgcmV0dXJuIHJlc3VsdDI7CiAgICB9CiAgICBjb25zb2xlLmxvZyhyZXN1bHQyLm5vbW1lZCk7CiAgICBicmVhazsKICB9CiAgY29uc3QgYnl0ZXMyID0gbmV3IFVpbnQ4QXJyYXkoWzEsIDAsIDAsIDEzLCAyMjNdKTsKICBjb25zdCBzdG9wID0gbmV3IFVpbnQ4QXJyYXkoWzIyM10pOwogIGNvbnN0IHJlc3VsdEJ5dGVzID0gdGFrZV91bnRpbChieXRlczIsIHN0b3ApOwogIGlmIChyZXN1bHRCeXRlcyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBGYWlsZWQgdG8gbm9tIGJ5dGVzIHVudGlsOiAke3Jlc3VsdEJ5dGVzLm1lc3NhZ2V9YCk7CiAgICByZXR1cm4gcmVzdWx0OwogIH0KfQptYWluKCk7CgoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("nomming"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_nom_take_string() {
-        let test = "hello world!!";
-        nom_take_string(&test, test.len() - 3).unwrap();
-    }
-
-    #[test]
-    fn test_nom_take_bytes() {
-        let test = b"hello world!!";
-        nom_take_bytes(test, 4).unwrap();
     }
 
     #[test]
@@ -273,4 +195,3 @@ mod tests {
         nom_take_until_string(&test, "b").unwrap();
     }
 }
-*/

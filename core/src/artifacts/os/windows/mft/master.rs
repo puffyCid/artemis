@@ -422,6 +422,13 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
                     return Ok(path);
                 }
 
+                // Before we continue lookups. Add current parent to tracker
+                // Should help us avoid recursive lookups
+                let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
+                tracker.tracker.insert(tracked);
+                tracker.parent_index = parent_filename.parent_mft;
+                tracker.parent_sequence = parent_filename.parent_sequence;
+
                 // Not found in cache. Go look for it in the MFT
                 let parents = lookup_parent(reader, ntfs_file, cache, extended_attribs, tracker)?;
                 let path = format!("$OrphanFiles\\{parents}\\{}", parent_filename.name);

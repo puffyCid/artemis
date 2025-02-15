@@ -26,6 +26,20 @@ pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
     Ok(value)
 }
 
+pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<i64> {
+    let arg_value = args.get_or_undefined(*index);
+    if !arg_value.is_number() {
+        return Err(JsError::from_opaque(
+            js_string!("Arg is not a number").into(),
+        ));
+    }
+
+    // Unwrap is ok since we checked above to make sure its a number
+    let value = arg_value.as_number().unwrap() as i64;
+
+    Ok(value)
+}
+
 /// Get the JS arguement and convert to boolean
 pub(crate) fn bool_arg(args: &[JsValue], index: &usize) -> JsResult<bool> {
     let arg_value = args.get_or_undefined(*index);

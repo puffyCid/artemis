@@ -51,7 +51,7 @@ eventlogs: (_test "artifacts::os::windows::eventlogs")
 mft: (_test "artifacts::os::windows::mft")
 
 # Test only the JavaScript runtime
-runtime: (_test "runtime::")
+runtime: (_test "runtimev2::")
 
 # Test only the FileSystem functions
 filesystem: (_test "filesystem::")
