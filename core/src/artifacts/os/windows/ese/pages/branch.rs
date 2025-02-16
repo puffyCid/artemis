@@ -164,11 +164,11 @@ impl BranchPage {
         page_tracker: &mut HashMap<u32, bool>,
         ntfs_file: Option<&NtfsFile<'_>>,
         fs: &mut BufReader<T>,
-    ) -> nom::IResult<&'a [u8], ()> {
+    ) -> nom::IResult<&'a [u8], u32> {
         let (page_data, branch_page_data) = PageHeader::parse_header(page_branch_data)?;
         // Empty pages are not part of table data
         if branch_page_data.page_flags.contains(&PageFlags::Empty) {
-            return Ok((page_branch_data, ()));
+            return Ok((page_branch_data, branch_page_data.next_page_number));
         }
 
         let mut has_root = false;
@@ -179,7 +179,11 @@ impl BranchPage {
 
         let mut key_data: Vec<u8> = Vec::new();
         let mut has_key = true;
-        for tag in branch_page_data.page_tags {
+        let mut last = 0;
+        if branch_page_data.page_flags.contains(&PageFlags::Leaf) {
+            return Ok((page_branch_data, branch_page_data.next_page_number));
+        }
+        for tag in &branch_page_data.page_tags {
             // Defunct tags are not used
             if tag.flags.contains(&TagFlags::Defunct) {
                 continue;
@@ -196,17 +200,12 @@ impl BranchPage {
                 continue;
             }
 
-            if branch_page_data.page_flags.contains(&PageFlags::Leaf) {
-                continue;
-            }
-
             let (branch_start, _) = take(tag.offset)(page_data)?;
             let (_, branch_data) = take(tag.value_size)(branch_start)?;
             let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
-
             if let Some(_page) = page_tracker.get(&branch.child_page) {
                 warn!("[ese] Found a table branch child recursively pointing to same page {}. Exiting early", branch.child_page);
-                return Ok((page_branch_data, ()));
+                return Ok((page_branch_data, 0));
             }
             // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
             page_tracker.insert(branch.child_page, true);
@@ -233,18 +232,29 @@ impl BranchPage {
                 }
             };
 
-            let result = BranchPage::parse_branch_child_page(
+            last = match BranchPage::parse_branch_child_page(
                 &child_data,
                 pages,
                 page_tracker,
                 ntfs_file,
                 fs,
-            );
-            if result.is_err() {
-                error!("[ese] Failed to parse branch child table");
-            }
+            ) {
+                Ok((_, result)) => result,
+                Err(_err) => {
+                    error!("[ese] Failed to parse branch child table");
+                    continue;
+                }
+            };
         }
-        Ok((page_branch_data, ()))
+
+        let end = 0;
+        // The last tag *should* always have the next_page_number set to zero
+        // If its not, then there is one more page
+        if last != end && page_tracker.get(&last).is_none() {
+            pages.push(last);
+        }
+
+        Ok((page_branch_data, branch_page_data.next_page_number))
     }
 }
 

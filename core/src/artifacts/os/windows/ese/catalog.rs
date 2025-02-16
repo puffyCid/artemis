@@ -254,10 +254,9 @@ impl Catalog {
             let (_, mut rows) = if let Ok(results) = rows_results {
                 results
             } else {
-                error!("[ese] Could not parse child branch");
+                error!("[ese] Could not parse branch child catalog");
                 continue;
             };
-
             catalog_rows.append(&mut rows);
         }
 
