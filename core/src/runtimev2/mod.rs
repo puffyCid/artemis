@@ -1,5 +1,8 @@
 mod application;
+mod compression;
+mod decryption;
 mod encoding;
+mod environment;
 mod error;
 mod filesystem;
 mod helper;

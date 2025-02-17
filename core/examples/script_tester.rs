@@ -9,9 +9,8 @@ fn main() {
         let path = &args[1];
         if Path::new(path).is_file() {
             let status = core::core::parse_js_file(path).expect("failed script execution");
-            if status.is_null() {
-                panic!("Got null?");
-            }
+            println!("{status:?}");
+            return;
         } else {
             panic!("Not a file")
         }

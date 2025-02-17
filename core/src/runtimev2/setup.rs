@@ -1,8 +1,9 @@
 use super::{
-    application::extensions::application_functions, encoding::extensions::encoding_functions,
-    error::RuntimeError, filesystem::extensions::filesystem_functions,
-    http::extensions::http_functions, linux::extensions::linux_functions,
-    nom::extensions::nom_functions,
+    application::extensions::application_functions, compression::extensions::decompress_functions,
+    decryption::extensions::decrypt_functions, encoding::extensions::encoding_functions,
+    environment::extensions::env_functions, error::RuntimeError,
+    filesystem::extensions::filesystem_functions, http::extensions::http_functions,
+    linux::extensions::linux_functions, nom::extensions::nom_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -27,12 +28,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
         return Err(RuntimeError::ExecuteScript);
     }
 
-    filesystem_functions(&mut context);
-    encoding_functions(&mut context);
-    application_functions(&mut context);
-    linux_functions(&mut context);
-    nom_functions(&mut context);
-    http_functions(&mut context);
+    setup_runtime(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -187,12 +183,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         return Err(RuntimeError::ExecuteScript);
     }
 
-    filesystem_functions(&mut context);
-    encoding_functions(&mut context);
-    application_functions(&mut context);
-    linux_functions(&mut context);
-    nom_functions(&mut context);
-    http_functions(&mut context);
+    setup_runtime(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -237,4 +228,17 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     };
 
     Ok(value)
+}
+
+/// Register and create our custom JavaScript runtime
+fn setup_runtime(context: &mut Context) {
+    filesystem_functions(context);
+    encoding_functions(context);
+    application_functions(context);
+    linux_functions(context);
+    nom_functions(context);
+    http_functions(context);
+    env_functions(context);
+    decompress_functions(context);
+    decrypt_functions(context);
 }
