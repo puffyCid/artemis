@@ -1,7 +1,8 @@
 use super::{
     application::extensions::application_functions, encoding::extensions::encoding_functions,
     error::RuntimeError, filesystem::extensions::filesystem_functions,
-    linux::extensions::linux_functions, nom::extensions::nom_functions,
+    http::extensions::http_functions, linux::extensions::linux_functions,
+    nom::extensions::nom_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -31,6 +32,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     application_functions(&mut context);
     linux_functions(&mut context);
     nom_functions(&mut context);
+    http_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
@@ -91,6 +93,7 @@ impl JobQueue for Queue {
     fn run_jobs(&self, context: &mut Context) {
         let runtime = match tokio::runtime::Builder::new_current_thread()
             .enable_time()
+            .enable_io()
             .build()
         {
             Ok(result) => result,
@@ -189,6 +192,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     application_functions(&mut context);
     linux_functions(&mut context);
     nom_functions(&mut context);
+    http_functions(&mut context);
 
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,

@@ -3,6 +3,7 @@ mod encoding;
 mod error;
 mod filesystem;
 mod helper;
+mod http;
 mod linux;
 mod nom;
 pub(crate) mod run;
