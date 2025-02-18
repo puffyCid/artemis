@@ -4,6 +4,7 @@ use super::{
     environment::extensions::env_functions, error::RuntimeError,
     filesystem::extensions::filesystem_functions, http::extensions::http_functions,
     linux::extensions::linux_functions, nom::extensions::nom_functions,
+    system::extensions::system_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -33,7 +34,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute script: {err:?}");
+            println!("[runtime] Could not execute script: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
@@ -241,4 +242,5 @@ fn setup_runtime(context: &mut Context) {
     env_functions(context);
     decompress_functions(context);
     decrypt_functions(context);
+    system_functions(context);
 }

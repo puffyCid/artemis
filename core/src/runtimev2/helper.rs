@@ -92,3 +92,20 @@ pub(crate) fn bytes_arg(
     };
     Ok(bytes.to_vec())
 }
+
+/// Get the JS arguement and convert to boolean
+pub(crate) fn boolean_arg(
+    args: &[JsValue],
+    index: &usize,
+    context: &mut Context,
+) -> JsResult<bool> {
+    let arg_value = args.get_or_undefined(*index);
+    if !arg_value.is_boolean() {
+        return Err(JsError::from_opaque(
+            js_string!("Arg is not a boolean").into(),
+        ));
+    }
+
+    let value = arg_value.to_boolean();
+    Ok(value)
+}
