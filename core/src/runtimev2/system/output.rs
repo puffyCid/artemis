@@ -34,7 +34,7 @@ pub(crate) fn js_output_results(
     let status = output_data(&mut data, &output_name, &mut output, &empty_start);
     if status.is_err() {
         error!("[runtime] Failed could not output script data");
-        let issue = format!("Failed could not output script data");
+        let issue = String::from("Failed could not output script data");
         return Err(JsError::from_opaque(js_string!(issue).into()));
     }
 
@@ -63,12 +63,12 @@ pub(crate) fn js_raw_dump(
 
     if output.format == "jsonl" {
         if raw_jsonl(&data, &output_name, &mut output).is_err() {
-            let issue = format!("Failed could not output raw jsonl data");
+            let issue = String::from("Failed could not output raw jsonl data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     } else if output.format == "json" {
         if raw_json(&data, &output_name, &mut output).is_err() {
-            let issue = format!("Failed could not output raw json data");
+            let issue = String::from("Failed could not output raw json data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     } else {

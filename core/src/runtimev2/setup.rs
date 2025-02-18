@@ -4,7 +4,7 @@ use super::{
     environment::extensions::env_functions, error::RuntimeError,
     filesystem::extensions::filesystem_functions, http::extensions::http_functions,
     linux::extensions::linux_functions, nom::extensions::nom_functions,
-    system::extensions::system_functions,
+    system::extensions::system_functions, time::extensions::time_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -243,4 +243,5 @@ fn setup_runtime(context: &mut Context) {
     decompress_functions(context);
     decrypt_functions(context);
     system_functions(context);
+    time_functions(context);
 }

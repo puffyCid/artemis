@@ -11,7 +11,7 @@ pub(crate) fn js_decompress_zlib(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let data = bytes_arg(args, &0, context)?;
-    let wbits = number_arg(args, &1)?;
+    let wbits = number_arg(args, &1)? as i64;
     if wbits > u8::MAX as i64 {
         let issue = format!("wbits too large {wbits:?}. Should be less than 255");
         return Err(JsError::from_opaque(js_string!(issue).into()));

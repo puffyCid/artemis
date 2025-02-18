@@ -69,7 +69,7 @@ pub(crate) fn js_request(
         "GET" => client.get(request.url),
         "POST" => client.post(request.url),
         _ => {
-            let issue = format!("Unsupported protocol selected");
+            let issue = String::from("Unsupported protocol selected");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
@@ -98,7 +98,7 @@ pub(crate) fn js_request(
         };
         builder = builder.form(&form_data);
     } else {
-        builder = builder.body(body.to_vec());
+        builder = builder.body(body.clone());
     }
 
     // Create a promise to execute our async script

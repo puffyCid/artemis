@@ -26,7 +26,7 @@ pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
     Ok(value)
 }
 
-pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<i64> {
+pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_number() {
         return Err(JsError::from_opaque(
@@ -35,9 +35,25 @@ pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<i64> {
     }
 
     // Unwrap is ok since we checked above to make sure its a number
-    let value = arg_value.as_number().unwrap() as i64;
+    let value = arg_value.as_number().unwrap();
 
     Ok(value)
+}
+
+pub(crate) fn bigint_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
+    let arg_value = args.get_or_undefined(*index);
+    if arg_value.is_bigint() {
+        // Unwrap is ok since we checked above to make sure its a number
+        let value = arg_value.as_bigint().unwrap().to_f64();
+
+        return Ok(value);
+    } else if arg_value.is_number() {
+        return number_arg(args, index);
+    }
+
+    Err(JsError::from_opaque(
+        js_string!("Arg is not a bigint nor a number").into(),
+    ))
 }
 
 /// Get the JS arguement and convert to boolean
@@ -97,7 +113,7 @@ pub(crate) fn bytes_arg(
 pub(crate) fn boolean_arg(
     args: &[JsValue],
     index: &usize,
-    context: &mut Context,
+    _context: &mut Context,
 ) -> JsResult<bool> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_boolean() {
