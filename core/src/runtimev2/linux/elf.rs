@@ -20,6 +20,7 @@ pub(crate) fn js_get_elf(
     };
     let results = serde_json::to_value(&elf_data).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
+
     Ok(value)
 }
 

@@ -5,7 +5,7 @@ use super::{
     filesystem::extensions::filesystem_functions, http::extensions::http_functions,
     linux::extensions::linux_functions, nom::extensions::nom_functions,
     system::extensions::system_functions, time::extensions::time_functions,
-    unix::extensions::unix_functions,
+    unix::extensions::unix_functions, windows::extensions::windows_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -272,6 +272,7 @@ fn setup_runtime(context: &mut Context) {
     system_functions(context);
     time_functions(context);
     unix_functions(context);
+    windows_functions(context);
 }
 
 #[cfg(test)]
