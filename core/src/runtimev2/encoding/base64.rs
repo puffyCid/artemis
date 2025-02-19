@@ -20,9 +20,8 @@ pub(crate) fn js_base64_decode(
         }
     };
     let bytes = JsUint8Array::from_iter(decoded_data, context)?;
-    let value = bytes.into();
 
-    Ok(value)
+    Ok(bytes.into())
 }
 
 /// Encode bytes to Base64 string

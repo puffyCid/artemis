@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_decode_script() {
-        let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
+        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
         decode_script(&mut output, "hello world", test, &[]).unwrap();
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_execute_script() {
-        let test = "Y29uc29sZS5sb2coIkhlbGxvIGRlbm8hIik7";
+        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("hello world"),

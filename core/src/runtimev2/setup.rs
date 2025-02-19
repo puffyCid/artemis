@@ -5,12 +5,14 @@ use super::{
     filesystem::extensions::filesystem_functions, http::extensions::http_functions,
     linux::extensions::linux_functions, nom::extensions::nom_functions,
     system::extensions::system_functions, time::extensions::time_functions,
+    unix::extensions::unix_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
     job::{FutureJob, JobQueue, NativeJob},
+    js_str,
     property::Attribute,
-    Context, Source,
+    Context, JsValue, Source,
 };
 use boa_runtime::Console;
 use log::error;
@@ -18,6 +20,7 @@ use serde_json::Value;
 use std::{cell::RefCell, collections::VecDeque, future::Future, pin::Pin, rc::Rc};
 use tokio::task;
 
+/// Execute non-async scripts
 pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
     let mut context = Context::default();
 
@@ -27,6 +30,17 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
         let err = status.unwrap_err();
         error!("[runtime] Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
+    }
+    if !args.is_empty() {
+        let serde_value = serde_json::to_value(args).unwrap_or_default();
+        let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
+        let status =
+            context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
+        if status.is_err() {
+            let err = status.unwrap_err();
+            error!("[runtime] Could not register static args property: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
     }
 
     setup_runtime(&mut context);
@@ -166,6 +180,7 @@ impl JobQueue for Queue {
     }
 }
 
+/// Execute async scripts
 pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
     let queue = Queue::new();
     let mut context = match ContextBuilder::new().job_queue(Rc::new(queue)).build() {
@@ -182,6 +197,18 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         let err = status.unwrap_err();
         error!("[runtime] Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
+    }
+
+    if !args.is_empty() {
+        let serde_value = serde_json::to_value(args).unwrap_or_default();
+        let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
+        let status =
+            context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
+        if status.is_err() {
+            let err = status.unwrap_err();
+            error!("[runtime] Could not register static args property: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
     }
 
     setup_runtime(&mut context);
@@ -244,4 +271,22 @@ fn setup_runtime(context: &mut Context) {
     decrypt_functions(context);
     system_functions(context);
     time_functions(context);
+    unix_functions(context);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_script;
+
+    #[test]
+    fn test_run_script() {
+        let script = "console.info('look im running JS!')";
+        let _ = run_script(script, &[]).unwrap();
+    }
+
+    #[test]
+    fn test_run_async_script() {
+        let script = "console.warn(`true + true = ${true + true}. Classic JS, gotta love it`)";
+        let _ = run_script(script, &[]).unwrap();
+    }
 }
