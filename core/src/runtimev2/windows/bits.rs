@@ -1,30 +1,36 @@
 use crate::{
-    artifacts::os::windows::accounts::parser::grab_users, runtimev2::helper::string_arg,
-    structs::artifacts::os::windows::WindowsUserOptions,
+    artifacts::os::windows::bits::parser::grab_bits,
+    runtimev2::helper::{boolean_arg, string_arg},
+    structs::artifacts::os::windows::BitsOptions,
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing user info to `BoaJS`
-pub(crate) fn js_users_windows(
+/// Expose parsing BITS to `BoaJS`
+pub(crate) fn js_bits(
     _this: &JsValue,
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = if args.get_or_undefined(0).is_undefined() {
+    let carve = boolean_arg(args, &0, context)?;
+    let path = if args.get_or_undefined(1).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, &1)?)
     };
-    let options = WindowsUserOptions { alt_file: path };
 
-    let users = match grab_users(&options) {
+    let options = BitsOptions {
+        alt_file: path,
+        carve,
+    };
+    let bits = match grab_bits(&options) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get user info: {err:?}");
+            let issue = format!("Failed to get bits: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let results = serde_json::to_value(&users).unwrap();
+
+    let results = serde_json::to_value(&bits).unwrap();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)
@@ -55,11 +61,11 @@ mod tests {
     }
 
     #[test]
-    fn test_js_users_windows() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X3VzZXJzX3dpbigpIHsKICBjb25zdCBkYXRhID0ganNfdXNlcnNfd2luZG93cygpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9hcnRlbWlzLWFwaS9tb2QudHMKZnVuY3Rpb24gZ2V0VXNlcnNXaW4oKSB7CiAgcmV0dXJuIGdldF91c2Vyc193aW4oKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVzZXJzID0gZ2V0VXNlcnNXaW4oKTsKICByZXR1cm4gdXNlcnM7Cn0KbWFpbigpOwo=";
+    fn test_js_bits() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYml0cyhjYXJ2ZSkgewogICAgY29uc3QgZGF0YSA9IGpzX2JpdHMoY2FydmUpOwogICAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZ2V0Qml0cyhjYXJ2ZSkgewogICAgcmV0dXJuIGdldF9iaXRzKGNhcnZlKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZW50cmllcyA9IGdldEJpdHModHJ1ZSk7CiAgICByZXR1cm4gZW50cmllczsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
-            name: String::from("users"),
+            name: String::from("bits"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

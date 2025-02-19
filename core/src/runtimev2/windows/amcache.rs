@@ -1,11 +1,11 @@
 use crate::{
-    artifacts::os::windows::accounts::parser::grab_users, runtimev2::helper::string_arg,
-    structs::artifacts::os::windows::WindowsUserOptions,
+    artifacts::os::windows::amcache::parser::grab_amcache, runtimev2::helper::string_arg,
+    structs::artifacts::os::windows::AmcacheOptions,
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing user info to `BoaJS`
-pub(crate) fn js_users_windows(
+/// Expose parsing amcache `BoaJS`
+pub(crate) fn js_amcache(
     _this: &JsValue,
     args: &[JsValue],
     context: &mut Context,
@@ -15,16 +15,17 @@ pub(crate) fn js_users_windows(
     } else {
         Some(string_arg(args, &0)?)
     };
-    let options = WindowsUserOptions { alt_file: path };
 
-    let users = match grab_users(&options) {
+    let options = AmcacheOptions { alt_file: path };
+    let amcache = match grab_amcache(&options) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get user info: {err:?}");
+            let issue = format!("Failed to get amcache: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let results = serde_json::to_value(&users).unwrap();
+
+    let results = serde_json::to_value(&amcache).unwrap();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)
@@ -55,11 +56,11 @@ mod tests {
     }
 
     #[test]
-    fn test_js_users_windows() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X3VzZXJzX3dpbigpIHsKICBjb25zdCBkYXRhID0ganNfdXNlcnNfd2luZG93cygpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9hcnRlbWlzLWFwaS9tb2QudHMKZnVuY3Rpb24gZ2V0VXNlcnNXaW4oKSB7CiAgcmV0dXJuIGdldF91c2Vyc193aW4oKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHVzZXJzID0gZ2V0VXNlcnNXaW4oKTsKICByZXR1cm4gdXNlcnM7Cn0KbWFpbigpOwo=";
+    fn test_js_amcache() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19hbWNhY2hlKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRBbWNhY2hlKCkgewogICAgcmV0dXJuIGdldF9hbWNhY2hlKCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGNhY2hlID0gZ2V0QW1jYWNoZSgpOwogICAgcmV0dXJuIGNhY2hlOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
-            name: String::from("users"),
+            name: String::from("amcache"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

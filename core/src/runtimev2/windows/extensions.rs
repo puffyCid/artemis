@@ -1,18 +1,24 @@
-use super::accounts::{js_alt_users_windows, js_users_windows};
+use super::{accounts::js_users_windows, amcache::js_amcache, bits::js_bits};
 use boa_engine::{Context, JsString, NativeFunction};
 
 /// Link Windows functions `BoaJS`
 pub(crate) fn windows_functions(context: &mut Context) {
     let _ = context.register_global_callable(
         JsString::from("js_users_windows"),
-        0,
+        1,
         NativeFunction::from_fn_ptr(js_users_windows),
     );
 
     let _ = context.register_global_callable(
-        JsString::from("js_alt_users_windows"),
+        JsString::from("js_amcache"),
         1,
-        NativeFunction::from_fn_ptr(js_alt_users_windows),
+        NativeFunction::from_fn_ptr(js_amcache),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_bits"),
+        1,
+        NativeFunction::from_fn_ptr(js_bits),
     );
 }
 

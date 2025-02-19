@@ -37,7 +37,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
 }
 
 /// Parse `Amcache` associated with provided alternative path
-pub(crate) fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
+fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     parse_amcache(path)
 }
 

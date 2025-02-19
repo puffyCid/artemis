@@ -55,7 +55,7 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError>
 /**
  * Grab the BITS data from file path
  */
-pub(crate) fn grab_bits_path(path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
+fn grab_bits_path(path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
     if file_extension(path) == "db" {
         return parse_ese_bits(path, carve);
     }
