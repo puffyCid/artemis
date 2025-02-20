@@ -578,7 +578,7 @@ mod tests {
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
-        let mut test = json!({"key": "value"});
+        let test = json!({"key": "value"});
         output_logs(&mut Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
     }
 }

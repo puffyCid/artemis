@@ -5,6 +5,9 @@ use super::{
     ese::{js_filter_page_data, js_get_catalog, js_get_pages, js_get_table_columns, js_page_data},
     eventlogs::js_eventlogs,
     jumplists::js_jumplists,
+    ntfs::{js_read_ads, js_read_raw_file},
+    outlook::{js_read_attachment, js_read_folder, js_read_messages, js_root_folder},
+    pe::js_get_pe,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -68,6 +71,48 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_jumplists"),
         1,
         NativeFunction::from_fn_ptr(js_jumplists),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_raw_file"),
+        1,
+        NativeFunction::from_fn_ptr(js_read_raw_file),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_ads"),
+        2,
+        NativeFunction::from_fn_ptr(js_read_ads),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_root_folder"),
+        2,
+        NativeFunction::from_fn_ptr(js_root_folder),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_folder"),
+        3,
+        NativeFunction::from_fn_ptr(js_read_folder),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_messages"),
+        4,
+        NativeFunction::from_fn_ptr(js_read_messages),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_attachment"),
+        4,
+        NativeFunction::from_fn_ptr(js_read_attachment),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_get_pe"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_pe),
     );
 }
 
