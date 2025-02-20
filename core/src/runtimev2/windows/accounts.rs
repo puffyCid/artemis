@@ -24,7 +24,7 @@ pub(crate) fn js_users_windows(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let results = serde_json::to_value(&users).unwrap();
+    let results = serde_json::to_value(&users).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)

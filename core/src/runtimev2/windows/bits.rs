@@ -30,7 +30,7 @@ pub(crate) fn js_bits(
         }
     };
 
-    let results = serde_json::to_value(&bits).unwrap();
+    let results = serde_json::to_value(&bits).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)

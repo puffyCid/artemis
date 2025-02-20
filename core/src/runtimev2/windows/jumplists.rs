@@ -1,11 +1,11 @@
 use crate::{
-    artifacts::os::windows::amcache::parser::grab_amcache, runtimev2::helper::string_arg,
-    structs::artifacts::os::windows::AmcacheOptions,
+    artifacts::os::windows::jumplists::parser::grab_jumplists, runtimev2::helper::string_arg,
+    structs::artifacts::os::windows::JumplistsOptions,
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing amcache `BoaJS`
-pub(crate) fn js_amcache(
+/// Expose parsing Jumplists to `BoajS`
+pub(crate) fn js_jumplists(
     _this: &JsValue,
     args: &[JsValue],
     context: &mut Context,
@@ -15,17 +15,16 @@ pub(crate) fn js_amcache(
     } else {
         Some(string_arg(args, &0)?)
     };
-
-    let options = AmcacheOptions { alt_file: path };
-    let amcache = match grab_amcache(&options) {
+    let options = JumplistsOptions { alt_file: path };
+    let jumplist = match grab_jumplists(&options) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get amcache: {err:?}");
+            let issue = format!("Failed to get jumplists: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
-    let results = serde_json::to_value(&amcache).unwrap_or_default();
+    let results = serde_json::to_value(&jumplist).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)
@@ -56,11 +55,11 @@ mod tests {
     }
 
     #[test]
-    fn test_js_amcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19hbWNhY2hlKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRBbWNhY2hlKCkgewogICAgcmV0dXJuIGdldF9hbWNhY2hlKCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGNhY2hlID0gZ2V0QW1jYWNoZSgpOwogICAgcmV0dXJuIGNhY2hlOwp9Cm1haW4oKTsKCg==";
+    fn test_js_jumplists() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9qdW1wbGlzdHMudHMKZnVuY3Rpb24gZ2V0SnVtcGxpc3RzKCkgewogIGNvbnN0IGRhdGEgPSBqc19qdW1wbGlzdHMoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGp1bXAgPSBnZXRKdW1wbGlzdHMoKTsKICByZXR1cm4ganVtcDsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
-            name: String::from("amcache"),
+            name: String::from("jumplist_default"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
