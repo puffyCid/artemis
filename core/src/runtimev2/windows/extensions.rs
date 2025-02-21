@@ -11,6 +11,9 @@ use super::{
     prefetch::js_prefetch,
     recyclebin::js_recycle_bin,
     registry::{js_registry, js_sk_info},
+    search::js_search,
+    services::js_services,
+    shellbags::js_shellbags,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -140,6 +143,24 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_sk_info"),
         2,
         NativeFunction::from_fn_ptr(js_sk_info),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_search"),
+        2,
+        NativeFunction::from_fn_ptr(js_search),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_shellbags"),
+        2,
+        NativeFunction::from_fn_ptr(js_shellbags),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_services"),
+        1,
+        NativeFunction::from_fn_ptr(js_services),
     );
 }
 

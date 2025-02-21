@@ -48,7 +48,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
         Err(err) => {
-            println!("[runtime] Could not execute script: {err:?}");
+            error!("[runtime] Could not execute script: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     };

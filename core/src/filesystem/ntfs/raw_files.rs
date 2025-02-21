@@ -392,7 +392,7 @@ pub(crate) fn get_user_registry_files(
         start_path_depth: 1,
         depth: 6,
         path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        file_regex: create_regex("(NTUSER|UsrClass)\\.(?i)DAT$").unwrap(), // Valid Regex, should never fail
+        file_regex: create_regex("(?i)(NTUSER|UsrClass)\\.DAT$").unwrap(), // Valid Regex, should never fail
         filelist: Vec::new(),
         directory_tracker: vec![format!("{drive}:")],
     };
@@ -415,14 +415,13 @@ pub(crate) fn get_user_registry_files(
             full_path: entries.full_path,
             filename: String::new(),
         };
-        let usrclass_path = "\\AppData\\Local\\Microsoft\\Windows\\UsrClass.dat";
-
+        let usrclass_path = "\\appdata\\local\\microsoft\\windows\\usrclass.dat";
         if reg_file.full_path.ends_with("NTUSER.DAT")
             && reg_file.full_path.split('\\').count() == ntuser_depth
         {
             reg_file.filename = String::from("NTUSER.DAT");
             user_reg_files.push(reg_file);
-        } else if reg_file.full_path.ends_with(usrclass_path) {
+        } else if reg_file.full_path.to_lowercase().ends_with(usrclass_path) {
             reg_file.filename = String::from("UsrClass.dat");
             user_reg_files.push(reg_file);
         }

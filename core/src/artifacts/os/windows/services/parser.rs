@@ -27,7 +27,7 @@ pub(crate) fn grab_services(options: &ServicesOptions) -> Result<Vec<ServicesDat
 }
 
 /// Grab and parse SYSTEM file at custom path
-pub(crate) fn grab_service_file(path: &str) -> Result<Vec<ServicesData>, ServicesError> {
+fn grab_service_file(path: &str) -> Result<Vec<ServicesData>, ServicesError> {
     parse_services(path)
 }
 
