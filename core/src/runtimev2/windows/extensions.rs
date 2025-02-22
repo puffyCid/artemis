@@ -14,6 +14,9 @@ use super::{
     search::js_search,
     services::js_services,
     shellbags::js_shellbags,
+    shellitems::js_shellitems,
+    shimcache::js_shimcache,
+    shimdb::js_shimdb,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -161,6 +164,24 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_services"),
         1,
         NativeFunction::from_fn_ptr(js_services),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_shellitems"),
+        1,
+        NativeFunction::from_fn_ptr(js_shellitems),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_shimcache"),
+        1,
+        NativeFunction::from_fn_ptr(js_shimcache),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_shimdb"),
+        1,
+        NativeFunction::from_fn_ptr(js_shimdb),
     );
 }
 

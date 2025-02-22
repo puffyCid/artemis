@@ -14,3 +14,6 @@ mod registry;
 mod search;
 mod services;
 mod shellbags;
+mod shellitems;
+mod shimcache;
+mod shimdb;
