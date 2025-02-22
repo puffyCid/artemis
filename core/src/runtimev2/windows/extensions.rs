@@ -17,6 +17,9 @@ use super::{
     shellitems::js_shellitems,
     shimcache::js_shimcache,
     shimdb::js_shimdb,
+    shortcuts::js_lnk,
+    srum::js_srum,
+    tasks::js_tasks,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -182,6 +185,24 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_shimdb"),
         1,
         NativeFunction::from_fn_ptr(js_shimdb),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_lnk"),
+        1,
+        NativeFunction::from_fn_ptr(js_lnk),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_srum"),
+        2,
+        NativeFunction::from_fn_ptr(js_srum),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_tasks"),
+        1,
+        NativeFunction::from_fn_ptr(js_tasks),
     );
 }
 

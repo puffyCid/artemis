@@ -38,7 +38,7 @@ pub(crate) fn grab_shimdb(options: &ShimdbOptions) -> Result<Vec<ShimData>, Shim
 }
 
 /// SDB files can technically exist anywhere and do not have to end in `.sdb`. Parse any custom paths provided
-pub(crate) fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
+fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
     parse_sdb_file(path)
 }
 

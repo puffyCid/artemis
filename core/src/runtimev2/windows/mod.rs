@@ -17,3 +17,6 @@ mod shellbags;
 mod shellitems;
 mod shimcache;
 mod shimdb;
+mod shortcuts;
+mod srum;
+mod tasks;
