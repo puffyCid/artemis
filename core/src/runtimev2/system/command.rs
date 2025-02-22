@@ -91,7 +91,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     #[test]
     fn test_js_command() {
-        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBqc19jb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGNvbW1hbmQgPSAiZGlyIjsKICBjb25zdCBhcmdzID0gW107CiAgY29uc3QgcmVzdWx0cyA9IGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIHJldHVybiByZXN1bHRzOwp9Cm1haW4oKTsK";
+        let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBqc19jb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGNvbW1hbmQgPSAiIEM6XFdpbmRvd3NcU3lzdGVtMzJcd2hvYW1pLmV4ZSI7CiAgY29uc3QgYXJncyA9IFtdOwogIGNvbnN0IHJlc3VsdHMgPSBleGVjdXRlQ29tbWFuZChjb21tYW5kLCBhcmdzKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("command"),
