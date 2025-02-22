@@ -20,6 +20,8 @@ use super::{
     shortcuts::js_lnk,
     srum::js_srum,
     tasks::js_tasks,
+    userassist::js_userassist,
+    usnjrnl::js_usnjrnl, wmi::js_wmipersist,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -203,6 +205,24 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_tasks"),
         1,
         NativeFunction::from_fn_ptr(js_tasks),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_userassist"),
+        2,
+        NativeFunction::from_fn_ptr(js_userassist),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_usnjrnl"),
+        2,
+        NativeFunction::from_fn_ptr(js_usnjrnl),
+    );
+    
+    let _ = context.register_global_callable(
+        JsString::from("js_wmipersist"),
+        2,
+        NativeFunction::from_fn_ptr(js_wmipersist),
     );
 }
 

@@ -40,7 +40,7 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
 }
 
 /// Get `UsnJrnl` data at provided path
-pub(crate) fn grab_usnjrnl_path(
+fn grab_usnjrnl_path(
     path: &str,
     mft_path: &Option<String>,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {

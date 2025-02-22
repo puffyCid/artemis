@@ -5,7 +5,7 @@ use boa_engine::{
 };
 use serde_json::Value;
 
-/// Get the JS arguement and convert to string
+/// Get the JS argument and convert to string
 pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_string() {
@@ -26,6 +26,28 @@ pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
     Ok(value)
 }
 
+/// Get the JS argument and convert to char
+pub(crate) fn char_arg(args: &[JsValue], index: &usize) -> JsResult<char> {
+    let arg_value = args.get_or_undefined(*index);
+    if !arg_value.is_string() {
+        return Err(JsError::from_opaque(
+            js_string!("Arg is not a string").into(),
+        ));
+    }
+
+    // Unwrap is ok since we checked above to make sure its a string
+    let value = match arg_value.as_string().unwrap().to_std_string() {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not extract string: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    Ok(value.chars().next().unwrap_or_default())
+}
+
+/// Get the JS argument and convert to number
 pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_number() {
@@ -40,6 +62,7 @@ pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
     Ok(value)
 }
 
+/// Get the JS argument and convert to big number
 pub(crate) fn bigint_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
     let arg_value = args.get_or_undefined(*index);
     if arg_value.is_bigint() {
@@ -56,7 +79,7 @@ pub(crate) fn bigint_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
     ))
 }
 
-/// Get the JS arguement and convert to boolean
+/// Get the JS argument and convert to boolean
 pub(crate) fn bool_arg(args: &[JsValue], index: &usize) -> JsResult<bool> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_boolean() {
@@ -68,7 +91,7 @@ pub(crate) fn bool_arg(args: &[JsValue], index: &usize) -> JsResult<bool> {
     Ok(value)
 }
 
-/// Get the JS arguement and convert to object
+/// Get the JS argument and convert to object
 pub(crate) fn value_arg(args: &[JsValue], index: &usize, context: &mut Context) -> JsResult<Value> {
     let arg_value = args.get_or_undefined(*index);
     if !arg_value.is_object() {
@@ -82,7 +105,7 @@ pub(crate) fn value_arg(args: &[JsValue], index: &usize, context: &mut Context) 
     Ok(value)
 }
 
-/// Get the JS arguement and convert to bytes
+/// Get the JS argument and convert to bytes
 pub(crate) fn bytes_arg(
     args: &[JsValue],
     index: &usize,
@@ -109,7 +132,7 @@ pub(crate) fn bytes_arg(
     Ok(bytes.to_vec())
 }
 
-/// Get the JS arguement and convert to boolean
+/// Get the JS argument and convert to boolean
 pub(crate) fn boolean_arg(
     args: &[JsValue],
     index: &usize,
