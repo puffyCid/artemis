@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_js_amcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19hbWNhY2hlKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRBbWNhY2hlKCkgewogICAgcmV0dXJuIGdldF9hbWNhY2hlKCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGNhY2hlID0gZ2V0QW1jYWNoZSgpOwogICAgcmV0dXJuIGNhY2hlOwp9Cm1haW4oKTsKCg==";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYW1jYWNoZSgpIHsKdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc19hbWNhY2hlKCk7CiAgICByZXR1cm4gZGF0YTsKfWNhdGNoIChlcnIpe3JldHVybiBlcnI7fQp9CmZ1bmN0aW9uIGdldEFtY2FjaGUoKSB7CiAgICByZXR1cm4gZ2V0X2FtY2FjaGUoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgY2FjaGUgPSBnZXRBbWNhY2hlKCk7CiAgICByZXR1cm4gY2FjaGU7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("amcache"),

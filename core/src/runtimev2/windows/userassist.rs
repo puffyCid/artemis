@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_js_userassist() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcmFzc2lzdCgpIHsKICAgIGNvbnN0IGRhdGEgPSBqc191c2VyYXNzaXN0KGZhbHNlKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldFVzZXJBc3Npc3QoKSB7CiAgICByZXR1cm4gZ2V0X3VzZXJhc3Npc3QoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXNzaXN0ID0gZ2V0VXNlckFzc2lzdCgpOwogICAgcmV0dXJuIGFzc2lzdDsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcmFzc2lzdCgpIHsKdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc191c2VyYXNzaXN0KGZhbHNlKTsKICAgIHJldHVybiBkYXRhOwogICAgfWNhdGNoKGVycil7cmV0dXJuIGVycjt9Cn0KZnVuY3Rpb24gZ2V0VXNlckFzc2lzdCgpIHsKICAgIHJldHVybiBnZXRfdXNlcmFzc2lzdCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBhc3Npc3QgPSBnZXRVc2VyQXNzaXN0KCk7CiAgICByZXR1cm4gYXNzaXN0Owp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("userassist"),
