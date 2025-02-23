@@ -224,7 +224,6 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
 
     // Run and wait for our script to complete
     context.run_jobs();
-
     if result.is_undefined() {
         return Ok(Value::Null);
     } else if result.is_promise() {
@@ -242,7 +241,6 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
                         return Err(RuntimeError::ScriptResult);
                     }
                 };
-
                 return Ok(value);
             }
         }

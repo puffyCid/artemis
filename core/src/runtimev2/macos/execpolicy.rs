@@ -1,11 +1,11 @@
 use crate::{
-    artifacts::os::macos::emond::parser::grab_emond, runtimev2::helper::string_arg,
-    structs::artifacts::os::macos::EmondOptions,
+    artifacts::os::macos::execpolicy::policy::grab_execpolicy, runtimev2::helper::string_arg,
+    structs::artifacts::os::macos::ExecPolicyOptions,
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing Emond to `BoaJS`
-pub(crate) fn js_emond(
+/// Expose parsing ExecPolicy to `BoaJS`
+pub(crate) fn js_execpolicy(
     _this: &JsValue,
     args: &[JsValue],
     context: &mut Context,
@@ -16,17 +16,17 @@ pub(crate) fn js_emond(
         Some(string_arg(args, &0)?)
     };
 
-    let options = EmondOptions { alt_path: path };
+    let options = ExecPolicyOptions { alt_file: path };
 
-    let emond = match grab_emond(&options) {
+    let policy = match grab_execpolicy(&options) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get emond: {err:?}");
+            let issue = format!("Failed to get execpolicy: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
-    let results = serde_json::to_value(&emond).unwrap_or_default();
+    let results = serde_json::to_value(&policy).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
     Ok(value)
@@ -57,11 +57,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_emond() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZW1vbmQoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldEVtb25kKCkgewogICAgcmV0dXJuIGdldF9lbW9uZCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0RW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9Cm1haW4oKTsKCg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+    fn test_js_execpolicy() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0ganNfZXhlY3BvbGljeSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL21vZC50cwpmdW5jdGlvbiBnZXRFeGVjUG9saWN5KCkgewogIHJldHVybiBnZXRfZXhlY3BvbGljeSgpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEV4ZWNQb2xpY3koKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
+        let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
-            name: String::from("emond"),
+            name: String::from("execpolicy"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

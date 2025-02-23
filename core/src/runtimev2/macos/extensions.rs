@@ -2,6 +2,9 @@ use super::{
     accounts::{js_groups_macos, js_users_macos},
     bookmarks::js_bookmark,
     emond::js_emond,
+    execpolicy::js_execpolicy,
+    fsevents::js_fsevents,
+    launchd::{js_launchd_agents, js_launchd_daemons},
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -9,26 +12,50 @@ use boa_engine::{Context, JsString, NativeFunction};
 pub(crate) fn macos_functions(context: &mut Context) {
     let _ = context.register_global_callable(
         JsString::from("js_users_macos"),
-        0,
+        1,
         NativeFunction::from_fn_ptr(js_users_macos),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_groups_macos"),
-        0,
+        1,
         NativeFunction::from_fn_ptr(js_groups_macos),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_bookmark"),
-        0,
+        1,
         NativeFunction::from_fn_ptr(js_bookmark),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_emond"),
-        0,
+        1,
         NativeFunction::from_fn_ptr(js_emond),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_launchd_daemons"),
+        0,
+        NativeFunction::from_fn_ptr(js_launchd_daemons),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_launchd_agents"),
+        0,
+        NativeFunction::from_fn_ptr(js_launchd_agents),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_execpolicy"),
+        1,
+        NativeFunction::from_fn_ptr(js_execpolicy),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_fsevents"),
+        1,
+        NativeFunction::from_fn_ptr(js_fsevents),
     );
 }
 
