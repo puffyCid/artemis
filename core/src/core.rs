@@ -1,5 +1,5 @@
 use crate::artifacts::collection::collect;
-use crate::runtimev2::run::raw_script;
+use crate::runtime::run::raw_script;
 use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
