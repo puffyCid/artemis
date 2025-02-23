@@ -4,7 +4,7 @@ use crate::{
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing ExecPolicy to `BoaJS`
+/// Expose parsing `ExecPolicy` to `BoaJS`
 pub(crate) fn js_execpolicy(
     _this: &JsValue,
     args: &[JsValue],

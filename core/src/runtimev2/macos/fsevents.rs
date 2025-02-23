@@ -3,7 +3,7 @@ use crate::{
 };
 use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 
-/// Expose parsing FsEvents to `BoaJS`
+/// Expose parsing `FsEvents` to `BoaJS`
 pub(crate) fn js_fsevents(
     _this: &JsValue,
     args: &[JsValue],

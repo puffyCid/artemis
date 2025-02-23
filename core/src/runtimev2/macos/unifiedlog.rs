@@ -33,7 +33,7 @@ pub(crate) fn js_unified_log(
     } else {
         input_path
     };
-    let logs_result = if !archive_path.is_none() {
+    let logs_result = if archive_path.is_some() {
         let provider = LogarchiveProvider::new(Path::new(&archive_path.unwrap_or_default()));
         let string_results = collect_strings(&provider).unwrap_or_default();
         let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();

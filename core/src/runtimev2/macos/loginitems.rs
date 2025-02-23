@@ -4,7 +4,7 @@ use crate::{
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-/// Expose parsing LoginItems to `BoaJS`
+/// Expose parsing `LoginItems` to `BoaJS`
 pub(crate) fn js_loginitems(
     _this: &JsValue,
     args: &[JsValue],

@@ -9,7 +9,11 @@ use super::{
     windows::extensions::windows_functions,
 };
 use boa_engine::{
-    context::ContextBuilder, job::{FutureJob, JobQueue, NativeJob}, js_str, property::Attribute, Context, JsValue, Source
+    context::ContextBuilder,
+    job::{FutureJob, JobQueue, NativeJob},
+    js_str,
+    property::Attribute,
+    Context, JsValue, Source,
 };
 use boa_runtime::Console;
 use log::error;
@@ -47,7 +51,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
         Err(err) => {
             error!("[runtime] Could not execute script: {err:?}");
             // A script should never halt execution
-            return Ok(serde_json::to_value(&format!("{err:?}")).unwrap_or_default());
+            return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
         }
     };
     if result.is_undefined() {
@@ -216,7 +220,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         Err(err) => {
             error!("[runtime] Could not execute script: {err:?}");
             // A script should never halt execution
-            return Ok(serde_json::to_value(&format!("{err:?}")).unwrap_or_default());
+            return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
         }
     };
 
