@@ -61,7 +61,7 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
 
 /// Parse `Shellbags` associated with provided alternative path
 fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
-    let regex = if path.contains("UsrClass.dat") {
+    let regex = if path.to_lowercase().contains("usrclass.dat") {
         create_regex(r"local settings\\software\\microsoft\\windows\\shell\\bagmru").unwrap()
     // Should always be valid
     } else {
@@ -126,7 +126,7 @@ fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, S
 
     let mut shellbags_vec: Vec<Shellbag> = Vec::new();
     for hive in user_hives {
-        let shellbags = if hive.filename == "UsrClass.dat" {
+        let shellbags = if hive.filename.to_lowercase() == "usrclass.dat" {
             // UsrClass starts with <SID>_Classes
             let start_path = "";
             let path_regex =

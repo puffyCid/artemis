@@ -11,4 +11,4 @@ mod plist;
 mod safari;
 mod spotlight;
 mod sudo;
-mod unifiedlogs;
+mod unifiedlog;

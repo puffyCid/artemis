@@ -1,45 +1,46 @@
 use crate::{
-    artifacts::os::windows::bits::parser::{grab_bits, grab_bits_path},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::bits::parser::grab_bits,
+    runtime::helper::{boolean_arg, string_arg},
     structs::artifacts::os::windows::BitsOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing default BITS location on systemdrive to `Deno`
-pub(crate) fn get_bits(carve: bool) -> Result<String, AnyError> {
+/// Expose parsing BITS to `BoaJS`
+pub(crate) fn js_bits(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let carve = boolean_arg(args, &0, context)?;
+    let path = if args.get_or_undefined(1).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &1)?)
+    };
+
     let options = BitsOptions {
-        alt_file: None,
+        alt_file: path,
         carve,
     };
-    let bits = grab_bits(&options)?;
+    let bits = match grab_bits(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get bits: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
 
-    let results = serde_json::to_string(&bits)?;
-    Ok(results)
-}
+    let results = serde_json::to_value(&bits).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-#[op2]
-#[string]
-/// Expose parsing provided BITS path to `Deno`
-pub(crate) fn get_bits_path(#[string] path: String, carve: bool) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Can not parse BITS path, path is empty.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-
-    let bits = grab_bits_path(&path, carve)?;
-
-    let results = serde_json::to_string(&bits)?;
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -60,22 +61,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_bits() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYml0cyhjYXJ2ZSkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2JpdHMoY2FydmUpOwogICAgY29uc3QgYml0cyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gYml0czsKfQpmdW5jdGlvbiBnZXRCaXRzKGNhcnZlKSB7CiAgICByZXR1cm4gZ2V0X2JpdHMoY2FydmUpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBlbnRyaWVzID0gZ2V0Qml0cyh0cnVlKTsKICAgIHJldHVybiBlbnRyaWVzOwp9Cm1haW4oKTsKCg==";
+    fn test_js_bits() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYml0cyhjYXJ2ZSkgewp0cnkgewogICAgY29uc3QgZGF0YSA9IGpzX2JpdHMoY2FydmUpOwogICAgcmV0dXJuIGRhdGE7Cn1jYXRjaChlcnIpe3JldHVybiBlcnI7fQp9CmZ1bmN0aW9uIGdldEJpdHMoY2FydmUpIHsKICAgIHJldHVybiBnZXRfYml0cyhjYXJ2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGVudHJpZXMgPSBnZXRCaXRzKHRydWUpOwogICAgcmV0dXJuIGVudHJpZXM7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("bits"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_bits_path() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYml0c19wYXRoKHBhdGgsIGNhcnZlKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfYml0c19wYXRoKHBhdGgsIGNhcnZlKTsKICAgIGNvbnN0IGJpdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIGJpdHM7Cn0KZnVuY3Rpb24gZ2V0Qml0c1BhdGgocGF0aCwgY2FydmUpIHsKICAgIHJldHVybiBnZXRfYml0c19wYXRoKHBhdGgsIGNhcnZlKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgcGF0aCA9ICJDOlxcUHJvZ3JhbURhdGFcXE1pY3Jvc29mdFxcTmV0d29ya1xcRG93bmxvYWRlclxccW1nci5kYiI7CiAgICBjb25zdCBlbnRyaWVzID0gZ2V0Qml0c1BhdGgocGF0aCwgdHJ1ZSk7CiAgICByZXR1cm4gZW50cmllczsKfQptYWluKCk7Cgo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("bits_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

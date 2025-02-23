@@ -1,49 +1,40 @@
 use crate::{
-    artifacts::os::windows::jumplists::parser::{grab_jumplist_file, grab_jumplists},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::jumplists::parser::grab_jumplists, runtime::helper::string_arg,
     structs::artifacts::os::windows::JumplistsOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Jumplists at default systemdrive to Deno
-pub(crate) fn get_jumplists() -> Result<String, AnyError> {
-    let options = JumplistsOptions { alt_file: None };
-    let jumplist = grab_jumplists(&options)?;
-
-    let results = serde_json::to_string(&jumplist)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Jumplist file to Deno
-pub(crate) fn get_jumplist_file(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Got empty jumplist file arguement.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-
-    let jumplist_result = grab_jumplist_file(&path);
-    let jumplist = match jumplist_result {
-        Ok(results) => results,
+/// Expose parsing Jumplists to `BoajS`
+pub(crate) fn js_jumplists(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
+    let options = JumplistsOptions { alt_file: path };
+    let jumplist = match grab_jumplists(&options) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Failed to parse jumplist file at path {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
+            let issue = format!("Failed to get jumplists: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
-    let results = serde_json::to_string(&jumplist)?;
-    Ok(results)
+    let results = serde_json::to_value(&jumplist).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -64,22 +55,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_jumplists() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9qdW1wbGlzdHMudHMKZnVuY3Rpb24gZ2V0SnVtcGxpc3RzKCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9qdW1wbGlzdHMoKTsKICBjb25zdCBqdW1wID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4ganVtcDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGp1bXAgPSBnZXRKdW1wbGlzdHMoKTsKICByZXR1cm4ganVtcDsKfQptYWluKCk7Cg==";
+    fn test_js_jumplists() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9qdW1wbGlzdHMudHMKZnVuY3Rpb24gZ2V0SnVtcGxpc3RzKCkgewogIGNvbnN0IGRhdGEgPSBqc19qdW1wbGlzdHMoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGp1bXAgPSBnZXRKdW1wbGlzdHMoKTsKICByZXR1cm4ganVtcDsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("jumplist_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_jumplist_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBnbG9iKHBhdHRlcm4pIHsKICBjb25zdCBkYXRhID0gZnMuZ2xvYihwYXR0ZXJuKTsKICBjb25zdCByZXN1bHQgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3dpbmRvd3MvanVtcGxpc3RzLnRzCmZ1bmN0aW9uIGdldEp1bXBsaXN0UGF0aChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2p1bXBsaXN0X2ZpbGUocGF0aCk7CiAgY29uc3QganVtcCA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIGp1bXA7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRocyA9IGdsb2IoIkM6XFxVc2Vyc1xcKlxcQXBwRGF0YVxcUm9hbWluZ1xcTWljcm9zb2Z0XFxXaW5kb3dzXFxSZWNlbnRcXCpEZXN0aW5hdGlvbnNcXCoiKTsKICBpZiAocGF0aHMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcigiRXJyb3Igd2l0aCBKdW1wbGlzdHMgZ2xvYiIpOwogICAgcmV0dXJuOwogIH0KICBmb3IgKGNvbnN0IHBhdGggb2YgcGF0aHMpIHsKICAgIGNvbnN0IGp1bXAgPSBnZXRKdW1wbGlzdFBhdGgocGF0aC5mdWxsX3BhdGgpOwogICAgcmV0dXJuIGp1bXA7CiAgfQp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("jumplist_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

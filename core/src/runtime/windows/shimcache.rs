@@ -1,45 +1,40 @@
 use crate::{
-    artifacts::os::windows::shimcache::parser::grab_shimcache, runtime::error::RuntimeError,
+    artifacts::os::windows::shimcache::parser::grab_shimcache, runtime::helper::string_arg,
     structs::artifacts::os::windows::ShimcacheOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing shimcache located on default drive to `Deno`
-pub(crate) fn get_shimcache() -> Result<String, AnyError> {
-    let options = ShimcacheOptions { alt_file: None };
-    let shim = grab_shimcache(&options)?;
-
-    let results = serde_json::to_string(&shim)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing alt shimcache location `Deno`
-pub(crate) fn get_alt_shimcache(#[string] file: String) -> Result<String, AnyError> {
-    if file.is_empty() {
-        error!("[runtime] Failed to parse alt shimcache file");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let options = ShimcacheOptions {
-        alt_file: Some(file),
+/// Expose parsing shimcache located on default drive to `BoaJS`
+pub(crate) fn js_shimcache(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
+    let options = ShimcacheOptions { alt_file: path };
+    let shim = match grab_shimcache(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get shimcache: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    let shim = grab_shimcache(&options)?;
-    let results = serde_json::to_string(&shim)?;
+    let results = serde_json::to_value(&shim).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -60,22 +55,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_shimcache() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWNhY2hlKCkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NoaW1jYWNoZSgpOwogICAgY29uc3Qgc2hpbV9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gc2hpbV9hcnJheTsKfQpmdW5jdGlvbiBnZXRTaGltY2FjaGUoKSB7CiAgICByZXR1cm4gZ2V0X3NoaW1jYWNoZSgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBzaGltY2FjaGVfZW50cmllcyA9IGdldFNoaW1jYWNoZSgpOwogICAgcmV0dXJuIHNoaW1jYWNoZV9lbnRyaWVzOwp9Cm1haW4oKTs=";
+    fn test_js_shimcache() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWNhY2hlKCkgewogICAgY29uc3QgZGF0YSA9IGpzX3NoaW1jYWNoZSgpOwogICAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZ2V0U2hpbWNhY2hlKCkgewogICAgcmV0dXJuIGdldF9zaGltY2FjaGUoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3Qgc2hpbWNhY2hlX2VudHJpZXMgPSBnZXRTaGltY2FjaGUoKTsKICAgIHJldHVybiBzaGltY2FjaGVfZW50cmllczsKfQptYWluKCk7";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("shimcache"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_shimcache() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zaGltY2FjaGUudHMKZnVuY3Rpb24gZ2V0QWx0U2hpbWNhY2hlKGRyaXZlKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2FsdF9zaGltY2FjaGUoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEFsdFNoaW1jYWNoZSgiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxjb25maWdcXFNZU1RFTSIpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTs=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("shimcache_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

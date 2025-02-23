@@ -1,42 +1,41 @@
 use crate::{
-    artifacts::os::windows::prefetch::parser::{custom_prefetch_path, grab_prefetch},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::prefetch::parser::grab_prefetch, runtime::helper::string_arg,
     structs::artifacts::os::windows::PrefetchOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Get Prefetch files at using default drive (typically C)
-pub(crate) fn get_prefetch() -> Result<String, AnyError> {
-    let options = PrefetchOptions { alt_dir: None };
-    let pf = grab_prefetch(&options)?;
+/// Expose parsing prefetch to `BoaJS`
+pub(crate) fn js_prefetch(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
 
-    let results = serde_json::to_string(&pf)?;
-    Ok(results)
-}
+    let options = PrefetchOptions { alt_dir: path };
+    let pf = match grab_prefetch(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to parse prefetch: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
 
-#[op2]
-#[string]
-/// Parse Prefetch files at provided directory
-pub(crate) fn get_prefetch_path(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Got empty prefetch path.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
+    let results = serde_json::to_value(&pf).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    let pf = custom_prefetch_path(&path)?;
-
-    let results = serde_json::to_string(&pf)?;
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -57,22 +56,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_prefetch() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2goKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfcHJlZmV0Y2goKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaCgpIHsKICAgIHJldHVybiBnZXRfcHJlZmV0Y2goKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgcGYgPSBnZXRQcmVmZXRjaCgpOwogICAgcmV0dXJuIHBmOwp9Cm1haW4oKTsKCg==";
+    fn test_js_prefetch() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2goKSB7CiAgICBjb25zdCBkYXRhID0ganNfcHJlZmV0Y2goKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldFByZWZldGNoKCkgewogICAgcmV0dXJuIGdldF9wcmVmZXRjaCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwZiA9IGdldFByZWZldGNoKCk7CiAgICByZXR1cm4gcGY7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("pf_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_prefetch_path() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJlZmV0Y2hfcGF0aChwYXRoKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfcHJlZmV0Y2hfcGF0aChwYXRoKTsKICAgIGNvbnN0IHBmID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBwZjsKfQpmdW5jdGlvbiBnZXRQcmVmZXRjaFBhdGgocGF0aCkgewogICAgcmV0dXJuIGdldF9wcmVmZXRjaF9wYXRoKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwZiA9IGdldFByZWZldGNoUGF0aCgiQzpcXFdpbmRvd3NcXFByZWZldGNoIik7CiAgICByZXR1cm4gcGY7Cn0KbWFpbigpOwoK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("pf_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

@@ -1,63 +1,40 @@
 use crate::{
-    artifacts::os::windows::tasks::parser::{grab_task_job, grab_task_xml, grab_tasks},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::tasks::parser::grab_tasks, runtime::helper::string_arg,
     structs::artifacts::os::windows::TasksOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Schedule Tasks at default systemdrive to Deno
-pub(crate) fn get_tasks() -> Result<String, AnyError> {
-    let options = TasksOptions { alt_file: None };
-    let task = grab_tasks(&options)?;
-
-    let results = serde_json::to_string(&task)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Schedule Task file to Deno
-pub(crate) fn get_task_file(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Got empty task file arguement.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-
-    let results = if path.ends_with(".job") {
-        let task_result = grab_task_job(&path);
-        let task = match task_result {
-            Ok(results) => results,
-            Err(err) => {
-                error!("[runtime] Failed to parse task job at path {path}: {err:?}");
-                return Err(RuntimeError::ExecuteScript.into());
-            }
-        };
-
-        serde_json::to_string(&task)?
+/// Expose parsing Schedule Tasks to `BoaJS`
+pub(crate) fn js_tasks(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
     } else {
-        let task_result = grab_task_xml(&path);
-        let task = match task_result {
-            Ok(results) => results,
-            Err(err) => {
-                error!("[runtime] Failed to parse task xml at path {path}: {err:?}");
-                return Err(RuntimeError::ExecuteScript.into());
-            }
-        };
-
-        serde_json::to_string(&task)?
+        Some(string_arg(args, &0)?)
+    };
+    let options = TasksOptions { alt_file: path };
+    let task = match grab_tasks(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get tasks: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    Ok(results)
+    let results = serde_json::to_value(&task).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -78,22 +55,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_tasks() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy90YXNrcy50cwpmdW5jdGlvbiBnZXRUYXNrcygpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfdGFza3MoKTsKICBjb25zdCB0YXNrcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHRhc2tzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdGFza3MgPSBnZXRUYXNrcygpOwogIGlmICh0YXNrcyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBHb3QgdGFzayBwYXJzaW5nIGVycm9yISAke3Rhc2tzfWApOwogIH0KICByZXR1cm4gdGFza3M7Cn0KbWFpbigpOwo=";
+    fn test_js_tasks() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy90YXNrcy50cwpmdW5jdGlvbiBnZXRUYXNrcygpIHsKICBjb25zdCBkYXRhID0ganNfdGFza3MoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRhc2tzID0gZ2V0VGFza3MoKTsKICBpZiAodGFza3MgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgR290IHRhc2sgcGFyc2luZyBlcnJvciEgJHt0YXNrc31gKTsKICB9CiAgcmV0dXJuIHRhc2tzOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("task_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_task_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy90YXNrcy50cwpmdW5jdGlvbiBnZXRUYXNrRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3Rhc2tfZmlsZShwYXRoKTsKICBjb25zdCB0YXNrcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHRhc2tzOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFpbi9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBnbG9iKHBhdHRlcm4pIHsKICBjb25zdCBkYXRhID0gZnMuZ2xvYihwYXR0ZXJuKTsKICBjb25zdCByZXN1bHQgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB4bWxfZmlsZXMgPSBnbG9iKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXFRhc2tzXFwqIik7CiAgaWYgKHhtbF9maWxlcyBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGBHb3QgZ2xvYmJpbmcgZXJyb3IhICR7eG1sX2ZpbGVzfWApOwogICAgcmV0dXJuIHhtbF9maWxlczsKICB9CiAgZm9yIChjb25zdCBlbnRyeSBvZiB4bWxfZmlsZXMpIHsKICAgIGlmICghZW50cnkuaXNfZmlsZSkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIHJldHVybiBnZXRUYXNrRmlsZShlbnRyeS5mdWxsX3BhdGgpOwogIH0KfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("task_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

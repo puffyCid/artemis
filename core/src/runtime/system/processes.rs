@@ -1,26 +1,42 @@
-use crate::artifacts::os::processes::process::proc_list_entries;
+use crate::{
+    artifacts::os::processes::process::proc_list_entries,
+    runtime::helper::{boolean_arg, value_arg},
+};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 use common::files::Hashes;
-use deno_core::{error::AnyError, op2};
 
-#[op2]
-#[string]
-/// Expose pulling process listing to `Deno`
-pub(crate) fn get_processes(#[string] hashes: String, metadata: bool) -> Result<String, AnyError> {
-    let hashes: Hashes = serde_json::from_str(&hashes).unwrap_or(Hashes {
+/// Expose pulling process listing to `BoaJS`
+pub(crate) fn js_get_processes(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let input = value_arg(args, &0, context)?;
+    let metadata = boolean_arg(args, &1, context)?;
+
+    let hashes: Hashes = serde_json::from_value(input).unwrap_or(Hashes {
         md5: false,
         sha1: false,
         sha256: false,
     });
-    let proc = proc_list_entries(&hashes, &metadata)?;
-    let results = serde_json::to_string(&proc)?;
-    Ok(results)
+    let proc = match proc_list_entries(&hashes, &metadata) {
+        Ok(results) => results,
+        Err(err) => {
+            let issue = format!("Failed to get process listing: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let results = serde_json::to_value(&proc).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -41,8 +57,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_processes() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICBjb25zdCBoYXNoZXMgPSB7CiAgICAgICAgbWQ1LAogICAgICAgIHNoYTEsCiAgICAgICAgc2hhMjU2CiAgICB9OwogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3Byb2Nlc3NlcyhKU09OLnN0cmluZ2lmeShoYXNoZXMpLCBwZV9pbmZvKTsKICAgIGNvbnN0IHByb2NfYXJyYXkgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIHByb2NfYXJyYXk7Cn0KZnVuY3Rpb24gZ2V0UHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICByZXR1cm4gZ2V0X3Byb2Nlc3NlcyhtZDUsIHNoYTEsIHNoYTI1NiwgcGVfaW5mbyk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IHByb2NfbGlzdCA9IGdldFByb2Nlc3Nlcyh0cnVlLCBmYWxzZSwgZmFsc2UsIHRydWUpOwogICAgcmV0dXJuIHByb2NfbGlzdDsKfQptYWluKCk7";
+    fn test_js_get_processes() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICBjb25zdCBoYXNoZXMgPSB7CiAgICAgICAgbWQ1LAogICAgICAgIHNoYTEsCiAgICAgICAgc2hhMjU2CiAgICB9OwogICAgY29uc3QgZGF0YSA9IGpzX2dldF9wcm9jZXNzZXMoaGFzaGVzLCBwZV9pbmZvKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldFByb2Nlc3NlcyhtZDUsIHNoYTEsIHNoYTI1NiwgcGVfaW5mbykgewogICAgcmV0dXJuIGdldF9wcm9jZXNzZXMobWQ1LCBzaGExLCBzaGEyNTYsIHBlX2luZm8pOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwcm9jX2xpc3QgPSBnZXRQcm9jZXNzZXMoZmFsc2UsIGZhbHNlLCBmYWxzZSwgdHJ1ZSk7CiAgICByZXR1cm4gcHJvY19saXN0Owp9Cm1haW4oKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("processes"),

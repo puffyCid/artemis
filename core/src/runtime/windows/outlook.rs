@@ -6,17 +6,36 @@ use crate::{
         tables::context::TableInfo,
     },
     filesystem::ntfs::setup::setup_ntfs_parser,
+    runtime::helper::{bigint_arg, boolean_arg, string_arg, value_arg},
 };
-use deno_core::{error::AnyError, op2};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use log::error;
 use std::io::BufReader;
 
-#[op2]
-#[string]
-pub(crate) fn get_root_folder(#[string] path: String, use_ntfs: bool) -> Result<String, AnyError> {
-    let root = if use_ntfs {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C'))?;
+pub(crate) fn js_root_folder(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let use_ntfs = boolean_arg(args, &1, context)?;
+
+    let root_result = if use_ntfs {
+        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup NTFS reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let ntfs_file =
-            setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path)?;
+            match setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to setup NTFS outlook reader: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            };
 
         let mut reader = OutlookReader {
             fs: ntfs_parser.fs,
@@ -27,10 +46,20 @@ pub(crate) fn get_root_folder(#[string] path: String, use_ntfs: bool) -> Result<
             size: 4096,
         };
 
-        reader.setup(Some(&ntfs_file))?;
-        reader.root_folder(Some(&ntfs_file))?
+        let err = reader.setup(Some(&ntfs_file));
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.root_folder(None)
     } else {
-        let reader = setup_outlook_reader(&path)?;
+        let reader = match setup_outlook_reader(&path) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let buf_reader = BufReader::new(reader);
 
         let mut reader = OutlookReader {
@@ -42,25 +71,53 @@ pub(crate) fn get_root_folder(#[string] path: String, use_ntfs: bool) -> Result<
             size: 4096,
         };
 
-        reader.setup(None)?;
-        reader.root_folder(None)?
+        let err = reader.setup(None);
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.root_folder(None)
     };
 
-    let results = serde_json::to_string(&root)?;
-    Ok(results)
+    let root = match root_result {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to read root folder: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let results = serde_json::to_value(&root).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
-#[op2]
-#[string]
-pub(crate) fn read_folder(
-    #[string] path: String,
-    use_ntfs: bool,
-    #[bigint] folder: u64,
-) -> Result<String, AnyError> {
-    let folder = if use_ntfs {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C'))?;
+pub(crate) fn js_read_folder(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let use_ntfs = boolean_arg(args, &1, context)?;
+    let folder_id = bigint_arg(args, &2)? as u64;
+
+    let folder_result = if use_ntfs {
+        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup NTFS reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let ntfs_file =
-            setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path)?;
+            match setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to setup NTFS outlook reader: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            };
 
         let mut reader = OutlookReader {
             fs: ntfs_parser.fs,
@@ -71,10 +128,20 @@ pub(crate) fn read_folder(
             size: 4096,
         };
 
-        reader.setup(Some(&ntfs_file))?;
-        reader.read_folder(Some(&ntfs_file), folder)?
+        let err = reader.setup(Some(&ntfs_file));
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.read_folder(Some(&ntfs_file), folder_id)
     } else {
-        let reader = setup_outlook_reader(&path)?;
+        let reader = match setup_outlook_reader(&path) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let buf_reader = BufReader::new(reader);
 
         let mut reader = OutlookReader {
@@ -86,28 +153,61 @@ pub(crate) fn read_folder(
             size: 4096,
         };
 
-        reader.setup(None)?;
-        reader.read_folder(None, folder)?
+        let err = reader.setup(None);
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.read_folder(None, folder_id)
     };
 
-    let results = serde_json::to_string(&folder)?;
-    Ok(results)
+    let folder = match folder_result {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to read folder: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let results = serde_json::to_value(&folder).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
-#[op2]
-#[string]
-pub(crate) fn read_messages(
-    #[string] path: String,
-    use_ntfs: bool,
-    #[string] table: String,
-    #[bigint] offset: u64,
-) -> Result<String, AnyError> {
-    let message_table: TableInfo = serde_json::from_str(&table)?;
+pub(crate) fn js_read_messages(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let use_ntfs = boolean_arg(args, &1, context)?;
+    let table = value_arg(args, &2, context)?;
+    let offset = bigint_arg(args, &3)? as u64;
+    let message_table: TableInfo = match serde_json::from_value(table) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to deserialize TableInfo: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
 
     let messages = if use_ntfs {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C'))?;
+        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup NTFS reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let ntfs_file =
-            setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path)?;
+            match setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to setup NTFS outlook reader: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            };
 
         let mut reader = OutlookReader {
             fs: ntfs_parser.fs,
@@ -118,7 +218,11 @@ pub(crate) fn read_messages(
             size: 4096,
         };
 
-        reader.setup(Some(&ntfs_file))?;
+        let err = reader.setup(Some(&ntfs_file));
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
         // This is difficult
         if message_table.has_branch.is_some() {
             let mut main_count = 0;
@@ -132,7 +236,13 @@ pub(crate) fn read_messages(
                     continue;
                 }
 
-                let mut emails = reader.read_message(Some(&ntfs_file), &message_table, None)?;
+                let mut emails = match reader.read_message(Some(&ntfs_file), &message_table, None) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[runtime] Failed to read message {err:?}");
+                        continue;
+                    }
+                };
                 chunks.append(&mut emails);
                 if chunks.len() < message_table.rows.len() {
                     continue;
@@ -140,10 +250,22 @@ pub(crate) fn read_messages(
             }
             chunks
         } else {
-            reader.read_message(Some(&ntfs_file), &message_table, None)?
+            match reader.read_message(Some(&ntfs_file), &message_table, None) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to read messages: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            }
         }
     } else {
-        let reader = setup_outlook_reader(&path)?;
+        let reader = match setup_outlook_reader(&path) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let buf_reader = BufReader::new(reader);
 
         let mut reader = OutlookReader {
@@ -155,7 +277,11 @@ pub(crate) fn read_messages(
             size: 4096,
         };
 
-        reader.setup(None)?;
+        let err = reader.setup(None);
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
         if message_table.has_branch.is_some() {
             let mut main_count = 0;
             let mut chunks = Vec::new();
@@ -168,7 +294,13 @@ pub(crate) fn read_messages(
                     continue;
                 }
 
-                let mut emails = reader.read_message(None, &message_table, None)?;
+                let mut emails = match reader.read_message(None, &message_table, None) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[runtime] Failed to read message {err:?}");
+                        continue;
+                    }
+                };
                 chunks.append(&mut emails);
                 if chunks.len() < message_table.rows.len() {
                     continue;
@@ -177,26 +309,48 @@ pub(crate) fn read_messages(
             }
             chunks
         } else {
-            reader.read_message(None, &message_table, None)?
+            match reader.read_message(None, &message_table, None) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to read messages: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            }
         }
     };
 
-    let results = serde_json::to_string(&messages)?;
-    Ok(results)
+    let results = serde_json::to_value(&messages).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
-#[op2]
-#[string]
-pub(crate) fn read_attachment(
-    #[string] path: String,
-    use_ntfs: bool,
-    #[bigint] block_id: u64,
-    #[bigint] descriptor_id: u64,
-) -> Result<String, AnyError> {
-    let attachment = if use_ntfs {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C'))?;
+pub(crate) fn js_read_attachment(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let use_ntfs = boolean_arg(args, &1, context)?;
+    let block_id = bigint_arg(args, &2)? as u64;
+    let descriptor_id = bigint_arg(args, &3)? as u64;
+
+    let attachment_result = if use_ntfs {
+        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup NTFS reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let ntfs_file =
-            setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path)?;
+            match setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, &path) {
+                Ok(result) => result,
+                Err(err) => {
+                    let issue = format!("Failed to setup NTFS outlook reader: {err:?}");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            };
 
         let mut reader = OutlookReader {
             fs: ntfs_parser.fs,
@@ -207,10 +361,20 @@ pub(crate) fn read_attachment(
             size: 4096,
         };
 
-        reader.setup(Some(&ntfs_file))?;
-        reader.read_attachment(Some(&ntfs_file), &block_id, &descriptor_id)?
+        let err = reader.setup(Some(&ntfs_file));
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.read_attachment(Some(&ntfs_file), &block_id, &descriptor_id)
     } else {
-        let reader = setup_outlook_reader(&path)?;
+        let reader = match setup_outlook_reader(&path) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Failed to setup reader: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
         let buf_reader = BufReader::new(reader);
 
         let mut reader = OutlookReader {
@@ -222,19 +386,33 @@ pub(crate) fn read_attachment(
             size: 4096,
         };
 
-        reader.setup(None)?;
-        reader.read_attachment(None, &block_id, &descriptor_id)?
+        let err = reader.setup(None);
+        if err.is_err() {
+            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+        reader.read_attachment(None, &block_id, &descriptor_id)
     };
 
-    let results = serde_json::to_string(&attachment)?;
-    Ok(results)
+    let attachment = match attachment_result {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to read attachment: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let results = serde_json::to_value(&attachment).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -256,7 +434,7 @@ mod tests {
 
     #[test]
     fn test_get_outlook() {
-        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzDQp2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7DQogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsNCiAgICBzdXBlcigpOw0KICAgIHRoaXMubmFtZSA9IG5hbWU7DQogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsNCiAgfQ0KfTsNCg0KLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzDQp2YXIgV2luZG93c0Vycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugew0KfTsNCg0KLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvb3V0bG9vay50cw0KdmFyIE91dGxvb2sgPSBjbGFzcyB7DQogIGNvbnN0cnVjdG9yKHBhdGgsIG50ZnMgPSBmYWxzZSkgew0KICAgIHRoaXMucGF0aCA9IHBhdGg7DQogICAgdGhpcy51c2VfbnRmcyA9IG50ZnM7DQogIH0NCiAgcm9vdEZvbGRlcigpIHsNCiAgICB0cnkgew0KICAgICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3Jvb3RfZm9sZGVyKA0KICAgICAgICB0aGlzLnBhdGgsDQogICAgICAgIHRoaXMudXNlX250ZnMNCiAgICAgICk7DQogICAgICBjb25zdCByZXN1bHRzID0gSlNPTi5wYXJzZShkYXRhKTsNCiAgICAgIHJldHVybiByZXN1bHRzOw0KICAgIH0gY2F0Y2ggKGVycikgew0KICAgICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoDQogICAgICAgICJPVVRMT09LIiwNCiAgICAgICAgYGZhaWxlZCB0byBkZXRlcm1pbmUgcm9vdCBmb2xkZXIgZm9yICR7dGhpcy5wYXRofTogJHtlcnJ9YA0KICAgICAgKTsNCiAgICB9DQogIH0NCiAgcmVhZEZvbGRlcihmb2xkZXIpIHsNCiAgICB0cnkgew0KICAgICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMucmVhZF9mb2xkZXIoDQogICAgICAgIHRoaXMucGF0aCwNCiAgICAgICAgdGhpcy51c2VfbnRmcywNCiAgICAgICAgZm9sZGVyDQogICAgICApOw0KICAgICAgY29uc3QgcmVzdWx0cyA9IEpTT04ucGFyc2UoZGF0YSk7DQogICAgICByZXR1cm4gcmVzdWx0czsNCiAgICB9IGNhdGNoIChlcnIpIHsNCiAgICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKA0KICAgICAgICAiT1VUTE9PSyIsDQogICAgICAgIGBmYWlsZWQgdG8gcmVhZCBmb2xkZXIgZm9yICR7dGhpcy5wYXRofTogJHtlcnJ9YA0KICAgICAgKTsNCiAgICB9DQogIH0NCiAgcmVhZE1lc3NhZ2VzKHRhYmxlLCBvZmZzZXQsIGxpbWl0ID0gNTApIHsNCiAgICBjb25zdCByb3dzID0gW107DQogICAgZm9yIChsZXQgaSA9IG9mZnNldDsgaSA8IGxpbWl0ICsgb2Zmc2V0OyBpKyspIHsNCiAgICAgIHJvd3MucHVzaChpKTsNCiAgICB9DQogICAgdGFibGUucm93cyA9IHJvd3M7DQogICAgdHJ5IHsNCiAgICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLnJlYWRfbWVzc2FnZXMoDQogICAgICAgIHRoaXMucGF0aCwNCiAgICAgICAgdGhpcy51c2VfbnRmcywNCiAgICAgICAgSlNPTi5zdHJpbmdpZnkodGFibGUpLA0KICAgICAgICBvZmZzZXQNCiAgICAgICk7DQogICAgICBjb25zdCByZXN1bHRzID0gSlNPTi5wYXJzZShkYXRhKTsNCiAgICAgIHJldHVybiByZXN1bHRzOw0KICAgIH0gY2F0Y2ggKGVycikgew0KICAgICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoDQogICAgICAgICJPVVRMT09LIiwNCiAgICAgICAgYGZhaWxlZCB0byByZWFkIGVtYWlsIG1lc3NhZ2UgZm9yICR7dGhpcy5wYXRofTogJHtlcnJ9YA0KICAgICAgKTsNCiAgICB9DQogIH0NCiAgcmVhZEF0dGFjaG1lbnQoYmxvY2tfaWQsIGRlc2NyaXB0b3JfaWQpIHsNCiAgICB0cnkgew0KICAgICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMucmVhZF9hdHRhY2htZW50KA0KICAgICAgICB0aGlzLnBhdGgsDQogICAgICAgIHRoaXMudXNlX250ZnMsDQogICAgICAgIGJsb2NrX2lkLA0KICAgICAgICBkZXNjcmlwdG9yX2lkDQogICAgICApOw0KICAgICAgY29uc3QgcmVzdWx0cyA9IEpTT04ucGFyc2UoZGF0YSk7DQogICAgICByZXR1cm4gcmVzdWx0czsNCiAgICB9IGNhdGNoIChlcnIpIHsNCiAgICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKA0KICAgICAgICAiT1VUTE9PSyIsDQogICAgICAgIGBmYWlsZWQgdG8gcmVhZCBlbWFpbCBhdHRhY2htZW50IGZvciAke3RoaXMucGF0aH06ICR7ZXJyfWANCiAgICAgICk7DQogICAgfQ0KICB9DQp9Ow0KDQovLyBtYWluLnRzDQpmdW5jdGlvbiBtYWluKCkgew0KICBjb25zdCBwYXRoID0gIi4vdGVzdHMvdGVzdF9kYXRhL3dpbmRvd3Mvb3V0bG9vay93aW5kb3dzMTEvdGVzdEBvdXRsb29rLmNvbS5vc3QiOw0KICBjb25zdCByZWFkZXIgPSBuZXcgT3V0bG9vayhwYXRoKTsNCiAgY29uc3QgcmVzdWx0ID0gcmVhZGVyLnJvb3RGb2xkZXIoKTsNCiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIFdpbmRvd3NFcnJvcikgew0KICAgIGNvbnNvbGUubG9nKHJlc3VsdCk7DQogICAgcmV0dXJuOw0KICB9DQogIGZvciAoY29uc3Qgc3ViIG9mIHJlc3VsdC5zdWJmb2xkZXJzKSB7DQogICAgY29uc29sZS5sb2coYE5hbWU6ICR7c3ViLm5hbWV9IC0gTm9kZTogJHtzdWIubm9kZX1gKTsNCiAgICB3YWxrRm9sZGVycyhzdWIsIHJlYWRlciwgYC8ke3N1Yi5uYW1lfWApOw0KICB9DQp9DQpmdW5jdGlvbiB3YWxrRm9sZGVycyhmb2xkZXIsIHJlYWRlciwgZnVsbF9wYXRoKSB7DQogIGNvbnN0IHJlc3VsdCA9IHJlYWRlci5yZWFkRm9sZGVyKGZvbGRlci5ub2RlKTsNCiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIFdpbmRvd3NFcnJvcikgew0KICAgIGNvbnNvbGUubG9nKHJlc3VsdCk7DQogICAgcmV0dXJuOw0KICB9DQogIGlmIChyZXN1bHQubWVzc2FnZV9jb3VudCAhPSAwKSB7DQogICAgY29uc29sZS5sb2coYFRvdGFsIG1lc3NhZ2VzOiAke3Jlc3VsdC5tZXNzYWdlX2NvdW50fWApOw0KICAgIGxldCBsaW1pdCA9IDIwMDsNCiAgICBpZiAobGltaXQgPiByZXN1bHQubWVzc2FnZV9jb3VudCkgew0KICAgICAgbGltaXQgPSByZXN1bHQubWVzc2FnZV9jb3VudDsNCiAgICB9DQogICAgbGV0IG9mZnNldCA9IDA7DQogICAgbGV0IGNvdW50ID0gcmVzdWx0Lm1lc3NhZ2VfY291bnQ7DQogICAgd2hpbGUgKGNvdW50ICE9IDApIHsNCiAgICAgIGNvbnN0IGVtYWlscyA9IHJlYWRlci5yZWFkTWVzc2FnZXMocmVzdWx0Lm1lc3NhZ2VzX3RhYmxlLCBvZmZzZXQsIGxpbWl0KTsNCiAgICAgIGlmIChlbWFpbHMgaW5zdGFuY2VvZiBXaW5kb3dzRXJyb3IpIHsNCiAgICAgICAgY29uc29sZS5sb2coZW1haWxzKTsNCiAgICAgICAgYnJlYWs7DQogICAgICB9DQogICAgICBjb25zb2xlLmxvZyhgRW1haWwgbWVzc2FnZXM6ICR7ZW1haWxzLmxlbmd0aH1gKTsNCiAgICAgIGZvciAoY29uc3QgZW1haWwgb2YgZW1haWxzKSB7DQogICAgICAgIGlmIChlbWFpbC5zdWJqZWN0ID09PSAiSGkiKSB7DQogICAgICAgICAgY29uc29sZS5sb2coZW1haWwuYm9keSk7DQogICAgICAgIH0NCiAgICAgICAgZm9yIChjb25zdCBhdHRhY2ggb2YgZW1haWwuYXR0YWNobWVudHMpIHsNCiAgICAgICAgICBjb25zb2xlLmxvZyhgQXR0YWNobWVudDogJHthdHRhY2gubmFtZX1gKTsNCiAgICAgICAgICBjb25zdCBkZXRhaWxzID0gcmVhZGVyLnJlYWRBdHRhY2htZW50KGF0dGFjaC5ibG9ja19pZCwgYXR0YWNoLmRlc2NyaXB0b3JfaWQpOw0KICAgICAgICAgIGlmIChkZXRhaWxzIGluc3RhbmNlb2YgV2luZG93c0Vycm9yKSB7DQogICAgICAgICAgICBjb25zb2xlLmVycm9yKGRldGFpbHMpOw0KICAgICAgICAgICAgY29udGludWU7DQogICAgICAgICAgfQ0KICAgICAgICAgIGNvbnNvbGUubG9nKGRldGFpbHMpOw0KICAgICAgICAgIGJyZWFrOw0KICAgICAgICB9DQogICAgICB9DQogICAgICBpZiAoZW1haWxzLmxlbmd0aCA8IGxpbWl0KSB7DQogICAgICAgIGJyZWFrOw0KICAgICAgfQ0KICAgICAgY291bnQgPSBlbWFpbHMubGVuZ3RoOw0KICAgICAgb2Zmc2V0ICs9IGxpbWl0Ow0KICAgIH0NCiAgfQ0KICBmb3IgKGNvbnN0IHN1YiBvZiByZXN1bHQuc3ViZm9sZGVycykgew0KICAgIGNvbnN0IHBhdGggPSBgJHtmdWxsX3BhdGh9LyR7c3ViLm5hbWV9YDsNCiAgICBjb25zb2xlLmxvZyhgTmFtZTogJHtzdWIubmFtZX0gLSBOb2RlOiAke3N1Yi5ub2RlfSAtIEZvbGRlciBwYXRoOiAke3BhdGh9YCk7DQogICAgd2Fsa0ZvbGRlcnMoc3ViLCByZWFkZXIsIHBhdGgpOw0KICB9DQp9DQptYWluKCk7DQo=";
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy9vdXRsb29rLnRzCnZhciBPdXRsb29rID0gY2xhc3MgewogIGNvbnN0cnVjdG9yKHBhdGgsIG50ZnMgPSBmYWxzZSkgewogICAgdGhpcy5wYXRoID0gcGF0aDsKICAgIHRoaXMudXNlX250ZnMgPSBudGZzOwogIH0KICByb290Rm9sZGVyKCkgewogICAgdHJ5IHsKICAgICAgY29uc3QgZGF0YSA9IGpzX3Jvb3RfZm9sZGVyKAogICAgICAgIHRoaXMucGF0aCwKICAgICAgICB0aGlzLnVzZV9udGZzCiAgICAgICk7CiAgICAgIHJldHVybiBkYXRhOwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKAogICAgICAgICJPVVRMT09LIiwKICAgICAgICBgZmFpbGVkIHRvIGRldGVybWluZSByb290IGZvbGRlciBmb3IgJHt0aGlzLnBhdGh9OiAke2Vycn1gCiAgICAgICk7CiAgICB9CiAgfQogIHJlYWRGb2xkZXIoZm9sZGVyKSB7CiAgICB0cnkgewogICAgICBjb25zdCBkYXRhID0ganNfcmVhZF9mb2xkZXIoCiAgICAgICAgdGhpcy5wYXRoLAogICAgICAgIHRoaXMudXNlX250ZnMsCiAgICAgICAgZm9sZGVyCiAgICAgICk7CiAgICAgIHJldHVybiBkYXRhOwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKAogICAgICAgICJPVVRMT09LIiwKICAgICAgICBgZmFpbGVkIHRvIHJlYWQgZm9sZGVyIGZvciAke3RoaXMucGF0aH06ICR7ZXJyfWAKICAgICAgKTsKICAgIH0KICB9CiAgcmVhZE1lc3NhZ2VzKHRhYmxlLCBvZmZzZXQsIGxpbWl0ID0gNTApIHsKICAgIGNvbnN0IHJvd3MgPSBbXTsKICAgIGZvciAobGV0IGkgPSBvZmZzZXQ7IGkgPCBsaW1pdCArIG9mZnNldDsgaSsrKSB7CiAgICAgIHJvd3MucHVzaChpKTsKICAgIH0KICAgIHRhYmxlLnJvd3MgPSByb3dzOwogICAgdHJ5IHsKICAgICAgY29uc3QgZGF0YSA9IGpzX3JlYWRfbWVzc2FnZXMoCiAgICAgICAgdGhpcy5wYXRoLAogICAgICAgIHRoaXMudXNlX250ZnMsCiAgICAgICAgdGFibGUsCiAgICAgICAgb2Zmc2V0CiAgICAgICk7CiAgICAgIHJldHVybiBkYXRhOwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKAogICAgICAgICJPVVRMT09LIiwKICAgICAgICBgZmFpbGVkIHRvIHJlYWQgZW1haWwgbWVzc2FnZSBmb3IgJHt0aGlzLnBhdGh9OiAke2Vycn1gCiAgICAgICk7CiAgICB9CiAgfQogIHJlYWRBdHRhY2htZW50KGJsb2NrX2lkLCBkZXNjcmlwdG9yX2lkKSB7CiAgICB0cnkgewogICAgICBjb25zdCBkYXRhID0ganNfcmVhZF9hdHRhY2htZW50KAogICAgICAgIHRoaXMucGF0aCwKICAgICAgICB0aGlzLnVzZV9udGZzLAogICAgICAgIGJsb2NrX2lkLAogICAgICAgIGRlc2NyaXB0b3JfaWQKICAgICAgKTsKICAgICAgcmV0dXJuIGRhdGE7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoCiAgICAgICAgIk9VVExPT0siLAogICAgICAgIGBmYWlsZWQgdG8gcmVhZCBlbWFpbCBhdHRhY2htZW50IGZvciAke3RoaXMucGF0aH06ICR7ZXJyfWAKICAgICAgKTsKICAgIH0KICB9Cn07CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aCA9ICIuL3Rlc3RzL3Rlc3RfZGF0YS93aW5kb3dzL291dGxvb2svd2luZG93czExL3Rlc3RAb3V0bG9vay5jb20ub3N0IjsKICBjb25zdCByZWFkZXIgPSBuZXcgT3V0bG9vayhwYXRoKTsKICBjb25zdCByZXN1bHQgPSByZWFkZXIucm9vdEZvbGRlcigpOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBXaW5kb3dzRXJyb3IpIHsKICAgIGNvbnNvbGUubG9nKHJlc3VsdCk7CiAgICByZXR1cm47CiAgfQogIGZvciAoY29uc3Qgc3ViIG9mIHJlc3VsdC5zdWJmb2xkZXJzKSB7CiAgICBjb25zb2xlLmxvZyhgTmFtZTogJHtzdWIubmFtZX0gLSBOb2RlOiAke3N1Yi5ub2RlfWApOwogICAgd2Fsa0ZvbGRlcnMoc3ViLCByZWFkZXIsIGAvJHtzdWIubmFtZX1gKTsKICB9Cn0KZnVuY3Rpb24gd2Fsa0ZvbGRlcnMoZm9sZGVyLCByZWFkZXIsIGZ1bGxfcGF0aCkgewogIGNvbnN0IHJlc3VsdCA9IHJlYWRlci5yZWFkRm9sZGVyKGZvbGRlci5ub2RlKTsKICBpZiAocmVzdWx0IGluc3RhbmNlb2YgV2luZG93c0Vycm9yKSB7CiAgICBjb25zb2xlLmxvZyhyZXN1bHQpOwogICAgcmV0dXJuOwogIH0KICBpZiAocmVzdWx0Lm1lc3NhZ2VfY291bnQgIT0gMCkgewogICAgY29uc29sZS5sb2coYFRvdGFsIG1lc3NhZ2VzOiAke3Jlc3VsdC5tZXNzYWdlX2NvdW50fWApOwogICAgbGV0IGxpbWl0ID0gMjAwOwogICAgaWYgKGxpbWl0ID4gcmVzdWx0Lm1lc3NhZ2VfY291bnQpIHsKICAgICAgbGltaXQgPSByZXN1bHQubWVzc2FnZV9jb3VudDsKICAgIH0KICAgIGxldCBvZmZzZXQgPSAwOwogICAgbGV0IGNvdW50ID0gcmVzdWx0Lm1lc3NhZ2VfY291bnQ7CiAgICB3aGlsZSAoY291bnQgIT0gMCkgewogICAgICBjb25zdCBlbWFpbHMgPSByZWFkZXIucmVhZE1lc3NhZ2VzKHJlc3VsdC5tZXNzYWdlc190YWJsZSwgb2Zmc2V0LCBsaW1pdCk7CiAgICAgIGlmIChlbWFpbHMgaW5zdGFuY2VvZiBXaW5kb3dzRXJyb3IpIHsKICAgICAgICBjb25zb2xlLmxvZyhlbWFpbHMpOwogICAgICAgIGJyZWFrOwogICAgICB9CiAgICAgIGNvbnNvbGUubG9nKGBFbWFpbCBtZXNzYWdlczogJHtlbWFpbHMubGVuZ3RofWApOwogICAgICBmb3IgKGNvbnN0IGVtYWlsIG9mIGVtYWlscykgewogICAgICAgIGlmIChlbWFpbC5zdWJqZWN0ID09PSAiSGkiKSB7CiAgICAgICAgICBjb25zb2xlLmxvZyhlbWFpbC5ib2R5KTsKICAgICAgICB9CiAgICAgICAgZm9yIChjb25zdCBhdHRhY2ggb2YgZW1haWwuYXR0YWNobWVudHMpIHsKICAgICAgICAgIGNvbnNvbGUubG9nKGBBdHRhY2htZW50OiAke2F0dGFjaC5uYW1lfWApOwogICAgICAgICAgY29uc3QgZGV0YWlscyA9IHJlYWRlci5yZWFkQXR0YWNobWVudChhdHRhY2guYmxvY2tfaWQsIGF0dGFjaC5kZXNjcmlwdG9yX2lkKTsKICAgICAgICAgIGlmIChkZXRhaWxzIGluc3RhbmNlb2YgV2luZG93c0Vycm9yKSB7CiAgICAgICAgICAgIGNvbnNvbGUuZXJyb3IoZGV0YWlscyk7CiAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgICAgfQogICAgICAgICAgY29uc29sZS5sb2coZGV0YWlscyk7CiAgICAgICAgICBicmVhazsKICAgICAgICB9CiAgICAgIH0KICAgICAgaWYgKGVtYWlscy5sZW5ndGggPCBsaW1pdCkgewogICAgICAgIGJyZWFrOwogICAgICB9CiAgICAgIGNvdW50ID0gZW1haWxzLmxlbmd0aDsKICAgICAgb2Zmc2V0ICs9IGxpbWl0OwogICAgfQogIH0KICBmb3IgKGNvbnN0IHN1YiBvZiByZXN1bHQuc3ViZm9sZGVycykgewogICAgY29uc3QgcGF0aCA9IGAke2Z1bGxfcGF0aH0vJHtzdWIubmFtZX1gOwogICAgY29uc29sZS5sb2coYE5hbWU6ICR7c3ViLm5hbWV9IC0gTm9kZTogJHtzdWIubm9kZX0gLSBGb2xkZXIgcGF0aDogJHtwYXRofWApOwogICAgd2Fsa0ZvbGRlcnMoc3ViLCByZWFkZXIsIHBhdGgpOwogIH0KfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("outlook_js"),

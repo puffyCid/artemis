@@ -76,7 +76,6 @@ ignore = [
     { id = "RUSTSEC-2024-0417", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
     { id = "RUSTSEC-2024-0414", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
     { id = "RUSTSEC-2024-0429", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
-    { id = "RUSTSEC-2025-0004", "reason" = "Only applicable to server usage" },
 ] # The lint level for security vulnerabilities
 #vulnerability = "deny"
 # The lint level for unmaintained crates
@@ -124,7 +123,6 @@ allow = [
     "BSD-3-Clause",
     "CC0-1.0",
     "Unlicense",
-    "Unicode-DFS-2016",
     "Zlib",
     "LicenseRef-ring",
     "MPL-2.0",

@@ -22,7 +22,7 @@ use super::{
     },
 };
 use crate::{
-    runtime::deno::execute_script,
+    runtime::run::execute_script,
     structs::toml::ArtemisToml,
     utils::{logging::upload_logs, output::compress_final_output},
 };

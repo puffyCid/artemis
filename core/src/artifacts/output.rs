@@ -1,7 +1,7 @@
 use crate::{
     artifacts::error::CollectionError,
     output::formats::{csv::csv_format, json::json_format, jsonl::jsonl_format},
-    runtime::deno::filter_script,
+    runtime::run::filter_script,
     structs::toml::Output,
 };
 use log::error;

@@ -1,17 +1,23 @@
-use crate::runtime::decryption::decrypt::js_decrypt_aes;
+use super::decrypt::js_decrypt_aes;
+use boa_engine::{Context, JsString, NativeFunction};
 
-/// Link Rust decryption functions to `Deno core`
-pub(crate) fn decryption_functions() -> Vec<deno_core::OpDecl> {
-    vec![js_decrypt_aes()]
+/// Link Decryption functions `BoaJS`
+pub(crate) fn decrypt_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_decrypt_aes"),
+        2,
+        NativeFunction::from_fn_ptr(js_decrypt_aes),
+    );
 }
 
 #[cfg(test)]
 mod tests {
-    use super::decryption_functions;
+    use super::decrypt_functions;
+    use boa_engine::Context;
 
     #[test]
-    fn test_decryption_functions() {
-        let results = decryption_functions();
-        assert!(results.len() >= 1)
+    fn test_decrypt_functions() {
+        let mut context = Context::default();
+        decrypt_functions(&mut context);
     }
 }

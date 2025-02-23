@@ -1,50 +1,41 @@
 use crate::{
-    artifacts::os::windows::recyclebin::parser::{grab_recycle_bin, grab_recycle_bin_path},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::recyclebin::parser::grab_recycle_bin, runtime::helper::string_arg,
     structs::artifacts::os::windows::RecycleBinOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Recycle Bin at default systemdrive to Deno
-pub(crate) fn get_recycle_bin() -> Result<String, AnyError> {
-    let options = RecycleBinOptions { alt_file: None };
-    let bin = grab_recycle_bin(&options)?;
+/// Expose parsing Recycle Bin to `BoaJS`
+pub(crate) fn js_recycle_bin(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
 
-    let results = serde_json::to_string(&bin)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing Recycle Bin file to Deno
-pub(crate) fn get_recycle_bin_file(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Got empty recycle bin file arguement.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-
-    let bin_result = grab_recycle_bin_path(&path);
-    let bin = match bin_result {
-        Ok(results) => results,
+    let options = RecycleBinOptions { alt_file: path };
+    let bin = match grab_recycle_bin(&options) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Failed to parse recycle bin file at path {path}: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
+            let issue = format!("Failed to parse recyclebin: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
-    let results = serde_json::to_string(&bin)?;
+    let results = serde_json::to_value(&bin).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -65,22 +56,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_recycle_bin() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9yZWN5Y2xlYmluLnRzCmZ1bmN0aW9uIGdldFJlY3ljbGVCaW4oZHJpdmUpIHsKICBpZiAoZHJpdmUgPT09IHZvaWQgMCkgewogICAgY29uc3QgZGF0YTIgPSBEZW5vLmNvcmUub3BzLmdldF9yZWN5Y2xlX2JpbigpOwogICAgY29uc3QgYmluMiA9IEpTT04ucGFyc2UoZGF0YTIpOwogICAgcmV0dXJuIGJpbjI7CiAgfQogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9hbHRfcmVjeWNsZV9iaW4oZHJpdmUpOwogIGNvbnN0IGJpbiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIGJpbjsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGJpbiA9IGdldFJlY3ljbGVCaW4oKTsKICByZXR1cm4gYmluOwp9Cm1haW4oKTs=";
+    fn test_js_recycle_bin() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9yZWN5Y2xlYmluLnRzCmZ1bmN0aW9uIGdldFJlY3ljbGVCaW4oZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEyID0ganNfcmVjeWNsZV9iaW4oKTsKICAgIHJldHVybiBkYXRhMjsgIAp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgYmluID0gZ2V0UmVjeWNsZUJpbigpOwogIHJldHVybiBiaW47Cn0KbWFpbigpOw==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("recycle_bin_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_recycle_bin_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGZzLmdsb2IocGF0dGVybik7CiAgY29uc3QgcmVzdWx0ID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy93aW5kb3dzL3JlY3ljbGViaW4udHMKZnVuY3Rpb24gZ2V0UmVjeWNsZUJpbkZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9yZWN5Y2xlX2Jpbl9maWxlKHBhdGgpOwogIGNvbnN0IGJpbiA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIGJpbjsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiQzpcXCRSRUNZQ0xFLkJJTlxcKlxcJEkqIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybjsKICB9CiAgZm9yIChjb25zdCBwYXRoIG9mIHBhdGhzKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0UmVjeWNsZUJpbkZpbGUocGF0aC5mdWxsX3BhdGgpOwogICAgcmV0dXJuIGRhdGE7CiAgfQp9Cm1haW4oKTs=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("recycle_bin_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

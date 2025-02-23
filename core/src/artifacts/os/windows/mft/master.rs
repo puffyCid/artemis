@@ -140,7 +140,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         break;
                     }
                 };
-
+                if entry_bytes.is_empty() {
+                    break;
+                }
                 // Remaining entries. 1000->999->998->etc
                 mft_bytes = remaining.to_vec();
                 let header_results = MftHeader::parse_header(entry_bytes);
@@ -421,6 +423,13 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
 
                     return Ok(path);
                 }
+
+                // Before we continue lookups. Add current parent to tracker
+                // Should help us avoid recursive lookups
+                let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
+                tracker.tracker.insert(tracked);
+                tracker.parent_index = parent_filename.parent_mft;
+                tracker.parent_sequence = parent_filename.parent_sequence;
 
                 // Not found in cache. Go look for it in the MFT
                 let parents = lookup_parent(reader, ntfs_file, cache, extended_attribs, tracker)?;

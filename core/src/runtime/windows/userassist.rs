@@ -1,53 +1,46 @@
 use crate::{
-    artifacts::os::windows::userassist::parser::grab_userassist, runtime::error::RuntimeError,
+    artifacts::os::windows::userassist::parser::grab_userassist,
+    runtime::helper::{boolean_arg, string_arg},
     structs::artifacts::os::windows::UserAssistOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing userassist located on systemdrive to `Deno`
-pub(crate) fn get_userassist(resolve: bool) -> Result<String, AnyError> {
+/// Expose parsing userassist located on systemdrive to `BoaJS`
+pub(crate) fn js_userassist(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let resolve = boolean_arg(args, &0, context)?;
+    let path = if args.get_or_undefined(1).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &1)?)
+    };
     let options = UserAssistOptions {
-        alt_file: None,
+        alt_file: path,
         resolve_descriptions: Some(resolve),
     };
 
-    let assist = grab_userassist(&options)?;
-
-    let results = serde_json::to_string(&assist)?;
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing userassist located on alt file to `Deno`
-pub(crate) fn get_alt_userassist(
-    #[string] file: String,
-    resolve: bool,
-) -> Result<String, AnyError> {
-    if file.is_empty() {
-        error!("[runtime] Failed to parse alt userassist file");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let options = UserAssistOptions {
-        alt_file: Some(file),
-        resolve_descriptions: Some(resolve),
+    let assist = match grab_userassist(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get userassist: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    let assist = grab_userassist(&options)?;
-    let results = serde_json::to_string(&assist)?;
+    let results = serde_json::to_value(&assist).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -68,22 +61,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_userassist() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcmFzc2lzdCgpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF91c2VyYXNzaXN0KGZhbHNlKTsKICAgIGNvbnN0IGFzc2lzdF9hcnJheSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gYXNzaXN0X2FycmF5Owp9CmZ1bmN0aW9uIGdldFVzZXJBc3Npc3QoKSB7CiAgICByZXR1cm4gZ2V0X3VzZXJhc3Npc3QoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXNzaXN0ID0gZ2V0VXNlckFzc2lzdCgpOwogICAgcmV0dXJuIGFzc2lzdDsKfQptYWluKCk7Cgo=";
+    fn test_js_userassist() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcmFzc2lzdCgpIHsKdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc191c2VyYXNzaXN0KGZhbHNlKTsKICAgIHJldHVybiBkYXRhOwogICAgfWNhdGNoKGVycil7cmV0dXJuIGVycjt9Cn0KZnVuY3Rpb24gZ2V0VXNlckFzc2lzdCgpIHsKICAgIHJldHVybiBnZXRfdXNlcmFzc2lzdCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBhc3Npc3QgPSBnZXRVc2VyQXNzaXN0KCk7CiAgICByZXR1cm4gYXNzaXN0Owp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("userassist"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_userassist() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBnbG9iKHBhdHRlcm4pIHsKICBjb25zdCByZXN1bHQgPSBmcy5nbG9iKHBhdHRlcm4pOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UocmVzdWx0KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy91c2VyYXNzaXN0LnRzCmZ1bmN0aW9uIGdldEFsdFVzZXJhc3Npc3QoZHJpdmUpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfYWx0X3VzZXJhc3Npc3QoZHJpdmUpOwogIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiByZXN1bHRzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcGF0aHMgPSBnbG9iKCJDOlxcVXNlcnNcXCpcXE5UVVNFUi5EQVQiKTsKICBpZiAocGF0aHMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIFtdOwogIH0KICBmb3IgKGNvbnN0IHBhdGggb2YgcGF0aHMpIHsKICAgIGNvbnN0IGFzc2lzdCA9IGdldEFsdFVzZXJhc3Npc3QocGF0aC5mdWxsX3BhdGgsIGZhbHNlKTsKICAgIHJldHVybiBhc3Npc3Q7CiAgfQogIHJldHVybiBbXTsKfQptYWluKCk7";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("userassist_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

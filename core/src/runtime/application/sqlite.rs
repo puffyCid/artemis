@@ -1,5 +1,8 @@
-use crate::utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string};
-use deno_core::{error::AnyError, op2};
+use crate::{
+    runtime::helper::string_arg,
+    utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string},
+};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 use log::error;
 use rusqlite::{
     types::{FromSql, FromSqlError, ValueRef},
@@ -7,13 +10,15 @@ use rusqlite::{
 };
 use serde_json::json;
 
-#[op2]
-#[string]
 /// Query a sqlite file
-pub(crate) fn query_sqlite(
-    #[string] path: String,
-    #[string] query: String,
-) -> Result<String, AnyError> {
+pub(crate) fn js_query_sqlite(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let query = string_arg(args, &1)?;
+
     // Bypass SQLITE file lock
     let sqlite_file = format!("file:{path}?immutable=1");
     let connection = Connection::open_with_flags(
@@ -24,7 +29,8 @@ pub(crate) fn query_sqlite(
         Ok(connect) => connect,
         Err(err) => {
             error!("[runtime] Failed to open sqlite file {path}: {err:?}");
-            return Err(err.into());
+            let issue = format!("Failed to open sqlite file {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
@@ -33,7 +39,8 @@ pub(crate) fn query_sqlite(
         Ok(query) => query,
         Err(err) => {
             error!("[runtime] Failed to compose query {err:?}");
-            return Err(err.into());
+            let issue = format!("Failed to compose query {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
     let columns = stmt.column_count();
@@ -44,13 +51,14 @@ pub(crate) fn query_sqlite(
         Ok(result) => result,
         Err(err) => {
             error!("[runtime] Failed to query sqlite {path} {err:?}");
-            return Err(err.into());
+            let issue = format!("Failed to query sqlite {path} {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
     let mut data = Vec::new();
     // Loop through all results
-    while let Some(row) = query_data.next()? {
+    while let Ok(Some(row)) = query_data.next() {
         let mut json_data = serde_json::map::Map::new();
         for column in 0..columns {
             let column_name = row
@@ -99,15 +107,16 @@ pub(crate) fn query_sqlite(
         data.push(json_data);
     }
 
-    let results = serde_json::to_string(&data)?;
-    Ok(results)
+    let results = serde_json::to_value(&data).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -128,8 +137,8 @@ mod tests {
     }
 
     #[test]
-    fn test_query_sqlite() {
-        let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9hcHBsaWNhdGlvbnMvZXJyb3JzLnRzCnZhciBBcHBsaWNhdGlvbkVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugewp9OwoKLy8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvYXBwbGljYXRpb25zL3NxbGl0ZS50cwpmdW5jdGlvbiBxdWVyeVNxbGl0ZShwYXRoLCBxdWVyeSkgewogIHRyeSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5xdWVyeV9zcWxpdGUocGF0aCwgcXVlcnkpOwogICAgY29uc3QgcmVzdWx0cyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gcmVzdWx0czsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgQXBwbGljYXRpb25FcnJvcigKICAgICAgIlNRTElURSIsCiAgICAgIGBmYWlsZWQgdG8gZXhlY3V0ZSBxdWVyeSAke2Vycn1gCiAgICApOwogIH0KfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHJlc3VsdHMgPSBxdWVyeVNxbGl0ZSgiL0xpYnJhcnkvQXBwbGljYXRpb24gU3VwcG9ydC9jb20uYXBwbGUuVENDL1RDQy5kYiIsICJzZWxlY3QgKiBmcm9tIGFjY2VzcyIpOwp9Cm1haW4oKTs=";
+    fn test_js_query_sqlite() {
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9hcHBsaWNhdGlvbnMvZXJyb3JzLnRzCnZhciBBcHBsaWNhdGlvbkVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugewp9OwoKLy8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvYXBwbGljYXRpb25zL3NxbGl0ZS50cwpmdW5jdGlvbiBxdWVyeVNxbGl0ZShwYXRoLCBxdWVyeSkgewogIHRyeSB7CiAgICBjb25zdCBkYXRhID0ganNfcXVlcnlfc3FsaXRlKHBhdGgsIHF1ZXJ5KTsKICAgIHJldHVybiBkYXRhOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBBcHBsaWNhdGlvbkVycm9yKAogICAgICAiU1FMSVRFIiwKICAgICAgYGZhaWxlZCB0byBleGVjdXRlIHF1ZXJ5ICR7ZXJyfWAKICAgICk7CiAgfQp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVzdWx0cyA9IHF1ZXJ5U3FsaXRlKCIvTGlicmFyeS9BcHBsaWNhdGlvbiBTdXBwb3J0L2NvbS5hcHBsZS5UQ0MvVENDLmRiIiwgInNlbGVjdCAqIGZyb20gYWNjZXNzIik7Cn0KbWFpbigpOw==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("sqlite_script"),

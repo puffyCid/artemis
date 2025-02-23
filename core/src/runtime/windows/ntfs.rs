@@ -1,30 +1,53 @@
-use crate::filesystem::ntfs::raw_files::{raw_read_file, read_attribute};
-use deno_core::{error::AnyError, op2};
+use crate::{
+    filesystem::ntfs::raw_files::{raw_read_file, read_attribute},
+    runtime::helper::string_arg,
+};
+use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
 
-#[op2]
-#[buffer]
-/// Expose reading a raw file to `Deno`
-pub(crate) fn read_raw_file(#[string] path: String) -> Result<Vec<u8>, AnyError> {
-    let data = raw_read_file(&path)?;
-    Ok(data)
+/// Expose reading a raw file to `BoaJS`
+pub(crate) fn js_read_raw_file(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+
+    let data = match raw_read_file(&path) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get read file {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(data, context)?;
+    Ok(bytes.into())
 }
 
-#[op2]
-#[buffer]
-/// Expose reading an alternative data stream (ADS) to `Deno`
-pub(crate) fn read_ads_data(
-    #[string] path: String,
-    #[string] ads_name: String,
-) -> Result<Vec<u8>, AnyError> {
-    let data = read_attribute(&path, &ads_name)?;
-    Ok(data)
+/// Expose reading an alternative data stream (ADS) to `BoaJS`
+pub(crate) fn js_read_ads(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let ads_name = string_arg(args, &1)?;
+
+    let data = match read_attribute(&path, &ads_name) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get read ADS data {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(data, context)?;
+    Ok(bytes.into())
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -46,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_read_ads_data_motw() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICBjb25zdCBieXRlcyA9IGVuY29kaW5nLmF0b2IoYjY0KTsKICByZXR1cm4gYnl0ZXM7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3dpbmRvd3MvbnRmcy50cwpmdW5jdGlvbiByZWFkQWRzRGF0YShwYXRoLCBhZHNfbmFtZSkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLnJlYWRfYWRzX2RhdGEoCiAgICBwYXRoLAogICAgYWRzX25hbWUKICApOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2RpcmVjdG9yeS50cwphc3luYyBmdW5jdGlvbiByZWFkRGlyKHBhdGgpIHsKICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShhd2FpdCBmcy5yZWFkRGlyKHBhdGgpKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBzdGF0KHBhdGgpIHsKICBjb25zdCBkYXRhID0gZnMuc3RhdChwYXRoKTsKICBjb25zdCB2YWx1ZSA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHZhbHVlOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGVudi5lbnZpcm9ubWVudFZhbHVlKGtleSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2VuY29kaW5nL3N0cmluZ3MudHMKZnVuY3Rpb24gZXh0cmFjdFV0ZjhTdHJpbmcoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGVuY29kaW5nLmV4dHJhY3RfdXRmOF9zdHJpbmcoZGF0YSk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRyaXZlID0gZ2V0RW52VmFsdWUoIlN5c3RlbURyaXZlIik7CiAgaWYgKGRyaXZlID09PSAiIikgewogICAgcmV0dXJuIFtdOwogIH0KICBjb25zdCB3ZWJfZmlsZXMgPSBbXTsKICBjb25zdCB1c2VycyA9IGAke2RyaXZlfVxcVXNlcnNgOwogIGZvciAoY29uc3QgZW50cnkgb2YgYXdhaXQgcmVhZERpcih1c2VycykpIHsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHBhdGggPSBgJHt1c2Vyc31cXCR7ZW50cnkuZmlsZW5hbWV9XFxEb3dubG9hZHNgOwogICAgICBmb3IgKGNvbnN0IGZpbGVfZW50cnkgb2YgYXdhaXQgcmVhZERpcihwYXRoKSkgewogICAgICAgIHRyeSB7CiAgICAgICAgICBpZiAoIWZpbGVfZW50cnkuaXNfZmlsZSkgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICAgIH0KICAgICAgICAgIGNvbnN0IGZ1bGxfcGF0aCA9IGAke3BhdGh9XFwke2ZpbGVfZW50cnkuZmlsZW5hbWV9YDsKICAgICAgICAgIGNvbnN0IGFkcyA9ICJab25lLklkZW50aWZpZXIiOwogICAgICAgICAgY29uc3QgZGF0YSA9IHJlYWRBZHNEYXRhKGZ1bGxfcGF0aCwgYWRzKTsKICAgICAgICAgIGlmIChkYXRhLmxlbmd0aCA9PT0gMCkgewogICAgICAgICAgICBjb250aW51ZTsKICAgICAgICAgIH0KICAgICAgICAgIGNvbnN0IGluZm8gPSBzdGF0KGZ1bGxfcGF0aCk7CiAgICAgICAgICBjb25zdCBtYXJrX2luZm8gPSBleHRyYWN0VXRmOFN0cmluZyhkYXRhKTsKICAgICAgICAgIGNvbnN0IHdlYl9maWxlID0gewogICAgICAgICAgICBtYXJrOiBtYXJrX2luZm8sCiAgICAgICAgICAgIHBhdGg6IGZ1bGxfcGF0aCwKICAgICAgICAgICAgY3JlYXRlZDogaW5mby5jcmVhdGVkLAogICAgICAgICAgICBtb2RpZmllZDogaW5mby5tb2RpZmllZCwKICAgICAgICAgICAgYWNjZXNzZWQ6IGluZm8uYWNjZXNzZWQsCiAgICAgICAgICAgIHNpemU6IGluZm8uc2l6ZQogICAgICAgICAgfTsKICAgICAgICAgIHdlYl9maWxlcy5wdXNoKHdlYl9maWxlKTsKICAgICAgICB9IGNhdGNoIChfZXJyb3IpIHsKICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgIH0KICAgICAgfQogICAgfSBjYXRjaCAoX2Vycm9yKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogIH0KICByZXR1cm4gd2ViX2ZpbGVzOwp9Cm1haW4oKTsK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICBjb25zdCBieXRlcyA9IGpzX2Jhc2U2NF9kZWNvZGUoYjY0KTsKICByZXR1cm4gYnl0ZXM7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3dpbmRvd3MvbnRmcy50cwpmdW5jdGlvbiByZWFkQWRzRGF0YShwYXRoLCBhZHNfbmFtZSkgewogIGNvbnN0IGRhdGEgPSBqc19yZWFkX2FkcygKICAgIHBhdGgsCiAgICBhZHNfbmFtZQogICk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmFzeW5jIGZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBhd2FpdCBqc19yZWFkX2RpcihwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBzdGF0KHBhdGgpIHsKICBjb25zdCBkYXRhID0ganNfc3RhdChwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHdlYl9maWxlcyA9IFtdOwogIGNvbnN0IHVzZXJzID0gYCR7ZHJpdmV9XFxVc2Vyc2A7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBhd2FpdCByZWFkRGlyKHVzZXJzKSkgewogICAgdHJ5IHsKICAgICAgY29uc3QgcGF0aCA9IGAke3VzZXJzfVxcJHtlbnRyeS5maWxlbmFtZX1cXERvd25sb2Fkc2A7CiAgICAgIGZvciAoY29uc3QgZmlsZV9lbnRyeSBvZiBhd2FpdCByZWFkRGlyKHBhdGgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGlmICghZmlsZV9lbnRyeS5pc19maWxlKSB7CiAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgICAgfQogICAgICAgICAgY29uc3QgZnVsbF9wYXRoID0gYCR7cGF0aH1cXCR7ZmlsZV9lbnRyeS5maWxlbmFtZX1gOwogICAgICAgICAgY29uc3QgYWRzID0gIlpvbmUuSWRlbnRpZmllciI7CiAgICAgICAgICBjb25zdCBkYXRhID0gcmVhZEFkc0RhdGEoZnVsbF9wYXRoLCBhZHMpOwogICAgICAgICAgaWYgKGRhdGEubGVuZ3RoID09PSAwKSB7CiAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgICAgfQogICAgICAgICAgY29uc3QgaW5mbyA9IHN0YXQoZnVsbF9wYXRoKTsKICAgICAgICAgIGNvbnN0IG1hcmtfaW5mbyA9IGV4dHJhY3RVdGY4U3RyaW5nKGRhdGEpOwogICAgICAgICAgY29uc3Qgd2ViX2ZpbGUgPSB7CiAgICAgICAgICAgIG1hcms6IG1hcmtfaW5mbywKICAgICAgICAgICAgcGF0aDogZnVsbF9wYXRoLAogICAgICAgICAgICBjcmVhdGVkOiBpbmZvLmNyZWF0ZWQsCiAgICAgICAgICAgIG1vZGlmaWVkOiBpbmZvLm1vZGlmaWVkLAogICAgICAgICAgICBhY2Nlc3NlZDogaW5mby5hY2Nlc3NlZCwKICAgICAgICAgICAgc2l6ZTogaW5mby5zaXplCiAgICAgICAgICB9OwogICAgICAgICAgd2ViX2ZpbGVzLnB1c2god2ViX2ZpbGUpOwogICAgICAgIH0gY2F0Y2ggKF9lcnJvcikgewogICAgICAgICAgY29udGludWU7CiAgICAgICAgfQogICAgICB9CiAgICB9IGNhdGNoIChfZXJyb3IpIHsKICAgICAgY29udGludWU7CiAgICB9CiAgfQogIHJldHVybiB3ZWJfZmlsZXM7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("read_ads_motw"),
@@ -57,7 +80,7 @@ mod tests {
 
     #[test]
     fn test_read_raw_file_swapfile() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9udGZzLnRzCmZ1bmN0aW9uIHJlYWRSYXdGaWxlKHBhdGgpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5yZWFkX3Jhd19maWxlKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGVudi5lbnZpcm9ubWVudFZhbHVlKGtleSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGZzLnN0YXQocGF0aCk7CiAgY29uc3QgdmFsdWUgPSBKU09OLnBhcnNlKGRhdGEpOwogIHJldHVybiB2YWx1ZTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRyaXZlID0gZ2V0RW52VmFsdWUoIlN5c3RlbURyaXZlIik7CiAgaWYgKGRyaXZlID09PSAiIikgewogICAgcmV0dXJuIDA7CiAgfQogIHRyeSB7CiAgICBjb25zdCBzd2FwID0gYCR7ZHJpdmV9XFxzd2FwZmlsZS5zeXNgOwogICAgY29uc3QgaW5mbyA9IHN0YXQoc3dhcCk7CiAgICBpZiAoIWluZm8uaXNfZmlsZSkgewogICAgICByZXR1cm4gMDsKICAgIH0KICAgIGNvbnN0IG1heF9zaXplID0gMjE0NzQ4MzY0ODsKICAgIGlmIChpbmZvLnNpemUgPiBtYXhfc2l6ZSkgewogICAgICByZXR1cm4gMDsKICAgIH0KICAgIGNvbnN0IGRhdGEgPSByZWFkUmF3RmlsZShzd2FwKTsKICAgIHJldHVybiBkYXRhLmxlbmd0aDsKICB9IGNhdGNoIChfZXJyb3IpIHsKICAgIHJldHVybiAwOwogIH0KfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9udGZzLnRzCmZ1bmN0aW9uIHJlYWRSYXdGaWxlKHBhdGgpIHsKICBjb25zdCBkYXRhID0ganNfcmVhZF9yYXdfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiBzdGF0KHBhdGgpIHsKICBjb25zdCBkYXRhID0ganNfc3RhdChwYXRoKTsKICByZXR1cm4gdmFsdWU7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkcml2ZSA9IGdldEVudlZhbHVlKCJTeXN0ZW1Ecml2ZSIpOwogIGlmIChkcml2ZSA9PT0gIiIpIHsKICAgIHJldHVybiAwOwogIH0KICB0cnkgewogICAgY29uc3Qgc3dhcCA9IGAke2RyaXZlfVxcc3dhcGZpbGUuc3lzYDsKICAgIGNvbnN0IGluZm8gPSBzdGF0KHN3YXApOwogICAgaWYgKCFpbmZvLmlzX2ZpbGUpIHsKICAgICAgcmV0dXJuIDA7CiAgICB9CiAgICBjb25zdCBtYXhfc2l6ZSA9IDIxNDc0ODM2NDg7CiAgICBpZiAoaW5mby5zaXplID4gbWF4X3NpemUpIHsKICAgICAgcmV0dXJuIDA7CiAgICB9CiAgICBjb25zdCBkYXRhID0gcmVhZFJhd0ZpbGUoc3dhcCk7CiAgICByZXR1cm4gZGF0YS5sZW5ndGg7CiAgfSBjYXRjaCAoX2Vycm9yKSB7CiAgICByZXR1cm4gMDsKICB9Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("swapfile"),

@@ -1,44 +1,53 @@
 use crate::{
     artifacts::os::macos::accounts::{groups::grab_groups, users::grab_users},
+    runtime::helper::string_arg,
     structs::artifacts::os::macos::{MacosGroupsOptions, MacosUsersOptions},
 };
-use deno_core::{error::AnyError, op2};
+use boa_engine::{Context, JsArgs, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Users to `Deno`
-pub(crate) fn get_users_macos(#[string] path: String) -> Result<String, AnyError> {
-    let mut user_path = path;
-    if user_path.is_empty() {
-        user_path = String::from("/var/db/dslocal/nodes/Default/users");
-    }
-    let users = grab_users(&MacosUsersOptions {
-        alt_path: Some(user_path),
-    });
-    let results = serde_json::to_string(&users)?;
-    Ok(results)
+/// Expose parsing Users to `BoaJS`
+pub(crate) fn js_users_macos(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
+
+    let users = grab_users(&MacosUsersOptions { alt_path: path });
+    let results = serde_json::to_value(&users).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
-#[op2]
-#[string]
-/// Expose parsing Groups to `Deno`
-pub(crate) fn get_groups_macos(#[string] path: String) -> Result<String, AnyError> {
-    let mut group_path = path;
-    if group_path.is_empty() {
-        group_path = String::from("/var/db/dslocal/nodes/Default/users");
-    }
-    let groups = grab_groups(&MacosGroupsOptions {
-        alt_path: Some(group_path),
-    });
-    let results = serde_json::to_string(&groups)?;
-    Ok(results)
+/// Expose parsing Groups to `BoaJS`
+pub(crate) fn js_groups_macos(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
+    let groups = grab_groups(&MacosGroupsOptions { alt_path: path });
+
+    let results = serde_json::to_value(&groups).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -59,22 +68,11 @@ mod tests {
     }
 
     #[test]
-    fn test_grab_users() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcnMoKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfdXNlcnNfbWFjb3MoKTsKICAgIGNvbnN0IHVzZXJzID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiB1c2VyczsKfQpmdW5jdGlvbiBnZXRfZ3JvdXBzKCkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2dyb3Vwc19tYWNvcygpOwogICAgY29uc3QgZ3JvdXBzID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBncm91cHM7Cn0KZnVuY3Rpb24gZ2V0VXNlcnMoKSB7CiAgICByZXR1cm4gZ2V0X3VzZXJzKCk7Cn0KZnVuY3Rpb24gZ2V0R3JvdXBzKCkgewogICAgcmV0dXJuIGdldF9ncm91cHMoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgdXNlcnMgPSBnZXRVc2VycygpOwogICAgY29uc3QgZ3JvdXBzID0gZ2V0R3JvdXBzKCk7CiAgICBjb25zdCBhY2NvdW50cyA9IHsKICAgICAgICB1c2VycywKICAgICAgICBncm91cHMKICAgIH07CiAgICByZXR1cm4gYWNjb3VudHM7Cn0KbWFpbigpOwoK";
+    fn test_js_users_groups() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcnMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfdXNlcnNfbWFjb3MoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldF9ncm91cHMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZ3JvdXBzX21hY29zKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRVc2VycygpIHsKICAgIHJldHVybiBnZXRfdXNlcnMoKTsKfQpmdW5jdGlvbiBnZXRHcm91cHMoKSB7CiAgICByZXR1cm4gZ2V0X2dyb3VwcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCB1c2VycyA9IGdldFVzZXJzKCk7CiAgICBjb25zdCBncm91cHMgPSBnZXRHcm91cHMoKTsKICAgIGNvbnN0IGFjY291bnRzID0gewogICAgICAgIHVzZXJzLAogICAgICAgIGdyb3VwcwogICAgfTsKICAgIHJldHVybiBhY2NvdW50czsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("users"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_grab_groups() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcnMoKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfdXNlcnNfbWFjb3MoKTsKICAgIGNvbnN0IHVzZXJzID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiB1c2VyczsKfQpmdW5jdGlvbiBnZXRfZ3JvdXBzKCkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X2dyb3Vwc19tYWNvcygpOwogICAgY29uc3QgZ3JvdXBzID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBncm91cHM7Cn0KZnVuY3Rpb24gZ2V0VXNlcnMoKSB7CiAgICByZXR1cm4gZ2V0X3VzZXJzKCk7Cn0KZnVuY3Rpb24gZ2V0R3JvdXBzKCkgewogICAgcmV0dXJuIGdldF9ncm91cHMoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgdXNlcnMgPSBnZXRVc2VycygpOwogICAgY29uc3QgZ3JvdXBzID0gZ2V0R3JvdXBzKCk7CiAgICBjb25zdCBhY2NvdW50cyA9IHsKICAgICAgICB1c2VycywKICAgICAgICBncm91cHMKICAgIH07CiAgICByZXR1cm4gYWNjb3VudHM7Cn0KbWFpbigpOwoK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("groups"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

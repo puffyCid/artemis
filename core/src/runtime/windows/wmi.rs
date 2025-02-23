@@ -1,46 +1,41 @@
 use crate::{
-    artifacts::os::windows::wmi::parser::grab_wmi_persist, runtime::error::RuntimeError,
+    artifacts::os::windows::wmi::parser::grab_wmi_persist, runtime::helper::string_arg,
     structs::artifacts::os::windows::WmiPersistOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing wmi persist to `Deno`
-pub(crate) fn get_wmipersist() -> Result<String, AnyError> {
-    let options = WmiPersistOptions { alt_dir: None };
+/// Expose parsing wmi persist to `BoaJS`
+pub(crate) fn js_wmipersist(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
+    let options = WmiPersistOptions { alt_dir: path };
 
-    let assist = grab_wmi_persist(&options)?;
-    let results = serde_json::to_string(&assist)?;
-
-    Ok(results)
-}
-
-#[op2]
-#[string]
-/// Expose parsing wmi persist at path to `Deno`
-pub(crate) fn get_alt_wmipersist(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Failed to parse wmi path. Path is empty");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
-    // Get the first char from string (the drive letter)
-    let options = WmiPersistOptions {
-        alt_dir: Some(path),
+    let wmi = match grab_wmi_persist(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get wmipersist: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
     };
 
-    let assist = grab_wmi_persist(&options)?;
+    let results = serde_json::to_value(&wmi).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    let results = serde_json::to_string(&assist)?;
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -61,22 +56,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_wmipersist() {
-        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy93bWkudHMKZnVuY3Rpb24gZ2V0V21pUGVyc2lzdCgpIHsKICB0cnkgewogICAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3dtaXBlcnNpc3QoKTsKICAgIGNvbnN0IHJlc3VsdHMgPSBKU09OLnBhcnNlKGRhdGEpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigiV01JUEVSU0lTVCIsIGBmYWlsZWQgdG8gcGFyc2UgV01JIHJlcG86ICR7ZXJyfWApOwogIH0KfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRXbWlQZXJzaXN0KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+    fn test_js_wmipersist() {
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvd21pLnRzCmZ1bmN0aW9uIGdldFdtaVBlcnNpc3QoKSB7CiAgdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc193bWlwZXJzaXN0KCk7CiAgICByZXR1cm4gZGF0YTsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKCJXTUlQRVJTSVNUIiwgYGZhaWxlZCB0byBwYXJzZSBXTUkgcmVwbzogJHtlcnJ9YCk7CiAgfQp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFdtaVBlcnNpc3QoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("wmipersist"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_alt_wmipersist() {
-        let test = "aW1wb3J0IHsgZ2V0V21pUGVyc2lzdFBhdGggfSBmcm9tICIuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy93bWkudHMiOwoKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0V21pUGVyc2lzdFBhdGgoIi4iKTsKICByZXR1cm4gZGF0YTsKfQoKbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("wmipersist_alt"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

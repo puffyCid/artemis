@@ -1,22 +1,27 @@
-use crate::artifacts::os::linux::logons::parser::grab_logon_file;
-use deno_core::{error::AnyError, op2};
+use crate::{artifacts::os::linux::logons::parser::grab_logon_file, runtime::helper::string_arg};
+use boa_engine::{Context, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing logon file  to `Deno`
-pub(crate) fn get_logon(#[string] path: String) -> Result<String, AnyError> {
+/// Expose parsing logon file  to `BoaJS`
+pub(crate) fn js_get_logon(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+
     let mut logons = Vec::new();
     grab_logon_file(&path, &mut logons);
 
-    let results = serde_json::to_string(&logons)?;
-    Ok(results)
+    let results = serde_json::to_value(&logons).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -37,8 +42,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_logon() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbGludXgvbG9nb24udHMKZnVuY3Rpb24gZ2V0TG9nb24ocGF0aCkgewogIGlmIChwYXRoLmVuZHNXaXRoKCJidG1wIikgJiYgIXBhdGguZW5kc1dpdGgoInd0bXAiKSAmJiAhcGF0aC5lbmRzV2l0aCgidXRtcCIpKSB7CiAgICBjb25zb2xlLmVycm9yKGBQcm92aWRlZCBub24tbG9nb24gZmlsZSAke3BhdGh9YCk7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9sb2dvbihwYXRoKTsKICBjb25zdCBqb3VybmFsID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gam91cm5hbDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHd0bXAgPSAiL3Zhci9sb2cvd3RtcCI7CiAgY29uc3QgcmVzdWx0cyA9IGdldExvZ29uKHd0bXApOwogIHJldHVybiByZXN1bHRzOwp9Cm1haW4oKTsK";
+    fn test_js_get_logon() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbGludXgvbG9nb24udHMKZnVuY3Rpb24gZ2V0TG9nb24ocGF0aCkgewogIGlmIChwYXRoLmVuZHNXaXRoKCJidG1wIikgJiYgIXBhdGguZW5kc1dpdGgoInd0bXAiKSAmJiAhcGF0aC5lbmRzV2l0aCgidXRtcCIpKSB7CiAgICBjb25zb2xlLmVycm9yKGBQcm92aWRlZCBub24tbG9nb24gZmlsZSAke3BhdGh9YCk7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IGRhdGEgPSBqc19nZXRfbG9nb24ocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB3dG1wID0gIi92YXIvbG9nL3d0bXAiOwogIGNvbnN0IHJlc3VsdHMgPSBnZXRMb2dvbih3dG1wKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
         let script = JSScript {

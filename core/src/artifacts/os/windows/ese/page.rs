@@ -1,6 +1,7 @@
 use super::{header::EseHeader, tags::PageTag};
 use crate::utils::nom_helper::{
-    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    nom_unsigned_two_bytes, Endian,
 };
 use nom::bytes::complete::take;
 
@@ -51,8 +52,20 @@ impl PageHeader {
 
         let (input, available_page_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, available_uncommitted_data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, first_available_data_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, first_available_page_tag) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (remaining, first_available_data_offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (input, mut first_available_page_tag) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
+
+        // If the first_available_page_tag is larger than the page.
+        // Then its actually one byte
+        // Seen in Windows 11 24H2.  Perhaps the upper bytes are flags?
+        // https://github.com/Velocidex/go-ese/issues/26
+        let tag_size = 4;
+        if first_available_page_tag as usize > data.len()
+            || (first_available_page_tag * tag_size) as usize > data.len()
+        {
+            let (_, actual_page_tag) = nom_unsigned_one_byte(remaining, Endian::Le)?;
+            first_available_page_tag = actual_page_tag as u16;
+        }
 
         let (mut page_data, page_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -98,20 +111,10 @@ impl PageHeader {
          * We can get there by multiplying `first_available_page_tag` * tag_size (4 bytes) and use that to reach the starting offset of the tags
          * Ex: Page size is 4k and we have one (1) tag. 4k - tag_size = start of tags offset
          */
-        let tag_size = 4;
         let tag_data: usize = (first_available_page_tag * tag_size).into();
 
         // Tag data size is obtained from first_available_page_tag
-        // If the start is larger than the data we have (seen in Windows 24H2)
-        // We have to obtain the tag data size a different way
-        let start = if data.len() < tag_data {
-            // first_available_page_tag is really large. Reverse the subtraction
-            let start = tag_data - data.len();
-            // Now we have the start
-            data.len() - start
-        } else {
-            data.len() - tag_data
-        };
+        let start = data.len() - tag_data;
 
         let (tag_start, _) = take(start)(data)?;
         // We now have start of tag data
@@ -266,7 +269,7 @@ mod tests {
 
         let (_, results) = PageHeader::parse_header(&test).unwrap();
 
-        assert_eq!(results.first_available_page_tag, 4183);
+        assert_eq!(results.first_available_page_tag, 87);
         assert_eq!(results.page_tags.len(), 87);
     }
 }

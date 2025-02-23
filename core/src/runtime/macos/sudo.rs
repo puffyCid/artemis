@@ -1,38 +1,42 @@
 use crate::{
-    artifacts::os::macos::sudo::logs::grab_sudo_logs, runtime::error::RuntimeError,
+    artifacts::os::macos::sudo::logs::grab_sudo_logs, runtime::helper::string_arg,
     structs::artifacts::os::macos::MacosSudoOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Get `Sudo log` data
-pub(crate) fn get_sudologs_macos(#[string] logarchive_path: String) -> Result<String, AnyError> {
+/// Get sudo log data
+pub(crate) fn js_sudologs_macos(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
     let options = MacosSudoOptions {
-        logarchive_path: if !logarchive_path.is_empty() {
-            Some(logarchive_path)
-        } else {
-            None
-        },
+        logarchive_path: path,
     };
     let sudo_results = grab_sudo_logs(&options);
     let sudo = match sudo_results {
-        Ok(results) => results,
+        Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Failed to get sudo log data: {err:?}");
-            return Err(RuntimeError::ExecuteScript.into());
+            let issue = format!("Failed to get sudo logs: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let results = serde_json::to_string(&sudo)?;
-    Ok(results)
+    let results = serde_json::to_value(&sudo).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -53,8 +57,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_sudologs() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvdW5peC9zdWRvbG9ncy50cwpmdW5jdGlvbiBnZXRNYWNvc1N1ZG9Mb2dzKCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9zdWRvbG9nc19tYWNvcygiZmFrZSIpOwogIGNvbnN0IGxvZ19kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gbG9nX2RhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0TWFjb3NTdWRvTG9ncygpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
+    fn test_js_sudologs() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvdW5peC9zdWRvbG9ncy50cwpmdW5jdGlvbiBnZXRNYWNvc1N1ZG9Mb2dzKCkgewogIGNvbnN0IGRhdGEgPSBqc19zdWRvbG9nc19tYWNvcygiZmFrZSIpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldE1hY29zU3Vkb0xvZ3MoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("sudo_script"),

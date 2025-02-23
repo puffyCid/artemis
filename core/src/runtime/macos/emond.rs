@@ -1,29 +1,42 @@
 use crate::{
-    artifacts::os::macos::emond::parser::grab_emond, structs::artifacts::os::macos::EmondOptions,
+    artifacts::os::macos::emond::parser::grab_emond, runtime::helper::string_arg,
+    structs::artifacts::os::macos::EmondOptions,
 };
-use deno_core::{error::AnyError, op2};
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Emond to `Deno`
-pub(crate) fn get_emond(#[string] path: String) -> Result<String, AnyError> {
-    let options = if path.is_empty() {
-        EmondOptions { alt_path: None }
+/// Expose parsing Emond to `BoaJS`
+pub(crate) fn js_emond(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
     } else {
-        EmondOptions {
-            alt_path: Some(path),
+        Some(string_arg(args, &0)?)
+    };
+
+    let options = EmondOptions { alt_path: path };
+
+    let emond = match grab_emond(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get emond: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let emond = grab_emond(&options)?;
-    let results = serde_json::to_string(&emond)?;
-    Ok(results)
+
+    let results = serde_json::to_value(&emond).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -45,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_get_emond() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZW1vbmQoKSB7CiAgICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfZW1vbmQoKTsKICAgIGNvbnN0IGVtb25kID0gSlNPTi5wYXJzZShkYXRhKTsKICAgIHJldHVybiBlbW9uZDsKfQpmdW5jdGlvbiBnZXRFbW9uZCgpIHsKICAgIHJldHVybiBnZXRfZW1vbmQoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZGF0YSA9IGdldEVtb25kKCk7CiAgICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZW1vbmQoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldEVtb25kKCkgewogICAgcmV0dXJuIGdldF9lbW9uZCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0RW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("emond"),

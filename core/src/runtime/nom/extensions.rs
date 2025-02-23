@@ -1,42 +1,45 @@
-use crate::runtime::nom::{
-    helpers::{
-        js_nom_signed_eight_bytes, js_nom_signed_four_bytes, js_nom_signed_two_bytes,
-        js_nom_unsigned_eight_bytes, js_nom_unsigned_four_bytes, js_nom_unsigned_one_bytes,
-        js_nom_unsigned_sixteen_bytes, js_nom_unsigned_two_bytes,
-    },
-    parsers::{
-        js_nom_take_bytes, js_nom_take_string, js_nom_take_until_bytes, js_nom_take_until_string,
-        js_nom_take_while_bytes, js_nom_take_while_string,
-    },
+use super::parsers::{
+    js_nom_take_until_bytes, js_nom_take_until_string, js_nom_take_while_bytes,
+    js_nom_take_while_string,
 };
+use boa_engine::{Context, JsString, NativeFunction};
 
 /// Link nom functions to `Deno core`
-pub(crate) fn nom_functions() -> Vec<deno_core::OpDecl> {
-    vec![
-        js_nom_take_string(),
-        js_nom_take_bytes(),
-        js_nom_take_while_string(),
-        js_nom_take_while_bytes(),
-        js_nom_take_until_bytes(),
-        js_nom_take_until_string(),
-        js_nom_signed_eight_bytes(),
-        js_nom_signed_four_bytes(),
-        js_nom_signed_two_bytes(),
-        js_nom_unsigned_eight_bytes(),
-        js_nom_unsigned_four_bytes(),
-        js_nom_unsigned_one_bytes(),
-        js_nom_unsigned_sixteen_bytes(),
-        js_nom_unsigned_two_bytes(),
-    ]
+pub(crate) fn nom_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_nom_take_until_string"),
+        2,
+        NativeFunction::from_fn_ptr(js_nom_take_until_string),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_nom_take_until_bytes"),
+        2,
+        NativeFunction::from_fn_ptr(js_nom_take_until_bytes),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_nom_take_while_string"),
+        2,
+        NativeFunction::from_fn_ptr(js_nom_take_while_string),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_nom_take_while_bytes"),
+        2,
+        NativeFunction::from_fn_ptr(js_nom_take_while_bytes),
+    );
 }
 
 #[cfg(test)]
 mod tests {
+    use boa_engine::Context;
+
     use super::nom_functions;
 
     #[test]
     fn test_system_functions() {
-        let results = nom_functions();
-        assert!(results.len() > 1)
+        let mut context = Context::default();
+        nom_functions(&mut context);
     }
 }

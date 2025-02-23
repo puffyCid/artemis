@@ -1,24 +1,39 @@
-use crate::utils::environment::{get_env, get_env_value};
-use deno_core::op2;
-use std::collections::HashMap;
+use crate::{
+    runtime::helper::string_arg,
+    utils::environment::{get_env, get_env_value},
+};
+use boa_engine::{Context, JsResult, JsValue};
 
-#[op2]
-#[serde]
 /// Get all Environmental variables
-pub(crate) fn js_env() -> HashMap<String, String> {
-    get_env()
+pub(crate) fn js_env(
+    _this: &JsValue,
+    _args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let env = get_env();
+    let serde_value = serde_json::to_value(&env).unwrap_or_default();
+
+    let value = JsValue::from_json(&serde_value, context)?;
+    Ok(value)
 }
 
-#[op2]
-#[string]
 /// Get a specific Environmental variable
-pub(crate) fn js_env_value(#[string] var: String) -> String {
-    get_env_value(&var)
+pub(crate) fn js_env_value(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let input = string_arg(args, &0)?;
+
+    let env = get_env_value(&input);
+    let serde_value = serde_json::to_value(env).unwrap_or_default();
+    let value = JsValue::from_json(&serde_value, context)?;
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::deno::execute_script;
+    use crate::runtime::run::execute_script;
     use crate::structs::artifacts::runtime::script::JSScript;
     use crate::structs::toml::Output;
 
@@ -41,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_js_env() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGxpc3RFbnYoKSB7CiAgY29uc3QgZGF0YSA9IGVudi5lbnZpcm9ubWVudCgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZW52cyA9IGxpc3RFbnYoKTsKICByZXR1cm4gZW52czsKfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGxpc3RFbnYoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2VudigpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZW52cyA9IGxpc3RFbnYoKTsKICByZXR1cm4gZW52czsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("envs_list"),
@@ -53,7 +68,7 @@ mod tests {
     #[test]
     #[cfg(target_family = "unix")]
     fn test_js_env_value() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZW52cyA9IGdldEVudlZhbHVlKCJQV0QiKTsKICByZXR1cm4gZW52czsKfQptYWluKCk7Cg==";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGVudnMgPSBnZXRFbnZWYWx1ZSgiUFdEIik7CiAgcmV0dXJuIGVudnM7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("env_pwd"),
@@ -65,7 +80,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_js_env_value() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBlbnYuZW52aXJvbm1lbnRWYWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZW52cyA9IGdldEVudlZhbHVlKCJTeXN0ZW1Ecml2ZSIpOwogIHJldHVybiBlbnZzOwp9Cm1haW4oKTsK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGVudnMgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICByZXR1cm4gZW52czsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("env_pwd"),

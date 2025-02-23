@@ -1,20 +1,34 @@
-use crate::artifacts::os::macos::fsevents::parser::grab_fsventsd_file;
-use deno_core::{error::AnyError, op2};
+use crate::{
+    artifacts::os::macos::fsevents::parser::grab_fsventsd_file, runtime::helper::string_arg,
+};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing FsEvents to `Deno`
-pub(crate) fn get_fsevents(#[string] path: String) -> Result<String, AnyError> {
-    let fsevents = grab_fsventsd_file(&path)?;
-    let results = serde_json::to_string(&fsevents)?;
-    Ok(results)
+/// Expose parsing `FsEvents` to `BoaJS`
+pub(crate) fn js_fsevents(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+
+    let fsevents = match grab_fsventsd_file(&path) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get fsevents: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let results = serde_json::to_value(&fsevents).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -35,8 +49,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_fsevents() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZnNldmVudHMudHMKZnVuY3Rpb24gZ2V0RnNldmVudHMocGF0aCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9mc2V2ZW50cyhwYXRoKTsKICBpZiAoZGF0YSA9PT0gIiIpIHsKICAgIHJldHVybiBudWxsOwogIH0KICBjb25zdCBmc2V2ZW50cyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIGZzZXZlbnRzOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2RpcmVjdG9yeS50cwphc3luYyBmdW5jdGlvbiByZWFkRGlyKHBhdGgpIHsKICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShhd2FpdCBmcy5yZWFkRGlyKHBhdGgpKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGZzX2RhdGEgPSBbXTsKICBjb25zdCBmc2V2ZW50c19wYXRoID0gIi9TeXN0ZW0vVm9sdW1lcy9EYXRhLy5mc2V2ZW50c2QiOwogIGZvciAoY29uc3QgZW50cnkgb2YgYXdhaXQgcmVhZERpcihmc2V2ZW50c19wYXRoKSkgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgZnNldmVudHNfZmlsZSA9IGAke2ZzZXZlbnRzX3BhdGh9LyR7ZW50cnkuZmlsZW5hbWV9YDsKICAgIGNvbnN0IGluZm8gPSBnZXRGc2V2ZW50cyhmc2V2ZW50c19maWxlKTsKICAgIGlmIChpbmZvID09PSBudWxsKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgZm9yIChjb25zdCBmc2V2ZW50X2VudHJ5IG9mIGluZm8pIHsKICAgICAgaWYgKCFmc2V2ZW50X2VudHJ5LnBhdGguaW5jbHVkZXMoIi5ycyIpKSB7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgZnNfZGF0YS5wdXNoKGZzZXZlbnRfZW50cnkpOwogICAgfQogIH0KICByZXR1cm4gZnNfZGF0YTsKfQptYWluKCk7Cg==";
+    fn test_js_fsevents() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZnNldmVudHMudHMKZnVuY3Rpb24gZ2V0RnNldmVudHMocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19mc2V2ZW50cyhwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZnNfZGF0YSA9IFtdOwogIGNvbnN0IGZzZXZlbnRzX3BhdGggPSAiL1N5c3RlbS9Wb2x1bWVzL0RhdGEvLmZzZXZlbnRzZCI7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBhd2FpdCByZWFkRGlyKGZzZXZlbnRzX3BhdGgpKSB7CiAgICBpZiAoIWVudHJ5LmlzX2ZpbGUpIHsKICAgICAgY29udGludWU7CiAgICB9CiAgICBjb25zdCBmc2V2ZW50c19maWxlID0gYCR7ZnNldmVudHNfcGF0aH0vJHtlbnRyeS5maWxlbmFtZX1gOwogICAgY29uc3QgaW5mbyA9IGdldEZzZXZlbnRzKGZzZXZlbnRzX2ZpbGUpOwogICAgZm9yIChjb25zdCBmc2V2ZW50X2VudHJ5IG9mIGluZm8pIHsKICAgICAgaWYgKCFmc2V2ZW50X2VudHJ5LnBhdGguaW5jbHVkZXMoIi5ycyIpKSB7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgZnNfZGF0YS5wdXNoKGZzZXZlbnRfZW50cnkpOwogICAgfQogICAgYnJlYWs7CiAgfQogIHJldHVybiBmc19kYXRhOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("fsevent"),

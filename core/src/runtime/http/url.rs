@@ -1,6 +1,8 @@
-use deno_core::{error::AnyError, op2};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 use serde::Serialize;
 use url::Url;
+
+use crate::runtime::helper::string_arg;
 
 #[derive(Serialize)]
 pub(crate) struct UrlInfo {
@@ -18,10 +20,20 @@ pub(crate) struct UrlInfo {
     scheme: String,
 }
 
-#[op2]
-#[string]
-pub(crate) fn url_parse(#[string] url_string: String) -> Result<String, AnyError> {
-    let res = Url::parse(&url_string)?;
+pub(crate) fn js_url_parse(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let url_string = string_arg(args, &0)?;
+
+    let res = match Url::parse(&url_string) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not parse URL {url_string}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
 
     let mut info = UrlInfo {
         authority: res.authority().to_string(),
@@ -51,15 +63,16 @@ pub(crate) fn url_parse(#[string] url_string: String) -> Result<String, AnyError
         info.query_pairs.push(format!("{key}={value}"));
     }
 
-    let results = serde_json::to_string(&info)?;
-    Ok(results)
+    let results = serde_json::to_value(&info).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {

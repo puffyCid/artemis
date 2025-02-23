@@ -1,17 +1,29 @@
-use crate::runtime::http::{client::js_request, url::url_parse};
+use super::{client::js_request, url::js_url_parse};
+use boa_engine::{Context, JsString, NativeFunction};
 
-/// Link HTTP networking functions to `Deno core`
-pub(crate) fn http_functions() -> Vec<deno_core::OpDecl> {
-    vec![js_request(), url_parse()]
+/// Link HTTP functions `BoaJS`
+pub(crate) fn http_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_request"),
+        2,
+        NativeFunction::from_fn_ptr(js_request),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_url_parse"),
+        2,
+        NativeFunction::from_fn_ptr(js_url_parse),
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use super::http_functions;
+    use boa_engine::Context;
 
     #[test]
     fn test_http_functions() {
-        let results = http_functions();
-        assert!(results.len() > 0)
+        let mut context = Context::default();
+        http_functions(&mut context);
     }
 }

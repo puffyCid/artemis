@@ -1,20 +1,31 @@
-use crate::artifacts::os::macos::macho::parser::parse_macho;
-use deno_core::{error::AnyError, op2};
+use crate::{artifacts::os::macos::macho::parser::parse_macho, runtime::helper::string_arg};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing macho file  to `Deno`
-pub(crate) fn get_macho(#[string] path: String) -> Result<String, AnyError> {
-    let macho = parse_macho(&path)?;
-    let results = serde_json::to_string(&macho)?;
-    Ok(results)
+/// Expose parsing macho file  to `BoaJS`
+pub(crate) fn js_macho(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
+    let macho = match parse_macho(&path) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get macho: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let results = serde_json::to_value(&macho).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -35,8 +46,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_macho() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbWFjaG8udHMKZnVuY3Rpb24gZ2V0TWFjaG8ocGF0aCkgewogIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9tYWNobyhwYXRoKTsKICBpZiAoZGF0YSA9PT0gIiIpIHsKICAgIHJldHVybiBudWxsOwogIH0KICBjb25zdCBtYWNobyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIG1hY2hvOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2RpcmVjdG9yeS50cwphc3luYyBmdW5jdGlvbiByZWFkRGlyKHBhdGgpIHsKICBjb25zdCBkYXRhID0gSlNPTi5wYXJzZShhd2FpdCBmcy5yZWFkRGlyKHBhdGgpKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGJpbl9wYXRoID0gIi9iaW4iOwogIGNvbnN0IG1hY2hvcyA9IFtdOwogIGZvciAoY29uc3QgZW50cnkgb2YgYXdhaXQgcmVhZERpcihiaW5fcGF0aCkpIHsKICAgIGlmICghZW50cnkuaXNfZmlsZSkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IG1hY2hvX3BhdGggPSBgJHtiaW5fcGF0aH0vJHtlbnRyeS5maWxlbmFtZX1gOwogICAgY29uc3QgaW5mbyA9IGdldE1hY2hvKG1hY2hvX3BhdGgpOwogICAgaWYgKGluZm8gPT09IG51bGwpIHsKICAgICAgY29udGludWU7CiAgICB9CiAgICBjb25zdCBtZXRhID0gewogICAgICBwYXRoOiBtYWNob19wYXRoLAogICAgICBtYWNobzogaW5mbwogICAgfTsKICAgIG1hY2hvcy5wdXNoKG1ldGEpOwogIH0KICByZXR1cm4gbWFjaG9zOwp9Cm1haW4oKTsK";
+    fn test_js_macho() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbWFjaG8udHMKZnVuY3Rpb24gZ2V0TWFjaG8ocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19tYWNobyhwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgYmluX3BhdGggPSAiL2JpbiI7CiAgY29uc3QgbWFjaG9zID0gW107CiAgZm9yIChjb25zdCBlbnRyeSBvZiBhd2FpdCByZWFkRGlyKGJpbl9wYXRoKSkgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgbWFjaG9fcGF0aCA9IGAke2Jpbl9wYXRofS8ke2VudHJ5LmZpbGVuYW1lfWA7CiAgICBjb25zdCBpbmZvID0gZ2V0TWFjaG8obWFjaG9fcGF0aCk7CiAgICBpZiAoaW5mbyA9PT0gbnVsbCkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IG1ldGEgPSB7CiAgICAgIHBhdGg6IG1hY2hvX3BhdGgsCiAgICAgIG1hY2hvOiBpbmZvCiAgICB9OwogICAgbWFjaG9zLnB1c2gobWV0YSk7CiAgfQogIHJldHVybiBtYWNob3M7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
 
         let script = JSScript {

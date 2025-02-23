@@ -57,7 +57,7 @@ pub(crate) fn grab_jumplists(
 }
 
 /// Parse single `Jumplist` file. Supports both Custom and Automatic `Jumplist` files
-pub(crate) fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
+fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
     get_jumplist_path(path)
 }
 

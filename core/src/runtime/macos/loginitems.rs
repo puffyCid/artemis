@@ -1,30 +1,41 @@
 use crate::{
-    artifacts::os::macos::loginitems::parser::grab_loginitems,
+    artifacts::os::macos::loginitems::parser::grab_loginitems, runtime::helper::string_arg,
     structs::artifacts::os::macos::LoginitemsOptions,
 };
-use deno_core::{error::AnyError, op2};
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing LoginItems to `Deno`
-pub(crate) fn get_loginitems(#[string] path: String) -> Result<String, AnyError> {
-    let options = if path.is_empty() {
-        LoginitemsOptions { alt_file: None }
+/// Expose parsing `LoginItems` to `BoaJS`
+pub(crate) fn js_loginitems(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
     } else {
-        LoginitemsOptions {
-            alt_file: Some(path),
+        Some(string_arg(args, &0)?)
+    };
+
+    let options = LoginitemsOptions { alt_file: path };
+    let loginitems = match grab_loginitems(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get loginitems: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let loginitems = grab_loginitems(&options)?;
-    let results = serde_json::to_string(&loginitems)?;
-    Ok(results)
+
+    let results = serde_json::to_value(&loginitems).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -45,8 +56,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_loginitems() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfbG9naW5pdGVtcygpIHsKICAgIGNvbnN0IGRhdGEgPSBEZW5vLmNvcmUub3BzLmdldF9sb2dpbml0ZW1zKCk7CiAgICBjb25zdCBpdGVtcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICByZXR1cm4gaXRlbXM7Cn0KZnVuY3Rpb24gZ2V0TG9naW5JdGVtcygpIHsKICAgIHJldHVybiBnZXRfbG9naW5pdGVtcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0TG9naW5JdGVtcygpOwogICAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwoK";
+    fn test_js_loginitems() {
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfbG9naW5pdGVtcygpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19sb2dpbml0ZW1zKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRMb2dpbkl0ZW1zKCkgewogICAgcmV0dXJuIGdldF9sb2dpbml0ZW1zKCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGRhdGEgPSBnZXRMb2dpbkl0ZW1zKCk7CiAgICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("loginitems"),

@@ -1,38 +1,56 @@
-use crate::artifacts::os::macos::plist::property_list::{parse_plist_data, parse_plist_file};
-use deno_core::{error::AnyError, op2, JsBuffer};
-use log::error;
+use crate::{
+    artifacts::os::macos::plist::property_list::{parse_plist_data, parse_plist_file},
+    runtime::helper::{bytes_arg, string_arg},
+};
+use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing plist file to `Deno`
-pub(crate) fn get_plist(#[string] path: String) -> Result<String, AnyError> {
-    let plist = parse_plist_file(&path)?;
-    let results = serde_json::to_string(&plist)?;
-    Ok(results)
-}
+/// Expose parsing plist file to `BoaJS`
+pub(crate) fn js_plist(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, &0)?;
 
-#[op2]
-#[string]
-/// Expose parsing plist file  to `Deno`
-pub(crate) fn get_plist_data(#[buffer] data: JsBuffer) -> Result<String, AnyError> {
-    let plist_results = parse_plist_data(&data);
-    let plist = match plist_results {
-        Ok(results) => results,
+    let plist = match parse_plist_file(&path) {
+        Ok(result) => result,
         Err(err) => {
-            // Parsing plist files could fail for many reasons
-            error!("[runtime] Failed to parse plist: {err:?}");
-            return Err(err.into());
+            let issue = format!("Failed to get plist: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let results = serde_json::to_string(&plist)?;
-    Ok(results)
+    let results = serde_json::to_value(&plist).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
+}
+
+/// Expose parsing plist file  to `BoaJS`
+pub(crate) fn js_plist_data(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let bytes = bytes_arg(args, &0, context)?;
+    let plist_results = parse_plist_data(&bytes);
+    let plist = match plist_results {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get plist: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let results = serde_json::to_value(&plist).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -55,9 +73,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_plist() {
+    fn test_js_plist() {
         // Grabs and attempts to parse all plist files under /User/*, will recurse all directories
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvcGxpc3QudHMKZnVuY3Rpb24gZ2V0UGxpc3QocGF0aCkgewogIGlmIChwYXRoIGluc3RhbmNlb2YgVWludDhBcnJheSkgewogICAgY29uc3QgZGF0YTIgPSBEZW5vLmNvcmUub3BzLmdldF9wbGlzdF9kYXRhKHBhdGgpOwogICAgaWYgKGRhdGEyIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgICAgcmV0dXJuIGRhdGEyOwogICAgfQogICAgY29uc3QgcGxpc3RfZGF0YTIgPSBKU09OLnBhcnNlKGRhdGEyKTsKICAgIHJldHVybiBwbGlzdF9kYXRhMjsKICB9CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3BsaXN0KHBhdGgpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICBjb25zdCBwbGlzdF9kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcGxpc3RfZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL291dHB1dC50cwpmdW5jdGlvbiBvdXRwdXRSZXN1bHRzKGRhdGEsIGRhdGFfbmFtZSwgb3V0cHV0KSB7CiAgY29uc3Qgb3V0cHV0X3N0cmluZyA9IEpTT04uc3RyaW5naWZ5KG91dHB1dCk7CiAgY29uc3Qgc3RhdHVzID0gRGVuby5jb3JlLm9wcy5vdXRwdXRfcmVzdWx0cygKICAgIGRhdGEsCiAgICBkYXRhX25hbWUsCiAgICBvdXRwdXRfc3RyaW5nCiAgKTsKICByZXR1cm4gc3RhdHVzOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2RpcmVjdG9yeS50cwphc3luYyBmdW5jdGlvbiByZWFkRGlyKHBhdGgpIHsKICBjb25zdCByZXN1bHQgPSBhd2FpdCBmcy5yZWFkRGlyKHBhdGgpOwogIGlmIChyZXN1bHQgaW5zdGFuY2VvZiBFcnJvcikgewogICAgcmV0dXJuIHJlc3VsdDsKICB9CiAgY29uc3QgZGF0YSA9IEpTT04ucGFyc2UocmVzdWx0KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0X3BhdGggPSAiL1VzZXJzIjsKICBjb25zdCBwbGlzdF9maWxlcyA9IFtdOwogIGF3YWl0IHJlY3Vyc2VfZGlyKHBsaXN0X2ZpbGVzLCBzdGFydF9wYXRoKTsKICByZXR1cm4gcGxpc3RfZmlsZXM7Cn0KYXN5bmMgZnVuY3Rpb24gcmVjdXJzZV9kaXIocGxpc3RfZmlsZXMsIHN0YXJ0X3BhdGgpIHsKICBpZiAocGxpc3RfZmlsZXMubGVuZ3RoID4gMjApIHsKICAgIGNvbnN0IG91dCA9IHsKICAgICAgbmFtZTogImFydGVtaXNfcGxpc3QiLAogICAgICBkaXJlY3Rvcnk6ICIuL3RtcCIsCiAgICAgIGZvcm1hdDogImpzb24iIC8qIEpTT04gKi8sCiAgICAgIGNvbXByZXNzOiBmYWxzZSwKICAgICAgZW5kcG9pbnRfaWQ6ICJhbnl0aGluZy1pLXdhbnQiLAogICAgICBjb2xsZWN0aW9uX2lkOiAxLAogICAgICBvdXRwdXQ6ICJsb2NhbCIgLyogTE9DQUwgKi8KICAgIH07CiAgICBjb25zdCBzdGF0dXMgPSBvdXRwdXRSZXN1bHRzKAogICAgICBKU09OLnN0cmluZ2lmeShwbGlzdF9maWxlcyksCiAgICAgICJhcnRlbWlzX2luZm8iLAogICAgICBvdXQKICAgICk7CiAgICBpZiAoIXN0YXR1cykgewogICAgICBjb25zb2xlLmxvZygiQ291bGQgbm90IG91dHB1dCB0byBsb2NhbCBkaXJlY3RvcnkiKTsKICAgIH0KICAgIHBsaXN0X2ZpbGVzID0gW107CiAgfQogIGNvbnN0IHJlc3VsdCA9IGF3YWl0IHJlYWREaXIoc3RhcnRfcGF0aCk7CiAgaWYgKHJlc3VsdCBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICByZXR1cm47CiAgfQogIGZvciAoY29uc3QgZW50cnkgb2YgcmVzdWx0KSB7CiAgICBjb25zdCBwbGlzdF9wYXRoID0gYCR7c3RhcnRfcGF0aH0vJHtlbnRyeS5maWxlbmFtZX1gOwogICAgaWYgKGVudHJ5LmlzX2ZpbGUgJiYgZW50cnkuZmlsZW5hbWUuZW5kc1dpdGgoInBsaXN0IikpIHsKICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBkYXRhID0gZ2V0UGxpc3QocGxpc3RfcGF0aCk7CiAgICAgICAgaWYgKGRhdGEgaW5zdGFuY2VvZiBFcnJvcikgewogICAgICAgICAgY29udGludWU7CiAgICAgICAgfQogICAgICAgIGNvbnN0IHBsaXN0X2luZm8gPSB7CiAgICAgICAgICBwbGlzdF9jb250ZW50OiBkYXRhLAogICAgICAgICAgZmlsZTogcGxpc3RfcGF0aAogICAgICAgIH07CiAgICAgICAgcGxpc3RfZmlsZXMucHVzaChwbGlzdF9pbmZvKTsKICAgICAgfSBjYXRjaCAoX2VycikgewogICAgICAgIGNvbnRpbnVlOwogICAgICB9CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgaWYgKGVudHJ5LmlzX2RpcmVjdG9yeSkgewogICAgICBhd2FpdCByZWN1cnNlX2RpcihwbGlzdF9maWxlcywgcGxpc3RfcGF0aCk7CiAgICB9CiAgfQp9Cm1haW4oKTsK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvcGxpc3QudHMKZnVuY3Rpb24gZ2V0UGxpc3QocGF0aCkgewogIGlmIChwYXRoIGluc3RhbmNlb2YgVWludDhBcnJheSkgewogICAgY29uc3QgZGF0YTIgPSBqc19wbGlzdF9kYXRhKHBhdGgpOwogICAgcmV0dXJuIGRhdGEyOwogIH0KICBjb25zdCBkYXRhID0ganNfcGxpc3QocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9vdXRwdXQudHMKZnVuY3Rpb24gb3V0cHV0UmVzdWx0cyhkYXRhLCBkYXRhX25hbWUsIG91dHB1dCkgewogIGNvbnN0IG91dHB1dF9zdHJpbmcgPSBvdXRwdXQ7CiAgY29uc3Qgc3RhdHVzID0ganNfb3V0cHV0X3Jlc3VsdHMoCiAgICBkYXRhLAogICAgZGF0YV9uYW1lLAogICAgb3V0cHV0X3N0cmluZwogICk7CiAgcmV0dXJuIHN0YXR1czsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgcmVzdWx0ID0gYXdhaXQganNfcmVhZF9kaXIocGF0aCk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0X3BhdGggPSAiL1VzZXJzIjsKICBjb25zdCBwbGlzdF9maWxlcyA9IFtdOwogIGF3YWl0IHJlY3Vyc2VfZGlyKHBsaXN0X2ZpbGVzLCBzdGFydF9wYXRoKTsKICByZXR1cm4gcGxpc3RfZmlsZXM7Cn0KYXN5bmMgZnVuY3Rpb24gcmVjdXJzZV9kaXIocGxpc3RfZmlsZXMsIHN0YXJ0X3BhdGgpIHsKICBpZiAocGxpc3RfZmlsZXMubGVuZ3RoID4gMjApIHsKICAgIGNvbnN0IG91dCA9IHsKICAgICAgbmFtZTogImFydGVtaXNfcGxpc3QiLAogICAgICBkaXJlY3Rvcnk6ICIuL3RtcCIsCiAgICAgIGZvcm1hdDogImpzb24iIC8qIEpTT04gKi8sCiAgICAgIGNvbXByZXNzOiBmYWxzZSwKICAgICAgZW5kcG9pbnRfaWQ6ICJhbnl0aGluZy1pLXdhbnQiLAogICAgICBjb2xsZWN0aW9uX2lkOiAxLAogICAgICBvdXRwdXQ6ICJsb2NhbCIgLyogTE9DQUwgKi8KICAgIH07CiAgICBjb25zdCBzdGF0dXMgPSBvdXRwdXRSZXN1bHRzKAogICAgICBwbGlzdF9maWxlcywKICAgICAgImFydGVtaXNfaW5mbyIsCiAgICAgIG91dAogICAgKTsKICAgIGlmICghc3RhdHVzKSB7CiAgICAgIGNvbnNvbGUubG9nKCJDb3VsZCBub3Qgb3V0cHV0IHRvIGxvY2FsIGRpcmVjdG9yeSIpOwogICAgfQogICAgcGxpc3RfZmlsZXMgPSBbXTsKICB9CiAgY29uc3QgcmVzdWx0ID0gYXdhaXQgcmVhZERpcihzdGFydF9wYXRoKTsKICBpZiAocmVzdWx0IGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybjsKICB9CiAgZm9yIChjb25zdCBlbnRyeSBvZiByZXN1bHQpIHsKICAgIGNvbnN0IHBsaXN0X3BhdGggPSBgJHtzdGFydF9wYXRofS8ke2VudHJ5LmZpbGVuYW1lfWA7CiAgICBpZiAoZW50cnkuaXNfZmlsZSAmJiBlbnRyeS5maWxlbmFtZS5lbmRzV2l0aCgicGxpc3QiKSkgewogICAgICB0cnkgewogICAgICAgIGNvbnN0IGRhdGEgPSBnZXRQbGlzdChwbGlzdF9wYXRoKTsKICAgICAgICBpZiAoZGF0YSBpbnN0YW5jZW9mIEVycm9yKSB7CiAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgY29uc3QgcGxpc3RfaW5mbyA9IHsKICAgICAgICAgIHBsaXN0X2NvbnRlbnQ6IGRhdGEsCiAgICAgICAgICBmaWxlOiBwbGlzdF9wYXRoCiAgICAgICAgfTsKICAgICAgICBwbGlzdF9maWxlcy5wdXNoKHBsaXN0X2luZm8pOwogICAgICB9IGNhdGNoIChfZXJyKSB7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgY29udGludWU7CiAgICB9CiAgICBpZiAoZW50cnkuaXNfZGlyZWN0b3J5KSB7CiAgICAgIGF3YWl0IHJlY3Vyc2VfZGlyKHBsaXN0X2ZpbGVzLCBwbGlzdF9wYXRoKTsKICAgIH0KICB9Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
         let script = JSScript {
@@ -68,8 +86,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_plist_data() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvcGxpc3QudHMKZnVuY3Rpb24gZ2V0UGxpc3QocGF0aCkgewogIGlmIChwYXRoIGluc3RhbmNlb2YgVWludDhBcnJheSkgewogICAgY29uc3QgZGF0YTIgPSBEZW5vLmNvcmUub3BzLmdldF9wbGlzdF9kYXRhKHBhdGgpOwogICAgaWYgKGRhdGEyIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgICAgcmV0dXJuIGRhdGEyOwogICAgfQogICAgY29uc3QgcGxpc3RfZGF0YTIgPSBKU09OLnBhcnNlKGRhdGEyKTsKICAgIHJldHVybiBwbGlzdF9kYXRhMjsKICB9CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3BsaXN0KHBhdGgpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICBjb25zdCBwbGlzdF9kYXRhID0gSlNPTi5wYXJzZShkYXRhKTsKICByZXR1cm4gcGxpc3RfZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICBjb25zdCBieXRlcyA9IGVuY29kaW5nLmF0b2IoYjY0KTsKICByZXR1cm4gYnl0ZXM7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gIkFBQUFBQUZ1QUFJQUFBeE5ZV05wYm5SdmMyZ2dTRVFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBUWtRQUFmLy8vLzhLYlhWc2RHbHdZWE56WkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBLy8vLy93QUFBQUFBQUFBQUFBQUFBUC8vLy84QUFBb2dZM1VBQUFBQUFBQUFBQUFBQUFBQUEySnBiZ0FBQWdCRUx6cE1hV0p5WVhKNU9rRndjR3hwWTJGMGFXOXVJRk4xY0hCdmNuUTZZMjl0TG1OaGJtOXVhV05oYkM1dGRXeDBhWEJoYzNNNlltbHVPbTExYkhScGNHRnpjMlFBRGdBV0FBb0FiUUIxQUd3QWRBQnBBSEFBWVFCekFITUFaQUFQQUJvQURBQk5BR0VBWXdCcEFHNEFkQUJ2QUhNQWFBQWdBRWdBUkFBU0FFSk1hV0p5WVhKNUwwRndjR3hwWTJGMGFXOXVJRk4xY0hCdmNuUXZZMjl0TG1OaGJtOXVhV05oYkM1dGRXeDBhWEJoYzNNdlltbHVMMjExYkhScGNHRnpjMlFBRXdBQkx3RC8vd0FBIjsKICBjb25zdCByYXdfcGxpc3QgPSBkZWNvZGUoZGF0YSk7CiAgdHJ5IHsKICAgY29uc3QgX3Jlc3VsdHMgPSBnZXRQbGlzdChyYXdfcGxpc3QpOwogIH0gY2F0Y2goX2Vycikge30KICAKfQptYWluKCk7Cg==";
+    fn test_js_plist_data() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvcGxpc3QudHMKZnVuY3Rpb24gZ2V0UGxpc3QocGF0aCkgewogIGlmIChwYXRoIGluc3RhbmNlb2YgVWludDhBcnJheSkgewogICAgY29uc3QgZGF0YTIgPSBqc19wbGlzdF9kYXRhKHBhdGgpOwogICAgcmV0dXJuIGRhdGEyOwogIH0KICBjb25zdCBkYXRhID0ganNfcGxpc3QocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2VuY29kaW5nL2Jhc2U2NC50cwpmdW5jdGlvbiBkZWNvZGUoYjY0KSB7CiAgY29uc3QgYnl0ZXMgPSBqc19iYXNlNjRfZGVjb2RlKGI2NCk7CiAgcmV0dXJuIGJ5dGVzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9ICJBQUFBQUFGdUFBSUFBQXhOWVdOcGJuUnZjMmdnU0VRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQVFrUUFBZi8vLy84S2JYVnNkR2x3WVhOelpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQS8vLy8vd0FBQUFBQUFBQUFBQUFBQVAvLy8vOEFBQW9nWTNVQUFBQUFBQUFBQUFBQUFBQUFBMkpwYmdBQUFnQkVMenBNYVdKeVlYSjVPa0Z3Y0d4cFkyRjBhVzl1SUZOMWNIQnZjblE2WTI5dExtTmhibTl1YVdOaGJDNXRkV3gwYVhCaGMzTTZZbWx1T20xMWJIUnBjR0Z6YzJRQURnQVdBQW9BYlFCMUFHd0FkQUJwQUhBQVlRQnpBSE1BWkFBUEFCb0FEQUJOQUdFQVl3QnBBRzRBZEFCdkFITUFhQUFnQUVnQVJBQVNBRUpNYVdKeVlYSjVMMEZ3Y0d4cFkyRjBhVzl1SUZOMWNIQnZjblF2WTI5dExtTmhibTl1YVdOaGJDNXRkV3gwYVhCaGMzTXZZbWx1TDIxMWJIUnBjR0Z6YzJRQUV3QUJMd0QvL3dBQSI7CiAgY29uc3QgcmF3X3BsaXN0ID0gZGVjb2RlKGRhdGEpOwogIHRyeSB7CiAgIGNvbnN0IF9yZXN1bHRzID0gZ2V0UGxpc3QocmF3X3BsaXN0KTsKICB9IGNhdGNoKF9lcnIpIHt9CiAgCn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
         let script = JSScript {

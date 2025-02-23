@@ -1,96 +1,152 @@
 use super::{
-    accounts::{get_groups_macos, get_users_macos},
-    bookmarks::get_bookmark,
-    emond::get_emond,
-    execpolicy::get_execpolicy,
-    fsevents::get_fsevents,
-    launchd::{get_launchd_agents, get_launchd_daemons},
-    loginitems::get_loginitems,
-    macho::get_macho,
-    plist::{get_plist, get_plist_data},
+    accounts::{js_groups_macos, js_users_macos},
+    bookmarks::js_bookmark,
+    emond::js_emond,
+    execpolicy::js_execpolicy,
+    fsevents::js_fsevents,
+    launchd::{js_launchd_agents, js_launchd_daemons},
+    loginitems::js_loginitems,
+    macho::js_macho,
+    plist::{js_plist, js_plist_data},
     safari::{
-        get_safari_downloads, get_safari_history, get_safari_users_downloads,
-        get_safari_users_history,
+        js_safari_downloads, js_safari_history, js_safari_users_downloads, js_safari_users_history,
     },
-    spotlight::{get_spotlight, setup_spotlight_parser},
-    sudo::get_sudologs_macos,
-    unifiedlogs::get_unified_log,
+    spotlight::{js_setup_spotlight_parser, js_spotlight},
+    sudo::js_sudologs_macos,
+    unifiedlog::js_unified_log,
 };
-use crate::runtime::{
-    applications::extensions::app_functions, compression::extensions::compression_functions,
-    decryption::extensions::decryption_functions, encoding::extensions::enocoding_functions,
-    environment::extensions::env_runtime, filesystem::extensions::fs_runtime,
-    http::extensions::http_functions, nom::extensions::nom_functions,
-    system::extensions::system_functions, time::extensions::time_functions,
-    unix::extensions::unix_functions,
-};
-use deno_core::Extension;
+use boa_engine::{Context, JsString, NativeFunction};
 
-/// Include all the `Artemis` function in the `Runtime`
-pub(crate) fn setup_macos_extensions() -> Vec<Extension> {
-    let extensions = Extension {
-        name: "artemis",
-        ops: grab_functions().into(),
-        ..Default::default()
-    };
-    vec![extensions]
-}
+/// Link macOS functions `BoaJS`
+pub(crate) fn macos_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_users_macos"),
+        1,
+        NativeFunction::from_fn_ptr(js_users_macos),
+    );
 
-/// Link Rust functions to `Deno core`
-fn grab_functions() -> Vec<deno_core::OpDecl> {
-    let mut exts = vec![
-        get_launchd_daemons(),
-        get_launchd_agents(),
-        get_unified_log(),
-        get_plist(),
-        get_plist_data(),
-        get_fsevents(),
-        get_macho(),
-        get_loginitems(),
-        get_users_macos(),
-        get_groups_macos(),
-        get_emond(),
-        get_safari_users_history(),
-        get_safari_history(),
-        get_safari_users_downloads(),
-        get_safari_downloads(),
-        get_execpolicy(),
-        get_sudologs_macos(),
-        get_spotlight(),
-        setup_spotlight_parser(),
-        get_bookmark(),
-    ];
+    let _ = context.register_global_callable(
+        JsString::from("js_groups_macos"),
+        1,
+        NativeFunction::from_fn_ptr(js_groups_macos),
+    );
 
-    exts.append(&mut app_functions());
-    exts.append(&mut unix_functions());
-    exts.append(&mut system_functions());
+    let _ = context.register_global_callable(
+        JsString::from("js_bookmark"),
+        1,
+        NativeFunction::from_fn_ptr(js_bookmark),
+    );
 
-    exts.append(&mut fs_runtime());
-    exts.append(&mut env_runtime());
-    exts.append(&mut enocoding_functions());
+    let _ = context.register_global_callable(
+        JsString::from("js_emond"),
+        1,
+        NativeFunction::from_fn_ptr(js_emond),
+    );
 
-    exts.append(&mut nom_functions());
-    exts.append(&mut time_functions());
-    exts.append(&mut http_functions());
-    exts.append(&mut compression_functions());
-    exts.append(&mut decryption_functions());
+    let _ = context.register_global_callable(
+        JsString::from("js_launchd_daemons"),
+        0,
+        NativeFunction::from_fn_ptr(js_launchd_daemons),
+    );
 
-    exts
+    let _ = context.register_global_callable(
+        JsString::from("js_launchd_agents"),
+        0,
+        NativeFunction::from_fn_ptr(js_launchd_agents),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_execpolicy"),
+        1,
+        NativeFunction::from_fn_ptr(js_execpolicy),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_fsevents"),
+        1,
+        NativeFunction::from_fn_ptr(js_fsevents),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_macho"),
+        1,
+        NativeFunction::from_fn_ptr(js_macho),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_plist"),
+        1,
+        NativeFunction::from_fn_ptr(js_plist),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_plist_data"),
+        1,
+        NativeFunction::from_fn_ptr(js_plist_data),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_loginitems"),
+        1,
+        NativeFunction::from_fn_ptr(js_loginitems),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_safari_users_history"),
+        0,
+        NativeFunction::from_fn_ptr(js_safari_users_history),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_safari_history"),
+        1,
+        NativeFunction::from_fn_ptr(js_safari_history),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_safari_users_downloads"),
+        0,
+        NativeFunction::from_fn_ptr(js_safari_users_downloads),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_safari_downloads"),
+        1,
+        NativeFunction::from_fn_ptr(js_safari_downloads),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_spotlight"),
+        3,
+        NativeFunction::from_fn_ptr(js_spotlight),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_setup_spotlight_parser"),
+        1,
+        NativeFunction::from_fn_ptr(js_setup_spotlight_parser),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_sudologs_macos"),
+        1,
+        NativeFunction::from_fn_ptr(js_sudologs_macos),
+    );
+    let _ = context.register_global_callable(
+        JsString::from("js_unified_log"),
+        2,
+        NativeFunction::from_fn_ptr(js_unified_log),
+    );
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{grab_functions, setup_macos_extensions};
+    use super::macos_functions;
+    use boa_engine::Context;
 
     #[test]
-    fn test_grab_functions() {
-        let results = grab_functions();
-        assert!(results.len() > 2);
-    }
-
-    #[test]
-    fn test_setup_macos_extensions() {
-        let results = setup_macos_extensions();
-        assert_eq!(results.len(), 1);
+    fn test_macos_functions() {
+        let mut context = Context::default();
+        macos_functions(&mut context);
     }
 }

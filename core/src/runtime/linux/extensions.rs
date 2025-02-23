@@ -1,38 +1,43 @@
-use super::logons::get_logon;
-use super::sudo::get_sudologs_linux;
-use crate::runtime::linux::{executable::get_elf, journal::get_journal};
-use deno_core::Extension;
+use super::{
+    elf::js_get_elf, journal::js_get_journal, logons::js_get_logon, sudo::js_get_sudologs_linux,
+};
+use boa_engine::{Context, JsString, NativeFunction};
 
-/// Include all the `Artemis` function in the `Runtime`
-pub(crate) fn setup_linux_extensions() -> Vec<Extension> {
-    let extensions = Extension {
-        name: "artemis",
-        ops: grab_functions().into(),
-        ..Default::default()
-    };
-    vec![extensions]
-}
+/// Link Linux functions `BoaJS`
+pub(crate) fn linux_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_get_elf"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_elf),
+    );
 
-/// Link Rust functions to `Deno core`
-fn grab_functions() -> Vec<deno_core::OpDecl> {
-    let exts = vec![get_elf(), get_journal(), get_logon(), get_sudologs_linux()];
+    let _ = context.register_global_callable(
+        JsString::from("js_get_journal"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_journal),
+    );
 
-    exts
+    let _ = context.register_global_callable(
+        JsString::from("js_get_logon"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_logon),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_get_sudologs_linux"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_sudologs_linux),
+    );
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{grab_functions, setup_linux_extensions};
+    use super::linux_functions;
+    use boa_engine::Context;
 
     #[test]
-    fn test_grab_functions() {
-        let results = grab_functions();
-        assert!(results.len() > 2);
-    }
-
-    #[test]
-    fn test_setup_linux_extensions() {
-        let results = setup_linux_extensions();
-        assert_eq!(results.len(), 1);
+    fn test_linux_functions() {
+        let mut context = Context::default();
+        linux_functions(&mut context);
     }
 }

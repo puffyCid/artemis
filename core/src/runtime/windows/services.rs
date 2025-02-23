@@ -1,42 +1,41 @@
 use crate::{
-    artifacts::os::windows::services::parser::{grab_service_file, grab_services},
-    runtime::error::RuntimeError,
+    artifacts::os::windows::services::parser::grab_services, runtime::helper::string_arg,
     structs::artifacts::os::windows::ServicesOptions,
 };
-use deno_core::{error::AnyError, op2};
-use log::error;
+use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
 
-#[op2]
-#[string]
-/// Expose parsing Services at default systemdrive to Deno
-pub(crate) fn get_services() -> Result<String, AnyError> {
-    let options = ServicesOptions { alt_file: None };
-    let service = grab_services(&options)?;
+/// Expose parsing Services to `BoaJS`
+pub(crate) fn js_services(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, &0)?)
+    };
 
-    let results = serde_json::to_string(&service)?;
-    Ok(results)
-}
+    let options = ServicesOptions { alt_file: path };
+    let service = match grab_services(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get services: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
 
-#[op2]
-#[string]
-/// Expose parsing Services file to Deno
-pub(crate) fn get_service_file(#[string] path: String) -> Result<String, AnyError> {
-    if path.is_empty() {
-        error!("[runtime] Got empty service file arguement.");
-        return Err(RuntimeError::ExecuteScript.into());
-    }
+    let results = serde_json::to_value(&service).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
 
-    let service = grab_service_file(&path)?;
-    let results = serde_json::to_string(&service)?;
-
-    Ok(results)
+    Ok(value)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::deno::execute_script, structs::artifacts::runtime::script::JSScript,
-        structs::toml::Output,
+        runtime::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -57,22 +56,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_services() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlcygpIHsKICBjb25zdCBkYXRhID0gRGVuby5jb3JlLm9wcy5nZXRfc2VydmljZXMoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
+    fn test_js_services() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlcygpIHsKICBjb25zdCBkYXRhID0ganNfc2VydmljZXMoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRTZXJ2aWNlcygpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("service_default"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    fn test_get_service_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZXJ2aWNlcy50cwpmdW5jdGlvbiBnZXRTZXJ2aWNlRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IERlbm8uY29yZS5vcHMuZ2V0X3NlcnZpY2VfZmlsZShwYXRoKTsKICBjb25zdCBzZXJ2aWNlcyA9IEpTT04ucGFyc2UoZGF0YSk7CiAgcmV0dXJuIHNlcnZpY2VzOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFNlcnZpY2VGaWxlKCJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU1lTVEVNIik7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
-        let script = JSScript {
-            name: String::from("service_path"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

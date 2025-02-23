@@ -1,17 +1,29 @@
-use crate::runtime::compression::decompress::{js_decompress_gzip, js_decompress_zlib};
+use super::decompress::{js_decompress_gzip, js_decompress_zlib};
+use boa_engine::{Context, JsString, NativeFunction};
 
-/// Link Rust compression functions to `Deno core`
-pub(crate) fn compression_functions() -> Vec<deno_core::OpDecl> {
-    vec![js_decompress_zlib(), js_decompress_gzip()]
+/// Link Decompression functions `BoaJS`
+pub(crate) fn decompress_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_decompress_zlib"),
+        2,
+        NativeFunction::from_fn_ptr(js_decompress_zlib),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_decompress_gzip"),
+        1,
+        NativeFunction::from_fn_ptr(js_decompress_gzip),
+    );
 }
 
 #[cfg(test)]
 mod tests {
-    use super::compression_functions;
+    use super::decompress_functions;
+    use boa_engine::Context;
 
     #[test]
-    fn test_compression_functions() {
-        let results = compression_functions();
-        assert!(results.len() >= 1)
+    fn test_decompress_functions() {
+        let mut context = Context::default();
+        decompress_functions(&mut context);
     }
 }

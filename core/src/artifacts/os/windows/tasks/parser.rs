@@ -56,12 +56,12 @@ pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> 
 }
 
 /// Grab and parse single Task Job File at provided path
-pub(crate) fn grab_task_job(path: &str) -> Result<TaskJob, TaskError> {
+fn grab_task_job(path: &str) -> Result<TaskJob, TaskError> {
     parse_job(path)
 }
 
 /// Grab and parse single Task XML File at provided path
-pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
+fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
     parse_xml(path)
 }
 

@@ -1,214 +1,206 @@
-use super::linux::extensions::setup_linux_extensions;
-use super::macos::extensions::setup_macos_extensions;
-use super::windows::extensions::setup_windows_extensions;
-use crate::runtime::error::RuntimeError;
-use deno_core::error::{custom_error, AnyError, JsError};
-use deno_core::serde_v8::from_v8;
-use deno_core::v8::{CreateParams, Local};
-use deno_core::{
-    FsModuleLoader, ImportAssertionsSupport, JsRuntime, PollEventLoopOptions, RuntimeOptions,
+use super::{
+    error::RuntimeError,
+    setup::{run_async_script, run_script},
+};
+use crate::{
+    artifacts::output::output_artifact,
+    structs::{artifacts::runtime::script::JSScript, toml::Output},
+    utils::{encoding::base64_decode_standard, time},
 };
 use log::error;
-use serde_json::{json, Value};
-use std::rc::Rc;
+use serde_json::Value;
+use std::str::from_utf8;
 
-static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/RUNJS_SNAPSHOT.bin"));
-
-/// Execute the decoded Javascript and return a `serde_json` Value
-pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
-    let mut runtime = create_worker_options()?;
-
-    // Scripts executed via `execute_script` are run in a global context.
-    let scripts_args = format!("const STATIC_ARGS = {args:?}");
-    let _ = runtime.execute_script("script_args", scripts_args)?;
-
-    let script_result = runtime.execute_script("deno", script.to_string());
-    let script_output = match script_result {
-        Ok(result) => result,
-        Err(err) => {
-            let js_error = JsError {
-                name: Some(String::from("ExecutionFailure")),
-                message: Some(String::from("Failed to run JS code")),
-                stack: None,
-                cause: None,
-                exception_message: err.to_string(),
-                frames: Vec::new(),
-                source_line: None,
-                source_line_frame_index: None,
-                aggregated: None,
-            };
-            error!("[runtime] Could not execute script: {err:?}");
-            let value_error = json!(js_error);
-            // Instead of erroring in Rust and cancelling the script. Let JavaScript handle the errors
-            return Ok(value_error);
-        }
-    };
-
-    let mut scope = runtime.handle_scope();
-    let local = Local::new(&mut scope, script_output);
-    let value_result = from_v8::<Value>(&mut scope, local);
-    let script_value = match value_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not get script result: {err:?}");
-            return Err(RuntimeError::ScriptResult.into());
-        }
-    };
-
-    Ok(script_value)
+/// Execute the provided JavaScript data from the TOML input
+pub(crate) fn execute_script(output: &mut Output, script: &JSScript) -> Result<(), RuntimeError> {
+    decode_script(output, &script.name, &script.script, &[])
 }
 
-#[tokio::main(flavor = "current_thread")]
-/// Execute the decoded async Javascript and return the data asynchronously
-pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Value, AnyError> {
-    let mut runtime = create_worker_options()?;
-
-    // Scripts executed via `execute_script` are run in a global context.
-    let scripts_args = format!("const STATIC_ARGS = {args:?}");
-    let _ = runtime.execute_script("script_args", scripts_args)?;
-
-    let script_result = runtime.execute_script("deno", script.to_string());
-    let script_output = match script_result {
-        Ok(result) => result,
-        Err(err) => {
-            let js_error = JsError {
-                name: Some(String::from("ExecutionFailure")),
-                message: Some(String::from("Failed to run JS code")),
-                stack: None,
-                cause: None,
-                exception_message: err.to_string(),
-                frames: Vec::new(),
-                source_line: None,
-                source_line_frame_index: None,
-                aggregated: None,
-            };
-            error!("[runtime] Could not execute script: {err:?}");
-            let value_error = json!(js_error);
-            // Instead of erroring in Rust and cancelling the script. Let JavaScript handle the errors
-            return Ok(value_error);
-        }
-    };
-    let resolve = runtime.resolve(script_output);
-    let value_result = runtime
-        .with_event_loop_promise(resolve, PollEventLoopOptions::default())
-        .await;
-
-    // Wait for async script to return any value
-    let value = match value_result {
-        Ok(result) => result,
-        Err(err) => {
-            let js_error = JsError {
-                name: Some(String::from("ExecutionFailure")),
-                message: Some(String::from("Failed to resolve JS code")),
-                stack: None,
-                cause: None,
-                exception_message: err.to_string(),
-                frames: Vec::new(),
-                source_line: None,
-                source_line_frame_index: None,
-                aggregated: None,
-            };
-            error!("[runtime] Could not resolve script: {err:?}");
-            let value_error = Value::from(js_error.to_string());
-            // Instead of erroring in Rust and cancelling the script. Send the error back to the JavaScript
-            return Ok(value_error);
-        }
-    };
-
-    let mut scope = runtime.handle_scope();
-    let local = Local::new(&mut scope, value);
-    let value_result = from_v8::<Value>(&mut scope, local);
-    let script_value = match value_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not get script result: {err:?}");
-            return Err(RuntimeError::ScriptResult.into());
-        }
-    };
-
-    Ok(script_value)
+/// Execute the provided JavaScript data from the TOML and provide a stringified serde Value as an argument to JavaScript
+pub(crate) fn filter_script(
+    output: &mut Output,
+    args: &[String],
+    filter_name: &str,
+    filter_script: &str,
+) -> Result<(), RuntimeError> {
+    decode_script(output, filter_name, filter_script, args)
 }
 
-/// Handle Javascript errors
-fn get_error_class_name(e: &AnyError) -> &'static str {
-    let err = custom_error("Error", e.to_string());
-    deno_core::error::get_custom_error_class(&err)
-        .unwrap_or("[runtime] script execution class error")
+/// Execute raw JavaScript code
+pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
+    let args = [];
+    let result = if script.contains("async function ") || script.contains(" await ") {
+        run_async_script(script, &args)
+    } else {
+        run_script(script, &args)
+    };
+
+    let status = match result {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "[runtime] Could not execute javascript: {}",
+                err.to_string()
+            );
+            return Err(RuntimeError::ExecuteScript);
+        }
+    };
+
+    Ok(status)
 }
 
-/// Create the Deno runtime worker options. Pass optional args
-fn create_worker_options() -> Result<JsRuntime, AnyError> {
-    // This may be required for Linux? Not 100% sure. It runs fine without it. Ref: https://github.com/denoland/deno/pull/20495. May depend on V8 version (rusty_v8)
-    //JsRuntime::init_platform(None);
+/// Base64 decode the Javascript string and execute using Deno runtime and output the returned value
+fn decode_script(
+    output: &mut Output,
+    script_name: &str,
+    encoded_script: &str,
+    args: &[String],
+) -> Result<(), RuntimeError> {
+    let start_time = time::time_now();
 
-    let module_loader = Rc::new(FsModuleLoader);
+    let script_result = base64_decode_standard(encoded_script);
+    let script_bytes = match script_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not base64 provided javascript script: {err:?}",);
+            return Err(RuntimeError::Decode);
+        }
+    };
 
-    let mut v8_params = CreateParams::default();
-    let initial_size = 0;
-    let max_size = 1024 * 1024 * 1024 * 2;
-    // Set max heap memory size to 2GB
-    v8_params = v8_params.heap_limits(initial_size, max_size);
+    let str_result = from_utf8(&script_bytes);
+    let script = match str_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not read javascript script as string: {err:?}");
+            return Err(RuntimeError::Decode);
+        }
+    };
 
-    let mut extensions;
+    let result = if script.contains("async function") || script.contains(" await ") {
+        run_async_script(script, args)
+    } else {
+        run_script(script, args)
+    };
+    let mut script_value = match result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not execute javascript: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
+    };
 
-    extensions = setup_macos_extensions();
-    extensions.append(&mut setup_linux_extensions());
-    extensions.append(&mut setup_windows_extensions());
+    if script_value.is_null() {
+        return Ok(());
+    }
 
-    let runtime = JsRuntime::new(RuntimeOptions {
-        get_error_class_fn: Some(&get_error_class_name),
-        module_loader: Some(module_loader),
-        extensions,
-        startup_snapshot: Some(RUNTIME_SNAPSHOT),
-        create_params: Some(v8_params),
-        v8_platform: Default::default(),
-        shared_array_buffer_store: Default::default(),
-        compiled_wasm_module_store: None,
-        inspector: false,
-        is_main: Default::default(),
-        op_metrics_factory_fn: None,
-        feature_checker: None,
-        skip_op_registration: false,
-        validate_import_attributes_cb: Default::default(),
-        import_meta_resolve_callback: Default::default(),
-        wait_for_inspector_disconnect_callback: None,
-        custom_module_evaluation_cb: None,
-        extension_transpiler: None,
-        eval_context_code_cache_cbs: None,
-        import_assertions_support: ImportAssertionsSupport::Error,
-        maybe_op_stack_trace_callback: None,
-    });
+    output_data(&mut script_value, script_name, output, &start_time)?;
+    Ok(())
+}
 
-    Ok(runtime)
+/// Output Javascript results based on the output options provided from the TOML file
+pub(crate) fn output_data(
+    serde_data: &mut Value,
+    output_name: &str,
+    output: &mut Output,
+    start_time: &u64,
+) -> Result<(), RuntimeError> {
+    // We must never filter a script. Otherwise this would cause an infinite loop!
+    let filter = false;
+    let status = output_artifact(serde_data, output_name, output, start_time, &filter);
+    if status.is_err() {
+        error!("[runtime] Could not output data: {:?}", status.unwrap_err());
+        return Err(RuntimeError::Output);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{create_worker_options, get_error_class_name, run_script};
-    use crate::runtime::{error::RuntimeError, run::run_async_script};
+    use super::{decode_script, execute_script, filter_script, raw_script};
+    use crate::{
+        runtime::run::output_data,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        utils::time,
+    };
+    use serde_json::json;
 
-    #[test]
-    fn test_create_worker_options() {
-        let results = create_worker_options().unwrap();
-        assert!(results.op_names().len() > 2);
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("json"),
+            compress,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: output.to_string(),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        }
     }
 
     #[test]
-    fn test_run_script() {
-        let results = run_script("console.log('hello rust!')", &[]).unwrap();
-        assert!(results.is_null());
+    fn test_decode_script() {
+        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+
+        decode_script(&mut output, "hello world", test, &[]).unwrap();
     }
 
     #[test]
-    fn test_run_async_script() {
-        let results = run_async_script("console.error('hello async rust!')", &[]).unwrap();
-        assert!(results.is_null());
+    fn test_raw_script() {
+        let test = r#"console.log(2+2);"#;
+        raw_script(&test).unwrap();
     }
 
     #[test]
-    fn test_get_error_class_name() {
-        let err = RuntimeError::Decode;
-        let results = get_error_class_name(&err.into());
-        assert_eq!(results, "Error");
+    fn test_execute_script() {
+        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("hello world"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn test_advanced_decode_script() {
+        use crate::filesystem::files::read_file;
+        use std::{path::PathBuf, str::from_utf8};
+
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/deno_scripts/read_homebrew.txt");
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
+
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+
+        decode_script(
+            &mut output,
+            "homebrew_packages",
+            from_utf8(&buffer).unwrap(),
+            &[],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_filter_script() {
+        let mut output = output_options("split_string", "local", "./tmp", false);
+        filter_script(&mut output, &vec![String::from("helloRust")], "test", "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IFNUQVRJQ19BUkdTOwogICAgaWYgKGFyZ3MubGVuZ3RoID09PSAwKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdGVzdCA9IGFyZ3NbMF07CiAgICBjb25zdCB2YWx1ZXMgPSB0ZXN0LnNwbGl0KCJoZWxsbyIpCgogICAgcmV0dXJuIHZhbHVlczsKfQptYWluKCk7Cgo=").unwrap();
+    }
+
+    #[test]
+    fn test_output_data() {
+        let mut output = output_options("output_test", "local", "./tmp", false);
+        let start_time = time::time_now();
+
+        let name = "test";
+        let mut data = json!({"test":"test"});
+        let status = output_data(&mut data, name, &mut output, &start_time).unwrap();
+        assert_eq!(status, ());
     }
 }
