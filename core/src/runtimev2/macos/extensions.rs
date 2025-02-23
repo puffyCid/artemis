@@ -5,6 +5,9 @@ use super::{
     execpolicy::js_execpolicy,
     fsevents::js_fsevents,
     launchd::{js_launchd_agents, js_launchd_daemons},
+    loginitems::js_loginitems,
+    macho::js_macho,
+    plist::{js_plist, js_plist_data},
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -56,6 +59,30 @@ pub(crate) fn macos_functions(context: &mut Context) {
         JsString::from("js_fsevents"),
         1,
         NativeFunction::from_fn_ptr(js_fsevents),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_macho"),
+        1,
+        NativeFunction::from_fn_ptr(js_macho),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_plist"),
+        1,
+        NativeFunction::from_fn_ptr(js_plist),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_plist_data"),
+        1,
+        NativeFunction::from_fn_ptr(js_plist_data),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_loginitems"),
+        1,
+        NativeFunction::from_fn_ptr(js_loginitems),
     );
 }
 

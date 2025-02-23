@@ -5,3 +5,6 @@ mod execpolicy;
 pub(crate) mod extensions;
 mod fsevents;
 mod launchd;
+mod loginitems;
+mod macho;
+mod plist;
