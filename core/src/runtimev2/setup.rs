@@ -3,9 +3,10 @@ use super::{
     decryption::extensions::decrypt_functions, encoding::extensions::encoding_functions,
     environment::extensions::env_functions, error::RuntimeError,
     filesystem::extensions::filesystem_functions, http::extensions::http_functions,
-    linux::extensions::linux_functions, nom::extensions::nom_functions,
-    system::extensions::system_functions, time::extensions::time_functions,
-    unix::extensions::unix_functions, windows::extensions::windows_functions,
+    linux::extensions::linux_functions, macos::extensions::macos_functions,
+    nom::extensions::nom_functions, system::extensions::system_functions,
+    time::extensions::time_functions, unix::extensions::unix_functions,
+    windows::extensions::windows_functions,
 };
 use boa_engine::{
     context::ContextBuilder,
@@ -273,6 +274,7 @@ fn setup_runtime(context: &mut Context) {
     time_functions(context);
     unix_functions(context);
     windows_functions(context);
+    macos_functions(context);
 }
 
 #[cfg(test)]

@@ -50,7 +50,7 @@ pub(crate) fn grab_search(
     let win11 = path.replace("edb", "db");
 
     // If we do not find Windows.edb we may be dealing with Windows 11 db
-    if (!is_file(&path) && is_file(&win11)) || path.ends_with("db") {
+    if (!is_file(&path) && is_file(&win11)) || path.ends_with(".db") {
         /*
          * Windows Search on Windows 11 is split into three (3) SQLITE databases:
          *  - Windows.db

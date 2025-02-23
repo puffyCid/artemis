@@ -1,5 +1,6 @@
 use crate::{
-    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl, runtimev2::helper::{char_arg, string_arg},
+    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl,
+    runtimev2::helper::{char_arg, string_arg},
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
 use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};

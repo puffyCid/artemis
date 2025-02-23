@@ -140,7 +140,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         break;
                     }
                 };
-
+                if entry_bytes.is_empty() {
+                    break;
+                }
                 // Remaining entries. 1000->999->998->etc
                 mft_bytes = remaining.to_vec();
                 let header_results = MftHeader::parse_header(entry_bytes);

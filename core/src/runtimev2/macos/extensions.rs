@@ -1,0 +1,45 @@
+use super::{
+    accounts::{js_groups_macos, js_users_macos},
+    bookmarks::js_bookmark,
+    emond::js_emond,
+};
+use boa_engine::{Context, JsString, NativeFunction};
+
+/// Link macOS functions `BoaJS`
+pub(crate) fn macos_functions(context: &mut Context) {
+    let _ = context.register_global_callable(
+        JsString::from("js_users_macos"),
+        0,
+        NativeFunction::from_fn_ptr(js_users_macos),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_groups_macos"),
+        0,
+        NativeFunction::from_fn_ptr(js_groups_macos),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_bookmark"),
+        0,
+        NativeFunction::from_fn_ptr(js_bookmark),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_emond"),
+        0,
+        NativeFunction::from_fn_ptr(js_emond),
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::macos_functions;
+    use boa_engine::Context;
+
+    #[test]
+    fn test_macos_functions() {
+        let mut context = Context::default();
+        macos_functions(&mut context);
+    }
+}

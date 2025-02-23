@@ -38,7 +38,10 @@ pub(crate) fn js_userassist(
 
 #[cfg(test)]
 mod tests {
-    use crate::{runtimev2::run::execute_script, structs::{artifacts::runtime::script::JSScript, toml::Output}};
+    use crate::{
+        runtimev2::run::execute_script,
+        structs::{artifacts::runtime::script::JSScript, toml::Output},
+    };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {

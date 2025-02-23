@@ -21,7 +21,8 @@ use super::{
     srum::js_srum,
     tasks::js_tasks,
     userassist::js_userassist,
-    usnjrnl::js_usnjrnl, wmi::js_wmipersist,
+    usnjrnl::js_usnjrnl,
+    wmi::js_wmipersist,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -218,7 +219,7 @@ pub(crate) fn windows_functions(context: &mut Context) {
         2,
         NativeFunction::from_fn_ptr(js_usnjrnl),
     );
-    
+
     let _ = context.register_global_callable(
         JsString::from("js_wmipersist"),
         2,
