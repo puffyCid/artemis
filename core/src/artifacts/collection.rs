@@ -1,8 +1,5 @@
 use super::{
-    applications::artifacts::{
-        chromium_downloads, chromium_history, firefox_downloads, firefox_history, safari_downloads,
-        safari_history,
-    },
+    applications::artifacts::{safari_downloads, safari_history},
     error::CollectionError,
     os::{
         files::artifact::filelisting,
@@ -203,46 +200,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Safari downloads"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse Safari downloads: {err:?}");
-                        continue;
-                    }
-                }
-            }
-            "firefox-history" => {
-                let results = firefox_history(&mut collector.output, &filter);
-                match results {
-                    Ok(_) => info!("Collected Firefox history"),
-                    Err(err) => {
-                        error!("[artemis-core] Failed to parse Firefox history: {err:?}");
-                        continue;
-                    }
-                }
-            }
-            "firefox-downloads" => {
-                let results = firefox_downloads(&mut collector.output, &filter);
-                match results {
-                    Ok(_) => info!("Collected Firefox downloads"),
-                    Err(err) => {
-                        error!("[artemis-core] Failed to parse Firefox downloads: {err:?}");
-                        continue;
-                    }
-                }
-            }
-            "chromium-history" => {
-                let results = chromium_history(&mut collector.output, &filter);
-                match results {
-                    Ok(_) => info!("Collected Chromium history"),
-                    Err(err) => {
-                        error!("[artemis-core] Failed to parse Chromium history: {err:?}");
-                        continue;
-                    }
-                }
-            }
-            "chromium-downloads" => {
-                let results = chromium_downloads(&mut collector.output, &filter);
-                match results {
-                    Ok(_) => info!("Collected Chromium downloads"),
-                    Err(err) => {
-                        error!("[artemis-core] Failed to parse Chromium downloads: {err:?}");
                         continue;
                     }
                 }

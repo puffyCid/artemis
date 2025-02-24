@@ -1,11 +1,11 @@
-# artemis
+# Artemis
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![codecov](https://img.shields.io/codecov/c/github/puffyCid/artemis?style=for-the-badge)](https://codecov.io/github/puffyCid/artemis)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/nightly.yml?style=for-the-badge)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/audit.yml?label=Audit&style=for-the-badge)
 
-artemis is a powerful command line digital forensic and incident response (DFIR)
+Artemis is a powerful command line digital forensic and incident response (DFIR)
 tool that collects forensic data from Windows, macOS, and Linux endpoints. Its
 primary focus is: speed, ease of use, and low resource usage.\
 Notable features _so far_:
@@ -53,10 +53,6 @@ Commands:
   processes          Collect processes
   filelisting        Pull filelisting
   systeminfo         Get systeminfo
-  firefoxhistory     Parse Firefox History
-  chromiumhistory    Parse Chromium History
-  firefoxdownloads   Parse Firefox Downloads
-  chromiumdownloads  Parse Chromium Downloads
   prefetch           windows: Parse Prefetch
   eventlogs          windows: Parse EventLogs
   rawfilelisting     windows: Parse NTFS to get filelisting
