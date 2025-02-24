@@ -4,10 +4,6 @@ use std::fmt;
 pub(crate) enum ApplicationError {
     SafariHistory,
     SafariDownloads,
-    FirefoxHistory,
-    FirefoxDownloads,
-    ChromiumHistory,
-    ChromiumDownloads,
     Output,
     Serialize,
 }
@@ -20,18 +16,6 @@ impl fmt::Display for ApplicationError {
             ApplicationError::SafariHistory => write!(f, "Failed to parse Safari History"),
             ApplicationError::SafariDownloads => {
                 write!(f, "Failed to parse Safari Downloads")
-            }
-            ApplicationError::FirefoxHistory => {
-                write!(f, "Failed to parse Firefox History")
-            }
-            ApplicationError::FirefoxDownloads => {
-                write!(f, "Failed to parse Firefox Downloads")
-            }
-            ApplicationError::ChromiumHistory => {
-                write!(f, "Failed to parse Chromium History")
-            }
-            ApplicationError::ChromiumDownloads => {
-                write!(f, "Failed to parse Chromium Downloads")
             }
             ApplicationError::Output => write!(f, "Failed to output data"),
             ApplicationError::Serialize => {

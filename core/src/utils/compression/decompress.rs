@@ -3,12 +3,13 @@ use super::{
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
 use crate::filesystem::files::read_file;
-use flate2::{
-    bufread::{MultiGzDecoder, ZlibDecoder},
-    Decompress,
-};
+use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
 use log::{error, warn};
 use lz4_flex::block::decompress_with_dict;
+use miniz_oxide::{
+    inflate::stream::{inflate, InflateState},
+    MZFlush,
+};
 use ruzstd::decoding::StreamingDecoder;
 use std::io::Read;
 use xz2::read::XzDecoder;
@@ -82,7 +83,9 @@ pub(crate) fn decompress_zlib(
     data: &[u8],
     wbits: &Option<u8>,
 ) -> Result<Vec<u8>, CompressionError> {
-    let mut buffer = if wbits.is_some() {
+    // If window bits are provided, we need to user lower level miniz_oxide (already used by flate2)
+    // In order to decompress the data. Flate2 does not expose the functions we require
+    if wbits.is_some() {
         let wbits_value = wbits.unwrap_or_default();
         let min_size = 9;
         let max_size = 15;
@@ -90,10 +93,16 @@ pub(crate) fn decompress_zlib(
             return Err(CompressionError::ZlibBadWbits);
         }
 
-        ZlibDecoder::new_with_decompress(data, Decompress::new_with_window_bits(false, wbits_value))
-    } else {
-        ZlibDecoder::new(data)
-    };
+        let mut test = InflateState::new_boxed_with_window_bits(wbits_value as i32);
+        let mut out = Vec::new();
+        let status = inflate(&mut test, data, &mut out, MZFlush::None);
+        println!("{status:?}");
+        println!("{}", out.len());
+        return Ok(out);
+        //ZlibDecoder::new_with_decompress(data, Decompress::new_with_window_bits(false, wbits_value))
+    }
+
+    let mut buffer = ZlibDecoder::new(data);
     let mut decompress_data = Vec::new();
 
     let result = buffer.read_to_end(&mut decompress_data);

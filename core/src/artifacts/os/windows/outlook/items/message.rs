@@ -228,7 +228,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
 
     let compressed_sig = 0x75465a4c;
     if sig != compressed_sig {
-        // Data is not compressed extract the string new_with_window_bits
+        // Data is not compressed extract the string
         let value = extract_ascii_utf16_string(input);
 
         return Ok((input, value));
