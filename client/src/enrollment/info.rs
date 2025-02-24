@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn test_get_windows_disks() {
+    fn test_get_linux_disks() {
         let system_info = get_disks();
         assert!(system_info.len() >= 1);
     }

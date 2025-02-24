@@ -59,7 +59,6 @@ mod tests {
         assert_eq!(result.output.name, "macos_collection");
         assert_eq!(result.output.directory, "./tmp");
         assert_eq!(result.output.format, "local");
-        assert_eq!(result.system, "macos");
 
         assert_eq!(result.artifacts[0].artifact_name, "processes");
     }

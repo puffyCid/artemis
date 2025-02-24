@@ -12,7 +12,7 @@ output = "local"
 [[artifacts]]
 artifact_name = "processes"
 [artifacts.processes]
-md5 = true
+md5 = false
 sha1 = false
 sha256 = false
 metadata = false

@@ -34,7 +34,7 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         timestamps.changed = String::from("1970-01-01T00:00:00Z");
     }
 
-    #[cfg(target_family = "unix")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         #[cfg(target_os = "linux")]
         use std::os::linux::fs::MetadataExt;

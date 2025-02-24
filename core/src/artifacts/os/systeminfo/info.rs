@@ -34,9 +34,31 @@ pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
     }
 }
 
-/// Get endpoint platform type
+/// Get endpoint platform type. Supports more options than `get_platform_enum`
 pub(crate) fn get_platform() -> String {
     sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name"))
+}
+
+#[derive(PartialEq)]
+pub(crate) enum PlatformType {
+    Linux,
+    Macos,
+    Windows,
+    Unknown,
+}
+/// Get endpoint platform type enum. Use `get_platform` if you want a string.
+pub(crate) fn get_platform_enum() -> PlatformType {
+    let plat =
+        sysinfo::System::long_os_version().unwrap_or_else(|| String::from("Unknown system name"));
+    if plat.to_lowercase().contains("windows") {
+        return PlatformType::Windows;
+    } else if plat.contains("macos") {
+        return PlatformType::Macos;
+    } else if plat.to_lowercase().contains("linux") {
+        return PlatformType::Linux;
+    }
+
+    PlatformType::Unknown
 }
 
 /// Get Disk info from system
@@ -143,7 +165,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn test_get_windows_disks() {
+    fn test_get_linux_disks() {
         let system_info = get_disks();
         assert!(system_info.len() >= 1);
     }

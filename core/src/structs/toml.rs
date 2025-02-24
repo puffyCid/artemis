@@ -18,7 +18,6 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
-    pub system: String,
     pub output: Output,
     pub artifacts: Vec<Artifacts>,
 }

@@ -77,10 +77,8 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::structs::toml::Output;
-
-    #[cfg(target_os = "macos")]
     use crate::artifacts::applications::artifacts::{safari_downloads, safari_history};
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -100,7 +98,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn test_safari_history() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 
@@ -109,7 +106,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn test_safari_downloads() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 

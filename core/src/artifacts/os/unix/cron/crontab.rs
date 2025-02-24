@@ -1,6 +1,9 @@
 use super::error::CronError;
-use crate::filesystem::directory::is_directory;
+use crate::artifacts::os::systeminfo::info::PlatformType;
 use crate::filesystem::files::list_files;
+use crate::{
+    artifacts::os::systeminfo::info::get_platform_enum, filesystem::directory::is_directory,
+};
 use common::unix::{Cron, CronFile};
 use log::{error, warn};
 use std::{
@@ -10,13 +13,12 @@ use std::{
 
 /// Parse all Cron files
 pub(crate) fn parse_cron() -> Result<Vec<CronFile>, CronError> {
-    #[cfg(target_os = "macos")]
-    let start_path = "/private/var/at/jobs/";
-
-    #[cfg(target_os = "linux")]
-    let start_path = "/var/spool/cron/crontabs/";
-    #[cfg(target_os = "windows")]
-    let start_path = "";
+    let plat = get_platform_enum();
+    let start_path = match plat {
+        PlatformType::Linux => "/var/spool/cron/crontabs/",
+        PlatformType::Macos => "/private/var/at/jobs/",
+        PlatformType::Unknown | PlatformType::Windows => "",
+    };
 
     if !is_directory(start_path) {
         return Ok(Vec::new());

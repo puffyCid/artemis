@@ -141,33 +141,21 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     Ok(prefetch)
 }
 
-#[cfg(target_os = "windows")]
-/// Decompress Prefetch data on Windows systems
+/// Decompress Prefetch data
 fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
-    use crate::utils::compression::xpress::api::decompress_huffman_api;
+    #[cfg(target_os = "windows")]
+    {
+        use crate::utils::compression::xpress::api::decompress_huffman_api;
 
-    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
-    let pf_data = match pf_data_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[prefetch] Could not decompress data: {err:?}. Will try manual decompression");
-            let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
-            match pf_data_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("[prefetch] Could not decompress data: {err:?}");
-                    return Err(PrefetchError::Decompress);
-                }
-            }
+        let pf_data = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+        if pf_data.is_ok() {
+            return Ok(pf_data.unwrap_of_default());
         }
-    };
-
-    Ok(pf_data)
-}
-
-#[cfg(target_family = "unix")]
-/// Decompress Prefetch data on non-Windows systems
-fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
+        error!(
+            "[prefetch] Could not decompress data: {:?}. Will try manual decompression",
+            pf_data.unwrap_err()
+        );
+    }
     let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
     let pf_data = match pf_data_result {
         Ok(result) => result,

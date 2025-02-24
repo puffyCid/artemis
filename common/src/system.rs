@@ -1,11 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-#[cfg(target_os = "linux")]
-use crate::linux::ElfInfo;
-#[cfg(target_os = "macos")]
-use crate::macos::MachoInfo;
-#[cfg(target_os = "windows")]
-use crate::windows::PeInfo;
+use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 pub struct SystemInfo {
@@ -86,10 +80,5 @@ pub struct Processes {
     pub md5: String,
     pub sha1: String,
     pub sha256: String,
-    #[cfg(target_os = "macos")]
-    pub binary_info: Vec<MachoInfo>,
-    #[cfg(target_os = "windows")]
-    pub binary_info: Vec<PeInfo>,
-    #[cfg(target_os = "linux")]
-    pub binary_info: Vec<ElfInfo>,
+    pub binary_info: Value,
 }

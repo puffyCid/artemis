@@ -44,15 +44,7 @@ pub(crate) enum Commands {
 
 /// Run the collector and parse specified artifacts
 pub(crate) fn run_collector(command: &Commands, output: Output) {
-    #[cfg(target_os = "macos")]
-    let system = String::from("macos");
-    #[cfg(target_os = "linux")]
-    let system = String::from("linux");
-    #[cfg(target_os = "windows")]
-    let system = String::from("windows");
-
     let mut collector = ArtemisToml {
-        system,
         output,
         artifacts: Vec::new(),
     };

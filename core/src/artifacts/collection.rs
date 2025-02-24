@@ -664,7 +664,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_collect() {
+    fn test_macos_collect() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
 

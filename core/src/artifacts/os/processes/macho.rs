@@ -17,6 +17,7 @@ pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError>
 }
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::macho_metadata;
 
