@@ -14,7 +14,7 @@ Notable features _so far_:
 - Parsing support for large amount of forensic artifacts (25+)
 - Output to JSON, JSONL, or CSV file(s)
 - Can output results to local system or upload to cloud services.
-- Embedded JavaScript runtime via [Deno](https://deno.land/)
+- Embedded JavaScript runtime via [Boa](https://boajs.dev)
 
 Checkout the online guide at https://puffycid.github.io/artemis-api for indepth
 walkthrough on using artemis
