@@ -9,5 +9,10 @@ repository = { workspace = true }
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
-core = { path = "../core" }
+core = { path = "../core", default-features = false}
 clap = { version = "4.5.30", features = ["std", "help", "derive"] }
+
+# Artemis features
+[features]
+default = ["yarax"]
+yarax = ["core/yarax"]

@@ -6699,13 +6699,13 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "sunlight"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89fe6edcabd4b04287ea75545a8bea705f8c9e06dfad14ac33f7bd6c469d3e47"
+checksum = "6b2138e9766def5060d68de27a7b229e99789dfbbcc6b3262803de5be91797de"
 dependencies = [
  "base64 0.22.1",
  "log",
- "nom 7.1.3",
+ "nom 8.0.0",
  "serde",
  "serde_json",
 ]
