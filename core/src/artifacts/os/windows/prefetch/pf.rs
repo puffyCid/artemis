@@ -149,7 +149,7 @@ fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchE
 
         let pf_data = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
         if pf_data.is_ok() {
-            return Ok(pf_data.unwrap_of_default());
+            return Ok(pf_data.unwrap_or_default());
         }
         error!(
             "[prefetch] Could not decompress data: {:?}. Will try manual decompression",
