@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "BarbossHack.crates-io",
-        "denoland.vscode-deno",
         "tamasfe.even-better-toml",
         "rust-lang.rust-analyzer",
         "bradlc.vscode-tailwindcss",

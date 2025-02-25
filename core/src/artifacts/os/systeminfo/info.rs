@@ -39,7 +39,7 @@ pub(crate) fn get_platform() -> String {
     sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name"))
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub(crate) enum PlatformType {
     Linux,
     Macos,
@@ -52,7 +52,7 @@ pub(crate) fn get_platform_enum() -> PlatformType {
         sysinfo::System::long_os_version().unwrap_or_else(|| String::from("Unknown system name"));
     if plat.to_lowercase().contains("windows") {
         return PlatformType::Windows;
-    } else if plat.contains("macos") {
+    } else if plat.to_lowercase().contains("macos") {
         return PlatformType::Macos;
     } else if plat.to_lowercase().contains("linux") {
         return PlatformType::Linux;

@@ -43,7 +43,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             let mut user_path = if let Some(result) = user_path_result {
                 result
             } else {
-                error!("[artemis-core] Failed get user home paths");
+                error!("[core] Failed get user home paths");
                 return Err(FileSystemError::UserPaths);
             };
 
@@ -53,7 +53,6 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             if !is_directory(&user_parent) {
                 return Err(FileSystemError::NoUserParent);
             }
-
             list_directories(&user_parent)
         }
         PlatformType::Unknown => Ok(Vec::new()),
@@ -125,7 +124,7 @@ pub(crate) fn get_parent_directory(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[artemis-core] Failed to get parent directory for path: {path}");
+        warn!("[core] Failed to get parent directory for path: {path}");
         return path.to_string();
     }
 

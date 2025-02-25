@@ -5,7 +5,7 @@ use boa_engine::{Context, JsString, NativeFunction};
 pub(crate) fn decompress_functions(context: &mut Context) {
     let _ = context.register_global_callable(
         JsString::from("js_decompress_zlib"),
-        2,
+        3,
         NativeFunction::from_fn_ptr(js_decompress_zlib),
     );
 

@@ -11,14 +11,11 @@ pub(crate) fn js_decompress_zlib(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let data = bytes_arg(args, &0, context)?;
-    let wbits = number_arg(args, &1)? as i64;
-    if wbits > u8::MAX as i64 {
-        let issue = format!("wbits too large {wbits:?}. Should be less than 255");
-        return Err(JsError::from_opaque(js_string!(issue).into()));
-    }
+    let wbits = number_arg(args, &1)? as i32;
+    let decom_size = number_arg(args, &2)? as usize;
 
-    let wbits_value = if wbits == 0 { None } else { Some(wbits as u8) };
-    let decom_data = match decompress_zlib(&data, &wbits_value) {
+    let wbits_value = if wbits == 0 { None } else { Some(wbits) };
+    let decom_data = match decompress_zlib(&data, &wbits_value, &decom_size) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");
@@ -76,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_zlib_decompress() {
-        let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9lcnJvcnMudHMKdmFyIENvbXByZXNzaW9uRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3NfemxpYihkYXRhLCB3Yml0cyA9IDApIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19kZWNvbXByZXNzX3psaWIoZGF0YSwgd2JpdHMpOwogICAgcmV0dXJuIGJ5dGVzOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBDb21wcmVzc2lvbkVycm9yKGBaTElCYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gbmV3IFVpbnQ4QXJyYXkoWwogICAgMTIwLAogICAgMTU2LAogICAgNSwKICAgIDEyOCwKICAgIDIwOSwKICAgIDksCiAgICAwLAogICAgMCwKICAgIDQsCiAgICA2OCwKICAgIDg3LAogICAgOTcsCiAgICA1NiwKICAgIDIyOSwKICAgIDIyNywKICAgIDE0OSwKICAgIDE5NCwKICAgIDIzNywKICAgIDEyNywKICAgIDExNywKICAgIDE5MywKICAgIDE5NiwKICAgIDIzNCwKICAgIDYyLAogICAgMTMsCiAgICAyNSwKICAgIDIxOCwKICAgIDQsCiAgICAzNgogIF0pOwogIGNvbnN0IGRlY29tX2RhdGEgPSBkZWNvbXByZXNzX3psaWIoZGF0YSk7CiAgY29uc29sZS5hc3NlcnQoZGVjb21fZGF0YS5sZW5ndGggPT09IDExKTsKfQptYWluKCk7Cg==";
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9lcnJvcnMudHMKdmFyIENvbXByZXNzaW9uRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3NfemxpYihkYXRhLCB3Yml0cyA9IDApIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19kZWNvbXByZXNzX3psaWIoZGF0YSwgd2JpdHMsIDApOwogICAgcmV0dXJuIGJ5dGVzOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBDb21wcmVzc2lvbkVycm9yKGBaTElCYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gbmV3IFVpbnQ4QXJyYXkoWwogICAgMTIwLAogICAgMTU2LAogICAgNSwKICAgIDEyOCwKICAgIDIwOSwKICAgIDksCiAgICAwLAogICAgMCwKICAgIDQsCiAgICA2OCwKICAgIDg3LAogICAgOTcsCiAgICA1NiwKICAgIDIyOSwKICAgIDIyNywKICAgIDE0OSwKICAgIDE5NCwKICAgIDIzNywKICAgIDEyNywKICAgIDExNywKICAgIDE5MywKICAgIDE5NiwKICAgIDIzNCwKICAgIDYyLAogICAgMTMsCiAgICAyNSwKICAgIDIxOCwKICAgIDQsCiAgICAzNgogIF0pOwogIGNvbnN0IGRlY29tX2RhdGEgPSBkZWNvbXByZXNzX3psaWIoZGF0YSk7CiAgY29uc29sZS5hc3NlcnQoZGVjb21fZGF0YS5sZW5ndGggPT09IDExKTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("zlib_test"),

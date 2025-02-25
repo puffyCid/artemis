@@ -81,25 +81,25 @@ pub(crate) fn decompress_lz4(
 /// Attemp to decompress zlib raw data (no header)
 pub(crate) fn decompress_zlib(
     data: &[u8],
-    wbits: &Option<u8>,
+    wbits: &Option<i32>,
+    decom_size: &usize,
 ) -> Result<Vec<u8>, CompressionError> {
     // If window bits are provided, we need to user lower level miniz_oxide (already used by flate2)
     // In order to decompress the data. Flate2 does not expose the functions we require
     if wbits.is_some() {
         let wbits_value = wbits.unwrap_or_default();
-        let min_size = 9;
-        let max_size = 15;
-        if wbits_value < min_size || wbits_value > max_size {
-            return Err(CompressionError::ZlibBadWbits);
-        }
 
-        let mut test = InflateState::new_boxed_with_window_bits(wbits_value as i32);
-        let mut out = Vec::new();
+        let mut test = InflateState::new_boxed_with_window_bits(wbits_value);
+        let mut out = vec![0; *decom_size];
         let status = inflate(&mut test, data, &mut out, MZFlush::None);
-        println!("{status:?}");
-        println!("{}", out.len());
+        if status.status.is_err() {
+            error!(
+                "[compression] Could not decompress zlib data: {:?}",
+                status.status
+            );
+            return Err(CompressionError::ZlibDecompress);
+        }
         return Ok(out);
-        //ZlibDecoder::new_with_decompress(data, Decompress::new_with_window_bits(false, wbits_value))
     }
 
     let mut buffer = ZlibDecoder::new(data);
@@ -453,7 +453,7 @@ mod tests {
             120, 156, 5, 128, 209, 9, 0, 0, 4, 68, 87, 97, 56, 229, 227, 149, 194, 237, 127, 117,
             193, 196, 234, 62, 13, 25, 218, 4, 36,
         ];
-        let result = decompress_zlib(&test, &None).unwrap();
+        let result = decompress_zlib(&test, &None, &0).unwrap();
         assert_eq!(
             result,
             [104, 101, 108, 108, 111, 32, 114, 117, 115, 116, 33]
