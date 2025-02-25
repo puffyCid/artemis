@@ -236,6 +236,7 @@ mod tests {
     use crate::artifacts::os::processes::process::executable_metadata;
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use crate::artifacts::os::systeminfo::info::get_platform_enum;
+    use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::structs::toml::Output;
     use common::files::Hashes;
     use common::system::Processes;
@@ -297,14 +298,12 @@ mod tests {
         let test_path = "/bin/ls";
         let results = executable_metadata(test_path, &PlatformType::Macos).unwrap();
 
-        assert_eq!(results.as_array().len(), 2);
+        assert_eq!(results.as_array().unwrap().len(), 2);
     }
 
     #[test]
     #[cfg(target_os = "linux")]
     fn test_executable_metadata() {
-        use crate::artifacts::os::systeminfo::info::PlatformType;
-
         let test_path = "/bin/ls";
         let results = executable_metadata(test_path, &PlatformType::Linux).unwrap();
 

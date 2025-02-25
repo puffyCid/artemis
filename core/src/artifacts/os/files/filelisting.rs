@@ -30,9 +30,6 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Error as ioError};
 use walkdir::{DirEntry, WalkDir};
 
-#[cfg(target_family = "unix")]
-use std::os::unix::prelude::MetadataExt;
-
 pub(crate) struct FileArgs {
     pub(crate) start_directory: String,
     pub(crate) depth: usize,
@@ -175,7 +172,10 @@ fn file_metadata(
         0
     };
 
-    if plat == &PlatformType::Linux || plat == &PlatformType::Macos {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        use std::os::unix::prelude::MetadataExt;
+
         file_entry.inode = metadata.ino();
         file_entry.mode = metadata.mode();
         file_entry.uid = metadata.uid();
