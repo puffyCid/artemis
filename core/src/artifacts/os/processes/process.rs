@@ -1,10 +1,13 @@
+use super::executable::elf_metadata;
+use super::pe::pe_metadata;
 /**
  * Get a process listing using `sysinfo` crate
  * Depending on `ProcessOptions` will also parse and get basic executable metadata
  */
-use super::error::ProcessError;
+use super::{error::ProcessError, macho::macho_metadata};
+use crate::artifacts::os::systeminfo::info::get_platform_enum;
 use crate::{
-    artifacts::output::output_artifact,
+    artifacts::{os::systeminfo::info::PlatformType, output::output_artifact},
     filesystem::{directory::get_parent_directory, files::hash_file},
     structs::toml::Output,
     utils::time::{time_now, unixepoch_to_iso},
@@ -12,21 +15,9 @@ use crate::{
 use common::files::Hashes;
 use common::system::Processes;
 use log::{error, info, warn};
+use serde_json::Value;
 use std::ffi::OsStr;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
-
-#[cfg(target_os = "windows")]
-use super::pe::pe_metadata;
-#[cfg(target_os = "windows")]
-use common::windows::PeInfo;
-
-#[cfg(target_os = "macos")]
-use common::macos::MachoInfo;
-
-#[cfg(target_os = "linux")]
-use super::executable::elf_metadata;
-#[cfg(target_os = "linux")]
-use common::linux::ElfInfo;
 
 /// Get process listing.
 pub(crate) fn proc_list(
@@ -52,8 +43,10 @@ pub(crate) fn proc_list(
     // Every 5 processes we parse, we output the results
     // If we do not parse binary info. We gather all processes at once
     let binary_proc_limit = 5;
+    let plat = get_platform_enum();
+
     for process in proc.processes().values() {
-        let system_proc = proc_info(process, hashes, binary_data);
+        let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
         if *binary_data && processes_list.len() == binary_proc_limit {
             let _ = output_process(&processes_list, output, filter, &start_time);
@@ -82,9 +75,9 @@ pub(crate) fn proc_list_entries(
     if proc.processes().is_empty() {
         return Err(ProcessError::Empty);
     }
-
+    let plat = get_platform_enum();
     for process in proc.processes().values() {
-        let system_proc = proc_info(process, hashes, binary_data);
+        let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
     }
 
@@ -92,7 +85,12 @@ pub(crate) fn proc_list_entries(
 }
 
 // Get the process info data
-fn proc_info(process: &Process, hashes: &Hashes, binary_data: &bool) -> Processes {
+fn proc_info(
+    process: &Process,
+    hashes: &Hashes,
+    binary_data: &bool,
+    plat: &PlatformType,
+) -> Processes {
     let uid_result = process.user_id();
     let uid = match uid_result {
         Some(result) => result.to_string(),
@@ -137,11 +135,11 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: &bool) -> Processe
         md5: String::new(),
         sha1: String::new(),
         sha256: String::new(),
-        binary_info: Vec::new(),
+        binary_info: Value::Null,
     };
 
     if *binary_data && !system_proc.full_path.is_empty() {
-        let binary_results = executable_metadata(&system_proc.full_path);
+        let binary_results = executable_metadata(&system_proc.full_path, plat);
         match binary_results {
             Ok(results) => {
                 system_proc.binary_info = results;
@@ -159,10 +157,10 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: &bool) -> Processe
         system_proc.arguments = system_proc.arguments[system_proc.full_path.len()..].to_string();
     }
 
-    #[cfg(target_os = "windows")]
-    let first_proc = 0;
-    #[cfg(target_family = "unix")]
-    let first_proc = 1;
+    let mut first_proc = 1;
+    if plat == &PlatformType::Windows {
+        first_proc = 0;
+    }
 
     if process.pid().as_u32() != first_proc {
         let parent_pid = process.parent();
@@ -181,24 +179,25 @@ fn proc_info(process: &Process, hashes: &Hashes, binary_data: &bool) -> Processe
     system_proc
 }
 
-#[cfg(target_os = "macos")]
 /// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
-    use super::macho::macho_metadata;
+fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, ProcessError> {
+    let binary_info = match plat {
+        PlatformType::Linux => {
+            let result = elf_metadata(path)?;
+            serde_json::to_value(&result).unwrap_or_default()
+        }
+        PlatformType::Macos => {
+            let result = macho_metadata(path)?;
+            serde_json::to_value(&result).unwrap_or_default()
+        }
+        PlatformType::Windows => {
+            let result = pe_metadata(path)?;
+            serde_json::to_value(&result).unwrap_or_default()
+        }
+        PlatformType::Unknown => Value::Null,
+    };
 
-    macho_metadata(path)
-}
-
-#[cfg(target_os = "linux")]
-/// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<ElfInfo>, ProcessError> {
-    elf_metadata(path)
-}
-
-#[cfg(target_os = "windows")]
-/// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
-    pe_metadata(path)
+    Ok(binary_info)
 }
 
 /// Output processes results
@@ -236,6 +235,8 @@ fn output_process(
 mod tests {
     use crate::artifacts::os::processes::process::executable_metadata;
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
+    use crate::artifacts::os::systeminfo::info::get_platform_enum;
+    use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::structs::toml::Output;
     use common::files::Hashes;
     use common::system::Processes;
@@ -283,8 +284,9 @@ mod tests {
             sha256: true,
         };
 
+        let plat = get_platform_enum();
         for process in proc.processes().values() {
-            let system_proc = proc_info(process, &hashes, &false);
+            let system_proc = proc_info(process, &hashes, &false, &plat);
             processes_list.push(system_proc);
         }
         assert!(processes_list.len() > 10);
@@ -294,26 +296,26 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_executable_metadata() {
         let test_path = "/bin/ls";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Macos).unwrap();
 
-        assert_eq!(results.len(), 2);
+        assert_eq!(results.as_array().unwrap().len(), 2);
     }
 
     #[test]
     #[cfg(target_os = "linux")]
     fn test_executable_metadata() {
         let test_path = "/bin/ls";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Linux).unwrap();
 
-        assert_eq!(results.len(), 1);
+        assert!(!results.is_null());
     }
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_executable_metadata() {
         let test_path = "C:\\Windows\\explorer.exe";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Windows).unwrap();
 
-        assert_eq!(results.len(), 1);
+        assert!(!results.is_null());
     }
 }

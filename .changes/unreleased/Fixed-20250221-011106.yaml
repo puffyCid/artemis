@@ -1,0 +1,3 @@
+kind: Fixed
+body: Updated user registry file regex to capture lowercase filenames
+time: 2025-02-21T01:11:06.484934439-05:00

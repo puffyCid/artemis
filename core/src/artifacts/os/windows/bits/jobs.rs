@@ -258,9 +258,6 @@ pub(crate) fn parse_job<'a>(
     // Not sure what this is used for, is it unique per Job?
     let (input, _access_token) = take(token_size)(input)?;
 
-    let padding_size: u16 = 982;
-    let (input, _) = take(padding_size)(input)?;
-    let (input, acls) = parse_acl(input, &AccessItem::NonFolder)?;
     job_info.job_type = get_type(&job_type);
     job_info.priority = get_priority(&job_priority);
     job_info.job_state = get_state(&job_state);
@@ -270,6 +267,15 @@ pub(crate) fn parse_job<'a>(
     job_info.job_arguments = args;
     job_info.owner_sid = sid;
     job_info.flags = get_flag(&job_flag);
+
+    let padding_size: u16 = 982;
+    let (input, _) = take(padding_size)(input)?;
+    // Sometimes there are no ACLs. Just padding. Seen when carving
+    if input.starts_with(&[0, 0, 0, 0]) {
+        return Ok((input, ()));
+    }
+    let (input, acls) = parse_acl(input, &AccessItem::NonFolder)?;
+
     job_info.acls = acls;
 
     // Only grab additional SIDs if we are not carving

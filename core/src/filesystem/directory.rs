@@ -1,7 +1,14 @@
-use super::{error::FileSystemError, files::list_files_directories};
-use crate::{artifacts::os::systeminfo::info::get_platform, utils::environment::get_env_value};
-use log::warn;
+use super::{
+    error::FileSystemError,
+    files::{file_lines, list_files_directories},
+};
+use crate::{
+    artifacts::os::systeminfo::info::{get_platform, get_platform_enum, PlatformType},
+    utils::environment::get_env_value,
+};
+use log::{error, warn};
 use std::path::Path;
+use sysinfo::Users;
 
 /// Check if path is a directory
 pub(crate) fn is_directory(path: &str) -> bool {
@@ -26,35 +33,34 @@ pub(crate) fn list_directories(path: &str) -> Result<Vec<String>, FileSystemErro
     Ok(dirs)
 }
 
-#[cfg(any(target_os = "windows", target_os = "macos"))]
 /// Get directories associated with users on a system
 pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
-    use log::error;
+    let plat = get_platform_enum();
+    match plat {
+        PlatformType::Linux => linux_user_paths(),
+        PlatformType::Macos | PlatformType::Windows => {
+            let user_path_result = home::home_dir();
+            let mut user_path = if let Some(result) = user_path_result {
+                result
+            } else {
+                error!("[core] Failed get user home paths");
+                return Err(FileSystemError::UserPaths);
+            };
 
-    let user_path_result = home::home_dir();
-    let mut user_path = if let Some(result) = user_path_result {
-        result
-    } else {
-        error!("[artemis-core] Failed get user home paths");
-        return Err(FileSystemError::UserPaths);
-    };
+            user_path.pop();
+            let user_parent = user_path.display().to_string();
 
-    user_path.pop();
-    let user_parent = user_path.display().to_string();
-
-    if !is_directory(&user_parent) {
-        return Err(FileSystemError::NoUserParent);
+            if !is_directory(&user_parent) {
+                return Err(FileSystemError::NoUserParent);
+            }
+            list_directories(&user_parent)
+        }
+        PlatformType::Unknown => Ok(Vec::new()),
     }
-
-    list_directories(&user_parent)
 }
 
-#[cfg(target_os = "linux")]
 /// Get directories associated with users on a system
-pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
-    use crate::filesystem::files::file_lines;
-    use sysinfo::Users;
-
+fn linux_user_paths() -> Result<Vec<String>, FileSystemError> {
     let mut users = Users::new();
     users.refresh();
 
@@ -118,7 +124,7 @@ pub(crate) fn get_parent_directory(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[artemis-core] Failed to get parent directory for path: {path}");
+        warn!("[core] Failed to get parent directory for path: {path}");
         return path.to_string();
     }
 

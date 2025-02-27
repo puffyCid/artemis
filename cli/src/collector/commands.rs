@@ -46,14 +46,6 @@ pub(crate) enum CommandArgs {
     },
     /// Get systeminfo
     Systeminfo {},
-    /// Parse Firefox History
-    Firefoxhistory {},
-    /// Parse Chromium History
-    Chromiumhistory {},
-    /// Parse Firefox Downloads
-    Firefoxdownloads {},
-    /// Parse Chromium Downloads
-    Chromiumdownloads {},
 
     /// windows: Parse Prefetch
     Prefetch {

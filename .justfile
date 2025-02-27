@@ -77,7 +77,7 @@ unix: (_test "artifacts::os::unix")
 
 # Spawn single client and attempt to connect to server
 [group('workspace')]
-client:
+_client:
   cd client && cargo build --release --examples
   cd target/release/examples && ./start_client ../../../client/tests/test_data/client.toml
 
@@ -109,6 +109,11 @@ nextest:
 [group('workspace')]
 cli:
   cd cli && cargo build --release
+
+# Just build the artemis binary. But do not enable Yara-X
+[group('workspace')]
+slim:
+  cd cli && cargo build --release --no-default-features
 
 # Just build core library
 [group('workspace')]

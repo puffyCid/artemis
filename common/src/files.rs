@@ -1,11 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-#[cfg(target_os = "linux")]
-use crate::linux::ElfInfo;
-#[cfg(target_os = "macos")]
-use crate::macos::MachoInfo;
-#[cfg(target_os = "windows")]
-use crate::windows::PeInfo;
+use serde_json::Value;
 
 #[derive(Deserialize)]
 /// Supported hashes
@@ -37,10 +31,5 @@ pub struct FileInfo {
     pub is_symlink: bool,
     pub depth: usize,
     pub yara_hits: Vec<String>,
-    #[cfg(target_os = "macos")]
-    pub binary_info: Vec<MachoInfo>,
-    #[cfg(target_os = "windows")]
-    pub binary_info: Vec<PeInfo>,
-    #[cfg(target_os = "linux")]
-    pub binary_info: Vec<ElfInfo>,
+    pub binary_info: Value,
 }

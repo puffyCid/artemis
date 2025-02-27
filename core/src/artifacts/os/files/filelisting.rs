@@ -8,7 +8,11 @@
  * On macOS the filelisting will read the firmlinks file at `/usr/share/firmlinks` and skip firmlink paths
  */
 use super::error::FileError;
-use crate::artifacts::os::systeminfo::info::get_platform;
+use crate::artifacts::os::linux::executable::parser::parse_elf_file;
+use crate::artifacts::os::macos::macho::error::MachoError;
+use crate::artifacts::os::macos::macho::parser::parse_macho;
+use crate::artifacts::os::systeminfo::info::{get_platform, get_platform_enum, PlatformType};
+use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 use crate::artifacts::output::output_artifact;
 use crate::filesystem::files::{file_extension, hash_file};
 use crate::filesystem::metadata::get_metadata;
@@ -21,25 +25,10 @@ use common::files::FileInfo;
 use common::files::Hashes;
 use log::{error, info, warn};
 use regex::Regex;
+use serde_json::Value;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error as ioError};
 use walkdir::{DirEntry, WalkDir};
-
-#[cfg(target_os = "macos")]
-use common::macos::MachoInfo;
-
-#[cfg(target_os = "windows")]
-use crate::artifacts::os::windows::pe::parser::parse_pe_file;
-#[cfg(target_os = "windows")]
-use common::windows::PeInfo;
-
-#[cfg(target_os = "linux")]
-use crate::artifacts::os::linux::executable::parser::parse_elf_file;
-#[cfg(target_os = "linux")]
-use common::linux::ElfInfo;
-
-#[cfg(target_family = "unix")]
-use std::os::unix::prelude::MetadataExt;
 
 pub(crate) struct FileArgs {
     pub(crate) start_directory: String,
@@ -65,8 +54,8 @@ pub(crate) fn get_filelist(
     let path_filter = user_regex(&args.path_filter)?;
     let mut firmlink_paths: Vec<String> = Vec::new();
 
-    let platform = get_platform();
-    if platform == "Darwin" {
+    let platform = get_platform_enum();
+    if platform == PlatformType::Macos {
         let firmlink_paths_data = read_firmlinks();
         match firmlink_paths_data {
             Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
@@ -110,7 +99,7 @@ pub(crate) fn get_filelist(
             continue;
         }
 
-        let file_entry_result = file_metadata(&entry, args.metadata, hashes);
+        let file_entry_result = file_metadata(&entry, args.metadata, hashes, &platform);
         let mut file_entry = match file_entry_result {
             Ok(result) => result,
             Err(err) => {
@@ -139,6 +128,7 @@ fn file_metadata(
     entry: &DirEntry,
     get_executable_info: bool,
     hashes: &Hashes,
+    plat: &PlatformType,
 ) -> Result<FileInfo, ioError> {
     let mut file_entry = FileInfo {
         full_path: entry.path().display().to_string(),
@@ -161,7 +151,7 @@ fn file_metadata(
         is_directory: false,
         is_symlink: false,
         depth: entry.depth(),
-        binary_info: Vec::new(),
+        binary_info: Value::Null,
         yara_hits: Vec::new(),
     };
     file_entry.extension = file_extension(&file_entry.full_path);
@@ -182,8 +172,10 @@ fn file_metadata(
         0
     };
 
-    #[cfg(target_family = "unix")]
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     {
+        use std::os::unix::prelude::MetadataExt;
+
         file_entry.inode = metadata.ino();
         file_entry.mode = metadata.mode();
         file_entry.uid = metadata.uid();
@@ -193,7 +185,7 @@ fn file_metadata(
     // Get executable metadata if enabled
     if get_executable_info && file_entry.is_file {
         file_entry.binary_info =
-            executable_metadata(&entry.path().display().to_string()).unwrap_or_default();
+            executable_metadata(&entry.path().display().to_string(), plat).unwrap_or_default();
     }
 
     if hashes.md5 || hashes.sha1 || hashes.sha256 {
@@ -258,52 +250,48 @@ fn read_firmlinks() -> Result<Vec<String>, std::io::Error> {
     Ok(firmlink_paths)
 }
 
-#[cfg(target_os = "macos")]
 /// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<MachoInfo>, FileError> {
-    use crate::artifacts::os::macos::macho::{error::MachoError, parser::parse_macho};
-
-    let binary_results = parse_macho(path);
-    match binary_results {
-        Ok(results) => Ok(results),
-        Err(err) => {
-            if err != MachoError::Buffer && err != MachoError::Magic {
-                error!("[files] Failed to parse executable binary {path}, error: {err:?}");
-            }
-            Err(FileError::ParseFile)
+fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileError> {
+    let binary_info = match plat {
+        PlatformType::Linux => {
+            let binary_result = match parse_elf_file(path) {
+                Ok(result) => result,
+                Err(err) => {
+                    if !err.to_string().contains("Magic Bytes") {
+                        error!("[files] Could not parse ELF file {path} error: {err:?}");
+                    }
+                    return Err(FileError::ParseFile);
+                }
+            };
+            serde_json::to_value(&binary_result).unwrap_or_default()
         }
-    }
-}
-
-#[cfg(target_os = "windows")]
-/// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<PeInfo>, FileError> {
-    let info_result = parse_pe_file(path);
-    let info = match info_result {
-        Ok(result) => result,
-        Err(err) => {
-            if err != pelite::Error::Invalid && err != pelite::Error::BadMagic {
-                warn!("[files] Could not parse PE file {path}: {err:?}");
-            }
-            return Err(FileError::ParseFile);
+        PlatformType::Macos => {
+            let binary_result = match parse_macho(path) {
+                Ok(results) => results,
+                Err(err) => {
+                    if err != MachoError::Buffer && err != MachoError::Magic {
+                        error!("[files] Failed to parse executable binary {path}, error: {err:?}");
+                    }
+                    return Err(FileError::ParseFile);
+                }
+            };
+            serde_json::to_value(&binary_result).unwrap_or_default()
         }
+        PlatformType::Windows => {
+            let binary_result = match parse_pe_file(path) {
+                Ok(result) => result,
+                Err(err) => {
+                    if err != pelite::Error::Invalid && err != pelite::Error::BadMagic {
+                        warn!("[files] Could not parse PE file {path}: {err:?}");
+                    }
+                    return Err(FileError::ParseFile);
+                }
+            };
+            serde_json::to_value(&binary_result).unwrap_or_default()
+        }
+        PlatformType::Unknown => Value::Null,
     };
-    Ok(vec![info])
-}
 
-#[cfg(target_os = "linux")]
-/// Get executable metadata
-fn executable_metadata(path: &str) -> Result<Vec<ElfInfo>, FileError> {
-    let binary_result = parse_elf_file(path);
-    let binary_info = match binary_result {
-        Ok(result) => vec![result],
-        Err(err) => {
-            if !err.to_string().contains("Magic Bytes") {
-                error!("[files] Could not parse ELF file {path} error: {err:?}");
-            }
-            return Err(FileError::ParseFile);
-        }
-    };
     Ok(binary_info)
 }
 
@@ -346,11 +334,13 @@ mod tests {
     use crate::artifacts::os::files::filelisting::file_metadata;
     use crate::artifacts::os::files::filelisting::get_filelist;
     use crate::artifacts::os::files::filelisting::FileArgs;
+    use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::{
         artifacts::os::files::filelisting::{user_regex, Hashes},
         structs::toml::Output,
     };
     use common::files::FileInfo;
+    use serde_json::Value;
     use walkdir::WalkDir;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -422,7 +412,7 @@ mod tests {
             is_directory: true,
             is_symlink: false,
             depth: 1,
-            binary_info: Vec::new(),
+            binary_info: Value::Null,
             yara_hits: Vec::new(),
         };
         file_output(&vec![info], &mut output, &0, &false);
@@ -500,7 +490,8 @@ mod tests {
         let mut results: Vec<FileInfo> = Vec::new();
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, metadata, &hashes).unwrap();
+            let data =
+                file_metadata(&entry_data, metadata, &hashes, &PlatformType::Windows).unwrap();
             results.push(data);
         }
         assert!(results.len() > 3);
@@ -509,6 +500,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_file_metadata() {
+        use crate::artifacts::os::systeminfo::info::PlatformType;
+
         let start_path = WalkDir::new("/bin").max_depth(1);
         let metadata = true;
         let hashes = Hashes {
@@ -519,7 +512,7 @@ mod tests {
         let mut results: Vec<FileInfo> = Vec::new();
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, metadata, &hashes).unwrap();
+            let data = file_metadata(&entry_data, metadata, &hashes, &PlatformType::Linux).unwrap();
             results.push(data);
         }
         assert!(results.len() > 3);
@@ -568,7 +561,7 @@ mod tests {
         let mut results: Vec<FileInfo> = Vec::new();
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, metadata, &hashes).unwrap();
+            let data = file_metadata(&entry_data, metadata, &hashes, &PlatformType::Macos).unwrap();
             results.push(data);
         }
         assert!(results.len() > 3);
@@ -578,26 +571,26 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_binary_metadata() {
         let test_path = "/bin/ls";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Macos).unwrap();
 
-        assert_eq!(results.len(), 2);
+        assert_eq!(results.as_array().unwrap().len(), 2);
     }
 
     #[test]
     #[cfg(target_os = "linux")]
     fn test_binary_metadata() {
         let test_path = "/bin/ls";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Linux).unwrap();
 
-        assert_eq!(results.len(), 1);
+        assert!(!results.is_null());
     }
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_binary_metadata() {
         let test_path = "C:\\Windows\\explorer.exe";
-        let results = executable_metadata(test_path).unwrap();
+        let results = executable_metadata(test_path, &PlatformType::Windows).unwrap();
 
-        assert_eq!(results.len(), 1);
+        assert!(!results.is_null());
     }
 }

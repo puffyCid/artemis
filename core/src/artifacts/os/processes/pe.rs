@@ -4,7 +4,7 @@ use common::windows::PeInfo;
 use log::warn;
 
 /// Parse PE metadata from provided path
-pub(crate) fn pe_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
+pub(crate) fn pe_metadata(path: &str) -> Result<PeInfo, ProcessError> {
     let info_result = parse_pe_file(path);
     let info = match info_result {
         Ok(result) => result,
@@ -13,10 +13,11 @@ pub(crate) fn pe_metadata(path: &str) -> Result<Vec<PeInfo>, ProcessError> {
             return Err(ProcessError::ParseProcFile);
         }
     };
-    Ok(vec![info])
+    Ok(info)
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
     use super::pe_metadata;
 
@@ -24,8 +25,8 @@ mod tests {
     fn test_pe_metadata() {
         let test = "C:\\Windows\\explorer.exe";
         let result = pe_metadata(test).unwrap();
-        assert!(result[0].icons.len() > 3);
-        assert!(result[0].cert.len() > 1000);
-        assert_eq!(result[0].file_description, "Windows Explorer");
+        assert!(result.icons.len() > 3);
+        assert!(result.cert.len() > 1000);
+        assert_eq!(result.file_description, "Windows Explorer");
     }
 }

@@ -21,7 +21,6 @@ pub enum CompressionError {
     HuffmanCompressionNone,
     HuffmanCompressionDefault,
     ZlibDecompress,
-    ZlibBadWbits,
     RtfCorrupted,
 }
 
@@ -55,9 +54,6 @@ impl fmt::Display for CompressionError {
                 write!(f, "Huffman none not supported")
             }
             CompressionError::ZlibDecompress => write!(f, "Failed to decompress zlib"),
-            CompressionError::ZlibBadWbits => {
-                write!(f, "Provide bad wbit value. Should be between 9-15")
-            }
             CompressionError::RtfCorrupted => write!(f, "Failed to decompess RTF"),
         }
     }

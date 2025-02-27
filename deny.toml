@@ -124,7 +124,6 @@ allow = [
     "CC0-1.0",
     "Unlicense",
     "Zlib",
-    "LicenseRef-ring",
     "MPL-2.0",
     "Unicode-3.0",
 ]

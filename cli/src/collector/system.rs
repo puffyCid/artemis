@@ -44,15 +44,7 @@ pub(crate) enum Commands {
 
 /// Run the collector and parse specified artifacts
 pub(crate) fn run_collector(command: &Commands, output: Output) {
-    #[cfg(target_os = "macos")]
-    let system = String::from("macos");
-    #[cfg(target_os = "linux")]
-    let system = String::from("linux");
-    #[cfg(target_os = "windows")]
-    let system = String::from("windows");
-
     let mut collector = ArtemisToml {
-        system,
         output,
         artifacts: Vec::new(),
     };
@@ -172,14 +164,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.files = Some(options);
             collect.artifact_name = String::from("files");
         }
-        CommandArgs::Chromiumhistory {} => collect.artifact_name = String::from("chromium-history"),
-        CommandArgs::Chromiumdownloads {} => {
-            collect.artifact_name = String::from("chromium-downloads")
-        }
-        CommandArgs::Firefoxdownloads {} => {
-            collect.artifact_name = String::from("firefox-downloads")
-        }
-        CommandArgs::Firefoxhistory {} => collect.artifact_name = String::from("firefox-history"),
         CommandArgs::Cron {} => collect.artifact_name = String::from("cron"),
         CommandArgs::Shellhistory {} => collect.artifact_name = String::from("shell_history"),
         CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
@@ -516,12 +500,11 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 mod tests {
     use super::{run_collector, setup_artifact, Commands};
     use crate::collector::system::CommandArgs::{
-        Amcache, Bits, Chromiumdownloads, Chromiumhistory, Cron, Emond, Eventlogs, Execpolicy,
-        Filelisting, Firefoxdownloads, Firefoxhistory, Fsevents, GroupsMacos, Journals, Jumplists,
-        Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry,
-        SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory, Shimcache, Shimdb,
-        Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos,
-        UsersWindows,
+        Amcache, Bits, Cron, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos,
+        Journals, Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting,
+        Recyclebin, Registry, SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory,
+        Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks,
+        Unifiedlogs, UsersMacos, UsersWindows,
     };
     use core::structs::toml::Output;
     fn output() -> Output {
@@ -585,46 +568,6 @@ mod tests {
 
     #[test]
     fn test_run_macos_collector_root() {
-        let command = Commands::Acquire {
-            artifact: Some(Chromiumdownloads {}),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(Chromiumhistory {}),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(Firefoxdownloads {}),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(Firefoxhistory {}),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
         let command = Commands::Acquire {
             artifact: Some(Launchd { alt_file: None }),
             format: String::from("json"),

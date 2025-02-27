@@ -159,12 +159,6 @@ mod tests {
     #[test]
     fn test_bad_parse_toml_file() {
         let mut collection = ArtemisToml {
-            #[cfg(target_os = "macos")]
-            system: String::from("macos"),
-            #[cfg(target_os = "windows")]
-            system: String::from("windows"),
-            #[cfg(target_os = "linux")]
-            system: String::from("linux"),
             output: Output {
                 name: String::from("core"),
                 directory: String::from("tmp"),

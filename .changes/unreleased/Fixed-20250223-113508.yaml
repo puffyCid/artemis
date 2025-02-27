@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug where artemis would not get all ESE rows
+time: 2025-02-23T11:35:08.363201497-05:00
