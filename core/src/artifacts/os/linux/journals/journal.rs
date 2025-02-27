@@ -202,6 +202,10 @@ fn get_entries(
         }
     }
 
+    if entries.entries.is_empty() {
+        return Ok(());
+    }
+
     let messages = parse_messages(&entries.entries);
     let serde_data_result = serde_json::to_value(messages);
     let mut serde_data: serde_json::Value = match serde_data_result {
