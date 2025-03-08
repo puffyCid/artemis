@@ -44,3 +44,32 @@ pub(crate) fn output_data(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::structs::toml::Output;
+
+    use super::list_connections;
+
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("csv"),
+            compress,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: output.to_string(),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        }
+    }
+    #[test]
+    fn test_list_connections() {
+        let mut output = output_options("connections_test", "local", "./tmp", false);
+        list_connections(&mut output, &false).unwrap();
+    }
+}
