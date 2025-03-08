@@ -1,6 +1,6 @@
 use common::windows::RegistrationInfo;
 use log::error;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 /// Parse `RegistrationInfo` of Task
 pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo {
@@ -69,7 +69,7 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
 mod tests {
     use super::parse_registration;
     use crate::utils::encoding::read_xml;
-    use quick_xml::{events::Event, Reader};
+    use quick_xml::{Reader, events::Event};
     use std::path::PathBuf;
 
     #[test]

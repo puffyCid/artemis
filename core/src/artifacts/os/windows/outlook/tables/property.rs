@@ -10,8 +10,8 @@ use crate::{
     utils::{
         encoding::base64_encode_standard,
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_two_bytes,
         },
         strings::extract_ascii_utf16_string,
         time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
@@ -121,7 +121,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         let prop_entry_size = 8;
 
         if props.len() % prop_entry_size != 0 {
-            error!("[outlook] Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early");
+            error!(
+                "[outlook] Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early"
+            );
             return Ok((&[], Vec::new()));
         }
 
@@ -198,7 +200,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         let prop_value = match prop_result {
                             Ok((_, result)) => result,
                             Err(_err) => {
-                                error!("[outlook] Failed to parse property data from descriptor blocks");
+                                error!(
+                                    "[outlook] Failed to parse property data from descriptor blocks"
+                                );
                                 continue;
                             }
                         };
@@ -602,7 +606,7 @@ mod tests {
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
             pages::btree::{BlockType, LeafBlockData},
-            tables::property::{extract_property_value, OutlookPropertyContext},
+            tables::property::{OutlookPropertyContext, extract_property_value},
         },
         filesystem::files::file_reader,
     };
@@ -674,7 +678,10 @@ mod tests {
 
         assert_eq!(result[9].property_type, PropertyType::Binary);
         assert_eq!(result[9].name, vec![PropertyName::Unknown]);
-        assert_eq!(result[9].value.as_str().unwrap(), "RjVGVgMAAACxAAAAagAAAAAAAAAAAAAAjgAAAB4AAAAAAAAAAAAAABsBAABEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaAAAAAgAAABespa0g00oQoYL6EJiRZ7CBgAAAAABDAADAAAAAAAAAF6ylrSDTShChgvoQmJFnsJSAAAAAAABAAMit6bFAF6ylrSDTShChgvoQmJFnsJSAAAAAAABAAMit6bFAFvcUFAAL289Rmlyc3QgT3JnYW5pemF0aW9uL291PUV4Y2hhbmdlIEFkbWluaXN0cmF0aXZlIEdyb3VwKEZZRElCT0hGMjNTUERMVCkvY249UmVjaXBpZW50cy9jbj0wMDAzQkZGRDM5OEVFQjAxAF6ylrSDTShChgvoQmJFnsIBAAEAAwAAAVIJEkIbBEIn/UJNwUJcF1ADhZ6PUoaHUFADAxQgAR5SuLtQAVtS29xQUFAAF1ADhZ6PUoaHUFADAxQgAR5SuLtQAVtS29xQUFAAXrKWtINNKEKGC+hCYkWewgEAAQADAAABUgkSQhsEQif9Qk3BQlwXUAOFno9ShodQUAMDFCABHlK4u1ABW1Lb3FBQUAA=");
+        assert_eq!(
+            result[9].value.as_str().unwrap(),
+            "RjVGVgMAAACxAAAAagAAAAAAAAAAAAAAjgAAAB4AAAAAAAAAAAAAABsBAABEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaAAAAAgAAABespa0g00oQoYL6EJiRZ7CBgAAAAABDAADAAAAAAAAAF6ylrSDTShChgvoQmJFnsJSAAAAAAABAAMit6bFAF6ylrSDTShChgvoQmJFnsJSAAAAAAABAAMit6bFAFvcUFAAL289Rmlyc3QgT3JnYW5pemF0aW9uL291PUV4Y2hhbmdlIEFkbWluaXN0cmF0aXZlIEdyb3VwKEZZRElCT0hGMjNTUERMVCkvY249UmVjaXBpZW50cy9jbj0wMDAzQkZGRDM5OEVFQjAxAF6ylrSDTShChgvoQmJFnsIBAAEAAwAAAVIJEkIbBEIn/UJNwUJcF1ADhZ6PUoaHUFADAxQgAR5SuLtQAVtS29xQUFAAF1ADhZ6PUoaHUFADAxQgAR5SuLtQAVtS29xQUFAAXrKWtINNKEKGC+hCYkWewgEAAQADAAABUgkSQhsEQif9Qk3BQlwXUAOFno9ShodQUAMDFCABHlK4u1ABW1Lb3FBQUAA="
+        );
     }
 
     #[test]

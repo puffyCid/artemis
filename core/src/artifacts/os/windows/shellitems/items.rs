@@ -27,12 +27,12 @@ use crate::{
     artifacts::os::windows::shellitems::variable::parse_variable,
     utils::{
         encoding::base64_decode_standard,
-        nom_helper::{nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_one_byte, nom_unsigned_two_bytes},
     },
 };
 use common::windows::ShellItem;
 use log::error;
-use nom::{bytes::complete::take, Needed};
+use nom::{Needed, bytes::complete::take};
 
 /// Parse a base64 encoded `ShellItem`
 pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {

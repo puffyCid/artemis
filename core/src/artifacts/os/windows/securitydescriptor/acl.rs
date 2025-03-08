@@ -2,14 +2,14 @@ use crate::{
     artifacts::os::windows::securitydescriptor::sid::grab_sid,
     utils::{
         nom_helper::{
-            nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
         },
         uuid::format_guid_le_bytes,
     },
 };
 use common::windows::{AccessControlEntry, AccessItem, AccessMask, AceFlags, AceTypes, ObjectFlag};
 use log::warn;
-use nom::{bytes::complete::take, Needed};
+use nom::{Needed, bytes::complete::take};
 use std::mem::size_of;
 
 /**
@@ -347,8 +347,8 @@ fn get_object_flag(object_flags: &u32) -> ObjectFlag {
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::windows::securitydescriptor::acl::{
-        get_access_rights, get_ace_flags, get_ace_type, get_object_flag, parse_acl, AccessMask,
-        AceFlags, AceTypes, ObjectFlag,
+        AccessMask, AceFlags, AceTypes, ObjectFlag, get_access_rights, get_ace_flags, get_ace_type,
+        get_object_flag, parse_acl,
     };
 
     #[test]

@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::sudo::logs::grab_sudo_logs, runtime::helper::string_arg,
     structs::artifacts::os::macos::MacosSudoOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Get sudo log data
 pub(crate) fn js_sudologs_macos(

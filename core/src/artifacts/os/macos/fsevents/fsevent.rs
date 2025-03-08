@@ -1,7 +1,7 @@
 use crate::{
     filesystem::metadata::get_timestamps,
     utils::{
-        nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf8_string,
     },
 };

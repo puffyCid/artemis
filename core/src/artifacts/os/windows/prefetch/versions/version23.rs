@@ -1,6 +1,6 @@
 use super::version30::Version30;
 use crate::utils::{
-    nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use nom::bytes::complete::take;

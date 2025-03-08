@@ -1,6 +1,6 @@
 use crate::utils::nom_helper::nom_unsigned_eight_bytes;
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte},
     uuid::format_guid_le_bytes,
 };
 use common::windows::ShellItem;

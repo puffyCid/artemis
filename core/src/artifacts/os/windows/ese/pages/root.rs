@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 
 pub(crate) struct RootPage {
     _initial_number_pages: u32,
@@ -43,7 +43,7 @@ pub(crate) fn parse_root_page(data: &[u8]) -> nom::IResult<&[u8], RootPage> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_root_page, ExtentSpace};
+    use super::{ExtentSpace, parse_root_page};
 
     #[test]
     fn test_parse_root_page() {

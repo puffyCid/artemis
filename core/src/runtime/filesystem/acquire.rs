@@ -4,7 +4,7 @@ use crate::{
     runtime::helper::{string_arg, value_arg},
     structs::toml::Output,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
 
 /// Acquire file from system

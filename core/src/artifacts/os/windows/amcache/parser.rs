@@ -191,8 +191,8 @@ mod tests {
     use crate::{
         artifacts::os::windows::{
             amcache::parser::{
-                adjust_id, alt_amcache, amcache_file, extract_entry, extract_old_path,
-                grab_amcache, parse_amcache, Amcache,
+                Amcache, adjust_id, alt_amcache, amcache_file, extract_entry, extract_old_path,
+                grab_amcache, parse_amcache,
             },
             registry::helper::get_registry_keys,
         },
@@ -237,7 +237,10 @@ mod tests {
         assert_eq!(result[0].link_date, "1673412152");
         assert_eq!(result[0].size, "5188608");
         assert_eq!(result[0].sha1, "8c55942db046700a0ccddea067e3a6e3cc259424");
-        assert_eq!(result[0].reg_path, "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\File\\8195d9c8-2089-11ea-824e-806e6f6e6963\\20000667bc");
+        assert_eq!(
+            result[0].reg_path,
+            "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\File\\8195d9c8-2089-11ea-824e-806e6f6e6963\\20000667bc"
+        );
 
         assert_eq!(result[3].last_modified, "2023-01-11T04:57:06.000Z");
         assert_eq!(
@@ -265,7 +268,10 @@ mod tests {
         assert_eq!(result[3].publisher, "microsoft corporation");
         assert_eq!(result[3].usn, "1570250352");
         assert_eq!(result[3].sha1, "57f7a64c05fbc31830754108ccb6f65bd6c0f9bc");
-        assert_eq!(result[3].reg_path, "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\InventoryApplicationFile\\msedge.exe|d27b57360cd4a4cf");
+        assert_eq!(
+            result[3].reg_path,
+            "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\InventoryApplicationFile\\msedge.exe|d27b57360cd4a4cf"
+        );
     }
 
     #[test]

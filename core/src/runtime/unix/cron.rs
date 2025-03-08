@@ -1,5 +1,5 @@
 use crate::artifacts::os::unix::cron::crontab::parse_cron;
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Get `Cron` data
 pub(crate) fn js_get_cron(

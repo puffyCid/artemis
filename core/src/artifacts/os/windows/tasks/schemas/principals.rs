@@ -1,6 +1,6 @@
 use common::windows::Principals;
 use log::error;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 /// Parse Principal information for Task
 pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {

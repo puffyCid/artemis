@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::windows::outlook::header::NodeID,
     utils::nom_helper::{
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
 use log::warn;

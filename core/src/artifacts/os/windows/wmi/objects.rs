@@ -1,6 +1,6 @@
-use super::class::{parse_class, ClassInfo};
+use super::class::{ClassInfo, parse_class};
 use crate::utils::nom_helper::{
-    nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
+    Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
 };
 use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};

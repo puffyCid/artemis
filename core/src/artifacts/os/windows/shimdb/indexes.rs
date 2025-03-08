@@ -1,6 +1,6 @@
 use nom::bytes::complete::take;
 
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 
 /// Get the indexes data associated with a sdb file
 pub(crate) fn get_indexes_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {

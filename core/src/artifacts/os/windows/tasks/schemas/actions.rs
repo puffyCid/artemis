@@ -1,6 +1,6 @@
 use common::windows::{Actions, ComHandlerType, ExecType, Message, SendEmail};
 use log::error;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 use std::collections::HashMap;
 
 /// Parse all Task Actions
@@ -248,7 +248,10 @@ mod tests {
         let mut reader = Reader::from_str(xml);
         reader.config_mut().trim_text(true);
         let result = parse_actions(&mut reader);
-        assert_eq!(result.exec[0].command, "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
+        assert_eq!(
+            result.exec[0].command,
+            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe"
+        );
     }
 
     #[test]
@@ -262,7 +265,10 @@ mod tests {
         let mut reader = Reader::from_str(xml);
         reader.config_mut().trim_text(true);
         let result = process_exec(&mut reader);
-        assert_eq!(result.command , "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe");
+        assert_eq!(
+            result.command,
+            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe"
+        );
         assert_eq!(result.arguments.unwrap(), "-all");
         assert_eq!(result.working_directory.unwrap(), "here");
     }

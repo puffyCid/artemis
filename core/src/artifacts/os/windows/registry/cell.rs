@@ -3,12 +3,12 @@ use super::{
     lists::{lf::Leaf, lh::HashLeaf, li::LeafItem, ri::RefItem},
     parser::Params,
 };
-use crate::utils::nom_helper::{nom_signed_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_signed_four_bytes};
 use common::windows::KeyValue;
 use log::{error, warn};
 use nom::{
-    bytes::complete::take, combinator::peek, error::ErrorKind, number::complete::le_u16, Needed,
-    Parser,
+    Needed, Parser, bytes::complete::take, combinator::peek, error::ErrorKind,
+    number::complete::le_u16,
 };
 use std::mem::size_of;
 
@@ -57,7 +57,9 @@ pub(crate) fn walk_registry<'a>(
     minor_version: u32,
 ) -> nom::IResult<&'a [u8], ()> {
     if let Some(_value) = params.offset_tracker.get(&offset) {
-        error!("[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early.");
+        error!(
+            "[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
+        );
         return Err(nom::Err::Failure(nom::error::Error::new(
             reg_data,
             ErrorKind::Fail,
@@ -195,7 +197,7 @@ pub(crate) fn is_allocated(data: &[u8]) -> nom::IResult<&[u8], (bool, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_cell_type, is_allocated, CellType};
+    use super::{CellType, get_cell_type, is_allocated};
     use crate::{
         artifacts::os::windows::registry::{
             cell::{walk_registry, walk_values},

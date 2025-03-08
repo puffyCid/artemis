@@ -3,7 +3,7 @@ use crate::structs::toml::Output;
 use crate::utils::encoding::base64_decode_standard;
 use log::{error, warn};
 use reqwest::header::ETAG;
-use reqwest::{blocking::Client, StatusCode, Url};
+use reqwest::{StatusCode, Url, blocking::Client};
 use rusty_s3::actions::{
     CompleteMultipartUpload, CreateMultipartUpload, CreateMultipartUploadResponse, S3Action,
     UploadPart,
@@ -166,7 +166,9 @@ fn aws_create_multipart(
         };
 
         if session.status() != StatusCode::OK && attempts < max_attempts {
-            warn!("[artemis-core] Non-200 response create on attempt {attempts} out of {max_attempts}. Response: {session:?}");
+            warn!(
+                "[artemis-core] Non-200 response create on attempt {attempts} out of {max_attempts}. Response: {session:?}"
+            );
             attempts += 1;
             continue;
         }
@@ -228,7 +230,9 @@ pub(crate) fn aws_complete_multipart(
 
         if status != StatusCode::OK {
             if attempts < max_attempts {
-                warn!("[artemis-core] Non-200 response on complete attempt {attempts} out of {max_attempts}. Response: {complete:?}");
+                warn!(
+                    "[artemis-core] Non-200 response on complete attempt {attempts} out of {max_attempts}. Response: {complete:?}"
+                );
                 attempts += 1;
                 continue;
             }
@@ -240,7 +244,9 @@ pub(crate) fn aws_complete_multipart(
         }
         let body = complete.text().unwrap_or_default();
         if status == StatusCode::OK && body.contains("Internal Error") && attempts < max_attempts {
-            error!("[artemis-core] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}");
+            error!(
+                "[artemis-core] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}"
+            );
             attempts += 1;
             continue;
         }
@@ -302,7 +308,9 @@ pub(crate) fn aws_multipart_upload(
 
         if response.status() != StatusCode::OK {
             if attempts < max_attempts {
-                warn!("[artemis-core] Non-200 response on upload attempt {attempts} out of {max_attempts}. Response: {response:?}");
+                warn!(
+                    "[artemis-core] Non-200 response on upload attempt {attempts} out of {max_attempts}. Response: {response:?}"
+                );
                 attempts += 1;
                 continue;
             }
@@ -389,13 +397,15 @@ mod tests {
             compress,
             url: Some(format!("http://replacemeduh.com:{port}")),
             // Fake keys created at https://canarytokens.org/generate
-            api_key: Some(String::from("ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9")),
+            api_key: Some(String::from(
+                "ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9",
+            )),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
-            logging: Some(String::new())
+            logging: Some(String::new()),
         }
     }
 

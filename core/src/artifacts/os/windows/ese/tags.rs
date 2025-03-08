@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct PageTag {

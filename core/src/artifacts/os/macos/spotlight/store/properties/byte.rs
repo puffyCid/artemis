@@ -1,5 +1,5 @@
 use crate::artifacts::os::macos::spotlight::store::property::parse_variable_size;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Extra single byte associated with Spotlight property (appears to be rarely used)
 pub(crate) fn extract_byte(data: &[u8]) -> nom::IResult<&[u8], Value> {

@@ -6,7 +6,7 @@ use crate::{
     structs::toml::ArtemisToml,
     utils::logging::create_log_file,
 };
-use log::{error, info, LevelFilter};
+use log::{LevelFilter, error, info};
 use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
 
@@ -86,7 +86,7 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
 mod tests {
     use super::{parse_js_file, parse_toml_data, parse_toml_file};
     use crate::{
-        core::{artemis_collection, ArtemisToml},
+        core::{ArtemisToml, artemis_collection},
         filesystem::files::read_file,
         structs::toml::Output,
     };

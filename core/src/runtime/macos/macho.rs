@@ -1,5 +1,5 @@
 use crate::{artifacts::os::macos::macho::parser::parse_macho, runtime::helper::string_arg};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing macho file  to `BoaJS`
 pub(crate) fn js_macho(

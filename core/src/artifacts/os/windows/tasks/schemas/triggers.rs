@@ -5,7 +5,7 @@ use common::windows::{
     WnfTrigger,
 };
 use log::error;
-use quick_xml::{events::Event, name::QName, Reader};
+use quick_xml::{Reader, events::Event, name::QName};
 
 /// Parse all Task Trigger options.
 pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
@@ -685,12 +685,12 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
 mod tests {
     use super::parse_trigger;
     use crate::artifacts::os::windows::tasks::schemas::triggers::{
-        process_boot, process_cal_day, process_cal_month, process_cal_month_day_week,
-        process_cal_week, process_calendar, process_common, process_event, process_event_values,
-        process_idle, process_logon, process_notification, process_repetition, process_session,
-        process_time, BaseTriggers, Triggers,
+        BaseTriggers, Triggers, process_boot, process_cal_day, process_cal_month,
+        process_cal_month_day_week, process_cal_week, process_calendar, process_common,
+        process_event, process_event_values, process_idle, process_logon, process_notification,
+        process_repetition, process_session, process_time,
     };
-    use quick_xml::{events::Event, Reader};
+    use quick_xml::{Reader, events::Event};
 
     #[test]
     fn test_parse_trigger() {
@@ -998,13 +998,15 @@ mod tests {
             repetition: None,
         };
         process_repetition(&mut result, &mut reader);
-        assert!(result
-            .repetition
-            .as_ref()
-            .unwrap()
-            .stop_at_duration_end
-            .as_ref()
-            .unwrap());
+        assert!(
+            result
+                .repetition
+                .as_ref()
+                .unwrap()
+                .stop_at_duration_end
+                .as_ref()
+                .unwrap()
+        );
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 
 /// Pars WORD value and return as string
 pub(crate) fn parse_word(data: &[u8]) -> nom::IResult<&[u8], String> {

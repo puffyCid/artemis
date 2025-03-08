@@ -1,13 +1,13 @@
 use crate::utils::{
-    nom_helper::{nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes},
     strings::extract_utf8_string,
     time::unixepoch_to_iso,
 };
 use log::error;
 use nom::{
+    Parser,
     branch::alt,
     bytes::complete::{take, take_until},
-    Parser,
 };
 use serde::Serialize;
 use std::{

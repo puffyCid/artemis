@@ -9,8 +9,8 @@ repository = { workspace = true }
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
-core = { path = "../core", default-features = false}
-clap = { version = "4.5.30", features = ["std", "help", "derive"] }
+core = { path = "../core", default-features = false }
+clap = { version = "4.5.31", features = ["std", "help", "derive"] }
 
 # Artemis features
 [features]

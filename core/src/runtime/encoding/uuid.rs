@@ -2,7 +2,7 @@ use crate::{
     runtime::helper::bytes_arg,
     utils::uuid::{format_guid_be_bytes, format_guid_le_bytes, generate_uuid},
 };
-use boa_engine::{js_string, Context, JsResult, JsValue};
+use boa_engine::{Context, JsResult, JsValue, js_string};
 
 /// Attempt to convert bytes to a LE GUID
 pub(crate) fn js_format_guid_le_bytes(

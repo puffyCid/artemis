@@ -6,7 +6,7 @@ use crate::{
     },
     utils::{
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
         },
         strings::extract_utf16_string,
     },
@@ -81,7 +81,10 @@ pub(crate) fn parse_instances<'a>(
                 let class_value = match value_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        warn!("[wmi] Could not grab instance data for class {}. There may not be any data", class_value.class_name);
+                        warn!(
+                            "[wmi] Could not grab instance data for class {}. There may not be any data",
+                            class_value.class_name
+                        );
                         continue;
                     }
                 };
@@ -229,8 +232,8 @@ fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{
-        get_prop_data_size, grab_instance_data, parse_dynamic_props, parse_instance_props,
-        parse_instance_record, parse_instances, InstanceRecord,
+        InstanceRecord, get_prop_data_size, grab_instance_data, parse_dynamic_props,
+        parse_instance_props, parse_instance_record, parse_instances,
     };
     use crate::{
         artifacts::os::windows::wmi::{

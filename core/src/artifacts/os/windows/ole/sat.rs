@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_signed_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_signed_four_bytes};
 use nom::bytes::complete::take;
 
 /// Using data from the header. Find and assemble all data assicated with Sector Allocation Table (SAT)

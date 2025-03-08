@@ -1,12 +1,12 @@
-use super::page::{page_type, PageType};
+use super::page::{PageType, page_type};
 use crate::{
     artifacts::os::windows::outlook::{
         error::OutlookError,
-        header::{get_node_ids, FormatType, Node},
+        header::{FormatType, Node, get_node_ids},
     },
     filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
 use log::error;
@@ -480,8 +480,8 @@ mod tests {
             header::{FormatType, NodeID},
             pages::{
                 btree::{
-                    get_block_btree, parse_branch_data, parse_leaf_block_data,
-                    parse_leaf_node_data, NodeLevel,
+                    NodeLevel, get_block_btree, parse_branch_data, parse_leaf_block_data,
+                    parse_leaf_node_data,
                 },
                 page::PageType,
             },

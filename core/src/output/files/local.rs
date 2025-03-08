@@ -8,10 +8,10 @@ use crate::{
     structs::toml::Output,
     utils::{compression::compress::compress_output_zip, uuid::generate_uuid},
 };
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 use log::error;
 use serde::Serialize;
-use std::fs::{create_dir_all, remove_dir, remove_file, File, OpenOptions};
+use std::fs::{File, OpenOptions, create_dir_all, remove_dir, remove_file};
 
 pub(crate) struct AcquireFileApi {
     pub(crate) path: String,
@@ -77,7 +77,10 @@ impl AcquireActionLocal for AcquireFileApi {
         let writer = match writer_result {
             Ok(results) => results,
             Err(err) => {
-                error!("[artemis-core] Failed to create output file {} at {output_path}. Error: {err:?}", &self.filename);
+                error!(
+                    "[artemis-core] Failed to create output file {} at {output_path}. Error: {err:?}",
+                    &self.filename
+                );
                 return Err(AcquireError::Compressor);
             }
         };

@@ -1,5 +1,5 @@
 use super::commands::CommandArgs;
-use clap::{arg, Subcommand};
+use clap::{Subcommand, arg};
 use core::{
     core::artemis_collection,
     structs::{
@@ -124,6 +124,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         wmipersist: None,
         outlook: None,
         mft: None,
+        connections: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -492,13 +493,16 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.mft = Some(options);
             collect.artifact_name = String::from("mft");
         }
+        CommandArgs::Connections {} => {
+            collect.artifact_name = String::from("connections");
+        }
     }
     collect
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{run_collector, setup_artifact, Commands};
+    use super::{Commands, run_collector, setup_artifact};
     use crate::collector::system::CommandArgs::{
         Amcache, Bits, Cron, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos,
         Journals, Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting,

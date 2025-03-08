@@ -1,12 +1,12 @@
 use crate::{
-    artifacts::os::windows::shimdb::tag::{get_tag, Tags},
+    artifacts::os::windows::shimdb::tag::{Tags, get_tag},
     utils::{
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
     },
 };
 use log::warn;
-use nom::{bytes::complete::take, Needed};
+use nom::{Needed, bytes::complete::take};
 
 /// Grab and return string from stringtable based on the parsed stringref value
 pub(crate) fn parse_stringref<'a>(

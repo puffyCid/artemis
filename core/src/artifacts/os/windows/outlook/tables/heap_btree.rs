@@ -1,7 +1,7 @@
-use super::header::{get_heap_node_id, HeapNode};
+use super::header::{HeapNode, get_heap_node_id};
 use crate::{
     artifacts::os::windows::outlook::pages::btree::NodeLevel,
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte},
 };
 
 #[derive(Debug)]

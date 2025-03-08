@@ -1,4 +1,4 @@
-use crate::utils::strings::{extract_utf16_string, extract_utf8_string};
+use crate::utils::strings::{extract_utf8_string, extract_utf16_string};
 use nom::bytes::complete::{take, take_until};
 use std::mem::size_of;
 

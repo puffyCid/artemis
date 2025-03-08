@@ -1,5 +1,5 @@
 use crate::{artifacts::os::windows::shellitems::items::get_shellitem, runtime::helper::bytes_arg};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use common::windows::ShellItem;
 use serde::Serialize;
 

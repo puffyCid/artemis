@@ -1,7 +1,7 @@
 use super::wevt::SigType;
 use crate::utils::{
     nom_helper::{
-        nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian,
+        Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
     },
     strings::extract_utf16_string,
 };

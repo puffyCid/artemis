@@ -1,5 +1,5 @@
-use crate::utils::nom_helper::nom_unsigned_four_bytes;
 use crate::utils::nom_helper::Endian;
+use crate::utils::nom_helper::nom_unsigned_four_bytes;
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::ShellItem;
 use common::windows::ShellType;

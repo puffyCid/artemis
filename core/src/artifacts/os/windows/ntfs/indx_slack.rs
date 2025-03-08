@@ -2,7 +2,7 @@ use super::attributes::{get_attribute_name, get_attribute_type};
 use crate::{
     filesystem::ntfs::sector_reader::SectorReader,
     utils::{
-        nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
@@ -13,7 +13,7 @@ use nom::{
     bytes::complete::{take, take_until},
     number::complete::le_u64,
 };
-use ntfs::{structured_values::NtfsFileAttributeFlags, NtfsAttributes, NtfsFile, NtfsReadSeek};
+use ntfs::{NtfsAttributes, NtfsFile, NtfsReadSeek, structured_values::NtfsFileAttributeFlags};
 use std::{ffi::OsStr, fs::File, io::BufReader, mem::size_of, path::Path};
 
 /// Find the INDX attribute for the directory entry. We search the slack space on INDX attribute for metadata on deleted files or directories

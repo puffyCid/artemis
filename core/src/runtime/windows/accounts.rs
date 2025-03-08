@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::accounts::parser::grab_users, runtime::helper::string_arg,
     structs::artifacts::os::windows::WindowsUserOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing user info to `BoaJS`
 pub(crate) fn js_users_windows(

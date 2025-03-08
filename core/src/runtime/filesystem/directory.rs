@@ -7,7 +7,7 @@ use crate::{
     runtime::helper::string_arg,
 };
 use boa_engine::{
-    js_string, object::builtins::JsPromise, Context, JsError, JsResult, JsValue, NativeFunction,
+    Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
 };
 use log::{error, warn};
 use serde::Serialize;

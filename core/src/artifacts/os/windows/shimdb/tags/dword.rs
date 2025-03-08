@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 
 /// Grab the dword value but return it as a string
 pub(crate) fn parse_dword(data: &[u8]) -> nom::IResult<&[u8], String> {

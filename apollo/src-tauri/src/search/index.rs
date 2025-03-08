@@ -2,17 +2,17 @@ use super::query::check_response;
 use common::system::LoadPerformance;
 use home::home_dir;
 use opensearch::{
+    BulkOperations, BulkParts, Error, OpenSearch,
     auth::Credentials,
     cert::CertificateValidation,
     http::{
-        transport::{SingleNodeConnectionPool, TransportBuilder},
         Url,
+        transport::{SingleNodeConnectionPool, TransportBuilder},
     },
     indices::{IndicesCreateParts, IndicesDeleteParts},
-    BulkOperations, BulkParts, Error, OpenSearch,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::fs::{read, write};
 
 #[derive(Serialize, Deserialize)]

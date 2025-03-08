@@ -109,7 +109,10 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     while offset != last_entry {
         let object_header = ObjectHeader::parse_header(&mut reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
-            error!("[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting early", object_header.obj_type);
+            error!(
+                "[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting early",
+                object_header.obj_type
+            );
             break;
         }
 
@@ -162,7 +165,10 @@ fn get_entries(
     while offset != last_entry {
         let object_header = ObjectHeader::parse_header(reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
-            error!("[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting early", object_header.obj_type);
+            error!(
+                "[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting early",
+                object_header.obj_type
+            );
             break;
         }
 

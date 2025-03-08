@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes};
 use common::windows::{BitsInfo, FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
 use nom::bytes::complete::take_until;
 
@@ -236,7 +236,10 @@ mod tests {
             files[4].tmp_fullpath,
             "C:\\Users\\bob\\AppData\\Local\\Temp\\BITC907.tmp"
         );
-        assert_eq!(files[8].url,"https://download.visualstudio.microsoft.com/download/pr/40040b24-2de2-4177-8715-900ac0996174/ab3c263d5fb2e088ddc38701c467e832bf65cca25f68958b03daad9950f8647b/Xamarin.Android.Sdk-11.4.99.70.vsix");
+        assert_eq!(
+            files[8].url,
+            "https://download.visualstudio.microsoft.com/download/pr/40040b24-2de2-4177-8715-900ac0996174/ab3c263d5fb2e088ddc38701c467e832bf65cca25f68958b03daad9950f8647b/Xamarin.Android.Sdk-11.4.99.70.vsix"
+        );
     }
 
     #[test]

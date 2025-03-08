@@ -1,8 +1,8 @@
 use crate::filesystem::files::read_file;
 use log::error;
 use pelite::{
-    resources::{Directory, Name},
     Error, PeFile,
+    resources::{Directory, Name},
 };
 use serde::{Deserialize, Serialize};
 

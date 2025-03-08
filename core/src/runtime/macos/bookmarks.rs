@@ -1,5 +1,5 @@
 use crate::{artifacts::os::macos::bookmarks::parser::parse_bookmark, runtime::helper::bytes_arg};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing bookmark data to `BoaJS`
 pub(crate) fn js_bookmark(

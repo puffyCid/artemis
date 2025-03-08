@@ -1,6 +1,6 @@
 use crate::utils::{
     nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
     time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
@@ -12,7 +12,7 @@ use nom::{
 };
 use std::{
     fmt::Debug,
-    str::{from_utf8, Utf8Error},
+    str::{Utf8Error, from_utf8},
 };
 
 #[derive(Debug)]
@@ -905,7 +905,7 @@ fn get_creation_flags(flags: &i32) -> Vec<CreationFlags> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_target_flags, TableOfContentsDataRecord};
+    use super::{TableOfContentsDataRecord, get_target_flags};
     use crate::artifacts::os::macos::bookmarks::bookmark::{
         bookmark_array, bookmark_array_data, bookmark_cnid, bookmark_data_type_date,
         bookmark_data_type_number_eight, bookmark_data_type_number_four, bookmark_data_type_string,

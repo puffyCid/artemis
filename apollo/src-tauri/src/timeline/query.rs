@@ -1,4 +1,4 @@
-use crate::search::query::{artifacts, list_indexes, timeline, QueryState};
+use crate::search::query::{QueryState, artifacts, list_indexes, timeline};
 use log::error;
 use serde_json::Value;
 

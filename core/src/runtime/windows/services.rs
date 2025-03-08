@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::services::parser::grab_services, runtime::helper::string_arg,
     structs::artifacts::os::windows::ServicesOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Services to `BoaJS`
 pub(crate) fn js_services(

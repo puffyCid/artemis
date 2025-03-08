@@ -208,7 +208,7 @@ fn get_shortcut_info<'a>(
 mod tests {
     use crate::artifacts::os::windows::shortcuts::header::LnkHeader;
     use crate::artifacts::os::windows::shortcuts::shortcut::{
-        get_shortcut_data, get_shortcut_info, ShortcutInfo,
+        ShortcutInfo, get_shortcut_data, get_shortcut_info,
     };
     use crate::utils::time::unixepoch_to_iso;
     use common::windows::AttributeFlags;

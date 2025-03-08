@@ -3,10 +3,10 @@ use crate::{
     utils::strings::extract_utf8_string,
 };
 use boa_engine::{
-    js_string, object::builtins::JsPromise, Context, JsError, JsResult, JsValue, NativeFunction,
+    Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
 };
 
-use reqwest::{redirect::Policy, ClientBuilder, RequestBuilder};
+use reqwest::{ClientBuilder, RequestBuilder, redirect::Policy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;

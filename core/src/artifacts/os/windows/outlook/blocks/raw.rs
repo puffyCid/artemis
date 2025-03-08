@@ -1,4 +1,4 @@
-use super::block::{parse_block_bytes, Block, BlockValue};
+use super::block::{Block, BlockValue, parse_block_bytes};
 use crate::{
     artifacts::os::windows::outlook::{
         error::OutlookError, header::FormatType, pages::btree::LeafBlockData,

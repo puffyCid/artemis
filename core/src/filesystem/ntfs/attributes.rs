@@ -3,9 +3,9 @@ use crate::filesystem::error::FileSystemError;
 use common::windows::AttributeFlags;
 use log::{error, warn};
 use ntfs::{
+    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
     attribute_value::NtfsAttributeValue,
     structured_values::{NtfsAttributeList, NtfsFileName},
-    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
 };
 use std::{
     fs::File,
@@ -233,16 +233,16 @@ mod tests {
     use crate::{
         filesystem::ntfs::{
             attributes::{
-                file_attribute_flags, get_filename_attribute, get_raw_file_size,
-                read_attribute_data, AttributeFlags,
+                AttributeFlags, file_attribute_flags, get_filename_attribute, get_raw_file_size,
+                read_attribute_data,
             },
-            raw_files::{iterate_ntfs, raw_reader, NtfsOptions},
+            raw_files::{NtfsOptions, iterate_ntfs, raw_reader},
             sector_reader::SectorReader,
             setup::setup_ntfs_parser,
         },
         utils::regex_options::create_regex,
     };
-    use ntfs::{structured_values::NtfsAttributeList, Ntfs, NtfsAttributeType};
+    use ntfs::{Ntfs, NtfsAttributeType, structured_values::NtfsAttributeList};
     use std::{fs::File, io::BufReader};
 
     use super::get_attribute_data;

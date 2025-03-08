@@ -347,7 +347,7 @@ mod tests {
     use super::{formater_message, get_flags, get_number};
     use crate::artifacts::os::windows::eventlogs::{
         formaters::{
-            get_precision, get_size, get_type, get_width, Flags, FormaterSize, FormaterType,
+            Flags, FormaterSize, FormaterType, get_precision, get_size, get_type, get_width,
         },
         resources::manifest::xml::{Element, InputType, TokenType},
     };

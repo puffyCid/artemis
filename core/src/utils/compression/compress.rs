@@ -1,11 +1,11 @@
 use super::error::CompressionError;
 use crate::filesystem::files::read_file;
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 use log::{error, warn};
 use serde_json::Value;
 use std::{fs::File, io::Write};
 use walkdir::WalkDir;
-use zip::{write::SimpleFileOptions, ZipWriter};
+use zip::{ZipWriter, write::SimpleFileOptions};
 
 /// Compress provided data with GZIP
 pub(crate) fn compress_gzip_data(serde_data: &Value) -> Result<Vec<u8>, CompressionError> {

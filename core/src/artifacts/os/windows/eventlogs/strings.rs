@@ -1,14 +1,14 @@
 use super::{
     error::EventLogsError,
     resources::{
-        manifest::wevt::{parse_manifest, ManifestTemplate},
-        message::{parse_table, MessageTable},
+        manifest::wevt::{ManifestTemplate, parse_manifest},
+        message::{MessageTable, parse_table},
         mui::parse_mui,
     },
 };
 use crate::{
     artifacts::os::windows::{
-        pe::resources::{read_eventlog_resource, EventLogResource},
+        pe::resources::{EventLogResource, read_eventlog_resource},
         registry::helper::get_registry_keys,
     },
     filesystem::{

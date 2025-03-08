@@ -1,5 +1,5 @@
 use crate::collector::system::run_collector;
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use clap::Parser;
 use collector::system::Commands;
 use core::structs::toml::Output;
@@ -102,7 +102,7 @@ fn parse_args(args: &Args) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_args, Args};
+    use crate::{Args, parse_args};
     use std::path::PathBuf;
 
     #[test]
@@ -125,7 +125,9 @@ mod tests {
     fn test_parse_args_decode() {
         let args = Args {
             toml: None,
-            decode: Some(String::from("c3lzdGVtID0gImxpbnV4IgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
+            decode: Some(String::from(
+                "c3lzdGVtID0gImxpbnV4IgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==",
+            )),
             javascript: None,
             command: None,
         };
@@ -153,7 +155,9 @@ mod tests {
     fn test_parse_args_decode() {
         let args = Args {
             toml: None,
-            decode: Some(String::from("c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInN5c3RlbWluZm9fY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQplbmRwb2ludF9pZCA9ICJhYmRjIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic3lzdGVtaW5mbyIK")),
+            decode: Some(String::from(
+                "c3lzdGVtID0gIndpbmRvd3MiCgpbb3V0cHV0XQpuYW1lID0gInN5c3RlbWluZm9fY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQplbmRwb2ludF9pZCA9ICJhYmRjIgpjb2xsZWN0aW9uX2lkID0gMQpvdXRwdXQgPSAibG9jYWwiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic3lzdGVtaW5mbyIK",
+            )),
             javascript: None,
             command: None,
         };
@@ -181,7 +185,9 @@ mod tests {
     fn test_parse_args_decode() {
         let args = Args {
             toml: None,
-            decode: Some(String::from("c3lzdGVtID0gIm1hY29zIgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==")),
+            decode: Some(String::from(
+                "c3lzdGVtID0gIm1hY29zIgoKW291dHB1dF0KbmFtZSA9ICJzeXN0ZW1pbmZvX2NvbGxlY3Rpb24iCmRpcmVjdG9yeSA9ICIuL3RtcCIKZm9ybWF0ID0gImpzb24iCmNvbXByZXNzID0gZmFsc2UKZW5kcG9pbnRfaWQgPSAiYWJkYyIKY29sbGVjdGlvbl9pZCA9IDEKb3V0cHV0ID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCg==",
+            )),
             javascript: None,
             command: None,
         };

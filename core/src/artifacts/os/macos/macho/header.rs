@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 use log::warn;
 use nom::bytes::complete::take;
 use serde::Serialize;

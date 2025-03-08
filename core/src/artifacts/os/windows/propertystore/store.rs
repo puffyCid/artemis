@@ -1,9 +1,9 @@
 use super::formats::parse_formats;
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 use crate::utils::uuid::format_guid_le_bytes;
+use nom::Needed;
 use nom::bytes::complete::{take, take_until};
 use nom::number::complete::le_u32;
-use nom::Needed;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::mem::size_of;

@@ -144,7 +144,10 @@ mod tests {
         assert_eq!(results.cron_data[0].hour, "*");
         assert_eq!(results.cron_data[0].weekday, "*");
         assert_eq!(results.cron_data[0].hour, "*");
-        assert_eq!(results.cron_data[0].command,  "/Users/catalina/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh Cron # test");
+        assert_eq!(
+            results.cron_data[0].command,
+            "/Users/catalina/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh Cron # test"
+        );
     }
 
     #[test]

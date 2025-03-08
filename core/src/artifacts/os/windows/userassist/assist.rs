@@ -2,7 +2,7 @@ use super::{error::UserAssistError, registry::UserAssistReg};
 use crate::utils::{
     encoding::base64_decode_standard,
     environment::get_folder_descriptions,
-    nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use common::windows::UserAssistEntry;

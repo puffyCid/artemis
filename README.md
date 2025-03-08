@@ -51,6 +51,7 @@ Usage: artemis acquire [OPTIONS] [COMMAND]
 
 Commands:
   processes          Collect processes
+  connections        Collect network connections
   filelisting        Pull filelisting
   systeminfo         Get systeminfo
   prefetch           windows: Parse Prefetch

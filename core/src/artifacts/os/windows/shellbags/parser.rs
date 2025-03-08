@@ -340,8 +340,8 @@ mod tests {
         artifacts::os::windows::{
             registry::helper::get_registry_keys,
             shellbags::parser::{
-                alt_shellbags, extract_shellbags, grab_shellbags, parse_shellbags, save_shellbags,
-                update_shellbags, RegInfo, Shellbag,
+                RegInfo, Shellbag, alt_shellbags, extract_shellbags, grab_shellbags,
+                parse_shellbags, save_shellbags, update_shellbags,
             },
         },
         filesystem::files::get_filename,

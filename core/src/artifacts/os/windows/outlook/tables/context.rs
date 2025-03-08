@@ -13,7 +13,7 @@ use crate::{
         },
     },
     utils::nom_helper::{
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
 use common::{outlook::PropertyName, windows::PropertyType};
@@ -193,7 +193,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             if let Some(branch_info) = &info.has_branch {
                 for branch in branch_info {
                     if branch.node.block_index as usize > info.block_data.len() {
-                        warn!("[outlook] The Branch block index {} is larger than the block data length {}. This should not happen.", branch.node.block_index, info.block_data.len());
+                        warn!(
+                            "[outlook] The Branch block index {} is larger than the block data length {}. This should not happen.",
+                            branch.node.block_index,
+                            info.block_data.len()
+                        );
                         continue;
                     }
 
@@ -289,7 +293,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         }
 
         if branch.node.block_index as usize > info.block_data.len() {
-            error!("[outlook] The Branch block index {} is larger than the block data length {}. Stopping parsing.", branch.node.block_index, info.block_data.len());
+            error!(
+                "[outlook] The Branch block index {} is larger than the block data length {}. Stopping parsing.",
+                branch.node.block_index,
+                info.block_data.len()
+            );
             return Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,
@@ -542,7 +550,9 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
     if branch_row_size % row_size != 0 {
-        error!("[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        error!(
+            "[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+        );
         let info = RowsInfo {
             row_end: branch_row_end,
             count: 0,
@@ -584,7 +594,9 @@ fn extract_branch_details<'a>(
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
     if branch_row_size % row_size != 0 {
-        error!("[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        error!(
+            "[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+        );
         return Ok((&[], Vec::new()));
     }
 
@@ -629,7 +641,9 @@ fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
     if branch_row_size % row_size != 0 {
-        error!("[outlook] Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early");
+        error!(
+            "[outlook] Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+        );
         return Ok((&[], 0));
     }
 
@@ -652,7 +666,9 @@ fn get_row_count(map: &[u16]) -> u64 {
 
     let row_size = 8;
     if rows % row_size != 0 {
-        warn!("[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early");
+        warn!(
+            "[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early"
+        );
         return 0;
     }
 
@@ -698,7 +714,10 @@ fn parse_descriptors<'a>(
         }
 
         if desc_index > descriptors.len() {
-            warn!("[outlook] THe descriptor index {desc_index} is larger than the descriptor array length {}. This should not happen", descriptors.len());
+            warn!(
+                "[outlook] THe descriptor index {desc_index} is larger than the descriptor array length {}. This should not happen",
+                descriptors.len()
+            );
             break;
         }
 
@@ -853,7 +872,9 @@ fn parse_row_data<'a>(
             let prop_value = match prop_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to parse the property data associated with {prop_type:?}. Data could be malformed.");
+                    error!(
+                        "[outlook] Failed to parse the property data associated with {prop_type:?}. Data could be malformed."
+                    );
                     return Ok((&[], value));
                 }
             };
@@ -952,8 +973,8 @@ pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
 #[cfg(test)]
 mod tests {
     use super::{
-        block_row_count, get_column_definitions, get_property_type, get_row_count, get_row_data,
-        ColumnDescriptor, TableRows,
+        ColumnDescriptor, TableRows, block_row_count, get_column_definitions, get_property_type,
+        get_row_count, get_row_data,
     };
     use crate::artifacts::os::windows::outlook::{
         header::NodeID,

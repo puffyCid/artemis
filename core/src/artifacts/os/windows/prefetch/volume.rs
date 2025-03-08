@@ -1,6 +1,6 @@
 use crate::utils::{
     nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
     time::filetime_to_unixepoch,

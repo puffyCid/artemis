@@ -10,7 +10,7 @@ use crate::artifacts::os::windows::shimdb::tags::list::parse_list;
 use crate::artifacts::os::windows::shimdb::tags::qword::parse_qword;
 use crate::artifacts::os::windows::shimdb::tags::word::parse_word;
 use crate::utils::encoding::base64_encode_standard;
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::DatabaseData;

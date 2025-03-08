@@ -929,7 +929,7 @@ mod tests {
         utils::regex_options::create_regex,
     };
     use common::windows::{EventLevel, EventLogRecord};
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
@@ -976,7 +976,10 @@ mod tests {
             match sample {
                 "processingerror_log.json" => {
                     // Windows Event Viewer shows "PSMFlags for Desktop AppX process %1 with applicationID %2 is %3." But i think that is what a successful log entry is suppose to be
-                    assert_eq!(message.message,"ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n");
+                    assert_eq!(
+                        message.message,
+                        "ErrorCode: 15005\nDataItemName: PsmFlags\nEventPayload: 4D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003100320037002E0030002E0032003600350031002E00370034005F006E00650075007400720061006C005F005F003800770065006B0079006200330064003800620062007700650000004D006900630072006F0073006F00660074002E004D006900630072006F0073006F006600740045006400670065002E0053007400610062006C0065005F003800770065006B007900620033006400380062006200770065002100410070007000000001010110\n"
+                    );
                 }
                 "complex_log.json" => {
                     assert_eq!(
@@ -991,31 +994,36 @@ mod tests {
                     );
                 }
                 "logon_log.json" => {
-                    assert!(message
-                        .message
-                        .starts_with("An account was successfully logged on"));
+                    assert!(
+                        message
+                            .message
+                            .starts_with("An account was successfully logged on")
+                    );
 
                     // Depending on Windows version the eventlog message will be different sizes. Size below is for Windows 11 (4624 version 3)
                     if message.message.len() == 2212 {
-                        assert_eq!(message.message,"An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n");
+                        assert_eq!(
+                            message.message,
+                            "An account was successfully logged on.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tDESKTOP-9FSUKAJ$\n\tAccount Domain:\t\tWORKGROUP\n\tLogon ID:\t\t0x3e7\n\nLogon Information:\n\tLogon Type:\t\t5\n\tRestricted Admin Mode:\t-\n\tRemote Credential Guard:\t-\n\tVirtual Account:\t\tNo\r\n\n\tElevated Token:\t\tYes\r\n\n\nImpersonation Level:\t\tImpersonation\r\n\n\nNew Logon:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\tSYSTEM\n\tAccount Domain:\t\tNT AUTHORITY\n\tLogon ID:\t\t0x3e7\n\tLinked Logon ID:\t\t0x0\n\tNetwork Account Name:\t-\n\tNetwork Account Domain:\t-\n\tLogon GUID:\t\t00000000-0000-0000-0000-000000000000\n\nProcess Information:\n\tProcess ID:\t\t0x444\n\tProcess Name:\t\tC:\\Windows\\System32\\services.exe\n\nNetwork Information:\n\tWorkstation Name:\t-\n\tSource Network Address:\t-\n\tSource Port:\t\t-\n\nDetailed Authentication Information:\n\tLogon Process:\t\tAdvapi  \n\tAuthentication Package:\tNegotiate\n\tTransited Services:\t-\n\tPackage Name (NTLM only):\t-\n\tKey Length:\t\t0\n\nThis event is generated when a logon session is created. It is generated on the computer that was accessed.\n\nThe subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.\n\nThe logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).\n\nThe New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.\n\nThe network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.\n\nThe impersonation level field indicates the extent to which a process in the logon session can impersonate.\n\nThe authentication information fields provide detailed information about this specific logon request.\n\t- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.\n\t- Transited services indicate which intermediate services have participated in this logon request.\n\t- Package name indicates which sub-protocol was used among the NTLM protocols.\n\t- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.\r\n"
+                        );
                     }
                 }
                 "parameter_log.json" => {
                     assert_eq!(
-                            message.message,
-                            "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
+                        message.message,
+                        "Boot Configuration Data loaded.\n\nSubject:\n\tSecurity ID:\t\tS-1-5-18\n\tAccount Name:\t\t-\n\tAccount Domain:\t\t-\n\tLogon ID:\t\t0x3e7\n\nGeneral Settings:\n\tLoad Options:\t\t-\n\tAdvanced Options:\t\tNo\r\n\n\tConfiguration Access Policy:\tDefault\r\n\n\tSystem Event Logging:\tNo\r\n\n\tKernel Debugging:\tNo\r\n\n\tVSM Launch Type:\tOff\r\n\n\nSignature Settings:\n\tTest Signing:\t\tNo\r\n\n\tFlight Signing:\t\tNo\r\n\n\tDisable Integrity Checks:\tNo\r\n\n\nHyperVisor Settings:\n\tHyperVisor Load Options:\t-\n\tHyperVisor Launch Type:\tOff\r\n\n\tHyperVisor Debugging:\tNo\r\n\r\n"
                     );
                 }
                 "storage_log.json" => {
                     assert_eq!(
-                            message.message,
-                            "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
+                        message.message,
+                        "Error summary for Storport Device (Port = 0, Path = 2, Target = 0, Lun = 0) whose Corresponding Class Disk Device Guid is 00000000-0000-0000-0000-000000000000:\r\n                    \nThere were 730 total errors seen and 0 timeouts.\r\n                    \nThe last error seen had opcode 0 and completed with SrbStatus 4 and ScsiStatus 2.\r\n                    \nThe sense code was (2,58,0).\r\n                    \nThe latency was 0 ms.\r\n"
                     );
                 }
                 "qualifiers_log.json" => {
                     assert_eq!(
-                            message.message,
-                            "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
+                        message.message,
+                        "Provider \"Registry\" is Started. \n\nDetails: \n\tProviderName=Registry\r\n\tNewProviderState=Started\r\n\r\n\tSequenceNumber=1\r\n\r\n\tHostName=Chocolatey_PSHost\r\n\tHostVersion=5.1.22621.1\r\n\tHostId=719491d7-e472-4d47-8057-9a2f29ae1c91\r\n\tHostApplication=C:\\ProgramData\\chocolatey\\choco.exe install 7zip\r\n\tEngineVersion=\r\n\tRunspaceId=\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine=\r\n"
                     );
                 }
                 "userdata_log.json" => {
@@ -1056,15 +1064,20 @@ mod tests {
                     );
                     assert_eq!(message.channel, "System");
                     assert_eq!(message.keywords, "0x8000000020000000");
-                    assert!(message
-                        .raw_event_data
-                        .to_string()
-                        .contains("NonPagedPoolInfo"));
+                    assert!(
+                        message
+                            .raw_event_data
+                            .to_string()
+                            .contains("NonPagedPoolInfo")
+                    );
                     assert_eq!(
                         message.registry_file,
                         "C:\\Windows\\System32\\config\\SOFTWARE"
                     );
-                    assert_eq!(message.registry_path, "ROOT\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\{9988748e-c2e8-4054-85f6-0c3e1cad2470}");
+                    assert_eq!(
+                        message.registry_path,
+                        "ROOT\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\{9988748e-c2e8-4054-85f6-0c3e1cad2470}"
+                    );
                     assert_eq!(message.source_file, "");
                     assert_eq!(message.source_name, "");
                     assert_eq!(message.computer, "DESKTOP-9FSUKAJ");
@@ -1082,7 +1095,10 @@ mod tests {
                     assert_eq!(message.sid, "S-1-5-18");
                     assert_eq!(message.system_time, "2024-08-03T06:50:04.072688Z");
                     assert_eq!(message.task, 3);
-                    assert_eq!(message.template_message, "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: %21 (%22) consumed %24 bytes, %28 (%29) consumed %31 bytes, and %35 (%36) consumed %38 bytes.\r\n");
+                    assert_eq!(
+                        message.template_message,
+                        "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: %21 (%22) consumed %24 bytes, %28 (%29) consumed %31 bytes, and %35 (%36) consumed %38 bytes.\r\n"
+                    );
                     assert_eq!(message.record_id, 1719);
                     assert_eq!(message.version, 0);
                 }

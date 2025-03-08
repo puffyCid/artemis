@@ -12,8 +12,8 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
-            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
-            nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+            Endian, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            nom_unsigned_one_byte, nom_unsigned_two_bytes,
         },
         strings::extract_utf8_string,
     },

@@ -1,7 +1,7 @@
 use crate::artifacts::os::macos::launchd::launchdaemon::{
     grab_launchd_agents, grab_launchd_daemons,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing launchd daemons to `BoaJS`
 pub(crate) fn js_launchd_daemons(

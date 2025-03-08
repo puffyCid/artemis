@@ -2,7 +2,7 @@ use crate::{
     runtime::helper::{bytes_arg, number_arg},
     utils::compression::decompress::{decompress_gzip_data, decompress_zlib},
 };
-use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 
 /// Decompress zlib data
 pub(crate) fn js_decompress_zlib(

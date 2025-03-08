@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
@@ -374,7 +374,7 @@ pub(crate) fn generate_tags() -> HashMap<u16, String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::shimdb::tag::{generate_tags, get_tag, Tags};
+    use crate::artifacts::os::windows::shimdb::tag::{Tags, generate_tags, get_tag};
 
     #[test]
     fn test_generate_tags() {

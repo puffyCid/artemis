@@ -1,8 +1,8 @@
 use super::olecf::DirectoryType;
 use crate::utils::{
     nom_helper::{
-        nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
-        nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+        nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
     time::filetime_to_unixepoch,
@@ -167,7 +167,7 @@ fn parse_directory_type(dir_type: &u8) -> DirectoryType {
 #[cfg(test)]
 mod tests {
     use super::{assemble_ole_data, parse_directory};
-    use crate::artifacts::os::windows::ole::directory::{parse_directory_type, DirectoryType};
+    use crate::artifacts::os::windows::ole::directory::{DirectoryType, parse_directory_type};
     use crate::artifacts::os::windows::ole::header::OleHeader;
     use crate::artifacts::os::windows::ole::sat::assemble_sat_data;
     use crate::filesystem::files::read_file;

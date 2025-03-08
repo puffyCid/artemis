@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 use nom::bytes::complete::take;
 
 /// Get the stringtable data associated with a sdb file

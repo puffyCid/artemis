@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::macos::fsevents::parser::grab_fsventsd_file, runtime::helper::string_arg,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing `FsEvents` to `BoaJS`
 pub(crate) fn js_fsevents(

@@ -1,6 +1,6 @@
 use super::data::ManifestData;
 use crate::utils::{
-    nom_helper::{nom_signed_four_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_signed_four_bytes, nom_unsigned_four_bytes},
     strings::extract_utf16_string,
 };
 use nom::bytes::complete::{take, take_while};

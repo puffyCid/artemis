@@ -12,7 +12,7 @@
 use super::{
     combine::add_message_strings,
     error::EventLogsError,
-    strings::{get_resources, StringResource},
+    strings::{StringResource, get_resources},
 };
 use crate::{
     artifacts::os::windows::artifacts::output_data,
@@ -113,7 +113,10 @@ pub(crate) fn parse_eventlogs(
             {
                 result
             } else {
-                warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                warn!(
+                    "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                    record.event_record_id
+                );
                 raw_messages.push(record);
                 continue;
             };
@@ -322,7 +325,10 @@ fn read_eventlogs(
                     {
                         result
                     } else {
-                        warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                        warn!(
+                            "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                            record.event_record_id
+                        );
                         raw_messages.push(record);
                         continue;
                     };
@@ -370,7 +376,10 @@ fn read_eventlogs(
                 {
                     result
                 } else {
-                    warn!("[eventlogs] Could not get template strings for file {path} record: {}. Using raw data", record.event_record_id);
+                    warn!(
+                        "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                        record.event_record_id
+                    );
                     raw_messages.push(record);
                     continue;
                 };

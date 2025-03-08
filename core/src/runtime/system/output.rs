@@ -6,7 +6,7 @@ use crate::{
     },
     structs::toml::Output,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
 
 pub(crate) fn js_output_results(

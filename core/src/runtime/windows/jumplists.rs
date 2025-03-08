@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::jumplists::parser::grab_jumplists, runtime::helper::string_arg,
     structs::artifacts::os::windows::JumplistsOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Jumplists to `BoajS`
 pub(crate) fn js_jumplists(

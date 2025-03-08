@@ -268,7 +268,10 @@ mod tests {
         assert_eq!(results[0].variables.is_empty(), true);
 
         assert_eq!(results[0].command_actions.len(), 1);
-        assert_eq!(results[0].command_actions[0].command, "/Users/sur/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh");
+        assert_eq!(
+            results[0].command_actions[0].command,
+            "/Users/sur/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh"
+        );
         assert_eq!(results[0].command_actions[0].group, String::new());
         assert_eq!(results[0].command_actions[0].user, "root");
         assert_eq!(results[0].command_actions[0].arguments, ["Emond"]);
@@ -322,7 +325,10 @@ mod tests {
         assert_eq!(results[0].variables.is_empty(), true);
 
         assert_eq!(results[0].command_actions.len(), 1);
-        assert_eq!(results[0].command_actions[0].command, "/Users/sur/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh");
+        assert_eq!(
+            results[0].command_actions[0].command,
+            "/Users/sur/Library/Python/3.8/lib/python/site-packages/poisonapple/auxiliary/poisonapple.sh"
+        );
         assert_eq!(results[0].command_actions[0].group, String::new());
         assert_eq!(results[0].command_actions[0].user, "root");
         assert_eq!(results[0].command_actions[0].arguments, ["Emond"]);

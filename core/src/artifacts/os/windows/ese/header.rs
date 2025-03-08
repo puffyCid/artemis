@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_sixteen_bytes,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_sixteen_bytes,
+        nom_unsigned_two_bytes,
     },
     strings::extract_utf8_string,
 };

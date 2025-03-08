@@ -1,6 +1,6 @@
 use super::{
     error::FileError,
-    filelisting::{get_filelist, FileArgs},
+    filelisting::{FileArgs, get_filelist},
 };
 use crate::structs::{artifacts::os::files::FileOptions, toml::Output};
 use common::files::Hashes;

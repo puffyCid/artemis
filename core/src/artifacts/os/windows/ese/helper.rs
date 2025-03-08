@@ -20,7 +20,7 @@ use super::{
     header::EseHeader,
     page::{PageFlags, PageHeader},
     pages::{longvalue::parse_long_value, root::parse_root_page},
-    tables::{create_table_data, ColumnInfo, TableInfo},
+    tables::{ColumnInfo, TableInfo, create_table_data},
 };
 use crate::{
     artifacts::os::{
@@ -695,7 +695,7 @@ mod tests {
     };
     use crate::artifacts::os::windows::ese::{
         catalog::CatalogType,
-        tables::{get_column_flags, get_column_type, ColumnInfo, TableInfo},
+        tables::{ColumnInfo, TableInfo, get_column_flags, get_column_type},
     };
     use common::windows::ColumnType;
     use std::{collections::HashMap, path::PathBuf};

@@ -2,16 +2,16 @@ use crate::{
     artifacts::os::windows::registry::cell::is_allocated,
     utils::{
         encoding::base64_encode_standard,
-        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
         strings::{extract_multiline_utf16_string, extract_utf16_string},
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
 use log::error;
 use nom::{
+    Needed,
     bytes::complete::take,
     number::complete::{le_i64, le_u64},
-    Needed,
 };
 
 #[derive(PartialEq)]
@@ -274,8 +274,8 @@ mod tests {
         artifacts::os::windows::registry::{
             hbin::HiveBin,
             keys::data::{
-                check_big_data, parse_big_data, parse_qword_filetime, parse_reg_binary,
-                parse_reg_multi_sz, DataTypes,
+                DataTypes, check_big_data, parse_big_data, parse_qword_filetime, parse_reg_binary,
+                parse_reg_multi_sz,
             },
         },
         filesystem::files::read_file,
@@ -305,7 +305,10 @@ mod tests {
         assert_eq!(result.size, 4096);
 
         let (_, result) = parse_reg_binary(&buffer, 83392, 712, 4).unwrap();
-        assert_eq!(result, "AgAAAPQBAAABAAAAEAAAABAAAAASAAAAEgAAAPX///8AAAAAAAAAAAAAAAC8AgAAAAAAAAAAAABUAGEAaABvAG0AYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAA8AAAD1////AAAAAAAAAAAAAAAAvAIAAAAAAAAAAAAAVABhAGgAbwBtAGEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIAAAASAAAA9f///wAAAAAAAAAAAAAAAJABAAAAAAAAAAAAAFQAYQBoAG8AbQBhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD1////AAAAAAAAAAAAAAAAkAEAAAAAAAAAAAAAVABhAGgAbwBtAGEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPX///8AAAAAAAAAAAAAAACQAQAAAAAAAAAAAABUAGEAaABvAG0AYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9f///wAAAAAAAAAAAAAAAJABAAAAAAAAAAAAAFQAYQBoAG8AbQBhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADU0MgAOm6lAAokagCAgIAA1NDIAP///wAAAAAAAAAAAAAAAAD///8A1NDIANTQyACAgIAACiRqAP///wDU0MgAgICAAICAgAAAAAAA1NDIAP///wBAQEAA1NDIAAAAAAD//+EAtbW1AAAAgACmyvAAwMDAAA==");
+        assert_eq!(
+            result,
+            "AgAAAPQBAAABAAAAEAAAABAAAAASAAAAEgAAAPX///8AAAAAAAAAAAAAAAC8AgAAAAAAAAAAAABUAGEAaABvAG0AYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAA8AAAD1////AAAAAAAAAAAAAAAAvAIAAAAAAAAAAAAAVABhAGgAbwBtAGEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIAAAASAAAA9f///wAAAAAAAAAAAAAAAJABAAAAAAAAAAAAAFQAYQBoAG8AbQBhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD1////AAAAAAAAAAAAAAAAkAEAAAAAAAAAAAAAVABhAGgAbwBtAGEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPX///8AAAAAAAAAAAAAAACQAQAAAAAAAAAAAABUAGEAaABvAG0AYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9f///wAAAAAAAAAAAAAAAJABAAAAAAAAAAAAAFQAYQBoAG8AbQBhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADU0MgAOm6lAAokagCAgIAA1NDIAP///wAAAAAAAAAAAAAAAAD///8A1NDIANTQyACAgIAACiRqAP///wDU0MgAgICAAICAgAAAAAAA1NDIAP///wBAQEAA1NDIAAAAAAD//+EAtbW1AAAAgACmyvAAwMDAAA=="
+        );
     }
 
     #[test]
@@ -331,7 +334,10 @@ mod tests {
         assert_eq!(result.size, 4096);
 
         let (_, result) = parse_reg_multi_sz(&buffer, 3868224, 174, 4).unwrap();
-        assert_eq!(result, "en-US\nen-IN\nen-CA\nen-GB\nen-AU\nfr-FR\nit-IT\nde-DE\nes-ES\nfr-CA\nzh-Hans-CN\nja\nes-MX\npt-BR");
+        assert_eq!(
+            result,
+            "en-US\nen-IN\nen-CA\nen-GB\nen-AU\nfr-FR\nit-IT\nde-DE\nes-ES\nfr-CA\nzh-Hans-CN\nja\nes-MX\npt-BR"
+        );
     }
 
     #[test]

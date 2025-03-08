@@ -11,8 +11,8 @@
  */
 use crate::filesystem::files::{file_reader, file_too_large};
 use common::linux::ElfInfo;
-use elf::endian::AnyEndian;
 use elf::ElfBytes;
+use elf::endian::AnyEndian;
 use log::error;
 use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
 
@@ -66,7 +66,7 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseErr
             return Err(elf::ParseError::IOError(Error::new(
                 ErrorKind::InvalidInput,
                 "Could not read file to end",
-            )))
+            )));
         }
     };
 
@@ -139,8 +139,8 @@ mod tests {
         elf_sections, elf_symbols, parse_elf_file,
     };
     use crate::filesystem::files::read_file;
-    use elf::endian::AnyEndian;
     use elf::ElfBytes;
+    use elf::endian::AnyEndian;
     use std::path::PathBuf;
 
     #[test]

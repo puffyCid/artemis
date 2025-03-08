@@ -6,7 +6,7 @@ use crate::{
     },
     runtime::helper::{bool_arg, string_arg},
 };
-use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 use common::files::Hashes;
 use serde::Serialize;
 use std::path::Path;

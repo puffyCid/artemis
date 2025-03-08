@@ -1,6 +1,6 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_two_bytes, Endian},
-    strings::{extract_utf16_string, extract_utf8_string},
+    nom_helper::{Endian, nom_unsigned_two_bytes},
+    strings::{extract_utf8_string, extract_utf16_string},
 };
 use common::windows::DataFlags;
 use nom::bytes::complete::take;

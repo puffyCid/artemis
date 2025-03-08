@@ -1,15 +1,15 @@
 use super::{
     blocks::block::{BlockValue, OutlookBlock},
     error::OutlookError,
-    header::{parse_header, FormatType, Node, NodeID},
+    header::{FormatType, Node, NodeID, parse_header},
     items::{
-        attachment::{extract_attachment, Attachment},
-        fai::{extract_fai, FolderMeta},
-        folder::{folder_details, search_folder_details, FolderInfo},
+        attachment::{Attachment, extract_attachment},
+        fai::{FolderMeta, extract_fai},
+        folder::{FolderInfo, folder_details, search_folder_details},
         message::MessageDetails,
     },
     pages::btree::{
-        get_block_btree, get_node_btree, BlockType, LeafBlockData, LeafNodeData, NodeBtree,
+        BlockType, LeafBlockData, LeafNodeData, NodeBtree, get_block_btree, get_node_btree,
     },
     tables::{
         context::{TableBranchInfo, TableInfo, TableRows},
@@ -47,7 +47,7 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
     fn message_store(&self) -> Result<Vec<PropertyContext>, OutlookError>;
     fn name_id_map(&self) -> Result<Vec<PropertyContext>, OutlookError>;
     fn root_folder(&mut self, ntfs_file: Option<&NtfsFile<'_>>)
-        -> Result<FolderInfo, OutlookError>;
+    -> Result<FolderInfo, OutlookError>;
     fn read_folder(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -611,7 +611,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         branch: Option<&TableBranchInfo>,
     ) -> Result<Vec<MessageDetails>, OutlookError> {
         if info.rows.len() > info.total_rows as usize {
-            warn!("[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available. We will return {}", info.rows.len(), info.total_rows, info.total_rows);
+            warn!(
+                "[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available. We will return {}",
+                info.rows.len(),
+                info.total_rows,
+                info.total_rows
+            );
             // return Err(OutlookError::MessageCount);
         }
         // First we parse the table that points to our messages
@@ -827,7 +832,9 @@ fn check_node(leaf: &LeafNodeData) -> Result<(), OutlookError> {
         && leaf.node.node as u64 == not_set
         && leaf.node.node_id_num == not_set
     {
-        error!("[outlook] Leaf node data has default values. Its likely the data was not found in the Node Btree");
+        error!(
+            "[outlook] Leaf node data has default values. Its likely the data was not found in the Node Btree"
+        );
         return Err(OutlookError::LeafNode);
     }
 

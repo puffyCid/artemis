@@ -235,8 +235,8 @@ fn output_process(
 mod tests {
     use crate::artifacts::os::processes::process::executable_metadata;
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
-    use crate::artifacts::os::systeminfo::info::get_platform_enum;
     use crate::artifacts::os::systeminfo::info::PlatformType;
+    use crate::artifacts::os::systeminfo::info::get_platform_enum;
     use crate::structs::toml::Output;
     use common::files::Hashes;
     use common::system::Processes;

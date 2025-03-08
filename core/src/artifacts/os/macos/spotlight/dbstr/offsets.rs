@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::spotlight::error::SpotlightError,
-    utils::nom_helper::{nom_unsigned_four_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes},
 };
 use log::error;
 use nom::bytes::complete::take;

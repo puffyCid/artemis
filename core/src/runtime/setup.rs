@@ -9,11 +9,11 @@ use super::{
     windows::extensions::windows_functions,
 };
 use boa_engine::{
+    Context, JsValue, Source,
     context::ContextBuilder,
     job::{FutureJob, JobQueue, NativeJob},
     js_str,
     property::Attribute,
-    Context, JsValue, Source,
 };
 use boa_runtime::Console;
 use log::error;

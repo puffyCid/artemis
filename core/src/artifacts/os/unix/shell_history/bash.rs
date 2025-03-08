@@ -117,8 +117,8 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
             Ok(result) => result,
             Err(err) => {
                 warn!(
-                        "[shell_history] Failed to read bash line in file {bash_history}, error: {err:?}",
-                    );
+                    "[shell_history] Failed to read bash line in file {bash_history}, error: {err:?}",
+                );
                 continue;
             }
         };
@@ -134,7 +134,9 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
             bash_history_data.timestamp = match timestamp {
                 Ok(bash_timestamp) => unixepoch_to_iso(&(bash_timestamp as i64)),
                 Err(err) => {
-                    warn!("[shell_history] Failed to get timestamp data for bash line {bash_entry}, error: {err:?}");
+                    warn!(
+                        "[shell_history] Failed to get timestamp data for bash line {bash_entry}, error: {err:?}"
+                    );
                     bash_history_data.history = bash_entry;
                     bash_data.push(bash_history_data);
 
@@ -149,8 +151,8 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
                     Ok(history) => history,
                     Err(err) => {
                         error!(
-                                "[shell_history] No history entry in bash line: {bash_entry}, error: {err:?}"
-                            );
+                            "[shell_history] No history entry in bash line: {bash_entry}, error: {err:?}"
+                        );
                         String::new()
                     }
                 },

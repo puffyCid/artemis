@@ -260,7 +260,13 @@ mod tests {
 
         let results = parse_search_sqlite_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 1437);
-        assert_eq!(results[1295].properties.get("4447-System_ItemPathDisplay").unwrap(), "C:\\Users\\bob\\.cargo\\registry\\cache\\github.com-1ecc6299db9ec823\\bytecount-0.6.3.crate");
+        assert_eq!(
+            results[1295]
+                .properties
+                .get("4447-System_ItemPathDisplay")
+                .unwrap(),
+            "C:\\Users\\bob\\.cargo\\registry\\cache\\github.com-1ecc6299db9ec823\\bytecount-0.6.3.crate"
+        );
         assert_eq!(
             results[1295]
                 .properties

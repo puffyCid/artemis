@@ -1,5 +1,5 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
     uuid::format_guid_le_bytes,
 };
 use common::windows::{Flags, Priority, Status};
@@ -206,7 +206,7 @@ mod tests {
     use super::{parse_fixed, product_version, system_time};
     use crate::{
         artifacts::os::windows::tasks::sections::fixed::{
-            flags, priority, status, Flags, Priority, Status,
+            Flags, Priority, Status, flags, priority, status,
         },
         filesystem::files::read_file,
     };

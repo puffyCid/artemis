@@ -1,4 +1,4 @@
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use serde::Serialize;
 use url::Url;
 

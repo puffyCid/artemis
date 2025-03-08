@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::wmi::parser::grab_wmi_persist, runtime::helper::string_arg,
     structs::artifacts::os::windows::WmiPersistOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing wmi persist to `BoaJS`
 pub(crate) fn js_wmipersist(

@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_eight_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_eight_bytes};
 
 /// Grab the qword value but return it as a string
 pub(crate) fn parse_qword(data: &[u8]) -> nom::IResult<&[u8], String> {

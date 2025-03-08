@@ -2,7 +2,7 @@ use crate::{
     runtime::helper::{string_arg, value_arg},
     utils::strings::extract_utf8_string,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::warn;
 use serde::Serialize;
 use std::process::Command;

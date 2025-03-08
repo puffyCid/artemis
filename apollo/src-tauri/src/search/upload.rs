@@ -1,7 +1,7 @@
 use super::index::{create_index, upload_data, upload_metadata};
 use opensearch::{BulkOperation, BulkOperations, Error};
 use serde_json::Value;
-use timeline::timeline::{timeline_artifact, Artifacts};
+use timeline::timeline::{Artifacts, timeline_artifact};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, BufReader},

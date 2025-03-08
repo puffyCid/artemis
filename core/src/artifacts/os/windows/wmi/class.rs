@@ -2,11 +2,11 @@ use crate::{
     artifacts::os::windows::wmi::windows_management::hash_name,
     utils::{
         nom_helper::{
-            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            Endian, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
+            nom_unsigned_two_bytes,
         },
-        strings::{extract_utf16_string, extract_utf8_string},
+        strings::{extract_utf8_string, extract_utf16_string},
     },
 };
 use log::warn;
@@ -15,7 +15,7 @@ use nom::{
     error::ErrorKind,
     number::complete::{le_f32, le_f64, le_i8},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::mem::size_of;
 
 #[derive(Debug, Clone)]
@@ -115,7 +115,9 @@ pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
     let adjust_msb: u32 = 0x80000000;
 
     if prop_value_size < adjust_msb {
-        warn!("[wmi] Property value size is too small. Expected MSB to bet set. Got instead: {prop_value_size}");
+        warn!(
+            "[wmi] Property value size is too small. Expected MSB to bet set. Got instead: {prop_value_size}"
+        );
         return Err(nom::Err::Failure(nom::error::Error::new(
             input,
             ErrorKind::Fail,
@@ -614,7 +616,7 @@ mod tests {
         get_predefine_name, parse_class, parse_qualifier,
     };
     use crate::{
-        artifacts::os::windows::wmi::class::{parse_property, CimType},
+        artifacts::os::windows::wmi::class::{CimType, parse_property},
         filesystem::files::read_file,
     };
     use serde_json::Value;

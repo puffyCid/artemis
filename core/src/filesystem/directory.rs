@@ -3,7 +3,7 @@ use super::{
     files::{file_lines, list_files_directories},
 };
 use crate::{
-    artifacts::os::systeminfo::info::{get_platform, get_platform_enum, PlatformType},
+    artifacts::os::systeminfo::info::{PlatformType, get_platform, get_platform_enum},
     utils::environment::get_env_value,
 };
 use log::{error, warn};

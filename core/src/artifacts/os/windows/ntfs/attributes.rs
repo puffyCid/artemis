@@ -13,10 +13,10 @@ use common::files::Hashes;
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
 use log::error;
 use ntfs::{
+    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference,
     structured_values::{
         NtfsAttributeList, NtfsFileName, NtfsFileNamespace, NtfsStandardInformation,
     },
-    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference,
 };
 use std::{fs::File, io::BufReader};
 

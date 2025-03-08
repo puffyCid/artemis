@@ -1,7 +1,7 @@
 use crate::{
     filesystem::{directory::get_parent_directory, files::get_filename},
     utils::{
-        nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
@@ -9,8 +9,8 @@ use crate::{
 use common::windows::RecycleBin;
 use log::error;
 use nom::{
-    bytes::complete::{take, take_until},
     Needed,
+    bytes::complete::{take, take_until},
 };
 
 /// Parse the `$I` file data from the `Recycle Bin`

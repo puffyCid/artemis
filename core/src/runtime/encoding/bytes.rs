@@ -1,5 +1,5 @@
 use crate::runtime::helper::string_arg;
-use boa_engine::{object::builtins::JsUint8Array, Context, JsResult, JsValue};
+use boa_engine::{Context, JsResult, JsValue, object::builtins::JsUint8Array};
 
 /// Convert string to bytes
 pub(crate) fn js_encode_bytes(

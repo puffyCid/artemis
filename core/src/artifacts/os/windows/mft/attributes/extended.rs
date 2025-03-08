@@ -1,6 +1,6 @@
 use crate::utils::{
     encoding::base64_encode_standard,
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes},
     strings::extract_utf8_string,
 };
 use nom::bytes::complete::take;
@@ -97,7 +97,10 @@ mod tests {
         assert_eq!(result.flags, 0);
         assert_eq!(result.data_size, 67);
         assert_eq!(result.name, "$CI.CATALOGHINT");
-        assert_eq!(result.data, "AQA/AFBhY2thZ2VfMV9mb3JfS0I1MDA0MzQyfjMxYmYzODU2YWQzNjRlMzV+YW1kNjR+fjEwLjAuNDQwMC4zLmNhdACMAAAAABZsACRLRVJORUwuUFVSR0UuRVNCQ0FDSEUAbAAAAAMAAgjQtDpP2hrYAQDW+CubLNcBQgAAAE4AJwEMgAAAIBWqQ+sf0DEdBqF8eMxjXj+a5GNv4IAtbQLweVIVrGiOJwAMgAAAIPsjr15jCs1Wh+TbRJbhza+2b4bFRqj99RWVfdFkxVF/AA==");
+        assert_eq!(
+            result.data,
+            "AQA/AFBhY2thZ2VfMV9mb3JfS0I1MDA0MzQyfjMxYmYzODU2YWQzNjRlMzV+YW1kNjR+fjEwLjAuNDQwMC4zLmNhdACMAAAAABZsACRLRVJORUwuUFVSR0UuRVNCQ0FDSEUAbAAAAAMAAgjQtDpP2hrYAQDW+CubLNcBQgAAAE4AJwEMgAAAIBWqQ+sf0DEdBqF8eMxjXj+a5GNv4IAtbQLweVIVrGiOJwAMgAAAIPsjr15jCs1Wh+TbRJbhza+2b4bFRqj99RWVfdFkxVF/AA=="
+        );
         assert_eq!(result.name_size, 15);
     }
 }

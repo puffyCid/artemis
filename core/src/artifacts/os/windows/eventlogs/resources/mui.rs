@@ -1,11 +1,11 @@
 use crate::{
-    artifacts::os::windows::pe::resources::{read_eventlog_resource, EventLogResource},
+    artifacts::os::windows::pe::resources::{EventLogResource, read_eventlog_resource},
     filesystem::{
         directory::get_parent_directory,
         files::{get_filename, is_file},
     },
     utils::{
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
     },
 };

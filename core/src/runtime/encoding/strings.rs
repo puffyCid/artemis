@@ -1,8 +1,8 @@
 use crate::{
     runtime::helper::bytes_arg,
-    utils::strings::{extract_utf16_string, extract_utf8_string},
+    utils::strings::{extract_utf8_string, extract_utf16_string},
 };
-use boa_engine::{js_string, Context, JsResult, JsValue};
+use boa_engine::{Context, JsResult, JsValue, js_string};
 
 /// Attempt to extract a UTF8 string from raw bytes
 pub(crate) fn js_extract_utf8_string(

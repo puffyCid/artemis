@@ -1,5 +1,5 @@
 use crate::runtime::{error::RuntimeError, helper::string_arg};
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 use log::{error, warn};
 use macos_unifiedlogs::{
     dsc::SharedCacheStrings,

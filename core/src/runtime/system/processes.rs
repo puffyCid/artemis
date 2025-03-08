@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::processes::process::proc_list_entries,
     runtime::helper::{boolean_arg, value_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use common::files::Hashes;
 
 /// Expose pulling process listing to `BoaJS`

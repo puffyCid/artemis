@@ -1,6 +1,6 @@
 use super::sections::section::parse_section;
 use crate::utils::{
-    nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     strings::extract_utf8_string,
 };
 use common::macos::{Section, Segment64};

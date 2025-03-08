@@ -1,5 +1,5 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes},
     strings::extract_utf16_string,
 };
 use nom::bytes::complete::take;
@@ -75,7 +75,7 @@ impl Header {
 mod tests {
     use crate::{
         artifacts::os::windows::prefetch::header::Header,
-        utils::compression::decompress::{decompress_xpress, XpressType},
+        utils::compression::decompress::{XpressType, decompress_xpress},
     };
 
     use super::CompressedHeader;

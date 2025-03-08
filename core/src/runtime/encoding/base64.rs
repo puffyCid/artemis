@@ -2,7 +2,7 @@ use crate::{
     runtime::helper::{bytes_arg, string_arg},
     utils::encoding::{base64_decode_standard, base64_encode_standard},
 };
-use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 
 /// Decode Base64 data
 pub(crate) fn js_base64_decode(

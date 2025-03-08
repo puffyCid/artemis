@@ -17,6 +17,8 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         metadata: bool,
     },
+    /// Collect network connections
+    Connections {},
     /// Pull filelisting
     Filelisting {
         /// MD5 hash files

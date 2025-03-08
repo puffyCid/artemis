@@ -10,7 +10,9 @@ pub async fn start(path: &str) {
     let mut config = match config_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[client] Could not read config at {path}. Cannot start client without a config file: {err:?}");
+            error!(
+                "[client] Could not read config at {path}. Cannot start client without a config file: {err:?}"
+            );
             return;
         }
     };

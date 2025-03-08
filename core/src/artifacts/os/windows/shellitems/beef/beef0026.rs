@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
 use nom::bytes::complete::take;
 use nom::number::complete::le_u64;

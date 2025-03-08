@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::search::parser::grab_search_path,
     runtime::helper::{number_arg, string_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Windows Search to `BoaJS`
 pub(crate) fn js_search(

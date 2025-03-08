@@ -6,7 +6,7 @@ use crate::{
     structs::toml::Output,
     utils::{
         encoding::base64_decode_standard,
-        nom_helper::{nom_unsigned_eight_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_eight_bytes},
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };

@@ -1,6 +1,6 @@
 use crate::utils::{
     encoding::base64_encode_standard,
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
 use nom::bytes::complete::take;
 use serde::Serialize;

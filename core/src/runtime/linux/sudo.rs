@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::linux::sudo::logs::grab_sudo_logs, runtime::helper::string_arg,
     structs::artifacts::os::linux::LinuxSudoOptions,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
 
 /// Get `Sudo log` data

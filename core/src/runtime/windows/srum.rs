@@ -1,5 +1,5 @@
 use crate::{artifacts::os::windows::srum::parser::grab_srum_path, runtime::helper::string_arg};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing a single SRUM table to `BoaJS`
 pub(crate) fn js_srum(
