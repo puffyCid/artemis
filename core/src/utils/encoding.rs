@@ -1,12 +1,12 @@
 use super::{
-    nom_helper::{nom_unsigned_two_bytes, Endian},
-    strings::{extract_utf16_string, extract_utf8_string},
+    nom_helper::{Endian, nom_unsigned_two_bytes},
+    strings::{extract_utf8_string, extract_utf16_string},
 };
 use crate::{filesystem::files::read_file, utils::error::ArtemisError};
-use base64::{engine::general_purpose, DecodeError, Engine};
+use base64::{DecodeError, Engine, engine::general_purpose};
 use log::error;
 use std::collections::HashMap;
-use sunlight::light::{extract_protobuf, ProtoTag};
+use sunlight::light::{ProtoTag, extract_protobuf};
 
 /// Base64 encode data using the STANDARD engine (alphabet along with "+" and "/")
 pub(crate) fn base64_encode_standard(data: &[u8]) -> String {

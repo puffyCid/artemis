@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_two_bytes};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]

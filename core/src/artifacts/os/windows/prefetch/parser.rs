@@ -266,7 +266,10 @@ mod tests {
             results.accessed_files[12],
             "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSWOW64\\CMDEXT.DLL"
         );
-        assert_eq!(results.accessed_files[27], "\\DEVICE\\HARDDISKVOLUME2\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\TMP832F744F467240578F4610EC7E1C7547.EXEC.CMD");
+        assert_eq!(
+            results.accessed_files[27],
+            "\\DEVICE\\HARDDISKVOLUME2\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\TMP832F744F467240578F4610EC7E1C7547.EXEC.CMD"
+        );
 
         assert_eq!(
             results.accessed_directories[2],

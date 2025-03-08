@@ -1,11 +1,11 @@
 use super::index::{get_index, setup_client};
 use log::error;
-use opensearch::http::{response::Response, StatusCode};
+use opensearch::http::{StatusCode, response::Response};
 use opensearch::nodes::NodesStatsParts;
-use opensearch::{indices::IndicesGetParts, Error};
+use opensearch::{Error, indices::IndicesGetParts};
 use opensearch::{SearchParts, UpdateParts};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Get a list of all index in `OpenSearch`. Should be one per timeline/sketch
 pub(crate) async fn list_indexes() -> Result<Value, Error> {
@@ -133,7 +133,7 @@ pub(crate) async fn check_response(res: Response) -> Value {
 #[cfg(target_os = "linux")]
 mod tests {
     use crate::search::query::{
-        artifacts, get_metadata, get_resources, list_indexes, tag, timeline, QueryState,
+        QueryState, artifacts, get_metadata, get_resources, list_indexes, tag, timeline,
     };
     use serde_json::json;
 

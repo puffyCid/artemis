@@ -2,6 +2,7 @@ use super::{
     applications::artifacts::{safari_downloads, safari_history},
     error::CollectionError,
     os::{
+        connections::artifact::list_connections,
         files::artifact::filelisting,
         linux::artifacts::{journals, logons, sudo_logs_linux},
         macos::artifacts::{
@@ -633,6 +634,16 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 let results = mft(artifact, &mut collector.output, &filter);
                 match results {
                     Ok(_) => info!("Collected MFT"),
+                    Err(err) => {
+                        error!("[artemis-core] Failed to parse MFT: {err:?}");
+                        continue;
+                    }
+                }
+            }
+            "connections" => {
+                let results = list_connections(&mut collector.output, &filter);
+                match results {
+                    Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[artemis-core] Failed to parse MFT: {err:?}");
                         continue;

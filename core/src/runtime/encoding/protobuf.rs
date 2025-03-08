@@ -1,5 +1,5 @@
 use crate::{runtime::helper::bytes_arg, utils::encoding::parse_protobuf};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Parse Protobuf data
 pub(crate) fn js_parse_protobuf(

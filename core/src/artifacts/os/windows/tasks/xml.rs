@@ -11,7 +11,7 @@ use crate::{
 };
 use common::windows::{Actions, TaskXml};
 use log::error;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
 pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {

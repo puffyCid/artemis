@@ -35,7 +35,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.shell = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user shell from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user shell from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -45,7 +47,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.home_path = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user home from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user home from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -55,7 +59,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user name from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user name from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -65,7 +71,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.real_name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user realname from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user realname from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -75,7 +83,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.unlock_options = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user unlockOptions from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user unlockOptions from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -85,7 +95,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.uuid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user UUID from opendirectoryd file {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user UUID from opendirectoryd file {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -95,7 +107,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.uid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user UID from opendirectoryd file: {path}. Error: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user UID from opendirectoryd file: {path}. Error: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -105,7 +119,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.gid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user GID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user GID from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -115,7 +131,9 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.account_photo = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -137,14 +155,18 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                             match plist_results {
                                 Ok(_) => {}
                                 Err(err) => {
-                                    warn!("accounts] Failed to get account policy info from opendirectoryd file: {path}: {err:?}");
+                                    warn!(
+                                        "accounts] Failed to get account policy info from opendirectoryd file: {path}: {err:?}"
+                                    );
                                     continue;
                                 }
                             }
                         }
                     }
                     Err(err) => {
-                        warn!("[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 }
@@ -220,7 +242,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.gid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group GID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group GID from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -230,7 +254,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group name from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group name from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -240,7 +266,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.real_name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group realname from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group realname from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -250,7 +278,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.uuid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -260,7 +290,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.users = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };
@@ -270,7 +302,9 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.groupmembers = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "[accounts] Failed to get group UUID from opendirectoryd file: {path}: {err:?}"
+                        );
                         continue;
                     }
                 };

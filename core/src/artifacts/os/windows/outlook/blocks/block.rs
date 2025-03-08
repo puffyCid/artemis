@@ -9,8 +9,8 @@ use crate::{
     utils::{
         compression::decompress::decompress_zlib,
         nom_helper::{
-            nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
-            Endian,
+            Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+            nom_unsigned_two_bytes,
         },
     },
 };

@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::services::error::ServicesError,
     utils::{
         encoding::base64_decode_standard,
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
     },
 };
 use common::windows::{Action, FailureActions, ServiceError, ServiceState, ServiceType, StartMode};
@@ -146,8 +146,8 @@ fn parse_failure_actions(data: &[u8]) -> nom::IResult<&[u8], (Vec<FailureActions
 mod tests {
     use super::{error_control, failure_actions};
     use crate::artifacts::os::windows::services::options::name::{
-        parse_failure_actions, service_state, service_type, start_mode, ServiceError, ServiceState,
-        ServiceType, StartMode,
+        ServiceError, ServiceState, ServiceType, StartMode, parse_failure_actions, service_state,
+        service_type, start_mode,
     };
 
     #[test]

@@ -1,9 +1,9 @@
 use crate::{
     artifacts::os::windows::{
-        registry::cell::{get_cell_type, is_allocated, CellType},
+        registry::cell::{CellType, get_cell_type, is_allocated},
         securitydescriptor::descriptor::Descriptor,
     },
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
 use nom::bytes::complete::take;
 use serde::Serialize;

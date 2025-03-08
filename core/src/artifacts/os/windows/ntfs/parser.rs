@@ -379,7 +379,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, f
 mod tests {
     use crate::{
         artifacts::os::windows::ntfs::parser::{
-            ntfs_filelist, raw_output, user_regex, walk_ntfs, Hashes, Params,
+            Hashes, Params, ntfs_filelist, raw_output, user_regex, walk_ntfs,
         },
         filesystem::ntfs::setup::setup_ntfs_parser,
         structs::{artifacts::os::windows::RawFilesOptions, toml::Output},

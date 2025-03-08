@@ -13,12 +13,12 @@ use crate::{
     structs::toml::Output,
     utils::encoding::base64_encode_url,
 };
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 use log::error;
 use reqwest::{
+    StatusCode, Url,
     blocking::Client,
     header::{HeaderMap, HeaderValue},
-    StatusCode, Url,
 };
 use rusty_s3::{Bucket, Credentials};
 use std::{collections::HashMap, fs::File};
@@ -229,9 +229,9 @@ impl GoogleUpload for AcquireFileApiRemote {
                 && res.status() != StatusCode::PERMANENT_REDIRECT
             {
                 error!(
-                "[artemis-core] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
-                res.text()
-            );
+                    "[artemis-core] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
+                    res.text()
+                );
                 max_attempts += 1;
                 continue;
             }

@@ -2,9 +2,9 @@ use super::beef::beef0004;
 use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
 use common::windows::{ShellItem, ShellType};
 use nom::{
+    Parser,
     bytes::complete::{take, take_until},
     combinator::peek,
-    Parser,
 };
 use std::mem::size_of;
 

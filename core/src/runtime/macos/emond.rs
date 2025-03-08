@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::emond::parser::grab_emond, runtime::helper::string_arg,
     structs::artifacts::os::macos::EmondOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Emond to `BoaJS`
 pub(crate) fn js_emond(

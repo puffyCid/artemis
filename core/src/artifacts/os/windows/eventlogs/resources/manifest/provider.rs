@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_signed_four_bytes, nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_signed_four_bytes, nom_unsigned_four_bytes};
 
 /// Get provider info from `WEVT_TEMPLATE`
 pub(crate) fn parse_provider(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {

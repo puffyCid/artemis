@@ -29,7 +29,7 @@ mod tests {
         filenames::get_accessed_files,
         header::{CompressedHeader, Header},
     };
-    use crate::utils::compression::decompress::{decompress_xpress, XpressType};
+    use crate::utils::compression::decompress::{XpressType, decompress_xpress};
     use std::{fs, path::PathBuf};
 
     #[test]
@@ -75,6 +75,9 @@ mod tests {
             filenames[12],
             "\\VOLUME{01d6828290579d13-4290933e}\\WINDOWS\\SYSWOW64\\NTDLL.DLL"
         );
-        assert_eq!(filenames[63], "\\VOLUME{01d6828290579d13-4290933e}\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\CHOCOLATEY\\PSEXEC.2.40\\EULA.TXT");
+        assert_eq!(
+            filenames[63],
+            "\\VOLUME{01d6828290579d13-4290933e}\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\CHOCOLATEY\\PSEXEC.2.40\\EULA.TXT"
+        );
     }
 }

@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use crate::utils::time::unixepoch_to_iso;
 use crate::utils::{
     strings::{extract_ascii_utf16_string, extract_utf16_string},
@@ -6,11 +6,11 @@ use crate::utils::{
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use common::windows::{ShellItem, ShellType};
+use nom::{Needed, Parser};
 use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
 };
-use nom::{Needed, Parser};
 use std::mem::size_of;
 
 /// Parse a 0xbeef0004 block. Contains a file/directory name, FAT timestamps, and MFT metadata

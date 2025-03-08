@@ -3,7 +3,7 @@ use crate::{
     utils::time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
 use nom::{bytes::complete::take, number::complete::le_f64};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::mem::size_of;
 
 /// Extract dates associated with Spotlight property

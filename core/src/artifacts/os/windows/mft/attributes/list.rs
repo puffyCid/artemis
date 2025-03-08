@@ -1,5 +1,5 @@
 use super::{
-    attribute::{grab_attributes, EntryAttributes},
+    attribute::{EntryAttributes, grab_attributes},
     header::{AttributeHeader, AttributeType},
 };
 use crate::{
@@ -7,8 +7,8 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_two_bytes,
         },
         strings::extract_utf16_string,
     },

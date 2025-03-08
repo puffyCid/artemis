@@ -17,7 +17,7 @@
  */
 use super::{
     error::SearchError,
-    ese::{parse_search, parse_search_path, SearchEntry},
+    ese::{SearchEntry, parse_search, parse_search_path},
     sqlite::{parse_search_sqlite, parse_search_sqlite_path},
 };
 use crate::{
@@ -44,7 +44,9 @@ pub(crate) fn grab_search(
                 return Err(SearchError::Systemdrive);
             }
         };
-        format!("{systemdrive}:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb")
+        format!(
+            "{systemdrive}:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb"
+        )
     };
 
     let win11 = path.replace("edb", "db");

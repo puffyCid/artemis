@@ -1,6 +1,6 @@
 use crate::utils::encoding::base64_encode_standard;
 use log::warn;
-use std::string::{FromUtf16Error, FromUtf8Error};
+use std::string::{FromUtf8Error, FromUtf16Error};
 
 /// Get a UTF16 string from provided bytes data. Will attempt to fix malformed UTF16. Such as UTF16 missing zeros
 pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
@@ -155,8 +155,8 @@ mod tests {
     use crate::{
         filesystem::files::read_file,
         utils::strings::{
-            extract_ascii_utf16_string, extract_multiline_utf16_string, extract_utf16_string,
-            extract_utf8_string, extract_utf8_string_lossy, strings_contains,
+            extract_ascii_utf16_string, extract_multiline_utf16_string, extract_utf8_string,
+            extract_utf8_string_lossy, extract_utf16_string, strings_contains,
         },
     };
     use std::path::PathBuf;

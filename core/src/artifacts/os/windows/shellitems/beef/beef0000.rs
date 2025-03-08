@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::take;
 use std::mem::size_of;

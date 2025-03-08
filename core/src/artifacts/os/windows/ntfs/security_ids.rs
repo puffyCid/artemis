@@ -8,13 +8,13 @@ use crate::{
         attributes::get_filename_attribute, raw_files::raw_read_data, sector_reader::SectorReader,
     },
     utils::nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+        nom_unsigned_two_bytes,
     },
 };
 use log::error;
 use nom::bytes::complete::{take, take_until};
-use ntfs::{structured_values::NtfsIndexRoot, Ntfs, NtfsAttributes, NtfsFile};
+use ntfs::{Ntfs, NtfsAttributes, NtfsFile, structured_values::NtfsIndexRoot};
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 #[derive(Debug)]
@@ -177,7 +177,9 @@ impl SecurityIDs {
             match result {
                 Ok((_, sid_data)) => sids.extend(sid_data.into_iter()),
                 Err(err) => {
-                    error!("[ntfs] Failed to parse $SII will not be able to lookup SID information, error: {err:?}");
+                    error!(
+                        "[ntfs] Failed to parse $SII will not be able to lookup SID information, error: {err:?}"
+                    );
                 }
             }
             break;
@@ -295,7 +297,9 @@ impl SecurityIDs {
             match result {
                 Ok((_, result)) => sids = result,
                 Err(err) => {
-                    error!("[ntfs] Failed to parse $SDS will not be able to lookup SID information, error: {err:?}");
+                    error!(
+                        "[ntfs] Failed to parse $SDS will not be able to lookup SID information, error: {err:?}"
+                    );
                     break;
                 }
             }

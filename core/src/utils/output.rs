@@ -104,7 +104,9 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
             }
         }
         Err(err) => {
-            error!("[artemis-core] Failed to list files in output directory: {err:?}. DID NOT DELETE OUTPUT.");
+            error!(
+                "[artemis-core] Failed to list files in output directory: {err:?}. DID NOT DELETE OUTPUT."
+            );
             return Err(ArtemisError::Cleanup);
         }
     }

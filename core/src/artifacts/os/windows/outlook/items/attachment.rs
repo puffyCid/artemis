@@ -1,4 +1,4 @@
-use super::message::{get_attach_method, AttachMethod};
+use super::message::{AttachMethod, get_attach_method};
 use common::{outlook::PropertyName, windows::PropertyContext};
 use serde::Serialize;
 

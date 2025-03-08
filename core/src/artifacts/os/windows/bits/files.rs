@@ -4,8 +4,8 @@ use crate::{
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_sixteen_bytes, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+            nom_unsigned_sixteen_bytes,
         },
         strings::extract_utf16_string,
     },
@@ -214,7 +214,10 @@ mod tests {
             file.filename,
             "lmelglejhemejginpboagddgdfbepgmp_372_all_ZZ_djv5ss66g7sivnpz6ljtwr2zji.crx3"
         );
-        assert_eq!(file.url, "http://edgedl.me.gvt1.com/edgedl/release2/chrome_component/i73exzs4s3qvwnxxzwp6zdbtbe_372/lmelglejhemejginpboagddgdfbepgmp_372_all_ZZ_djv5ss66g7sivnpz6ljtwr2zji.crx3");
+        assert_eq!(
+            file.url,
+            "http://edgedl.me.gvt1.com/edgedl/release2/chrome_component/i73exzs4s3qvwnxxzwp6zdbtbe_372/lmelglejhemejginpboagddgdfbepgmp_372_all_ZZ_djv5ss66g7sivnpz6ljtwr2zji.crx3"
+        );
 
         assert_eq!(file.transfer_bytes_size, 4782);
     }
@@ -227,7 +230,10 @@ mod tests {
 
         let (_, results) = get_legacy_files(&data, true, false).unwrap();
         assert_eq!(results.filename, "430ce39a-f827-4af6-95ea-5dd495961bfc");
-        assert_eq!(results.url, "http://msedge.b.tlu.dl.delivery.mp.microsoft.com/filestreamingservice/files/430ce39a-f827-4af6-95ea-5dd495961bfc?P1=1679310325&P2=404&P3=2&P4=gIq04pKnGxAu0CYD7Z4dp926m9RhFlNWKA0S4DwXLFl0EewHwxdBHjfUgBRBgDQ2jSNekEq%2bRjDo7DvXMwXvcA%3d%3d");
+        assert_eq!(
+            results.url,
+            "http://msedge.b.tlu.dl.delivery.mp.microsoft.com/filestreamingservice/files/430ce39a-f827-4af6-95ea-5dd495961bfc?P1=1679310325&P2=404&P3=2&P4=gIq04pKnGxAu0CYD7Z4dp926m9RhFlNWKA0S4DwXLFl0EewHwxdBHjfUgBRBgDQ2jSNekEq%2bRjDo7DvXMwXvcA%3d%3d"
+        );
 
         assert_eq!(results.transfer_bytes_size, 3226443);
     }

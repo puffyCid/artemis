@@ -67,8 +67,8 @@ fn parse_python(python_history: &str) -> Result<Vec<PythonHistoryData>, ShellErr
             Ok(result) => result,
             Err(err) => {
                 warn!(
-                        "[shell_history] Failed to read python line in file {python_history}, error: {err:?}"
-                    );
+                    "[shell_history] Failed to read python line in file {python_history}, error: {err:?}"
+                );
                 continue;
             }
         };
@@ -115,7 +115,10 @@ mod tests {
         assert_eq!(results[0].history, "import lief");
         assert_eq!(results[0].line, 1);
 
-        assert_eq!(results[372].history, "results = lief.parse(\"/System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd\")");
+        assert_eq!(
+            results[372].history,
+            "results = lief.parse(\"/System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd\")"
+        );
         assert_eq!(results[372].line, 373);
     }
 }

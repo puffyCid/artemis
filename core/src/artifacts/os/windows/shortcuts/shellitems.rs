@@ -1,10 +1,10 @@
 use crate::{
     artifacts::os::windows::shellitems::items::detect_shellitem,
-    utils::nom_helper::{nom_unsigned_two_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_two_bytes},
 };
 use common::windows::ShellItem;
 use log::error;
-use nom::{bytes::complete::take, Needed};
+use nom::{Needed, bytes::complete::take};
 
 /// Parse the `ShellItems` that are in the `Shortcut` data
 pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<ShellItem>> {

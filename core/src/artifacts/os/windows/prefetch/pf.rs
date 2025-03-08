@@ -7,7 +7,7 @@ use super::{
     volume::Volume,
 };
 use crate::utils::{
-    compression::decompress::{decompress_xpress, XpressType},
+    compression::decompress::{XpressType, decompress_xpress},
     time::unixepoch_to_iso,
 };
 use common::windows::Prefetch;
@@ -176,7 +176,7 @@ mod tests {
             pf::{decompress_pf, get_prefetch_data, parse_prefetch},
         },
         filesystem::files::read_file,
-        utils::compression::decompress::{decompress_xpress, XpressType},
+        utils::compression::decompress::{XpressType, decompress_xpress},
     };
     use std::path::PathBuf;
 
@@ -286,7 +286,10 @@ mod tests {
             results.accessed_files[12],
             "\\DEVICE\\HARDDISKVOLUME2\\WINDOWS\\SYSWOW64\\CMDEXT.DLL"
         );
-        assert_eq!(results.accessed_files[27], "\\DEVICE\\HARDDISKVOLUME2\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\TMP832F744F467240578F4610EC7E1C7547.EXEC.CMD");
+        assert_eq!(
+            results.accessed_files[27],
+            "\\DEVICE\\HARDDISKVOLUME2\\USERS\\BOB\\APPDATA\\LOCAL\\TEMP\\TMP832F744F467240578F4610EC7E1C7547.EXEC.CMD"
+        );
 
         assert_eq!(
             results.accessed_directories[2],

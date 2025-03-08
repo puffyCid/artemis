@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        nom_signed_two_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_signed_two_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+        nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
 };
@@ -448,7 +448,7 @@ mod tests {
     };
     use crate::{
         artifacts::os::windows::eventlogs::resources::manifest::xml::{
-            get_input_type, InputType, TokenType,
+            InputType, TokenType, get_input_type,
         },
         filesystem::files::read_file,
     };

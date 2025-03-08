@@ -9,7 +9,7 @@ use crate::{
     },
     structs::toml::Output,
     utils::{
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
         strings::extract_utf8_string,
     },
 };
@@ -355,7 +355,10 @@ mod tests {
 
         let (result, dir) = get_blocks(&mut data).unwrap();
         assert_eq!(result.len(), 714);
-        assert_eq!(dir, "/System/Volumes/Data/.Spotlight-V100/Store-V2/32D12D36-11C0-4B7C-B98D-99D23D5544E2/store.db");
+        assert_eq!(
+            dir,
+            "/System/Volumes/Data/.Spotlight-V100/Store-V2/32D12D36-11C0-4B7C-B98D-99D23D5544E2/store.db"
+        );
     }
 
     #[test]

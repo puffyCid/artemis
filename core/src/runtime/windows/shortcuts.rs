@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::windows::shortcuts::parser::grab_lnk_file, runtime::helper::string_arg,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 pub(crate) fn js_lnk(
     _this: &JsValue,

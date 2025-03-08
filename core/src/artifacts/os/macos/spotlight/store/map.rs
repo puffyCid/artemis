@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes};
 
 /// Parse store map
 pub(crate) fn parse_map(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {

@@ -1,7 +1,6 @@
 use boa_engine::{
-    js_string,
+    Context, JsArgs, JsError, JsResult, JsValue, js_string,
     object::builtins::{JsArrayBuffer, JsUint8Array},
-    Context, JsArgs, JsError, JsResult, JsValue,
 };
 use serde_json::Value;
 

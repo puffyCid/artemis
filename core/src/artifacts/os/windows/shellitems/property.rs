@@ -1,6 +1,6 @@
 use crate::artifacts::os::windows::propertystore::parser::get_property_guid;
-use crate::utils::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::nom_helper::Endian;
+use crate::utils::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::strings::extract_utf8_string;
 use common::windows::ShellItem;
 use common::windows::ShellType;

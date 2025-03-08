@@ -2,7 +2,7 @@ use super::{
     filename::Filename,
     header::{AttributeHeader, AttributeType},
 };
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes};
 use log::error;
 use serde_json::Value;
 

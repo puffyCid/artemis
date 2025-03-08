@@ -7,7 +7,7 @@ use crate::{
     artifacts::os::windows::ese::{
         catalog::Catalog,
         helper::{get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data},
-        tables::{table_info, TableInfo},
+        tables::{TableInfo, table_info},
     },
     structs::toml::Output,
     utils::time::time_now,
@@ -213,7 +213,9 @@ fn process_search(
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
         values
     } else {
-        warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong");
+        warn!(
+            "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+        );
         return Err(SearchError::MissingIndexes);
     };
 
@@ -221,7 +223,9 @@ fn process_search(
     let entries = if let Some(values) = gather.get("SystemIndex_Gthr") {
         values
     } else {
-        warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
+        warn!(
+            "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
+        );
         return Err(SearchError::ParseEse);
     };
     let _ = parse_index_gthr(entries, &props, output, start_time, filter);
@@ -304,7 +308,9 @@ pub(crate) fn parse_search_path(
         let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
             values
         } else {
-            warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong");
+            warn!(
+                "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+            );
             return Err(SearchError::MissingIndexes);
         };
 
@@ -312,7 +318,9 @@ pub(crate) fn parse_search_path(
         let entries = if let Some(values) = gather_rows.get("SystemIndex_Gthr") {
             values
         } else {
-            warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
+            warn!(
+                "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
+            );
             return Err(SearchError::ParseEse);
         };
 
@@ -339,7 +347,9 @@ pub(crate) fn parse_search_path(
         let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
             values
         } else {
-            warn!("[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong");
+            warn!(
+                "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+            );
             return Err(SearchError::MissingIndexes);
         };
 
@@ -347,7 +357,9 @@ pub(crate) fn parse_search_path(
         let entries = if let Some(values) = gather_rows.get("SystemIndex_Gthr") {
             values
         } else {
-            warn!("[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
+            warn!(
+                "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
+            );
             return Err(SearchError::ParseEse);
         };
 

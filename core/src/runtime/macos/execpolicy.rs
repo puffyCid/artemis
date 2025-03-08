@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::execpolicy::policy::grab_execpolicy, runtime::helper::string_arg,
     structs::artifacts::os::macos::ExecPolicyOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing `ExecPolicy` to `BoaJS`
 pub(crate) fn js_execpolicy(

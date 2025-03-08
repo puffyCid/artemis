@@ -1,6 +1,6 @@
 use crate::utils::{
     encoding::base64_encode_standard,
-    nom_helper::{nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes},
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
@@ -52,7 +52,9 @@ mod tests {
         let (_, result) = get_binary(&test_data).unwrap();
         assert_eq!(
             result,
-            [166, 192, 126, 161, 45, 215, 149, 47, 157, 134, 61, 18, 81, 227, 217, 212,]
+            [
+                166, 192, 126, 161, 45, 215, 149, 47, 157, 134, 61, 18, 81, 227, 217, 212,
+            ]
         )
     }
 }

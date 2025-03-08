@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::windows::outlook::error::OutlookError,
     utils::{
         encoding::base64_decode_standard,
-        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
         strings::extract_ascii_utf16_string,
         uuid::format_guid_le_bytes,
     },

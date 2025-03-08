@@ -16,14 +16,14 @@ use common::files::Hashes;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use ntfs::{
-    attribute_value::NtfsAttributeValue, Ntfs, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
+    Ntfs, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek, attribute_value::NtfsAttributeValue,
 };
 use regex::Regex;
 use sha1::Sha1;
 use sha2::Sha256;
 use std::{
     fs::File,
-    io::{copy, BufReader},
+    io::{BufReader, copy},
 };
 
 /// Read the whole attribute data. This can be used to read a whole file
@@ -250,7 +250,9 @@ pub(crate) fn raw_read_by_file_ref(
             }
         }
         Err(err) => {
-            error!("[artemis-core] Could not check for decompression error: {err:?}. Returning regular data.");
+            error!(
+                "[artemis-core] Could not check for decompression error: {err:?}. Returning regular data."
+            );
         }
     }
 
@@ -356,7 +358,9 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
         match data_result {
             Ok(result) => return Ok(result),
             Err(err) => {
-                error!("[artemis-core] Could not get data for attribute {attribute} at {path}: {err:?}");
+                error!(
+                    "[artemis-core] Could not get data for attribute {attribute} at {path}: {err:?}"
+                );
                 break;
             }
         }
@@ -544,7 +548,7 @@ pub(crate) fn iterate_ntfs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{get_user_registry_files, iterate_ntfs, raw_reader, NtfsOptions};
+    use super::{NtfsOptions, get_user_registry_files, iterate_ntfs, raw_reader};
     use crate::{
         filesystem::ntfs::{
             raw_files::{

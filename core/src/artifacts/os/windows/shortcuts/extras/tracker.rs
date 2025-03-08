@@ -1,5 +1,5 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes},
     strings::extract_utf8_string,
     uuid::format_guid_le_bytes,
 };

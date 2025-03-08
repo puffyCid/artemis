@@ -186,7 +186,10 @@ mod tests {
             results[0].download_identifier,
             "835D414A-492E-4DBB-BD6B-E8FACD4ED84D"
         );
-        assert_eq!(results[0].download_url, "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/97b2b465-4242-42c6-ae6f-16437ee71f12?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180026Z&X-Amz-Expires=300&X-Amz-Signature=7f403834d25930916a71894a1960b7624e6479cdd493c40b96644d4a01ffdf41&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-arm64.pkg&response-content-type=application%2Foctet-stream");
+        assert_eq!(
+            results[0].download_url,
+            "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/97b2b465-4242-42c6-ae6f-16437ee71f12?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180026Z&X-Amz-Expires=300&X-Amz-Signature=7f403834d25930916a71894a1960b7624e6479cdd493c40b96644d4a01ffdf41&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-arm64.pkg&response-content-type=application%2Foctet-stream"
+        );
         assert_eq!(
             results[0].download_path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-arm64.pkg"
@@ -241,7 +244,10 @@ mod tests {
             results[1].download_identifier,
             "8AD5A4E7-BAF8-41EF-9AEF-2141132C68A0"
         );
-        assert_eq!(results[1].download_url, "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180020Z&X-Amz-Expires=300&X-Amz-Signature=2eae2eebef5d244239929d7d4bd5e10690cb27518ed6f1ff79d79ee49c9cfe4d&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream");
+        assert_eq!(
+            results[1].download_url,
+            "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180020Z&X-Amz-Expires=300&X-Amz-Signature=2eae2eebef5d244239929d7d4bd5e10690cb27518ed6f1ff79d79ee49c9cfe4d&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream"
+        );
         assert_eq!(
             results[1].download_path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-x64.pkg"
@@ -296,7 +302,10 @@ mod tests {
             results[2].download_identifier,
             "FA11CA6A-3A6D-46AF-89EA-5BF3ECDB8907"
         );
-        assert_eq!(results[2].download_url, "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T174338Z&X-Amz-Expires=300&X-Amz-Signature=d43536a1b5a74ad6d64f32a4611d0fdb1f7fb543d8b6327bcbe2d5ce4b9a7428&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream");
+        assert_eq!(
+            results[2].download_url,
+            "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T174338Z&X-Amz-Expires=300&X-Amz-Signature=d43536a1b5a74ad6d64f32a4611d0fdb1f7fb543d8b6327bcbe2d5ce4b9a7428&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream"
+        );
         assert_eq!(
             results[2].download_path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-x64.pkg"
@@ -372,7 +381,10 @@ mod tests {
             results[0].download_identifier,
             "835D414A-492E-4DBB-BD6B-E8FACD4ED84D"
         );
-        assert_eq!(results[0].download_url, "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/97b2b465-4242-42c6-ae6f-16437ee71f12?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180026Z&X-Amz-Expires=300&X-Amz-Signature=7f403834d25930916a71894a1960b7624e6479cdd493c40b96644d4a01ffdf41&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-arm64.pkg&response-content-type=application%2Foctet-stream");
+        assert_eq!(
+            results[0].download_url,
+            "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/97b2b465-4242-42c6-ae6f-16437ee71f12?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180026Z&X-Amz-Expires=300&X-Amz-Signature=7f403834d25930916a71894a1960b7624e6479cdd493c40b96644d4a01ffdf41&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-arm64.pkg&response-content-type=application%2Foctet-stream"
+        );
         assert_eq!(
             results[0].download_path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-arm64.pkg"
@@ -427,7 +439,10 @@ mod tests {
             results[1].download_identifier,
             "8AD5A4E7-BAF8-41EF-9AEF-2141132C68A0"
         );
-        assert_eq!(results[1].download_url, "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180020Z&X-Amz-Expires=300&X-Amz-Signature=2eae2eebef5d244239929d7d4bd5e10690cb27518ed6f1ff79d79ee49c9cfe4d&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream");
+        assert_eq!(
+            results[1].download_url,
+            "https://objects.githubusercontent.com/github-production-release-asset-2e65be/49609581/dd9e0ebc-a22a-4d10-bf74-0bf7dd26cea9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220626T180020Z&X-Amz-Expires=300&X-Amz-Signature=2eae2eebef5d244239929d7d4bd5e10690cb27518ed6f1ff79d79ee49c9cfe4d&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=49609581&response-content-disposition=attachment%3B%20filename%3Dpowershell-7.2.5-osx-x64.pkg&response-content-type=application%2Foctet-stream"
+        );
         assert_eq!(
             results[1].download_path,
             "/Users/puffycid/Downloads/powershell-7.2.5-osx-x64.pkg"

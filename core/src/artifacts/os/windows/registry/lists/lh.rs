@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::registry::{cell::walk_registry, parser::Params},
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
 
 #[derive(Debug)]

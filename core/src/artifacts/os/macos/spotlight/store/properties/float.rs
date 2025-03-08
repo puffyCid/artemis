@@ -3,7 +3,7 @@ use nom::{
     bytes::complete::take,
     number::complete::{le_f32, le_f64},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::mem::size_of;
 
 /// Extract 32-bit floats associated with Spotlight property

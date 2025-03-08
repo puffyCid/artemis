@@ -8,7 +8,7 @@ use crate::{
     },
     runtime::helper::{number_arg, string_arg, value_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use std::collections::HashMap;
 
 pub(crate) fn js_get_catalog(

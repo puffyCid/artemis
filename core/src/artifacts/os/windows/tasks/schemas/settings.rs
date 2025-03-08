@@ -1,6 +1,6 @@
 use common::windows::{IdleSettings, MaintenanceSettings, NetworkSettings, RestartType, Settings};
 use log::error;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 /// Parse all Settings associated with Task
 pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
@@ -310,7 +310,7 @@ fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
 mod tests {
     use super::parse_settings;
     use crate::artifacts::os::windows::tasks::schemas::settings::{
-        process_idle, process_maintenance, process_network, process_restart, Settings,
+        Settings, process_idle, process_maintenance, process_network, process_restart,
     };
     use quick_xml::Reader;
 

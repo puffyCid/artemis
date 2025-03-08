@@ -8,8 +8,8 @@ use crate::{
         beef::{beef0004, beef0013, beef0026},
     },
     utils::{
-        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
-        strings::{extract_utf16_string, extract_utf8_string},
+        nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
+        strings::{extract_utf8_string, extract_utf16_string},
         uuid::format_guid_le_bytes,
     },
 };
@@ -83,7 +83,9 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         return Ok((input, variable_item));
     }
 
-    info!("[shellitem] No beef signatures found in variable item, trying Zip file contents, Propety View, and then FTP URI");
+    info!(
+        "[shellitem] No beef signatures found in variable item, trying Zip file contents, Propety View, and then FTP URI"
+    );
     if check_zip(data) {
         let (input, (is_zip, directory)) = parse_zip(data)?;
         if is_zip {

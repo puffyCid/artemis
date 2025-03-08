@@ -1,5 +1,5 @@
 use super::{
-    dbstr::meta::{get_spotlight_meta, SpotlightMeta},
+    dbstr::meta::{SpotlightMeta, get_spotlight_meta},
     error::SpotlightError,
     store::db::{parse_store, parse_store_blocks},
 };

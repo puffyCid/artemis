@@ -7,8 +7,8 @@ use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
 use log::{error, warn};
 use lz4_flex::block::decompress_with_dict;
 use miniz_oxide::{
-    inflate::stream::{inflate, InflateState},
     MZFlush,
+    inflate::stream::{InflateState, inflate},
 };
 use ruzstd::decoding::StreamingDecoder;
 use std::io::Read;
@@ -299,7 +299,10 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, C
     }
 
     if decom_data.len() as u32 != *decom_size {
-        error!("[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}", decom_data.len());
+        error!(
+            "[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}",
+            decom_data.len()
+        );
         return Err(CompressionError::RtfCorrupted);
     }
 
@@ -313,10 +316,11 @@ mod tests {
         filesystem::files::read_file,
         utils::{
             compression::decompress::{
-                decompress_gzip, decompress_gzip_data, decompress_lz4, decompress_seven_bit,
-                decompress_xpress, decompress_xz, decompress_zlib, decompress_zstd, XpressType,
+                XpressType, decompress_gzip, decompress_gzip_data, decompress_lz4,
+                decompress_seven_bit, decompress_xpress, decompress_xz, decompress_zlib,
+                decompress_zstd,
             },
-            nom_helper::{nom_unsigned_four_bytes, Endian},
+            nom_helper::{Endian, nom_unsigned_four_bytes},
         },
     };
     use std::path::PathBuf;

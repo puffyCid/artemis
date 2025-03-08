@@ -1,5 +1,5 @@
 use super::{
-    data::{parse_categories_data, parse_dbstr_data, parse_properties_data, DataProperties},
+    data::{DataProperties, parse_categories_data, parse_dbstr_data, parse_properties_data},
     header::get_header,
     offsets::get_offsets,
 };

@@ -1,5 +1,5 @@
 use crate::{runtime::helper::string_arg, utils::encoding::read_xml};
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use xml2json_rs::JsonBuilder;
 
 /// Read XML file into a JSON object

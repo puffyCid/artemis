@@ -9,8 +9,8 @@
 use nom::{
     bytes::complete::take,
     number::complete::{
-        be_i16, be_i32, be_i64, be_u128, be_u16, be_u32, be_u64, be_u8, le_i16, le_i32, le_i64,
-        le_u128, le_u16, le_u32, le_u64, le_u8,
+        be_i16, be_i32, be_i64, be_u8, be_u16, be_u32, be_u64, be_u128, le_i16, le_i32, le_i64,
+        le_u8, le_u16, le_u32, le_u64, le_u128,
     },
 };
 use std::mem::size_of;
@@ -148,9 +148,9 @@ pub(crate) fn nom_data(data: &[u8], count: u64) -> nom::IResult<&[u8], &[u8]> {
 #[cfg(test)]
 mod tests {
     use crate::utils::nom_helper::{
-        nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+        Endian, nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
         nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
+        nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes,
     };
 
     #[test]

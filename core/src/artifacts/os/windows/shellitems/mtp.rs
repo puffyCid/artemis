@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes};
 use crate::utils::{strings::extract_utf16_string, uuid::format_guid_le_bytes};
 use common::windows::ShellItem;
 use common::windows::ShellType::{Mtp, Volume};

@@ -3,11 +3,11 @@ use crate::{
     utils::{
         encoding::base64_encode_standard,
         nom_helper::{
-            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            Endian, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
+            nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes,
         },
-        strings::{extract_utf16_string, extract_utf8_string},
+        strings::{extract_utf8_string, extract_utf16_string},
         time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },

@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        nom_signed_four_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_signed_four_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+        nom_unsigned_two_bytes,
     },
     strings::extract_utf8_string,
 };
@@ -150,7 +150,7 @@ fn parse_body(data: &[u8]) -> nom::IResult<&[u8], IndexBody> {
 mod tests {
     use super::{parse_header, parse_index};
     use crate::{
-        artifacts::os::windows::wmi::index::{parse_body, PageType},
+        artifacts::os::windows::wmi::index::{PageType, parse_body},
         filesystem::files::read_file,
     };
     use std::path::PathBuf;

@@ -1,12 +1,12 @@
 use super::{
     crimson::parse_crimson,
-    data::{parse_manifest_data, ManifestData},
-    defintion::{parse_definition, Definition},
-    maps::{parse_map, MapInfo},
+    data::{ManifestData, parse_manifest_data},
+    defintion::{Definition, parse_definition},
+    maps::{MapInfo, parse_map},
     provider::parse_provider,
-    task::{parse_task, Task},
+    task::{Task, parse_task},
 };
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
 use log::warn;
 use nom::bytes::complete::take;
 use serde::{Deserialize, Serialize};
@@ -116,7 +116,7 @@ fn get_sig_type(sig: &u32) -> SigType {
 mod tests {
     use super::parse_manifest;
     use crate::{
-        artifacts::os::windows::eventlogs::resources::manifest::wevt::{get_sig_type, SigType},
+        artifacts::os::windows::eventlogs::resources::manifest::wevt::{SigType, get_sig_type},
         filesystem::files::read_file,
     };
     use std::path::PathBuf;

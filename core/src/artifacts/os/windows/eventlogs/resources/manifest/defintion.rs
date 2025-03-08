@@ -1,7 +1,7 @@
 use super::{table::parse_template, xml::TemplateElement};
 use crate::utils::nom_helper::{
-    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-    nom_unsigned_two_bytes, Endian,
+    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    nom_unsigned_two_bytes,
 };
 use nom::bytes::complete::take;
 use serde::{Deserialize, Serialize};

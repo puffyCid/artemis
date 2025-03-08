@@ -3,7 +3,7 @@ use crate::{
     runtime::helper::{boolean_arg, string_arg},
     structs::artifacts::os::windows::ShellbagsOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing shellbags to `BoaJS`
 pub(crate) fn js_shellbags(

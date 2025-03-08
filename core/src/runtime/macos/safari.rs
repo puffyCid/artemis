@@ -5,7 +5,7 @@ use crate::{
     },
     runtime::helper::string_arg,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Get `Safari` history for all users
 pub(crate) fn js_safari_users_history(

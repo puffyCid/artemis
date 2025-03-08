@@ -1,6 +1,6 @@
 use super::{acl::parse_acl, sid::grab_sid};
 use crate::utils::nom_helper::{
-    nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+    Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
 };
 use common::windows::{AccessControlEntry, AccessItem::Registry};
 use nom::bytes::complete::take;

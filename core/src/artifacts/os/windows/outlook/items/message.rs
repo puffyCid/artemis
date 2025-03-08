@@ -5,7 +5,7 @@ use crate::{
     utils::{
         compression::decompress::decompress_rtf,
         encoding::{base64_decode_standard, base64_encode_standard},
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
         strings::{extract_ascii_utf16_string, extract_utf8_string_lossy},
     },
 };
@@ -339,7 +339,7 @@ mod tests {
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
-            items::message::{clean_subject, get_attach_method, AttachMethod},
+            items::message::{AttachMethod, clean_subject, get_attach_method},
         },
         filesystem::files::file_reader,
     };
@@ -400,7 +400,10 @@ mod tests {
 
         let (_, message) = get_rtf_data(&test).unwrap();
         assert_eq!(message.len(), 327);
-        assert_eq!(message, "{\\rtf1\\ansi\\fbidis\\ansicpg1252\\deff0\\deftab720\\fromtext{\\fonttbl{\\f0\\fswiss\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset2\n\rSymbol;}}\n\r{\\colortbl;\\red192\\green192\\blue192;}\n\r{\\*\\generator Microsoft Exchange Server;}\n\r{\\*\\formatConverter converted from text;}\n\r\\viewkind5\\viewscale100\n\r{\\*\\bkmkstart BM_BEGIN}\\pard\\plain\\f0}\n\r");
+        assert_eq!(
+            message,
+            "{\\rtf1\\ansi\\fbidis\\ansicpg1252\\deff0\\deftab720\\fromtext{\\fonttbl{\\f0\\fswiss\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset2\n\rSymbol;}}\n\r{\\colortbl;\\red192\\green192\\blue192;}\n\r{\\*\\generator Microsoft Exchange Server;}\n\r{\\*\\formatConverter converted from text;}\n\r\\viewkind5\\viewscale100\n\r{\\*\\bkmkstart BM_BEGIN}\\pard\\plain\\f0}\n\r"
+        );
     }
 
     #[test]

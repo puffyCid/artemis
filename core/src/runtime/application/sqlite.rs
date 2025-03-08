@@ -2,11 +2,11 @@ use crate::{
     runtime::helper::string_arg,
     utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
 use rusqlite::{
-    types::{FromSql, FromSqlError, ValueRef},
     Connection, OpenFlags,
+    types::{FromSql, FromSqlError, ValueRef},
 };
 use serde_json::json;
 
@@ -71,7 +71,9 @@ pub(crate) fn js_query_sqlite(
             let column_data = match column_value_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[runtime] Could not get value for column {column_name} for {path}: {err:?}");
+                    error!(
+                        "[runtime] Could not get value for column {column_name} for {path}: {err:?}"
+                    );
                     continue;
                 }
             };
@@ -96,7 +98,9 @@ pub(crate) fn js_query_sqlite(
                     let column_value = match value_result {
                         Ok(result) => result,
                         Err(err) => {
-                            error!("[runtime] Could not serialize data from column {column_name} from {path}: {err:?}");
+                            error!(
+                                "[runtime] Could not serialize data from column {column_name} from {path}: {err:?}"
+                            );
                             continue;
                         }
                     };

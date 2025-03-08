@@ -11,7 +11,7 @@ use super::error::FileError;
 use crate::artifacts::os::linux::executable::parser::parse_elf_file;
 use crate::artifacts::os::macos::macho::error::MachoError;
 use crate::artifacts::os::macos::macho::parser::parse_macho;
-use crate::artifacts::os::systeminfo::info::{get_platform, get_platform_enum, PlatformType};
+use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform, get_platform_enum};
 use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 use crate::artifacts::output::output_artifact;
 use crate::filesystem::files::{file_extension, hash_file};
@@ -330,13 +330,13 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, fil
 #[cfg(test)]
 mod tests {
     use super::file_output;
+    use crate::artifacts::os::files::filelisting::FileArgs;
     use crate::artifacts::os::files::filelisting::executable_metadata;
     use crate::artifacts::os::files::filelisting::file_metadata;
     use crate::artifacts::os::files::filelisting::get_filelist;
-    use crate::artifacts::os::files::filelisting::FileArgs;
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::{
-        artifacts::os::files::filelisting::{user_regex, Hashes},
+        artifacts::os::files::filelisting::{Hashes, user_regex},
         structs::toml::Output,
     };
     use common::files::FileInfo;

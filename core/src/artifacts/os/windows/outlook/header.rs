@@ -1,6 +1,6 @@
 use crate::utils::nom_helper::{
-    nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-    nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes, Endian,
+    Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes,
 };
 use log::error;
 use nom::error::ErrorKind;
@@ -283,8 +283,8 @@ pub(crate) fn get_node_ids(data: &[u8]) -> nom::IResult<&[u8], Node> {
 mod tests {
     use super::parse_header;
     use crate::artifacts::os::windows::outlook::header::{
-        get_allocation, get_content, get_encryption, get_format, get_node_ids, AllocationType,
-        ContentType, EncryptionType, FormatType, NodeID,
+        AllocationType, ContentType, EncryptionType, FormatType, NodeID, get_allocation,
+        get_content, get_encryption, get_format, get_node_ids,
     };
 
     #[test]

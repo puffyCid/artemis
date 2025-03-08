@@ -109,7 +109,7 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{timeline_artifact, Artifacts};
+    use super::{Artifacts, timeline_artifact};
     use serde_json::Value;
     use std::{fs::read_to_string, path::PathBuf};
 

@@ -2,7 +2,7 @@ use super::{
     entry::Entry,
     header::{ObjectHeader, ObjectType},
 };
-use crate::utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes};
 use log::{error, warn};
 use std::fs::File;
 

@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::eventlogs::parser::parse_eventlogs,
     runtime::helper::{boolean_arg, number_arg, string_arg},
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing a single eventlog file (evtx) to `BoaJS`
 pub(crate) fn js_eventlogs(

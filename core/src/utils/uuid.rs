@@ -21,7 +21,9 @@ pub(crate) fn format_guid_le_bytes(data: &[u8]) -> String {
     match guid_data {
         Ok(result) => Uuid::from_bytes_le(result).hyphenated().to_string(),
         Err(_err) => {
-            warn!("[artemis-core] Could not convert little endian bytes to a GUID/UUID format: {data:?}");
+            warn!(
+                "[artemis-core] Could not convert little endian bytes to a GUID/UUID format: {data:?}"
+            );
             format!("Could not convert data: {data:?}")
         }
     }
@@ -99,6 +101,9 @@ mod tests {
             118, 176, 112, 103, 44, 205, 62, 212, 191, 187, 89, 4, 99, 208, 235, 224, 117,
         ];
         let guid = format_guid_be_bytes(&test_data);
-        assert_eq!(guid, "Not a GUID/UUID: [118, 176, 112, 103, 44, 205, 62, 212, 191, 187, 89, 4, 99, 208, 235, 224, 117]")
+        assert_eq!(
+            guid,
+            "Not a GUID/UUID: [118, 176, 112, 103, 44, 205, 62, 212, 191, 187, 89, 4, 99, 208, 235, 224, 117]"
+        )
     }
 }

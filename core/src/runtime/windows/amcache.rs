@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::amcache::parser::grab_amcache, runtime::helper::string_arg,
     structs::artifacts::os::windows::AmcacheOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing amcache `BoaJS`
 pub(crate) fn js_amcache(

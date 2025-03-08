@@ -1,14 +1,14 @@
 use crate::{
     artifacts::os::windows::shortcuts::shortcut::get_shortcut_data,
     filesystem::files::get_filename,
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes},
 };
 use common::windows::{DestEntries, JumplistEntry, ListType, PinStatus};
 use log::warn;
 use nom::{
+    Parser,
     branch::alt,
     bytes::complete::{take, take_until},
-    Parser,
 };
 
 /// Parse Custom `Jumplist` file. It contains an array of `Shortcut` (LNK) structures
@@ -144,7 +144,10 @@ mod tests {
             result[7].lnk_info.description,
             "C:\\Users\\bob\\Projects\\Rust\\artemis-core\\artemis-core.code-workspace"
         );
-        assert_eq!(result[7].lnk_info.command_line_args, "--file-uri \"file:///c%3A/Users/bob/Projects/Rust/artemis-core/artemis-core.code-workspace\"");
+        assert_eq!(
+            result[7].lnk_info.command_line_args,
+            "--file-uri \"file:///c%3A/Users/bob/Projects/Rust/artemis-core/artemis-core.code-workspace\""
+        );
         assert_eq!(
             result[7].lnk_info.birth_droid_file_id,
             "004c7ebf-f3c6-11e9-a0cc-0800276eb45e"

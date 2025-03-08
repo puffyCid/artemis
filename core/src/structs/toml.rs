@@ -82,4 +82,5 @@ pub struct Artifacts {
     pub wmipersist: Option<WmiPersistOptions>,
     pub outlook: Option<OutlookOptions>,
     pub mft: Option<MftOptions>,
+    pub connections: Option<()>,
 }

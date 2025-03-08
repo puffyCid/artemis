@@ -1,5 +1,5 @@
 use crate::artifacts::os::macos::spotlight::store::property::parse_variable_size;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Extract multivalue data associated with Spotlight property
 pub(crate) fn extract_multivalue<'a>(

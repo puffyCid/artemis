@@ -1,9 +1,9 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     time::{filetime_to_unixepoch, unixepoch_to_iso},
 };
 use log::warn;
-use nom::{bytes::complete::take, Needed};
+use nom::{Needed, bytes::complete::take};
 use serde::Serialize;
 use std::mem::size_of;
 

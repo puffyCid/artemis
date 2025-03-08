@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::linux::executable::parser::parse_elf_file, runtime::helper::string_arg,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing elf file  to `BoaJS`
 pub(crate) fn js_get_elf(

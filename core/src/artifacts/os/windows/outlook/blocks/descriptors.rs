@@ -1,11 +1,11 @@
 use crate::{
     artifacts::os::windows::outlook::{
-        header::{get_node_ids, FormatType, Node},
+        header::{FormatType, Node, get_node_ids},
         pages::btree::NodeLevel,
     },
     utils::nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+        nom_unsigned_two_bytes,
     },
 };
 use nom::bytes::complete::take;

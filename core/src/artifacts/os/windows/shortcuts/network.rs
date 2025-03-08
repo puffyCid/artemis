@@ -1,11 +1,11 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, Endian},
-    strings::{extract_utf16_string, extract_utf8_string},
+    nom_helper::{Endian, nom_unsigned_four_bytes},
+    strings::{extract_utf8_string, extract_utf16_string},
 };
 use common::windows::NetworkProviderType;
 use nom::{
-    bytes::complete::{take, take_while},
     Needed,
+    bytes::complete::{take, take_while},
 };
 
 #[derive(Debug)]

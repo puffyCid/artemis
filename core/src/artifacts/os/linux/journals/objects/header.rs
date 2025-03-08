@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::linux::journals::error::JournalError,
-    utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_one_byte, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_one_byte},
 };
 use log::error;
 use nom::bytes::complete::take;
@@ -175,7 +175,9 @@ mod tests {
         assert_eq!(result.size, 0x28);
         assert_eq!(
             result.payload,
-            vec![0, 0, 0, 0, 0, 0, 0, 0, 240, 41, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 240, 41, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
         );
     }
 

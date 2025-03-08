@@ -3,7 +3,7 @@ use std::time::Duration;
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::{error, info, warn};
-use reqwest::{blocking::Client, header::HeaderMap, StatusCode};
+use reqwest::{StatusCode, blocking::Client, header::HeaderMap};
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
 pub(crate) fn azure_upload(
@@ -77,7 +77,9 @@ pub(crate) fn azure_url_upload(
 
         if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
             if attempts < max_attempts {
-                warn!("[artemis-core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}");
+                warn!(
+                    "[artemis-core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}"
+                );
 
                 attempts += 1;
                 continue;
@@ -139,7 +141,15 @@ mod tests {
     fn test_azure_upload() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("azure_upload_test", "azure", "tmp", false, &format!("http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"));
+        let output = output_options(
+            "azure_upload_test",
+            "azure",
+            "tmp",
+            false,
+            &format!(
+                "http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
+            ),
+        );
 
         let test = "A rust program";
         let name = "output";
@@ -158,14 +168,25 @@ mod tests {
         let name = "output";
 
         let result =  compose_azure_url("http://127.0.0.1/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf", name).unwrap();
-        assert_eq!(result, "http://127.0.0.1/mycontainername/output?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf");
+        assert_eq!(
+            result,
+            "http://127.0.0.1/mycontainername/output?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
+        );
     }
 
     #[test]
     fn test_azure_upload_compress() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("azure_upload_test", "azure", "tmp", true, &format!("http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"));
+        let output = output_options(
+            "azure_upload_test",
+            "azure",
+            "tmp",
+            true,
+            &format!(
+                "http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
+            ),
+        );
 
         let test = "A rust program";
         let name = "output";
@@ -184,7 +205,15 @@ mod tests {
     fn test_azure_upload_bad_url() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("azure_upload_test", "azure", "tmp", false, &format!("http://127.0.0.1:{port}/mycontainernamesp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"));
+        let output = output_options(
+            "azure_upload_test",
+            "azure",
+            "tmp",
+            false,
+            &format!(
+                "http://127.0.0.1:{port}/mycontainernamesp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
+            ),
+        );
 
         let test = "A rust program";
         let name = "output";

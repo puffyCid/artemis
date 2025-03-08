@@ -1,9 +1,9 @@
-use super::{win10::win10_format, win7::win7_format, win8::win8_format, win81::win81_format};
+use super::{win7::win7_format, win8::win8_format, win10::win10_format, win81::win81_format};
 use crate::{
     artifacts::os::windows::shimcache::error::ShimcacheError,
     utils::{
         encoding::base64_decode_standard,
-        nom_helper::{nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes},
     },
 };
 use common::windows::ShimcacheEntry;

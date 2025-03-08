@@ -1,5 +1,5 @@
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
     strings::{extract_ascii_utf16_string, extract_utf8_string},
 };
 use nom::bytes::complete::take;

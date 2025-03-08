@@ -8,7 +8,7 @@ use crate::{
     filesystem::ntfs::setup::setup_ntfs_parser,
     runtime::helper::{bigint_arg, boolean_arg, string_arg, value_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
 use std::io::BufReader;
 

@@ -1,6 +1,6 @@
 use crate::utils::{
     encoding::base64_encode_standard,
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
     strings::extract_utf16_string,
 };
 use common::windows::{ColorFlags, Console, CursorSize, FontFamily, FontWeight};
@@ -176,7 +176,7 @@ mod tests {
     use super::{get_cursor, get_weight, has_console};
     use crate::{
         artifacts::os::windows::shortcuts::extras::console::{
-            get_color, get_family, parse_console, ColorFlags, CursorSize, FontFamily, FontWeight,
+            ColorFlags, CursorSize, FontFamily, FontWeight, get_color, get_family, parse_console,
         },
         filesystem::files::read_file,
     };

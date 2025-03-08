@@ -1,6 +1,6 @@
 use crate::utils::strings::extract_utf8_string;
 use nom::bytes::complete::take;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Extract string associated with Spotlight property
 pub(crate) fn extract_string<'a>(data: &'a [u8], size: &usize) -> nom::IResult<&'a [u8], Value> {

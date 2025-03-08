@@ -5,13 +5,13 @@ use crate::{
     filesystem::ntfs::{attributes::get_attribute_data, raw_files::raw_read_data},
     utils::{
         compression::decompress::XpressType,
-        nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+        nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     },
 };
 use log::{error, warn};
 use nom::bytes::complete::take;
 use ntfs::{
-    structured_values::NtfsAttributeList, Ntfs, NtfsAttributeType, NtfsError, NtfsFileReference,
+    Ntfs, NtfsAttributeType, NtfsError, NtfsFileReference, structured_values::NtfsAttributeList,
 };
 use std::{fs::File, io::BufReader};
 
@@ -341,7 +341,9 @@ fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSys
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wofcompression] Could not decompress data: {err:?}. Will try manual decompression");
+            error!(
+                "[wofcompression] Could not decompress data: {err:?}. Will try manual decompression"
+            );
             let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
             match pf_data_result {
                 Ok(result) => result,
@@ -378,7 +380,7 @@ mod tests {
     use crate::{
         filesystem::ntfs::{
             compression::check_wofcompressed,
-            raw_files::{get_user_registry_files, iterate_ntfs, NtfsOptions},
+            raw_files::{NtfsOptions, get_user_registry_files, iterate_ntfs},
             setup::setup_ntfs_parser,
         },
         utils::regex_options::create_regex,

@@ -5,7 +5,7 @@ use super::{
     segments::{parse_segment32, parse_segment64},
 };
 use crate::utils::{
-    nom_helper::{nom_unsigned_four_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes},
     uuid::format_guid_be_bytes,
 };
 use common::macos::{DylibCommand, Segment64};

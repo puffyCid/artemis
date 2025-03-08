@@ -58,7 +58,9 @@ pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
     let bytes_read = data_reader.read(fs, &mut buff_size)?;
 
     if bytes_read != buff_size.len() {
-        warn!("[artemis-core] Did not read expected number of bytes. Read {bytes_read} bytes. Wanted: {bytes}");
+        warn!(
+            "[artemis-core] Did not read expected number of bytes. Read {bytes_read} bytes. Wanted: {bytes}"
+        );
     }
 
     Ok(buff_size)
@@ -85,7 +87,9 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
     };
 
     if bytes_read != buff_size.len() {
-        warn!("[artemis-core] Did not read expected number of bytes via API. Wanted {bytes} got {bytes_read}", );
+        warn!(
+            "[artemis-core] Did not read expected number of bytes via API. Wanted {bytes} got {bytes_read}",
+        );
     }
 
     Ok(buff_size)

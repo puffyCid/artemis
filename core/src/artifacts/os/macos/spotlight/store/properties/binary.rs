@@ -2,7 +2,7 @@ use crate::utils::{
     encoding::base64_encode_standard, strings::extract_utf8_string, uuid::format_guid_be_bytes,
 };
 use nom::bytes::complete::take;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Extract binary info associated with Spotlight property. This function will detect two (2) binary props and extract the data
 pub(crate) fn extract_binary<'a>(

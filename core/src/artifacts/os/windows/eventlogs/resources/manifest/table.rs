@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::windows::eventlogs::resources::manifest::xml::parse_xml,
     utils::{
         nom_helper::{
-            nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
         },
         uuid::format_guid_le_bytes,
     },
@@ -87,7 +87,7 @@ mod tests {
     use super::parse_template;
     use crate::{
         artifacts::os::windows::eventlogs::resources::manifest::table::{
-            get_event_type, EventType,
+            EventType, get_event_type,
         },
         filesystem::files::read_file,
         utils::nom_helper::nom_data,

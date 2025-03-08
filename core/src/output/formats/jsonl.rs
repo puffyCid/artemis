@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use log::{error, info};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Output to `jsonl` files
 pub(crate) fn jsonl_format(

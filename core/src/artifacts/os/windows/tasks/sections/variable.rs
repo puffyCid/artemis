@@ -1,6 +1,6 @@
 use crate::utils::{
     encoding::base64_encode_standard,
-    nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
     strings::extract_utf16_string,
 };
 use common::windows::{TriggerFlags, TriggerTypes, VarTriggers};
@@ -207,8 +207,8 @@ mod tests {
         artifacts::os::windows::tasks::sections::{
             fixed::parse_fixed,
             variable::{
-                reserved_data, trigger_flags, trigger_types, triggers, user_data, TriggerFlags,
-                TriggerTypes,
+                TriggerFlags, TriggerTypes, reserved_data, trigger_flags, trigger_types, triggers,
+                user_data,
             },
         },
         filesystem::files::read_file,

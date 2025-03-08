@@ -1,10 +1,10 @@
 use crate::{
     artifacts::os::macos::spotlight::light::{
-        parse_spotlight_reader, setup_spotlight_reader, StoreMeta,
+        StoreMeta, parse_spotlight_reader, setup_spotlight_reader,
     },
     runtime::helper::{bigint_arg, string_arg, value_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Spotlight to `BoaJS`
 pub(crate) fn js_spotlight(

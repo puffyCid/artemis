@@ -2,7 +2,7 @@ use crate::{
     filesystem::ntfs::raw_files::{raw_read_file, read_attribute},
     runtime::helper::string_arg,
 };
-use boa_engine::{js_string, object::builtins::JsUint8Array, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 
 /// Expose reading a raw file to `BoaJS`
 pub(crate) fn js_read_raw_file(

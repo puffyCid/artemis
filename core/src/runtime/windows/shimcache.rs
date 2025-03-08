@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::shimcache::parser::grab_shimcache, runtime::helper::string_arg,
     structs::artifacts::os::windows::ShimcacheOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing shimcache located on default drive to `BoaJS`
 pub(crate) fn js_shimcache(

@@ -4,8 +4,8 @@ use common::server::config::ArtemisConfig;
 use common::server::enrollment::{EnrollSystem, EnrollmentResponse};
 use log::error;
 use reqwest::{
-    header::{HeaderMap, CONTENT_TYPE, USER_AGENT},
     ClientBuilder, Response, StatusCode,
+    header::{CONTENT_TYPE, HeaderMap, USER_AGENT},
 };
 use serde_json::Value;
 
@@ -113,8 +113,8 @@ mod tests {
     use common::server::enrollment::EnrollSystem;
     use httpmock::{Method::POST, MockServer};
     use reqwest::{
-        header::{HeaderMap, CONTENT_TYPE, USER_AGENT},
         ClientBuilder,
+        header::{CONTENT_TYPE, HeaderMap, USER_AGENT},
     };
     use serde_json::json;
     use std::path::PathBuf;

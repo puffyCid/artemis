@@ -87,8 +87,8 @@ fn drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
 /// Read and parse a sdb file
 fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
     let max_size = 10485760; // 10MB
-                             // Custom SDB files are very small 1-5KB
-                             // The builtin sdb file (sysmain.sdb) is ~4MB
+    // Custom SDB files are very small 1-5KB
+    // The builtin sdb file (sysmain.sdb) is ~4MB
     let buffer_result = read_file_custom(path, &max_size);
     let buffer = match buffer_result {
         Ok(result) => result,
@@ -179,7 +179,13 @@ mod tests {
                 .unwrap(),
             "FWCWSP64.dll"
         );
-        assert_eq!(result.db_data.list_data[13580].data.get("TAG_NAME").unwrap(), "TARGETPATH:{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\\Microsoft Office\\Office15\\FIRSTRUN.EXE");
+        assert_eq!(
+            result.db_data.list_data[13580]
+                .data
+                .get("TAG_NAME")
+                .unwrap(),
+            "TARGETPATH:{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\\Microsoft Office\\Office15\\FIRSTRUN.EXE"
+        );
         assert_eq!(
             result.db_data.list_data[13580]
                 .data

@@ -6,7 +6,7 @@ use crate::{
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
         },
         regex_options::create_regex,
         time::{filetime_to_unixepoch, unixepoch_to_iso},
@@ -271,7 +271,7 @@ fn get_sid(data: &[u8]) -> nom::IResult<&[u8], String> {
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::artifacts::os::windows::accounts::users::{
-        get_flags, get_sid, parse_user_data, parse_user_info, UacFlags,
+        UacFlags, get_flags, get_sid, parse_user_data, parse_user_info,
     };
 
     #[test]

@@ -124,7 +124,7 @@ mod tests {
     use crate::{
         artifacts::os::windows::services::{
             registry::get_services_data,
-            service::{collect_service, metadata, parse_services, ServicesData},
+            service::{ServicesData, collect_service, metadata, parse_services},
         },
         utils::environment::get_systemdrive,
     };

@@ -3,7 +3,7 @@ use crate::{
     runtime::helper::{number_arg, string_arg},
     utils::regex_options::create_regex,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Registry file to `BoaJS`
 pub(crate) fn js_registry(

@@ -123,7 +123,13 @@ mod tests {
                 .unwrap(),
             "FWCWSP64.dll"
         );
-        assert_eq!(result.db_data.list_data[13580].data.get("TAG_NAME").unwrap(), "TARGETPATH:{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\\Microsoft Office\\Office15\\FIRSTRUN.EXE");
+        assert_eq!(
+            result.db_data.list_data[13580]
+                .data
+                .get("TAG_NAME")
+                .unwrap(),
+            "TARGETPATH:{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\\Microsoft Office\\Office15\\FIRSTRUN.EXE"
+        );
         assert_eq!(
             result.db_data.list_data[13580]
                 .data

@@ -1,6 +1,6 @@
 use crate::{
     filesystem::ntfs::attributes::file_attribute_flags,
-    utils::nom_helper::{nom_unsigned_eight_bytes, nom_unsigned_four_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };
 use common::windows::AttributeFlags;
 use serde::Serialize;

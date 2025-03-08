@@ -8,12 +8,12 @@ use crate::{
         pages::leaf::PageLeaf,
     },
     utils::{
-        compression::decompress::{decompress_seven_bit, decompress_xpress, XpressType},
+        compression::decompress::{XpressType, decompress_seven_bit, decompress_xpress},
         encoding::base64_encode_standard,
         nom_helper::{
-            nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
+            Endian, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-            nom_unsigned_two_bytes, Endian,
+            nom_unsigned_two_bytes,
         },
         strings::extract_ascii_utf16_string,
         time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
@@ -333,7 +333,9 @@ fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
     match decom_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Could not decompress Lz77 data with API: {err:?}. Will try manual decompression");
+            error!(
+                "[ese] Could not decompress Lz77 data with API: {err:?}. Will try manual decompression"
+            );
             let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
             match decom_result {
                 Ok(result) => result,
@@ -810,10 +812,10 @@ mod tests {
         catalog::TaggedDataFlag,
         pages::leaf::{LeafType, PageLeaf},
         tables::{
-            clear_column_data, column_data_to_string, create_table_data, decompress_ese,
-            get_column_flags, get_column_type, get_decompressed_data, nom_fixed_column,
-            parse_fixed_data, parse_multivalue_data, parse_row, parse_tagged_data,
-            parse_variable_data, ColumnFlags, ColumnType,
+            ColumnFlags, ColumnType, clear_column_data, column_data_to_string, create_table_data,
+            decompress_ese, get_column_flags, get_column_type, get_decompressed_data,
+            nom_fixed_column, parse_fixed_data, parse_multivalue_data, parse_row,
+            parse_tagged_data, parse_variable_data,
         },
     };
     use serde_json::json;
@@ -941,7 +943,9 @@ mod tests {
         let _ = parse_row(leaf, &mut col);
         assert_eq!(
             col[0].column_data,
-            [172, 4, 101, 38, 116, 217, 108, 68, 150, 173, 43, 225, 58, 86, 101, 176]
+            [
+                172, 4, 101, 38, 116, 217, 108, 68, 150, 173, 43, 225, 58, 86, 101, 176
+            ]
         );
         assert_eq!(col[1].column_data, [12, 0, 0, 128, 0, 0, 0, 128]);
     }

@@ -1,11 +1,11 @@
 use crate::{
     artifacts::os::windows::ese::{page::PageFlags, tags::TagFlags},
     utils::nom_helper::{
-        nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
 use log::error;
-use nom::{bytes::complete::take, error::ErrorKind, Needed};
+use nom::{Needed, bytes::complete::take, error::ErrorKind};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

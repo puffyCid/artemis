@@ -13,14 +13,14 @@ use crate::{
     },
     utils::{
         compression::decompress::decompress_lz4,
-        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte},
         time::unixepoch_to_iso,
     },
 };
 use common::macos::{DataAttribute, SpotlightEntries, SpotlightValue};
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Parse and extract all properties associated with Spotlight data
@@ -81,7 +81,11 @@ pub(crate) fn parse_property<'a>(
     }
 
     if decom_data.len() != (uncompressed_size - 20) as usize {
-        warn!("[spotlight] Decompressed size ({}) did not matched expected size: {}. Parsing will likely fail or be incopmlete", decom_data.len(), (uncompressed_size - 20));
+        warn!(
+            "[spotlight] Decompressed size ({}) did not matched expected size: {}. Parsing will likely fail or be incopmlete",
+            decom_data.len(),
+            (uncompressed_size - 20)
+        );
     }
 
     let entries_result = parse_all_records(&decom_data, meta, dir);
@@ -421,7 +425,7 @@ mod tests {
     use crate::{
         artifacts::os::macos::spotlight::{
             dbstr::meta::get_spotlight_meta,
-            store::property::{parse_all_records, parse_property, parse_record, PropertyType},
+            store::property::{PropertyType, parse_all_records, parse_property, parse_record},
         },
         filesystem::{files::read_file, metadata::glob_paths},
     };

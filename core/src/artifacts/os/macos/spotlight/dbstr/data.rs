@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::macos::spotlight::store::property::parse_variable_size,
     utils::{
-        nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian},
+        nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte},
         strings::extract_utf8_string,
     },
 };
@@ -148,7 +148,7 @@ mod tests {
     use super::parse_properties_data;
     use crate::{
         artifacts::os::macos::spotlight::dbstr::{
-            data::{get_attribute, parse_categories_data, parse_dbstr_data, DataAttribute},
+            data::{DataAttribute, get_attribute, parse_categories_data, parse_dbstr_data},
             header::get_header,
             offsets::get_offsets,
         },

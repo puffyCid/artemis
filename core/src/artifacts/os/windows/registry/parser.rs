@@ -266,7 +266,7 @@ fn parse_user_hives(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{
-        parse_default_system_hives, parse_registry, parse_registry_file, parse_user_hives, Params,
+        Params, parse_default_system_hives, parse_registry, parse_registry_file, parse_user_hives,
     };
     use crate::{
         artifacts::os::windows::registry::parser::user_regex,

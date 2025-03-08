@@ -1,4 +1,4 @@
-use super::block::{parse_block_bytes, BlockValue};
+use super::block::{BlockValue, parse_block_bytes};
 use crate::{
     artifacts::os::windows::outlook::{
         blocks::{block::Block, descriptors::parse_descriptor_block},
@@ -8,8 +8,8 @@ use crate::{
     },
     filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{
-        nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
-        nom_unsigned_two_bytes, Endian,
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+        nom_unsigned_two_bytes,
     },
 };
 use log::{error, warn};
@@ -190,7 +190,9 @@ fn extract_xblock_entries<'a>(
     let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     if array_level != 1 {
-        warn!("[outlook] Got possible xxblock. Level: {array_level}. Should be same format as xblock?");
+        warn!(
+            "[outlook] Got possible xxblock. Level: {array_level}. Should be same format as xblock?"
+        );
     }
     let (input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
@@ -220,7 +222,7 @@ mod tests {
         artifacts::os::windows::outlook::{
             blocks::block::{Block, BlockValue},
             header::FormatType,
-            pages::btree::{get_block_btree, BlockType, LeafBlockData},
+            pages::btree::{BlockType, LeafBlockData, get_block_btree},
         },
         filesystem::files::file_reader,
     };

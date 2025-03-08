@@ -1,7 +1,7 @@
 use crate::artifacts::os::unix::shell_history::{
     bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Get `Bash` history for all users
 pub(crate) fn js_bash_history(

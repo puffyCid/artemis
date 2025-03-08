@@ -1,4 +1,4 @@
-use crate::utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_one_byte, Endian};
+use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte};
 use byteorder::{BigEndian, ReadBytesExt};
 use nom::bytes::complete::take;
 

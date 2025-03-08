@@ -2,7 +2,7 @@ use crate::{
     filesystem::ntfs::attributes::file_attribute_flags,
     utils::{
         nom_helper::{
-            nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian,
+            Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
         },
         time::filetime_to_unixepoch,
         uuid::format_guid_le_bytes,

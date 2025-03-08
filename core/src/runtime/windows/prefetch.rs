@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::windows::prefetch::parser::grab_prefetch, runtime::helper::string_arg,
     structs::artifacts::os::windows::PrefetchOptions,
 };
-use boa_engine::{js_string, Context, JsArgs, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing prefetch to `BoaJS`
 pub(crate) fn js_prefetch(

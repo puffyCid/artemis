@@ -7,7 +7,7 @@ use crate::{
         tags::TagFlags,
     },
     filesystem::ntfs::reader::read_bytes,
-    utils::nom_helper::{nom_unsigned_four_bytes, nom_unsigned_two_bytes, Endian},
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
 use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
@@ -124,7 +124,10 @@ impl BranchPage {
             let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
 
             if let Some(_page) = page_tracker.get(&branch.child_page) {
-                warn!("[ese] Found a catalog branch child recursively pointing to same page {}. Exiting early", branch.child_page);
+                warn!(
+                    "[ese] Found a catalog branch child recursively pointing to same page {}. Exiting early",
+                    branch.child_page
+                );
                 return Ok((data, catalog_rows));
             }
             // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
@@ -204,7 +207,10 @@ impl BranchPage {
             let (_, branch_data) = take(tag.value_size)(branch_start)?;
             let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
             if let Some(_page) = page_tracker.get(&branch.child_page) {
-                warn!("[ese] Found a table branch child recursively pointing to same page {}. Exiting early", branch.child_page);
+                warn!(
+                    "[ese] Found a table branch child recursively pointing to same page {}. Exiting early",
+                    branch.child_page
+                );
                 return Ok((page_branch_data, 0));
             }
             // Track child pages so do not end up in a recursive loop (ex: child points back to parent)

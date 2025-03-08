@@ -1,7 +1,7 @@
 use super::header::{ObjectHeader, ObjectType};
 use crate::artifacts::os::linux::journals::objects::data::DataObject;
 use crate::utils::nom_helper::{
-    nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes, Endian,
+    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes,
 };
 use log::{error, warn};
 use std::fs::File;

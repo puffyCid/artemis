@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::plist::property_list::{parse_plist_data, parse_plist_file},
     runtime::helper::{bytes_arg, string_arg},
 };
-use boa_engine::{js_string, Context, JsError, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing plist file to `BoaJS`
 pub(crate) fn js_plist(

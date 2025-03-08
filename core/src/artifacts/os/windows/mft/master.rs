@@ -1,5 +1,5 @@
 use super::{
-    attributes::attribute::{grab_attributes, EntryAttributes},
+    attributes::attribute::{EntryAttributes, grab_attributes},
     error::MftError,
     header::MftHeader,
     reader::{setup_mft_reader, setup_mft_reader_windows},

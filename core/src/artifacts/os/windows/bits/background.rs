@@ -1,5 +1,5 @@
 use super::{
-    carve::{carve_bits, WinBits},
+    carve::{WinBits, carve_bits},
     error::BitsError,
     files::get_files,
     jobs::{get_jobs, get_legacy_jobs},

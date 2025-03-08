@@ -6,8 +6,8 @@ use crate::{
     filesystem::files::get_filename,
     utils::{
         nom_helper::{
-            nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
-            nom_unsigned_two_bytes, Endian,
+            Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+            nom_unsigned_two_bytes,
         },
         regex_options::regex_check,
         strings::{extract_ascii_utf16_string, strings_contains},
