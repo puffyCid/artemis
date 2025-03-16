@@ -19,19 +19,19 @@ license = "MIT"
 edition = "2024"
 
 [workspace.dependencies]
-serde = { version = "1.0.218", features = ["derive"] }
+serde = { version = "1.0.219", features = ["derive"] }
 log = "0.4.26"
 serde_json = "1.0.140"
 toml = "0.8.20"
 base64 = "0.22.1"
-tokio = { version = "1.44.0", features = ["full"] }
+tokio = { version = "1.44.1", features = ["full"] }
 flate2 = "1.1.0"
 glob = "0.3.2"
-reqwest = { version = "0.12.12", features = [
+reqwest = { version = "0.12.14", features = [
     "json",
     "blocking",
     "native-tls-vendored",
 ] }
 sysinfo = "0.33.1"
-uuid = { version = "1.15.1", features = ["v4"] }
+uuid = { version = "1.16.0", features = ["v4"] }
 rusqlite = { version = "0.34.0", features = ["bundled", "serde_json"] }

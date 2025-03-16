@@ -1,4 +1,5 @@
 mod command;
+mod connections;
 mod cpu;
 mod disks;
 pub(crate) mod extensions;
