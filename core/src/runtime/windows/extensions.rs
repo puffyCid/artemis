@@ -6,7 +6,10 @@ use super::{
     eventlogs::js_eventlogs,
     jumplists::js_jumplists,
     ntfs::{js_read_ads, js_read_raw_file},
-    outlook::{js_read_attachment, js_read_folder, js_read_messages, js_root_folder},
+    outlook::{
+        js_folder_meta, js_message_store, js_name_map, js_read_attachment, js_read_folder,
+        js_read_messages, js_root_folder,
+    },
     pe::js_get_pe,
     prefetch::js_prefetch,
     recyclebin::js_recycle_bin,
@@ -107,9 +110,27 @@ pub(crate) fn windows_functions(context: &mut Context) {
     );
 
     let _ = context.register_global_callable(
+        JsString::from("js_message_store"),
+        2,
+        NativeFunction::from_fn_ptr(js_message_store),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_name_map"),
+        2,
+        NativeFunction::from_fn_ptr(js_name_map),
+    );
+
+    let _ = context.register_global_callable(
         JsString::from("js_read_folder"),
         3,
         NativeFunction::from_fn_ptr(js_read_folder),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_folder_meta"),
+        3,
+        NativeFunction::from_fn_ptr(js_folder_meta),
     );
 
     let _ = context.register_global_callable(

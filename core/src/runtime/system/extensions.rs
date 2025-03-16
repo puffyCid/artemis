@@ -1,5 +1,6 @@
 use super::{
     command::js_command,
+    connections::js_connections,
     cpu::js_cpu,
     disks::js_disks,
     memory::js_memory,
@@ -89,6 +90,12 @@ pub(crate) fn system_functions(context: &mut Context) {
         JsString::from("js_platform"),
         0,
         NativeFunction::from_fn_ptr(js_platform),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_connections"),
+        0,
+        NativeFunction::from_fn_ptr(js_connections),
     );
 }
 

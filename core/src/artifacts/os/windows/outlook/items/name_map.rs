@@ -11,6 +11,7 @@ use crate::{
 use common::{outlook::PropertyName, windows::PropertyContext};
 use log::{error, warn};
 use nom::bytes::complete::take;
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -135,18 +136,18 @@ fn name_string<'a>(data: &'a [u8], offset: &u32) -> nom::IResult<&'a [u8], Strin
     Ok((input, string))
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct NameEntry {
     reference: u32,
     entry_type: u16,
     entry_number: u16,
     value: Value,
-    _index: u16,
+    index: u16,
     guid: String,
     name_type: NameType,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 enum NameType {
     String,
     Guid,
@@ -181,7 +182,7 @@ fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
             entry_number: entry_number + 0x8000,
             value: Value::Null,
             guid: String::new(),
-            _index: index,
+            index,
             name_type,
         };
 

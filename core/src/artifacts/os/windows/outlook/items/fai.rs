@@ -1,6 +1,7 @@
 use common::{outlook::PropertyName, windows::PropertyContext};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct FolderMeta {
     pub(crate) message_class: String,
     pub(crate) created: String,

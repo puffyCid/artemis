@@ -35,7 +35,7 @@ fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16
             break;
         }
 
-        // If Wide char does not contain 0, append separately. This can probably be removed now?
+        // Sometimes we have to encode to UTF16 for some strings
         if !wide_char.contains(&0) && *adjust {
             utf16_data.push(wide_char[0] as u16);
             utf16_data.push(wide_char[1] as u16);
@@ -135,7 +135,13 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
         let result = bytes_to_utf8_string(data);
         match result {
             Ok(value) => value,
-            Err(_err) => extract_utf16_string(data),
+            Err(_err) => match bytes_to_utf16_string(data, &true) {
+                Ok(result) => result,
+                Err(_err) => match bytes_to_utf16_string(data, &false) {
+                    Ok(result) => result,
+                    Err(_err) => extract_utf16_string(data),
+                },
+            },
         }
     } else {
         extract_utf16_string(data)

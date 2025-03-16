@@ -64,7 +64,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
     { id = "RUSTSEC-2021-0153", "reason" = "Associated with evtx crate. Waiting for upstream update" },
     { id = "RUSTSEC-2023-0071", "reason" = "Associated with yara-x crate. Vuln not applicable" },
-    { id = "RUSTSEC-2024-0437", "reason" = "Associated with yara-x crate. Waiting for upstream update" },
     { id = "RUSTSEC-2024-0436", "reason" = "Associated with yara-x and boa crates. Waiting for upstream updates" },
     { id = "RUSTSEC-2024-0370", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
     { id = "RUSTSEC-2024-0415", "reason" = "Associated with tauri crate. Only used in experimental apollo app" },
