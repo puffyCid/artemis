@@ -9,7 +9,6 @@ pub(crate) enum OutlookError {
     NoBlocks,
     PropertyContext,
     TableContext,
-    MessageCount,
     UnknownPageFormat,
     Systemdrive,
     Serialize,
@@ -42,9 +41,6 @@ impl fmt::Display for OutlookError {
             }
             OutlookError::TableContext => {
                 write!(f, "Failed to parse the Table Context table")
-            }
-            OutlookError::MessageCount => {
-                write!(f, "Too many messages requested, not enough available")
             }
             OutlookError::Serialize => write!(f, "Failed to serialize outlook messages"),
             OutlookError::OutputData => write!(f, "Failed to output outlook messages"),

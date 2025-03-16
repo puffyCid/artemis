@@ -7,6 +7,7 @@ use super::{
         fai::{FolderMeta, extract_fai},
         folder::{FolderInfo, folder_details, search_folder_details},
         message::MessageDetails,
+        name_map::{NameEntry, extract_name_id_map},
     },
     pages::btree::{
         BlockType, LeafBlockData, LeafNodeData, NodeBtree, get_block_btree, get_node_btree,
@@ -26,7 +27,10 @@ use crate::{
 use common::windows::PropertyContext;
 use log::{error, warn};
 use ntfs::NtfsFile;
-use std::{collections::BTreeMap, io::BufReader};
+use std::{
+    collections::{BTreeMap, HashMap},
+    io::BufReader,
+};
 
 pub(crate) struct OutlookReader<T: std::io::Seek + std::io::Read> {
     pub(crate) fs: BufReader<T>,
@@ -44,8 +48,14 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
         block: &LeafBlockData,
         descriptor: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError>;
-    fn message_store(&self) -> Result<Vec<PropertyContext>, OutlookError>;
-    fn name_id_map(&self) -> Result<Vec<PropertyContext>, OutlookError>;
+    fn message_store(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<Vec<PropertyContext>, OutlookError>;
+    fn name_id_map(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<HashMap<u16, NameEntry>, OutlookError>;
     fn root_folder(&mut self, ntfs_file: Option<&NtfsFile<'_>>)
     -> Result<FolderInfo, OutlookError>;
     fn read_folder(
@@ -155,26 +165,90 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     }
 
     /// Extract the Outlook `MessageStore`
-    fn message_store(&self) -> Result<Vec<PropertyContext>, OutlookError> {
-        /*
-         * Steps:
-         * 1. Get static node ID value (33) from node_btree
-         * 2. Parse block data
-         * 3. Parse PropertyContext
-         */
-        Ok(Vec::new())
+    fn message_store(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<Vec<PropertyContext>, OutlookError> {
+        let store = 33;
+        let mut node: Option<&LeafNodeData> = None;
+        for entry in &self.node_btree {
+            if let Some(entry) = entry.btree.get(&store) {
+                node = Some(entry);
+                break;
+            }
+        }
+
+        if node.is_none() {
+            error!("[outlook] Could not find Message Store node");
+            return Err(OutlookError::PropertyContext);
+        }
+
+        let mut block: Option<LeafBlockData> = None;
+        for blocks in &self.block_btree {
+            if let Some(entry) = blocks.get(&node.unwrap().block_offset_data_id) {
+                block = Some(*entry);
+                break;
+            }
+        }
+
+        if block.is_none() {
+            error!("[outlook] Could not find Message Store block");
+            return Err(OutlookError::PropertyContext);
+        }
+
+        let store_value = self.get_block_data(ntfs_file, &block.unwrap(), None)?;
+        let message_store =
+            self.parse_property_context(ntfs_file, &store_value.data, &store_value.descriptors)?;
+
+        Ok(message_store)
     }
 
     /// Extract the Outlook `NameToIdMap`
-    fn name_id_map(&self) -> Result<Vec<PropertyContext>, OutlookError> {
-        /*
-         * Steps:
-         * 1. Get static node ID value (97) from node_btree
-         * 2. Parse block data
-         * 3. Parse PropertyContext
-         * 4. Return HashMap of entries
-         */
-        Ok(Vec::new())
+    fn name_id_map(
+        &mut self,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<HashMap<u16, NameEntry>, OutlookError> {
+        let map = 97;
+        let mut node: Option<&LeafNodeData> = None;
+        for entry in &self.node_btree {
+            if let Some(entry) = entry.btree.get(&map) {
+                node = Some(entry);
+                break;
+            }
+        }
+
+        if node.is_none() {
+            error!("[outlook] Could not find Name Map node");
+            return Err(OutlookError::PropertyContext);
+        }
+
+        let mut block: Option<LeafBlockData> = None;
+        let mut leaf_descriptor: Option<LeafBlockData> = None;
+
+        for blocks in &self.block_btree {
+            if let Some(entry) = blocks.get(&node.unwrap().block_offset_data_id) {
+                block = Some(*entry);
+            }
+            if let Some(block_data) = blocks.get(&node.unwrap().block_offset_descriptor_id) {
+                leaf_descriptor = Some(*block_data);
+            }
+
+            if leaf_descriptor.is_some() && block.is_some() {
+                break;
+            }
+        }
+
+        if block.is_none() || leaf_descriptor.is_none() {
+            error!("[outlook] Could not find Name Map block");
+            return Err(OutlookError::PropertyContext);
+        }
+
+        let map_value =
+            self.get_block_data(ntfs_file, &block.unwrap(), leaf_descriptor.as_ref())?;
+        let name_map =
+            self.parse_property_context(ntfs_file, &map_value.data, &map_value.descriptors)?;
+
+        extract_name_id_map(&name_map)
     }
 
     /// Get the Outlook Root folder. Starting point to get the contents of Outlook
@@ -942,6 +1016,22 @@ mod tests {
         assert_eq!(folder.properties.len(), 27);
         assert_eq!(folder.subfolder_count, 0);
         assert_eq!(folder.messages_table.columns.len(), 78);
+    }
+
+    #[test]
+    fn test_outlook_reader_message_store() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let store = outlook_reader.message_store(None).unwrap();
+        assert_eq!(store.len(), 23);
+    }
+
+    #[test]
+    fn test_outlook_reader_name_map() {
+        let mut outlook_reader = setup_reader::<std::fs::File>();
+
+        let store = outlook_reader.name_id_map(None).unwrap();
+        assert_eq!(store.len(), 1276);
     }
 
     #[test]
