@@ -310,7 +310,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_parse_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();
@@ -357,7 +356,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_grab_instance_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();

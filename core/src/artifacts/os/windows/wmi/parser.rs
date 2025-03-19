@@ -80,7 +80,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_parse_wmi_persist() {
         let default_drive = get_systemdrive().unwrap();
 

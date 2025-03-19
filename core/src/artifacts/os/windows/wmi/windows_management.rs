@@ -84,7 +84,7 @@ pub(crate) fn parse_wmi_repo(
     let mut namespace_info = Vec::new();
     for entry in index_info {
         for hash in &entry.value_data {
-            if hash.starts_with("CD_") || hash.starts_with("IL_") || hash.starts_with("I_") {
+            if hash.starts_with("CD_") || hash.starts_with("IL_") {
                 namespace_info.push(entry.value_data.clone());
                 break;
             }
@@ -243,8 +243,6 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
-    #[cfg(target_os = "windows")]
-    #[ignore = "Takes time to run"]
     fn test_parse_wmi_repo() {
         let drive = 'C';
 
@@ -267,7 +265,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_get_wmi_persist() {
         let drive = 'C';
 
@@ -280,7 +277,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_assemble_wmi_persist() {
         let drive = 'C';
 

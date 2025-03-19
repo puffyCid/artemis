@@ -31,7 +31,7 @@ pub(crate) fn extract_namespace_data(
     for entries in namespace_vec {
         // First get all the class data associated with namespace
         for class_entry in entries {
-            if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
+            if class_entry.starts_with("CD_") {
                 let class_info_result = get_classes(class_entry, &object_info);
                 let classes_result = match class_info_result {
                     Ok((_, result)) => result,
@@ -58,7 +58,7 @@ pub(crate) fn extract_namespace_data(
     for entries in namespace_vec {
         for class_entry in entries {
             if class_entry.starts_with("IL_") {
-                let instances_result = get_instances(class_entry, objects, pages);
+                let instances_result = get_instances(class_entry, &object_info);
                 let mut instance = match instances_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
@@ -119,8 +119,7 @@ pub(crate) fn get_classes<'a>(
 /// Get instances associated with a namespace
 fn get_instances<'a>(
     class_hash: &str,
-    objects_data: &'a [u8],
-    pages: &[u32],
+    object_info: &HashMap<u32, ObjectPage>,
 ) -> nom::IResult<&'a [u8], Vec<InstanceRecord>> {
     let hash_result = extract_hash_info(class_hash);
 
@@ -133,7 +132,6 @@ fn get_instances<'a>(
             ErrorKind::Fail,
         )));
     };
-    let (_, object_info) = parse_objects(objects_data, pages)?;
     let mut instances = Vec::new();
 
     if let Some(entry) = object_info.get(&record_id) {
@@ -151,10 +149,7 @@ fn get_instances<'a>(
 fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
     let class_info: Vec<&str> = hash.split('.').collect();
     let mut class_def = (*class_info.first()?).to_string();
-    class_def = class_def
-        .replace("CD_", "")
-        .replace("IL_", "")
-        .replace("I_", "");
+    class_def = class_def.replace("CD_", "").replace("IL_", "");
 
     let record_id_str = class_info.get(2)?;
     let record_id_result = record_id_str.parse::<u32>();
@@ -238,7 +233,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_get_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();
@@ -265,13 +259,13 @@ mod tests {
         for class in &classes {
             hash_classes.push(hash_name(class));
         }
+        let (_, object_info) = parse_objects(&object_data, &results.mappings).unwrap();
 
         let mut classes_info = Vec::new();
         for entries in namespace_info {
             for class_entry in entries {
                 if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
-                    let class_info_result =
-                        get_instances(&class_entry, &object_data, &results.mappings);
+                    let class_info_result = get_instances(&class_entry, &object_info);
                     let classes_result = match class_info_result {
                         Ok((_, result)) => result,
                         Err(_err) => {
@@ -287,7 +281,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_extract_namespace_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();
