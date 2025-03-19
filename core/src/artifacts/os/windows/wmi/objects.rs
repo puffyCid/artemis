@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::class::{ClassInfo, parse_class};
 use crate::utils::nom_helper::{
     Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -9,10 +11,10 @@ use nom::{bytes::complete::take, error::ErrorKind};
 pub(crate) fn parse_objects<'a>(
     data: &'a [u8],
     pages: &[u32],
-) -> nom::IResult<&'a [u8], Vec<ObjectPage>> {
+) -> nom::IResult<&'a [u8], HashMap<u32, ObjectPage>> {
     let page_size = 8192;
 
-    let mut objects = Vec::new();
+    let mut objects = HashMap::new();
     let mut skip = 0;
     // Loop through all pages from mappings file
     for (index, page) in pages.iter().enumerate() {
@@ -26,16 +28,14 @@ pub(crate) fn parse_objects<'a>(
         }
         let (page_start, _) = take(page * page_size)(data)?;
         let (_, page_data) = take(page_size)(page_start)?;
-        let (_, (mut object_page, additional_pages)) = parse_page(page_data, data, &index, pages)?;
+        let (_, additional_pages) = parse_page(page_data, data, &index, pages, &mut objects)?;
         // If we consumed additional pages. We skip equal number pages in loop.
         skip = additional_pages;
-
-        objects.append(&mut object_page);
     }
     Ok((data, objects))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ObjectPage {
     pub(crate) record_id: u32,
     _offset: u32,
@@ -50,11 +50,10 @@ fn parse_page<'a>(
     object_remaining: &'a [u8],
     index: &usize,
     pages: &[u32],
-) -> nom::IResult<&'a [u8], (Vec<ObjectPage>, u32)> {
+    objects: &mut HashMap<u32, ObjectPage>,
+) -> nom::IResult<&'a [u8], u32> {
     let mut input = data;
     let page_remaining = object_remaining;
-    let mut objects: Vec<ObjectPage> = Vec::new();
-
     let mut additional_pages = 0;
 
     loop {
@@ -151,11 +150,11 @@ fn parse_page<'a>(
             object.object_data = object_data.to_vec();
         }
 
-        objects.push(object);
+        objects.insert(object.record_id, object);
         input = remaining;
     }
 
-    Ok((page_remaining, (objects, additional_pages)))
+    Ok((page_remaining, additional_pages))
 }
 
 /// Parse Object record
@@ -197,7 +196,7 @@ mod tests {
         },
         filesystem::{files::read_file, metadata::glob_paths},
     };
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_parse_page() {
@@ -222,8 +221,15 @@ mod tests {
                 continue;
             }
 
-            let (_, (object_page, additional_pages)) =
-                parse_page(&data, &object_data, &index, &results.mappings).unwrap();
+            let mut object_page = HashMap::new();
+            let (_, additional_pages) = parse_page(
+                &data,
+                &object_data,
+                &index,
+                &results.mappings,
+                &mut object_page,
+            )
+            .unwrap();
             assert_eq!(object_page.len(), 22);
             assert_eq!(additional_pages, 0);
 

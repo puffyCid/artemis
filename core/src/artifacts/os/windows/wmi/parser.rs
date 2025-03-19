@@ -59,12 +59,7 @@ fn parse_wmi_persist(
     objects_path: &str,
     index_path: &str,
 ) -> Result<Vec<WmiPersist>, WmiError> {
-    let classes = vec![
-        "__EventConsumer",
-        "__EventFilter",
-        "__FilterToConsumerBinding",
-    ];
-    let wmi_data = parse_wmi_repo(&classes, map_paths, objects_path, index_path)?;
+    let wmi_data = parse_wmi_repo(map_paths, objects_path, index_path)?;
 
     get_wmi_persist(&wmi_data)
 }

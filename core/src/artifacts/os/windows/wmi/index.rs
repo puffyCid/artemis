@@ -6,14 +6,13 @@ use crate::utils::{
     strings::extract_utf8_string,
 };
 use nom::bytes::complete::{take, take_while};
-use std::collections::HashMap;
 
 /// Parse and gather index entries
-pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, IndexBody>> {
+pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], Vec<IndexBody>> {
     let page_size = 8192;
     let mut input = data;
 
-    let mut page_info = HashMap::new();
+    let mut page_info = Vec::new();
 
     while input.len() >= page_size {
         let (remaining, page_data) = take(page_size)(input)?;
@@ -23,7 +22,7 @@ pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], HashMap<u32, Index
         if header.page_type == PageType::Deleted || header.page_type == PageType::Unknown {
             continue;
         }
-        page_info.insert(header.mapped_number, body);
+        page_info.push(body);
     }
     Ok((data, page_info))
 }
@@ -37,7 +36,7 @@ fn parse_page(data: &[u8]) -> nom::IResult<&[u8], (IndexHeader, IndexBody)> {
 
 struct IndexHeader {
     page_type: PageType,
-    mapped_number: u32,
+    _mapped_number: u32,
     _unknown: u32,
     _mapped_root_number: u32,
 }
@@ -66,7 +65,7 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], IndexHeader> {
 
     let header = IndexHeader {
         page_type,
-        mapped_number,
+        _mapped_number: mapped_number,
         _unknown: unknown,
         _mapped_root_number: mapped_root_number,
     };
@@ -160,7 +159,7 @@ mod tests {
         let data = [204, 172, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let (_, header) = parse_header(&data).unwrap();
         assert_eq!(header.page_type, PageType::Active);
-        assert_eq!(header.mapped_number, 34);
+        assert_eq!(header._mapped_number, 34);
     }
 
     #[test]
@@ -170,8 +169,7 @@ mod tests {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_index(&data).unwrap();
-
-        assert_eq!(results.get(&34).unwrap().value_data.len(), 46);
+        assert_eq!(results.len(), 1);
     }
 
     #[test]
