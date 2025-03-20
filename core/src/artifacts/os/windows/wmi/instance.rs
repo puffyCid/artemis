@@ -12,9 +12,9 @@ use crate::{
     },
 };
 use log::warn;
-use nom::bytes::complete::take;
+use nom::{bytes::complete::take, error::ErrorKind};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub(crate) struct InstanceRecord {
@@ -30,6 +30,13 @@ pub(crate) fn parse_instance_record(data: &[u8]) -> nom::IResult<&[u8], Instance
     let hash_size: u8 = 128;
     let (input, hash_data) = take(hash_size)(data)?;
     let hash_name = extract_utf16_string(hash_data);
+    if hash_name.len() < 10 {
+        // Not instance record
+        return Err(nom::Err::Failure(nom::error::Error::new(
+            &[],
+            ErrorKind::Fail,
+        )));
+    }
 
     let (input, unknown_filetime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
     let (input, unknown_filetime2) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -70,13 +77,13 @@ pub(crate) fn parse_instances<'a>(
 ) -> nom::IResult<&'a [u8], Vec<ClassValues>> {
     let mut class_values = Vec::new();
 
+    let mut empty_instances = HashSet::new();
     for instance in instances {
+        if empty_instances.contains(&instance.hash_name) {
+            continue;
+        }
         for class in &mut *classes {
-            for (_class_key, class_value) in class.iter_mut() {
-                if class_value.class_hash != instance.hash_name {
-                    continue;
-                }
-
+            if let Some(class_value) = class.get_mut(&instance.hash_name) {
                 let value_result = grab_instance_data(instance, class_value, lookup_parents);
                 let class_value = match value_result {
                     Ok((_, result)) => result,
@@ -85,6 +92,7 @@ pub(crate) fn parse_instances<'a>(
                             "[wmi] Could not grab instance data for class {}. There may not be any data",
                             class_value.class_name
                         );
+                        empty_instances.insert(instance.hash_name.clone());
                         continue;
                     }
                 };
@@ -127,14 +135,21 @@ fn grab_instance_data<'a>(
     let prop_count = class_value.properties.len();
     let (remaining, _prop_bit_data) = parse_instance_props(&instance.data, &prop_count)?;
 
-    let adjust_size = 4;
     // Calculate the total property data containing offsets size
     let prop_data_size = get_prop_data_size(&class_value.properties);
     let (remaining, prop_data_offsets) = take(prop_data_size)(remaining)?;
-    let (remaining, qualifier_size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
-    let (remaining, qual_data) = take(qualifier_size as usize - adjust_size)(remaining)?;
-    let (_, _qualifiers) = parse_qualifier(qual_data, remaining)?;
+    let (mut remaining, mut qualifier_size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
 
+    let adjust_size = 4;
+    // May be padding at end?
+    if qualifier_size < adjust_size {
+        let (qual_remaining, size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+        qualifier_size = size;
+        remaining = qual_remaining;
+    }
+
+    let (remaining, qual_data) = take(qualifier_size - adjust_size)(remaining)?;
+    let (_, _qualifiers) = parse_qualifier(qual_data, remaining)?;
     let (mut remaining, dynamic_prop) = nom_unsigned_one_byte(remaining, Endian::Le)?;
 
     let has_dynamic = 2;
@@ -163,9 +178,13 @@ fn grab_instance_data<'a>(
         if unsupported_types.contains(&prop.property_data_type) {
             continue;
         }
-        let (start, _) = take(prop.data_offset)(prop_data_offsets)?;
-        let (_, result) = extract_cim_data(&prop.property_data_type, start, value_data)?;
 
+        let (start, _) = take(prop.data_offset)(prop_data_offsets)?;
+        let result = match extract_cim_data(&prop.property_data_type, start, value_data) {
+            Ok((_, result)) => result,
+            // CIM data can be null
+            Err(_err) => Value::Null,
+        };
         prop_value.insert(prop.name.clone(), result);
     }
     let class_value = ClassValues {
@@ -241,7 +260,7 @@ mod tests {
             index::parse_index,
             map::parse_map,
             namespaces::get_classes,
-            windows_management::hash_name,
+            objects::parse_objects,
         },
         filesystem::files::read_file,
     };
@@ -291,7 +310,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_parse_instances() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();
@@ -302,7 +320,7 @@ mod tests {
         let (_, index_info) = parse_index(&index_data).unwrap();
 
         let mut namespace_info = Vec::new();
-        for entry in index_info.values() {
+        for entry in index_info {
             for hash in &entry.value_data {
                 if hash.starts_with(&String::from("CD_")) || hash.starts_with(&String::from("IL_"))
                 {
@@ -312,20 +330,14 @@ mod tests {
             }
         }
 
-        let classes = vec![String::from("__NAMESPACE")];
-
-        let mut hash_classes = Vec::new();
-        for class in &classes {
-            hash_classes.push(hash_name(class));
-        }
-
         let mut classes_info = Vec::new();
         let instances_info = Vec::new();
+        let (_, object_info) = parse_objects(&object_data, &results.mappings).unwrap();
+
         for entries in namespace_info {
             for class_entry in entries {
                 if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
-                    let class_info_result =
-                        get_classes(&class_entry, &object_data, &results.mappings, &hash_classes);
+                    let class_info_result = get_classes(&class_entry, &object_info);
                     let classes_result = match class_info_result {
                         Ok((_, result)) => result,
                         Err(_err) => {
@@ -344,7 +356,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_grab_instance_data() {
         let map_data = read_file("C:\\Windows\\System32\\wbem\\Repository\\MAPPING3.MAP").unwrap();
         let (_, results) = parse_map(&map_data).unwrap();
@@ -355,7 +366,7 @@ mod tests {
         let (_, index_info) = parse_index(&index_data).unwrap();
 
         let mut namespace_info = Vec::new();
-        for entry in index_info.values() {
+        for entry in index_info {
             for hash in &entry.value_data {
                 if hash.starts_with(&String::from("CD_")) || hash.starts_with(&String::from("IL_"))
                 {
@@ -365,20 +376,14 @@ mod tests {
             }
         }
 
-        let classes = vec![String::from("__NAMESPACE")];
-
-        let mut hash_classes = Vec::new();
-        for class in &classes {
-            hash_classes.push(hash_name(class));
-        }
-
         let mut classes_info = Vec::new();
         let instances_info: Vec<InstanceRecord> = Vec::new();
+        let (_, object_info) = parse_objects(&object_data, &results.mappings).unwrap();
+
         for entries in namespace_info {
             for class_entry in entries {
                 if class_entry.starts_with("CD_") || class_entry.starts_with("IL_") {
-                    let class_info_result =
-                        get_classes(&class_entry, &object_data, &results.mappings, &hash_classes);
+                    let class_info_result = get_classes(&class_entry, &object_info);
                     let classes_result = match class_info_result {
                         Ok((_, result)) => result,
                         Err(_err) => {

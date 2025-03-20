@@ -32,7 +32,7 @@ walkdir = "2.5.0"
 home = "0.5.11"
 chrono = "0.4.40"
 simplelog = "0.12.2"
-zip = { version = "2.2.3", default-features = false }
+zip = { version = "2.4.2", default-features = false }
 jsonwebtoken = "9.3.1"
 rusty-s3 = "0.7.0"
 quick-xml = { version = "0.37.2", default-features = false }

@@ -6,7 +6,7 @@ use crate::{
             nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
             nom_unsigned_two_bytes,
         },
-        strings::{extract_utf8_string, extract_utf16_string},
+        strings::{extract_ascii_utf16_string, extract_utf8_string, extract_utf16_string},
     },
 };
 use log::warn;
@@ -265,6 +265,11 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
         // CIM strings are ASCII with end of string character
         let (input, string_data) = take_while(|b| b != 0)(input)?;
         let value = extract_utf8_string(string_data);
+        if value.starts_with("[strings] ") {
+            // May encounter UTF8/ASCII strings Rust does not like
+            // Ex: A Microsoft Win32® service that runs its own process or 3½-Inch Floppy Disk
+            return Ok((input, extract_ascii_utf16_string(string_data)));
+        }
 
         return Ok((input, value));
     } else if string_type == utf16 {

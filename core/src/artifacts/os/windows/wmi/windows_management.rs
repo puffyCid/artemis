@@ -12,7 +12,6 @@ use std::collections::BTreeMap;
 
 /// Parse the WMI repository and return data associated with provided classes
 pub(crate) fn parse_wmi_repo(
-    classes: &[&str],
     map_paths: &str,
     objects_path: &str,
     index_path: &str,
@@ -83,21 +82,16 @@ pub(crate) fn parse_wmi_repo(
     };
 
     let mut namespace_info = Vec::new();
-    for entry in index_info.values() {
+    for entry in index_info {
         for hash in &entry.value_data {
-            if hash.starts_with(&String::from("CD_")) || hash.starts_with(&String::from("IL_")) {
+            if hash.starts_with("CD_") || hash.starts_with("IL_") {
                 namespace_info.push(entry.value_data.clone());
                 break;
             }
         }
     }
 
-    let mut hash_classes = Vec::new();
-    for class in classes {
-        hash_classes.push(hash_name(class));
-    }
-
-    let class_data = extract_namespace_data(&namespace_info, &objects, &pages, &hash_classes);
+    let class_data = extract_namespace_data(&namespace_info, &objects, &pages);
 
     Ok(class_data)
 }
@@ -249,16 +243,13 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
-    #[cfg(target_os = "windows")]
-    #[ignore = "Takes time to run"]
     fn test_parse_wmi_repo() {
-        let classes = vec!["__NAMESPACE"];
         let drive = 'C';
 
         let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
         let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
         let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
 
         assert!(results.len() > 3);
     }
@@ -274,29 +265,25 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_get_wmi_persist() {
-        let classes = vec!["__EventConsumer"];
         let drive = 'C';
 
         let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
         let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
         let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
 
         let _ = get_wmi_persist(&results).unwrap();
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_assemble_wmi_persist() {
-        let classes = vec!["__EventConsumer"];
         let drive = 'C';
 
         let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
         let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
         let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&classes, &map_paths, &objects_path, &index_path).unwrap();
+        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
 
         let mut persist_vec = Vec::new();
         for event_consumer in &results {

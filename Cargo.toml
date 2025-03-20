@@ -27,7 +27,7 @@ base64 = "0.22.1"
 tokio = { version = "1.44.1", features = ["full"] }
 flate2 = "1.1.0"
 glob = "0.3.2"
-reqwest = { version = "0.12.14", features = [
+reqwest = { version = "0.12.15", features = [
     "json",
     "blocking",
     "native-tls-vendored",
