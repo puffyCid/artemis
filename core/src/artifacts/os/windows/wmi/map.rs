@@ -54,7 +54,9 @@ fn parse_mapping(data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
     let mut page_numbers = Vec::new();
     while entries < num_entries {
         let (input, number) = nom_unsigned_four_bytes(map_input, Endian::Le)?;
-        page_numbers.push(number);
+        if number != 4294967295 {
+            page_numbers.push(number);
+        }
 
         let (input, _checksum) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _frees_pace) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -102,7 +104,7 @@ mod tets {
 
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, results) = parse_map(&data).unwrap();
-        assert_eq!(results.mappings.len(), 3293);
+        assert_eq!(results.mappings.len(), 3270);
     }
 
     #[test]
@@ -121,7 +123,7 @@ mod tets {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (input, (_, _)) = parse_header(&data).unwrap();
         let (_, mappings) = parse_mapping(input).unwrap();
-        assert_eq!(mappings.len(), 3293);
+        assert_eq!(mappings.len(), 3270);
     }
 
     #[test]

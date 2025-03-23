@@ -1,9 +1,9 @@
 use super::{
-    error::WmiError, instance::ClassValues, map::parse_map, namespaces::extract_namespace_data,
+    error::WmiError, helper::get_pages, instance::ClassValues, namespaces::extract_namespace_data,
 };
 use crate::{
     artifacts::os::windows::{securitydescriptor::sid::grab_sid, wmi::index::parse_index},
-    filesystem::{files::read_file, metadata::glob_paths},
+    filesystem::files::read_file,
 };
 use common::windows::WmiPersist;
 use log::{error, warn};
@@ -16,15 +16,6 @@ pub(crate) fn parse_wmi_repo(
     objects_path: &str,
     index_path: &str,
 ) -> Result<Vec<ClassValues>, WmiError> {
-    let maps_result = glob_paths(map_paths);
-    let maps = match maps_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[wmi] Could not glob maps path {map_paths}: {err:?}");
-            return Err(WmiError::GlobMaps);
-        }
-    };
-
     let objects_result = read_file(objects_path);
     let objects = match objects_result {
         Ok(result) => result,
@@ -43,34 +34,7 @@ pub(crate) fn parse_wmi_repo(
         }
     };
 
-    let mut seq = 0;
-    let mut pages = Vec::new();
-
-    for map in maps {
-        let map_data_result = read_file(&map.full_path);
-        let map_data = match map_data_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[wmi] Could not read map file {}: {err:?}", map.full_path);
-                return Err(WmiError::ReadMaps);
-            }
-        };
-
-        let map_info_result = parse_map(&map_data);
-        let map_info = match map_info_result {
-            Ok((_, result)) => result,
-            Err(err) => {
-                error!("[wmi] Could not parse map file {}: {err:?}", map.full_path);
-                return Err(WmiError::ParseMap);
-            }
-        };
-
-        // Need to use the map file with the highest sequence
-        if map_info.seq_number2 > seq {
-            seq = map_info.seq_number2;
-            pages = map_info.mappings;
-        }
-    }
+    let pages = get_pages(map_paths)?;
 
     let index_info_result = parse_index(&index);
     let index_info = match index_info_result {

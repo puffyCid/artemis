@@ -6,6 +6,7 @@ use crate::utils::{
     strings::extract_utf8_string,
 };
 use nom::bytes::complete::{take, take_while};
+use serde::{Deserialize, Serialize};
 
 /// Parse and gather index entries
 pub(crate) fn parse_index(data: &[u8]) -> nom::IResult<&[u8], Vec<IndexBody>> {
@@ -73,7 +74,7 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], IndexHeader> {
     Ok((input, header))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct IndexBody {
     array_sub_pages: Vec<i32>,
     array_key_offset: Vec<u16>,

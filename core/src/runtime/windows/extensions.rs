@@ -25,7 +25,10 @@ use super::{
     tasks::js_tasks,
     userassist::js_userassist,
     usnjrnl::js_usnjrnl,
-    wmi::js_wmipersist,
+    wmi::{
+        js_class_description, js_get_wmi_indexes, js_get_wmi_pages, js_list_namespaces_classes,
+        js_wmipersist,
+    },
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -245,6 +248,30 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_wmipersist"),
         2,
         NativeFunction::from_fn_ptr(js_wmipersist),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_list_namespaces_classes"),
+        5,
+        NativeFunction::from_fn_ptr(js_list_namespaces_classes),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_class_description"),
+        6,
+        NativeFunction::from_fn_ptr(js_class_description),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_get_wmi_pages"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_wmi_pages),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_get_wmi_indexes"),
+        1,
+        NativeFunction::from_fn_ptr(js_get_wmi_indexes),
     );
 }
 
