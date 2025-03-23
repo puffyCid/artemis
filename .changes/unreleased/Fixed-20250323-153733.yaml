@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis would not parse alt WMI directories
+time: 2025-03-23T15:37:33.791897617-04:00
