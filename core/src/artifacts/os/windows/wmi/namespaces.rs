@@ -2,7 +2,6 @@ use super::{
     class::ClassInfo,
     instance::{ClassValues, InstanceRecord},
     objects::{ObjectPage, parse_objects, parse_record},
-    windows_management::hash_name,
 };
 use crate::artifacts::os::windows::wmi::instance::{parse_instance_record, parse_instances};
 use log::{error, warn};
@@ -15,10 +14,6 @@ pub(crate) fn extract_namespace_data(
     objects: &[u8],
     pages: &[u32],
 ) -> Vec<ClassValues> {
-    let mut classes_info = Vec::new();
-    let mut instances_info = Vec::new();
-    let mut class_hashes = Vec::new();
-
     let object_info = match parse_objects(objects, pages) {
         Ok((_, result)) => result,
         Err(err) => {
@@ -26,33 +21,8 @@ pub(crate) fn extract_namespace_data(
             return Vec::new();
         }
     };
-
-    // loop to parse all namespaces of WMI repo and get the classes
-    for entries in namespace_vec {
-        // First get all the class data associated with namespace
-        for class_entry in entries {
-            if class_entry.starts_with("CD_") {
-                let class_info_result = get_classes(class_entry, &object_info);
-                let classes_result = match class_info_result {
-                    Ok((_, result)) => result,
-                    Err(_err) => {
-                        warn!("[wmi] Failed to get class info for: {class_entry}");
-                        continue;
-                    }
-                };
-                if classes_result.is_empty() {
-                    continue;
-                }
-                for class in classes_result.values() {
-                    class_hashes.push(hash_name(&class.super_class_name));
-                    class_hashes.push(class.class_hash.clone());
-                }
-                classes_info.push(classes_result);
-            }
-        }
-    }
-    class_hashes.sort();
-    class_hashes.dedup();
+    let mut classes_info = extract_classes(namespace_vec, &object_info);
+    let mut instances_info = Vec::new();
 
     // loop to parse all namespaces of WMI repo and get the instances
     for entries in namespace_vec {
@@ -84,6 +54,35 @@ pub(crate) fn extract_namespace_data(
             Vec::new()
         }
     }
+}
+
+pub(crate) fn extract_classes(
+    namespace_vec: &Vec<Vec<String>>,
+    object_info: &HashMap<u32, ObjectPage>,
+) -> Vec<HashMap<String, ClassInfo>> {
+    let mut classes_info = Vec::new();
+
+    // loop to parse all namespaces of WMI repo and get the classes
+    for entries in namespace_vec {
+        // First get all the class data associated with namespace
+        for class_entry in entries {
+            if class_entry.starts_with("CD_") {
+                let class_info_result = get_classes(class_entry, object_info);
+                let classes_result = match class_info_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        warn!("[wmi] Failed to get class info for: {class_entry}");
+                        continue;
+                    }
+                };
+                if classes_result.is_empty() {
+                    continue;
+                }
+                classes_info.push(classes_result);
+            }
+        }
+    }
+    classes_info
 }
 
 /// Get classes associated with a namespace
@@ -169,10 +168,7 @@ fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
 mod tests {
     use super::{extract_hash_info, extract_namespace_data, get_classes, get_instances};
     use crate::{
-        artifacts::os::windows::wmi::{
-            index::parse_index, map::parse_map, objects::parse_objects,
-            windows_management::hash_name,
-        },
+        artifacts::os::windows::wmi::{index::parse_index, map::parse_map, objects::parse_objects},
         filesystem::files::read_file,
     };
 
@@ -203,13 +199,6 @@ mod tests {
                     break;
                 }
             }
-        }
-
-        let classes = vec![String::from("__NAMESPACE")];
-
-        let mut hash_classes = Vec::new();
-        for class in &classes {
-            hash_classes.push(hash_name(class));
         }
 
         let mut classes_info = Vec::new();
@@ -253,12 +242,6 @@ mod tests {
             }
         }
 
-        let classes = vec![String::from("__NAMESPACE")];
-
-        let mut hash_classes = Vec::new();
-        for class in &classes {
-            hash_classes.push(hash_name(class));
-        }
         let (_, object_info) = parse_objects(&object_data, &results.mappings).unwrap();
 
         let mut classes_info = Vec::new();
@@ -299,13 +282,6 @@ mod tests {
                     break;
                 }
             }
-        }
-
-        let classes = vec![String::from("__NAMESPACE")];
-
-        let mut hash_classes = Vec::new();
-        for class in &classes {
-            hash_classes.push(hash_name(class));
         }
 
         let _ = extract_namespace_data(&namespace_info, &object_data, &results.mappings);

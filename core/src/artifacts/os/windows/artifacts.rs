@@ -821,7 +821,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Takes time to run"]
     fn test_wmipersist() {
         let options = WmiPersistOptions { alt_dir: None };
         let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
@@ -876,6 +875,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Takes time to run"]
     fn test_mft() {
         let options = MftOptions {
             alt_drive: None,

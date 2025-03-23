@@ -15,37 +15,38 @@ use nom::{
     error::ErrorKind,
     number::complete::{le_f32, le_f64, le_i8},
 };
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::mem::size_of;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct ClassInfo {
     pub(crate) super_class_name: String,
     pub(crate) class_name: String,
-    pub(crate) _qualifiers: Vec<Qualifier>,
+    pub(crate) qualifiers: Vec<Qualifier>,
     pub(crate) properties: Vec<Property>,
     pub(crate) class_hash: String,
     pub(crate) includes_parent_props: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct Qualifier {
-    pub(crate) _name: String,
+    pub(crate) name: String,
     pub(crate) value_data_type: CimType,
     pub(crate) data: Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct Property {
     pub(crate) name: String,
     pub(crate) property_data_type: CimType,
-    pub(crate) _property_index: u16,
+    pub(crate) property_index: u16,
     pub(crate) data_offset: u32,
-    pub(crate) _class_level: u32,
-    pub(crate) _qualifiers: Vec<Qualifier>,
+    pub(crate) class_level: u32,
+    pub(crate) qualifiers: Vec<Qualifier>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub(crate) enum CimType {
     Sint16,
     Sint32,
@@ -143,7 +144,7 @@ pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
         super_class_name,
         class_hash: hash_name(&class_name),
         class_name,
-        _qualifiers: qualifiers,
+        qualifiers,
         properties,
         includes_parent_props: false,
     };
@@ -186,7 +187,7 @@ pub(crate) fn parse_qualifier<'a>(
         };
 
         let mut qual = Qualifier {
-            _name: name,
+            name,
             value_data_type: get_cim_data_type(&cim_data_type),
             data: Value::Null,
         };
@@ -244,10 +245,10 @@ fn parse_property<'a>(
         let prop = Property {
             name,
             property_data_type: get_cim_data_type(&prop_data_type),
-            _qualifiers: qualifiers,
-            _property_index: property_index,
+            qualifiers,
+            property_index,
             data_offset,
-            _class_level: class_level,
+            class_level,
         };
         props.push(prop);
     }
@@ -637,20 +638,20 @@ mod tests {
         let (_, results) = parse_class(&data).unwrap();
         assert_eq!(results.super_class_name, "MSFT_DOUsage");
         assert_eq!(results.class_name, "MSFT_DOUploadUsage");
-        assert_eq!(results._qualifiers.len(), 4);
+        assert_eq!(results.qualifiers.len(), 4);
         assert_eq!(results.properties.len(), 3);
 
-        assert_eq!(results._qualifiers[0]._name, "Description");
-        assert_eq!(results._qualifiers[0].value_data_type, CimType::String);
+        assert_eq!(results.qualifiers[0].name, "Description");
+        assert_eq!(results.qualifiers[0].value_data_type, CimType::String);
         assert_eq!(
-            results._qualifiers[0].data,
+            results.qualifiers[0].data,
             Value::String(String::from("25"))
         );
 
         assert_eq!(results.properties[1].name, "UploadRatePct");
         assert_eq!(results.properties[1].property_data_type, CimType::Uint8);
-        assert_eq!(results.properties[1]._property_index, 5);
-        assert_eq!(results.properties[1]._qualifiers.len(), 1);
+        assert_eq!(results.properties[1].property_index, 5);
+        assert_eq!(results.properties[1].qualifiers.len(), 1);
     }
 
     #[test]

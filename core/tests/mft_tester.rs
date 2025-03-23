@@ -1,5 +1,4 @@
 #[test]
-//#[cfg(target_os = "windows")]
 fn test_mft_parser() {
     use core::core::parse_toml_file;
     use std::path::PathBuf;

@@ -17,6 +17,7 @@ use super::{
     windows_management::{get_wmi_persist, parse_wmi_repo},
 };
 use crate::{
+    artifacts::os::systeminfo::info::get_platform,
     structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
 };
 use common::windows::WmiPersist;
@@ -26,12 +27,24 @@ use log::error;
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
     if let Some(alt_dir) = &options.alt_dir {
         let mut correct_dir = alt_dir.to_string();
-        if let Some(verify_dir) = correct_dir.strip_suffix('\\') {
-            correct_dir = verify_dir.to_string();
-        }
-        let map_paths = format!("{correct_dir}\\MAPPING*.MAP");
-        let objects_path = format!("{correct_dir}\\OBJECTS.DATA");
-        let index_path = format!("{correct_dir}\\INDEX.BTR");
+        let (map_paths, objects_path, index_path) =
+            if get_platform().to_lowercase().contains("windows") {
+                if let Some(verify_dir) = correct_dir.strip_suffix('\\') {
+                    correct_dir = verify_dir.to_string();
+                }
+                let map_paths = format!("{correct_dir}\\MAPPING*.MAP");
+                let objects_path = format!("{correct_dir}\\OBJECTS.DATA");
+                let index_path = format!("{correct_dir}\\INDEX.BTR");
+                (map_paths, objects_path, index_path)
+            } else {
+                if let Some(verify_dir) = correct_dir.strip_suffix('/') {
+                    correct_dir = verify_dir.to_string();
+                }
+                let map_paths = format!("{correct_dir}/MAPPING*.MAP");
+                let objects_path = format!("{correct_dir}/OBJECTS.DATA");
+                let index_path = format!("{correct_dir}/INDEX.BTR");
+                (map_paths, objects_path, index_path)
+            };
 
         return parse_wmi_persist(&map_paths, &objects_path, &index_path);
     }

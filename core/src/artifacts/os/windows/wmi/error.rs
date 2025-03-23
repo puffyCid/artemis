@@ -9,6 +9,7 @@ pub(crate) enum WmiError {
     ReadIndex,
     ParseIndex,
     DriveLetter,
+    ClassDescriptions,
 }
 
 impl std::error::Error for WmiError {}
@@ -23,6 +24,7 @@ impl fmt::Display for WmiError {
             WmiError::ReadIndex => write!(f, "Failed to read index data"),
             WmiError::ParseIndex => write!(f, "Failed to parse index data"),
             WmiError::DriveLetter => write!(f, "Could not get drive letter"),
+            WmiError::ClassDescriptions => write!(f, "Failed to get class descriptions"),
         }
     }
 }

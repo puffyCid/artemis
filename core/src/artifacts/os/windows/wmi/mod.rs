@@ -1,6 +1,7 @@
 mod class;
 mod error;
-mod index;
+pub(crate) mod helper;
+pub(crate) mod index;
 mod instance;
 mod map;
 mod namespaces;

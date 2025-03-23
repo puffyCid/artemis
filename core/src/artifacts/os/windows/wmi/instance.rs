@@ -77,12 +77,13 @@ pub(crate) fn parse_instances<'a>(
 ) -> nom::IResult<&'a [u8], Vec<ClassValues>> {
     let mut class_values = Vec::new();
 
-    let mut empty_instances = HashSet::new();
+    let mut empty_instances: HashSet<String> = HashSet::new();
     for instance in instances {
         if empty_instances.contains(&instance.hash_name) {
             continue;
         }
-        for class in &mut *classes {
+
+        for class in classes.iter_mut() {
             if let Some(class_value) = class.get_mut(&instance.hash_name) {
                 let value_result = grab_instance_data(instance, class_value, lookup_parents);
                 let class_value = match value_result {
@@ -134,7 +135,6 @@ fn grab_instance_data<'a>(
 
     let prop_count = class_value.properties.len();
     let (remaining, _prop_bit_data) = parse_instance_props(&instance.data, &prop_count)?;
-
     // Calculate the total property data containing offsets size
     let prop_data_size = get_prop_data_size(&class_value.properties);
     let (remaining, prop_data_offsets) = take(prop_data_size)(remaining)?;
@@ -291,10 +291,10 @@ mod tests {
         let prop = Property {
             name: String::from("test"),
             property_data_type: CimType::Uint8,
-            _property_index: 0,
+            property_index: 0,
             data_offset: 0,
-            _class_level: 0,
-            _qualifiers: Vec::new(),
+            class_level: 0,
+            qualifiers: Vec::new(),
         };
 
         let result = get_prop_data_size(&vec![prop]);
