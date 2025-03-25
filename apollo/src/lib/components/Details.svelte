@@ -19,19 +19,12 @@
     function viewData() {
         visible = !visible;
     }
-
-    /**
-     * Toggle the modal for nested objects
-     */
-    function toggleModal() {
-        modalOpen = !modalOpen;
-    }
 </script>
 
 <tr>
-    <td>{data.datetime}</td>
-    <td>{data.timestamp_desc}</td>
-    <td>
+    <td class="whitespace-nowrap" width=20>{data.datetime}</td>
+    <td class="whitespace-nowrap" width=20>{data.timestamp_desc}</td>
+    <td class="whitespace-nowrap" width=20>
         <div class="dropdown dropdown-top">
             <div
                 tabindex="0"
@@ -110,9 +103,9 @@
                         <tr>
                             <td>{key}</td>
                             {#if Array.isArray(value) && typeof value.at(0) != "object" && value.length < 25}
-                                <td>
+                                <td class="space-x-2">
                                     {#each value as entry}
-                                        <div class="badge badge-outline">
+                                        <div class="badge badge-dash badge-info">
                                             {entry}
                                         </div>
                                     {/each}

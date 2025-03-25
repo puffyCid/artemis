@@ -153,7 +153,6 @@ fn opensearch_settings() -> OpenSearchCreds {
             .to_string();
     }
 
-    println!("{}", info.creds);
     info
 }
 
