@@ -11,7 +11,6 @@
     ];
 
     let visible = $state(false);
-    let modalOpen = $state(false);
 
     /**
      * Toggle timeline details
