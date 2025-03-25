@@ -60,7 +60,7 @@
             </div>
             <ul
                 tabindex="-1"
-                class="dropdown-content p-2 bg-base-100 rounded-box z-[1] w-auto shadow"
+                class="dropdown-content p-2 bg-base-100 rounded-box z-1 w-auto shadow-sm"
             >
                 <Tags {tags} document_id={data["_opensearch_document_id"] as string} />
             </ul>
