@@ -1,25 +1,47 @@
 <script lang="ts">
+    import { queryCallback } from "$lib/queries/timeline";
+    import type { State, TableHandler } from "@vincjo/datatables/server";
     import "cally";
-    
-    let dateFilter = "";
+
+    const props: { table: TableHandler } = $props();
+    const table = props.table;
+
+    let dates = "";
     let modalOpen = $state(false);
     /**
      * Toggle the modal for Calendar
      */
     function toggleModal() {
         modalOpen = !modalOpen;
-
     }
 
+    /**
+     * Grab the user selected date range
+     */
     function onDate() {
-        const test = document.querySelector("calendar-range");
-        if(test != null && test.value.includes("/") && test.value != dateFilter) {
-            dateFilter = test.value;
-            console.log(`apply filter for: ${dateFilter}`);
-
+        const entry = document.querySelector("calendar-range");
+        if (
+            entry != null &&
+            entry.value.includes("/") &&
+            dates != entry.value
+        ) {
+            dates = entry.value;
+            table.load((state: State) => {
+                if (state.filters === undefined) {
+                    state.filters = [
+                        { field: "timefilter", value: entry.value },
+                    ];
+                } else {
+                    state.filters.push({
+                        field: "timefilter",
+                        value: entry.value,
+                    });
+                }
+                return queryCallback(state, table);
+            });
+            table.invalidate();
             return toggleModal();
         }
-        dateFilter = "";
     }
 </script>
 

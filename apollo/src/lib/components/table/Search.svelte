@@ -29,6 +29,6 @@
         placeholder="Raw search"
     />
     <Count {table} />
-    <Dates />
+    <Dates {table}/>
     <Navigation {table} />
 </form>
