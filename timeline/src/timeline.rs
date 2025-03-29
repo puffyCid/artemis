@@ -5,7 +5,7 @@ use crate::artifacts::{
         emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
         unifiedlogs, users_macos,
     },
-    processes::processes,
+    processes::{network, processes},
     windows::{
         amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_files, recycle_bin,
         registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
@@ -19,6 +19,7 @@ use serde_json::Value;
 pub enum Artifacts {
     Processes,
     Files,
+    Connections,
     // Linux
     Journal,
     Logons,
@@ -101,6 +102,7 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
         Artifacts::Spotlight => spotlight(data),
         Artifacts::UnifiedLogs => unifiedlogs(data),
         Artifacts::SudoMacos => sudo_macos(data),
+        Artifacts::Connections => network(data),
         Artifacts::Unknown => {
             warn!("Got unknown artifact");
             None

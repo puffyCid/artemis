@@ -6,7 +6,7 @@ use timeline::timeline::{Artifacts, timeline_artifact};
 pub(crate) fn timeline_data(artifact: &mut Value, artifact_name: &str) {
     let target = get_artifact(artifact_name);
     if target == Artifacts::Unknown {
-        error!("[core] Unknown artifact {artifact_name}");
+        error!("[core] Unknown artifact to timeline {artifact_name}");
         return;
     }
 
@@ -56,6 +56,7 @@ fn get_artifact(artifact: &str) -> Artifacts {
         "logons" => Artifacts::Logons,
         "sudologs-linux" => Artifacts::SudoLinux,
         "users-windows" => Artifacts::UsersWindows,
+        "connections" => Artifacts::Connections,
         _ => Artifacts::Unknown,
     }
 }
@@ -106,6 +107,7 @@ mod tests {
             "logons",
             "sudologs-linux",
             "users-windows",
+            "connections",
         ];
 
         for entry in test {
