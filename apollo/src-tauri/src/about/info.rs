@@ -17,7 +17,7 @@ pub struct AboutMe {
 pub(crate) async fn about_me() -> Result<AboutMe, ()> {
     let mut info = AboutMe {
         apollo: env!("CARGO_PKG_VERSION").to_string(),
-        tauri: String::from("2.2.0"),
+        tauri: String::from("2.4.0"),
         rust: env!("VERGEN_RUSTC_SEMVER").to_string(),
         build: env!("VERGEN_BUILD_DATE").to_string(),
         resources: Value::Null,
@@ -36,7 +36,7 @@ pub(crate) async fn metadata() -> Result<Value, ()> {
     let meta = match get_metadata().await {
         Ok(result) => result,
         Err(err) => {
-            error!("[app] could not get metadata: {err:?}");
+            error!("[apollo] could not get metadata: {err:?}");
             Value::Null
         }
     };

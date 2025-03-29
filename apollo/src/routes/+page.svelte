@@ -10,7 +10,7 @@
   </ol>
   <Index />
   <div class="flex col-span-1 items-center">
-    <button class="btn btn-outline btn-wide rounded">
+    <button class="btn btn-outline btn-wide rounded-sm">
       Connect to OpenSearch
     </button>
   </div>

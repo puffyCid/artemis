@@ -149,7 +149,7 @@ fn opensearch_settings() -> OpenSearchCreds {
             .to_string();
         info.domain = settings_serde["domain"]
             .as_str()
-            .unwrap_or("127.0.0.1")
+            .unwrap_or("https://127.0.0.1:9200")
             .to_string();
     }
 

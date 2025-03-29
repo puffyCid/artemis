@@ -18,7 +18,7 @@
 
 <main class="grid grid-cols-4 space-x-2 space-y-5">
     <Menu />
-    <div class="stats col-span-full shadow p-2">
+    <div class="stats col-span-full shadow-sm p-2">
         <div class="stat place-items-center">
             <div class="stat-value">{data.apollo}</div>
             <div class="stat-desc text-zinc-600">Apollo version</div>
@@ -36,7 +36,7 @@
             <div class="stat-desc text-zinc-600">Build date</div>
         </div>
     </div>
-    <div class="stats col-span-3 shadow p-2">
+    <div class="stats col-span-3 shadow-sm p-2">
         <div class="stat place-items-center">
             <div class="stat-value">{memory_used}%</div>
             <div class="stat-desc text-zinc-600">OS Memory Used</div>

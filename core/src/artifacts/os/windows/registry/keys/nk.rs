@@ -10,7 +10,7 @@ use crate::{
             nom_unsigned_two_bytes,
         },
         regex_options::regex_check,
-        strings::{extract_ascii_utf16_string, strings_contains},
+        strings::{extract_ascii_utf16_string, extract_utf16_string, strings_contains},
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
@@ -77,7 +77,15 @@ impl NameKey {
         let (input, key_name_data) = take(key_name_length)(input)?;
 
         // The string can either be ASCII or UTF16
-        let key_name = extract_ascii_utf16_string(key_name_data);
+        let mut key_name = extract_ascii_utf16_string(key_name_data);
+        if format!("{key_name:?}").contains("\\u{") {
+            key_name = extract_utf16_string(key_name_data);
+        }
+        if key_name.contains("ß") {
+            println!("{:?}", assert!(!key_name.contains("\\u")));
+            println!("{key_name:?}");
+            panic!("{key_name_data:?}");
+        }
 
         let name_key = NameKey {
             _sig: sig,

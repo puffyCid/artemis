@@ -23,7 +23,7 @@
 
 <div class="col-span-full">
     <div class="w-full">
-        <Search {table} />
+        <Search {table}/>
 
         <Datatable {table}>
             <table>

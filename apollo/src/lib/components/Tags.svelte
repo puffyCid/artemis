@@ -13,7 +13,7 @@
      * @param tag The tag name to apply
      */
     async function tagRow(tag: string) {
-        const status = await applyTag("test", document_id, tag);
+        const status = await applyTag(document_id, tag);
     }
 </script>
 

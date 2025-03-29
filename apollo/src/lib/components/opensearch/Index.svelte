@@ -27,7 +27,7 @@
 </script>
 
 <div class="col-span-1 space-y-3 p-2">
-    <button class="btn btn-outline btn-wide rounded" onclick={toggleModal}>
+    <button class="btn btn-outline btn-wide rounded-sm" onclick={toggleModal}>
         Upload Data
     </button>
     {#if modalOpen}
@@ -48,7 +48,7 @@
                         />
                     </form>
                     <button
-                        class="btn btn-outline btn-wide rounded"
+                        class="btn btn-outline btn-wide rounded-sm"
                         onclick={() => openFolder()}
                     >
                         Select Folder
