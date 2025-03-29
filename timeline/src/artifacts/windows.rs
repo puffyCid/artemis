@@ -2,7 +2,7 @@ use super::{
     files::{extract_filename_times, extract_times},
     meta::check_meta,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Timeline Windows Users
@@ -280,7 +280,17 @@ pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
         entry["data_type"] = Value::String(String::from("windows:ntfs:file"));
         entry["message"] = Value::String(entry["full_path"].as_str()?.into());
 
-        let temp = entry.clone();
+        let temp = json![{
+            "created": entry["created"].as_str()?,
+            "modified": entry["modified"].as_str()?,
+            "accessed": entry["accessed"].as_str()?,
+            "changed": entry["changed"].as_str()?,
+            "filename_created": entry["filename_created"].as_str()?,
+            "filename_modified": entry["filename_modified"].as_str()?,
+            "filename_accessed": entry["filename_accessed"].as_str()?,
+            "filename_changed": entry["filename_changed"].as_str()?,
+        }];
+
         let mut times = extract_times(&temp)?;
         extract_filename_times(&temp, &mut times)?;
         for (key, value) in times {
@@ -713,7 +723,16 @@ pub(crate) fn mft(data: &mut Value) -> Option<()> {
         entry["data_type"] = Value::String(String::from("windows:ntfs:mft::entry"));
         entry["message"] = Value::String(entry["full_path"].as_str()?.into());
 
-        let temp = entry.clone();
+        let temp = json![{
+            "created": entry["created"].as_str()?,
+            "modified": entry["modified"].as_str()?,
+            "accessed": entry["accessed"].as_str()?,
+            "changed": entry["changed"].as_str()?,
+            "filename_created": entry["filename_created"].as_str()?,
+            "filename_modified": entry["filename_modified"].as_str()?,
+            "filename_accessed": entry["filename_accessed"].as_str()?,
+            "filename_changed": entry["filename_changed"].as_str()?,
+        }];
         let mut times = extract_times(&temp)?;
         extract_filename_times(&temp, &mut times)?;
         for (key, value) in times {

@@ -301,7 +301,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     }
                 }
             }
-            "logon" => {
+            "logons" => {
                 let options = match &artifacts.logons {
                     Some(result_data) => result_data,
                     _ => continue,

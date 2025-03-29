@@ -501,6 +501,7 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),

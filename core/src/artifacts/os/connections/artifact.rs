@@ -47,9 +47,8 @@ pub(crate) fn output_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::structs::toml::Output;
-
     use super::list_connections;
+    use crate::structs::toml::Output;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -57,6 +56,7 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("csv"),
             compress,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),

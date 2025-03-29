@@ -275,6 +275,7 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
+            timeline: false,
             url: Some(format!(
                 "http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
             )),

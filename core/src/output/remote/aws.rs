@@ -395,6 +395,7 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
+            timeline: false,
             url: Some(format!("http://replacemeduh.com:{port}")),
             // Fake keys created at https://canarytokens.org/generate
             api_key: Some(String::from(

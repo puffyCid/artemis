@@ -31,6 +31,7 @@ pub struct Output {
     pub output: String,
     pub format: String,
     pub compress: bool,
+    pub timeline: bool,
     pub filter_name: Option<String>,
     pub filter_script: Option<String>,
     pub url: Option<String>,

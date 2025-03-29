@@ -52,7 +52,7 @@ fn get_cpu(system: &mut System) -> Vec<Cpus> {
             name: cpu.name().to_string(),
             vendor_id: cpu.vendor_id().to_string(),
             brand: cpu.brand().to_string(),
-            physical_core_count: system.physical_core_count().unwrap_or(0),
+            physical_core_count: System::physical_core_count().unwrap_or(0),
         };
         cpu_vec.push(cpu);
     }

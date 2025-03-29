@@ -82,6 +82,7 @@ fn parse_args(args: &Args) {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
             collection_id: 0,
+            timeline: false,
             directory: String::from("./tmp"),
             output: String::from("local"),
             format: String::from("json"),
@@ -219,6 +220,7 @@ mod tests {
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
                 compress: false,
+                timeline: false,
             }),
         };
 
@@ -240,6 +242,7 @@ mod tests {
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
                 compress: false,
+                timeline: false,
             }),
         };
 
@@ -266,6 +269,7 @@ mod tests {
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
                 compress: false,
+                timeline: false,
             }),
         };
 

@@ -39,6 +39,9 @@ pub(crate) enum Commands {
         /// GZIP Compress results
         #[arg(long)]
         compress: bool,
+        /// Timeline parsed data. Output is always JSONL
+        #[arg(long)]
+        timeline: bool,
     },
 }
 
@@ -54,6 +57,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             format,
             output_dir,
             compress,
+            timeline,
         } => {
             if artifact.is_none() {
                 println!("No artifact provided");
@@ -63,12 +67,18 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             let arti = artifact.as_ref().unwrap();
             collector.artifacts.push(setup_artifact(arti));
             collector.output.compress = *compress;
+            collector.output.timeline = *timeline;
 
             if !format.is_empty() {
                 collector.output.format = format.to_string().to_lowercase();
             }
             if !output_dir.is_empty() {
                 collector.output.directory = output_dir.to_string();
+            }
+
+            // Timelining data will always output to jsonl
+            if *timeline {
+                collector.output.format = String::from("jsonl")
             }
 
             println!(
@@ -260,7 +270,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 alt_file: alt_file.clone(),
             };
             collect.logons = Some(options);
-            collect.artifact_name = String::from("logon");
+            collect.artifact_name = String::from("logons");
         }
         CommandArgs::SudologsLinux { alt_path } => {
             let options = LinuxSudoOptions {
@@ -516,6 +526,7 @@ mod tests {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
             collection_id: 0,
+            timeline: false,
             directory: String::from("./tmp"),
             output: String::from("local"),
             format: String::from("json"),
@@ -542,6 +553,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -563,6 +575,7 @@ mod tests {
             }),
             format: String::from("json"),
             compress: false,
+            timeline: false,
             output_dir: String::from("./tmp"),
         };
 
@@ -577,6 +590,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: true,
+            timeline: false,
         };
 
         let out = output();
@@ -587,6 +601,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -599,6 +614,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -609,6 +625,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -619,6 +636,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -629,6 +647,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -639,6 +658,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -649,6 +669,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -659,6 +680,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -669,6 +691,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -679,6 +702,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -689,6 +713,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -705,6 +730,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -721,6 +747,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -740,6 +767,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -752,6 +780,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -762,6 +791,7 @@ mod tests {
             format: String::from("json"),
             compress: false,
             output_dir: String::from("./tmp"),
+            timeline: true,
         };
 
         let out = output();
@@ -779,7 +809,7 @@ mod tests {
             }),
             format: String::from("json"),
             compress: false,
-
+            timeline: false,
             output_dir: String::from("./tmp"),
         };
 
@@ -801,6 +831,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -814,6 +845,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -827,6 +859,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -837,6 +870,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -847,6 +881,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -857,6 +892,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -867,6 +903,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -877,6 +914,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -887,6 +925,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -903,6 +942,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -916,6 +956,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -932,6 +973,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
@@ -956,6 +998,7 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
+            timeline: false,
         };
 
         let out = output();
