@@ -640,6 +640,7 @@ mod tests {
             directory: directory.to_string(),
             format: format.to_string(),
             compress,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),

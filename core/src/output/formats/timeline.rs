@@ -103,7 +103,7 @@ mod tests {
             "unifiedlogs",
             "sudologs-macos",
             "spotlight",
-            "logon",
+            "logons",
             "sudologs-linux",
             "users-windows",
         ];

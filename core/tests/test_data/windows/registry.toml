@@ -5,6 +5,7 @@ name = "registry_collection"
 directory = "./tmp"
 format = "json"
 compress = true
+timeline = false
 endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
 collection_id = 1
 output = "local"
@@ -12,7 +13,7 @@ output = "local"
 [[artifacts]]
 artifact_name = "registry" # Parses the whole Registry file
 [artifacts.registry]
-user_hives = true # All NTUSER.DAT and UsrClass.dat
+user_hives = true   # All NTUSER.DAT and UsrClass.dat
 system_hives = true # SYSTEM, SOFTWARE, SAM, SECURITY
 # alt_file = "C:\\Artifacts\\SYSTEM" # Optional
 path_regex = "" # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase

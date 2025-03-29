@@ -5,6 +5,7 @@ name = "fsevents_collection"
 directory = "./tmp"
 format = "json"
 compress = true
+timeline = false
 endpoint_id = "abdc"
 collection_id = 1
 output = "local"
