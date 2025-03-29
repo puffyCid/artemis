@@ -8,7 +8,7 @@ pub(crate) async fn query_timeline(state: QueryState) -> Result<Value, ()> {
     let result = match timeline(state).await {
         Ok(result) => result,
         Err(err) => {
-            error!("[app] could not get timeline entries: {err:?}");
+            error!("[apollo] could not get timeline entries: {err:?}");
             Value::Null
         }
     };
@@ -22,7 +22,7 @@ pub(crate) async fn list_artifacts() -> Result<Value, ()> {
     let result = match artifacts().await {
         Ok(result) => result,
         Err(err) => {
-            error!("[app] could not get artifacts counts: {err:?}");
+            error!("[apollo] could not get artifacts counts: {err:?}");
             Value::Null
         }
     };
@@ -36,7 +36,7 @@ pub(crate) async fn indexes() -> Result<Value, ()> {
     let result = match list_indexes().await {
         Ok(result) => result,
         Err(err) => {
-            error!("[app] could not get indexes list: {err:?}");
+            error!("[apollo] could not get indexes list: {err:?}");
             Value::Null
         }
     };

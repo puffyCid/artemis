@@ -3,6 +3,7 @@
     import type { State, TableHandler } from "@vincjo/datatables/server";
     import Count from "./Count.svelte";
     import Navigation from "./Navigation.svelte";
+    import Dates from "./Dates.svelte";
 
     const props: { table: TableHandler } = $props();
     const table = props.table;
@@ -28,5 +29,6 @@
         placeholder="Raw search"
     />
     <Count {table} />
+    <Dates {table}/>
     <Navigation {table} />
 </form>

@@ -42,11 +42,30 @@ export async function queryCallback(
             [query_string]: {},
         },
     };
+
+    let userFilters = ""
     for (const filter of filters || []) {
+        // Apply calendar filter as datetime ranges
+        if (filter.field === "timefilter") {
+            const entries = filter.value as string ?? "1970-01-01T00:00:00Z/1970-01-01T00:00:00Z";
+            const gte = entries.split("/").at(0);
+            const lte = entries.split("/").at(1);
+            userFilters += `datetime: [${gte} TO ${lte}] AND `
+            continue;
+        } 
+
+        userFilters += `${String(filter.field)}: ${filter.value} AND `
+    }
+
+    // Apply user filters
+    if(filters != undefined) {
+        const lastAnd = userFilters.lastIndexOf(" AND ");
+        userFilters = userFilters.trim().substring(0, lastAnd);
         query.query[query_string] = {
-            "query": `${String(filter.field)}: ${filter.value}`,
+            "query": userFilters,
         };
     }
+
     let ordering = Ordering.ASC;
     let order_column = "datetime";
     if (sort != undefined) {

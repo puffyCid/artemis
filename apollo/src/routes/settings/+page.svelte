@@ -112,7 +112,7 @@
             />
         </label>
         <button
-            class="btn btn-outline btn-primary btn-wide rounded"
+            class="btn btn-outline btn-primary btn-wide rounded-sm"
             onclick={() => saveOpenSearch()}>Save Creds</button
         >
     </div>

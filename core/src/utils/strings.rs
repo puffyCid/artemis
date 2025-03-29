@@ -136,7 +136,12 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
         match result {
             Ok(value) => value,
             Err(_err) => match bytes_to_utf16_string(data, &true) {
-                Ok(result) => result,
+                Ok(result) => {
+                    if format!("{result:?}").contains("\\u{") {
+                        return extract_utf16_string(data);
+                    }
+                    result
+                }
                 Err(_err) => match bytes_to_utf16_string(data, &false) {
                     Ok(result) => result,
                     Err(_err) => extract_utf16_string(data),
@@ -343,5 +348,11 @@ mod tests {
             extract_utf16_string(&test),
             "Raise Your hand if you like Rust! 🙋‍♂️ 🙋‍♀️"
         )
+    }
+
+    #[test]
+    fn test_extract_utf16_emoji_registry() {
+        let test_data = vec![60, 216, 14, 223, 60, 216, 15, 223, 60, 216, 13, 223];
+        assert_eq!(extract_ascii_utf16_string(&test_data), "🌎🌏🌍")
     }
 }
