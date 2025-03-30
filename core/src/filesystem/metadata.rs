@@ -17,10 +17,10 @@ pub(crate) struct StandardTimestamps {
 pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
     let meta = get_metadata(path)?;
     let mut timestamps = StandardTimestamps {
-        created: String::new(),
-        modified: String::new(),
-        accessed: String::new(),
-        changed: String::new(),
+        created: String::from("1970-01-01T00:00:00Z"),
+        modified: String::from("1970-01-01T00:00:00Z"),
+        accessed: String::from("1970-01-01T00:00:00Z"),
+        changed: String::from("1970-01-01T00:00:00Z"),
     };
 
     #[cfg(target_os = "windows")]
@@ -31,15 +31,16 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_access_time()));
         timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_write_time()));
         timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(&meta.creation_time()));
-        timestamps.changed = String::from("1970-01-01T00:00:00Z");
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd"))]
     {
         #[cfg(target_os = "linux")]
         use std::os::linux::fs::MetadataExt;
         #[cfg(target_os = "macos")]
         use std::os::macos::fs::MetadataExt;
+        #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
+        use std::os::unix::fs::MetadataExt;
 
         timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
         timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
@@ -49,7 +50,6 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         {
             use std::time::SystemTime;
 
-            timestamps.created = String::from("1970-01-01T00:00:00Z");
             let created = meta
                 .created()
                 .unwrap_or(SystemTime::UNIX_EPOCH)
@@ -88,7 +88,7 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystem
     let paths = match glob_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Could not glob {glob_pattern}: {err:?}");
+            error!("[core] Could not glob {glob_pattern}: {err:?}");
             return Err(FileSystemError::BadGlob);
         }
     };

@@ -325,10 +325,7 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, fil
 
     let status = output_artifact(&mut serde_data, "files", output, start_time, filter);
     if status.is_err() {
-        error!(
-            "[artemis-core] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+        error!("[core] Could not output data: {:?}", status.unwrap_err());
     }
 }
 

@@ -10,7 +10,7 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
     let sys_drive = get_env_value("SystemDrive");
 
     if sys_drive.is_empty() {
-        error!("[artemis-core] Empty systemdrive value");
+        error!("[core] Empty systemdrive value");
         return Err(ArtemisError::Env);
     }
     // unwrap should be safe since we check for at least one value in string
@@ -28,7 +28,7 @@ pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, Artem
     let reg_values = match reg_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Could not get folder descriptions: {err:?}",);
+            error!("[core] Could not get folder descriptions: {err:?}",);
             return Err(ArtemisError::Env);
         }
     };
@@ -56,7 +56,7 @@ pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
     let reg_values = match reg_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[artemis-core] Could not get CLSIDs: {err:?}");
+            error!("[core] Could not get CLSIDs: {err:?}");
             return Err(ArtemisError::Env);
         }
     };

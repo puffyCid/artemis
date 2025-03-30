@@ -30,10 +30,7 @@ pub(crate) fn azure_upload(
 
     azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len())?;
 
-    info!(
-        "[artemis-core] Uploaded {} bytes to Azure blob storage",
-        data.len()
-    );
+    info!("[core] Uploaded {} bytes to Azure blob storage", data.len());
 
     Ok(())
 }
@@ -70,7 +67,7 @@ pub(crate) fn azure_url_upload(
         let res = match res_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Failed to upload data to Azure blob storage: {err:?}");
+                error!("[core] Failed to upload data to Azure blob storage: {err:?}");
                 return Err(RemoteError::RemoteUpload);
             }
         };
@@ -78,14 +75,14 @@ pub(crate) fn azure_url_upload(
         if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
             if attempts < max_attempts {
                 warn!(
-                    "[artemis-core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}"
+                    "[core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}"
                 );
 
                 attempts += 1;
                 continue;
             }
             error!(
-                "[artemis-core] Non-200 response from Azure blob storage: {:?}",
+                "[core] Non-200 response from Azure blob storage: {:?}",
                 res.text()
             );
             return Err(RemoteError::RemoteUpload);
@@ -101,7 +98,7 @@ pub(crate) fn compose_azure_url(azure_url: &str, filename: &str) -> Result<Strin
     let azure_uris: Vec<&str> = azure_url.split('?').collect();
     let expected_len = 2;
     if azure_uris.len() < expected_len {
-        error!("[artemis-core] Unexpected Azure URL provided: {azure_url}");
+        error!("[core] Unexpected Azure URL provided: {azure_url}");
         return Err(RemoteError::RemoteUrl);
     }
 
