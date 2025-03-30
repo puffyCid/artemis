@@ -71,6 +71,7 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("json"),
             compress: false,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
@@ -94,9 +95,8 @@ mod tests {
             format: String::from("json"),
             compress: true,
             url: Some(String::new()),
-
+            timeline: false,
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: String::from("local"),

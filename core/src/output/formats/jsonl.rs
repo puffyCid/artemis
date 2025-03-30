@@ -1,4 +1,4 @@
-use super::error::FormatError;
+use super::{error::FormatError, timeline::timeline_data};
 use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
@@ -29,6 +29,11 @@ pub(crate) fn jsonl_format(
     // If our data is an array loop through each element and output as a separate line
     if serde_data.is_array() {
         let mut empty_vec = Vec::new();
+        // If we are timelining data. Timeline now before appending collection metadata
+        if output.timeline {
+            timeline_data(serde_data, output_name);
+        }
+
         let entries = serde_data.as_array_mut().unwrap_or(&mut empty_vec);
         // If array is empty just output metadata
         if entries.is_empty() {
@@ -234,6 +239,7 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
@@ -257,6 +263,7 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
@@ -279,6 +286,7 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),

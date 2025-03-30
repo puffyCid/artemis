@@ -5,6 +5,7 @@ name = "processes_collection"
 directory = "./tmp"
 format = "json"
 compress = true
+timeline = false
 endpoint_id = "abdc"
 collection_id = 1
 output = "local"
@@ -13,6 +14,6 @@ output = "local"
 artifact_name = "processes" # Name of artifact
 [artifacts.processes]
 metadata = true # Get executable metadata
-md5 = true # MD5 all files
-sha1 = false # SHA1 all files
-sha256 = false # SHA256 all files
+md5 = true      # MD5 all files
+sha1 = false    # SHA1 all files
+sha256 = false  # SHA256 all files

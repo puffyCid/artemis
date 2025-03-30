@@ -113,7 +113,12 @@ pub(crate) fn get_filelist(
         file_entry.yara_hits = scan;
 
         filelist_vec.push(file_entry);
-        let max_list = 100000;
+        // If we are not parsing binary data and not timelining our limit is 100k, otherwise set limit to 1k
+        let max_list = if !args.metadata && !output.timeline {
+            100000
+        } else {
+            1000
+        };
         if filelist_vec.len() >= max_list {
             file_output(&filelist_vec, output, &start_time, filter);
             filelist_vec = Vec::new();
@@ -350,9 +355,8 @@ mod tests {
             format: String::from("jsonl"),
             compress,
             url: Some(String::new()),
-
+            timeline: false,
             api_key: Some(String::new()),
-
             endpoint_id: String::from("abcd"),
             collection_id: 0,
             output: output.to_string(),

@@ -1,5 +1,5 @@
 use super::{files::extract_times, meta::check_meta};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 /// Timeline macOS Users
 pub(crate) fn users_macos(data: &mut Value) -> Option<()> {
@@ -121,7 +121,12 @@ pub(crate) fn launchd(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Launch Daemon"));
         entry["data_type"] = Value::String(String::from("macos:plist:launchd:entry"));
 
-        let temp = entry.clone();
+        let temp = json![{
+            "created": entry["created"].as_str()?,
+            "modified": entry["modified"].as_str()?,
+            "accessed": entry["accessed"].as_str()?,
+            "changed": entry["changed"].as_str()?,
+        }];
         let times = extract_times(&temp)?;
 
         for (key, value) in times {

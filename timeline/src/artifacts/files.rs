@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 use super::meta::check_meta;
@@ -17,7 +17,12 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
         entry["data_type"] = Value::String(String::from("system:fs:file"));
         entry["message"] = Value::String(entry["full_path"].as_str()?.into());
 
-        let temp = entry.clone();
+        let temp = json![{
+            "created": entry["created"].as_str()?,
+            "modified": entry["modified"].as_str()?,
+            "accessed": entry["accessed"].as_str()?,
+            "changed": entry["changed"].as_str()?,
+        }];
         let times = extract_times(&temp)?;
         for (key, value) in times {
             entry["datetime"] = Value::String(key.into());

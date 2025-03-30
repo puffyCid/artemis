@@ -99,6 +99,7 @@ Options:
       --format <FORMAT>          Output format. JSON or JSONL or CSV [default: JSON]
       --output-dir <OUTPUT_DIR>  Optional output directory for storing results [default: ./tmp]
       --compress                 GZIP Compress results
+      --timeline                 Timeline parsed data. Output is always JSONL
   -h, --help                     Print help
 
 

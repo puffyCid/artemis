@@ -627,6 +627,7 @@ mod tests {
             name: name.to_string(),
             directory: directory.to_string(),
             format: String::from("csv"),
+            timeline: false,
             compress,
             url: Some(String::new()),
             api_key: Some(String::new()),

@@ -43,10 +43,10 @@ pub(crate) fn output_artifact(
         }
     }
 
-    let output_status = if output.format.to_lowercase() == "json" {
-        json_format(serde_data, output_name, output, start_time)
-    } else if output.format.to_lowercase() == "jsonl" {
+    let output_status = if output.format.to_lowercase() == "jsonl" || output.timeline {
         jsonl_format(serde_data, output_name, output, start_time)
+    } else if output.format.to_lowercase() == "json" {
+        json_format(serde_data, output_name, output, start_time)
     } else if output.format.to_lowercase() == "csv" {
         csv_format(serde_data, output_name, output)
     } else {
@@ -76,6 +76,7 @@ mod tests {
             directory: directory.to_string(),
             format: format.to_string(),
             compress,
+            timeline: false,
             url: Some(String::new()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
