@@ -5,16 +5,14 @@ use crate::{
 };
 use log::error;
 use macos_unifiedlogs::{
-    dsc::SharedCacheStrings,
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
-    parser::{build_log, collect_shared_strings, collect_strings, collect_timesync},
+    parser::{build_log, collect_timesync},
     timesync::TimesyncBoot,
     traits::FileProvider,
     unified_log::UnifiedLogData,
-    uuidtext::UUIDText,
 };
-use std::{io::Read, path::Path};
+use std::{collections::HashMap, io::Read, path::Path};
 
 /// Use the provided strings, shared strings, timesync data to parse the Unified Log data at provided path.
 pub(crate) fn grab_logs(
@@ -36,34 +34,14 @@ pub(crate) fn grab_logs(
         sources: options.sources.clone(),
     };
     if let Some(path) = &options.logarchive_path {
-        let provider = LogarchiveProvider::new(Path::new(path));
-        // Parse all UUID files which contain strings and other metadata
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        // Parse UUID cache files which also contain strings and other metadata
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LogarchiveProvider::new(Path::new(path));
         // Parse all timesync files
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        let _ = parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-            &mut parse_options,
-            output,
-        );
+        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output);
     } else {
-        let provider = LiveSystemProvider::default();
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LiveSystemProvider::default();
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        let _ = parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-            &mut parse_options,
-            output,
-        );
+        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output);
     };
     Ok(())
 }
@@ -77,10 +55,8 @@ struct ParseOptions {
 }
 
 fn parse_trace_file(
-    string_results: &[UUIDText],
-    shared_strings_results: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
-    provider: &dyn FileProvider,
+    timesync_data: &HashMap<String, TimesyncBoot>,
+    provider: &mut dyn FileProvider,
     options: &mut ParseOptions,
     output: &mut Output,
 ) -> Result<(), MacArtifactError> {
@@ -91,26 +67,12 @@ fn parse_trace_file(
                 if !source.source_path().contains(entry) {
                     continue;
                 }
-                let _ = iterate_logs(
-                    source.reader(),
-                    string_results,
-                    shared_strings_results,
-                    timesync_data,
-                    options,
-                    output,
-                );
+                let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
             }
             continue;
         }
 
-        let _ = iterate_logs(
-            source.reader(),
-            string_results,
-            shared_strings_results,
-            timesync_data,
-            options,
-            output,
-        );
+        let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
     }
 
     let include_missing = false;
@@ -121,13 +83,7 @@ fn parse_trace_file(
 
         // If we fail to find any missing data its probably due to the logs rolling
         // Ex: tracev3A rolls, tracev3B references Oversize entry in tracev3A will trigger missing data since tracev3A is gone
-        let (results, _) = build_log(
-            leftover_data,
-            string_results,
-            shared_strings_results,
-            timesync_data,
-            include_missing,
-        );
+        let (results, _) = build_log(leftover_data, provider, timesync_data, include_missing);
 
         let serde_data_result = serde_json::to_value(results);
         let mut serde_data = match serde_data_result {
@@ -152,11 +108,10 @@ fn parse_trace_file(
 
 fn iterate_logs(
     mut reader: impl Read,
-    strings_data: &[UUIDText],
-    shared_strings: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
+    timesync_data: &HashMap<String, TimesyncBoot>,
     options: &mut ParseOptions,
     output: &mut Output,
+    provider: &mut dyn FileProvider,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
 
@@ -178,13 +133,7 @@ fn iterate_logs(
         chunk
             .oversize
             .append(&mut options.oversize_strings.oversize);
-        let (results, missing_logs) = build_log(
-            &chunk,
-            strings_data,
-            shared_strings,
-            timesync_data,
-            exclude_missing,
-        );
+        let (results, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
         options.oversize_strings.oversize = chunk.oversize;
         let serde_data_result = serde_json::to_value(results);
         let mut serde_data = match serde_data_result {

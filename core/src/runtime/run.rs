@@ -38,10 +38,7 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     let status = match result {
         Ok(result) => result,
         Err(err) => {
-            error!(
-                "[runtime] Could not execute javascript: {}",
-                err.to_string()
-            );
+            error!("[runtime] Could not execute javascript: {err}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
