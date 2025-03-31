@@ -19,7 +19,7 @@ pub(crate) fn get_filename_attribute(
     match filename_result {
         Ok(result) => Ok(result.clone()),
         Err(err) => {
-            error!("[artemis-core] Failed to get filename info, error: {err:?}");
+            error!("[core] Failed to get filename info, error: {err:?}");
             Err(FileSystemError::NoFilenameAttr)
         }
     }
@@ -148,7 +148,7 @@ fn read_attribute_data(
             }
             all_data.append(&mut buff_data);
             if all_data.len() >= max_size {
-                warn!("[artemis-core] Currently 2GBs or more data. Exiting early");
+                warn!("[core] Currently 2GBs or more data. Exiting early");
                 break;
             }
         }

@@ -17,7 +17,7 @@ pub(crate) fn create_regex(input: &str) -> Result<Regex, ArtemisError> {
     let regex = match regex_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Bad regex {input}, error: {err:?}");
+            error!("[core] Bad regex {input}, error: {err:?}");
             return Err(ArtemisError::Regex);
         }
     };

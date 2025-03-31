@@ -18,7 +18,7 @@ pub(crate) fn csv_format(
     let writer = match writer_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Could not create csv writer: {err:?}");
+            error!("[core] Could not create csv writer: {err:?}");
             return Err(FormatError::Output);
         }
     };
@@ -28,9 +28,9 @@ pub(crate) fn csv_format(
     let output_result: Result<_, _> =
         final_output(&writer.into_inner().unwrap_or_default(), output, &uuid);
     match output_result {
-        Ok(_) => info!("[artemis-core] {output_name} jsonl output success"),
+        Ok(_) => info!("[core] {output_name} jsonl output success"),
         Err(err) => {
-            error!("[artemis-core] Failed to output {output_name} csv: {err:?}");
+            error!("[core] Failed to output {output_name} csv: {err:?}");
             return Err(FormatError::Output);
         }
     }

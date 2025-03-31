@@ -22,7 +22,7 @@ pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
         let bytes_read = match bytes_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not read bytes via API {err:?}");
+                error!("[core] Could not read bytes via API {err:?}");
                 return Err(NtfsError::Io(Error::new(
                     ErrorKind::InvalidData,
                     "Could not seek to offset",
@@ -47,7 +47,7 @@ pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
     let mut data_reader = ntfs_attribute.value(fs)?;
 
     if data_reader.seek(fs, SeekFrom::Start(*offset)).is_err() {
-        error!("[artemis-core] Could not seek to offset {offset}");
+        error!("[core] Could not seek to offset {offset}");
         return Err(NtfsError::Io(Error::new(
             ErrorKind::InvalidData,
             "Could not seek to offset",
@@ -59,7 +59,7 @@ pub(crate) fn read_bytes<T: std::io::Read + std::io::Seek>(
 
     if bytes_read != buff_size.len() {
         warn!(
-            "[artemis-core] Did not read expected number of bytes. Read {bytes_read} bytes. Wanted: {bytes}"
+            "[core] Did not read expected number of bytes. Read {bytes_read} bytes. Wanted: {bytes}"
         );
     }
 
@@ -73,7 +73,7 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
     reader: &mut BufReader<T>,
 ) -> Result<Vec<u8>, FileSystemError> {
     if reader.seek(SeekFrom::Start(*offset)).is_err() {
-        error!("[artemis-core] Could not seek to offset {offset} via API");
+        error!("[core] Could not seek to offset {offset} via API");
         return Err(FileSystemError::ReadFile);
     }
 
@@ -81,14 +81,14 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
     let bytes_read = match reader.read(&mut buff_size) {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Could not read bytes via API: {err:?}");
+            error!("[core] Could not read bytes via API: {err:?}");
             return Err(FileSystemError::ReadFile);
         }
     };
 
     if bytes_read != buff_size.len() {
         warn!(
-            "[artemis-core] Did not read expected number of bytes via API. Wanted {bytes} got {bytes_read}",
+            "[core] Did not read expected number of bytes via API. Wanted {bytes} got {bytes_read}",
         );
     }
 

@@ -41,7 +41,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
         let bytes_read = reader.read(&mut buf);
         if bytes_read.is_err() {
             error!(
-                "[artemis-core] Failed to read all bytes from file {path}: {:?}",
+                "[core] Failed to read all bytes from file {path}: {:?}",
                 bytes_read.unwrap_err()
             );
             return Err(FileSystemError::ReadFile);
@@ -61,7 +61,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
         let bytes_written = compressor.write_all(&buf);
         if bytes_written.is_err() {
             error!(
-                "[artemis-core] Failed to compress all bytes from file {path}: {:?}",
+                "[core] Failed to compress all bytes from file {path}: {:?}",
                 bytes_written.unwrap_err()
             );
             return Err(FileSystemError::CompressFile);
@@ -71,7 +71,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
     let compress_file = compressor.finish();
     if compress_file.is_err() {
         error!(
-            "[artemis-core] Could not finish compression: {:?}",
+            "[core] Could not finish compression: {:?}",
             compress_file.unwrap_err()
         );
         return Err(FileSystemError::CompressedBytes);
@@ -82,7 +82,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
     let status = acquire.finish();
     if status.is_err() {
         error!(
-            "[artemis-core] Could not finish file acquisition: {:?}",
+            "[core] Could not finish file acquisition: {:?}",
             status.unwrap_err()
         );
         return Err(FileSystemError::AcquireFile);
@@ -149,7 +149,7 @@ pub(crate) fn acquire_file_remote(
         let bytes_read = reader.read(&mut buf);
         if bytes_read.is_err() {
             error!(
-                "[artemis-core] Failed to read all bytes from file {path}: {:?}",
+                "[core] Failed to read all bytes from file {path}: {:?}",
                 bytes_read.unwrap_err()
             );
             return Err(FileSystemError::ReadFile);
@@ -171,7 +171,7 @@ pub(crate) fn acquire_file_remote(
         let bytes_written = compressor.write_all(&buf);
         if bytes_written.is_err() {
             error!(
-                "[artemis-core] Failed to compress all bytes from file {path}: {:?}",
+                "[core] Failed to compress all bytes from file {path}: {:?}",
                 bytes_written.unwrap_err()
             );
             return Err(FileSystemError::CompressFile);
@@ -180,7 +180,7 @@ pub(crate) fn acquire_file_remote(
         let mut compress_data = match compress_data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not finish compression: {err:?}");
+                error!("[core] Could not finish compression: {err:?}");
                 return Err(FileSystemError::CompressedBytes);
             }
         };

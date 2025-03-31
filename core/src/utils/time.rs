@@ -143,7 +143,7 @@ pub(crate) fn compare_timestamps(time1: &str, time2: &str) -> Result<bool, Artem
     let timestamp1 = match time1_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Failed to parse timestamp {time1}: {err:?}");
+            error!("[core] Failed to parse timestamp {time1}: {err:?}");
             return Err(ArtemisError::BadTime);
         }
     };
@@ -152,7 +152,7 @@ pub(crate) fn compare_timestamps(time1: &str, time2: &str) -> Result<bool, Artem
     let timestamp2 = match time2_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Failed to parse timestamp {time2}: {err:?}");
+            error!("[core] Failed to parse timestamp {time2}: {err:?}");
             return Err(ArtemisError::BadTime);
         }
     };

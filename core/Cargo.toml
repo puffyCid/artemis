@@ -46,7 +46,7 @@ elf = "0.7.4"
 ruzstd = "0.8.0"
 lz4_flex = "0.11.3"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
-macos-unifiedlogs = "0.1.1"
+macos-unifiedlogs = "0.2.0"
 plist = "1.7.1"
 aes = "0.8.4"
 cbc = "0.1.2"

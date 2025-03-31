@@ -45,7 +45,7 @@ jobs:
         shell: bash
         env:
           NAME: artemis
-          TARGET: ${{ matrix.info.target }}
+          TARGET: ${{ matrix.target }}
         run: .github/scripts/package.sh
 
       - name: Release

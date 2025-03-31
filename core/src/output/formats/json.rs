@@ -74,7 +74,7 @@ pub(crate) fn raw_json(
         collection_data = match compressed_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Failed to compress data: {err:?}");
+                error!("[core] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         };
@@ -85,9 +85,9 @@ pub(crate) fn raw_json(
     let uuid = generate_uuid();
     let output_result = final_output(&collection_data, output, &uuid);
     match output_result {
-        Ok(_) => info!("[artemis-core] {} json output success", output_name),
+        Ok(_) => info!("[core] {} json output success", output_name),
         Err(err) => {
-            error!("[artemis-core] Failed to output {output_name} json: {err:?}");
+            error!("[core] Failed to output {output_name} json: {err:?}");
             return Err(FormatError::Output);
         }
     }

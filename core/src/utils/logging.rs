@@ -16,9 +16,7 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!(
-                "[artemis-core] Failed to create logging output directory for {path}. Error: {err:?}"
-            );
+            error!("[core] Failed to create logging output directory for {path}. Error: {err:?}");
             return Err(ArtemisError::CreateDirectory);
         }
     }
@@ -27,7 +25,7 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
     let log_file = match output_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Failed to create log file at {path}. Error: {err:?}");
+            error!("[core] Failed to create log file at {path}. Error: {err:?}");
             return Err(ArtemisError::LogFile);
         }
     };
@@ -57,9 +55,7 @@ pub(crate) fn collection_status(
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!(
-                "[artemis-core] Failed to create status output directory for {path}. Error: {err:?}"
-            );
+            error!("[core] Failed to create status output directory for {path}. Error: {err:?}");
             return Err(ArtemisError::CreateDirectory);
         }
     }
@@ -73,7 +69,7 @@ pub(crate) fn collection_status(
     let mut status = match status_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[artemis-core] Failed to open or create status.log at  {path}. Error: {err:?}");
+            error!("[core] Failed to open or create status.log at  {path}. Error: {err:?}");
             return Err(ArtemisError::LogFile);
         }
     };
@@ -88,7 +84,7 @@ pub(crate) fn collection_status(
     match write_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[artemis-core] Failed to update status.log at  {path}. Error: {err:?}");
+            error!("[core] Failed to update status.log at  {path}. Error: {err:?}");
         }
     }
     Ok(())
@@ -100,7 +96,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
     let log_files = match files_res {
         Ok(results) => results,
         Err(err) => {
-            warn!("[artemis-core] Could not get list of logs to upload: {err:?}");
+            warn!("[core] Could not get list of logs to upload: {err:?}");
             return Ok(());
         }
     };
@@ -114,7 +110,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
         let log_data = match read_res {
             Ok(result) => result,
             Err(err) => {
-                warn!("[artemis-core] Could not read log file {log}: {err:?}");
+                warn!("[core] Could not read log file {log}: {err:?}");
                 continue;
             }
         };
@@ -127,7 +123,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
     match remove_status {
         Ok(_) => {}
         Err(err) => {
-            error!("[artemis-core] Failed to remove output directory: {err:?}");
+            error!("[core] Failed to remove output directory: {err:?}");
             return Err(ArtemisError::Cleanup);
         }
     }

@@ -85,7 +85,7 @@ impl AcquireActionRemote for AcquireFileApiRemote {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[artemis-core] Failed to open file reader for{}: {err:?}",
+                    "[core] Failed to open file reader for{}: {err:?}",
                     &self.path
                 );
                 return Err(AcquireError::Reader);
@@ -135,7 +135,7 @@ impl GoogleUpload for AcquireFileApiRemote {
         let setup = match setup_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not setup GCP upload: {err:?}");
+                error!("[core] Could not setup GCP upload: {err:?}");
                 return Err(AcquireError::GcpSetup);
             }
         };
@@ -146,7 +146,7 @@ impl GoogleUpload for AcquireFileApiRemote {
         let token = match token_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not create GCP token: {err:?}");
+                error!("[core] Could not create GCP token: {err:?}");
                 return Err(AcquireError::GcpToken);
             }
         };
@@ -155,7 +155,7 @@ impl GoogleUpload for AcquireFileApiRemote {
         let session = match session_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not setup GCP session: {err:?}");
+                error!("[core] Could not setup GCP session: {err:?}");
                 return Err(AcquireError::GcpSession);
             }
         };
@@ -216,9 +216,7 @@ impl GoogleUpload for AcquireFileApiRemote {
             let res = match res_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!(
-                        "[artemis-core] Could not upload to GCP storage: {err:?}. Attempting again"
-                    );
+                    error!("[core] Could not upload to GCP storage: {err:?}. Attempting again");
                     max_attempts += 1;
                     continue;
                 }
@@ -229,7 +227,7 @@ impl GoogleUpload for AcquireFileApiRemote {
                 && res.status() != StatusCode::PERMANENT_REDIRECT
             {
                 error!(
-                    "[artemis-core] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
+                    "[core] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
                     res.text()
                 );
                 max_attempts += 1;
@@ -240,7 +238,7 @@ impl GoogleUpload for AcquireFileApiRemote {
             let status_result = gcp_get_upload_status(&self.session, "*");
             if status_result.is_err() {
                 error!(
-                    "[artemis-core] Could not check status of upload: {:?}",
+                    "[core] Could not check status of upload: {:?}",
                     status_result.unwrap_err()
                 );
                 return Err(AcquireError::GcpStatus);
@@ -248,7 +246,7 @@ impl GoogleUpload for AcquireFileApiRemote {
 
             return Ok(());
         }
-        error!("[artemis-core] Max attempts reached for uploading to Google Cloud");
+        error!("[core] Max attempts reached for uploading to Google Cloud");
         Err(AcquireError::MaxAttempts)
     }
 }
@@ -260,7 +258,7 @@ impl AmazonUpload for AcquireFileApiRemote {
         let info = match info_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not parse AWS creds: {err:?}");
+                error!("[core] Could not parse AWS creds: {err:?}");
                 return Err(AcquireError::AwsSetup);
             }
         };
@@ -307,7 +305,7 @@ impl AmazonUpload for AcquireFileApiRemote {
         let setup = match setup_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[artemis-core] Could not setup AWS upload: {err:?}");
+                error!("[core] Could not setup AWS upload: {err:?}");
                 return Err(AcquireError::AwsSetup);
             }
         };
@@ -322,7 +320,7 @@ impl AmazonUpload for AcquireFileApiRemote {
     /// Upload bytes to AWS
     fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
         if self.aws_creds.is_none() || self.bucket.is_none() {
-            error!("[artemis-core] AWS bucket and/or creds not setup");
+            error!("[core] AWS bucket and/or creds not setup");
             return Err(AcquireError::AwsUpload);
         }
         let bucket = self.bucket.as_ref().unwrap();
@@ -334,7 +332,7 @@ impl AmazonUpload for AcquireFileApiRemote {
             let status =
                 aws_complete_multipart(bucket, creds, &self.filename, &self.session, etags);
             if status.is_err() {
-                error!("[artemis-core] Could not finish AWS upload");
+                error!("[core] Could not finish AWS upload");
                 return Err(AcquireError::AwsUpload);
             }
 

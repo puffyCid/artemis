@@ -2,16 +2,14 @@ use crate::runtime::{error::RuntimeError, helper::string_arg};
 use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 use log::{error, warn};
 use macos_unifiedlogs::{
-    dsc::SharedCacheStrings,
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
-    parser::{build_log, collect_shared_strings, collect_strings, collect_timesync},
+    parser::{build_log, collect_timesync},
     timesync::TimesyncBoot,
     traits::FileProvider,
     unified_log::LogData,
-    uuidtext::UUIDText,
 };
-use std::{io::Read, path::Path};
+use std::{collections::HashMap, io::Read, path::Path};
 
 /// Expose Unified Log parsing to `BoaJS`
 pub(crate) fn js_unified_log(
@@ -34,29 +32,13 @@ pub(crate) fn js_unified_log(
         input_path
     };
     let logs_result = if archive_path.is_some() {
-        let provider = LogarchiveProvider::new(Path::new(&archive_path.unwrap_or_default()));
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LogarchiveProvider::new(Path::new(&archive_path.unwrap_or_default()));
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-            &path,
-        )
+        parse_trace_file(&timesync_data, &mut provider, &path)
     } else {
-        let provider = LiveSystemProvider::default();
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LiveSystemProvider::default();
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-            &path,
-        )
+        parse_trace_file(&timesync_data, &mut provider, &path)
     };
 
     let logs: Vec<LogData> = match logs_result {
@@ -75,10 +57,8 @@ pub(crate) fn js_unified_log(
 
 /// Parse the provided log (trace) file
 fn parse_trace_file(
-    string_results: &[UUIDText],
-    shared_strings_results: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
-    provider: &dyn FileProvider,
+    timesync_data: &HashMap<String, TimesyncBoot>,
+    provider: &mut dyn FileProvider,
     path: &str,
 ) -> Result<Vec<LogData>, RuntimeError> {
     for mut source in provider.tracev3_files() {
@@ -87,12 +67,7 @@ fn parse_trace_file(
             continue;
         }
 
-        return iterate_logs(
-            source.reader(),
-            string_results,
-            shared_strings_results,
-            timesync_data,
-        );
+        return iterate_logs(source.reader(), timesync_data, provider);
     }
 
     warn!("[runtime] Failed to iterate through logs");
@@ -101,9 +76,8 @@ fn parse_trace_file(
 
 fn iterate_logs(
     mut reader: impl Read,
-    strings_data: &[UUIDText],
-    shared_strings: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
+    timesync_data: &HashMap<String, TimesyncBoot>,
+    provider: &mut dyn FileProvider,
 ) -> Result<Vec<LogData>, RuntimeError> {
     let mut buf = Vec::new();
 
@@ -124,13 +98,7 @@ fn iterate_logs(
     let exclude_missing = false;
     let mut logs = Vec::new();
     for chunk in log_iterator {
-        let (mut results, _) = build_log(
-            &chunk,
-            strings_data,
-            shared_strings,
-            timesync_data,
-            exclude_missing,
-        );
+        let (mut results, _) = build_log(&chunk, provider, timesync_data, exclude_missing);
 
         logs.append(&mut results);
     }

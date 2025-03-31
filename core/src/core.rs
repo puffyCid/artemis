@@ -73,9 +73,9 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
 
     let result = collect(collection);
     match result {
-        Ok(_) => info!("[artemis-core] Core parsed TOML data"),
+        Ok(_) => info!("[core] Core parsed TOML data"),
         Err(err) => {
-            error!("[artemis-core] Core failed to parse collection: {err:?}");
+            error!("[core] Core failed to parse collection: {err:?}");
             return Err(TomlError::BadToml);
         }
     }

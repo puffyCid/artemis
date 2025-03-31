@@ -3,49 +3,31 @@ use crate::{
 };
 use log::error;
 use macos_unifiedlogs::{
-    dsc::SharedCacheStrings,
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
-    parser::{build_log, collect_shared_strings, collect_strings, collect_timesync},
+    parser::{build_log, collect_timesync},
     timesync::TimesyncBoot,
     traits::FileProvider,
     unified_log::LogData,
-    uuidtext::UUIDText,
 };
-use std::{io::Read, path::Path};
+use std::{collections::HashMap, io::Read, path::Path};
 
 /// Grab sudo log entries in the Unified Log files
 pub(crate) fn grab_sudo_logs(options: &MacosSudoOptions) -> Result<Vec<LogData>, MacArtifactError> {
     if let Some(path) = &options.logarchive_path {
-        let provider = LogarchiveProvider::new(Path::new(path));
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LogarchiveProvider::new(Path::new(path));
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-        )
+        parse_trace_file(&timesync_data, &mut provider)
     } else {
-        let provider = LiveSystemProvider::default();
-        let string_results = collect_strings(&provider).unwrap_or_default();
-        let shared_strings_results = collect_shared_strings(&provider).unwrap_or_default();
+        let mut provider = LiveSystemProvider::default();
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(
-            &string_results,
-            &shared_strings_results,
-            &timesync_data,
-            &provider,
-        )
+        parse_trace_file(&timesync_data, &mut provider)
     }
 }
 
 fn parse_trace_file(
-    string_results: &[UUIDText],
-    shared_strings_results: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
-    provider: &dyn FileProvider,
+    timesync_data: &HashMap<String, TimesyncBoot>,
+    provider: &mut dyn FileProvider,
 ) -> Result<Vec<LogData>, MacArtifactError> {
     let mut sudo_logs = Vec::new();
 
@@ -53,13 +35,7 @@ fn parse_trace_file(
         if !source.source_path().contains("Persist") {
             continue;
         }
-        let _ = iterate_logs(
-            source.reader(),
-            string_results,
-            shared_strings_results,
-            timesync_data,
-            &mut sudo_logs,
-        );
+        let _ = iterate_logs(source.reader(), timesync_data, &mut sudo_logs, provider);
     }
 
     Ok(sudo_logs)
@@ -67,10 +43,9 @@ fn parse_trace_file(
 
 fn iterate_logs(
     mut reader: impl Read,
-    strings_data: &[UUIDText],
-    shared_strings: &[SharedCacheStrings],
-    timesync_data: &[TimesyncBoot],
+    timesync_data: &HashMap<String, TimesyncBoot>,
     sudo_logs: &mut Vec<LogData>,
+    provider: &mut dyn FileProvider,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
 
@@ -87,13 +62,7 @@ fn iterate_logs(
     let exclude_missing = false;
 
     for chunk in log_iterator {
-        let (results, _) = build_log(
-            &chunk,
-            strings_data,
-            shared_strings,
-            timesync_data,
-            exclude_missing,
-        );
+        let (results, _) = build_log(&chunk, provider, timesync_data, exclude_missing);
 
         filter_logs(results, sudo_logs);
     }
