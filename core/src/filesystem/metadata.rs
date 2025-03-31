@@ -42,9 +42,19 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
         use std::os::unix::fs::MetadataExt;
 
-        timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
-        timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
-        timestamps.changed = unixepoch_to_iso(&meta.st_ctime());
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
+            timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
+            timestamps.changed = unixepoch_to_iso(&meta.st_ctime());
+        }
+
+        #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
+        {
+            timestamps.accessed = unixepoch_to_iso(&meta.atime());
+            timestamps.modified = unixepoch_to_iso(&meta.mtime());
+            timestamps.changed = unixepoch_to_iso(&meta.ctime());
+        }
 
         #[cfg(target_os = "linux")]
         {
