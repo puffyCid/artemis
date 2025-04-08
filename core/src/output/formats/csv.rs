@@ -1,7 +1,10 @@
 use super::error::FormatError;
 use crate::{
     structs::toml::Output,
-    utils::{logging::collection_status, output::final_output, uuid::generate_uuid},
+    utils::{
+        compression::compress::compress_gzip_bytes, logging::collection_status,
+        output::final_output, uuid::generate_uuid,
+    },
 };
 use csv::{Writer, WriterBuilder};
 use log::{error, info};
@@ -25,10 +28,22 @@ pub(crate) fn csv_format(
 
     let uuid = generate_uuid();
 
-    let output_result: Result<_, _> =
-        final_output(&writer.into_inner().unwrap_or_default(), output, &uuid);
+    let bytes = if output.compress {
+        let compressed_bytes = match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[core] Failed to compress data: {err:?}");
+                return Err(FormatError::Output);
+            }
+        };
+        compressed_bytes
+    } else {
+        writer.into_inner().unwrap_or_default()
+    };
+
+    let output_result: Result<_, _> = final_output(&bytes, output, &uuid);
     match output_result {
-        Ok(_) => info!("[core] {output_name} jsonl output success"),
+        Ok(_) => info!("[core] {output_name} csv output success"),
         Err(err) => {
             error!("[core] Failed to output {output_name} csv: {err:?}");
             return Err(FormatError::Output);
