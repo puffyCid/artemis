@@ -736,7 +736,10 @@ mod tests {
             header::EseHeader,
             pages::leaf::{LeafType, PageLeaf},
         },
-        filesystem::ntfs::{raw_files::raw_reader, reader::read_bytes, setup::setup_ntfs_parser},
+        filesystem::{
+            files::is_file,
+            ntfs::{raw_files::raw_reader, reader::read_bytes, setup::setup_ntfs_parser},
+        },
     };
     use serde_json::json;
     use std::path::PathBuf;
@@ -948,14 +951,14 @@ mod tests {
 
     #[test]
     fn test_updates_catalog() {
+        let path = "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb";
+        if !is_file(path) {
+            return;
+        }
+
         let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
 
-        let reader = raw_reader(
-            "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb",
-            &ntfs_parser.ntfs,
-            &mut ntfs_parser.fs,
-        )
-        .unwrap();
+        let reader = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
         let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
         if header_bytes.is_empty() {
             return;
