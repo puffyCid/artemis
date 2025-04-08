@@ -29,14 +29,13 @@ pub(crate) fn csv_format(
     let uuid = generate_uuid();
 
     let bytes = if output.compress {
-        let compressed_bytes = match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
+        match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
             Ok(result) => result,
             Err(err) => {
                 error!("[core] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
-        };
-        compressed_bytes
+        }
     } else {
         writer.into_inner().unwrap_or_default()
     };
