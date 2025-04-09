@@ -11,4 +11,4 @@ repository = { workspace = true }
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-plist = "1.7.0"
+plist = "1.7.1"
