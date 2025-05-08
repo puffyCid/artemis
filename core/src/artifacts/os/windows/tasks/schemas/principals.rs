@@ -57,10 +57,11 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
                 }
                 _ => (),
             },
-            Ok(Event::End(tag)) => match tag.name().as_ref() {
-                b"Principals" => break,
-                _ => (),
-            },
+            Ok(Event::End(tag)) => {
+                if tag.name().as_ref() == b"Principals" {
+                    break;
+                }
+            }
             _ => (),
         }
     }
