@@ -120,7 +120,7 @@ fn get_cron_entry(cron_line: &str) -> Result<Cron, CronError> {
             3 => cron_data.month = fields,
             4 => cron_data.weekday = fields,
             5 => cron_data.command = fields,
-            _ => continue,
+            _ => (),
         }
     }
     Ok(cron_data)

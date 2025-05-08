@@ -30,10 +30,7 @@ pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGrou
             Ok(results) => {
                 group_data.push(results);
             }
-            Err(err) => {
-                error!("[groups] Failed to parse groups {group}: {err:?}");
-                continue;
-            }
+            Err(err) => error!("[groups] Failed to parse groups {group}: {err:?}"),
         }
     }
 

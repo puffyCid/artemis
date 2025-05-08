@@ -55,11 +55,11 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
                     info.id_attribute =
                         Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
-                _ => continue,
+                _ => (),
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"Principals" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }

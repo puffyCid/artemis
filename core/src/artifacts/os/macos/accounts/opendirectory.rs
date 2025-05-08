@@ -158,7 +158,6 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                                     warn!(
                                         "accounts] Failed to get account policy info from opendirectoryd file: {path}: {err:?}"
                                     );
-                                    continue;
                                 }
                             }
                         }
@@ -167,7 +166,6 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                         warn!(
                             "[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}"
                         );
-                        continue;
                     }
                 }
             }

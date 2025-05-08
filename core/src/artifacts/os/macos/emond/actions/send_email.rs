@@ -38,10 +38,7 @@ pub(crate) fn parse_action_send_email(action_dictionary: &Dictionary) -> SendEma
                     .recipient_addresses
                     .push(get_string(args).unwrap_or_default());
             }
-        } else if key == "type" {
-            // Skip type values. We already know the action type
-            continue;
-        } else {
+        } else if key != "type" {
             warn!("[emond] Unknown Log Action key: {key}. Value: {action_value:?}");
         }
     }

@@ -414,7 +414,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let path_data = bookmark_data_type_string(&standard_data.record_data);
                 match path_data {
                     Ok(path) => bookmark_data.path = format!("{}/{path}", bookmark_data.path),
-                    Err(_err) => continue,
+                    Err(_err) => (),
                 }
             } else if standard_data.data_type == number_eight_byte
                 && standard_data.record_type == target_cnid_path
@@ -424,7 +424,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                     Ok((_, cnid)) => {
                         bookmark_data.cnid_path = format!("{}/{cnid}", bookmark_data.cnid_path);
                     }
-                    Err(_err) => continue,
+                    Err(_err) => (),
                 }
             }
         }
