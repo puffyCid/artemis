@@ -125,7 +125,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
                         }
                     }
                 }
-                _ => continue,
+                _ => (),
             }
         }
 

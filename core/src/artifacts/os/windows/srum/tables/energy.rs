@@ -45,7 +45,7 @@ pub(crate) fn parse_energy(
                     energy.user_id.clone_from(&column.column_data);
                 }
                 "BinaryData" => energy.binary_data.clone_from(&column.column_data),
-                _ => continue,
+                _ => (),
             }
         }
         energy_vec.push(energy);
@@ -124,7 +124,7 @@ pub(crate) fn parse_energy_usage(
                     energy.configuration_hash = column.column_data.parse::<i64>().unwrap();
                 }
 
-                _ => continue,
+                _ => (),
             }
         }
         energy_vec.push(energy);

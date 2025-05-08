@@ -43,7 +43,6 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
             for value in path.values {
                 user_rids.insert(value.data_type.clone(), path.name.clone());
             }
-            continue;
         } else if path.path.contains("\\Users\\0") {
             for value in path.values {
                 if value.value == "F" {
@@ -108,9 +107,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
                 let info_result = get_sid(&info_data);
                 match info_result {
                     Ok((_, result)) => info.sid = result,
-                    Err(_err) => {
-                        continue;
-                    }
+                    Err(_err) => (),
                 };
             }
 

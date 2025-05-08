@@ -116,7 +116,7 @@ pub(crate) fn parse_application(
                         column.column_data.parse::<i32>().unwrap_or_default();
                 }
 
-                _ => continue,
+                _ => (),
             }
         }
         app_vec.push(app);
@@ -338,7 +338,7 @@ pub(crate) fn parse_app_timeline(
                 "MouseInputS" => {
                     energy.mouse_input_s = column.column_data.parse::<i32>().unwrap_or_default();
                 }
-                _ => continue,
+                _ => (),
             }
         }
         energy_vec.push(energy);
@@ -408,7 +408,7 @@ pub(crate) fn parse_vfu_provider(
                     ));
                 }
                 "Usage" => app.usage.clone_from(&column.column_data),
-                _ => continue,
+                _ => (),
             }
         }
         app_vec.push(app);

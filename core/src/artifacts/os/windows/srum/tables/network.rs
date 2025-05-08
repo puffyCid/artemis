@@ -65,7 +65,7 @@ pub(crate) fn parse_network(
                 "BytesRecvd" => {
                     network.bytes_recvd = column.column_data.parse::<i64>().unwrap_or_default();
                 }
-                _ => continue,
+                _ => (),
             }
         }
         network_vec.push(network);
@@ -143,7 +143,7 @@ pub(crate) fn parse_network_connectivity(
                         &column.column_data.parse::<u64>().unwrap_or_default(),
                     ));
                 }
-                _ => continue,
+                _ => (),
             }
         }
         network_vec.push(network);

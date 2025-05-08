@@ -42,11 +42,11 @@ fn get_array_values(data_results: Vec<Value>) -> Result<Vec<Vec<u8>>, PlistError
                         Value::Data(value) => {
                             collect_bookmarks(&value, &mut bookmark_data);
                         }
-                        _ => continue,
+                        _ => (),
                     }
                 }
             }
-            _ => continue,
+            _ => (),
         }
     }
 

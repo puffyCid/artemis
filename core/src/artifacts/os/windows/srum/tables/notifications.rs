@@ -53,7 +53,7 @@ pub(crate) fn parse_notification(
                     notif.network_type = column.column_data.parse::<i32>().unwrap_or_default();
                 }
 
-                _ => continue,
+                _ => (),
             }
         }
         notif_vec.push(notif);

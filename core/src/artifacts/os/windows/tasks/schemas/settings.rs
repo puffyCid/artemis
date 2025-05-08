@@ -38,7 +38,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
             Ok(Event::Eof) => break,
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"Settings" => break,
-                _ => continue,
+                _ => (),
             },
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"AllowStartOnDemand" => {
@@ -178,7 +178,7 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"RestartOnFailure" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -226,7 +226,7 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"IdleSettings" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -258,7 +258,7 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"NetworkSettings" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -282,7 +282,7 @@ fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"MaintenanceSettings" => break,
-                _ => continue,
+                _ => (),
             },
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Period" => {

@@ -58,7 +58,7 @@ pub(crate) fn parse_index_gthr(
                     }
                 }
                 "FileName" => entry.entry.clone_from(&column.column_data),
-                _ => continue,
+                _ => (),
             }
         }
 
@@ -153,7 +153,7 @@ pub(crate) fn parse_index_gthr_path(
                     }
                 }
                 "FileName" => entry.entry.clone_from(&column.column_data),
-                _ => continue,
+                _ => (),
             }
         }
 

@@ -92,10 +92,10 @@ impl DownloadsPlist {
                                     }
                                     downloads_data.push(downloads_metadata);
                                 }
-                                None => continue,
+                                None => (),
                             }
                         }
-                        _ => continue,
+                        _ => (),
                     }
                 }
             }

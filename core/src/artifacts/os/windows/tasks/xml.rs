@@ -82,9 +82,9 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
                         reader.read_text(tag.name()).unwrap_or_default().as_bytes(),
                     ));
                 }
-                _ => continue,
+                _ => (),
             },
-            _ => continue,
+            _ => (),
         }
     }
     task_xml.principals = Some(principals);

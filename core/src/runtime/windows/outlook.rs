@@ -406,9 +406,6 @@ pub(crate) fn js_read_messages(
                     }
                 };
                 chunks.append(&mut emails);
-                if chunks.len() < message_table.rows.len() {
-                    continue;
-                }
             }
             chunks
         } else {

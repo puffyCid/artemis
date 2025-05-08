@@ -28,7 +28,7 @@ pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"Actions" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -68,7 +68,7 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"Exec" => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -102,7 +102,7 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"ComHandler " => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -171,11 +171,11 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
                 b"File" => {
                     attachments.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
                 }
-                _ => continue,
+                _ => (),
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"SendEmail " => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }
@@ -221,7 +221,7 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
                 b"ShowMessage  " => break,
-                _ => continue,
+                _ => (),
             },
             _ => (),
         }

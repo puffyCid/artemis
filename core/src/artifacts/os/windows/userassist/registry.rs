@@ -63,7 +63,6 @@ pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, U
                     "[userassist] Could not parse {}: {err:?}",
                     assist_entry.reg_file
                 );
-                continue;
             }
         }
     }
