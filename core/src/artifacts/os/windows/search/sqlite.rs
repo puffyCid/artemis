@@ -60,7 +60,7 @@ pub(crate) fn parse_search_sqlite(
             let mut entry = SearchEntry {
                 document_id: 1,
                 entry: String::new(),
-                last_modified: String::new(),
+                last_modified: String::from("1970-01-01T00:00:00.000Z"),
                 properties: HashMap::new(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property value.

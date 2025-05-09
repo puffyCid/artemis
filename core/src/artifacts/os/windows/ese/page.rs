@@ -1,6 +1,6 @@
 use super::{header::EseHeader, tags::PageTag};
 use crate::utils::nom_helper::{
-    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
     nom_unsigned_two_bytes,
 };
 use nom::bytes::complete::take;
@@ -59,12 +59,14 @@ impl PageHeader {
         // Then its actually one byte
         // Seen in Windows 11 24H2.  Perhaps the upper bytes are flags?
         // https://github.com/Velocidex/go-ese/issues/26
+        // Could also be the value is now 12 bits (instead of 16 bits/2 bytes)?
+        // https://github.com/fox-it/dissect.esedb/pull/46
         let tag_size = 4;
         if first_available_page_tag as usize > data.len()
             || (first_available_page_tag * tag_size) as usize > data.len()
         {
-            let (_, actual_page_tag) = nom_unsigned_one_byte(remaining, Endian::Le)?;
-            first_available_page_tag = actual_page_tag as u16;
+            //let (_, actual_page_tag) = nom_unsigned_one_byte(remaining, Endian::Le)?;
+            first_available_page_tag = first_available_page_tag & 0xfff;
         }
 
         let (mut page_data, page_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;

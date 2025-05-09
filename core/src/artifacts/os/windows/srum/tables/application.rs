@@ -186,7 +186,13 @@ pub(crate) fn parse_app_timeline(
             keyboard_input_s: 0,
             mouse_input_s: 0,
         };
+
+        let null_values = ["3038287259199220266", "707406378"];
         for column in rows {
+            // Sometimes SRUM values will be ******** which is Null
+            if null_values.contains(&column.column_data.as_str()) {
+                continue;
+            }
             match column.column_name.as_str() {
                 "AutoIncId" => {
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
