@@ -1,7 +1,6 @@
 use super::{header::EseHeader, tags::PageTag};
 use crate::utils::nom_helper::{
-    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
-    nom_unsigned_two_bytes,
+    Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
 };
 use nom::bytes::complete::take;
 
