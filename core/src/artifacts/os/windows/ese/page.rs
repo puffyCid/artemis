@@ -64,7 +64,6 @@ impl PageHeader {
         if first_available_page_tag as usize > data.len()
             || (first_available_page_tag * tag_size) as usize > data.len()
         {
-            //let (_, actual_page_tag) = nom_unsigned_one_byte(remaining, Endian::Le)?;
             first_available_page_tag = first_available_page_tag & 0xfff;
         }
 
