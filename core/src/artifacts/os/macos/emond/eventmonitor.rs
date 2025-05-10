@@ -87,45 +87,42 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
         }
 
         for plist_values in plist_array {
-            match plist_values {
-                Value::Dictionary(plist_dictionary) => {
-                    // Get the data in the Rule
-                    for (key, value) in plist_dictionary {
-                        if key == "eventTypes" {
-                            emond_data.event_types = parse_event_types(&value)?;
-                        } else if key == "enabled" {
-                            emond_data.enabled = get_boolean(&value)?;
-                        } else if key == "allowPartialCriterionMatch" {
-                            emond_data.allow_partial_criterion_match = get_boolean(&value)?;
-                        } else if key == "criterion" {
-                            emond_data.criterion = get_dictionary_values(value);
-                        } else if key == "startTime" {
-                            emond_data.start_time = get_string(&value)?;
-                        } else if key == "variables" {
-                            emond_data.variables = get_dictionary_values(value);
-                        } else if key == "name" {
-                            emond_data.name = get_string(&value)?;
-                        } else if key == "actions" {
-                            let actions_results = parse_actions(&value);
-                            let actions = match actions_results {
-                                Ok(results) => results,
-                                Err(err) => {
-                                    warn!("[emond] Failed to parse Emond Action data: {err:?}");
-                                    continue;
-                                }
-                            };
+            if let Value::Dictionary(plist_dictionary) = plist_values {
+                // Get the data in the Rule
+                for (key, value) in plist_dictionary {
+                    if key == "eventTypes" {
+                        emond_data.event_types = parse_event_types(&value)?;
+                    } else if key == "enabled" {
+                        emond_data.enabled = get_boolean(&value)?;
+                    } else if key == "allowPartialCriterionMatch" {
+                        emond_data.allow_partial_criterion_match = get_boolean(&value)?;
+                    } else if key == "criterion" {
+                        emond_data.criterion = get_dictionary_values(value);
+                    } else if key == "startTime" {
+                        emond_data.start_time = get_string(&value)?;
+                    } else if key == "variables" {
+                        emond_data.variables = get_dictionary_values(value);
+                    } else if key == "name" {
+                        emond_data.name = get_string(&value)?;
+                    } else if key == "actions" {
+                        let actions_results = parse_actions(&value);
+                        let actions = match actions_results {
+                            Ok(results) => results,
+                            Err(err) => {
+                                warn!("[emond] Failed to parse Emond Action data: {err:?}");
+                                continue;
+                            }
+                        };
 
-                            emond_data.log_actions = actions.log_actions;
-                            emond_data.command_actions = actions.command_actions;
-                            emond_data.send_email_actions = actions.send_email_actions;
-                            emond_data.send_notification_actions = actions.send_notification;
-                            emond_data.send_sms_actions = actions.send_sms_action;
-                        } else {
-                            warn!("[emond] Unknown key ({key}) in Emond Rule. Value: {value:?}");
-                        }
+                        emond_data.log_actions = actions.log_actions;
+                        emond_data.command_actions = actions.command_actions;
+                        emond_data.send_email_actions = actions.send_email_actions;
+                        emond_data.send_notification_actions = actions.send_notification;
+                        emond_data.send_sms_actions = actions.send_sms_action;
+                    } else {
+                        warn!("[emond] Unknown key ({key}) in Emond Rule. Value: {value:?}");
                     }
                 }
-                _ => continue,
             }
         }
 

@@ -50,7 +50,6 @@ pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
 
             input = sdb_data;
             database_data = db_data;
-            continue;
         } else if tag_value == stringtable_tag {
             let (_sdb_data, table_data) = get_stringtable_data(sdb_data)?;
 

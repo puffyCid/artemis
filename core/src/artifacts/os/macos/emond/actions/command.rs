@@ -31,9 +31,6 @@ pub(crate) fn parse_action_run_command(action_dictionary: &Dictionary) -> Comman
                     .arguments
                     .push(get_string(args).unwrap_or_default());
             }
-        } else if key == "type" {
-            // Skip type values. We already know the action type
-            continue;
         }
     }
     command_data

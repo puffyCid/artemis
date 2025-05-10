@@ -158,7 +158,6 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                                     warn!(
                                         "accounts] Failed to get account policy info from opendirectoryd file: {path}: {err:?}"
                                     );
-                                    continue;
                                 }
                             }
                         }
@@ -167,11 +166,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                         warn!(
                             "[accounts] Failed to get user photo from opendirectoryd file: {path}: {err:?}"
                         );
-                        continue;
                     }
                 }
             }
-            _ => continue,
+            _ => (),
         }
     }
     Ok(users_data)
@@ -190,7 +188,7 @@ fn get_array_values(value: Value) -> Result<Vec<String>, PlistError> {
             Value::Data(value) => {
                 array_results.push(base64_encode_standard(&value));
             }
-            _ => continue,
+            _ => (),
         }
     }
 
@@ -218,7 +216,7 @@ fn get_account_policy(
             "passwordLastSetTime" => {
                 users_data.password_last_set = unixepoch_to_iso(&(get_float(value)? as i64));
             }
-            _ => continue,
+            _ => (),
         }
     }
     Ok(())
@@ -309,7 +307,7 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                     }
                 };
             }
-            _ => continue,
+            _ => (),
         }
     }
     Ok(group_data)

@@ -116,7 +116,7 @@ pub(crate) fn parse_application(
                         column.column_data.parse::<i32>().unwrap_or_default();
                 }
 
-                _ => continue,
+                _ => (),
             }
         }
         app_vec.push(app);
@@ -186,7 +186,13 @@ pub(crate) fn parse_app_timeline(
             keyboard_input_s: 0,
             mouse_input_s: 0,
         };
+
+        let null_values = ["3038287259199220266", "707406378"];
         for column in rows {
+            // Sometimes SRUM values will be ******** which is Null
+            if null_values.contains(&column.column_data.as_str()) {
+                continue;
+            }
             match column.column_name.as_str() {
                 "AutoIncId" => {
                     energy.auto_inc_id = column.column_data.parse::<i32>().unwrap_or_default();
@@ -338,7 +344,7 @@ pub(crate) fn parse_app_timeline(
                 "MouseInputS" => {
                     energy.mouse_input_s = column.column_data.parse::<i32>().unwrap_or_default();
                 }
-                _ => continue,
+                _ => (),
             }
         }
         energy_vec.push(energy);
@@ -408,7 +414,7 @@ pub(crate) fn parse_vfu_provider(
                     ));
                 }
                 "Usage" => app.usage.clone_from(&column.column_data),
-                _ => continue,
+                _ => (),
             }
         }
         app_vec.push(app);

@@ -559,7 +559,6 @@ pub(crate) fn extract_property_value<'a>(
                         let (_, final_bin) = take(bin_len)(bin_start)?;
                         let string = base64_encode_standard(final_bin);
                         binary_values.push(string);
-                        continue;
                     }
                 }
                 value = serde_json::to_value(&binary_values).unwrap_or_default();

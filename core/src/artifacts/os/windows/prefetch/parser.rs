@@ -66,7 +66,6 @@ fn read_directory(path: &str) -> Result<Vec<Prefetch>, PrefetchError> {
             Ok(result) => prefetch_data.push(result),
             Err(err) => {
                 error!("[prefetch] Failed to get prefetch for {pf_file}, error: {err:?}");
-                continue;
             }
         }
     }

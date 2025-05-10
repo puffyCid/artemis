@@ -24,10 +24,7 @@ pub(crate) fn parse_action_log(action_dictionary: &Dictionary) -> Log {
             log_data.parameters = get_dictionary(action_value).unwrap_or_default();
         } else if key == "facility" {
             log_data.facility = get_string(action_value).unwrap_or_default();
-        } else if key == "type" {
-            // Skip type values. We already know the action type
-            continue;
-        } else {
+        } else if key != "type" {
             warn!("[emond] Unknown Log Action key: {key}. Value: {action_value:?}");
         }
     }

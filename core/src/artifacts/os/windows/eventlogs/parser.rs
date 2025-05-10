@@ -265,10 +265,9 @@ fn read_directory(
 
         let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
         match eventlogs_results {
-            Ok(_) => continue,
+            Ok(_) => (),
             Err(err) => {
                 error!("[eventlogs] Failed to get eventlogs for {evtx_file}, error: {err:?}");
-                continue;
             }
         }
     }

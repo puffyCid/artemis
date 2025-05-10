@@ -47,7 +47,6 @@ pub(crate) fn parse_manifest(
                     let (_, channels) = parse_manifest_data(data, element_start, &sig_type)?;
                     value.channels = channels;
                 }
-                SigType::Ttbl | SigType::Evta | SigType::Priva => continue,
                 SigType::Opco => {
                     let (_, opcodes) = parse_manifest_data(data, element_start, &sig_type)?;
                     value.opcodes = opcodes;
@@ -73,6 +72,7 @@ pub(crate) fn parse_manifest(
                     value.maps = maps;
                 }
                 SigType::Unknown => warn!("[eventlogs] Unknown manifest sig: {sig}"),
+                SigType::Ttbl | SigType::Evta | SigType::Priva => (),
             }
         }
     }

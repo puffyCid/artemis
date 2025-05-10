@@ -139,7 +139,7 @@ fn extract_old_path(entry: RegistryData, amcache_entry: &mut Amcache) {
                 amcache_entry.sha1 = adjust_id(&value.data, extra_zeros);
             }
 
-            _ => continue,
+            _ => (),
         }
     }
 }
@@ -171,7 +171,7 @@ fn extract_entry(entry: RegistryData, amcache_entry: &mut Amcache) {
                 amcache_entry.sha1 = adjust_id(&value.data, extra_zeros);
             }
             "BinaryType" => amcache_entry.binary_type = value.data,
-            _ => continue,
+            _ => (),
         }
     }
 }

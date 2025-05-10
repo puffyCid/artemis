@@ -105,7 +105,6 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             Ok(_) => {}
             Err(err) => {
                 warn!("[compression] Could not write all file {path} to zip: {err:?}");
-                continue;
             }
         }
     }

@@ -309,14 +309,12 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         contents = node.clone();
                     } else if node.node.node_id == NodeID::FaiContentsTable {
                         fai = node.clone();
-                    } else if node.node.node_id == NodeID::Unknown {
-                        continue;
                     } else if search.contains(&node.node.node_id) {
                         return self.search_folder(ntfs_file, folder);
-                    } else if node.node.node_id == NodeID::ContentsTableIndex {
-                        // This Table is undocumented. Internal to the OST
-                        continue;
-                    } else {
+                    } else if node.node.node_id != NodeID::ContentsTableIndex
+                        && node.node.node_id != NodeID::Unknown
+                    {
+                        // ContentsTableIndex is undocumented may be internal to Outlook
                         warn!("[outlook] Unexpected NodeID for folder: {node:?}");
                     }
                 }
@@ -490,14 +488,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         search = node.clone();
                     } else if node.node.node_id == NodeID::SearchCriteria {
                         criteria = node.clone();
-                    } else if node.node.node_id == NodeID::SearchContentsTable {
-                        continue;
-                    } else if node.node.node_id == NodeID::SearchUpdateQueue {
-                        // SearchUpdateQueue not needed to parse data
-                        continue;
-                    } else if node.node.node_id == NodeID::Unknown {
-                        continue;
-                    } else {
+                    } else if node.node.node_id != NodeID::SearchContentsTable
+                        && node.node.node_id != NodeID::SearchUpdateQueue
+                        && node.node.node_id != NodeID::Unknown
+                    {
                         warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
                     }
                 }

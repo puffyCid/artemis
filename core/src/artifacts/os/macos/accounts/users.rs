@@ -28,10 +28,7 @@ pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers>
         let opendirectoryd_users = parse_users_plist(&user);
         match opendirectoryd_users {
             Ok(results) => user_data.push(results),
-            Err(err) => {
-                error!("[users] Failed to parse file {user}. Error: {err:?}");
-                continue;
-            }
+            Err(err) => error!("[users] Failed to parse file {user}. Error: {err:?}"),
         }
     }
     user_data

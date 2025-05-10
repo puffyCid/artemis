@@ -49,7 +49,6 @@ pub(crate) fn grab_loginitems(
                 Ok(mut data) => loginitems_data.append(&mut data),
                 Err(err) => {
                     error!("[loginitem] Could not parse legacy loginitems: {err:?}: {plist_path}");
-                    continue;
                 }
             }
         }

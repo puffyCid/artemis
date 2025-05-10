@@ -76,9 +76,8 @@ fn drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
             continue;
         }
         let shim_data_result = parse_sdb_file(&file);
-        match shim_data_result {
-            Ok(result) => shimdb_vec.push(result),
-            Err(_) => continue,
+        if let Ok(result) = shim_data_result {
+            shimdb_vec.push(result);
         }
     }
     Ok(shimdb_vec)

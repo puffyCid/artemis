@@ -38,15 +38,12 @@ fn get_array_values(data_results: Vec<Value>) -> Result<Vec<Vec<u8>>, PlistError
                 };
 
                 for (_dict_key, dict_data) in dict {
-                    match dict_data {
-                        Value::Data(value) => {
-                            collect_bookmarks(&value, &mut bookmark_data);
-                        }
-                        _ => continue,
+                    if let Value::Data(value) = dict_data {
+                        collect_bookmarks(&value, &mut bookmark_data);
                     }
                 }
             }
-            _ => continue,
+            _ => (),
         }
     }
 

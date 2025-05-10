@@ -54,10 +54,11 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => match tag.name().as_ref() {
-                b"RegistrationInfo" => break,
-                _ => continue,
-            },
+            Ok(Event::End(tag)) => {
+                if tag.name().as_ref() == b"RegistrationInfo" {
+                    break;
+                }
+            }
             _ => (),
         }
     }
