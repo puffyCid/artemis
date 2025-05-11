@@ -62,9 +62,13 @@ pub(crate) fn parse_mui<'a>(
         extract_utf16_string(lang_data)
     };
 
-    let parent = get_parent_directory(path);
-    let filename = get_filename(path);
-    let real_path = format!("{parent}\\{lang}\\{filename}.mui");
+    let real_path = if !path.ends_with(".mui") {
+        let parent = get_parent_directory(path);
+        let filename = get_filename(path);
+        format!("{parent}\\{lang}\\{filename}.mui")
+    } else {
+        path.to_string()
+    };
 
     if !is_file(&real_path) {
         error!("[eventlogs] No MUI file at {real_path}");
