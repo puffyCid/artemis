@@ -173,6 +173,10 @@ pub(crate) fn eventlogs(data: &mut Value) -> Option<()> {
             continue;
         }
 
+        // Timesketch cannot handle large amounts of raw event data
+        // It maxes out at 1000 total JSON keys per sketch
+        entry.as_object_mut()?.remove("raw_event_data");
+
         entry["datetime"] = entry["generated"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("EventLogs"));
         entry["data_type"] = Value::String(String::from("windows:eventlogs:entry"));
