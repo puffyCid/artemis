@@ -173,9 +173,15 @@ pub(crate) fn eventlogs(data: &mut Value) -> Option<()> {
             continue;
         }
 
+        // Message may be empty if Windows does not have the right provider. Use raw strings as substitute
+        if entry["message"].is_string() && entry["message"].as_str()?.is_empty() {
+            entry["message"] = Value::String(entry["raw_event_data"].to_string());
+        }
+
         // Timesketch cannot handle large amounts of raw event data
         // It maxes out at 1000 total JSON keys per sketch
         entry.as_object_mut()?.remove("raw_event_data");
+        entry.as_object_mut()?.remove("template_message");
 
         entry["datetime"] = entry["generated"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("EventLogs"));
