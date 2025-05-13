@@ -11,7 +11,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_energy(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut energy_vec: Vec<EnergyInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyInfo {
@@ -60,14 +60,14 @@ pub(crate) fn parse_energy(
         }
     };
 
-    Ok((serde_data, String::from("srum_energy")))
+    Ok(serde_data)
 }
 
 /// Parse the energy usage table from SRUM
 pub(crate) fn parse_energy_usage(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut energy_vec: Vec<EnergyUsage> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyUsage {
@@ -139,7 +139,7 @@ pub(crate) fn parse_energy_usage(
         }
     };
 
-    Ok((serde_data, String::from("srum_energy_usage")))
+    Ok(serde_data)
 }
 
 #[cfg(test)]

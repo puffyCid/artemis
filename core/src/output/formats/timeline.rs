@@ -38,7 +38,7 @@ fn get_artifact(artifact: &str) -> Artifacts {
         "tasks" => Artifacts::Tasks,
         "userassist" => Artifacts::Userassist,
         "usnjrnl" => Artifacts::UsnJrnl,
-        "wmi" => Artifacts::Wmi,
+        "wmipersist" => Artifacts::Wmi,
         "services" => Artifacts::Services,
         "jumplist" => Artifacts::Jumplist,
         "eventlogs" => Artifacts::Eventlogs,

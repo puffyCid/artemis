@@ -8,7 +8,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_notification(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut notif_vec: Vec<NotificationInfo> = Vec::new();
     for rows in column_rows {
         let mut notif = NotificationInfo {
@@ -68,7 +68,7 @@ pub(crate) fn parse_notification(
         }
     };
 
-    Ok((serde_data, String::from("srum_notification")))
+    Ok(serde_data)
 }
 
 #[cfg(test)]
