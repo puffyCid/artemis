@@ -89,7 +89,7 @@ mod tests {
             "tasks",
             "userassist",
             "usnjrnl",
-            "wmi",
+            "wmipersist",
             "services",
             "jumplist",
             "eventlogs",
