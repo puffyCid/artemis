@@ -70,7 +70,7 @@ url = "2.5.4"
 common = { path = "../common" }
 timeline = { path = "../timeline" }
 sunlight = "0.1.1"
-miniz_oxide = { version = "0.8.7", features = ["std", "with-alloc"] }
+miniz_oxide = { version = "0.8.8", features = ["std", "with-alloc"] }
 lumination = "0.1.1"
 
 # JS API
