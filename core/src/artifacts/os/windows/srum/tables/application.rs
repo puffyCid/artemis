@@ -11,7 +11,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_application(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut app_vec: Vec<ApplicationInfo> = Vec::new();
     for rows in column_rows {
         let mut app = ApplicationInfo {
@@ -130,14 +130,14 @@ pub(crate) fn parse_application(
             return Err(SrumError::Serialize);
         }
     };
-    Ok((serde_data, String::from("srum_application")))
+    Ok(serde_data)
 }
 
 /// Parse the app timeline table from SRUM
 pub(crate) fn parse_app_timeline(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut energy_vec: Vec<AppTimelineInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = AppTimelineInfo {
@@ -359,14 +359,14 @@ pub(crate) fn parse_app_timeline(
         }
     };
 
-    Ok((serde_data, String::from("srum_app_timeline")))
+    Ok(serde_data)
 }
 
 /// Parse VFU table from SRUM. Not sure what this table is used for
 pub(crate) fn parse_vfu_provider(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut app_vec: Vec<AppVfu> = Vec::new();
     for rows in column_rows {
         let mut app = AppVfu {
@@ -429,7 +429,7 @@ pub(crate) fn parse_vfu_provider(
         }
     };
 
-    Ok((serde_data, String::from("srum_app_vfu")))
+    Ok(serde_data)
 }
 
 #[cfg(test)]
@@ -448,7 +448,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
 
-        let (results, _) = parse_app_timeline(&srum_data, &lookups).unwrap();
+        let results = parse_app_timeline(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 
@@ -460,7 +460,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}").unwrap();
 
-        let (results, _) = parse_application(&srum_data, &lookups).unwrap();
+        let results = parse_application(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 
@@ -472,7 +472,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}").unwrap();
 
-        let (results, _) = parse_vfu_provider(&srum_data, &lookups).unwrap();
+        let results = parse_vfu_provider(&srum_data, &lookups).unwrap();
         assert_eq!(results.is_null(), false)
     }
 }

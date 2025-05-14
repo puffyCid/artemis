@@ -82,6 +82,9 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
 /// Read nested resource directory
 fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
     let mut res_bytes = Vec::new();
+    // For now only english locale is supported
+    let lang_english = 1033;
+
     for entry in dir.entries() {
         let res_entry = entry.entry()?;
         if entry.is_dir() {
@@ -91,6 +94,10 @@ fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
 
             error!("[pe] Got None value on resource directory");
             return Err(Error::Invalid);
+        }
+
+        if entry.name()? != Name::Id(lang_english) {
+            continue;
         }
 
         if let Some(data) = res_entry.data() {

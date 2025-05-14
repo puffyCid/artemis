@@ -45,7 +45,7 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: &bool) -> Resu
     for table in tables {
         let srum_data = get_srum_ese(path, table)?;
 
-        let (mut serde_data, table_type) = match table {
+        let mut serde_data = match table {
             "{5C8CF1C7-7257-4F13-B223-970EF5939312}" => parse_app_timeline(&srum_data, &lookups)?,
             "{973F5D5C-1D90-4944-BE8E-24B94231A174}" => parse_network(&srum_data, &lookups)?,
             "{DD6636C4-8929-4683-974E-22C046A43763}" => {
@@ -62,11 +62,11 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: &bool) -> Resu
             _ => continue,
         };
 
-        let result = output_data(&mut serde_data, &table_type, output, &start_time, filter);
+        let result = output_data(&mut serde_data, "srum", output, &start_time, filter);
         match result {
             Ok(_result) => {}
             Err(err) => {
-                error!("[srum] Could not output {table_type} data: {err:?}");
+                error!("[srum] Could not output srum {table} data: {err:?}");
             }
         }
     }
@@ -80,7 +80,7 @@ pub(crate) fn get_srum(path: &str, table: &str) -> Result<Value, SrumError> {
     let lookups = parse_id_lookup(&indexes);
     let srum_data = get_srum_ese(path, table)?;
 
-    let (srum_data, _table_type) = match table {
+    let srum_data = match table {
         "{5C8CF1C7-7257-4F13-B223-970EF5939312}" => parse_app_timeline(&srum_data, &lookups)?,
         "{973F5D5C-1D90-4944-BE8E-24B94231A174}" => parse_network(&srum_data, &lookups)?,
         "{DD6636C4-8929-4683-974E-22C046A43763}" => {

@@ -215,8 +215,15 @@ fn gather_resource_paths() -> Result<StringResource, EventLogsError> {
 /// Determine if we are already tracking the path to the DLL file
 fn update_resource(templates: &mut HashMap<String, TemplateResource>, file: &str) {
     let mut real_path = file.to_string();
+
+    // Sometimes we do not get a full path and just a filename. Default to system32
+    if !real_path.contains("\\") {
+        let drive = get_systemdrive().unwrap_or('C');
+        real_path = format!("{drive}:\\Windows\\System32\\{file}");
+    }
+
     if !is_file(&real_path) {
-        // File does not exist. May be in a locale subdirectory
+        // File does not exist. It might be in a locale subdirectory
         let parent = get_parent_directory(&real_path);
         let pe = format!("{parent}\\en-US\\{}.mui", get_filename(&real_path));
 

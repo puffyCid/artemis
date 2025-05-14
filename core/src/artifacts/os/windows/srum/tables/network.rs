@@ -11,7 +11,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_network(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut network_vec: Vec<NetworkInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkInfo {
@@ -80,14 +80,14 @@ pub(crate) fn parse_network(
         }
     };
 
-    Ok((serde_data, String::from("srum_network")))
+    Ok(serde_data)
 }
 
 /// Parse the network connectivity table from SRUM
 pub(crate) fn parse_network_connectivity(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
-) -> Result<(Value, String), SrumError> {
+) -> Result<Value, SrumError> {
     let mut network_vec: Vec<NetworkConnectivityInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkConnectivityInfo {
@@ -158,7 +158,7 @@ pub(crate) fn parse_network_connectivity(
         }
     };
 
-    Ok((serde_data, String::from("srum_connectivity")))
+    Ok(serde_data)
 }
 
 #[cfg(test)]
