@@ -3,8 +3,5 @@
         "BarbossHack.crates-io",
         "tamasfe.even-better-toml",
         "rust-lang.rust-analyzer",
-        "bradlc.vscode-tailwindcss",
-        "svelte.svelte-vscode",
-        "tauri-apps.tauri-vscode",
     ]
 }
