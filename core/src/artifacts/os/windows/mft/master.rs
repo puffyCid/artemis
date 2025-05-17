@@ -366,6 +366,13 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     extended_attribs: &HashMap<String, EntryAttributes>,
     tracker: &mut Lookups,
 ) -> Result<String, MftError> {
+    println!(
+        "cache len: {}. Parent index: {}. Parent Seq: {}. Tracker: {}",
+        cache.len(),
+        tracker.parent_index,
+        tracker.parent_sequence,
+        tracker.tracker.len(),
+    );
     if tracker.tracker.contains(&format!(
         "{}_{}",
         tracker.parent_index, tracker.parent_sequence
