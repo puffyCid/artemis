@@ -101,6 +101,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     while first_pass < 2 {
         // Read through the MFT. We read 1000 entries at time
         while let Ok(header) = determine_header_info(&offset, reader, ntfs_file) {
+            println!("MFT offset: {offset}");
             // If our offset is larger than the MFT size. Then we are done
             if offset > *size {
                 break;
@@ -366,13 +367,6 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     extended_attribs: &HashMap<String, EntryAttributes>,
     tracker: &mut Lookups,
 ) -> Result<String, MftError> {
-    println!(
-        "cache len: {}. Parent index: {}. Parent Seq: {}. Tracker: {}",
-        cache.len(),
-        tracker.parent_index,
-        tracker.parent_sequence,
-        tracker.tracker.len(),
-    );
     if tracker.tracker.contains(&format!(
         "{}_{}",
         tracker.parent_index, tracker.parent_sequence
