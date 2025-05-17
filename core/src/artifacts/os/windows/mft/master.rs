@@ -92,7 +92,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     let mut first_pass = 0;
 
     // We parse 1000 FILE entries at a time
-    let file_entries = 1000;
+    let file_entries = 10000;
 
     // We parse the $MFT twice :(
     // First to only get $MFT entries that are extension entries. These entries contain attributes that are part of a real FILE entry but are too large to fit in a single FILE
@@ -101,7 +101,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     while first_pass < 2 {
         // Read through the MFT. We read 1000 entries at time
         while let Ok(header) = determine_header_info(&offset, reader, ntfs_file) {
-            println!("MFT offset: {offset}");
+            println!("MFT offset: {offset}: header: {header:?}");
             // If our offset is larger than the MFT size. Then we are done
             if offset > *size {
                 break;
