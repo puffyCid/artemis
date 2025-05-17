@@ -95,4 +95,4 @@ jobs:
         
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: cargo test --release
+        run: cargo test --release --no-capture
