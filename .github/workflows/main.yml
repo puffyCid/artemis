@@ -52,10 +52,6 @@ jobs:
       - name: Install just runner
         uses: taiki-e/install-action@just
 
-      - name: Tauri build dependencies on Linux
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo apt update && sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-
       - name: Setup Podman user config directory
         if: matrix.info.os == 'ubuntu-latest'
         run: mkdir -p ~/.config/containers
@@ -84,10 +80,6 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
       
-      - name: Download OpenSearch on Linux
-        if: matrix.info.os == 'ubuntu-latest'
-        run: podman run -it -p 9200:9200 -p 9600:9600 -e OPENSEARCH_INITIAL_ADMIN_PASSWORD="Ughsocomplex123567890!" -e "discovery.type=single-node"  --name opensearch-node -d opensearchproject/opensearch:latest
-
       - name: Build tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" cargo test --no-run --release
