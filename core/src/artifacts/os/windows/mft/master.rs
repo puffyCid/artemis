@@ -108,8 +108,6 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
             // MFT entry size is 0 bytes. Add 1024 to our offset and move on
             if header.total_size == 0 {
-                println!("MFT offset: {offset}: header: {header:?}. MFT size is {size}");
-                println!("thats a problem");
                 let default_entry_size = 1024;
                 offset += default_entry_size;
                 continue;
