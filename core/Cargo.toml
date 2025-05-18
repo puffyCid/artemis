@@ -32,7 +32,7 @@ walkdir = "2.5.0"
 home = "0.5.11"
 chrono = "0.4.41"
 simplelog = "0.12.2"
-zip = { version = "2.6.1", default-features = false }
+zip = { version = "3.0.0", default-features = false }
 jsonwebtoken = "9.3.1"
 rusty-s3 = "0.7.0"
 quick-xml = { version = "0.37.5", default-features = false }
@@ -42,7 +42,7 @@ evtx = { version = "0.8.5", default-features = false, features = [
 ] }
 ntfs = "0.4.0"
 pelite = "0.10.0"
-elf = "0.7.4"
+elf = "0.8.0"
 ruzstd = "0.8.1"
 lz4_flex = "0.11.3"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
@@ -70,7 +70,7 @@ url = "2.5.4"
 common = { path = "../common" }
 timeline = { path = "../timeline" }
 sunlight = "0.1.1"
-miniz_oxide = { version = "0.8.7", features = ["std", "with-alloc"] }
+miniz_oxide = { version = "0.8.8", features = ["std", "with-alloc"] }
 lumination = "0.1.1"
 
 # JS API

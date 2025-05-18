@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "core", "common", "client", "apollo/src-tauri", "timeline"]
+members = ["cli", "core", "common", "client", "timeline"]
 resolver = "2"
 
 [profile.release]
@@ -32,6 +32,6 @@ reqwest = { version = "0.12.15", features = [
     "blocking",
     "native-tls-vendored",
 ] }
-sysinfo = "0.35.0"
+sysinfo = "0.35.1"
 uuid = { version = "1.16.0", features = ["v4"] }
 rusqlite = { version = "0.35.0", features = ["bundled", "serde_json"] }

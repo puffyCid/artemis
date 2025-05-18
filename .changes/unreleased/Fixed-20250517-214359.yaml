@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug where artemis improperly handled MFT entries with a size of zero
+time: 2025-05-17T21:43:59.010119149-04:00

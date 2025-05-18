@@ -105,6 +105,13 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             if offset > *size {
                 break;
             }
+
+            // MFT entry size is 0 bytes. Add 1024 to our offset and move on
+            if header.total_size == 0 {
+                let default_entry_size = 1024;
+                offset += default_entry_size;
+                continue;
+            }
             // Cache 1000 directories. We use this for quick lookups for FILE entries
             while cache.len() > cache_limit {
                 if let Some(key) = cache.keys().next() {
