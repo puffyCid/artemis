@@ -12,11 +12,12 @@ lto = true
 codegen-units = 1
 
 [workspace.package]
-version = "0.13.0"
+version = "0.14.0"
 homepage = "https://puffycid.github.io/artemis-api"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
 edition = "2024"
+description = "A cross platform forensic parser"
 
 [workspace.dependencies]
 serde = { version = "1.0.219", features = ["derive"] }

@@ -1,0 +1,59 @@
+.\" Created with https://roperzh.github.io/grapse/
+
+.Dd 2025-05-18              \" DATE
+.Dt Artemis 1      \" Program name and manual section number
+.Sh NAME                 \" Section Header - required - don't modify
+.Nm Artemis
+.\" The following lines are read in generating the apropos(man -k) database. Use only key
+.\" words here as the database is built based on the words here and in the .ND line.
+.\" Use .Nm macro to designate other names for the documented program.
+.Nd A cross platform forensic parser \" Use .Nm macro to designate other names for the documented program.
+.Sh SYNOPSIS \" Section Header - required - don't modify
+.Nm
+.Op Fl tdjhV \" [-abcd]
+.Op Fl t Ar toml file \" [-t toml file]
+.Pp
+.Nm
+.Ar acquire
+.Op Fl h
+.Pp
+.Nm
+.Ar help
+.Sh DESCRIPTION \" Section Header - required - don't modify
+Artemis is a powerful command line digital forensic and incident response (DFIR)
+tool that collects forensic data from endpoints. Artemis is designed to be
+fast, easy to use, and consume minimal resources. This is a minimal manpage
+.Pp \" Inserts a space
+Artemis command options are:
+.Bl -tag -width -indent \" Begins a tagged list
+.It Fl t \" Each item preceded by .It macro
+Full path to a TOML forensic collection file
+.It Fl d
+Base64 encoded TOML forensic collection
+.It Fl j
+Full path to a JavaScript collection script
+.It Fl h
+Prints the help menu
+.It Fl V
+Prints the version
+.El \" Ends the list
+.Pp
+Artemis acquire options are:
+.Bl -tag -width -indent 
+.It acquire Fl h 
+Print help menu
+.It acquire Fl Fl format
+Output format. JSON or JSONL or CSV. Default is JSON
+.It acquire Fl Fl output-dir
+Specify output directory for parsed data. Default is ./tmp
+.It acquire Fl Fl compress
+Compress data with GZIP.
+.It acquire Fl Fl timeline
+Timeline supported artifacts. Output is always JSONL.
+.El                      \" Ends the list
+.Pp
+.Sh FILES                \" File used or created by the topic of the man page
+.Bl -tag -width -compact
+.It Pa /usr/bin/artemis
+Artemis forensic parser
+.El                      \" Ends the list

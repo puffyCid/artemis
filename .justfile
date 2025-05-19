@@ -139,3 +139,29 @@ setup-windows: (_windows)
 # Setup Artemis development environment for macOS
 [group('setup')]
 setup-macos: (_macos)
+
+# Package Artemis into RPM file
+[group('package')]
+rpm:(cli)
+  @mkdir -p ~/rpmbuild/SOURCES
+  @cp target/release/artemis ~/rpmbuild/SOURCES
+  @cp README.md ~/rpmbuild/SOURCES
+  @cp LICENSE ~/rpmbuild/SOURCES
+  @cp .packages/artemis.man ~/rpmbuild/SOURCES
+
+  rpmbuild --quiet -bb .packages/artemis.spec
+  @echo ""
+  @echo "RPM package built you may find it at ~/rpmbuild/RPMS"
+  @echo "You can sign the package with rpmsign using your own GPG key"
+
+[group('package')]
+_ci_rpm target:(_ci_release target)
+  @mkdir -p ~/rpmbuild/SOURCES
+  @mv "target/$TARGET/release-action/$NAME" ~/rpmbuild/SOURCES
+  @cp README.md ~/rpmbuild/SOURCES
+  @cp LICENSE ~/rpmbuild/SOURCES
+  @cp .packages/artemis.man ~/rpmbuild/SOURCES
+
+  rpmbuild --quiet -bb .packages/artemis.spec
+  @mv ~/rpmbuild/RPMS/artemis* "target/$TARGET/release-action/"
+  rpmsign --define "_gpg_name PuffyCid" --addsign "target/$TARGET/release-action/artemis*"

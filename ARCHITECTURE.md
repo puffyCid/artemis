@@ -5,20 +5,17 @@ architecture. Inspired by
 https://matklad.github.io//2021/02/06/ARCHITECTURE.md.html
 
 A more detailed overview can be found at
-https://puffycid.github.io/artemis-api/docs/Contributing/overview
+https://puffycid.github.io/artemis/docs/Contributing/overview
 
 ### Artemis repo structure
 
 The artemis repository is composed of multiple workspaces
 
 - `cli/` - Contains the code the powers the CLI application
-- `core/` - Contains the code related to all forensic parsers and the Deno (JS)
+- `core/` - Contains the code related to all forensic parsers and the Boa (JS)
   runtime
 - `common/` - Collection of structs shared between workspaces
-- `server/` - Experimental server component for artemis. This code is not
-  included in GitHub releases
-- `webui/` - Experimental webUI for the server. This code is not included in
-  GitHub releases
+- `timeline/`- Contains the code related to timelining supported artifacts
 
 ### Core structure
 
@@ -30,6 +27,6 @@ grouped by forensic artifacts based on the OS.
   by OS.
 - `filesystem/` - Contains helper functions to access the filesystem
 - `output/` - Code related to outputting the forensic artifacts
-- `runtime/` - Code related to the Deno (JS) runtime
+- `runtime/` - Code related to the Boa (JS) runtime
 - `structs/` - Collection of structs used by `core` crate
 - `utils/` - Contains misc helper functions

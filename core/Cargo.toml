@@ -84,7 +84,7 @@ ntapi = "0.4.1"
 # Dependencies for tests
 [dev-dependencies]
 httpmock = "0.7.0"
-criterion = "0.5.1"
+criterion = "0.6.0"
 
 # Artemis features
 [features]

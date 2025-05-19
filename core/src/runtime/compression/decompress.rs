@@ -27,7 +27,7 @@ pub(crate) fn js_decompress_zlib(
     Ok(bytes.into())
 }
 
-/// Expose decmpressing gzip data to Deno
+/// Expose decmpressing gzip data to Boa
 pub(crate) fn js_decompress_gzip(
     _this: &JsValue,
     args: &[JsValue],

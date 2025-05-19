@@ -5,6 +5,7 @@ edition = { workspace = true }
 version = { workspace = true }
 homepage = { workspace = true }
 repository = { workspace = true }
+description = { workspace = true }
 
 [dependencies]
 base64 = { workspace = true }
@@ -16,3 +17,8 @@ clap = { version = "4.5.38", features = ["std", "help", "derive"] }
 [features]
 default = ["yarax"]
 yarax = ["core/yarax"]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/artemis", dest = "/usr/bin/artemis", mode = "755" },
+]

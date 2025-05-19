@@ -1,0 +1,70 @@
+name: Stable Release Packages
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+
+jobs:
+  upload-release:
+    strategy:
+      matrix:
+        info:
+          - os: "macOS-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macOS-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - name: Setup NodeJS toolchain
+        uses: actions/setup-node@v4
+      - name: Install TailwindCSS
+        run: npm install -D tailwindcss
+      - name: Install DaisyUI
+        run: npm install -D daisyui@latest
+      - name: Install TailwindCSS Typography
+        run: npm install -D @tailwindcss/typography
+      - name: Setup Stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.info.target }}
+          components: clippy, rustfmt
+      - name: Setup Auditable
+        run: cargo install cargo-auditable
+
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@just
+
+      - name: Install RPM tools
+        run: | 
+          sudo apt install -y rpm gnupg2 
+          mkdir -p ~/.gnupg/
+
+      - name: Import GPG Key
+        env: 
+          KEY: ${{ secrets.GPG_KEY }}
+        run: | 
+          echo "$KEY" | base64 --decode | gpg --batch --yes --import
+
+      - name: Package Artemis as RPM
+        shell: bash
+        env:
+          NAME: artemis
+          TARGET: ${{ matrix.info.target }}
+          VERSION: ${{  github.ref_name }}
+        run: just _ci_rpm ${{ matrix.info.target }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "artemis*"
+          name: "${{ github.ref_name }} - Released!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
