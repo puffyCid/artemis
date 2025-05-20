@@ -17,8 +17,3 @@ clap = { version = "4.5.38", features = ["std", "help", "derive"] }
 [features]
 default = ["yarax"]
 yarax = ["core/yarax"]
-
-[package.metadata.generate-rpm]
-assets = [
-    { source = "target/release/artemis", dest = "/usr/bin/artemis", mode = "755" },
-]

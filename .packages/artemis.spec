@@ -6,12 +6,13 @@ Version: 0.14.0
 Group: Application/Security
 URL: https://puffycid.github.io/artemis
 BugURL: https://github.com/puffyCid/artemis
+Requires: glibc >= 2.17
 
 %description
-Artemis is a powerful command line digital forensic and incident response (DFIR)
-tool that collects forensic data from endpoints. Artemis is designed to be
-fast, easy to use, and consume minimal resources.
-
+Provides a command line digital forensic and incident 
+response (DFIR) tool that collects forensic data from systems. 
+Artemis can be used to investigation suspicious or malicious
+activity on a system.
 
 %changelog
 

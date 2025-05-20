@@ -20,7 +20,7 @@ pub(crate) fn list_connections(output: &mut Output, filter: &bool) -> Result<(),
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize conenctions: {err:?}");
+            error!("[core] Failed to serialize connections: {err:?}");
             return Err(ConnectionsError::Serialize);
         }
     };

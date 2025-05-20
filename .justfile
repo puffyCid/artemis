@@ -154,6 +154,7 @@ rpm:(cli)
   @echo "RPM package built you may find it at ~/rpmbuild/RPMS"
   @echo "You can sign the package with rpmsign using your own GPG key"
 
+# Package Artemis into RPM file for CI Releases
 [group('package')]
 _ci_rpm target:(_ci_release target)
   @mkdir -p ~/rpmbuild/SOURCES
@@ -165,3 +166,32 @@ _ci_rpm target:(_ci_release target)
   rpmbuild --quiet -bb .packages/artemis.spec
   @mv ~/rpmbuild/RPMS/artemis* "target/$TARGET/release-action/"
   rpmsign --define "_gpg_name PuffyCid" --addsign "target/$TARGET/release-action/artemis*"
+
+# Package Artemis into DEB file
+[group('package')]
+deb version:(cli)
+  @mkdir -p ~/artemis_{{target}}-1/DEBIAN
+  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/bin
+  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/share/man/man1
+  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/share/doc/artemis
+  @cp LICENSE ~/artemis_{{target}}-1/usr/share/doc/artemis/copyright
+  @chmod 0644 ~/artemis_{{target}}-1/usr/share/doc/artemis/copyright
+
+  @cp CHANGELOG.md ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog
+  @gzip -9n ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog
+  @chmod 0644 ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog.gz
+
+  @cp .packages/artemis.man ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1
+  @gzip -9n ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1
+  @chmod 0644 ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1.gz
+
+  @cp target/release/artemis ~/artemis_{{target}}-1/usr/bin
+  @chmod 0755 ~/artemis_{{target}}-1/usr/bin/artemis
+
+  @find ~/artemis_{{target}}-1 -type f -exec md5sum '{}' \; > md5sums
+  @mv md5sums ~/artemis_{{target}}-1
+
+  dpkg-deb --build --root-owner-group
+  @echo ""
+  @echo "DEB package built you may find it in your current directory"
+  @echo "You can sign the package with rpmsign using your own GPG key"

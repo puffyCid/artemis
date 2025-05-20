@@ -1,0 +1,12 @@
+Package: artemis
+Version: 0.14.0
+Priority: optional
+Architecture: amd64
+Section: admin
+Maintainer: PuffyCid <puffycyan@gmail.com>
+Description: Provides a command line digital forensic and incident 
+ response (DFIR) tool that collects forensic data from systems. 
+ Artemis can be used to investigation suspicious or malicious
+ activity on a system.
+Homepage: https://puffycid.github.io/artemis
+Depends: libc6 (>= 2.17)
