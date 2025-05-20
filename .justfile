@@ -170,28 +170,66 @@ _ci_rpm target:(_ci_release target)
 # Package Artemis into DEB file
 [group('package')]
 deb version:(cli)
-  @mkdir -p ~/artemis_{{target}}-1/DEBIAN
-  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/bin
-  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/share/man/man1
-  @mkdir -p -m 0755 ~/artemis_{{target}}-1/usr/share/doc/artemis
-  @cp LICENSE ~/artemis_{{target}}-1/usr/share/doc/artemis/copyright
-  @chmod 0644 ~/artemis_{{target}}-1/usr/share/doc/artemis/copyright
+  @mkdir -p ~/artemis_{{version}}-1/DEBIAN
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man/man1
 
-  @cp CHANGELOG.md ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog
-  @gzip -9n ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog
-  @chmod 0644 ~/artemis_{{target}}-1/usr/share/doc/artemis/changelog.gz
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc/artemis
+  @cp LICENSE ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
 
-  @cp .packages/artemis.man ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1
-  @gzip -9n ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1
-  @chmod 0644 ~/artemis_{{target}}-1/usr/share/man/man1/artemis.1.gz
+  @cp CHANGELOG.md ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog.gz
 
-  @cp target/release/artemis ~/artemis_{{target}}-1/usr/bin
-  @chmod 0755 ~/artemis_{{target}}-1/usr/bin/artemis
+  @cp .packages/artemis.man ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1.gz
 
-  @find ~/artemis_{{target}}-1 -type f -exec md5sum '{}' \; > md5sums
-  @mv md5sums ~/artemis_{{target}}-1
+  @cp target/release/artemis ~/artemis_{{version}}-1/usr/bin/artemis
+  @chmod 0755 ~/artemis_{{version}}-1/usr/bin/artemis
 
-  dpkg-deb --build --root-owner-group
+  @cd ~/artemis_{{version}}-1/ && find usr -type f -exec md5sum '{}' \; > ./DEBIAN/md5sums
+  @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
+
+  dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
   @echo ""
-  @echo "DEB package built you may find it in your current directory"
-  @echo "You can sign the package with rpmsign using your own GPG key"
+  @echo "DEB package built you may find it in your home directory"
+  @echo "You can sign the package with debsigs using your own GPG key"
+
+# Package Artemis into DEB file for CI Releases
+[group('package')]
+_ci_deb version target:(_ci_release target)
+  @mkdir -p ~/artemis_{{version}}-1/DEBIAN
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man/man1
+
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc/artemis
+  @cp LICENSE ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+
+  @cp CHANGELOG.md ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog.gz
+
+  @cp .packages/artemis.man ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1.gz
+
+  @mv "target/$TARGET/release-action/$NAME" ~/artemis_{{version}}-1/usr/bin
+  @chmod 0755 ~/artemis_{{version}}-1/usr/bin/artemis
+
+  @cd ~/artemis_{{version}}-1/ && find usr -type f -exec md5sum '{}' \; > ./DEBIAN/md5sums
+  @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
+
+  dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
+  @mv ~/artemis_{{version}}-1.deb "target/$TARGET/release-action/"
+  debsigs --sign=origin --default-key=$PUB "target/$TARGET/release-action/artemis*"
