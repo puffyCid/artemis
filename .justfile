@@ -233,3 +233,16 @@ _ci_deb version target:(_ci_release target)
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
   @mv ~/artemis_{{version}}-1.deb "target/$TARGET/release-action/"
   debsigs --sign=origin --default-key=$PUB "target/$TARGET/release-action/artemis*"
+
+# Package Artemis into macOS PKG installer file
+[group('package')]
+pkg team_id version profile:(cli)
+  @cd target/release && codesign --timestamp -s {{team_id}} --deep -v -f -o runtime artemis
+  @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
+  @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
+  @xcrun stapler staple Artemis-{{version}}.pkg
+  @mv Artemis-{{version}}.pkg ~/
+
+  @echo ""
+  @echo "PKG installer should be in your home directory"
