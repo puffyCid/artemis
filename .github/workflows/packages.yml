@@ -42,18 +42,54 @@ jobs:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@just
 
+      # macOS Package Option
+      - name: Setup runner Keychain
+        if: matrix.info.os == 'macOS-latest'
+        run: |
+          echo ${{ secrets.DEVELOPER_ID_INSTALLER_CER }} | base64 --decode > certificate_installer.cer
+          echo ${{ secrets.DEVELOPER_ID_INSTALLER_KEY }} | base64 --decode > certificate_installer.key
+          echo ${{ secrets.DEVELOPER_ID_APPLICATION_CER }} | base64 --decode > certificate_application.cer
+          echo ${{ secrets.DEVELOPER_ID_APPLICATION_KEY }} | base64 --decode > certificate_application.key
+
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
+          
+          security import certificate_installer.p12 -P "${{ secrets.P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security import certificate_application.p12 -P "${{ secrets.P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Create Keychain Profile
+        if: matrix.info.os == 'macOS-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_PASS: ${{ secrets.APP_PASS }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: xcrun notarytool store-credentials "PuffyCid" --apple-id "$APPLE_ID" --password "$APP_PASS" --team-id "$TEAM_ID" --keychain $RUNNER_TEMP/app-signing.keychain-db
+
+      - name: Create PKG, sign, and notarize
+        if: matrix.info.os == 'macOS-latest'
+        env:
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: just _ci_pkg ${{  github.ref_name }} PuffyCid ${{ matrix.info.target }}
+
+      # Linux Package Options
       - name: Install RPM tools
+        if: matrix.info.os == 'ubuntu-latest'
         run: | 
           sudo apt install -y rpm gnupg2 
           mkdir -p ~/.gnupg/
 
       - name: Import GPG Key
+        if: matrix.info.os == 'ubuntu-latest'
         env: 
           KEY: ${{ secrets.GPG_KEY }}
         run: | 
           echo "$KEY" | base64 --decode | gpg --batch --yes --import
 
       - name: Package Artemis as RPM
+        if: matrix.info.os == 'ubuntu-latest'
         shell: bash
         env:
           NAME: artemis
@@ -62,6 +98,7 @@ jobs:
         run: just _ci_rpm ${{ matrix.info.target }}
 
       - name: Package Artemis as DEB
+        if: matrix.info.os == 'ubuntu-latest'
         shell: bash
         env:
           NAME: artemis

@@ -158,14 +158,14 @@ rpm:(cli)
 [group('package')]
 _ci_rpm target:(_ci_release target)
   @mkdir -p ~/rpmbuild/SOURCES
-  @mv "target/$TARGET/release-action/$NAME" ~/rpmbuild/SOURCES
+  @mv "target/${TARGET}/release-action/${NAME}" ~/rpmbuild/SOURCES
   @cp README.md ~/rpmbuild/SOURCES
   @cp LICENSE ~/rpmbuild/SOURCES
   @cp .packages/artemis.man ~/rpmbuild/SOURCES
 
   rpmbuild --quiet -bb .packages/artemis.spec
-  @mv ~/rpmbuild/RPMS/artemis* "target/$TARGET/release-action/"
-  rpmsign --define "_gpg_name PuffyCid" --addsign "target/$TARGET/release-action/artemis*"
+  @mv ~/rpmbuild/RPMS/artemis* "target/${TARGET}/release-action/"
+  rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*"
 
 # Package Artemis into DEB file
 [group('package')]
@@ -224,15 +224,15 @@ _ci_deb version target:(_ci_release target)
   @gzip -9n ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
   @chmod 0644 ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1.gz
 
-  @mv "target/$TARGET/release-action/$NAME" ~/artemis_{{version}}-1/usr/bin
+  @mv "target/${TARGET}/release-action/${NAME}" ~/artemis_{{version}}-1/usr/bin
   @chmod 0755 ~/artemis_{{version}}-1/usr/bin/artemis
 
   @cd ~/artemis_{{version}}-1/ && find usr -type f -exec md5sum '{}' \; > ./DEBIAN/md5sums
   @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
 
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
-  @mv ~/artemis_{{version}}-1.deb "target/$TARGET/release-action/"
-  debsigs --sign=origin --default-key=$PUB "target/$TARGET/release-action/artemis*"
+  @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
+  @debsigs --sign=origin --default-key=${PUB} "target/${TARGET}/release-action/artemis*"
 
 # Package Artemis into macOS PKG installer file
 [group('package')]
@@ -246,3 +246,11 @@ pkg team_id version profile:(cli)
 
   @echo ""
   @echo "PKG installer should be in your home directory"
+
+# Package Artemis into macOS PKG installer file for CI Releases
+[group('package')]
+_ci_pkg version profile target:(_ci_release target)
+  @cd target/release && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
+  @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 

@@ -48,3 +48,4 @@ References for signing and notarizing cli/Rust tools:
 - https://victoronsoftware.com/posts/script-only-macos-install-package/
 - https://forum.hise.audio/topic/12146/pkg-notarisation-issue/5
 - https://www.davidebarranca.com/2019/04/notarizing-installers-for-macos-catalina/
+- https://github.com/GuillaumeFalourd/sign-and-notarize-gha
