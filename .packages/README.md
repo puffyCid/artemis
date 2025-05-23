@@ -5,6 +5,8 @@ The files listed here are used to package artemis. All commands assume you are i
 - artemis.spec - Generates a RPM file
 - artemis.control - Generates a DEB file
 - artemis.man - Simple manpage for artemis
+- artemis.wixproj - MSI Template project
+- artemis.wxs - MSI configuration
 
 ## RPM
 1. Ensure just, rpmbuild, rpmlint are installed
@@ -49,3 +51,11 @@ References for signing and notarizing cli/Rust tools:
 - https://forum.hise.audio/topic/12146/pkg-notarisation-issue/5
 - https://www.davidebarranca.com/2019/04/notarizing-installers-for-macos-catalina/
 - https://github.com/GuillaumeFalourd/sign-and-notarize-gha
+
+
+# MSI 
+0. 
+1. Install [dotnet](https://dotnet.microsoft.com/en-us/)
+2. Disable telemetry `setx DOTNET_CLI_TELEMETRY_OPTOUT 1`
+3. Install WiX via dotnet: `dotnet tool install --global wix`
+4. Run dotnet build -c Release to build MSI
