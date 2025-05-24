@@ -46,7 +46,7 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     Ok(status)
 }
 
-/// Base64 decode the Javascript string and execute using Deno runtime and output the returned value
+/// Base64 decode the Javascript string and execute using Boa runtime and output the returned value
 fn decode_script(
     output: &mut Output,
     script_name: &str,

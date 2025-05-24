@@ -1,0 +1,129 @@
+name: Stable Release Packages
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+
+jobs:
+  upload-release:
+    strategy:
+      matrix:
+        info:
+          - os: "macOS-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macOS-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+    runs-on: ${{ matrix.info.os }}
+    steps:
+      - name: Setup NodeJS toolchain
+        uses: actions/setup-node@v4
+      - name: Install TailwindCSS
+        run: npm install -D tailwindcss
+      - name: Install DaisyUI
+        run: npm install -D daisyui@latest
+      - name: Install TailwindCSS Typography
+        run: npm install -D @tailwindcss/typography
+      - name: Setup Stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.info.target }}
+          components: clippy, rustfmt
+      - name: Setup Auditable
+        run: cargo install cargo-auditable
+
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@just
+
+      # macOS Package Option
+      - name: Setup runner Keychain
+        if: matrix.info.os == 'macOS-latest'
+        env:
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo ${{ secrets.DEVELOPER_P12 }} | base64 --decode > certs.p12
+      
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          security import certs.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Create Keychain Profile
+        if: matrix.info.os == 'macOS-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_PASS: ${{ secrets.APP_PASS }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: xcrun notarytool store-credentials "PuffyCid" --apple-id "$APPLE_ID" --password "$APP_PASS" --team-id "$TEAM_ID" --keychain $RUNNER_TEMP/app-signing.keychain-db
+
+      - name: Create PKG, sign, and notarize
+        if: matrix.info.os == 'macOS-latest'
+        env:
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: just _ci_pkg ${{  github.ref_name }} PuffyCid ${{ matrix.info.target }}
+
+
+      # Windows Pakcage Options
+      - name: Install dotnet
+        if: matrix.info.os == 'windows-latest'
+        run: choco install dotnet
+
+      - name: Install WiX
+        if: matrix.info.os == 'windows-latest'
+        run: dotnet tool install --global wix
+
+      - name: Package Artemis as MSI
+        if: matrix.info.os == 'windows-latest'
+        run: just _ci_msi ${{ matrix.info.target }}
+
+      # Linux Package Options
+      - name: Install RPM tools
+        if: matrix.info.os == 'ubuntu-latest'
+        run: | 
+          sudo apt install -y rpm gnupg2 
+          mkdir -p ~/.gnupg/
+
+      - name: Import GPG Key
+        if: matrix.info.os == 'ubuntu-latest'
+        env: 
+          KEY: ${{ secrets.GPG_KEY }}
+        run: | 
+          echo "$KEY" | base64 --decode | gpg --batch --yes --import
+
+      - name: Package Artemis as RPM
+        if: matrix.info.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          NAME: artemis
+          TARGET: ${{ matrix.info.target }}
+          VERSION: ${{  github.ref_name }}
+        run: just _ci_rpm ${{ matrix.info.target }}
+
+      - name: Package Artemis as DEB
+        if: matrix.info.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          NAME: artemis
+          TARGET: ${{ matrix.info.target }}
+          VERSION: ${{  github.ref_name }}
+          PUB: ${{ secrets.GPG_PUB }}
+        run: just _ci_deb ${{  github.ref_name }} ${{ matrix.info.target }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "artemis*"
+          name: "${{ github.ref_name }} - Released!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

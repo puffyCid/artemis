@@ -9,7 +9,7 @@ struct NomStringJs {
     nommed: String,
 }
 
-/// Expose `take_until` string function to Deno
+/// Expose `take_until` string function to Boa
 pub(crate) fn js_nom_take_until_string(
     _this: &JsValue,
     args: &[JsValue],
@@ -36,13 +36,13 @@ pub(crate) fn js_nom_take_until_string(
     Ok(value)
 }
 
-/// Expose `take_until` string function to Deno
+/// Expose `take_until` string function to Boa
 fn nom_take_until_string<'a>(data: &'a str, input: &str) -> nom::IResult<&'a str, String> {
     let (remaining, nommed) = take_until(input)(data)?;
     Ok((remaining, nommed.to_string()))
 }
 
-/// Expose `take_until` bytes function to Deno
+/// Expose `take_until` bytes function to Boa
 pub(crate) fn js_nom_take_until_bytes(
     _this: &JsValue,
     args: &[JsValue],
@@ -64,13 +64,13 @@ pub(crate) fn js_nom_take_until_bytes(
     Ok(bytes.into())
 }
 
-/// Expose `take_until` bytes function to Deno
+/// Expose `take_until` bytes function to Boa
 fn nom_take_until_bytes<'a>(data: &'a [u8], input: &[u8]) -> nom::IResult<&'a [u8], Vec<u8>> {
     let (remaining, nommed) = take_until(input)(data)?;
     Ok((remaining, nommed.to_vec()))
 }
 
-/// Expose `take_while` string function to Deno
+/// Expose `take_while` string function to Boa
 pub(crate) fn js_nom_take_while_string(
     _this: &JsValue,
     args: &[JsValue],
@@ -97,13 +97,13 @@ pub(crate) fn js_nom_take_while_string(
     Ok(value)
 }
 
-/// Expose `take_while` string function to Deno
+/// Expose `take_while` string function to Boa
 fn nom_take_while_string(data: &str, input: char) -> nom::IResult<&str, String> {
     let (remaining, nommed) = take_while(|b| b == input)(data)?;
     Ok((remaining, nommed.to_string()))
 }
 
-/// Expose `take_while` bytes function to Deno
+/// Expose `take_while` bytes function to Boa
 pub(crate) fn js_nom_take_while_bytes(
     _this: &JsValue,
     args: &[JsValue],
@@ -125,7 +125,7 @@ pub(crate) fn js_nom_take_while_bytes(
     Ok(bytes.into())
 }
 
-/// Expose `take_while` bytes function to Deno
+/// Expose `take_while` bytes function to Boa
 fn nom_take_while_bytes(data: &[u8], input: u8) -> nom::IResult<&[u8], Vec<u8>> {
     let (remaining, nommed) = take_while(|b| b == input)(data)?;
     Ok((remaining, nommed.to_vec()))

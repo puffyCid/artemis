@@ -139,3 +139,140 @@ setup-windows: (_windows)
 # Setup Artemis development environment for macOS
 [group('setup')]
 setup-macos: (_macos)
+
+# Package Artemis into RPM file
+[group('package')]
+rpm:(cli)
+  @mkdir -p ~/rpmbuild/SOURCES
+  @cp target/release/artemis ~/rpmbuild/SOURCES
+  @cp README.md ~/rpmbuild/SOURCES
+  @cp LICENSE ~/rpmbuild/SOURCES
+  @cp .packages/artemis.man ~/rpmbuild/SOURCES
+
+  rpmbuild --quiet -bb .packages/artemis.spec
+  @echo ""
+  @echo "RPM package built you may find it at ~/rpmbuild/RPMS"
+  @echo "You can sign the package with rpmsign using your own GPG key"
+
+# Package Artemis into RPM file for CI Releases
+[group('package')]
+_ci_rpm target:(_ci_release target)
+  @mkdir -p ~/rpmbuild/SOURCES
+  @mv "target/${TARGET}/release-action/${NAME}" ~/rpmbuild/SOURCES
+  @cp README.md ~/rpmbuild/SOURCES
+  @cp LICENSE ~/rpmbuild/SOURCES
+  @cp .packages/artemis.man ~/rpmbuild/SOURCES
+
+  rpmbuild --quiet -bb .packages/artemis.spec
+  @mv ~/rpmbuild/RPMS/artemis* "target/${TARGET}/release-action/"
+  rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*"
+
+# Package Artemis into DEB file
+[group('package')]
+deb version:(cli)
+  @mkdir -p ~/artemis_{{version}}-1/DEBIAN
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man/man1
+
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc/artemis
+  @cp LICENSE ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+
+  @cp CHANGELOG.md ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog.gz
+
+  @cp .packages/artemis.man ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1.gz
+
+  @cp target/release/artemis ~/artemis_{{version}}-1/usr/bin/artemis
+  @chmod 0755 ~/artemis_{{version}}-1/usr/bin/artemis
+
+  @cd ~/artemis_{{version}}-1/ && find usr -type f -exec md5sum '{}' \; > ./DEBIAN/md5sums
+  @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
+
+  dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
+  @echo ""
+  @echo "DEB package built you may find it in your home directory"
+  @echo "You can sign the package with debsigs using your own GPG key"
+
+# Package Artemis into DEB file for CI Releases
+[group('package')]
+_ci_deb version target:(_ci_release target)
+  @mkdir -p ~/artemis_{{version}}-1/DEBIAN
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/man/man1
+
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc
+  @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/share/doc/artemis
+  @cp LICENSE ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/copyright
+
+  @cp CHANGELOG.md ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/doc/artemis/changelog.gz
+
+  @cp .packages/artemis.man ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @gzip -9n ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1
+  @chmod 0644 ~/artemis_{{version}}-1/usr/share/man/man1/artemis.1.gz
+
+  @mv "target/${TARGET}/release-action/${NAME}" ~/artemis_{{version}}-1/usr/bin
+  @chmod 0755 ~/artemis_{{version}}-1/usr/bin/artemis
+
+  @cd ~/artemis_{{version}}-1/ && find usr -type f -exec md5sum '{}' \; > ./DEBIAN/md5sums
+  @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
+
+  dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
+  @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
+  @debsigs --sign=origin --default-key=${PUB} "target/${TARGET}/release-action/artemis*"
+
+# Package Artemis into macOS PKG installer file
+[group('package')]
+pkg team_id version profile:(cli)
+  @cd target/release && codesign --timestamp -s {{team_id}} --deep -v -f -o runtime artemis
+  @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
+  @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
+  @xcrun stapler staple Artemis-{{version}}.pkg
+  @mv Artemis-{{version}}.pkg ~/
+
+  @echo ""
+  @echo "PKG installer should be in your home directory"
+
+# Package Artemis into macOS PKG installer file for CI Releases
+[group('package')]
+_ci_pkg version profile target:(_ci_release target)
+  @cd target/release && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
+  @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
+  @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
+
+
+# Package Artemis into Windows MSI installer file
+[group('package')]
+msi:(cli)
+  @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
+  cd target\release && dotnet build -c Release
+
+  @echo ""
+  @echo "MSI installer created in target\release\bin\Release"
+
+# Package Artemis into Windows MSI installer file for CI Releases
+[group('package')]
+_ci_msi target:(_ci_release target)
+  @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
+  cd target\release && dotnet build -c Release
+
+  @mv target\release\bin\Release\artemis.msi "target/${TARGET}/release-action/"
+  

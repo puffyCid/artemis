@@ -4,7 +4,7 @@ use super::parsers::{
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
-/// Link nom functions to `Deno core`
+/// Link nom functions to `Boa core`
 pub(crate) fn nom_functions(context: &mut Context) {
     let _ = context.register_global_callable(
         JsString::from("js_nom_take_until_string"),

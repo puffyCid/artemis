@@ -1,0 +1,21 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Id="io.github.puffycid.Artemis" Name="Artemis" Manufacturer="PuffyCid" Version="0.14.0" Compressed="yes" Codepage="UTF-8" InstallerVersion="500" Language="1033" ProductCode="*" Scope="perMachine" ShortNames="no" UpgradeStrategy="majorUpgrade">
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="INSTALLDIR" Name="Artemis">
+                <Component Id="ArtemisFolder" Guid="4ebcd58d-5734-4a5f-abe5-d1538f72df49">
+                    <CreateFolder>
+                        <!--
+                        <Permission User="WIX_ACCOUNT_USERS" GenericRead="no" Read="no" ChangePermission="no"/>
+                        <Permission User="WIX_ACCOUNT_ADMINISTRATORS" GenericAll="yes" ChangePermission="yes"/>
+                        <Permission User="WIX_ACCOUNT_LOCALSYSTEM" GenericAll="yes" ChangePermission="yes"/>
+                        -->
+                    </CreateFolder>
+                </Component>
+                <Component Id="ArtemisExecutable" Guid="d8742b23-c874-4358-aede-d18d0d6b4679" Bitness="always64">
+                    <File KeyPath="yes" Source="artemis.exe" />
+                </Component>
+            </Directory>
+        </StandardDirectory>
+        <SummaryInformation Comments="Installer for Artemis" Description="Provides a command line digital forensic and incident response (DFIR) tool that collects forensic data from systems." Keywords="DFIR" />
+    </Package>
+</Wix>
