@@ -36,29 +36,12 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
-      - name: Setup NodeJS toolchain
-        uses: actions/setup-node@v4
-      - name: Install TailwindCSS
-        run: npm install -D tailwindcss
-      - name: Install DaisyUI
-        run: npm install -D daisyui@latest
-      - name: Install TailwindCSS Typography
-        run: npm install -D @tailwindcss/typography
-
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2.7.5
         with:
           cache-on-failure: true
       - name: Install just runner
         uses: taiki-e/install-action@just
-
-      - name: Setup Podman user config directory
-        if: matrix.info.os == 'ubuntu-latest'
-        run: mkdir -p ~/.config/containers
-
-      - name: Register docker.io for Podman
-        if: matrix.info.os == 'ubuntu-latest'
-        run: echo "unqualified-search-registries = ['docker.io']" > ~/.config/containers/registries.conf
 
       - name: Fmt Check
         run: cargo fmt -- --check

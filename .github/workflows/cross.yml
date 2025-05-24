@@ -19,14 +19,6 @@ jobs:
         target: ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-musl","x86_64-unknown-freebsd"]
     runs-on: ${{ matrix.info.os }}
     steps:
-      - name: Setup NodeJS toolchain
-        uses: actions/setup-node@v4
-      - name: Install TailwindCSS
-        run: npm install -D tailwindcss
-      - name: Install DaisyUI
-        run: npm install -D daisyui@latest
-      - name: Install TailwindCSS Typography
-        run: npm install -D @tailwindcss/typography
       - name: Setup Stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
