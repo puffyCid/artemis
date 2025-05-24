@@ -1,3 +1,0 @@
-kind: Fixed
-body: Bug where artemis would not compress csv files
-time: 2025-04-08T01:24:46.580015313-04:00
