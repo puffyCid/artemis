@@ -254,3 +254,25 @@ _ci_pkg version profile target:(_ci_release target)
   @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
   @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
+  @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
+
+
+# Package Artemis into Windows MSI installer file
+[group('package')]
+msi:(cli)
+  @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
+  cd target\release && dotnet build -c Release
+
+  @echo ""
+  @echo "MSI installer created in target\release\bin\Release"
+
+# Package Artemis into Windows MSI installer file for CI Releases
+[group('package')]
+_ci_msi target:(_ci_release target)
+  @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
+  cd target\release && dotnet build -c Release
+
+  @mv target\release\bin\Release\artemis.msi "target/${TARGET}/release-action/"
+  
