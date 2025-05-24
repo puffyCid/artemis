@@ -73,6 +73,20 @@ jobs:
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: just _ci_pkg ${{  github.ref_name }} PuffyCid ${{ matrix.info.target }}
 
+
+      # Windows Pakcage Options
+      - name: Install dotnet
+        if: matrix.info.os == 'windows-latest'
+        run: choco install dotnet
+
+      - name: Install WiX
+        if: matrix.info.os == 'windows-latest'
+        run: dotnet tool install --global wix
+
+      - name: Package Artemis as MSI
+        if: matrix.info.os == 'windows-latest'
+        run: just _ci_msi ${{ matrix.info.target }}
+
       # Linux Package Options
       - name: Install RPM tools
         if: matrix.info.os == 'ubuntu-latest'
