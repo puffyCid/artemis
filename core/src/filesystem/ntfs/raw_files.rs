@@ -228,7 +228,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
 
 /**
 * Read raw file by file reference
-* This function wil check if the data is compressed
+* This function will check if the data is compressed
 * NTFS supports two (2) types of compression:
 *   NTFS native compression - File data compressed via the NTFS (uses lzxpress huffman)
 *   `WofCompression` - File data compressed via OS. Only occurs on Windows 10+ (uses lzxpress huffman)
