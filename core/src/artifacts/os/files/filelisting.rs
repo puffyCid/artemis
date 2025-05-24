@@ -113,9 +113,9 @@ pub(crate) fn get_filelist(
         file_entry.yara_hits = scan;
 
         filelist_vec.push(file_entry);
-        // If we are not parsing binary data and not timelining our limit is 100k, otherwise set limit to 1k
+        // If we are not parsing binary data and not timelining our limit is 10k, otherwise set limit to 1k
         let max_list = if !args.metadata && !output.timeline {
-            100000
+            10000
         } else {
             1000
         };
