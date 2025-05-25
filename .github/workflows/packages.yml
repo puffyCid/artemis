@@ -63,10 +63,11 @@ jobs:
         if: matrix.info.os == 'macOS-latest'
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
+          TARGET: ${{ matrix.info.target }}
         run: just _ci_pkg ${{  github.ref_name }} PuffyCid ${{ matrix.info.target }}
 
 
-      # Windows Pakcage Options
+      # Windows Package Options
       - name: Install dotnet
         if: matrix.info.os == 'windows-latest'
         run: choco install dotnet
