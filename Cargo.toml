@@ -13,7 +13,7 @@ codegen-units = 1
 
 [workspace.package]
 version = "0.14.0"
-homepage = "https://puffycid.github.io/artemis-api"
+homepage = "https://puffycid.github.io/artemis"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
 edition = "2024"
