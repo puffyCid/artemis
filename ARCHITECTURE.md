@@ -5,7 +5,7 @@ architecture. Inspired by
 https://matklad.github.io//2021/02/06/ARCHITECTURE.md.html
 
 A more detailed overview can be found at
-https://puffycid.github.io/artemis/docs/Contributing/overview
+https://puffycid.github.io/artemis-api/docs/Contributing/overview
 
 ### Artemis repo structure
 

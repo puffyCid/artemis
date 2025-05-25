@@ -75,12 +75,6 @@ linux: (_test "artifacts::os::linux")
 [group('os')]
 unix: (_test "artifacts::os::unix")
 
-# Spawn single client and attempt to connect to server
-[group('workspace')]
-_client:
-  cd client && cargo build --release --examples
-  cd target/release/examples && ./start_client ../../../client/tests/test_data/client.toml
-
 # Build the entire artemis project.
 build:
   cargo build --release
@@ -258,7 +252,7 @@ _ci_pkg version profile target:(_ci_release target)
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
   @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
-  @rm -r "target/${TARGET}/release-action/pkg" && mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
+  @rm -r "target/${TARGET}/release-action/*" && mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
 
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > Artemis-{{version}}.pkg.sha256
 
@@ -275,11 +269,11 @@ msi:(cli)
 # Package Artemis into Windows MSI installer file for CI Releases
 [group('package')]
 _ci_msi target:(_ci_release target)
-  @copy-item .\.packages\artemis.wixproj .\target\${TARGET}\release-action\artemis.wixproj
-  @copy-item .\.packages\artemis.wxs .\target\${TARGET}\release-action\artemis.wxs
-  cd target\${TARGET}\release-action\ && dotnet build -c Release
+  @copy-item .\.packages\artemis.wixproj .\target\{{target}}\release-action\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\{{target}}\release-action\artemis.wxs
+  cd target\{{target}}\release-action\ && dotnet build -c Release
 
-  @mv target\${TARGET}\release-action\bin\Release\artemis.msi "target\${TARGET}\"
-  @del -A target\${TARGET}\release-action && mkdir target\${TARGET}\release-action\ && mv target\${TARGET}\artemis.msi target\${TARGET}\release-action\artemis.msi
-  cd "target\${TARGET}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
+  @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
+  @del -A target\{{target}}\release-action && mkdir target\{{target}}\release-action\ && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
+  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
