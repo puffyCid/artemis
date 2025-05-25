@@ -275,6 +275,6 @@ _ci_msi target:(_ci_release target)
   cd target\{{target}}\release-action\ && dotnet build -c Release
 
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
-  @Remove-Item -Path target\{{target}}\release-action\* -Recurse  && mkdir target\{{target}}\release-action\ && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
+  @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
   cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
