@@ -160,7 +160,7 @@ _ci_rpm target:(_ci_release target)
   rpmbuild --quiet -bb .packages/artemis_ci.spec
   @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/"
   rpmsign --define "_gpg_name PuffyCid" --addsign target/${TARGET}/release-action/artemis*.rpm
-  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.{{target}}.rpm.sha256
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.rpm.sha256
 
 
 # Package Artemis into DEB file
@@ -227,6 +227,7 @@ _ci_deb version target:(_ci_release target)
   @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
 
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
+  @rm -r target/${TARGET}/release-action/*
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
   @debsigs --sign=origin --default-key=${PUB} target/${TARGET}/release-action/artemis*.deb
   
@@ -274,6 +275,6 @@ _ci_msi target:(_ci_release target)
   cd target\{{target}}\release-action\ && dotnet build -c Release
 
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
-  @del -A target\{{target}}\release-action && mkdir target\{{target}}\release-action\ && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
+  @Remove-Item -Path target\{{target}}\release-action\* -Recurse  && mkdir target\{{target}}\release-action\ && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
   cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
