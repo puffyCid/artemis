@@ -16,7 +16,7 @@ Notable features _so far_:
 - Can output results to local system or upload to cloud services.
 - Embedded JavaScript runtime via [Boa](https://boajs.dev)
 
-Checkout the online guide at https://puffycid.github.io/artemis for indepth
+Checkout the online guide at https://puffycid.github.io/artemis-api for indepth
 walkthrough on using artemis
 
 ## Quick Guide
