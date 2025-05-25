@@ -163,7 +163,7 @@ _ci_rpm target:(_ci_release target)
   @cp LICENSE ~/rpmbuild/SOURCES
   @cp .packages/artemis.man ~/rpmbuild/SOURCES
 
-  rpmbuild --quiet -bb .packages/artemis.spec
+  -rpmbuild --quiet -bb .packages/artemis.spec
   @mv ~/rpmbuild/RPMS/artemis* "target/${TARGET}/release-action/"
   rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*.rpm"
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.{{target}}.rpm.sha256
@@ -257,7 +257,7 @@ pkg team_id version profile:(cli)
 _ci_pkg version profile target:(_ci_release target)
   @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-actionartemis target/${TARGET}/release-actionpkg
-  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-actionpkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
   @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
 
@@ -276,10 +276,11 @@ msi:(cli)
 # Package Artemis into Windows MSI installer file for CI Releases
 [group('package')]
 _ci_msi target:(_ci_release target)
-  @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
-  @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
-  cd target\release && dotnet build -c Release
+  @copy-item .\.packages\artemis.wixproj .\target\${TARGET}\release-action\artemis.wixproj
+  @copy-item .\.packages\artemis.wxs .\target\${TARGET}\release-action\artemis.wxs
+  cd target\${TARGET}\release-action\ && dotnet build -c Release
 
-  @mv target\release\bin\Release\artemis.msi "target\${TARGET}\release-action\"
+  @mv target\${TARGET}\release-action\bin\Release\artemis.msi "target\${TARGET}\"
+  @del -A target\${TARGET}\release-action && mkdir target\${TARGET}\release-action\ && mv target\${TARGET}\artemis.msi target\${TARGET}\release-action\artemis.msi
   cd "target\${TARGET}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
