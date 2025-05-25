@@ -165,7 +165,7 @@ _ci_rpm target:(_ci_release target)
 
   rpmbuild --quiet -bb .packages/artemis_ci.spec
   @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/"
-  rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*.rpm"
+  rpmsign --define "_gpg_name PuffyCid" --addsign target/${TARGET}/release-action/artemis*.rpm
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.{{target}}.rpm.sha256
 
 
@@ -234,7 +234,7 @@ _ci_deb version target:(_ci_release target)
 
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
-  @debsigs --sign=origin --default-key=${PUB} "target/${TARGET}/release-action/artemis*.deb"
+  @debsigs --sign=origin --default-key=${PUB} target/${TARGET}/release-action/artemis*.deb
   
   @cd "target/${TARGET}/release-action" && sha256sum artemis*.deb >
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.deb | cut -d " " -f 1)" > artemis_{{version}}-1.deb.sha256
