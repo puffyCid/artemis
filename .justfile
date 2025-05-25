@@ -227,7 +227,7 @@ _ci_deb version target:(_ci_release target)
   @cp .packages/artemis.control ~/artemis_{{version}}-1/DEBIAN/control
 
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
-  @rm -r target/${TARGET}/release-action/*
+  @rm -r target/${TARGET}/release-action/artemis.d
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
   @debsigs --sign=origin --default-key=${PUB} target/${TARGET}/release-action/artemis*.deb
   
@@ -276,5 +276,5 @@ _ci_msi target:(_ci_release target)
 
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
   @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
-  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
+  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash" | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
