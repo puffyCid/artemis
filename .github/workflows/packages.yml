@@ -77,7 +77,7 @@ jobs:
 
       - name: Package Artemis as MSI
         if: matrix.info.os == 'windows-latest'
-        run: just _ci_msi ${{ matrix.info.target }}
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
 
       # Linux Package Options
       - name: Install RPM tools
@@ -100,7 +100,7 @@ jobs:
           NAME: artemis
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
-        run: just _ci_rpm ${{ matrix.info.target }}
+        run: just _ci_rpm ${{  github.ref_name }} ${{ matrix.info.target }}
 
       - name: Package Artemis as DEB
         if: matrix.info.os == 'ubuntu-latest'
@@ -115,7 +115,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "artemis*"
+          files: "target/${{matrix.info.target}}/release-action/artemis*"
           name: "${{ github.ref_name }} - Released!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -37,7 +37,16 @@ jobs:
       - uses: taiki-e/install-action@just
 
       - name: Build Artemis
+        if: matrix.info.os == 'macOS-latest'
         run: just _ci_release ${{ matrix.info.target }}
+
+      - name: Build Artemis
+        if: matrix.info.os == 'ubuntu-latest'
+        run: just _ci_release ${{ matrix.info.target }}
+
+      - name: Build Artemis
+        if: matrix.info.os == 'windows-latest'
+        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
 
       - name: Package Artemis
         shell: bash

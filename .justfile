@@ -165,7 +165,9 @@ _ci_rpm target:(_ci_release target)
 
   rpmbuild --quiet -bb .packages/artemis.spec
   @mv ~/rpmbuild/RPMS/artemis* "target/${TARGET}/release-action/"
-  rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*"
+  rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*.rpm"
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.{{target}}.rpm.sha256
+
 
 # Package Artemis into DEB file
 [group('package')]
@@ -232,7 +234,10 @@ _ci_deb version target:(_ci_release target)
 
   dpkg-deb --build --root-owner-group ~/artemis_{{version}}-1
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
-  @debsigs --sign=origin --default-key=${PUB} "target/${TARGET}/release-action/artemis*"
+  @debsigs --sign=origin --default-key=${PUB} "target/${TARGET}/release-action/artemis*.deb"
+  
+  @cd "target/${TARGET}/release-action" && sha256sum artemis*.deb >
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.deb | cut -d " " -f 1)" > artemis_{{version}}-1.deb.sha256
 
 # Package Artemis into macOS PKG installer file
 [group('package')]
@@ -242,7 +247,7 @@ pkg team_id version profile:(cli)
   @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
   @xcrun stapler staple Artemis-{{version}}.pkg
-  @mv Artemis-{{version}}.pkg ~/
+  @mv artemis-{{version}}.pkg ~/
 
   @echo ""
   @echo "PKG installer should be in your home directory"
@@ -256,6 +261,7 @@ _ci_pkg version profile target:(_ci_release target)
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
   @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
 
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > Artemis-{{version}}.pkg.sha256
 
 # Package Artemis into Windows MSI installer file
 [group('package')]
@@ -274,5 +280,6 @@ _ci_msi target:(_ci_release target)
   @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
   cd target\release && dotnet build -c Release
 
-  @mv target\release\bin\Release\artemis.msi "target/${TARGET}/release-action/"
+  @mv target\release\bin\Release\artemis.msi "target\${TARGET}\release-action\"
+  cd "target\${TARGET}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
   
