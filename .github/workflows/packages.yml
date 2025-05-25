@@ -84,7 +84,7 @@ jobs:
       - name: Install RPM tools
         if: matrix.info.os == 'ubuntu-latest'
         run: | 
-          sudo apt install -y rpm gnupg2 
+          sudo apt install -y rpm gnupg2 debsigs
           mkdir -p ~/.gnupg/
 
       - name: Import GPG Key
