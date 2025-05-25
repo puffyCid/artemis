@@ -160,7 +160,7 @@ _ci_rpm target:(_ci_release target)
   rpmbuild --quiet -bb .packages/artemis_ci.spec
   @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/"
   rpmsign --define "_gpg_name PuffyCid" --addsign target/${TARGET}/release-action/artemis*.rpm
-  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.rpm.sha256
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.${TARGET}.rpm.sha256
 
 
 # Package Artemis into DEB file
@@ -238,9 +238,9 @@ _ci_deb version target:(_ci_release target)
 pkg team_id version profile:(cli)
   @cd target/release && codesign --timestamp -s {{team_id}} --deep -v -f -o runtime artemis
   @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
-  @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
-  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
-  @xcrun stapler staple Artemis-{{version}}.pkg
+  @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.pkg
+  @xcrun notarytool submit artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
+  @xcrun stapler staple artemis-{{version}}.pkg
   @mv artemis-{{version}}.pkg ~/
 
   @echo ""
@@ -251,11 +251,11 @@ pkg team_id version profile:(cli)
 _ci_pkg version profile target:(_ci_release target)
   @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
-  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
-  @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
-  @rm -r target/${TARGET}/release-action/* && mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.{{target}}.pkg
+  @xcrun notarytool submit artemis-{{version}}.{{target}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
+  @rm -r target/${TARGET}/release-action/* && mv artemis-{{version}}.{{target}}.pkg "target/${TARGET}/release-action/"
 
-  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > Artemis-{{version}}.pkg.sha256
+  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > artemis-{{version}}.{{target}}.pkg.sha256
 
 # Package Artemis into Windows MSI installer file
 [group('package')]
