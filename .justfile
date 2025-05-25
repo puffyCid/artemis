@@ -164,7 +164,7 @@ _ci_rpm target:(_ci_release target)
   @cp .packages/artemis.man ~/rpmbuild/SOURCES
 
   rpmbuild --quiet -bb .packages/artemis_ci.spec
-  @mv ~/rpmbuild/RPMS/artemis* "target/${TARGET}/release-action/"
+  @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/"
   rpmsign --define "_gpg_name PuffyCid" --addsign "target/${TARGET}/release-action/artemis*.rpm"
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.{{target}}.rpm.sha256
 
