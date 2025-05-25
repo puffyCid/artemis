@@ -255,9 +255,9 @@ pkg team_id version profile:(cli)
 # Package Artemis into macOS PKG installer file for CI Releases
 [group('package')]
 _ci_pkg version profile target:(_ci_release target)
-  @cd target/release && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
-  @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
-  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
+  @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-actionartemis target/${TARGET}/release-actionpkg
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-actionpkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
   @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
 

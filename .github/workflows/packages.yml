@@ -100,7 +100,7 @@ jobs:
           NAME: artemis
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
-        run: just _ci_rpm ${{  github.ref_name }} ${{ matrix.info.target }}
+        run: just _ci_rpm ${{ matrix.info.target }}
 
       - name: Package Artemis as DEB
         if: matrix.info.os == 'ubuntu-latest'
