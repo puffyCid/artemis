@@ -236,7 +236,6 @@ _ci_deb version target:(_ci_release target)
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
   @debsigs --sign=origin --default-key=${PUB} target/${TARGET}/release-action/artemis*.deb
   
-  @cd "target/${TARGET}/release-action" && sha256sum artemis*.deb >
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.deb | cut -d " " -f 1)" > artemis_{{version}}-1.deb.sha256
 
 # Package Artemis into macOS PKG installer file
