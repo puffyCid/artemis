@@ -256,10 +256,10 @@ pkg team_id version profile:(cli)
 [group('package')]
 _ci_pkg version profile target:(_ci_release target)
   @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
-  @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-actionartemis target/${TARGET}/release-actionpkg
-  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
+  @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
+  @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} Artemis-{{version}}.pkg
   @xcrun notarytool submit Artemis-{{version}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
-  @mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
+  @rm -r "target/${TARGET}/release-action/pkg" && mv Artemis-{{version}}.pkg "target/${TARGET}/release-action/"
 
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > Artemis-{{version}}.pkg.sha256
 
