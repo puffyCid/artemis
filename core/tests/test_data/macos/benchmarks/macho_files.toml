@@ -1,4 +1,3 @@
-system = "macos"
 
 [output]
 name = "macho_files_bench"

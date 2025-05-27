@@ -1,4 +1,3 @@
-system = "macos"
 
 [output]
 name = "info_plist_collection"

@@ -1,4 +1,3 @@
-system = "windows"
 
 [output]
 name = "dfir_museum"

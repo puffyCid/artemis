@@ -1,4 +1,3 @@
-system = "windows"
 
 [output]
 name = "sdb_collection"

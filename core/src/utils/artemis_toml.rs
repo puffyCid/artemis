@@ -27,7 +27,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn test_parse_artemis_toml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos.toml");

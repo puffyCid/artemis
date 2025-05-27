@@ -1,4 +1,3 @@
-system = "linux"
 
 [output]
 name = "cron_collection"
