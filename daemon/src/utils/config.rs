@@ -58,23 +58,6 @@ pub(crate) async fn server(path: &str, alt_base: Option<&str>) -> Result<ServerT
         }
     };
 
-    // Remove the enrollment key from our new server.toml
-    // Once we enroll, we no longer need it
-    /*
-    let clean_toml = from_utf8(&bytes)
-        .unwrap_or_default()
-        .replace(&config.server.key, "");
-
-    if let Err(err) = write_file(
-        &clean_toml.as_bytes(),
-        &format!("{default_path}/server.toml"),
-    )
-    .await
-    {
-        error!("[daemon] Failed to write server config to {default_path}/server.toml: {err:?}");
-        return Err(ConfigError::ServerTomlWrite);
-    }*/
-
     Ok(config)
 }
 
