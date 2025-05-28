@@ -1,64 +1,38 @@
-use crate::{
-    enrollment::enroll::EnrollEndpoint,
-    utils::config::{ServerConfig, server},
+use crate::utils::{
+    config::{Daemon, DaemonToml, ServerToml, server},
+    setup::{setup_daemon, setup_enrollment},
 };
-use log::error;
-use std::time::Duration;
-use tokio::time::sleep;
 
 pub(crate) struct DaemonConfig {
-    pub(crate) server: ServerConfig,
-    pub(crate) client: bool,
+    pub(crate) server: ServerToml,
+    pub(crate) client: DaemonToml,
 }
 #[tokio::main]
-pub async fn start_daemon(path: Option<&str>) {
+pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     let mut server_path = "server.toml";
 
     if let Some(config_path) = path {
         server_path = config_path;
     }
 
-    let servr_config = match server(server_path).await {
+    let server_config = match server(server_path, alt_base).await {
         Ok(result) => result,
         Err(_err) => return,
     };
 
-    let config = DaemonConfig {
-        server: servr_config,
-        client: false,
+    let mut config = DaemonConfig {
+        server: server_config,
+        client: DaemonToml {
+            daemon: Daemon {
+                node_key: String::new(),
+                collection_path: String::new(),
+                log_level: String::new(),
+            },
+        },
     };
 
-    let mut enroll = match config.enroll_request().await {
-        Ok(result) => result,
-        Err(_err) => return,
-    };
-
-    let max_attempts = 8;
-    let mut count = 0;
-
-    // If we get `node_invalid` response. We have to enroll again. We attempt 8 more enrollments max
-    while enroll.node_invalid && count != max_attempts {
-        let pause = 6;
-        // Pause for 6 seconds between each attempt
-        sleep(Duration::from_secs(pause)).await;
-
-        let enroll_attempt = match config.enroll_request().await {
-            Ok(result) => result,
-            Err(_err) => return,
-        };
-
-        if !enroll.node_invalid {
-            enroll = enroll_attempt;
-            break;
-        }
-
-        count += 1;
-    }
-
-    if enroll.node_invalid {
-        error!("[daemon] Endpoint still invalid despite 8 enrollment attempts");
-        return;
-    }
+    setup_enrollment(&mut config).await;
+    setup_daemon(&mut config).await;
 }
 
 #[cfg(test)]

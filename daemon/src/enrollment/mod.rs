@@ -1,3 +1,3 @@
 pub(crate) mod enroll;
 mod error;
-mod info;
+pub(crate) mod info;

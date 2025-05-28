@@ -106,7 +106,11 @@ fn bad_request(bytes: &[u8]) -> Result<BadRequest, EnrollError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{enrollment::enroll::EnrollEndpoint, start::DaemonConfig, utils::config::server};
+    use crate::{
+        enrollment::enroll::EnrollEndpoint,
+        start::DaemonConfig,
+        utils::config::{Daemon, DaemonToml, server},
+    };
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;
     use std::path::PathBuf;
@@ -129,10 +133,18 @@ mod tests {
                 .json_body(json!({ "node_key": "server uuid", "node_invalid": false }));
         });
 
-        let server_config = server(test_location.to_str().unwrap()).await.unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: false,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::new(),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
         };
         config.server.server.port = port;
 
@@ -162,10 +174,18 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap()).await.unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: false,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::new(),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
         };
         config.server.server.port = port;
 
@@ -192,10 +212,18 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap()).await.unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: false,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::new(),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
         };
         config.server.server.port = port;
 
@@ -222,10 +250,18 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap()).await.unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: false,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::new(),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
         };
         config.server.server.port = port;
 
@@ -251,10 +287,18 @@ mod tests {
                 .json_body(json!({ "node_key": "server uuid", "node_invalid": true }));
         });
 
-        let server_config = server(test_location.to_str().unwrap()).await.unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: false,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::new(),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
         };
         config.server.server.port = port;
 
