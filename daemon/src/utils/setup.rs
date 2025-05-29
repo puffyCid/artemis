@@ -1,5 +1,7 @@
 use super::config::daemon;
-use crate::{enrollment::enroll::EnrollEndpoint, start::DaemonConfig};
+use crate::{
+    configuration::config::ConfigEndpoint, enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
+};
 use log::error;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -38,6 +40,25 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
         return;
     }
     config.client.daemon.node_key = enroll.node_key;
+}
+
+pub(crate) async fn setup_config(config: &mut DaemonConfig) {
+    let daemon_config = match config.config_request().await {
+        Ok(result) => result,
+        Err(_err) => return,
+    };
+
+    // Check if we got a node_invalid response
+    if daemon_config.node_invalid {
+        // Attempt to enroll again. But if we fail we cannot continue
+        if config
+            .enroll_request()
+            .await
+            .is_ok_and(|status| status.node_invalid)
+        {
+            return;
+        }
+    }
 }
 
 /// Setup proper config directories for the daemon

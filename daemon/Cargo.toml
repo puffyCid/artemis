@@ -15,8 +15,9 @@ toml = { workspace = true }
 sysinfo = { workspace = true }
 uuid = { workspace = true }
 reqwest = { workspace = true }
-tokio = { version = "1.45.1", features = ["full"] }
+base64 = { workspace = true }
 
+tokio = { version = "1.45.1", features = ["full"] }
 chrono = "0.4.41"
 
 common = { path = "../common" }

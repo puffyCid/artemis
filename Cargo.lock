@@ -1363,6 +1363,7 @@ dependencies = [
 name = "daemon"
 version = "0.14.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "common",
  "criterion",

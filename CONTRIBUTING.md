@@ -33,11 +33,6 @@ an issue.
 
 ## Contributing
 
-```
-The code is more what you’d call "guidelines" than actual rules.
-– Hector Barbossa, Pirates of the Caribbean
-```
-
 If you want to add a new feature or fix a bug, below are some key point to think
 about:
 
@@ -49,14 +44,14 @@ about:
    \
    A small consequence of this is the number of dependencies in a Rust project
    can explode very quickly depending on the third-party crate that is added.
-3. Usage of unsafe is **not** allowed. Exceptions may be allowed for extremely
+3. Usage of unsafe is **not** allowed. Exceptions may be granted for limited
    edge case scenarios.
 4. Try to avoid system APIs. When possible artemis should try to avoid calling
    system APIs. Similar to unsafe, exceptions may allowed in **some** scenarios:
    - Volatile artifact such processes or network connections. These artifacts
      only exist in memory and typically require OS APIs to parse them
-   - Complex proprietary formats such compression or encryption. This formats
-     are extremely complex and can be very difficult to implement natively in
+   - Complex proprietary formats such compression or encryption. These formats
+     are extremely complex and could be very difficult to implement natively in
      Rust.
-5. Shelling out to other processes or tools is currently not allowed.
+5. Shelling out to other processes or tools is not allowed.
 6. Submitting data to third-party sites (ex: VirusTotal) is not allowed.

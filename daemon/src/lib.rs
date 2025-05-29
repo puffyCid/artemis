@@ -71,6 +71,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
+mod configuration;
 mod enrollment;
 mod error;
 pub mod start;
