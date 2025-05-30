@@ -9,7 +9,7 @@ use crate::{
 };
 use log::{error, warn};
 use std::{str::from_utf8, time::Duration};
-use tokio::{fs::rename, time::sleep};
+use tokio::{fs::rename, time::interval};
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
 pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
@@ -20,12 +20,13 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
 
     let max_attempts = 8;
     let mut count = 0;
+    let pause = 6;
+    // Pause for 6 seconds between each attempt
+    let mut interval = interval(Duration::from_secs(pause));
 
     // If we get `node_invalid` response. We have to enroll again. We attempt 8 more enrollments max
     while enroll.node_invalid && count != max_attempts {
-        let pause = 6;
-        // Pause for 6 seconds between each attempt
-        sleep(Duration::from_secs(pause)).await;
+        interval.tick().await;
 
         let enroll_attempt = match config.enroll_request().await {
             Ok(result) => result,

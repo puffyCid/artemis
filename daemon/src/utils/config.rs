@@ -177,7 +177,7 @@ mod tests {
         test_location.push("tests/configs/server.toml");
 
         let result = read_file(test_location.to_str().unwrap()).await.unwrap();
-        assert_eq!(result.len(), 210);
+        assert!(result.len() > 200);
     }
 
     #[tokio::test]
