@@ -1,6 +1,6 @@
 use crate::utils::{
     config::{Daemon, DaemonToml, ServerToml, server},
-    setup::{setup_daemon, setup_enrollment},
+    setup::{move_server_config, setup_config, setup_enrollment},
 };
 
 pub(crate) struct DaemonConfig {
@@ -15,6 +15,7 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
         server_path = config_path;
     }
 
+    // Attempt to read to server TOML config file
     let server_config = match server(server_path, alt_base).await {
         Ok(result) => result,
         Err(_err) => return,
@@ -31,8 +32,13 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
         },
     };
 
+    // Attempt to connect to server
     setup_enrollment(&mut config).await;
-    setup_daemon(&mut config).await;
+    setup_config(&mut config).await;
+
+    // We have enough info connect to our server.
+    // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
+    move_server_config(server_path, alt_base).await;
 }
 
 #[cfg(test)]

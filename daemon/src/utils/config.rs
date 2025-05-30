@@ -1,9 +1,8 @@
-use super::error::ConfigError;
-use crate::{
-    enrollment::info::{PlatformType, get_platform_enum},
-    error::DaemonError,
-    utils::env::get_env_value,
+use super::{
+    error::ConfigError,
+    info::{PlatformType, get_platform_enum},
 };
+use crate::{error::DaemonError, utils::env::get_env_value};
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::str::from_utf8;
@@ -73,19 +72,19 @@ pub(crate) struct Daemon {
     pub(crate) log_level: String,
 }
 
-/// Create a default daemon config file if one was not provided
+/// Create a daemon config file. If the `DaemonToml` structure is empty. `Ex: collection_path = ""`.  
+/// Then default paths will be used
 pub(crate) async fn daemon(
-    node_key: &str,
-    alt_collect_path: Option<&str>,
+    config: &mut DaemonToml,
     alt_artemis_path: Option<&str>,
-) -> Result<DaemonToml, ConfigError> {
+) -> Result<(), ConfigError> {
     let mut collect_path = String::from("/var/artemis/collections");
     let mut artemis_path = String::from("/var/artemis");
 
     if get_platform_enum() == PlatformType::Windows {
         let programdata = get_env_value("ProgramData");
-        if programdata.is_empty() && alt_collect_path.is_none() && alt_artemis_path.is_none() {
-            error!("[daemon] Failed to find ProgramData env value and both alts are none");
+        if programdata.is_empty() && alt_artemis_path.is_none() {
+            error!("[daemon] Failed to find ProgramData env value and alt path is none");
             return Err(ConfigError::NoPath);
         }
 
@@ -93,25 +92,22 @@ pub(crate) async fn daemon(
         artemis_path = format!("{programdata}\\artemis");
     }
 
-    // Check if we are using alternative path
-    if let Some(alt_path) = alt_collect_path {
-        collect_path = alt_path.to_string();
+    // Check if we are using alternative collections path
+    if config.daemon.collection_path.is_empty() {
+        config.daemon.collection_path = collect_path;
     }
 
-    // Check if we are using alternative path
+    // Check if we are using alternative logging level
+    if config.daemon.log_level.is_empty() {
+        config.daemon.log_level = String::from("warn");
+    }
+
+    // Check if we are using alternative base path
     if let Some(alt_path) = alt_artemis_path {
         artemis_path = alt_path.to_string();
     }
 
-    let default_config = DaemonToml {
-        daemon: Daemon {
-            node_key: node_key.to_string(),
-            collection_path: collect_path,
-            log_level: String::from("warn"),
-        },
-    };
-
-    let daemon_config = match toml::to_string(&default_config) {
+    let daemon_config = match toml::to_string(&config) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Failed to parse daemon config: {err:?}");
@@ -119,7 +115,7 @@ pub(crate) async fn daemon(
         }
     };
 
-    let _ = create_directory(&default_config.daemon.collection_path).await;
+    let _ = create_directory(&config.daemon.collection_path).await;
     if let Err(status) = write_file(
         daemon_config.as_bytes(),
         &format!("{artemis_path}/daemon.toml"),
@@ -130,7 +126,7 @@ pub(crate) async fn daemon(
         return Err(ConfigError::DaemonTomlWrite);
     }
 
-    Ok(default_config)
+    Ok(())
 }
 
 /// Read the provided file
@@ -170,7 +166,9 @@ async fn write_file(bytes: &[u8], path: &str) -> Result<(), DaemonError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::config::{create_directory, daemon, read_file, server, write_file};
+    use crate::utils::config::{
+        Daemon, DaemonToml, create_directory, daemon, read_file, server, write_file,
+    };
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -249,22 +247,22 @@ mod tests {
     #[tokio::test]
     async fn test_daemon() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("./tmp/artemis/collections");
-
-        let node_key = "my secret uuid key";
-        let temp = test_location.clone();
-        let alt_collection = temp.to_str().unwrap();
-        test_location.pop();
+        test_location.push("./tmp/artemis");
 
         let alt_path = test_location.to_str().unwrap();
+        let mut daemon_toml = DaemonToml {
+            daemon: Daemon {
+                node_key: String::from("test"),
+                collection_path: String::from("./tmp/artemis/collections"),
+                log_level: String::from("warn"),
+            },
+        };
 
-        let config = daemon(node_key, Some(alt_collection), Some(alt_path))
-            .await
-            .unwrap();
-        assert_eq!(config.daemon.node_key, "my secret uuid key");
-        assert_eq!(config.daemon.log_level, "warn");
+        daemon(&mut daemon_toml, Some(alt_path)).await.unwrap();
+        assert_eq!(daemon_toml.daemon.node_key, "test");
+        assert_eq!(daemon_toml.daemon.log_level, "warn");
         assert!(
-            config
+            daemon_toml
                 .daemon
                 .collection_path
                 .contains("./tmp/artemis/collections")

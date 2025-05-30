@@ -1,5 +1,5 @@
-use super::{error::EnrollError, info::get_info};
-use crate::start::DaemonConfig;
+use super::error::EnrollError;
+use crate::{start::DaemonConfig, utils::info::get_info};
 use common::system::SystemInfo;
 use log::error;
 use reqwest::{Client, StatusCode};

@@ -114,7 +114,7 @@ fn get_performance() -> LoadPerformance {
 
 #[cfg(test)]
 mod tests {
-    use crate::enrollment::info::{
+    use crate::utils::info::{
         get_cpu, get_disks, get_info, get_memory, get_performance, get_platform,
     };
     use sysinfo::System;

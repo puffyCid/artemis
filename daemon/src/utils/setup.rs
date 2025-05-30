@@ -1,10 +1,15 @@
-use super::config::daemon;
+use super::{
+    config::{DaemonToml, daemon},
+    encoding::base64_decode_standard,
+    env::get_env_value,
+    info::{PlatformType, get_platform_enum},
+};
 use crate::{
     configuration::config::ConfigEndpoint, enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
 };
-use log::error;
-use std::time::Duration;
-use tokio::time::sleep;
+use log::{error, warn};
+use std::{str::from_utf8, time::Duration};
+use tokio::{fs::rename, time::sleep};
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
 pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
@@ -42,10 +47,11 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
     config.client.daemon.node_key = enroll.node_key;
 }
 
+/// Get a daemon configuration from our server. If none is provided we will generate a default config
 pub(crate) async fn setup_config(config: &mut DaemonConfig) {
     let daemon_config = match config.config_request().await {
         Ok(result) => result,
-        Err(_err) => return,
+        Err(_err) => return setup_daemon(config).await,
     };
 
     // Check if we got a node_invalid response
@@ -56,20 +62,58 @@ pub(crate) async fn setup_config(config: &mut DaemonConfig) {
             .await
             .is_ok_and(|status| status.node_invalid)
         {
-            return;
+            warn!("[daemon] Could not re-enroll to server. Using default config");
+            return setup_daemon(config).await;
         }
     }
-}
 
-/// Setup proper config directories for the daemon
-pub(crate) async fn setup_daemon(daemon_config: &mut DaemonConfig) {
-    let config = match daemon(&daemon_config.client.daemon.node_key, None, None).await {
+    let toml_bytes = match base64_decode_standard(&daemon_config.config) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Could not setup daemon TOML config: {err:?}");
-            return;
+            error!("[daemon] Could not decode daemon config: {err:?}. Will use default config");
+            return setup_daemon(config).await;
         }
     };
 
-    daemon_config.client = config;
+    let toml_config: DaemonToml = match toml::from_str(from_utf8(&toml_bytes).unwrap_or_default()) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[daemon] Could not parse toml daemon config: {err:?}. Will use default config");
+            return setup_daemon(config).await;
+        }
+    };
+
+    config.client = toml_config;
+    setup_daemon(config).await;
+}
+
+/// Move our server.toml file to our base config directory. Ex: /var/artemis/server.toml
+pub(crate) async fn move_server_config(path: &str, alt_artemis_path: Option<&str>) {
+    let mut artemis_path = String::from("/var/artemis");
+
+    if get_platform_enum() == PlatformType::Windows {
+        let programdata = get_env_value("ProgramData");
+        if programdata.is_empty() && alt_artemis_path.is_none() {
+            error!(
+                "[daemon] Failed to find ProgramData env value and alt path is none. Cannot move server config"
+            );
+            return;
+        }
+
+        artemis_path = format!("{programdata}\\artemis");
+    }
+
+    if let Err(status) = rename(path, format!("{artemis_path}/server.toml")).await {
+        error!("[daemon] Could not move server.toml file to {artemis_path}: {status:?}");
+    }
+}
+
+/// Setup default config directories for the daemon
+async fn setup_daemon(daemon_config: &mut DaemonConfig) {
+    match daemon(&mut daemon_config.client, None).await {
+        Ok(_result) => {}
+        Err(err) => {
+            error!("[daemon] Could not setup daemon TOML config: {err:?}");
+        }
+    }
 }

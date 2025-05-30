@@ -81,7 +81,7 @@ build:
 
 # Run tests for code coverage. Used by CI
 _coverage:
-  cargo llvm-cov --release --workspace --exclude apollo --lcov --output-path lcov.info
+  cargo llvm-cov --release --workspace --exclude daemon --lcov --output-path lcov.info
 
 # Build Artemis for GitHub Actions
 _ci_release target:
