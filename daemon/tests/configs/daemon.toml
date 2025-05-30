@@ -1,0 +1,4 @@
+[daemon]
+node_key = "my important key"
+collection_storage = "/var/artemis/collections"
+log_level = "warn"

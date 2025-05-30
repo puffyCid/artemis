@@ -1,4 +1,3 @@
-system = "linux"
 
 [output]
 name = "journal_collection"

@@ -1,4 +1,3 @@
-system = "windows"
 
 [output]
 name = "windows_quick"

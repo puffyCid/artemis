@@ -1,5 +1,3 @@
-system = "macos"
-
 [output]
 namePath = "testing"
 directory = "."

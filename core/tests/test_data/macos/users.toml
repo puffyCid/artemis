@@ -1,4 +1,3 @@
-system = "macos"
 
 [output]
 name = "users_collection"
