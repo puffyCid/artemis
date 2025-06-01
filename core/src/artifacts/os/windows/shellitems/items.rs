@@ -103,65 +103,67 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let beef00 = [0, 239, 190];
 
     // Based on `ShellItem` type parse the bytes and return generic `ShellItem` structure
-    let (remaining_input, shellitem) =
-        if directory_items.contains(&item_type) && check_beef(input, &beef0004) {
-            parse_directory(input)?
-        } else if item_type == ftp {
-            parse_uri(input)?
-        } else if check_zip(data) {
-            parse_variable(data)?
-        } else if check_mtp_storage(data) {
-            get_storage_name(input)?
-        } else if check_mtp_folder(data) {
-            get_folder_name(input)?
-        } else if check_game(input) {
-            parse_game(input)?
-        } else if drive_item.contains(&item_type) {
-            let drive_size = 23;
-            if data.len() == drive_size {
-                return parse_drive(input);
-            }
+    // Sometimes the `Directory ShellItem` does not have a beef0004 signature. If it does not it should have end of string character
+    let (remaining_input, shellitem) = if directory_items.contains(&item_type)
+        && (check_beef(input, &beef0004) || input.ends_with(&[0]))
+    {
+        parse_directory(input)?
+    } else if item_type == ftp {
+        parse_uri(input)?
+    } else if check_zip(data) {
+        parse_variable(data)?
+    } else if check_mtp_storage(data) {
+        get_storage_name(input)?
+    } else if check_mtp_folder(data) {
+        get_folder_name(input)?
+    } else if check_game(input) {
+        parse_game(input)?
+    } else if drive_item.contains(&item_type) {
+        let drive_size = 23;
+        if data.len() == drive_size || data.ends_with(&[0; 23]) {
+            return parse_drive(input);
+        }
 
-            if check_beef(data, &beef00) || data.len() < drive_size {
-                return parse_root(input);
-            }
+        if check_beef(data, &beef00) || data.len() < drive_size {
+            return parse_root(input);
+        }
 
-            // If offset 3 == 16. Then this is the new Archive ShellItem format added in Windows 11
-            if data.get(2).is_some_and(|b| *b == 16) {
-                return parse_variable(data);
-            }
+        // If offset 3 == 16. Then this is the new Archive ShellItem format added in Windows 11
+        if data.get(2).is_some_and(|b| *b == 16) {
+            return parse_variable(data);
+        }
 
-            get_mtp_device(input)?
-        } else if item_type == control_panel {
-            parse_control_panel(input)?
-        } else if item_type == control_panel_entry {
-            parse_control_panel_entry(input)?
-        } else if item_type == subroot {
-            parse_root(input)?
-        } else if item_type == delegate {
-            get_delegate_shellitem(input)?
-        } else if network_items.contains(&item_type) {
-            parse_network(input)?
-        } else if item_type == root_property
-            && ((data.len() == drive_property)
-                || (data.len() == root_size)
-                || check_beef(input, &beef00)
-                || check_property(input))
-        {
-            if data.len() == drive_property {
-                return parse_property_drive(input);
-            }
+        get_mtp_device(input)?
+    } else if item_type == control_panel {
+        parse_control_panel(input)?
+    } else if item_type == control_panel_entry {
+        parse_control_panel_entry(input)?
+    } else if item_type == subroot {
+        parse_root(input)?
+    } else if item_type == delegate {
+        get_delegate_shellitem(input)?
+    } else if network_items.contains(&item_type) {
+        parse_network(input)?
+    } else if item_type == root_property
+        && ((data.len() == drive_property)
+            || (data.len() == root_size)
+            || check_beef(input, &beef00)
+            || check_property(input))
+    {
+        if data.len() == drive_property {
+            return parse_property_drive(input);
+        }
 
-            let min_propety_size = 84;
-            if input.len() > min_propety_size {
-                return parse_property(input);
-            }
-            parse_root(input)?
-        } else if item_type == history || item_type == history_directory {
-            parse_history(input)?
-        } else {
-            parse_variable(data)?
-        };
+        let min_propety_size = 84;
+        if input.len() > min_propety_size {
+            return parse_property(input);
+        }
+        parse_root(input)?
+    } else if item_type == history || item_type == history_directory {
+        parse_history(input)?
+    } else {
+        parse_variable(data)?
+    };
 
     Ok((remaining_input, shellitem))
 }
@@ -247,5 +249,17 @@ mod tests {
         assert_eq!(result.created, "2019-10-21T23:40:40.000Z");
         assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
         assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
+    }
+
+    #[test]
+    fn test_shellitem_volume() {
+        let test_data = [
+            47, 67, 58, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0,
+        ];
+
+        let (_, result) = detect_shellitem(&test_data).unwrap();
+        assert_eq!(result.value, "C:\\");
+        assert_eq!(result.shell_type, ShellType::Volume);
     }
 }
