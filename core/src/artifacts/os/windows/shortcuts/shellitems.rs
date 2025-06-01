@@ -23,6 +23,8 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
             return Err(nom::Err::Incomplete(Needed::Unknown));
         }
         let (remaining_input, shellitem_data) = take(item_size - adjust_size)(shell_input)?;
+        input = remaining_input;
+
         let item_result = detect_shellitem(shellitem_data);
         let shellitem = match item_result {
             Ok((_, result)) => result,
@@ -32,8 +34,6 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
             }
         };
         shellitems_vec.push(shellitem);
-
-        input = remaining_input;
     }
 
     Ok((remaining_input, shellitems_vec))

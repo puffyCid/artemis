@@ -81,11 +81,6 @@ impl NameKey {
         if format!("{key_name:?}").contains("\\u{") {
             key_name = extract_utf16_string(key_name_data);
         }
-        if key_name.contains("ß") {
-            println!("{:?}", assert!(!key_name.contains("\\u")));
-            println!("{key_name:?}");
-            panic!("{key_name_data:?}");
-        }
 
         let name_key = NameKey {
             _sig: sig,
