@@ -12,15 +12,14 @@ https://puffycid.github.io/artemis-api/docs/Contributing/overview
 The artemis repository is composed of multiple workspaces
 
 - `cli/` - Contains the code the powers the CLI application
-- `core/` - Contains the code related to all forensic parsers and the Boa (JS)
+- `forensics/` - Contains the code related to all forensic parsers and the Boa (JS)
   runtime
 - `common/` - Collection of structs shared between workspaces
 - `timeline/`- Contains the code related to timelining supported artifacts
 
-### Core structure
+### forensics structure
 
-The `core` crate (also sometimes referred to as `artemis-core`) is primarily
-grouped by forensic artifacts based on the OS.
+The `forensics` crate is primarily grouped by forensic artifacts based on the OS.
 
 - `artifacts/` - Contains all the code associated with parsing forensic
   artifacts. The bulk of artemis code is located here. It is further broken down

@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "core", "common", "timeline", "daemon"]
+members = ["cli", "forensics", "common", "timeline", "daemon"]
 resolver = "2"
 
 [profile.release]

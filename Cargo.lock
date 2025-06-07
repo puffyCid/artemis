@@ -180,7 +180,7 @@ version = "0.14.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
- "core",
+ "forensics",
  "log",
 ]
 
@@ -1032,63 +1032,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
-name = "core"
-version = "0.14.0"
-dependencies = [
- "aes",
- "base64 0.22.1",
- "boa_engine",
- "boa_runtime",
- "byteorder",
- "cbc",
- "chrono",
- "common",
- "criterion",
- "csv",
- "elf",
- "evtx",
- "flate2",
- "glob",
- "home",
- "httpmock",
- "jsonwebtoken",
- "log",
- "lumination",
- "lz4_flex",
- "macos-unifiedlogs",
- "md-5",
- "miniz_oxide",
- "nom 8.0.0",
- "ntapi",
- "ntfs",
- "pelite",
- "plist",
- "quick-xml 0.37.5",
- "regex",
- "reqwest",
- "rusqlite",
- "rusty-s3",
- "ruzstd",
- "serde",
- "serde_json",
- "sha-1",
- "sha2",
- "simplelog",
- "sunlight",
- "sysinfo",
- "timeline",
- "tokio",
- "toml",
- "url",
- "uuid",
- "walkdir",
- "xml2json-rs",
- "xz2",
- "yara-x",
- "zip",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1379,6 +1322,7 @@ dependencies = [
  "chrono",
  "common",
  "criterion",
+ "forensics",
  "httpmock",
  "log",
  "reqwest",
@@ -1886,6 +1830,63 @@ name = "foreign-types-shared"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+
+[[package]]
+name = "forensics"
+version = "0.14.0"
+dependencies = [
+ "aes",
+ "base64 0.22.1",
+ "boa_engine",
+ "boa_runtime",
+ "byteorder",
+ "cbc",
+ "chrono",
+ "common",
+ "criterion",
+ "csv",
+ "elf",
+ "evtx",
+ "flate2",
+ "glob",
+ "home",
+ "httpmock",
+ "jsonwebtoken",
+ "log",
+ "lumination",
+ "lz4_flex",
+ "macos-unifiedlogs",
+ "md-5",
+ "miniz_oxide",
+ "nom 8.0.0",
+ "ntapi",
+ "ntfs",
+ "pelite",
+ "plist",
+ "quick-xml 0.37.5",
+ "regex",
+ "reqwest",
+ "rusqlite",
+ "rusty-s3",
+ "ruzstd",
+ "serde",
+ "serde_json",
+ "sha-1",
+ "sha2",
+ "simplelog",
+ "sunlight",
+ "sysinfo",
+ "timeline",
+ "tokio",
+ "toml",
+ "url",
+ "uuid",
+ "walkdir",
+ "xml2json-rs",
+ "xz2",
+ "yara-x",
+ "zip",
+]
 
 [[package]]
 name = "form_urlencoded"

@@ -81,7 +81,10 @@ mod tests {
     use crate::{
         collection::collect::CollectEndpoint,
         start::DaemonConfig,
-        utils::config::{Daemon, DaemonToml, server},
+        utils::{
+            config::{Daemon, DaemonToml, server},
+            encoding::base64_decode_standard,
+        },
     };
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;
@@ -123,5 +126,8 @@ mod tests {
         mock_me.assert();
         assert_eq!(status.node_invalid, false);
         assert!(status.collection.len() > 100);
+
+        let data = base64_decode_standard(&status.collection).unwrap();
+        forensics::core::parse_toml_data(&data).unwrap();
     }
 }

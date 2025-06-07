@@ -1,6 +1,6 @@
 use super::commands::CommandArgs;
 use clap::{Subcommand, arg};
-use core::{
+use forensics::{
     core::artemis_collection,
     structs::{
         artifacts::os::{
@@ -520,7 +520,7 @@ mod tests {
         Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks,
         Unifiedlogs, UsersMacos, UsersWindows,
     };
-    use core::structs::toml::Output;
+    use forensics::structs::toml::Output;
     fn output() -> Output {
         let out = Output {
             name: String::from("local_collector"),

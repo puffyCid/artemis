@@ -2,7 +2,7 @@ use crate::collector::system::run_collector;
 use base64::{Engine, engine::general_purpose};
 use clap::Parser;
 use collector::system::Commands;
-use core::structs::toml::Output;
+use forensics::structs::toml::Output;
 use log::info;
 mod collector;
 
@@ -36,7 +36,7 @@ fn parse_args(args: &Args) {
 
     if let Some(toml) = &args.toml {
         if !toml.is_empty() {
-            let collection_results = core::core::parse_toml_file(toml);
+            let collection_results = forensics::core::parse_toml_file(toml);
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -57,7 +57,7 @@ fn parse_args(args: &Args) {
                     return;
                 }
             };
-            let collection_results = core::core::parse_toml_data(&toml_data);
+            let collection_results = forensics::core::parse_toml_data(&toml_data);
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -68,7 +68,7 @@ fn parse_args(args: &Args) {
         }
     } else if let Some(js) = &args.javascript {
         if !js.is_empty() {
-            let collection_results = core::core::parse_js_file(js);
+            let collection_results = forensics::core::parse_js_file(js);
             match collection_results {
                 Ok(_) => info!("[artemis] JavaScript execution success"),
                 Err(err) => {

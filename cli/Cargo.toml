@@ -10,10 +10,10 @@ description = { workspace = true }
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
-core = { path = "../core", default-features = false }
+forensics = { path = "../forensics", default-features = false }
 clap = { version = "4.5.39", features = ["std", "help", "derive"] }
 
 # Artemis features
 [features]
 default = ["yarax"]
-yarax = ["core/yarax"]
+yarax = ["forensics/yarax"]
