@@ -1,5 +1,5 @@
-use forensics::core::parse_toml_file;
 use criterion::{Criterion, criterion_group, criterion_main};
+use forensics::core::parse_toml_file;
 use std::path::PathBuf;
 
 fn macho_files(path: &str) {
