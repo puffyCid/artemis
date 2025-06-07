@@ -109,10 +109,10 @@ cli:
 slim:
   cd cli && cargo build --release --no-default-features
 
-# Just build core library
+# Just build the forensics library
 [group('workspace')]
-core:
-  cd core && cargo build --release
+forensics:
+  cd forensics && cargo build --release
 
 # Review complexity with scc
 complex:

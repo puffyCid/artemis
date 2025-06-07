@@ -1,0 +1,21 @@
+{
+  "name": "daemon_server",
+  "version": "1.0.0",
+  "description": "A simple server for artemis daemon",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node ./build/index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.33",
+    "fastify": "^5.3.3",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

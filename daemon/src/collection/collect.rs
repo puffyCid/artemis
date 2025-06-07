@@ -1,0 +1,133 @@
+use super::error::CollectError;
+use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
+use log::error;
+use reqwest::{Client, StatusCode};
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct CollectResponse {
+    /// Base64 toml endpoint collection
+    pub(crate) collection: String,
+    /// If invalid we should enroll again
+    pub(crate) node_invalid: bool,
+}
+
+#[derive(Serialize, Debug)]
+pub(crate) struct CollectRequest {
+    /// Node key that was provided from the server upon enrollment
+    node_key: String,
+}
+
+pub(crate) trait CollectEndpoint {
+    async fn collect_request(&self) -> Result<CollectResponse, CollectError>;
+}
+
+impl CollectEndpoint for DaemonConfig {
+    /// Check for any collection requests we need to run
+    async fn collect_request(&self) -> Result<CollectResponse, CollectError> {
+        let url = format!(
+            "{}:{}/v{}/{}",
+            self.server.server.url,
+            self.server.server.port,
+            self.server.server.version,
+            self.server.server.collections
+        );
+
+        let req = CollectRequest {
+            node_key: self.client.daemon.node_key.clone(),
+        };
+
+        let client = Client::new();
+        let res = match client.post(&url).json(&req).send().await {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[daemon] Failed to send request for collection: {err:?}");
+                return Err(CollectError::FailedCollect);
+            }
+        };
+        if res.status() == StatusCode::BAD_REQUEST {
+            let message = bad_request(&res.bytes().await.unwrap_or_default());
+            error!("[daemon] Collection request was bad: {}", message.message);
+            return Err(CollectError::BadCollect);
+        }
+
+        if res.status() != StatusCode::OK {
+            error!("[daemon] Got non-Ok response");
+            return Err(CollectError::CollectNotOk);
+        }
+
+        let bytes = match res.bytes().await {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[daemon] Failed to get collection bytes: {err:?}");
+                return Err(CollectError::FailedCollect);
+            }
+        };
+
+        let collect_toml: CollectResponse = match serde_json::from_slice(&bytes) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[daemon] Failed to serialize collect response: {err:?}");
+                return Err(CollectError::FailedCollect);
+            }
+        };
+
+        Ok(collect_toml)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        collection::collect::CollectEndpoint,
+        start::DaemonConfig,
+        utils::{
+            config::{Daemon, DaemonToml, server},
+            encoding::base64_decode_standard,
+        },
+    };
+    use httpmock::{Method::POST, MockServer};
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    #[tokio::test]
+    async fn test_collect_request() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/configs/server.toml");
+
+        let mock_server = MockServer::start();
+        let port = mock_server.port();
+
+        let mock_me = mock_server.mock(|when, then| {
+            when.method(POST)
+                .path("/v1/endpoint/collections")
+                .body_contains("uuid key");
+            then.status(200)
+                .header("content-type", "application/json")
+                .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCm91dHB1dCA9ICJsb2NhbCIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJwcm9jZXNzZXMiClthcnRpZmFjdHMucHJvY2Vzc2VzXQptZDUgPSBmYWxzZQpzaGExID0gZmFsc2UKc2hhMjU2ID0gZmFsc2UKbWV0YWRhdGEgPSBmYWxzZQoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic2hlbGxfaGlzdG9yeSIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJjaHJvbWl1bS1oaXN0b3J5IgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gImNocm9taXVtLWRvd25sb2FkcyIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJmaXJlZm94LWhpc3RvcnkiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiZmlyZWZveC1kb3dubG9hZHMiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiY3JvbiI=", "node_invalid": false }));
+        });
+
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
+            .await
+            .unwrap();
+        let mut config = DaemonConfig {
+            server: server_config,
+            client: DaemonToml {
+                daemon: Daemon {
+                    node_key: String::from("uuid key"),
+                    collection_path: String::from("/var/artemis/collections"),
+                    log_level: String::from("warn"),
+                },
+            },
+        };
+        config.server.server.port = port;
+
+        let status = config.collect_request().await.unwrap();
+        mock_me.assert();
+        assert_eq!(status.node_invalid, false);
+        assert!(status.collection.len() > 100);
+
+        let data = base64_decode_standard(&status.collection).unwrap();
+        forensics::core::parse_toml_data(&data).unwrap();
+    }
+}

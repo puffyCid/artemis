@@ -71,6 +71,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
+mod collection;
 mod configuration;
 mod enrollment;
 mod error;

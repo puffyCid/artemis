@@ -5,11 +5,15 @@ use super::{
     info::{PlatformType, get_platform_enum},
 };
 use crate::{
-    configuration::config::ConfigEndpoint, enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
+    collection::collect::CollectResponse, configuration::config::ConfigEndpoint,
+    enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
 };
-use log::{error, warn};
-use std::{str::from_utf8, time::Duration};
-use tokio::{fs::rename, time::interval};
+use log::error;
+use std::str::from_utf8;
+use tokio::{
+    fs::rename,
+    time::{Duration, interval},
+};
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
 pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
@@ -23,6 +27,7 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
     let pause = 6;
     // Pause for 6 seconds between each attempt
     let mut interval = interval(Duration::from_secs(pause));
+    interval.tick().await;
 
     // If we get `node_invalid` response. We have to enroll again. We attempt 8 more enrollments max
     while enroll.node_invalid && count != max_attempts {
@@ -48,6 +53,14 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
     config.client.daemon.node_key = enroll.node_key;
 }
 
+/// Process our collection request
+pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
+    if collect.node_invalid {
+        setup_enrollment(config).await;
+    }
+    println!("{}", collect.collection);
+}
+
 /// Get a daemon configuration from our server. If none is provided we will generate a default config
 pub(crate) async fn setup_config(config: &mut DaemonConfig) {
     let daemon_config = match config.config_request().await {
@@ -57,15 +70,7 @@ pub(crate) async fn setup_config(config: &mut DaemonConfig) {
 
     // Check if we got a node_invalid response
     if daemon_config.node_invalid {
-        // Attempt to enroll again. But if we fail we cannot continue
-        if config
-            .enroll_request()
-            .await
-            .is_ok_and(|status| status.node_invalid)
-        {
-            warn!("[daemon] Could not re-enroll to server. Using default config");
-            return setup_daemon(config).await;
-        }
+        setup_enrollment(config).await;
     }
 
     let toml_bytes = match base64_decode_standard(&daemon_config.config) {
