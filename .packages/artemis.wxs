@@ -1,5 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Id="io.github.puffycid.Artemis" Name="Artemis" Manufacturer="PuffyCid" Version="0.14.0" Compressed="yes" Codepage="UTF-8" InstallerVersion="500" Language="1033" ProductCode="*" Scope="perMachine" ShortNames="no" UpgradeStrategy="majorUpgrade">
+    <Package Id="io.github.puffycid.Artemis" Name="Artemis" Manufacturer="PuffyCid" Version="0.15.0" Compressed="yes" Codepage="UTF-8" InstallerVersion="500" Language="1033" ProductCode="*" Scope="perMachine" ShortNames="no" UpgradeStrategy="majorUpgrade">
         <StandardDirectory Id="ProgramFiles64Folder">
             <Directory Id="INSTALLDIR" Name="Artemis">
                 <Component Id="ArtemisFolder" Guid="4ebcd58d-5734-4a5f-abe5-d1538f72df49">

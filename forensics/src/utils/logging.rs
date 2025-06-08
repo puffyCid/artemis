@@ -1,6 +1,7 @@
 use super::{error::ArtemisError, output::final_output, uuid::generate_uuid};
 use crate::{
     filesystem::files::{get_filename, list_files, read_file},
+    output::remote::api::api_upload,
     structs::toml::Output,
 };
 use log::{LevelFilter, error, warn};
@@ -100,13 +101,13 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
             return Ok(());
         }
     };
+    let mut peek = log_files.iter().enumerate().peekable();
 
-    for log in log_files {
+    while let Some((_index, log)) = peek.next() {
         if !log.ends_with(".log") {
             continue;
         }
-
-        let read_res = read_file(&log);
+        let read_res = read_file(log);
         let log_data = match read_res {
             Ok(result) => result,
             Err(err) => {
@@ -114,8 +115,16 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
                 continue;
             }
         };
-        final_output(&log_data, output, &get_filename(&log))?;
-        let _ = remove_file(&log);
+        // For API uploads on the last log file we mark the upload as complete
+        if output.output.to_lowercase() == "api" && peek.peek().is_none() {
+            if let Err(err) = api_upload(&log_data, output, &true) {
+                error!("[core] Failed to upload to API server: {err:?}");
+            }
+            let _ = remove_file(log);
+            break;
+        }
+        final_output(&log_data, output, &get_filename(log))?;
+        let _ = remove_file(log);
     }
 
     // Now remove directory if its empty
@@ -242,5 +251,49 @@ mod tests {
         let _ = upload_logs(&output_dir, &output);
         mock_me.assert();
         mock_me_put.assert();
+    }
+
+    #[test]
+    fn test_api_upload_logs() {
+        let server = MockServer::start();
+        let port = server.port();
+
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system");
+        let mut test_log = File::create(format!(
+            "{}/files/test.log",
+            test_location.display().to_string()
+        ))
+        .unwrap();
+        test_log.write_all(b"testing!").unwrap();
+
+        let output = Output {
+            name: String::from("files"),
+            directory: test_location.display().to_string(),
+            format: String::from("json"),
+            compress: false,
+            timeline: false,
+            url: Some(format!("http://127.0.0.1:{port}")),
+            api_key: None,
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("api"),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        };
+
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .header("Location", format!("http://127.0.0.1:{port}"))
+                .json_body(json!({ "message": "ok" }));
+        });
+
+        let output_dir = format!("{}/{}", output.directory, output.name);
+
+        let _ = upload_logs(&output_dir, &output);
+        mock_me.assert();
     }
 }

@@ -48,7 +48,7 @@ fn detect_format<'a>(
     let win10_size = 48;
     let win10_creator_size = 52;
 
-    let entries_result = if win7_sig == sig {
+    if win7_sig == sig {
         win7_format(data, key_path, path)
     } else if win8_81_size == sig {
         let (input, _) = take(win8_81_size)(data)?;
@@ -75,9 +75,7 @@ fn detect_format<'a>(
             &[],
             ErrorKind::Fail,
         )));
-    };
-
-    entries_result
+    }
 }
 
 #[cfg(test)]

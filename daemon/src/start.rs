@@ -43,7 +43,7 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     // We have enough info connect to our server.
     // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
     move_server_config(server_path, alt_base).await;
-    start(&mut config).await
+    start(&mut config).await;
 }
 
 /// Continously poll our server for jobs and collections

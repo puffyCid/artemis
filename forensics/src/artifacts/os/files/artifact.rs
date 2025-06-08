@@ -21,12 +21,12 @@ pub(crate) fn filelisting(
         start_directory: options.start_path.clone(),
         depth: options.depth.unwrap_or(1) as usize,
         metadata: options.metadata.unwrap_or(false),
-        yara: options.yara.as_ref().unwrap_or(&String::new()).to_string(),
+        yara: options.yara.as_ref().unwrap_or(&String::new()).clone(),
         path_filter: options
             .regex_filter
             .as_ref()
             .unwrap_or(&String::new())
-            .to_string(),
+            .clone(),
     };
     let artifact_result = get_filelist(&args, &hashes, output, filter);
     match artifact_result {
