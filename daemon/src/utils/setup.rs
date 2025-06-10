@@ -58,7 +58,17 @@ pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &Collec
     if collect.node_invalid {
         setup_enrollment(config).await;
     }
-    println!("{}", collect.collection);
+    let collection_bytes = match base64_decode_standard(&collect.collection) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[daemon] Could not decode TOML collection {err:?}");
+            return;
+        }
+    };
+
+    if let Err(err) = forensics::core::parse_toml_data(&collection_bytes) {
+        error!("[daemon] Could not process TOML collection {err:?}");
+    }
 }
 
 /// Get a daemon configuration from our server. If none is provided we will generate a default config

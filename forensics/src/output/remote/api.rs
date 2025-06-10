@@ -4,13 +4,21 @@ use crate::{
     utils::time::{time_now, unixepoch_to_iso},
 };
 use log::error;
-use reqwest::{StatusCode, blocking::Client};
+use reqwest::{
+    StatusCode,
+    blocking::{Client, multipart},
+};
 use std::{thread::sleep, time::Duration};
 
 /// Upload data to a remote server. We use our unique endpoint ID for authentication
 /// It should have been obtained from our initial enrollment when running in deamon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
-pub(crate) fn api_upload(data: &[u8], output: &Output, complete: &bool) -> Result<(), RemoteError> {
+pub(crate) fn api_upload(
+    data: &[u8],
+    output: &Output,
+    output_name: &str,
+    complete: &bool,
+) -> Result<(), RemoteError> {
     let api_url = if let Some(url) = &output.url {
         url
     } else {
@@ -28,25 +36,33 @@ pub(crate) fn api_upload(data: &[u8], output: &Output, complete: &bool) -> Resul
         builder = builder.header("x-artemis-collection_id", &output.collection_id.to_string());
         builder = builder.header("x-artemis-collection_name", &output.name);
 
+        let mut part = multipart::Part::bytes(data.to_vec());
+        part = part.file_name(output_name.to_string());
+
+        // This is the last upload associated with the collection
         if *complete {
-            // This is the last upload associated with the collection
             builder = builder.header(
                 "x-artemis-collection-complete",
                 unixepoch_to_iso(&(time_now() as i64)),
             );
-            // The final upload is just plaintext log files
-            builder = builder.header("Content-Type", "application/text");
+        }
+        if output_name.ends_with(".log") {
+            // The last two uploads for collections are just plaintext log files
+            part = part.mime_str("text/plain").unwrap();
         } else {
             builder = builder.header("Content-Encoding", "gzip");
-            builder = builder.header("Content-Type", "application/jsonl");
+            // Should be safe to unwrap?
+            part = part.mime_str("application/jsonl").unwrap();
         }
-
-        let status = match builder.body(data.to_vec()).send() {
+        let form = multipart::Form::new().part("artemis-upload", part);
+        builder = builder.multipart(form);
+        let status = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!(
+                println!(
                     "[core] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
                 );
+                panic!("sleeping due to error for name {output_name}");
                 // Pause for 6 seconds between each attempt
                 sleep(Duration::from_secs(pause));
                 count += 1;
@@ -110,7 +126,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, &true).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", &true).unwrap();
         mock_me.assert();
     }
 
@@ -130,7 +146,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, &false).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", &false).unwrap();
         mock_me.assert();
     }
 }
