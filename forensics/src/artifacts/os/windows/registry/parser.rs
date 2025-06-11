@@ -64,7 +64,7 @@ pub(crate) fn parse_registry(
     };
 
     if let Some(path) = &options.alt_file {
-        params.registry_path = path.to_string();
+        params.registry_path = path.clone();
         return parse_registry_file(output, &mut params);
     }
 

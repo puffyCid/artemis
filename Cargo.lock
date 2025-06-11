@@ -176,7 +176,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "artemis"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -806,9 +806,9 @@ checksum = "175812e0be2bccb6abe50bb8d566126198344f707e304f45c648fd8f2cc0365e"
 
 [[package]]
 name = "bytemuck"
-version = "1.23.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9134a6ef01ce4b366b50689c94f82c14bc72bc5d0386829828a2e2752ef7958c"
+checksum = "5c76a5792e44e4abe34d3abf15636779261d45a7450612059293d1d2cfc63422"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1003,7 +1003,7 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "common"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "plist",
  "serde",
@@ -1316,7 +1316,7 @@ dependencies = [
 
 [[package]]
 name = "daemon"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1329,7 +1329,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
- "tokio",
  "toml",
  "uuid",
 ]
@@ -1833,7 +1832,7 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "forensics"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -3139,6 +3138,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "mime_guess"
+version = "2.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
+dependencies = [
+ "mime",
+ "unicase",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4113,6 +4122,7 @@ dependencies = [
  "js-sys",
  "log",
  "mime",
+ "mime_guess",
  "native-tls",
  "once_cell",
  "percent-encoding",
@@ -4928,7 +4938,7 @@ dependencies = [
 
 [[package]]
 name = "timeline"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "log",
  "serde",

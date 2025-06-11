@@ -214,7 +214,7 @@ impl UsnJrnlFormat {
             if reader.is_some() {
                 path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
                 {
-                    cache_hit.to_string()
+                    cache_hit.clone()
                 } else {
                     let mut tracker = Lookups {
                         parent_index: parent_mft,

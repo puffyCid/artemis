@@ -32,10 +32,7 @@ where
 {
     pub(crate) fn new(inner: R, sector_size: usize) -> io::Result<Self> {
         if !sector_size.is_power_of_two() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "sector_size is not a power of two",
-            ));
+            return Err(io::Error::other("sector_size is not a power of two"));
         }
 
         Ok(Self {
@@ -93,8 +90,7 @@ where
                 // This is unsupported, because it's not safely possible under Windows.
                 // We cannot seek to the end to determine the raw partition size.
                 // Which makes it impossible to set `self.stream_position`.
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
+                return Err(io::Error::other(
                     "SeekFrom::End is unsupported for SectorReader",
                 ));
             }

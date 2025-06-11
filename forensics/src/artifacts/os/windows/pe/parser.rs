@@ -94,35 +94,35 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
                 info.file_version = value
                     .get(&String::from("FileVersion"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.company_name = value
                     .get(&String::from("CompanyName"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.file_description = value
                     .get(&String::from("FileDescription"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.original_filename = value
                     .get(&String::from("OriginalFilename"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.internal_name = value
                     .get(&String::from("InternalName"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.legal_copyright = value
                     .get(&String::from("LegalCopyright"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.product_name = value
                     .get(&String::from("ProductName"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
                 info.product_version = value
                     .get(&String::from("ProductVersion"))
                     .unwrap_or(&String::new())
-                    .to_string();
+                    .clone();
             }
         }
         for icons in resources.icons() {

@@ -5,8 +5,10 @@ use super::{
 use crate::{error::DaemonError, utils::env::get_env_value};
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::str::from_utf8;
-use tokio::fs::{create_dir_all, read, write};
+use std::{
+    fs::{create_dir_all, read, write},
+    str::from_utf8,
+};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct ServerToml {
@@ -27,8 +29,8 @@ pub(crate) struct Server {
 }
 
 /// Parse the provided `Server` TOML config file
-pub(crate) async fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, ConfigError> {
-    let bytes = match read_file(path).await {
+pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, ConfigError> {
+    let bytes = match read_file(path) {
         Ok(result) => result,
         Err(_err) => return Err(ConfigError::BadToml),
     };
@@ -47,7 +49,7 @@ pub(crate) async fn server(path: &str, alt_base: Option<&str>) -> Result<ServerT
         default_path = alt_path.to_string();
     }
 
-    let _ = create_directory(&default_path).await;
+    let _ = create_directory(&default_path);
 
     let config: ServerToml = match toml::from_str(from_utf8(&bytes).unwrap_or_default()) {
         Ok(result) => result,
@@ -74,7 +76,7 @@ pub(crate) struct Daemon {
 
 /// Create a daemon config file. If the `DaemonToml` structure is empty. `Ex: collection_path = ""`.  
 /// Then default paths will be used
-pub(crate) async fn daemon(
+pub(crate) fn daemon(
     config: &mut DaemonToml,
     alt_artemis_path: Option<&str>,
 ) -> Result<(), ConfigError> {
@@ -115,13 +117,11 @@ pub(crate) async fn daemon(
         }
     };
 
-    let _ = create_directory(&config.daemon.collection_path).await;
+    let _ = create_directory(&config.daemon.collection_path);
     if let Err(status) = write_file(
         daemon_config.as_bytes(),
         &format!("{artemis_path}/daemon.toml"),
-    )
-    .await
-    {
+    ) {
         error!("[daemon] Could not write daemon TOML file at {artemis_path}: {status:?}");
         return Err(ConfigError::DaemonTomlWrite);
     }
@@ -130,8 +130,8 @@ pub(crate) async fn daemon(
 }
 
 /// Read the provided file
-async fn read_file(path: &str) -> Result<Vec<u8>, DaemonError> {
-    let bytes = match read(path).await {
+fn read_file(path: &str) -> Result<Vec<u8>, DaemonError> {
+    let bytes = match read(path) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Failed to read file {path}: {err:?}");
@@ -143,8 +143,8 @@ async fn read_file(path: &str) -> Result<Vec<u8>, DaemonError> {
 }
 
 /// Create directory and any parents
-async fn create_directory(path: &str) -> Result<(), DaemonError> {
-    match create_dir_all(path).await {
+fn create_directory(path: &str) -> Result<(), DaemonError> {
+    match create_dir_all(path) {
         Ok(result) => Ok(result),
         Err(err) => {
             error!("[daemon] Failed to make directory {path}: {err:?}");
@@ -154,8 +154,8 @@ async fn create_directory(path: &str) -> Result<(), DaemonError> {
 }
 
 /// Write data to the provided path
-async fn write_file(bytes: &[u8], path: &str) -> Result<(), DaemonError> {
-    match write(path, bytes).await {
+fn write_file(bytes: &[u8], path: &str) -> Result<(), DaemonError> {
+    match write(path, bytes) {
         Ok(result) => Ok(result),
         Err(err) => {
             error!("[daemon] Failed to write file {path}: {err:?}");
@@ -171,67 +171,59 @@ mod tests {
     };
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_read_file() {
+    #[test]
+    fn test_read_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
-        let result = read_file(test_location.to_str().unwrap()).await.unwrap();
+        let result = read_file(test_location.to_str().unwrap()).unwrap();
         assert!(result.len() > 200);
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "ReadFile")]
-    async fn test_read_no_file() {
+    fn test_read_no_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server123.toml");
 
-        let _ = read_file(test_location.to_str().unwrap()).await.unwrap();
+        let _ = read_file(test_location.to_str().unwrap()).unwrap();
     }
 
-    #[tokio::test]
-    async fn test_create_directory() {
+    #[test]
+    fn test_create_directory() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tmp");
 
-        let _ = create_directory(test_location.to_str().unwrap())
-            .await
-            .unwrap();
+        let _ = create_directory(test_location.to_str().unwrap()).unwrap();
     }
 
-    #[tokio::test]
-    async fn test_write_file() {
+    #[test]
+    fn test_write_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tmp");
 
-        let _ = create_directory(test_location.to_str().unwrap())
-            .await
-            .unwrap();
+        let _ = create_directory(test_location.to_str().unwrap()).unwrap();
 
-        let _ = write_file("test".as_bytes(), "./tmp/test").await.unwrap();
+        let _ = write_file("test".as_bytes(), "./tmp/test").unwrap();
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "WriteFile")]
-    async fn test_write_file_bad() {
+    fn test_write_file_bad() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tmp");
 
-        let _ = create_directory(test_location.to_str().unwrap())
-            .await
-            .unwrap();
+        let _ = create_directory(test_location.to_str().unwrap()).unwrap();
 
-        let _ = write_file("test".as_bytes(), "tmp").await.unwrap();
+        let _ = write_file("test".as_bytes(), "tmp").unwrap();
     }
 
-    #[tokio::test]
-    async fn test_server_config() {
+    #[test]
+    fn test_server_config() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
-        let result = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let result = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
 
         assert_eq!(result.server.collections, "endpoint/collections");
         assert_eq!(result.server.version, 1);
@@ -244,8 +236,8 @@ mod tests {
         assert_eq!(result.server.key, "my key");
     }
 
-    #[tokio::test]
-    async fn test_daemon() {
+    #[test]
+    fn test_daemon() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("./tmp/artemis");
 
@@ -258,7 +250,7 @@ mod tests {
             },
         };
 
-        daemon(&mut daemon_toml, Some(alt_path)).await.unwrap();
+        daemon(&mut daemon_toml, Some(alt_path)).unwrap();
         assert_eq!(daemon_toml.daemon.node_key, "test");
         assert_eq!(daemon_toml.daemon.log_level, "warn");
         assert!(

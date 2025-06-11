@@ -1,11 +1,15 @@
 import fastify from "fastify";
+import fastifyMultipart from "@fastify/multipart";
+
 import { BadReqestType, BadRequest, Enroll, enrollEndpoint, EnrollReponseType, EnrollResponse, EnrollType } from "./enrollment/enroll";
 import { Config, configEndpoint, ConfigResponse, ConfigType, ConfigTypeResponse } from "./configuration/config";
-import { collectionEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
+import { Collect, collectionEndpoint, collectionUploadEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
 
 function main() {
     const server = fastify();
+    server.register(fastifyMultipart, { limits: { fileSize: 314572800 } });
 
+    /** Handle enrollment requests */
     server.post<{ Body: EnrollType, Reply: EnrollReponseType | BadReqestType; }>("/v1/endpoint/enroll", {
         schema: {
             body: Enroll,
@@ -27,6 +31,7 @@ function main() {
         },
     }, enrollEndpoint);
 
+    /** Handle configuratino requests */
     server.post<{ Body: ConfigType, Reply: ConfigTypeResponse | BadReqestType; }>("/v1/endpoint/config", {
         schema: {
             body: Config,
@@ -44,22 +49,42 @@ function main() {
         },
     }, configEndpoint);
 
+    /** Handle collection requests */
     server.post<{ Body: CollectType, Reply: CollectTypeResponse | BadReqestType; }>("/v1/endpoint/collections", {
         schema: {
-            body: Config,
+            body: Collect,
             response: {
                 200: CollectResponse,
                 400: BadRequest,
             }
         },
         preValidation: (request, reply, done) => {
-            if (request.body.node_key === undefined) {
+            if ((request.body as ConfigType).node_key === undefined) {
                 reply.statusCode = 400;
                 reply.send({ message: "Bad collection request" });
             }
             done();
         },
     }, collectionEndpoint);
+
+    /** Handle collection uploads */
+    server.post("/v1/endpoint/collections/uploads", {
+        schema: {
+            consumes: [ "multipart/form-data" ],
+            response: {
+                400: BadRequest,
+            }
+        },
+        preValidation: (request, reply, done) => {
+            if (request.headers[ "x-artemis-endpoint_id" ] === undefined) {
+                reply.statusCode = 400;
+                reply.send({ message: "Bad upload request. No endpoint ID provided" });
+            }
+            done();
+        },
+    }, collectionUploadEndpoint);
+
+
     server.listen({ port: 8000 }, (err, address) => {
         if (err) {
             console.error(err);

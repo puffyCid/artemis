@@ -1,4 +1,5 @@
 use super::error::ArtemisError;
+use crate::output::remote::api::api_upload;
 use crate::utils::compression::compress::compress_output_zip;
 use crate::{
     filesystem::files::list_files,
@@ -19,46 +20,41 @@ pub(crate) fn final_output(
 ) -> Result<(), ArtemisError> {
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
-        "local" => {
-            let local_result = local_output(artifact_data, output, output_name, &output.format);
-            match local_result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("[core] Failed to output to local system: {err:?}");
-                    return Err(ArtemisError::Local);
-                }
+        "local" => match local_output(artifact_data, output, output_name, &output.format) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("[core] Failed to output to local system: {err:?}");
+                return Err(ArtemisError::Local);
             }
-        }
-        "gcp" => {
-            let gcp_result = gcp_upload(artifact_data, output, output_name);
-            match gcp_result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("[core] Failed to upload to Google Cloud Storage: {err:?}");
-                    return Err(ArtemisError::Remote);
-                }
+        },
+        "gcp" => match gcp_upload(artifact_data, output, output_name) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("[core] Failed to upload to Google Cloud Storage: {err:?}");
+                return Err(ArtemisError::Remote);
             }
-        }
-        "azure" => {
-            let azure_result = azure_upload(artifact_data, output, output_name);
-            match azure_result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("[core] Failed to upload to Azure Blog Storage: {err:?}");
-                    return Err(ArtemisError::Remote);
-                }
+        },
+        "azure" => match azure_upload(artifact_data, output, output_name) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("[core] Failed to upload to Azure Blog Storage: {err:?}");
+                return Err(ArtemisError::Remote);
             }
-        }
-        "aws" => {
-            let aws_result = aws_upload(artifact_data, output, output_name);
-            match aws_result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("[core] Failed to upload to AWS S3 Bucket: {err:?}");
-                    return Err(ArtemisError::Remote);
-                }
+        },
+        "aws" => match aws_upload(artifact_data, output, output_name) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("[core] Failed to upload to AWS S3 Bucket: {err:?}");
+                return Err(ArtemisError::Remote);
             }
-        }
+        },
+        "api" => match api_upload(artifact_data, output, output_name, &false) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("[core] Failed to upload to API server: {err:?}");
+                return Err(ArtemisError::Remote);
+            }
+        },
         _ => {
             warn!("Unknown output format: {}", output.format);
         }

@@ -53,86 +53,77 @@ impl DownloadsPlist {
         match results {
             Some(data_results) => {
                 for data in data_results {
-                    match data {
+                    if let Value::Dictionary(value) = data {
                         // Each download should be a dictionary containing some metadata
-                        Value::Dictionary(_) => {
-                            let dict_bookmark = data.as_dictionary();
-                            let mut downloads_metadata = DownloadsPlist {
-                                bookmark_blob: Vec::new(),
-                                download_entry_progress_total_to_load: 0,
-                                download_entry_progress_bytes_so_far: 0,
-                                download_entry_date_added_key: 0,
-                                download_entry_date_finished_key: 0,
-                                download_entry_should_use_request_url_as_origin: false,
-                                download_identifier: String::new(),
-                                download_url: String::new(),
-                                download_path: String::new(),
-                                download_sandbox_id: String::new(),
-                                download_remove_when_done: false,
-                                uuid: String::new(),
-                            };
-                            if let Some(dict) = dict_bookmark {
-                                for (dict_key, dict_data) in dict {
-                                    match dict_key.as_str() {
-                                        "DownloadEntryBookmarkBlob" => {
-                                            downloads_metadata.bookmark_blob =
-                                                get_data(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryProgressTotalToLoad" => {
-                                            downloads_metadata
-                                                .download_entry_progress_total_to_load =
-                                                get_signed_int(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryProgressBytesSoFar" => {
-                                            downloads_metadata
-                                                .download_entry_progress_bytes_so_far =
-                                                get_signed_int(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryDateAddedKey" => {
-                                            downloads_metadata.download_entry_date_added_key =
-                                                DownloadsPlist::get_safari_timestamp(dict_data);
-                                        }
-                                        "DownloadEntryDateFinishedKey" => {
-                                            downloads_metadata.download_entry_date_finished_key =
-                                                DownloadsPlist::get_safari_timestamp(dict_data);
-                                        }
-                                        "DownloadEntryShouldUseRequestURLAsOriginURLIfNecessaryKey" =>
-                                        {
-                                            downloads_metadata
-                                                .download_entry_should_use_request_url_as_origin =
-                                                get_boolean(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryIdentifier" => {
-                                            downloads_metadata.download_identifier =
-                                                get_string(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryURL" => {
-                                            downloads_metadata.download_url =
-                                                get_string(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryPath" => {
-                                            downloads_metadata.download_path =
-                                                get_string(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntrySandboxIdentifier" => {
-                                            downloads_metadata.download_sandbox_id =
-                                                get_string(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryRemoveWhenDoneKey" => {
-                                            downloads_metadata.download_remove_when_done =
-                                                get_boolean(dict_data).unwrap_or_default();
-                                        }
-                                        "DownloadEntryProfileUUIDStringKey" => {
-                                            downloads_metadata.uuid =
-                                                get_string(dict_data).unwrap_or_default();
-                                        }
-                                        _ => warn!("Unknown Safari download key: {dict_key}"),
-                                    }
+                        let mut downloads_metadata = DownloadsPlist {
+                            bookmark_blob: Vec::new(),
+                            download_entry_progress_total_to_load: 0,
+                            download_entry_progress_bytes_so_far: 0,
+                            download_entry_date_added_key: 0,
+                            download_entry_date_finished_key: 0,
+                            download_entry_should_use_request_url_as_origin: false,
+                            download_identifier: String::new(),
+                            download_url: String::new(),
+                            download_path: String::new(),
+                            download_sandbox_id: String::new(),
+                            download_remove_when_done: false,
+                            uuid: String::new(),
+                        };
+                        for (dict_key, dict_data) in value {
+                            match dict_key.as_str() {
+                                "DownloadEntryBookmarkBlob" => {
+                                    downloads_metadata.bookmark_blob =
+                                        get_data(&dict_data).unwrap_or_default();
                                 }
-                                downloads_data.push(downloads_metadata);
+                                "DownloadEntryProgressTotalToLoad" => {
+                                    downloads_metadata.download_entry_progress_total_to_load =
+                                        get_signed_int(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryProgressBytesSoFar" => {
+                                    downloads_metadata.download_entry_progress_bytes_so_far =
+                                        get_signed_int(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryDateAddedKey" => {
+                                    downloads_metadata.download_entry_date_added_key =
+                                        DownloadsPlist::get_safari_timestamp(&dict_data);
+                                }
+                                "DownloadEntryDateFinishedKey" => {
+                                    downloads_metadata.download_entry_date_finished_key =
+                                        DownloadsPlist::get_safari_timestamp(&dict_data);
+                                }
+                                "DownloadEntryShouldUseRequestURLAsOriginURLIfNecessaryKey" => {
+                                    downloads_metadata
+                                        .download_entry_should_use_request_url_as_origin =
+                                        get_boolean(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryIdentifier" => {
+                                    downloads_metadata.download_identifier =
+                                        get_string(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryURL" => {
+                                    downloads_metadata.download_url =
+                                        get_string(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryPath" => {
+                                    downloads_metadata.download_path =
+                                        get_string(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntrySandboxIdentifier" => {
+                                    downloads_metadata.download_sandbox_id =
+                                        get_string(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryRemoveWhenDoneKey" => {
+                                    downloads_metadata.download_remove_when_done =
+                                        get_boolean(&dict_data).unwrap_or_default();
+                                }
+                                "DownloadEntryProfileUUIDStringKey" => {
+                                    downloads_metadata.uuid =
+                                        get_string(&dict_data).unwrap_or_default();
+                                }
+                                _ => warn!("Unknown Safari download key: {dict_key}"),
                             }
                         }
-                        _ => (),
+                        downloads_data.push(downloads_metadata);
                     }
                 }
             }
@@ -166,10 +157,9 @@ impl DownloadsPlist {
 
 #[cfg(test)]
 mod tests {
+    use super::DownloadsPlist;
     use plist::{Dictionary, Value};
     use std::{path::PathBuf, time::UNIX_EPOCH};
-
-    use super::DownloadsPlist;
 
     #[test]
     fn test_parse_safari_plist() {

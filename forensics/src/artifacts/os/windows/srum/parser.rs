@@ -34,7 +34,7 @@ pub(crate) fn grab_srum(
     filter: &bool,
 ) -> Result<(), SrumError> {
     let path = if let Some(alt) = &options.alt_file {
-        alt.to_string()
+        alt.clone()
     } else {
         let systemdrive_result = get_systemdrive();
         let systemdrive = match systemdrive_result {

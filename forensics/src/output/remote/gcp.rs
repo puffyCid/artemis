@@ -100,8 +100,8 @@ pub(crate) fn setup_gcp_upload(output: &Output, filename: &str) -> Result<GcpSet
     };
 
     let setup = GcpSetup {
-        url: gcp_url.to_string(),
-        api_key: api_key.to_string(),
+        url: gcp_url.clone(),
+        api_key: api_key.clone(),
         output: gcp_output,
     };
     Ok(setup)

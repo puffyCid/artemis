@@ -2,7 +2,7 @@ use super::error::EnrollError;
 use crate::{start::DaemonConfig, utils::info::get_info};
 use common::system::SystemInfo;
 use log::error;
-use reqwest::{Client, StatusCode};
+use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -31,12 +31,12 @@ pub(crate) struct BadRequest {
 }
 
 pub(crate) trait EnrollEndpoint {
-    async fn enroll_request(&self) -> Result<EnrollResponse, EnrollError>;
+    fn enroll_request(&self) -> Result<EnrollResponse, EnrollError>;
 }
 
 impl EnrollEndpoint for DaemonConfig {
     /// Send the enrollment request to our server
-    async fn enroll_request(&self) -> Result<EnrollResponse, EnrollError> {
+    fn enroll_request(&self) -> Result<EnrollResponse, EnrollError> {
         let url = format!(
             "{}:{}/v{}/{}",
             self.server.server.url,
@@ -53,7 +53,10 @@ impl EnrollEndpoint for DaemonConfig {
         };
 
         let client = Client::new();
-        let res = match client.post(&url).json(&enroll).send().await {
+        let mut builder = client.post(&url).json(&enroll);
+        builder = builder.header("accept", "application/json");
+
+        let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to enroll endpoint: {err:?}");
@@ -61,7 +64,7 @@ impl EnrollEndpoint for DaemonConfig {
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
-            let message = bad_request(&res.bytes().await.unwrap_or_default());
+            let message = bad_request(&res.bytes().unwrap_or_default());
             error!("[daemon] Enrollment request was bad: {}", message.message);
             return Err(EnrollError::BadEnrollment);
         }
@@ -71,7 +74,7 @@ impl EnrollEndpoint for DaemonConfig {
             return Err(EnrollError::EnrollmentNotOk);
         }
 
-        let bytes = match res.bytes().await {
+        let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to get enroll bytes: {err:?}");
@@ -117,8 +120,8 @@ mod tests {
     use serde_json::json;
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_enroll_request() {
+    #[test]
+    fn test_enroll_request() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -135,9 +138,7 @@ mod tests {
                 .json_body(json!({ "node_key": "server uuid", "node_invalid": false }));
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -150,16 +151,16 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let status = config.enroll_request().await.unwrap();
+        let status = config.enroll_request().unwrap();
         mock_me.assert();
 
         assert_eq!(status.node_key, "server uuid");
         assert!(!status.node_invalid);
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "BadEnrollment")]
-    async fn test_enroll_bad_enrollment() {
+    fn test_enroll_bad_enrollment() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -176,9 +177,7 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -191,13 +190,13 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.enroll_request().await.unwrap();
+        let _ = config.enroll_request().unwrap();
         mock_me.assert();
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "FailedEnrollment")]
-    async fn test_enroll_bad_response() {
+    fn test_enroll_bad_response() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -214,9 +213,7 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -229,13 +226,13 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.enroll_request().await.unwrap();
+        let _ = config.enroll_request().unwrap();
         mock_me.assert();
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "EnrollmentNotOk")]
-    async fn test_enroll_not_ok() {
+    fn test_enroll_not_ok() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -252,9 +249,7 @@ mod tests {
                 .body("bad response");
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -267,12 +262,12 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.enroll_request().await.unwrap();
+        let _ = config.enroll_request().unwrap();
         mock_me.assert();
     }
 
-    #[tokio::test]
-    async fn test_enroll_node_invalid() {
+    #[test]
+    fn test_enroll_node_invalid() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -289,9 +284,7 @@ mod tests {
                 .json_body(json!({ "node_key": "server uuid", "node_invalid": true }));
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -304,10 +297,10 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let key = config.enroll_request().await.unwrap();
+        let key = config.enroll_request().unwrap();
         assert!(key.node_invalid);
         if key.node_invalid {
-            let _ = config.enroll_request().await.unwrap();
+            let _ = config.enroll_request().unwrap();
         }
 
         mock_me.assert_hits(2);

@@ -4,7 +4,7 @@ use std::{collections::HashMap, env::vars_os};
 pub(crate) fn get_env_value(value: &str) -> String {
     let envs = get_env();
     if let Some(env) = envs.get(value) {
-        return env.to_string();
+        return env.clone();
     }
     String::new()
 }

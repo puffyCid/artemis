@@ -1,7 +1,7 @@
 use super::error::CollectError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
 use log::error;
-use reqwest::{Client, StatusCode};
+use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -19,12 +19,12 @@ pub(crate) struct CollectRequest {
 }
 
 pub(crate) trait CollectEndpoint {
-    async fn collect_request(&self) -> Result<CollectResponse, CollectError>;
+    fn collect_request(&self) -> Result<CollectResponse, CollectError>;
 }
 
 impl CollectEndpoint for DaemonConfig {
     /// Check for any collection requests we need to run
-    async fn collect_request(&self) -> Result<CollectResponse, CollectError> {
+    fn collect_request(&self) -> Result<CollectResponse, CollectError> {
         let url = format!(
             "{}:{}/v{}/{}",
             self.server.server.url,
@@ -38,7 +38,10 @@ impl CollectEndpoint for DaemonConfig {
         };
 
         let client = Client::new();
-        let res = match client.post(&url).json(&req).send().await {
+        let mut builder = client.post(&url).json(&req);
+        builder = builder.header("accept", "application/json");
+
+        let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to send request for collection: {err:?}");
@@ -46,7 +49,7 @@ impl CollectEndpoint for DaemonConfig {
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
-            let message = bad_request(&res.bytes().await.unwrap_or_default());
+            let message = bad_request(&res.bytes().unwrap_or_default());
             error!("[daemon] Collection request was bad: {}", message.message);
             return Err(CollectError::BadCollect);
         }
@@ -56,7 +59,7 @@ impl CollectEndpoint for DaemonConfig {
             return Err(CollectError::CollectNotOk);
         }
 
-        let bytes = match res.bytes().await {
+        let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to get collection bytes: {err:?}");
@@ -90,8 +93,8 @@ mod tests {
     use serde_json::json;
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_collect_request() {
+    #[test]
+    fn test_collect_request() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -107,9 +110,7 @@ mod tests {
                 .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCm91dHB1dCA9ICJsb2NhbCIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJwcm9jZXNzZXMiClthcnRpZmFjdHMucHJvY2Vzc2VzXQptZDUgPSBmYWxzZQpzaGExID0gZmFsc2UKc2hhMjU2ID0gZmFsc2UKbWV0YWRhdGEgPSBmYWxzZQoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic2hlbGxfaGlzdG9yeSIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJjaHJvbWl1bS1oaXN0b3J5IgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gImNocm9taXVtLWRvd25sb2FkcyIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJmaXJlZm94LWhpc3RvcnkiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiZmlyZWZveC1kb3dubG9hZHMiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiY3JvbiI=", "node_invalid": false }));
         });
 
-        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis"))
-            .await
-            .unwrap();
+        let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
             client: DaemonToml {
@@ -122,7 +123,7 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let status = config.collect_request().await.unwrap();
+        let status = config.collect_request().unwrap();
         mock_me.assert();
         assert_eq!(status.node_invalid, false);
         assert!(status.collection.len() > 100);

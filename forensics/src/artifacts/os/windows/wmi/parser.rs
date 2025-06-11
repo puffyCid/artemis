@@ -26,7 +26,7 @@ use log::error;
 /// Get WMI persist data based on provided options
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
     if let Some(alt_dir) = &options.alt_dir {
-        let mut correct_dir = alt_dir.to_string();
+        let mut correct_dir = alt_dir.clone();
         let (map_paths, objects_path, index_path) =
             if get_platform().to_lowercase().contains("windows") {
                 if let Some(verify_dir) = correct_dir.strip_suffix('\\') {
