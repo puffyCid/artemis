@@ -38,7 +38,10 @@ impl CollectEndpoint for DaemonConfig {
         };
 
         let client = Client::new();
-        let res = match client.post(&url).json(&req).send() {
+        let mut builder = client.post(&url).json(&req);
+        builder = builder.header("accept", "application/json");
+
+        let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to send request for collection: {err:?}");

@@ -38,7 +38,9 @@ impl ConfigEndpoint for DaemonConfig {
         };
 
         let client = Client::new();
-        let res = match client.post(&url).json(&config_req).send() {
+        let mut builder = client.post(&url).json(&config_req);
+        builder = builder.header("accept", "application/json");
+        let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to send request for config: {err:?}");
