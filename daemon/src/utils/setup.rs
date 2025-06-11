@@ -9,15 +9,11 @@ use crate::{
     enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
 };
 use log::error;
-use std::str::from_utf8;
-use tokio::{
-    fs::rename,
-    time::{Duration, interval},
-};
+use std::{fs::rename, str::from_utf8, thread::sleep, time::Duration};
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
-pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
-    let mut enroll = match config.enroll_request().await {
+pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
+    let mut enroll = match config.enroll_request() {
         Ok(result) => result,
         Err(_err) => return,
     };
@@ -25,15 +21,13 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
     let max_attempts = 8;
     let mut count = 0;
     let pause = 6;
-    // Pause for 6 seconds between each attempt
-    let mut interval = interval(Duration::from_secs(pause));
-    interval.tick().await;
 
     // If we get `node_invalid` response. We have to enroll again. We attempt 8 more enrollments max
     while enroll.node_invalid && count != max_attempts {
-        interval.tick().await;
+        // Pause for 6 seconds between each attempt
+        sleep(Duration::from_secs(pause));
 
-        let enroll_attempt = match config.enroll_request().await {
+        let enroll_attempt = match config.enroll_request() {
             Ok(result) => result,
             Err(_err) => return,
         };
@@ -54,9 +48,9 @@ pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
 }
 
 /// Process our collection request
-pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
+pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
     if collect.node_invalid {
-        setup_enrollment(config).await;
+        setup_enrollment(config);
     }
     let collection_bytes = match base64_decode_standard(&collect.collection) {
         Ok(result) => result,
@@ -72,22 +66,22 @@ pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &Collec
 }
 
 /// Get a daemon configuration from our server. If none is provided we will generate a default config
-pub(crate) async fn setup_config(config: &mut DaemonConfig) {
-    let daemon_config = match config.config_request().await {
+pub(crate) fn setup_config(config: &mut DaemonConfig) {
+    let daemon_config = match config.config_request() {
         Ok(result) => result,
-        Err(_err) => return setup_daemon(config).await,
+        Err(_err) => return setup_daemon(config),
     };
 
     // Check if we got a node_invalid response
     if daemon_config.node_invalid {
-        setup_enrollment(config).await;
+        setup_enrollment(config);
     }
 
     let toml_bytes = match base64_decode_standard(&daemon_config.config) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Could not decode daemon config: {err:?}. Will use default config");
-            return setup_daemon(config).await;
+            return setup_daemon(config);
         }
     };
 
@@ -95,16 +89,16 @@ pub(crate) async fn setup_config(config: &mut DaemonConfig) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Could not parse toml daemon config: {err:?}. Will use default config");
-            return setup_daemon(config).await;
+            return setup_daemon(config);
         }
     };
 
     config.client = toml_config;
-    setup_daemon(config).await;
+    setup_daemon(config);
 }
 
 /// Move our server.toml file to our base config directory. Ex: /var/artemis/server.toml
-pub(crate) async fn move_server_config(path: &str, alt_artemis_path: Option<&str>) {
+pub(crate) fn move_server_config(path: &str, alt_artemis_path: Option<&str>) {
     let mut artemis_path = String::from("/var/artemis");
 
     if get_platform_enum() == PlatformType::Windows {
@@ -119,14 +113,14 @@ pub(crate) async fn move_server_config(path: &str, alt_artemis_path: Option<&str
         artemis_path = format!("{programdata}\\artemis");
     }
 
-    if let Err(status) = rename(path, format!("{artemis_path}/server.toml")).await {
+    if let Err(status) = rename(path, format!("{artemis_path}/server.toml")) {
         error!("[daemon] Could not move server.toml file to {artemis_path}: {status:?}");
     }
 }
 
 /// Setup default config directories for the daemon
-async fn setup_daemon(daemon_config: &mut DaemonConfig) {
-    match daemon(&mut daemon_config.client, None).await {
+fn setup_daemon(daemon_config: &mut DaemonConfig) {
+    match daemon(&mut daemon_config.client, None) {
         Ok(_result) => {}
         Err(err) => {
             error!("[daemon] Could not setup daemon TOML config: {err:?}");

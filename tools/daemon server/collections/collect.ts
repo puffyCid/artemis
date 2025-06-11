@@ -38,12 +38,12 @@ export async function collectionUploadEndpoint(request: FastifyRequest, reply: F
         return reply.send({ message: "Missing multipart data", node_invalid: false });
     }
 
-    await streamFile(data);
+    await streamFile(data, request.headers[ "content-encoding" ]);
     reply.statusCode = 200;
     reply.send({ message: "ok", node_invalid: false });
 }
 
-async function streamFile(part: MultipartFile) {
+async function streamFile(part: MultipartFile, encoding: string | undefined) {
     console.log(`Received filename: ${part.filename}. MIME ${part.mimetype}`);
     try {
         await mkdir("./build/tmp");
@@ -52,5 +52,10 @@ async function streamFile(part: MultipartFile) {
             console.warn(err.message);
     }
 
-    await pipeline(part.file, createWriteStream(`./build/tmp/${part.filename}`));
+    let filename = part.filename;
+    if (encoding === "gzip" && part.mimetype === "application/jsonl") {
+        filename = `${filename}.jsonl.gz`;
+    }
+
+    await pipeline(part.file, createWriteStream(`./build/tmp/${filename}`));
 }

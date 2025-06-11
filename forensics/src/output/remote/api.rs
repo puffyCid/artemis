@@ -35,6 +35,7 @@ pub(crate) fn api_upload(
         builder = builder.header("x-artemis-endpoint_id", &output.endpoint_id);
         builder = builder.header("x-artemis-collection_id", &output.collection_id.to_string());
         builder = builder.header("x-artemis-collection_name", &output.name);
+        builder = builder.header("accept", "application/json");
 
         let mut part = multipart::Part::bytes(data.to_vec());
         part = part.file_name(output_name.to_string());
@@ -59,10 +60,9 @@ pub(crate) fn api_upload(
         let status = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                println!(
+                error!(
                     "[core] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
                 );
-                panic!("sleeping due to error for name {output_name}");
                 // Pause for 6 seconds between each attempt
                 sleep(Duration::from_secs(pause));
                 count += 1;

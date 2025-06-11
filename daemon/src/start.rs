@@ -1,3 +1,5 @@
+use std::{thread::sleep, time::Duration};
+
 use crate::{
     collection::collect::CollectEndpoint,
     utils::{
@@ -5,14 +7,13 @@ use crate::{
         setup::{move_server_config, setup_collection, setup_config, setup_enrollment},
     },
 };
-use tokio::time::{Duration, interval};
 
 pub(crate) struct DaemonConfig {
     pub(crate) server: ServerToml,
     pub(crate) client: DaemonToml,
 }
-#[tokio::main]
-pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
+
+pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     let mut server_path = "server.toml";
 
     if let Some(config_path) = path {
@@ -20,7 +21,7 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     }
 
     // Attempt to read to server TOML config file
-    let server_config = match server(server_path, alt_base).await {
+    let server_config = match server(server_path, alt_base) {
         Ok(result) => result,
         Err(_err) => return,
     };
@@ -37,42 +38,37 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     };
 
     // Attempt to connect to server
-    setup_enrollment(&mut config).await;
-    setup_config(&mut config).await;
+    setup_enrollment(&mut config);
+    setup_config(&mut config);
 
     // We have enough info connect to our server.
     // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
-    move_server_config(server_path, alt_base).await;
-    start(&mut config).await;
+    move_server_config(server_path, alt_base);
+    start(&mut config);
 }
 
 /// Continously poll our server for jobs and collections
-async fn start(config: &mut DaemonConfig) {
+fn start(config: &mut DaemonConfig) {
     let max_attempts = 8;
     let mut count = 0;
 
-    let long_pause = 300;
     let pause = 8;
-    let mut pause_interval = interval(Duration::from_secs(pause));
-    pause_interval.tick().await;
-    let mut long_interval = interval(Duration::from_secs(long_pause));
-    long_interval.tick().await;
     loop {
         if count == max_attempts {
-            long_interval.tick().await;
+            let long_pause = 300;
+
+            sleep(Duration::from_secs(long_pause));
             count = 0;
         }
-        let collection = match config.collect_request().await {
+        let collection = match config.collect_request() {
             Ok(result) => result,
             Err(_err) => {
                 count += 1;
-                pause_interval.tick().await;
+                sleep(Duration::from_secs(pause));
                 continue;
             }
         };
-        setup_collection(config, &collection).await;
-
-        pause_interval.tick().await;
+        setup_collection(config, &collection);
     }
 }
 
