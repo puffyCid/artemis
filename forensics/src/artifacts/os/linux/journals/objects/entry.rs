@@ -21,7 +21,7 @@ impl Entry {
     pub(crate) fn parse_entry<'a>(
         reader: &mut File,
         data: &'a [u8],
-        is_compact: bool,
+        is_compact: &bool,
     ) -> nom::IResult<&'a [u8], Entry> {
         let (input, seqnum) = nom_unsigned_eight_bytes(data, Endian::Le)?;
         let (input, realtime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
@@ -40,7 +40,7 @@ impl Entry {
         };
         let min_size = 4;
         while !input.is_empty() && input.len() >= min_size {
-            let (_hash, offset) = if !is_compact {
+            let (_hash, offset) = if !*is_compact {
                 let (remaining_input, offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
                 let (remaining_input, hash) =
                     nom_unsigned_eight_bytes(remaining_input, Endian::Le)?;
@@ -107,7 +107,7 @@ mod tests {
             57, 0, 32, 6, 57, 0, 192, 6, 57, 0, 104, 7, 57, 0, 8, 8, 57, 0, 176, 8, 57, 0, 112, 9,
             57, 0, 48, 10, 57, 0, 216, 10, 57, 0, 136, 11, 57, 0, 24, 12, 57, 0,
         ];
-        let (_, result) = Entry::parse_entry(&mut reader, &test_data, true).unwrap();
+        let (_, result) = Entry::parse_entry(&mut reader, &test_data, &true).unwrap();
         assert_eq!(result._boot_id, 0x762DF6838C590B903449FE57EF69A905);
         assert_eq!(result.seqnum, 1677);
         assert_eq!(result._monotonic, 69830830);

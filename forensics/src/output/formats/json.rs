@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     structs::toml::Output,
     utils::{
-        compression::compress::compress_gzip_data,
+        compression::compress::compress_gzip_bytes,
         logging::collection_status,
         output::final_output,
         time::{time_now, unixepoch_to_iso},
@@ -70,7 +70,8 @@ pub(crate) fn raw_json(
 ) -> Result<(), FormatError> {
     let mut collection_data = Vec::new();
     if output.compress {
-        let compressed_results = compress_gzip_data(serde_data);
+        let compressed_results =
+            compress_gzip_bytes(&serde_json::to_vec(serde_data).unwrap_or_default());
         collection_data = match compressed_results {
             Ok(result) => result,
             Err(err) => {
