@@ -25,7 +25,7 @@ impl DataObject {
     /// Parse Data object in `Journal`
     pub(crate) fn parse_data_object<'a>(
         data: &'a [u8],
-        is_compact: bool,
+        is_compact: &bool,
         compress_type: &ObjectFlag,
     ) -> nom::IResult<&'a [u8], DataObject> {
         let (input, hash) = nom_unsigned_eight_bytes(data, Endian::Le)?;
@@ -46,7 +46,7 @@ impl DataObject {
             tail_entry_array_n_entries: 0,
             message: String::new(),
         };
-        if is_compact {
+        if *is_compact {
             let (remaining_input, tail_entry_array_offset) =
                 nom_unsigned_four_bytes(input, Endian::Le)?;
             let (remaining_input, tail_entry_array_n_entries) =
@@ -126,7 +126,7 @@ mod tests {
         ];
 
         let (_, result) =
-            DataObject::parse_data_object(&test_data, true, &ObjectFlag::None).unwrap();
+            DataObject::parse_data_object(&test_data, &true, &ObjectFlag::None).unwrap();
         assert_eq!(result._entry_array_offset, 3740720);
         assert_eq!(result._hash, 6767068781486187566);
         assert_eq!(result._next_field_offset, 0);

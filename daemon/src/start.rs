@@ -13,7 +13,10 @@ pub(crate) struct DaemonConfig {
     pub(crate) client: DaemonToml,
 }
 
+/// Start artemis as a daemon and collect data based on remote server responses
 pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
+    // We will enroll to a remote server based on a server.toml config
+    // By default we assume server.toml is in same directory as binary
     let mut server_path = "server.toml";
 
     if let Some(config_path) = path {
@@ -53,6 +56,7 @@ fn start(config: &mut DaemonConfig) {
     let mut count = 0;
 
     let pause = 8;
+    let collection_poll = 60;
     loop {
         if count == max_attempts {
             let long_pause = 300;
@@ -69,8 +73,7 @@ fn start(config: &mut DaemonConfig) {
             }
         };
         setup_collection(config, &collection);
+        // Next poll will be in 60 seconds
+        sleep(Duration::from_secs(collection_poll));
     }
 }
-
-#[cfg(test)]
-mod tests {}
