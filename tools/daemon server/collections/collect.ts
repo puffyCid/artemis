@@ -4,6 +4,7 @@ import { pipeline } from "node:stream/promises";
 import { mkdir } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { MultipartFile } from "@fastify/multipart";
+import { IncomingHttpHeaders } from "node:http2";
 
 export const Collect = Type.Object({
     node_key: Type.String(),
@@ -38,24 +39,34 @@ export async function collectionUploadEndpoint(request: FastifyRequest, reply: F
         return reply.send({ message: "Missing multipart data", node_invalid: false });
     }
 
-    await streamFile(data, request.headers[ "content-encoding" ]);
+    await streamFile(data, request.headers);
     reply.statusCode = 200;
     reply.send({ message: "ok", node_invalid: false });
 }
 
-async function streamFile(part: MultipartFile, encoding: string | undefined) {
+async function streamFile(part: MultipartFile, headers: IncomingHttpHeaders) {
     console.log(`Received filename: ${part.filename}. MIME ${part.mimetype}`);
+    const endpoint_id = headers[ "x-artemis-endpoint_id" ];
+    const collection_id = headers[ "x-artemis-collection_id" ];
+
+    const collection_path = `./build/tmp/${endpoint_id}/${collection_id}`;
     try {
-        await mkdir("./build/tmp");
+        await mkdir(collection_path, { recursive: true });
     } catch (err: unknown) {
         if (err instanceof Error)
             console.warn(err.message);
     }
 
+    const encoding = headers[ "content-encoding" ];
+
+    // Filename will either be gzip JSONL files or .log files
     let filename = part.filename;
+
+    // If uploads are JSONL and compressed add `.jsonl.gz` to our filename output
     if (encoding === "gzip" && part.mimetype === "application/jsonl") {
         filename = `${filename}.jsonl.gz`;
     }
 
-    await pipeline(part.file, createWriteStream(`./build/tmp/${filename}`));
+    // Output files to endpoint ID and collection ID directories
+    await pipeline(part.file, createWriteStream(`${collection_path}/${filename}`));
 }
