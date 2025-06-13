@@ -23,6 +23,11 @@ export const BadRequest = Type.Object({
 
 export type BadReqestType = Static<typeof BadRequest>;
 
+/**
+ * Handle requests for enrollment from artemis daemon. Enrollment uses an enrollment key that is unique for the server
+ * @param request Artemis request containing a enrollment key and some system metadata
+ * @param reply An assigned node_key for the endpoint
+ */
 export async function enrollEndpoint(request: FastifyRequest<{ Body: EnrollType; }>, reply: FastifyReply) {
     const value = request.body;
     console.log(value.endpoint_id);

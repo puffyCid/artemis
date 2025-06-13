@@ -1,0 +1,43 @@
+[output]
+name = "linux_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = true
+timeline = false
+endpoint_id = "REPLACEME"
+collection_id = 1
+output = "api"
+url = "http://127.0.0.1:8000/v1/endpoint/collections/uploads"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = false
+sha1 = false
+sha256 = false
+metadata = false
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "shell_history"
+
+[[artifacts]]
+artifact_name = "chromium-history"
+
+[[artifacts]]
+artifact_name = "chromium-downloads"
+
+[[artifacts]]
+artifact_name = "firefox-history"
+
+[[artifacts]]
+artifact_name = "firefox-downloads"
+
+[[artifacts]]
+artifact_name = "cron"
+
+[[artifacts]]
+artifact_name = "journal"
+[artifacts.journals]
