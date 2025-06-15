@@ -1,6 +1,6 @@
 use super::error::CollectError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
-use log::error;
+use log::{error, info};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 
@@ -52,6 +52,11 @@ impl CollectEndpoint for DaemonConfig {
             let message = bad_request(&res.bytes().unwrap_or_default());
             error!("[daemon] Collection request was bad: {}", message.message);
             return Err(CollectError::BadCollect);
+        }
+
+        if res.status() == StatusCode::NO_CONTENT {
+            info!("[daemon] No collection content from server");
+            return Err(CollectError::NoCollection);
         }
 
         if res.status() != StatusCode::OK {

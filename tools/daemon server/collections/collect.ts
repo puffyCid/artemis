@@ -1,10 +1,11 @@
 import { Type, Static } from "@sinclair/typebox";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { pipeline } from "node:stream/promises";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { MultipartFile } from "@fastify/multipart";
 import { IncomingHttpHeaders } from "node:http2";
+import { LocalSqlite } from "../database/db";
 
 export const Collect = Type.Object({
     node_key: Type.String(),
@@ -20,15 +21,23 @@ export const CollectResponse = Type.Object({
 export type CollectTypeResponse = Static<typeof CollectResponse>;
 
 /**
- *  Handle requests for TOML collections the artemis daemon should execute
+ * Handle requests for TOML collections the artemis daemon should execute
  * @param request Artemis request containing a node_key obtained from enrollment
  * @param reply Base64 encoded TOML collection or an error
  */
 export async function collectionEndpoint(request: FastifyRequest<{ Body: CollectType; }>, reply: FastifyReply) {
     try {
-        const bytes = await readFile("./tests/collections/linux.toml");
-        const toml = bytes.toString().replace("REPLACEME", request.body.node_key);
+        const db = new LocalSqlite("./build/test.db");
+        const script = db.getCollections(request.body.node_key);
+        if (script === undefined) {
+            reply.statusCode = 204;
+            reply.send();
+            return;
+        }
+        const toml = Buffer.from(script.script, 'base64').toString().replace("REPLACEME", request.body.node_key);;
         const encoded = Buffer.from(toml).toString('base64');
+
+        db.updateCollection(request.body.node_key, script.collection_id, "Running");
 
         reply.statusCode = 200;
         reply.send({ collection: encoded, node_invalid: false });
@@ -49,9 +58,7 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
  */
 export async function collectionUploadEndpoint(request: FastifyRequest, reply: FastifyReply) {
     console.log(request.headers);
-    if (request.headers[ "x-artemis-collection-complete" ] !== undefined) {
-        console.log(`Collection completed at ${request.headers[ "x-artemis-collection-complete" ]}`);
-    }
+
     const data = await request.file();
     if (data === undefined) {
         reply.statusCode = 400;
@@ -84,6 +91,11 @@ async function streamFile(part: MultipartFile, headers: IncomingHttpHeaders) {
     // If uploads are JSONL and compressed add `.jsonl.gz` to our filename output
     if (encoding === "gzip" && part.mimetype === "application/jsonl") {
         filename = `${filename}.jsonl.gz`;
+    } else if (headers[ "x-artemis-collection-complete" ] !== undefined) {
+        const db = new LocalSqlite("./build/test.db");
+        console.log(`Collection completed at ${headers[ "x-artemis-collection-complete" ]}`);
+
+        db.updateCollection(String(endpoint_id), Number(collection_id), "Complete");
     }
 
     // Output files to endpoint ID and collection ID directories
