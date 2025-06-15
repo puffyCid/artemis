@@ -1,7 +1,7 @@
 import { setupFastify } from "./app";
 
-function main() {
-    const server = setupFastify();
+async function main() {
+    const server = await setupFastify();
 
     server.listen({ port: 8000 }, (err, address) => {
         if (err) {

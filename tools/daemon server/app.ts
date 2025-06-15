@@ -5,7 +5,7 @@ import { BadReqestType, BadRequest, Enroll, enrollEndpoint, EnrollReponseType, E
 import { Config, configEndpoint, ConfigResponse, ConfigType, ConfigTypeResponse } from "./configuration/config";
 import { Collect, collectionEndpoint, collectionUploadEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
 
-export function setupFastify(): FastifyInstance {
+export async function setupFastify(): Promise<FastifyInstance> {
     const server = fastify();
     server.register(fastifyMultipart, { limits: { fileSize: 314572800 } });
 
