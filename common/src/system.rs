@@ -12,7 +12,11 @@ pub struct SystemInfo {
     pub cpu: Vec<Cpus>,
     pub disks: Vec<DiskDrives>,
     pub memory: Memory,
+    pub interfaces: Vec<NetworkInterface>,
     pub performance: LoadPerformance,
+    pub version: String,
+    pub rust_version: String,
+    pub build_date: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,6 +26,10 @@ pub struct SystemInfoMetadata {
     pub kernel_version: String,
     pub platform: String,
     pub performance: LoadPerformance,
+    pub interfaces: Vec<NetworkInterface>,
+    pub version: String,
+    pub rust_version: String,
+    pub build_date: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,4 +89,12 @@ pub struct Processes {
     pub sha1: String,
     pub sha256: String,
     pub binary_info: Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+
+pub struct NetworkInterface {
+    pub ip: String,
+    pub mac: String,
+    pub name: String,
 }

@@ -1,7 +1,6 @@
-use common::system::{Cpus, DiskDrives, LoadPerformance, Memory, SystemInfo};
-use sysinfo::{Disks, System};
-
 use crate::utils::time::unixepoch_to_iso;
+use common::system::{Cpus, DiskDrives, LoadPerformance, Memory, NetworkInterface, SystemInfo};
+use sysinfo::{Disks, Networks, System};
 
 /// Get Disk, CPU, Memory, and Performance info from system
 pub(crate) fn get_info() -> SystemInfo {
@@ -18,7 +17,11 @@ pub(crate) fn get_info() -> SystemInfo {
         cpu: get_cpu(&mut system),
         disks: get_disks(),
         memory: get_memory(&mut system),
+        interfaces: get_network_interfaces(),
         performance: get_performance(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),
+        build_date: env!("VERGEN_BUILD_DATE").to_string(),
     }
 }
 
@@ -102,6 +105,25 @@ pub(crate) fn get_memory(system: &mut System) -> Memory {
     }
 }
 
+/// Get network interface cards and IPs
+pub(crate) fn get_network_interfaces() -> Vec<NetworkInterface> {
+    let net = Networks::new_with_refreshed_list();
+
+    let mut interfaces = Vec::new();
+    for (key, network) in &net {
+        for ip in network.ip_networks() {
+            let interface = NetworkInterface {
+                ip: ip.addr.to_string(),
+                mac: network.mac_address().to_string(),
+                name: key.clone(),
+            };
+            interfaces.push(interface);
+        }
+    }
+
+    interfaces
+}
+
 /// Get Load Average Performance from system
 fn get_performance() -> LoadPerformance {
     let load = System::load_average();
@@ -115,7 +137,8 @@ fn get_performance() -> LoadPerformance {
 #[cfg(test)]
 mod tests {
     use crate::utils::info::{
-        get_cpu, get_disks, get_info, get_memory, get_performance, get_platform,
+        get_cpu, get_disks, get_info, get_memory, get_network_interfaces, get_performance,
+        get_platform,
     };
     use sysinfo::System;
 
@@ -182,6 +205,12 @@ mod tests {
         assert!(system_info.avg_one_min >= 0.0);
         assert!(system_info.avg_five_min >= 0.0);
         assert!(system_info.avg_fifteen_min >= 0.0);
+    }
+
+    #[test]
+    fn test_get_network_interfaces() {
+        let system_info = get_network_interfaces();
+        assert!(system_info[0].ip.len() > 5);
     }
 
     #[test]

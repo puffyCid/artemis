@@ -42,7 +42,15 @@ export const Enroll = Type.Object({
             avg_one_min: Type.Number(),
             avg_five_min: Type.Number(),
             avg_fifteen_min: Type.Number(),
-        })
+        }),
+        interfaces: Type.Array(Type.Object({
+            ip: Type.String(),
+            name: Type.String(),
+            mac: Type.String(),
+        })),
+        version: Type.String(),
+        rust_version: Type.String(),
+        build_date: Type.String(),
     }),
 });
 

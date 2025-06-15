@@ -27,7 +27,7 @@ export class LocalSqlite {
      */
     public insertEndpoint(data: EnrollType, node_key: string): void {
         const insert = this.db.prepare(`INSERT INTO endpoints (node_key, endpoint_id, platform, hostname, ip, version, info) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-        const status = insert.run(node_key, data.endpoint_id, data.info.platform, data.info.hostname, "", data.info.os_version, JSON.stringify(data.info));
+        const status = insert.run(node_key, data.endpoint_id, data.info.platform, data.info.hostname, data.info.interfaces.at(0)?.ip ?? "", data.info.os_version, JSON.stringify(data.info));
         console.info(`Added endpoint to db ${JSON.stringify(status)}`);
     }
 
