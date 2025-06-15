@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node ./build/index.js"
+    "start": "node ./build/index.js",
+    "test": "jest"
   },
   "author": "",
   "license": "MIT",
@@ -16,7 +17,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@jest/globals": "^30.0.0",
     "@types/node": "^22.15.30",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   }
 }

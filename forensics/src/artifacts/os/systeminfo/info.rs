@@ -1,6 +1,10 @@
+use std::env;
+
 use crate::utils::time::unixepoch_to_iso;
-use common::system::{Cpus, DiskDrives, LoadPerformance, Memory, SystemInfo, SystemInfoMetadata};
-use sysinfo::{Disks, System};
+use common::system::{
+    Cpus, DiskDrives, LoadPerformance, Memory, NetworkInterface, SystemInfo, SystemInfoMetadata,
+};
+use sysinfo::{Disks, Networks, System};
 
 /// Get Disk, CPU, Memory, and Performance info from system
 pub(crate) fn get_info() -> SystemInfo {
@@ -17,7 +21,11 @@ pub(crate) fn get_info() -> SystemInfo {
         cpu: get_cpu(&mut system),
         disks: get_disks(),
         memory: get_memory(&mut system),
+        interfaces: get_network_interfaces(),
         performance: get_performance(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),
+        build_date: env!("VERGEN_BUILD_DATE").to_string(),
     }
 }
 
@@ -31,6 +39,10 @@ pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
         kernel_version: sysinfo::System::kernel_version()
             .unwrap_or_else(|| String::from("Unknown Kernel Version")),
         performance: get_performance(),
+        interfaces: get_network_interfaces(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),
+        build_date: env!("VERGEN_BUILD_DATE").to_string(),
     }
 }
 
@@ -124,10 +136,30 @@ fn get_performance() -> LoadPerformance {
     }
 }
 
+/// Get network interface cards and IPs
+pub(crate) fn get_network_interfaces() -> Vec<NetworkInterface> {
+    let net = Networks::new_with_refreshed_list();
+
+    let mut interfaces = Vec::new();
+    for (key, network) in &net {
+        for ip in network.ip_networks() {
+            let interface = NetworkInterface {
+                ip: ip.addr.to_string(),
+                mac: network.mac_address().to_string(),
+                name: key.clone(),
+            };
+            interfaces.push(interface);
+        }
+    }
+
+    interfaces
+}
+
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::systeminfo::info::{
-        get_cpu, get_disks, get_info, get_info_metadata, get_memory, get_performance, get_platform,
+        get_cpu, get_disks, get_info, get_info_metadata, get_memory, get_network_interfaces,
+        get_performance, get_platform,
     };
     use sysinfo::System;
 
@@ -135,6 +167,7 @@ mod tests {
     fn test_get_info() {
         let system_info = get_info();
         assert_eq!(system_info.platform.is_empty(), false);
+        println!("{system_info:?}");
         assert!(system_info.cpu.len() > 1);
     }
 
@@ -195,6 +228,12 @@ mod tests {
         assert_eq!(system_info.platform.is_empty(), false);
         assert_eq!(system_info.kernel_version.is_empty(), false);
         assert_eq!(system_info.os_version.is_empty(), false);
+    }
+
+    #[test]
+    fn test_get_network_interfaces() {
+        let system_info = get_network_interfaces();
+        assert!(system_info[0].ip.len() > 1);
     }
 
     #[test]

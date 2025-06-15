@@ -48,7 +48,11 @@ pub(crate) fn jsonl_format(
                     "os_version": info.os_version,
                     "platform": info.platform,
                     "kernel_version": info.kernel_version,
-                    "load_performance": info.performance
+                    "load_performance": info.performance,
+                    "version": info.version,
+                    "rust_version": info.rust_version,
+                    "build_date": info.build_date,
+                    "interfaces": info.interfaces,
             }];
             write_json(
                 &serde_json::to_vec(&collection_output).unwrap_or_default(),
@@ -70,7 +74,11 @@ pub(crate) fn jsonl_format(
                             "os_version": info.os_version,
                             "platform": info.platform,
                             "kernel_version": info.kernel_version,
-                            "load_performance": info.performance
+                            "load_performance": info.performance,
+                            "version": info.version,
+                            "rust_version": info.rust_version,
+                            "build_date": info.build_date,
+                            "interfaces": info.interfaces,
                     }];
                 }
 
