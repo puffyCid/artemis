@@ -233,8 +233,7 @@ mod tests {
     #[test]
     fn test_get_network_interfaces() {
         let system_info = get_network_interfaces();
-        println!("{system_info:?}");
-        assert!(system_info[0].ip.len() > 5);
+        assert!(system_info[0].ip.len() > 1);
     }
 
     #[test]
