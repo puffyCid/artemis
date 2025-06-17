@@ -9,13 +9,13 @@ pub(crate) struct CollectResponse {
     /// Base64 toml endpoint collection
     pub(crate) collection: String,
     /// If invalid we should enroll again
-    pub(crate) node_invalid: bool,
+    pub(crate) endpoint_invalid: bool,
 }
 
 #[derive(Serialize, Debug)]
 pub(crate) struct CollectRequest {
-    /// Node key that was provided from the server upon enrollment
-    node_key: String,
+    /// Unique endpoint ID that was provided from the server upon enrollment
+    endpoint_id: String,
 }
 
 pub(crate) trait CollectEndpoint {
@@ -34,7 +34,7 @@ impl CollectEndpoint for DaemonConfig {
         );
 
         let req = CollectRequest {
-            node_key: self.client.daemon.node_key.clone(),
+            endpoint_id: self.client.daemon.endpoint_id.clone(),
         };
 
         let client = Client::new();
@@ -112,7 +112,7 @@ mod tests {
                 .body_contains("uuid key");
             then.status(200)
                 .header("content-type", "application/json")
-                .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCm91dHB1dCA9ICJsb2NhbCIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJwcm9jZXNzZXMiClthcnRpZmFjdHMucHJvY2Vzc2VzXQptZDUgPSBmYWxzZQpzaGExID0gZmFsc2UKc2hhMjU2ID0gZmFsc2UKbWV0YWRhdGEgPSBmYWxzZQoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic2hlbGxfaGlzdG9yeSIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJjaHJvbWl1bS1oaXN0b3J5IgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gImNocm9taXVtLWRvd25sb2FkcyIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJmaXJlZm94LWhpc3RvcnkiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiZmlyZWZveC1kb3dubG9hZHMiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiY3JvbiI=", "node_invalid": false }));
+                .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCm91dHB1dCA9ICJsb2NhbCIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJwcm9jZXNzZXMiClthcnRpZmFjdHMucHJvY2Vzc2VzXQptZDUgPSBmYWxzZQpzaGExID0gZmFsc2UKc2hhMjU2ID0gZmFsc2UKbWV0YWRhdGEgPSBmYWxzZQoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic2hlbGxfaGlzdG9yeSIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJjaHJvbWl1bS1oaXN0b3J5IgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gImNocm9taXVtLWRvd25sb2FkcyIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJmaXJlZm94LWhpc3RvcnkiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiZmlyZWZveC1kb3dubG9hZHMiCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAiY3JvbiI=", "endpoint_invalid": false }));
         });
 
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
@@ -120,7 +120,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::from("uuid key"),
+                    endpoint_id: String::from("uuid key"),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -130,7 +130,7 @@ mod tests {
 
         let status = config.collect_request().unwrap();
         mock_me.assert();
-        assert_eq!(status.node_invalid, false);
+        assert_eq!(status.endpoint_invalid, false);
         assert!(status.collection.len() > 100);
 
         let data = base64_decode_standard(&status.collection).unwrap();

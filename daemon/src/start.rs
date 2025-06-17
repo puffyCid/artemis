@@ -33,7 +33,7 @@ pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
         server: server_config,
         client: DaemonToml {
             daemon: Daemon {
-                node_key: String::new(),
+                endpoint_id: String::new(),
                 collection_path: String::new(),
                 log_level: String::new(),
             },
@@ -50,7 +50,7 @@ pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     start(&mut config);
 }
 
-/// Continously poll our server for jobs and collections
+/// Continuously poll our server for jobs and collections
 fn start(config: &mut DaemonConfig) {
     let max_attempts = 8;
     let mut count = 0;

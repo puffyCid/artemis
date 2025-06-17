@@ -8,39 +8,39 @@ import { IncomingHttpHeaders } from "node:http2";
 import { LocalSqlite } from "../database/db";
 
 export const Collect = Type.Object({
-    node_key: Type.String(),
+    endpoint_id: Type.String(),
 });
 
 export type CollectType = Static<typeof Collect>;
 
 export const CollectResponse = Type.Object({
     collection: Type.String(),
-    node_invalid: Type.Boolean(),
+    endpoint_invalid: Type.Boolean(),
 });
 
 export type CollectTypeResponse = Static<typeof CollectResponse>;
 
 /**
  * Handle requests for TOML collections the artemis daemon should execute
- * @param request Artemis request containing a node_key obtained from enrollment
+ * @param request Artemis request containing a endpoint_id obtained from enrollment
  * @param reply Base64 encoded TOML collection or an error
  */
 export async function collectionEndpoint(request: FastifyRequest<{ Body: CollectType; }>, reply: FastifyReply) {
     try {
         const db = new LocalSqlite("./build/test.db");
-        const script = db.getCollections(request.body.node_key);
+        const script = db.getCollections(request.body.endpoint_id);
         if (script === undefined) {
             reply.statusCode = 204;
             reply.send();
             return;
         }
-        const toml = Buffer.from(script.script, 'base64').toString().replace("REPLACEME", request.body.node_key);;
+        const toml = Buffer.from(script.script, 'base64').toString().replace("REPLACEME", request.body.endpoint_id);;
         const encoded = Buffer.from(toml).toString('base64');
 
-        db.updateCollection(request.body.node_key, script.collection_id, "Running");
+        db.updateCollection(request.body.endpoint_id, script.collection_id, "Running");
 
         reply.statusCode = 200;
-        reply.send({ collection: encoded, node_invalid: false });
+        reply.send({ collection: encoded, endpoint_invalid: false });
 
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -62,12 +62,12 @@ export async function collectionUploadEndpoint(request: FastifyRequest, reply: F
     const data = await request.file();
     if (data === undefined) {
         reply.statusCode = 400;
-        return reply.send({ message: "Missing multipart data", node_invalid: false });
+        return reply.send({ message: "Missing multipart data", endpoint_invalid: false });
     }
 
     await streamFile(data, request.headers);
     reply.statusCode = 200;
-    reply.send({ message: "ok", node_invalid: false });
+    reply.send({ message: "ok", endpoint_invalid: false });
 }
 
 async function streamFile(part: MultipartFile, headers: IncomingHttpHeaders) {

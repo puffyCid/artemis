@@ -22,8 +22,8 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
     let mut count = 0;
     let pause = 6;
 
-    // If we get `node_invalid` response. We have to enroll again. We attempt 8 more enrollments max
-    while enroll.node_invalid && count != max_attempts {
+    // If we get `endpoint_invalid` response. We have to enroll again. We attempt 8 more enrollments max
+    while enroll.endpoint_invalid && count != max_attempts {
         // Pause for 6 seconds between each attempt
         sleep(Duration::from_secs(pause));
 
@@ -32,7 +32,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
             Err(_err) => return,
         };
 
-        if !enroll.node_invalid {
+        if !enroll.endpoint_invalid {
             enroll = enroll_attempt;
             break;
         }
@@ -40,16 +40,16 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
         count += 1;
     }
 
-    if enroll.node_invalid {
+    if enroll.endpoint_invalid {
         error!("[daemon] Endpoint still invalid despite 8 enrollment attempts");
         return;
     }
-    config.client.daemon.node_key = enroll.node_key;
+    config.client.daemon.endpoint_id = enroll.endpoint_id;
 }
 
 /// Process our collection request
 pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
-    if collect.node_invalid {
+    if collect.endpoint_invalid {
         setup_enrollment(config);
     }
     let collection_bytes = match base64_decode_standard(&collect.collection) {
@@ -72,8 +72,8 @@ pub(crate) fn setup_config(config: &mut DaemonConfig) {
         Err(_err) => return setup_daemon(config),
     };
 
-    // Check if we got a node_invalid response
-    if daemon_config.node_invalid {
+    // Check if we got a endpoint_invalid response
+    if daemon_config.endpoint_invalid {
         setup_enrollment(config);
     }
 

@@ -5,7 +5,7 @@ import { LocalSqlite } from "../database/db";
 
 export const Enroll = Type.Object({
     enroll_key: Type.String(),
-    endpoint_id: Type.String(),
+    endpoint_uuid: Type.String(),
     info: Type.Object({
         boot_time: Type.String(),
         hostname: Type.String(),
@@ -57,8 +57,8 @@ export const Enroll = Type.Object({
 export type EnrollType = Static<typeof Enroll>;
 
 export const EnrollResponse = Type.Object({
-    node_key: Type.String(),
-    node_invalid: Type.Boolean(),
+    endpoint_id: Type.String(),
+    endpoint_invalid: Type.Boolean(),
 });
 
 export type EnrollReponseType = Static<typeof EnrollResponse>;
@@ -72,20 +72,22 @@ export type BadReqestType = Static<typeof BadRequest>;
 /**
  * Handle requests for enrollment from artemis daemon. Enrollment uses an enrollment key that is unique for the server
  * @param request Artemis request containing a enrollment key and some system metadata
- * @param reply An assigned node_key for the endpoint
+ * @param reply An assigned endpoint_id for the endpoint
  */
 export async function enrollEndpoint(request: FastifyRequest<{ Body: EnrollType; }>, reply: FastifyReply) {
     const value = request.body;
+    console.log(JSON.stringify(request.body));
 
-    const node_key = uuidv4();
+
+    const endpoint_id = uuidv4();
 
     const db = new LocalSqlite("./build/test.db");
-    db.insertEndpoint(request.body, node_key);
+    db.insertEndpoint(request.body, endpoint_id);
 
     if (value.info.platform.toLowerCase().includes("linux")) {
-        db.newCollection(node_key, 1);
+        db.newCollection(endpoint_id, 1);
     }
 
     reply.statusCode = 200;
-    reply.send({ node_key, node_invalid: false });
+    reply.send({ endpoint_id, endpoint_invalid: false });
 }
