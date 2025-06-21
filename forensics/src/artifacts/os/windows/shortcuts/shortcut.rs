@@ -64,6 +64,7 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
         darwin_id: String::new(),
         shim_layer: String::new(),
         known_folder: String::new(),
+        is_abnormal: false,
     };
 
     let (input, _) = get_shortcut_info(input, &mut shortcut_info)?;
@@ -113,39 +114,56 @@ fn get_shortcut_info<'a>(
 
         // After TargetIDList and LocationInfo five (5) strings may exists depending on the flags set in the header
         if flags == &HasName {
-            let (remaining_input, description) = extract_string(input, &shortcut_info.data_flags)?;
+            let (remaining_input, (description, is_abnormal)) =
+                extract_string(input, &shortcut_info.data_flags)?;
             input = remaining_input;
 
             shortcut_info.description = description;
+            if is_abnormal {
+                shortcut_info.is_abnormal = is_abnormal;
+            }
         }
 
         if flags == &HasRelativePath {
-            let (remaining_input, relative_path) =
+            let (remaining_input, (relative_path, is_abnormal)) =
                 extract_string(input, &shortcut_info.data_flags)?;
             input = remaining_input;
 
             shortcut_info.relative_path = relative_path;
+            shortcut_info.is_abnormal = is_abnormal;
         }
 
         if flags == &HasWorkingDirectory {
-            let (remaining_input, working_dir) = extract_string(input, &shortcut_info.data_flags)?;
+            let (remaining_input, (working_dir, is_abnormal)) =
+                extract_string(input, &shortcut_info.data_flags)?;
             input = remaining_input;
 
             shortcut_info.working_directory = working_dir;
+            if is_abnormal {
+                shortcut_info.is_abnormal = is_abnormal;
+            }
         }
 
         if flags == &HasArguements {
-            let (remaining_input, args) = extract_string(input, &shortcut_info.data_flags)?;
+            let (remaining_input, (args, is_abnormal)) =
+                extract_string(input, &shortcut_info.data_flags)?;
             input = remaining_input;
 
             shortcut_info.command_line_args = args;
+            if is_abnormal {
+                shortcut_info.is_abnormal = is_abnormal;
+            }
         }
 
         if flags == &HasIconLocation {
-            let (remaining_input, icon_path) = extract_string(input, &shortcut_info.data_flags)?;
+            let (remaining_input, (icon_path, is_abnormal)) =
+                extract_string(input, &shortcut_info.data_flags)?;
             input = remaining_input;
 
             shortcut_info.icon_location = icon_path;
+            if is_abnormal {
+                shortcut_info.is_abnormal = is_abnormal;
+            }
         }
     }
 
@@ -329,7 +347,7 @@ mod tests {
         );
         assert_eq!(result.properties.len(), 1);
         assert_eq!(result.hostname, "desktop-eis938n");
-
+        assert!(!result.is_abnormal);
         assert_eq!(
             result.birth_droid_file_id,
             "09f158c0-5a6a-11ed-a10d-0800276eb45e"
@@ -420,6 +438,7 @@ mod tests {
             darwin_id: String::new(),
             shim_layer: String::new(),
             known_folder: String::new(),
+            is_abnormal: false,
         };
 
         let (_, _) = get_shortcut_info(input, &mut shortcut_info).unwrap();
