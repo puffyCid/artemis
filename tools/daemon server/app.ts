@@ -41,7 +41,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
             }
         },
         preValidation: (request, reply, done) => {
-            if (request.body.node_key === undefined) {
+            if (request.body.endpoint_id === undefined) {
                 reply.statusCode = 400;
                 reply.send({ message: "Bad config request" });
             }
@@ -59,7 +59,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
             }
         },
         preValidation: (request, reply, done) => {
-            if ((request.body as ConfigType).node_key === undefined) {
+            if ((request.body as ConfigType).endpoint_id === undefined) {
                 reply.statusCode = 400;
                 reply.send({ message: "Bad collection request" });
             }

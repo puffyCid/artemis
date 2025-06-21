@@ -446,6 +446,7 @@ pub struct ShortcutInfo {
     pub darwin_id: String,
     pub shim_layer: String,
     pub known_folder: String,
+    pub is_abnormal: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize)]

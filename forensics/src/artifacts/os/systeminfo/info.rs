@@ -167,7 +167,6 @@ mod tests {
     fn test_get_info() {
         let system_info = get_info();
         assert_eq!(system_info.platform.is_empty(), false);
-        println!("{system_info:?}");
         assert!(system_info.cpu.len() > 1);
     }
 

@@ -9,9 +9,9 @@ use uuid::Uuid;
 #[derive(Deserialize, Debug)]
 pub(crate) struct EnrollResponse {
     /// Unique key for our endpoint
-    pub(crate) node_key: String,
+    pub(crate) endpoint_id: String,
     /// If invalid we should enroll again
-    pub(crate) node_invalid: bool,
+    pub(crate) endpoint_invalid: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -19,7 +19,7 @@ pub(crate) struct EnrollRequest {
     /// Enrollment key for the server
     enroll_key: String,
     /// UUID for our endpoint
-    endpoint_id: String,
+    endpoint_uuid: String,
     /// Simple endpoint info
     info: SystemInfo,
 }
@@ -48,7 +48,7 @@ impl EnrollEndpoint for DaemonConfig {
         let info = get_info();
         let enroll = EnrollRequest {
             enroll_key: self.server.server.key.clone(),
-            endpoint_id: Uuid::new_v4().hyphenated().to_string(),
+            endpoint_uuid: Uuid::new_v4().hyphenated().to_string(),
             info,
         };
 
@@ -63,6 +63,7 @@ impl EnrollEndpoint for DaemonConfig {
                 return Err(EnrollError::FailedEnrollment);
             }
         };
+
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
             error!("[daemon] Enrollment request was bad: {}", message.message);
@@ -132,10 +133,10 @@ mod tests {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
                 .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_contains("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
-                .json_body(json!({ "node_key": "server uuid", "node_invalid": false }));
+                .json_body(json!({ "endpoint_id": "server uuid", "endpoint_invalid": false }));
         });
 
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
@@ -143,7 +144,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -154,8 +155,8 @@ mod tests {
         let status = config.enroll_request().unwrap();
         mock_me.assert();
 
-        assert_eq!(status.node_key, "server uuid");
-        assert!(!status.node_invalid);
+        assert_eq!(status.endpoint_id, "server uuid");
+        assert!(!status.endpoint_invalid);
     }
 
     #[test]
@@ -171,7 +172,7 @@ mod tests {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
                 .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_contains("endpoint_uuid");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -182,7 +183,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -207,7 +208,7 @@ mod tests {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
                 .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_contains("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -218,7 +219,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -243,7 +244,7 @@ mod tests {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
                 .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_contains("endpoint_uuid");
             then.status(500)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -254,7 +255,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -267,7 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_enroll_node_invalid() {
+    fn test_enroll_endpoint_invalid() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -278,10 +279,10 @@ mod tests {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
                 .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_contains("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
-                .json_body(json!({ "node_key": "server uuid", "node_invalid": true }));
+                .json_body(json!({ "endpoint_id": "server uuid", "endpoint_invalid": true }));
         });
 
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
@@ -289,7 +290,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -298,8 +299,8 @@ mod tests {
         config.server.server.port = port;
 
         let key = config.enroll_request().unwrap();
-        assert!(key.node_invalid);
-        if key.node_invalid {
+        assert!(key.endpoint_invalid);
+        if key.endpoint_invalid {
             let _ = config.enroll_request().unwrap();
         }
 

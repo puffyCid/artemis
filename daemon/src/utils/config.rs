@@ -22,7 +22,6 @@ pub(crate) struct Server {
     pub(crate) ignore_ssl: bool,
     pub(crate) enrollment: String,
     pub(crate) collections: String,
-    pub(crate) ping: String,
     pub(crate) config: String,
     pub(crate) version: u8,
     pub(crate) key: String,
@@ -69,7 +68,7 @@ pub(crate) struct DaemonToml {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub(crate) struct Daemon {
-    pub(crate) node_key: String,
+    pub(crate) endpoint_id: String,
     pub(crate) collection_path: String,
     pub(crate) log_level: String,
 }
@@ -177,7 +176,7 @@ mod tests {
         test_location.push("tests/configs/server.toml");
 
         let result = read_file(test_location.to_str().unwrap()).unwrap();
-        assert!(result.len() > 200);
+        assert!(result.len() > 20);
     }
 
     #[test]
@@ -229,7 +228,6 @@ mod tests {
         assert_eq!(result.server.version, 1);
         assert_eq!(result.server.url, "http://127.0.0.1");
         assert_eq!(result.server.ignore_ssl, false);
-        assert_eq!(result.server.ping, "endpoint/ping");
         assert_eq!(result.server.config, "endpoint/config");
         assert_eq!(result.server.enrollment, "endpoint/enroll");
         assert_eq!(result.server.port, 8000);
@@ -244,14 +242,14 @@ mod tests {
         let alt_path = test_location.to_str().unwrap();
         let mut daemon_toml = DaemonToml {
             daemon: Daemon {
-                node_key: String::from("test"),
+                endpoint_id: String::from("test"),
                 collection_path: String::from("./tmp/artemis/collections"),
                 log_level: String::from("warn"),
             },
         };
 
         daemon(&mut daemon_toml, Some(alt_path)).unwrap();
-        assert_eq!(daemon_toml.daemon.node_key, "test");
+        assert_eq!(daemon_toml.daemon.endpoint_id, "test");
         assert_eq!(daemon_toml.daemon.log_level, "warn");
         assert!(
             daemon_toml

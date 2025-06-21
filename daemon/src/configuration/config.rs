@@ -9,13 +9,13 @@ pub(crate) struct ConfigResponse {
     /// Base64 toml endpoint config
     pub(crate) config: String,
     /// If invalid we should enroll again
-    pub(crate) node_invalid: bool,
+    pub(crate) endpoint_invalid: bool,
 }
 
 #[derive(Serialize, Debug)]
 pub(crate) struct ConfigRequest {
-    /// Node key that was provided from the server upon enrollment
-    node_key: String,
+    /// Unique endpoint ID that was provided from the server upon enrollment
+    endpoint_id: String,
 }
 
 pub(crate) trait ConfigEndpoint {
@@ -34,7 +34,7 @@ impl ConfigEndpoint for DaemonConfig {
         );
 
         let config_req = ConfigRequest {
-            node_key: self.client.daemon.node_key.clone(),
+            endpoint_id: self.client.daemon.endpoint_id.clone(),
         };
 
         let client = Client::new();
@@ -103,7 +103,7 @@ mod tests {
                 .body_contains("uuid key");
             then.status(200)
                 .header("content-type", "application/json")
-                .json_body(json!({ "config": "base64 blob", "node_invalid": false }));
+                .json_body(json!({ "config": "base64 blob", "endpoint_invalid": false }));
         });
 
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
@@ -111,7 +111,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::from("uuid key"),
+                    endpoint_id: String::from("uuid key"),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -123,7 +123,7 @@ mod tests {
         mock_me.assert();
 
         assert_eq!(status.config, "base64 blob");
-        assert_eq!(status.node_invalid, false);
+        assert_eq!(status.endpoint_invalid, false);
     }
 
     #[test]
@@ -149,7 +149,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::from("uuid key"),
+                    endpoint_id: String::from("uuid key"),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -184,7 +184,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::from("uuid key"),
+                    endpoint_id: String::from("uuid key"),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
@@ -220,7 +220,7 @@ mod tests {
             server: server_config,
             client: DaemonToml {
                 daemon: Daemon {
-                    node_key: String::new(),
+                    endpoint_id: String::new(),
                     collection_path: String::from("/var/artemis/collections"),
                     log_level: String::from("warn"),
                 },
