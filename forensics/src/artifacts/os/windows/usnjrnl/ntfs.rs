@@ -77,8 +77,11 @@ pub(crate) fn parse_usnjrnl_data(
             }
         }
         Err(_err) => {
-            error!("[usnjrnl] Failed to parse UsnJrnl data");
-            return Err(UsnJrnlError::Parser);
+            // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl
+            error!(
+                "[usnjrnl] Encountered issue when parsing whole UsnJrnl. Returning current entries if any."
+            );
+            return Ok(usnjrnl_entries);
         }
     };
     Ok(usnjrnl_entries)
