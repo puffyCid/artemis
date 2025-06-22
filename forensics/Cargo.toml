@@ -47,7 +47,7 @@ elf = "0.8.0"
 ruzstd = "0.8.1"
 lz4_flex = "0.11.5"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
-macos-unifiedlogs = "0.2.0"
+macos-unifiedlogs = "0.3.0"
 plist = "1.7.2"
 aes = "0.8.4"
 cbc = "0.1.2"
@@ -72,7 +72,7 @@ common = { path = "../common" }
 timeline = { path = "../timeline" }
 sunlight = "0.1.1"
 miniz_oxide = { version = "0.8.9", features = ["std", "with-alloc"] }
-lumination = "0.1.1"
+lumination = "0.1.2"
 
 # JS API
 boa_engine = { version = "0.20.0", default-features = false }
