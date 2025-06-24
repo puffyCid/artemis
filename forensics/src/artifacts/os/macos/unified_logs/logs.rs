@@ -85,7 +85,7 @@ fn parse_trace_file(
         // Ex: tracev3A rolls, tracev3B references Oversize entry in tracev3A will trigger missing data since tracev3A is gone
         let (results, _) = build_log(leftover_data, provider, timesync_data, include_missing);
 
-        let serde_data_result = serde_json::to_value(results);
+        let serde_data_result = serde_json::to_value(&results);
         let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
@@ -93,6 +93,8 @@ fn parse_trace_file(
                 continue;
             }
         };
+        // Done with oversize entries for this log set
+        leftover_data.oversize = Vec::new();
 
         let _ = output_artifact(
             &mut serde_data,
@@ -135,7 +137,7 @@ fn iterate_logs(
             .append(&mut options.oversize_strings.oversize);
         let (results, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
         options.oversize_strings.oversize = chunk.oversize;
-        let serde_data_result = serde_json::to_value(results);
+        let serde_data_result = serde_json::to_value(&results);
         let mut serde_data = match serde_data_result {
             Ok(results) => results,
             Err(err) => {
