@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis would use excessive memory when parsing the last macOS unifiedlog entries
+time: 2025-06-23T20:17:12.750055-04:00

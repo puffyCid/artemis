@@ -67,6 +67,7 @@
     clippy::useless_transmute,
     clippy::verbose_file_reads,
     clippy::zero_sized_map_values,
+    //clippy::trivially_copy_pass_by_ref,
     future_incompatible,
     nonstandard_style,
     rust_2018_idioms
