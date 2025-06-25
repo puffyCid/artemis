@@ -216,7 +216,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrFloat32 {
-            let (input, floats) = extract_float32(input, &props.prop_type)?;
+            let (input, floats) = extract_float32(input, props.prop_type)?;
             spot_value.value = floats;
 
             values.insert(props.name.clone(), spot_value);
@@ -225,7 +225,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrFloat64 {
-            let (input, floats) = extract_float64(input, &props.prop_type)?;
+            let (input, floats) = extract_float64(input, props.prop_type)?;
             spot_value.value = floats;
 
             values.insert(props.name.clone(), spot_value);
@@ -234,7 +234,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrDate {
-            let (input, dates) = extract_dates(input, &props.prop_type)?;
+            let (input, dates) = extract_dates(input, props.prop_type)?;
             spot_value.value = dates;
 
             values.insert(props.name.clone(), spot_value);

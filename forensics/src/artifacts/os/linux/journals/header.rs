@@ -110,7 +110,7 @@ impl JournalHeader {
             _sig: sig,
             _compatible_flags: JournalHeader::compat_flags(compatible_flags),
             incompatible_flags: JournalHeader::incompat_flags(incompatible_flags),
-            _state: JournalHeader::journal_state(&state),
+            _state: JournalHeader::journal_state(state),
             _reserved: reserved_data.to_vec(),
             _file_id: file_id,
             _machine_id: machine_id,
@@ -228,16 +228,16 @@ impl JournalHeader {
     }
 
     /// Get state of the `Journal`
-    fn journal_state(state: &u8) -> State {
+    fn journal_state(state: u8) -> State {
         let offline = 0;
         let online = 1;
         let archive = 2;
 
-        if state == &offline {
+        if state == offline {
             State::Offline
-        } else if state == &online {
+        } else if state == online {
             State::Online
-        } else if state == &archive {
+        } else if state == archive {
             State::Archived
         } else {
             State::Unknown
@@ -306,7 +306,7 @@ mod tests {
     #[test]
     fn test_journal_state() {
         let test_data = 1;
-        let results = JournalHeader::journal_state(&test_data);
+        let results = JournalHeader::journal_state(test_data);
         assert_eq!(results, State::Online);
     }
 }

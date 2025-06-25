@@ -96,8 +96,8 @@ impl ObjectHeader {
         let (input, size) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         let object_header = ObjectHeader {
-            obj_type: ObjectHeader::object_type(&obj_type),
-            flag: ObjectHeader::object_flag(&flag),
+            obj_type: ObjectHeader::object_type(obj_type),
+            flag: ObjectHeader::object_flag(flag),
             reserved: reserved_data.to_vec(),
             size,
             payload: Vec::new(),
@@ -107,7 +107,7 @@ impl ObjectHeader {
     }
 
     /// Get the Object flag in header
-    fn object_flag(flag: &u8) -> ObjectFlag {
+    fn object_flag(flag: u8) -> ObjectFlag {
         let xz = 1;
         let lz4 = 2;
         let zstd = 4;
@@ -124,7 +124,7 @@ impl ObjectHeader {
     }
 
     /// Determine the Object type
-    fn object_type(obj_type: &u8) -> ObjectType {
+    fn object_type(obj_type: u8) -> ObjectType {
         let data = 1;
         let field = 2;
         let entry = 3;
@@ -133,19 +133,19 @@ impl ObjectHeader {
         let entry_array = 6;
         let tag = 7;
 
-        if obj_type == &data_table {
+        if obj_type == data_table {
             ObjectType::DataHashTable
-        } else if obj_type == &data {
+        } else if obj_type == data {
             ObjectType::Data
-        } else if obj_type == &field {
+        } else if obj_type == field {
             ObjectType::Field
-        } else if obj_type == &entry {
+        } else if obj_type == entry {
             ObjectType::Entry
-        } else if obj_type == &field_table {
+        } else if obj_type == field_table {
             ObjectType::FieldHashTable
-        } else if obj_type == &entry_array {
+        } else if obj_type == entry_array {
             ObjectType::EntryArray
-        } else if obj_type == &tag {
+        } else if obj_type == tag {
             ObjectType::Tag
         } else {
             ObjectType::Unused
@@ -196,13 +196,13 @@ mod tests {
 
     #[test]
     fn test_object_type() {
-        let result = ObjectHeader::object_type(&1);
+        let result = ObjectHeader::object_type(1);
         assert_eq!(result, ObjectType::Data)
     }
 
     #[test]
     fn test_object_flag() {
-        let result = ObjectHeader::object_flag(&1);
+        let result = ObjectHeader::object_flag(1);
         assert_eq!(result, ObjectFlag::CompressedXz)
     }
 }

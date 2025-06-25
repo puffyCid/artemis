@@ -69,7 +69,7 @@ impl Filename {
             file_attributes_data: flag_data,
             extended_data,
             name_size,
-            namespace: Filename::get_namespace(&namespace_data),
+            namespace: Filename::get_namespace(namespace_data),
             name,
         };
 
@@ -77,7 +77,7 @@ impl Filename {
     }
 
     /// Determine Namespace associated with entry
-    fn get_namespace(space: &u8) -> Namespace {
+    fn get_namespace(space: u8) -> Namespace {
         match space {
             0 => Namespace::Posix,
             1 => Namespace::Windows,

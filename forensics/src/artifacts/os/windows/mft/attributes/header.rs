@@ -86,7 +86,7 @@ impl AttributeHeader {
             attrib_type: AttributeHeader::get_type(type_data),
             size,
             small_size,
-            resident_flag: AttributeHeader::get_resident(&resident_data),
+            resident_flag: AttributeHeader::get_resident(resident_data),
             name_size,
             name: String::new(),
             _name_offset: name_offset,
@@ -129,7 +129,7 @@ impl AttributeHeader {
     }
 
     /// Determine if data is resident or non-resident
-    fn get_resident(data: &u8) -> ResidentFlag {
+    fn get_resident(data: u8) -> ResidentFlag {
         match data {
             0x0 => ResidentFlag::Resident,
             0x1 => ResidentFlag::NonResident,
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_get_resident() {
-        let result = AttributeHeader::get_resident(&3);
+        let result = AttributeHeader::get_resident(3);
         assert_eq!(result, ResidentFlag::Unknown);
     }
 

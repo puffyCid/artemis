@@ -39,7 +39,7 @@ pub(crate) fn parse_properties_data<'a>(
         let name = extract_utf8_string(string_data);
 
         let prop = DataProperties {
-            attribute: get_attribute(&attribute_data),
+            attribute: get_attribute(attribute_data),
             prop_type,
             name,
         };
@@ -122,7 +122,7 @@ pub(crate) fn parse_dbstr_data<'a>(
 }
 
 /// Get property attribute type
-fn get_attribute(data: &u8) -> DataAttribute {
+fn get_attribute(data: u8) -> DataAttribute {
     match data {
         0x0 => DataAttribute::AttrBool,
         0x1 => DataAttribute::AttrUnknown,
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn test_get_attribute() {
         let test = 0xa;
-        let attribute = get_attribute(&test);
+        let attribute = get_attribute(test);
         assert_eq!(attribute, DataAttribute::AttrFloat64);
     }
 

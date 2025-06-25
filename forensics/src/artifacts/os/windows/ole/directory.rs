@@ -132,7 +132,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
         let directory = OleDirectory {
             name: extract_utf16_string(string_data),
             _name_size: name_size,
-            directory_type: parse_directory_type(&type_data),
+            directory_type: parse_directory_type(type_data),
             _directory_color: directory_color,
             _previous_id: previous_id,
             _id: id,
@@ -152,7 +152,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
 }
 
 /// Determine OLE Directory type
-fn parse_directory_type(dir_type: &u8) -> DirectoryType {
+fn parse_directory_type(dir_type: u8) -> DirectoryType {
     match dir_type {
         0 => DirectoryType::Empty,
         1 => DirectoryType::Storage,
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn test_parse_directory_type() {
         let test = 1;
-        let result = parse_directory_type(&test);
+        let result = parse_directory_type(test);
         assert_eq!(result, DirectoryType::Storage);
     }
 }

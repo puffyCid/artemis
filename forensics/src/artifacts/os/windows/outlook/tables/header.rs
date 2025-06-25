@@ -68,7 +68,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
     let table = TableHeader {
         page_map_offset,
         _sig: sig,
-        _table_type: get_table_type(&table_type),
+        _table_type: get_table_type(table_type),
         _heap_node: heap_node,
         page_map,
     };
@@ -77,7 +77,7 @@ pub(crate) fn table_header(data: &[u8]) -> nom::IResult<&[u8], TableHeader> {
 }
 
 /// Determine the table type. Only `TableContext`, `PropertyContext`, and `BTreeHeap` are documented
-fn get_table_type(table: &u8) -> TableType {
+fn get_table_type(table: u8) -> TableType {
     match table {
         0x6c => TableType::SixC,
         0x7c => TableType::TableContext,

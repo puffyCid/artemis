@@ -170,8 +170,8 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
         node_btree_root,
         block_btree_backpointer,
         block_btree_root,
-        allocation_type: get_allocation(&allocation_data),
-        encryption_type: get_encryption(&encryption_data),
+        allocation_type: get_allocation(allocation_data),
+        encryption_type: get_encryption(encryption_data),
         initial_data_free_map,
         initial_page_free_map,
     };
@@ -211,7 +211,7 @@ fn get_format(format: u16) -> FormatType {
 }
 
 /// Get Outlook allocation type
-fn get_allocation(data: &u8) -> AllocationType {
+fn get_allocation(data: u8) -> AllocationType {
     match data {
         0 => AllocationType::InvalidMaps,
         1 | 2 => AllocationType::ValidMaps,
@@ -220,7 +220,7 @@ fn get_allocation(data: &u8) -> AllocationType {
 }
 
 /// Check if Outlook data is encrypted
-fn get_encryption(data: &u8) -> EncryptionType {
+fn get_encryption(data: u8) -> EncryptionType {
     match data {
         0 => EncryptionType::None,
         1 => EncryptionType::CompressEncryption,
@@ -334,13 +334,13 @@ mod tests {
     #[test]
     fn test_get_allocation() {
         let test = 0;
-        assert_eq!(get_allocation(&test), AllocationType::InvalidMaps);
+        assert_eq!(get_allocation(test), AllocationType::InvalidMaps);
     }
 
     #[test]
     fn test_get_encryption() {
         let test = 1;
-        assert_eq!(get_encryption(&test), EncryptionType::CompressEncryption);
+        assert_eq!(get_encryption(test), EncryptionType::CompressEncryption);
     }
 
     #[test]

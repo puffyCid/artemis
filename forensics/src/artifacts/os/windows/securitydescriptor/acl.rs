@@ -43,8 +43,8 @@ pub(crate) fn parse_acl<'a>(
         let (input, flags_value) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-        let (ace_type, is_ace) = get_ace_type(&ace_type_value);
-        let flags = get_ace_flags(&flags_value);
+        let (ace_type, is_ace) = get_ace_type(ace_type_value);
+        let flags = get_ace_flags(flags_value);
 
         let adjust_entry_size = 4;
         if size < adjust_size {
@@ -276,7 +276,7 @@ fn get_access_rights(rights_data: &u32, item: &AccessItem) -> Vec<AccessMask> {
 }
 
 /// Determine the ACE type
-fn get_ace_type(ace_type: &u8) -> (AceTypes, AceTypes) {
+fn get_ace_type(ace_type: u8) -> (AceTypes, AceTypes) {
     match ace_type {
         0 => (AceTypes::AccessAllowedAceType, AceTypes::Ace),
         1 => (AceTypes::AccessDeniedAceType, AceTypes::Ace),
@@ -304,7 +304,7 @@ fn get_ace_type(ace_type: &u8) -> (AceTypes, AceTypes) {
 }
 
 /// Determine the ACE flags
-fn get_ace_flags(ace_flags: &u8) -> Vec<AceFlags> {
+fn get_ace_flags(ace_flags: u8) -> Vec<AceFlags> {
     let object_inherit = 1;
     let container_inherit = 2;
     let no_propagate = 4;
@@ -431,7 +431,7 @@ mod tests {
     #[test]
     fn test_get_ace_type() {
         let test = 13;
-        let (results, result_type) = get_ace_type(&test);
+        let (results, result_type) = get_ace_type(test);
         assert_eq!(results, AceTypes::SystemAuditAceTypeCallback);
         assert_eq!(result_type, AceTypes::Ace);
     }
@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn test_get_ace_flags() {
         let test = 1;
-        let results = get_ace_flags(&test);
+        let results = get_ace_flags(test);
         assert_eq!(results, [AceFlags::ObjectInherit]);
     }
 

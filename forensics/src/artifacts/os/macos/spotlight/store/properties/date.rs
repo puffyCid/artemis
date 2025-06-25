@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use std::mem::size_of;
 
 /// Extract dates associated with Spotlight property
-pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: &u8) -> nom::IResult<&'a [u8], Value> {
+pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: u8) -> nom::IResult<&'a [u8], Value> {
     let mut dates = Vec::new();
     let multiple_dates = 2;
 
@@ -52,7 +52,7 @@ mod tests {
             195, 65, 4, 7, 98, 111, 111, 116, 22, 2, 0, 1, 7, 98, 111, 111, 116, 22, 2, 0,
         ];
 
-        let (_, result) = extract_dates(&data, &prop_type).unwrap();
+        let (_, result) = extract_dates(&data, prop_type).unwrap();
         assert_eq!(
             result.as_array().unwrap()[0].as_str().unwrap(),
             "2022-01-16T00:00:00.000Z"
