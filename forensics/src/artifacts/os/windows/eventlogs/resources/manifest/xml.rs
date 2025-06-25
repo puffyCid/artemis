@@ -95,10 +95,7 @@ pub(crate) struct Element {
 }
 
 /// Start parsing elements
-fn element_start<'a>(
-    data: &'a [u8],
-    is_substituion: bool,
-) -> nom::IResult<&'a [u8], (Element, &'a [u8])> {
+fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Element, &[u8])> {
     let (mut input, token_number) = nom_unsigned_one_byte(data, Endian::Le)?;
     let mut start = Element {
         token: get_token_type(token_number),

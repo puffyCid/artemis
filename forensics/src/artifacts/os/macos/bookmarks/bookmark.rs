@@ -392,7 +392,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_options_data = bookmark_data_type_number_four(&record_data);
                 match creation_options_data {
                     Ok((_, options)) => {
-                        bookmark_data.creation_options = get_creation_flags(&options);
+                        bookmark_data.creation_options = get_creation_flags(options);
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark Creation options: {err:?}");
@@ -496,10 +496,10 @@ fn table_of_contents_data(
 }
 
 /// Parse the TOC data record
-fn table_of_contents_record<'a>(
-    data: &'a [u8],
+fn table_of_contents_record(
+    data: &[u8],
     records: u32,
-) -> nom::IResult<&'a [u8], Vec<TableOfContentsDataRecord>> {
+) -> nom::IResult<&[u8], Vec<TableOfContentsDataRecord>> {
     let mut input_data = data;
     let mut record: u32 = 0;
     let mut toc_records_vec: Vec<TableOfContentsDataRecord> = Vec::new();
@@ -872,7 +872,7 @@ fn get_volume_flags(flags: &[u64]) -> Vec<VolumeFlags> {
 }
 
 /// Determine Creation flags
-fn get_creation_flags(flags: &i32) -> Vec<CreationFlags> {
+fn get_creation_flags(flags: i32) -> Vec<CreationFlags> {
     let not_implict = 0x20000000;
     let prefer_id = 0x100;
     let read_only = 0x1000;
@@ -942,7 +942,7 @@ mod tests {
 
     #[test]
     fn test_get_creation_flags() {
-        let results = get_creation_flags(&0x100);
+        let results = get_creation_flags(0x100);
         assert_eq!(results[0], CreationFlags::PreferFileIDResolutionMask);
     }
 

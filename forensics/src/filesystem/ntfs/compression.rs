@@ -25,7 +25,7 @@ use crate::utils::compression::xpress::api::decompress_huffman_api;
  * We need to decompress the data in order to get the actual file contents
  */
 pub(crate) fn check_wofcompressed(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<(bool, Vec<u8>, u64), NtfsError> {
@@ -101,7 +101,7 @@ pub(crate) fn check_wofcompressed(
 
 /// Get the compressed data and determine compression unit
 fn grab_reparsepoint(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<u32, NtfsError> {
@@ -213,12 +213,12 @@ fn parse_reparse(data: &[u8]) -> nom::IResult<&[u8], WofReparse> {
 }
 
 /// Parse the compressed data by first walking the offset table and then decompressing each data chunk
-fn walk_offset_table<'a>(
-    data: &'a [u8],
+fn walk_offset_table(
+    data: &[u8],
     array_len: u64,
     compression_unit: u32,
     uncompressed_size: usize,
-) -> nom::IResult<&'a [u8], Vec<u8>> {
+) -> nom::IResult<&[u8], Vec<u8>> {
     let mut array_count = 0;
     let mut input = data;
 

@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use std::mem::size_of;
 
 /// Extract dates associated with Spotlight property
-pub(crate) fn extract_dates<'a>(data: &'a [u8], prop_type: u8) -> nom::IResult<&'a [u8], Value> {
+pub(crate) fn extract_dates(data: &[u8], prop_type: u8) -> nom::IResult<&[u8], Value> {
     let mut dates = Vec::new();
     let multiple_dates = 2;
 

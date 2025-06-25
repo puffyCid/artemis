@@ -87,7 +87,7 @@ pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut 
 /// Get $DATA attribute data size and hash the data (if enabled)
 pub(crate) fn file_data(
     ntfs_file: &NtfsFile<'_>,
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     file_info: &mut RawFilelist,
     fs: &mut BufReader<SectorReader<File>>,
     ntfs: &Ntfs,
@@ -192,7 +192,7 @@ pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
 
 /// Get all alternative data streams (ADS) for a file
 pub(crate) fn get_ads_names(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<ADSInfo>, NtfsError> {

@@ -531,7 +531,7 @@ pub(crate) struct RowsInfo {
 }
 
 /// Extract the rows found in branches. This involves a lot more work then non-branch rows
-fn extract_branch_row<'a>(data: &'a [u8], map_index: usize) -> nom::IResult<&'a [u8], RowsInfo> {
+fn extract_branch_row(data: &[u8], map_index: usize) -> nom::IResult<&[u8], RowsInfo> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -571,10 +571,7 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: usize) -> nom::IResult<&'a 
 }
 
 /// Parse rows found in branches
-fn extract_branch_details<'a>(
-    data: &'a [u8],
-    map_index: u32,
-) -> nom::IResult<&'a [u8], Vec<HeapNode>> {
+fn extract_branch_details(data: &[u8], map_index: u32) -> nom::IResult<&[u8], Vec<HeapNode>> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -622,7 +619,7 @@ fn extract_branch_details<'a>(
 }
 
 /// Determine row count in block data
-fn block_row_count<'a>(data: &'a [u8], heap_index: u32) -> nom::IResult<&'a [u8], u64> {
+fn block_row_count(data: &[u8], heap_index: u32) -> nom::IResult<&[u8], u64> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -889,10 +886,7 @@ fn parse_row_data<'a>(
 }
 
 /// Extract column definitions for our table. There can be a lot
-fn get_column_definitions<'a>(
-    data: &'a [u8],
-    column_count: u8,
-) -> nom::IResult<&'a [u8], Vec<TableRows>> {
+fn get_column_definitions(data: &[u8], column_count: u8) -> nom::IResult<&[u8], Vec<TableRows>> {
     let mut col_data = data;
     let mut count = 0;
 

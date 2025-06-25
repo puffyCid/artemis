@@ -93,11 +93,11 @@ pub(crate) fn table_info(catalog: &[Catalog], name: &str) -> TableInfo {
             && entry.catalog_type == CatalogType::Column
         {
             let column_info = ColumnInfo {
-                column_type: get_column_type(&entry.column_or_father_data_page),
+                column_type: get_column_type(entry.column_or_father_data_page),
                 column_name: entry.name.clone(),
                 column_data: Vec::new(),
                 column_id: entry.id,
-                column_flags: get_column_flags(&entry.flags),
+                column_flags: get_column_flags(entry.flags),
                 column_space_usage: entry.space_usage,
                 column_tagged_flags: Vec::new(),
             };
@@ -710,7 +710,7 @@ fn nom_fixed_column<'a>(
 }
 
 /// Get the column type. Determines what kind of data is stored in the column
-pub(crate) fn get_column_type(column: &i32) -> ColumnType {
+pub(crate) fn get_column_type(column: i32) -> ColumnType {
     match column {
         0 => ColumnType::Nil,
         1 => ColumnType::Bit,
@@ -735,7 +735,7 @@ pub(crate) fn get_column_type(column: &i32) -> ColumnType {
 }
 
 /// Get flags associated with the column
-pub(crate) fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
+pub(crate) fn get_column_flags(flags: i32) -> Vec<ColumnFlags> {
     let not_null = 0x1;
     let version = 0x2;
     let increment = 0x4;
@@ -970,7 +970,7 @@ mod tests {
     #[test]
     fn test_get_column_type() {
         let test = 2;
-        let result = get_column_type(&test);
+        let result = get_column_type(test);
         assert_eq!(result, ColumnType::UnsignedByte);
     }
 
@@ -985,7 +985,7 @@ mod tests {
     #[test]
     fn test_get_column_flags() {
         let test = 4096;
-        let flags = get_column_flags(&test);
+        let flags = get_column_flags(test);
         assert_eq!(flags, vec![ColumnFlags::Compressed]);
     }
 

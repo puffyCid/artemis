@@ -105,12 +105,12 @@ pub(crate) fn walk_registry<'a>(
 }
 
 /// Walkthrough the values list associated with a Name key
-pub(crate) fn walk_values<'a>(
-    reg_data: &'a [u8],
+pub(crate) fn walk_values(
+    reg_data: &[u8],
     offset: u32,
     number_values: u32,
     minor_version: u32,
-) -> nom::IResult<&'a [u8], Vec<KeyValue>> {
+) -> nom::IResult<&[u8], Vec<KeyValue>> {
     // Go to the value list offset
     let (list_data, _) = take(offset)(reg_data)?;
 

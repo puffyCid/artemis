@@ -15,7 +15,7 @@ pub(crate) fn js_decompress_zlib(
     let decom_size = number_arg(args, 2)? as usize;
 
     let wbits_value = if wbits == 0 { None } else { Some(wbits) };
-    let decom_data = match decompress_zlib(&data, &wbits_value, decom_size) {
+    let decom_data = match decompress_zlib(&data, wbits_value, decom_size) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");

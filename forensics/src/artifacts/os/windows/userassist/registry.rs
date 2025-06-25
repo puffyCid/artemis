@@ -50,7 +50,7 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
         let reg_results = get_registry_keys_by_ref(
             start_path,
             &assist_regex,
-            &hive.reg_reference,
+            hive.reg_reference,
             &mut ntfs_parser,
         );
         match reg_results {

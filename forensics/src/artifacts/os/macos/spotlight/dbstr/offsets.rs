@@ -20,7 +20,7 @@ pub(crate) fn get_offsets(data: &[u8], offset_entries: u32) -> Result<Vec<u32>, 
 }
 
 /// Parse the offsets info associated with Dbstr files
-fn parse_offsets<'a>(data: &'a [u8], offset_entries: u32) -> nom::IResult<&'a [u8], Vec<u32>> {
+fn parse_offsets(data: &[u8], offset_entries: u32) -> nom::IResult<&[u8], Vec<u32>> {
     let offset_size = 4;
     let (input, mut offsets_data) = take(offset_entries * offset_size)(data)?;
 

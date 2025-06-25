@@ -219,7 +219,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
             continue;
         }
 
-        file_data = raw_read_by_file_ref(&filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs)?;
+        file_data = raw_read_by_file_ref(filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs)?;
         break;
     }
 
@@ -238,7 +238,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
 * `raw_read_by_file_ref` can decompress the data and return a hash of the uncompressed data
 */
 pub(crate) fn raw_read_by_file_ref(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<u8>, FileSystemError> {
@@ -350,7 +350,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
         }
 
         let data_result = get_attribute_data(
-            &filelist.file,
+            filelist.file,
             &ntfs_parser.ntfs,
             &mut ntfs_parser.fs,
             attribute,

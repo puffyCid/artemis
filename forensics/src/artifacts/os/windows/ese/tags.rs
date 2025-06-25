@@ -16,10 +16,7 @@ pub(crate) enum TagFlags {
 
 impl PageTag {
     /// Get the tags for the page
-    pub(crate) fn parse_tags<'a>(
-        data: &'a [u8],
-        size: usize,
-    ) -> nom::IResult<&'a [u8], Vec<PageTag>> {
+    pub(crate) fn parse_tags(data: &[u8], size: usize) -> nom::IResult<&[u8], Vec<PageTag>> {
         let mut tags: Vec<PageTag> = Vec::new();
         let mut tag_data = data;
 

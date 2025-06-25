@@ -291,7 +291,7 @@ fn walk_ntfs(
             // Grab file data for hashing
             let _attribute_result = file_data(
                 &ntfs_file,
-                &entry_index.file_reference(),
+                entry_index.file_reference(),
                 &mut file_info,
                 fs,
                 ntfs,
@@ -299,7 +299,7 @@ fn walk_ntfs(
             );
 
             // Grab any alternative data streams (ADS)
-            let ads_result = get_ads_names(&entry_index.file_reference(), ntfs, fs);
+            let ads_result = get_ads_names(entry_index.file_reference(), ntfs, fs);
             match ads_result {
                 Ok(result) => file_info.ads_info = result,
                 Err(err) => {

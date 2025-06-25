@@ -186,7 +186,7 @@ pub(crate) fn parse_block_bytes<'a>(
 
             if block.block_size as u32 != block.decom_size {
                 // Data is compressed
-                let decom_result = decompress_zlib(block_data, &None, 0);
+                let decom_result = decompress_zlib(block_data, None, 0);
                 let decom_data = match decom_result {
                     Ok(result) => result,
                     Err(err) => {

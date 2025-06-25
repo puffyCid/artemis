@@ -237,7 +237,7 @@ fn get_prop_data_size(props: &[Property]) -> u32 {
 }
 
 /// Determine instance property data
-fn parse_instance_props<'a>(data: &'a [u8], prop_count: usize) -> nom::IResult<&'a [u8], Vec<u8>> {
+fn parse_instance_props(data: &[u8], prop_count: usize) -> nom::IResult<&[u8], Vec<u8>> {
     let mut bit_size = prop_count * 2;
     let align = 3;
     // Align to next byte

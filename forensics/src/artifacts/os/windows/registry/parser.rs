@@ -204,7 +204,7 @@ fn parse_user_hives(
 
     for path in user_hives {
         let buffer_result =
-            raw_read_by_file_ref(&path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+            raw_read_by_file_ref(path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
         let buffer = match buffer_result {
             Ok(result) => result,
             Err(err) => {

@@ -297,11 +297,11 @@ impl CodeSign {
     }
 
     /// Get page hashes for Code Directory
-    fn get_page_hashes<'a>(
-        data: &'a [u8],
+    fn get_page_hashes(
+        data: &[u8],
         hash_size: u8,
         hash_count: u32,
-    ) -> nom::IResult<&'a [u8], Vec<String>> {
+    ) -> nom::IResult<&[u8], Vec<String>> {
         let mut count = 0;
         let mut hashes: Vec<String> = Vec::new();
         let mut page_data = data;

@@ -27,7 +27,7 @@ pub(crate) fn get_filename_attribute(
 
 /// Get attribute data by walking the attribute list until we find our attribute or reading the attribute directly. Returns a vec data from the data runs
 pub(crate) fn get_attribute_data(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
     attribute: &str,

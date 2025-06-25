@@ -124,7 +124,7 @@ fn name_guids(data: &[u8]) -> nom::IResult<&[u8], Vec<String>> {
     Ok((input, guids))
 }
 
-fn name_string<'a>(data: &'a [u8], offset: u32) -> nom::IResult<&'a [u8], String> {
+fn name_string(data: &[u8], offset: u32) -> nom::IResult<&[u8], String> {
     let (string_start, _) = take(offset)(data)?;
     let (input, string_size) = nom_unsigned_four_bytes(string_start, Endian::Le)?;
 
