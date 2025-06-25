@@ -826,8 +826,7 @@ mod tests {
                 info.long_value_page = entry.column_or_father_data_page;
             }
         }
-        let pages =
-            get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
+        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
         let mut values = HashMap::from([(String::from("JobsById"), true)]);
@@ -948,8 +947,7 @@ mod tests {
             }
         }
 
-        let pages =
-            get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
+        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
 
