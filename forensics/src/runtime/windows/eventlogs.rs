@@ -25,7 +25,7 @@ pub(crate) fn js_eventlogs(
         &path,
         &(offset as usize),
         &(limit as usize),
-        &include_templates,
+        include_templates,
         &temp_option,
     ) {
         Ok(result) => result,

@@ -16,7 +16,7 @@ use crate::{
 pub(crate) fn grab_mft(
     options: &MftOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), MftError> {
     let start_time = time_now();
 
@@ -67,6 +67,6 @@ mod tests {
             alt_file: None,
         };
         let mut output = output_options("mft_temp", "local", "./tmp", false);
-        grab_mft(&options, &mut output, &false).unwrap();
+        grab_mft(&options, &mut output, false).unwrap();
     }
 }

@@ -61,7 +61,7 @@ struct Params {
 pub(crate) fn ntfs_filelist(
     rawfile_params: &RawFilesOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), NTFSError> {
     if rawfile_params.start_path.is_empty()
         || !rawfile_params
@@ -140,7 +140,7 @@ pub(crate) fn ntfs_filelist(
         sids,
         hash: hash_data,
         metadata: rawfile_params.metadata.unwrap_or(false),
-        filter: *filter,
+        filter: filter,
     };
 
     let _ = walk_ntfs(
@@ -152,7 +152,7 @@ pub(crate) fn ntfs_filelist(
     );
 
     // Output any remaining file metadata
-    raw_output(&params.filelist, output, &start_time, &params.filter);
+    raw_output(&params.filelist, output, &start_time, params.filter);
     Ok(())
 }
 
@@ -335,7 +335,7 @@ fn walk_ntfs(
         let max_list = 100000;
         // To keep memory usage small we only keep 100,000 files in the vec at a time
         if params.filelist.len() >= max_list {
-            raw_output(&params.filelist, output, &params.start_time, &params.filter);
+            raw_output(&params.filelist, output, &params.start_time, params.filter);
             params.filelist = Vec::new();
         }
 
@@ -355,7 +355,7 @@ fn walk_ntfs(
 }
 
 /// Send raw file data to configured output preference based on `Output` parameter
-fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, filter: &bool) {
+fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -422,7 +422,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -443,7 +443,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -464,7 +464,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -483,7 +483,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -503,7 +503,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -526,7 +526,7 @@ mod tests {
             filename_regex: Some(String::from(r".*\.rs")),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -654,7 +654,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(result, ());
-        raw_output(&params.filelist, &mut output, &start_time, &false)
+        raw_output(&params.filelist, &mut output, &start_time, false)
     }
 
     #[test]

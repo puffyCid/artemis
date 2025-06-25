@@ -29,7 +29,7 @@ pub(crate) struct SearchEntry {
 pub(crate) fn parse_search(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let start_time = time_now();
     let catalog = search_catalog(path)?;
@@ -208,7 +208,7 @@ fn process_search(
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
         values
@@ -410,7 +410,7 @@ mod tests {
         }
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        parse_search(test_path, &mut output, &false).unwrap();
+        parse_search(test_path, &mut output, false).unwrap();
     }
 
     #[test]
@@ -572,7 +572,7 @@ mod tests {
             let property_rows =
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ = process_search(&property_rows, &gather_rows, &mut output, &0, &false).unwrap();
+            let _ = process_search(&property_rows, &gather_rows, &mut output, &0, false).unwrap();
             break;
         }
     }

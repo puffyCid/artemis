@@ -27,9 +27,9 @@ impl EntryArray {
     pub(crate) fn walk_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
-        is_compact: &bool,
+        is_compact: bool,
         output: &mut Output,
-        filter: &bool,
+        filter: bool,
         start_time: &u64,
     ) -> nom::IResult<&'a [u8], u64> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
@@ -43,7 +43,7 @@ impl EntryArray {
         // Limit memory usage by outputting every 1k log entries
         let limit = 1000;
         while !input.is_empty() && input.len() >= min_size {
-            let (remaining_input, offset) = if *is_compact {
+            let (remaining_input, offset) = if is_compact {
                 let (remaining_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
                 (remaining_input, offset as u64)
             } else {
@@ -123,7 +123,7 @@ impl EntryArray {
     pub(crate) fn walk_all_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
-        is_compact: &bool,
+        is_compact: bool,
     ) -> nom::IResult<&'a [u8], EntryArray> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
@@ -134,7 +134,7 @@ impl EntryArray {
         };
         let last_entry = 0;
         while !input.is_empty() && input.len() >= min_size {
-            let (remaining_input, offset) = if *is_compact {
+            let (remaining_input, offset) = if is_compact {
                 let (remaining_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
                 (remaining_input, offset as u64)
             } else {
@@ -472,9 +472,9 @@ mod tests {
         let (_, result) = EntryArray::walk_entries(
             &mut reader,
             &object.payload,
-            &is_compact,
+            is_compact,
             &mut output,
-            &false,
+            false,
             &0,
         )
         .unwrap();
@@ -500,7 +500,7 @@ mod tests {
         };
 
         let (_, result) =
-            EntryArray::walk_all_entries(&mut reader, &object.payload, &is_compact).unwrap();
+            EntryArray::walk_all_entries(&mut reader, &object.payload, is_compact).unwrap();
         assert_eq!(result.entries.len(), 4);
         assert_eq!(result.entries[2].realtime, 1688346965580106);
     }
@@ -524,7 +524,7 @@ mod tests {
         };
 
         let (_, result) =
-            EntryArray::walk_all_entries(&mut reader, &object.payload, &is_compact).unwrap();
+            EntryArray::walk_all_entries(&mut reader, &object.payload, is_compact).unwrap();
         assert_eq!(result.entries.len(), 4);
         assert_eq!(result.entries[2].realtime, 1688346965580106);
 

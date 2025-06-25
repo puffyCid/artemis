@@ -27,7 +27,7 @@ pub(crate) fn parse_store(
     meta: &SpotlightMeta,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SpotlightError> {
     let (blocks, dir) = get_blocks(reader)?;
     let offset_size = 0x1000;
@@ -326,7 +326,7 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_store(&mut data, &meta, &mut output, &0, &false).unwrap();
+        parse_store(&mut data, &meta, &mut output, &0, false).unwrap();
     }
 
     #[test]

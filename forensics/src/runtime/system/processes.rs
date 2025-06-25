@@ -19,7 +19,7 @@ pub(crate) fn js_get_processes(
         sha1: false,
         sha256: false,
     });
-    let proc = match proc_list_entries(&hashes, &metadata) {
+    let proc = match proc_list_entries(&hashes, metadata) {
         Ok(results) => results,
         Err(err) => {
             let issue = format!("Failed to get process listing: {err:?}");

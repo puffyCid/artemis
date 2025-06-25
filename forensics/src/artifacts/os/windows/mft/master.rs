@@ -30,7 +30,7 @@ use std::{
 pub(crate) fn parse_mft(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
 ) -> Result<(), MftError> {
     let plat = get_platform();
@@ -78,7 +78,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
     size: &u64,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
@@ -598,7 +598,7 @@ fn apply_fixup(data: &[u8], count: &u16) -> Result<Vec<u8>, MftError> {
 fn output_mft(
     entries: &[MftEntry],
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
 ) -> Result<(), MftError> {
     if entries.is_empty() {
@@ -657,7 +657,7 @@ mod tests {
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.to_str().unwrap(), &mut output, &false, &0).unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, false, &0).unwrap();
     }
 
     #[test]
@@ -681,7 +681,7 @@ mod tests {
             Some(&ntfs_file),
             &mut output,
             &0,
-            &false,
+            false,
             &size,
         )
         .unwrap();
@@ -698,12 +698,6 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(
-            &test_location.display().to_string(),
-            &mut output,
-            &false,
-            &0,
-        )
-        .unwrap();
+        parse_mft(&test_location.display().to_string(), &mut output, false, &0).unwrap();
     }
 }

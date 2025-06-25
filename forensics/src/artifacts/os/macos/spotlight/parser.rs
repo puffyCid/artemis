@@ -24,20 +24,20 @@ use crate::{
 pub(crate) fn grab_spotlight(
     options: &SpotlightOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SpotlightError> {
     let paths = if let Some(alt_path) = &options.alt_path {
         vec![format!("{alt_path}/*")]
     } else {
-        let mut additional_stores = &false;
+        let mut additional_stores = false;
         if let Some(extra) = &options.include_additional {
-            additional_stores = extra;
+            additional_stores = *extra;
         }
 
         let mut default_paths = vec![String::from(
             "/System/Volumes/Data/.Spotlight-V100/Store-V*/*/*",
         )];
-        if *additional_stores {
+        if additional_stores {
             default_paths.append(&mut vec![
                 String::from("/Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*"),
                 String::from("/Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*"),
@@ -92,7 +92,7 @@ mod tests {
                 include_additional: Some(true),
             },
             &mut output,
-            &false,
+            false,
         )
         .unwrap();
     }

@@ -15,7 +15,7 @@ use std::{collections::HashSet, fs::File, io::Read};
 pub(crate) fn parse_journal(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
 ) -> Result<(), JournalError> {
     let reader_result = file_reader(path);
@@ -113,7 +113,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         }
 
         let entry_result =
-            EntryArray::walk_all_entries(&mut reader, &object_header.payload, &is_compact);
+            EntryArray::walk_all_entries(&mut reader, &object_header.payload, is_compact);
         let mut entry_array = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -142,7 +142,7 @@ fn get_entries(
     array_offset: u64,
     is_compact: bool,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
 ) -> Result<(), JournalError> {
     let mut offset = array_offset;
@@ -165,7 +165,7 @@ fn get_entries(
         let entry_result = EntryArray::walk_entries(
             reader,
             &object_header.payload,
-            &is_compact,
+            is_compact,
             output,
             filter,
             start_time,
@@ -222,13 +222,7 @@ mod tests {
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(
-            &test_location.display().to_string(),
-            &mut output,
-            &false,
-            &0,
-        )
-        .unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, &0).unwrap();
     }
 
     #[test]
@@ -238,7 +232,7 @@ mod tests {
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let mut output = output_options("journal_test", "local", "./tmp", false);
-        get_entries(&mut reader, 3738992, true, &mut output, &false, &0).unwrap();
+        get_entries(&mut reader, 3738992, true, &mut output, false, &0).unwrap();
     }
 
     #[test]
@@ -265,12 +259,6 @@ mod tests {
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(
-            &test_location.display().to_string(),
-            &mut output,
-            &false,
-            &0,
-        )
-        .unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, &0).unwrap();
     }
 }

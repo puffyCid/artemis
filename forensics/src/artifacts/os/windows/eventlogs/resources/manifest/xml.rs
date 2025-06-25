@@ -47,7 +47,7 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
 
     // First element is the start header/tag?
     // remaining is the remaining bytes of the template. Will get parsed by parse_template
-    let (remaining, (start, mut input)) = element_start(input, &false)?;
+    let (remaining, (start, mut input)) = element_start(input, false)?;
 
     let next_element = 0x41;
     let next_element2 = 0x1;
@@ -56,7 +56,7 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
         .first()
         .is_some_and(|x| *x == next_element || *x == next_element2)
     {
-        let (remaining, (element, _)) = element_start(input, &false)?;
+        let (remaining, (element, _)) = element_start(input, false)?;
         input = remaining;
         template_elements.push(element);
     }
@@ -97,7 +97,7 @@ pub(crate) struct Element {
 /// Start parsing elements
 fn element_start<'a>(
     data: &'a [u8],
-    is_substituion: &bool,
+    is_substituion: bool,
 ) -> nom::IResult<&'a [u8], (Element, &'a [u8])> {
     let (mut input, token_number) = nom_unsigned_one_byte(data, Endian::Le)?;
     let mut start = Element {
@@ -112,7 +112,7 @@ fn element_start<'a>(
         substitution_id: 0,
     };
 
-    if !*is_substituion {
+    if !is_substituion {
         let (remaining, depedency_id) = nom_signed_two_bytes(input, Endian::Le)?;
         input = remaining;
         start.depedency_id = depedency_id;
@@ -486,7 +486,7 @@ mod tests {
             97, 0, 116, 0, 97, 0, 0, 0, 2, 99,
         ];
 
-        let (_, (result, _)) = element_start(&test, &false).unwrap();
+        let (_, (result, _)) = element_start(&test, false).unwrap();
         assert_eq!(result.depedency_id, -1);
         assert_eq!(result.element_name, "EventData");
         assert_eq!(result.token, TokenType::OpenStartElement);

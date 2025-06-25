@@ -28,7 +28,7 @@ use serde_json::Value;
 /// Parse macOS `LoginItems`
 pub(crate) fn loginitems(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &LoginitemsOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -58,7 +58,7 @@ pub(crate) fn loginitems(
 /// Parse macOS `Emond`
 pub(crate) fn emond(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &EmondOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -88,7 +88,7 @@ pub(crate) fn emond(
 /// Get macOS `Users`
 pub(crate) fn users_macos(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &MacosUsersOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -110,7 +110,7 @@ pub(crate) fn users_macos(
 /// Get macOS `Groups`
 pub(crate) fn groups_macos(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &MacosGroupsOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -132,7 +132,7 @@ pub(crate) fn groups_macos(
 /// Parse macOS `FsEvents`
 pub(crate) fn fseventsd(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
     let results = grab_fseventsd(options, filter, output);
@@ -149,7 +149,7 @@ pub(crate) fn fseventsd(
 /// Parse macOS `Launchd`
 pub(crate) fn launchd(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &LaunchdOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -179,7 +179,7 @@ pub(crate) fn launchd(
 /// Get macOS `Unifiedlogs`
 pub(crate) fn unifiedlogs(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
     grab_logs(options, output, filter)
@@ -188,7 +188,7 @@ pub(crate) fn unifiedlogs(
 /// Get macOS `ExecPolicy`
 pub(crate) fn execpolicy(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &ExecPolicyOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
@@ -218,7 +218,7 @@ pub(crate) fn execpolicy(
 /// Parse sudo logs on macOS
 pub(crate) fn sudo_logs_macos(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &MacosSudoOptions,
 ) -> Result<(), MacArtifactError> {
     let start_time = time_now();
@@ -247,7 +247,7 @@ pub(crate) fn sudo_logs_macos(
 /// Parse spotlight on macOS
 pub(crate) fn spotlight(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &SpotlightOptions,
 ) -> Result<(), MacArtifactError> {
     let artifact_result = grab_spotlight(options, output, filter);
@@ -266,7 +266,7 @@ pub(crate) fn output_data(
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), MacArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -318,8 +318,7 @@ mod tests {
     fn test_loginitems() {
         let mut output = output_options("loginitems_test", "local", "./tmp", false);
 
-        let status =
-            loginitems(&mut output, &false, &LoginitemsOptions { alt_file: None }).unwrap();
+        let status = loginitems(&mut output, false, &LoginitemsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -327,7 +326,7 @@ mod tests {
     fn test_emond() {
         let mut output = output_options("emond_test", "local", "./tmp", false);
 
-        let status = emond(&mut output, &false, &EmondOptions { alt_path: None }).unwrap();
+        let status = emond(&mut output, false, &EmondOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -336,7 +335,7 @@ mod tests {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
         let status =
-            users_macos(&mut output, &false, &&MacosUsersOptions { alt_path: None }).unwrap();
+            users_macos(&mut output, false, &&MacosUsersOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -345,7 +344,7 @@ mod tests {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
         let status =
-            groups_macos(&mut output, &false, &&MacosGroupsOptions { alt_path: None }).unwrap();
+            groups_macos(&mut output, false, &&MacosGroupsOptions { alt_path: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -354,7 +353,7 @@ mod tests {
     fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 
-        let status = fseventsd(&mut output, &false, &FseventsOptions { alt_file: None }).unwrap();
+        let status = fseventsd(&mut output, false, &FseventsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -362,7 +361,7 @@ mod tests {
     fn test_launchd() {
         let mut output = output_options("launchd_test", "local", "./tmp", false);
 
-        let status = launchd(&mut output, &false, &LaunchdOptions { alt_file: None }).unwrap();
+        let status = launchd(&mut output, false, &LaunchdOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -373,7 +372,7 @@ mod tests {
 
         let status = unifiedlogs(
             &mut output,
-            &false,
+            false,
             &UnifiedLogsOptions {
                 sources,
                 logarchive_path: None,
@@ -387,7 +386,7 @@ mod tests {
     fn test_execpolicy() {
         let mut output = output_options("execpolicy_test", "local", "./tmp", true);
 
-        let _status = execpolicy(&mut output, &false, &ExecPolicyOptions { alt_file: None });
+        let _status = execpolicy(&mut output, false, &ExecPolicyOptions { alt_file: None });
     }
 
     #[test]
@@ -396,7 +395,7 @@ mod tests {
 
         let status = sudo_logs_macos(
             &mut output,
-            &false,
+            false,
             &&MacosSudoOptions {
                 logarchive_path: None,
             },
@@ -411,7 +410,7 @@ mod tests {
 
         let status = spotlight(
             &mut output,
-            &false,
+            false,
             &SpotlightOptions {
                 alt_path: None,
                 include_additional: None,
@@ -428,7 +427,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, &&false).unwrap();
+        let status = output_data(&mut data, name, &mut output, &start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

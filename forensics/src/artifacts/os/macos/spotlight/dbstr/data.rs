@@ -79,7 +79,7 @@ pub(crate) fn parse_categories_data<'a>(
 pub(crate) fn parse_dbstr_data<'a>(
     data: &'a [u8],
     offsets: &[u32],
-    has_extra: &bool,
+    has_extra: bool,
 ) -> nom::IResult<&'a [u8], HashMap<usize, Vec<u32>>> {
     let deleted = 1;
     let empty = 0;
@@ -99,7 +99,7 @@ pub(crate) fn parse_dbstr_data<'a>(
         }
 
         let (mut input, mut index_size) = parse_variable_size(input)?;
-        if *has_extra {
+        if has_extra {
             let (remaining, _) = nom_unsigned_one_byte(input, Endian::Le)?;
             input = remaining;
         }
@@ -237,7 +237,7 @@ mod tests {
                 extra = true;
             }
 
-            let (_, results) = parse_dbstr_data(&prop_data, &offsets_vec, &extra).unwrap();
+            let (_, results) = parse_dbstr_data(&prop_data, &offsets_vec, extra).unwrap();
             if header.full_path.contains("5") {
                 assert_eq!(results.len(), 126);
                 assert_eq!(results.get(&3).unwrap().len(), 41);

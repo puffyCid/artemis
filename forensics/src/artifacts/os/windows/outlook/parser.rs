@@ -39,7 +39,7 @@ use std::io::BufReader;
 pub(crate) fn grab_outlook(
     options: &OutlookOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), OutlookError> {
     if let Some(file) = &options.alt_file {
         return grab_outlook_file(file, options, filter, output);
@@ -82,7 +82,7 @@ pub(crate) fn grab_outlook(
 fn grab_outlook_file(
     path: &str,
     options: &OutlookOptions,
-    filter: &bool,
+    filter: bool,
     output: &mut Output,
 ) -> Result<(), OutlookError> {
     let start_time = time_now();
@@ -94,7 +94,7 @@ fn grab_outlook_file(
         yara_rule_attachment: options.yara_rule_attachment.clone(),
         yara_rule_message: options.yara_rule_message.clone(),
         start_time,
-        filter: *filter,
+        filter: filter,
         source: path.to_string(),
     };
 
@@ -462,7 +462,7 @@ fn output_messages(
         "outlook",
         output,
         &options.start_time,
-        &options.filter,
+        options.filter,
     );
     match result {
         Ok(_result) => {}
@@ -512,7 +512,7 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 
     #[test]
@@ -546,7 +546,7 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 
     #[test]
@@ -577,6 +577,6 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 }

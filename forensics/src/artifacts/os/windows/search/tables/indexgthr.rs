@@ -20,7 +20,7 @@ pub(crate) fn parse_index_gthr(
     lookups: &HashMap<String, HashMap<String, String>>,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let mut entries = Vec::new();
     let limit = 100000;
@@ -238,7 +238,7 @@ mod tests {
                 &HashMap::new(),
                 &mut output,
                 &0,
-                &false,
+                false,
             )
             .unwrap();
             break;

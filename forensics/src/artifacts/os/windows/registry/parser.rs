@@ -50,7 +50,7 @@ pub(crate) struct Params {
 pub(crate) fn parse_registry(
     options: &RegistryOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), RegistryError> {
     let path_regex = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
     let mut params = Params {
@@ -59,7 +59,7 @@ pub(crate) fn parse_registry(
         registry_list: Vec::new(),
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
-        filter: *filter,
+        filter: filter,
         registry_path: String::new(),
     };
 
@@ -163,7 +163,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         "registry",
         output,
         &start_time,
-        &params.filter,
+        params.filter,
     );
     match result {
         Ok(_) => Ok(()),
@@ -247,7 +247,7 @@ fn parse_user_hives(
             "registry",
             output,
             &start_time,
-            &params.filter,
+            params.filter,
         );
         match result {
             Ok(_) => {}
@@ -362,7 +362,7 @@ mod tests {
             alt_file: None,
             path_regex: None,
         };
-        parse_registry(&reg_options, &mut output, &false).unwrap();
+        parse_registry(&reg_options, &mut output, false).unwrap();
     }
 
     #[test]

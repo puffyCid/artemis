@@ -868,7 +868,7 @@ fn parse_row_data<'a>(
         }
         let (block_index, map_start) = get_map_offset(&offset);
         if let Some(block_data) = all_blocks.get(block_index as usize) {
-            let prop_result = get_property_data(block_data, prop_type, &map_start, &false);
+            let prop_result = get_property_data(block_data, prop_type, &map_start, false);
             let prop_value = match prop_result {
                 Ok((_, result)) => result,
                 Err(_err) => {

@@ -16,7 +16,7 @@ struct SqlEntry {
 pub(crate) fn parse_search_sqlite(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let start_time = time_now();
 
@@ -251,7 +251,7 @@ mod tests {
         test_location.push("tests/test_data/windows/search/win11/Windows.db");
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        parse_search_sqlite(&test_location.display().to_string(), &mut output, &false).unwrap();
+        parse_search_sqlite(&test_location.display().to_string(), &mut output, false).unwrap();
     }
 
     #[test]

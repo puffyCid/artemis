@@ -5,7 +5,7 @@ use lumination::connections::connections;
 use serde_json::Value;
 
 /// Attempt to get network connections on a system
-pub(crate) fn list_connections(output: &mut Output, filter: &bool) -> Result<(), ConnectionsError> {
+pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), ConnectionsError> {
     let start_time = time::time_now();
 
     let conns = match connections() {
@@ -35,7 +35,7 @@ pub(crate) fn output_data(
     output_name: &str,
     output: &mut Output,
     start_time: &u64,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), ConnectionsError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -70,6 +70,6 @@ mod tests {
     #[test]
     fn test_list_connections() {
         let mut output = output_options("connections_test", "local", "./tmp", false);
-        list_connections(&mut output, &false).unwrap();
+        list_connections(&mut output, false).unwrap();
     }
 }

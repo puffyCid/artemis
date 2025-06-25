@@ -7,7 +7,7 @@ use crate::{
 use log::error;
 
 /// Get basic sysinfo for a system
-pub(crate) fn systeminfo(output: &mut Output, filter: &bool) -> Result<(), SystemInfoError> {
+pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), SystemInfoError> {
     let start_time = time::time_now();
 
     let system_data = get_info();
@@ -59,7 +59,7 @@ mod tests {
     fn test_systeminfo() {
         let mut output = output_options("system_test", "local", "./tmp", false);
 
-        let status = systeminfo(&mut output, &false).unwrap();
+        let status = systeminfo(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 }

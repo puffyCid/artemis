@@ -6,7 +6,7 @@ use log::warn;
 /// Collect a process listing from a system
 pub(crate) fn processes(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
     let hashes = Hashes {
@@ -15,7 +15,7 @@ pub(crate) fn processes(
         sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, &options.metadata, filter, output);
+    let results = proc_list(&hashes, options.metadata, filter, output);
     if results.is_err() {
         warn!(
             "[core] Failed to get process list: {:?}",
@@ -63,7 +63,7 @@ mod tests {
             metadata: true,
         };
 
-        let status = processes(&mut output, &false, &proc_config).unwrap();
+        let status = processes(&mut output, false, &proc_config).unwrap();
         assert_eq!(status, ());
     }
 }

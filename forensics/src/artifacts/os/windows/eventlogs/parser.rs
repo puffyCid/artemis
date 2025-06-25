@@ -31,7 +31,7 @@ use serde_json::{Error, Value};
 pub(crate) fn grab_eventlogs(
     options: &EventLogsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), EventLogsError> {
     if let Some(file) = &options.alt_file {
         return alt_eventlogs(file, output, filter, options);
@@ -45,10 +45,10 @@ pub(crate) fn parse_eventlogs(
     path: &str,
     offset: &usize,
     limit: &usize,
-    include_templates: &bool,
+    include_templates: bool,
     template_file: &Option<String>,
 ) -> Result<(Vec<EventMessage>, Vec<EventLogRecord>), EventLogsError> {
-    let templates = if *include_templates && template_file.is_none() {
+    let templates = if include_templates && template_file.is_none() {
         Some(get_resources()?)
     } else if template_file.is_some() {
         let file = template_file.as_ref().unwrap();
@@ -135,7 +135,7 @@ pub(crate) fn parse_eventlogs(
 /// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
 fn default_eventlogs(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let path = if options.alt_dir.is_some() {
@@ -159,7 +159,7 @@ fn default_eventlogs(
 fn alt_eventlogs(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let templates = if options.include_templates && options.alt_template_file.is_none() {
@@ -192,7 +192,7 @@ fn alt_eventlogs(
             filter,
             &0,
             "eventlog_templates",
-            &true,
+            true,
         )?;
 
         if options.only_templates {
@@ -207,7 +207,7 @@ fn alt_eventlogs(
 fn read_directory(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let dir_results = list_files(path);
@@ -249,7 +249,7 @@ fn read_directory(
             filter,
             &0,
             "eventlog_templates",
-            &true,
+            true,
         )?;
 
         if options.only_templates {
@@ -279,7 +279,7 @@ fn read_directory(
 fn read_eventlogs(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     resources: &Option<StringResource>,
 ) -> Result<(), EventLogsError> {
     let start_time = time_now();
@@ -348,7 +348,7 @@ fn read_eventlogs(
                     filter,
                     &start_time,
                     "eventlogs",
-                    &false,
+                    false,
                 )?;
             }
 
@@ -358,7 +358,7 @@ fn read_eventlogs(
                 filter,
                 &start_time,
                 "eventlogs",
-                &false,
+                false,
             )?;
 
             eventlog_records = Vec::new();
@@ -398,7 +398,7 @@ fn read_eventlogs(
                 filter,
                 &start_time,
                 "eventlogs",
-                &false,
+                false,
             )?;
         }
 
@@ -408,7 +408,7 @@ fn read_eventlogs(
             filter,
             &start_time,
             "eventlogs",
-            &false,
+            false,
         )?;
     }
 
@@ -419,10 +419,10 @@ fn read_eventlogs(
 fn output_logs(
     result: &mut Result<Value, Error>,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
     name: &str,
-    raw: &bool,
+    raw: bool,
 ) -> Result<(), EventLogsError> {
     let serde_data = match result {
         Ok(results) => results,
@@ -433,7 +433,7 @@ fn output_logs(
     };
 
     // Skip adding metadata to the output if we are just dumping templates
-    if *raw {
+    if raw {
         let status = raw_json(serde_data, name, output);
         if status.is_err() {
             error!(
@@ -496,7 +496,7 @@ mod tests {
         };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = grab_eventlogs(&options, &mut output, &false).unwrap();
+        let results = grab_eventlogs(&options, &mut output, false).unwrap();
         assert_eq!(results, ())
     }
 
@@ -512,7 +512,7 @@ mod tests {
             only_templates: false,
         };
 
-        let results = default_eventlogs(&mut output, &false, &options).unwrap();
+        let results = default_eventlogs(&mut output, false, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -531,7 +531,7 @@ mod tests {
             only_templates: false,
         };
 
-        let results = alt_eventlogs(&path, &mut output, &false, &options).unwrap();
+        let results = alt_eventlogs(&path, &mut output, false, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -552,7 +552,7 @@ mod tests {
         let results = read_directory(
             &test_location.display().to_string(),
             &mut output,
-            &false,
+            false,
             &options,
         )
         .unwrap();
@@ -573,7 +573,7 @@ mod tests {
             let results = read_eventlogs(
                 &file_path.unwrap().path().display().to_string(),
                 &mut output,
-                &false,
+                false,
                 &None,
             )
             .unwrap();
@@ -588,6 +588,6 @@ mod tests {
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
         let test = json!({"key": "value"});
-        output_logs(&mut Ok(test), &mut output, &false, &0, "testing", &true).unwrap();
+        output_logs(&mut Ok(test), &mut output, false, &0, "testing", true).unwrap();
     }
 }

@@ -18,11 +18,11 @@ use std::{collections::HashMap, io::Read, path::Path};
 pub(crate) fn grab_logs(
     options: &UnifiedLogsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), MacArtifactError> {
     let mut parse_options = ParseOptions {
         start_time: time_now(),
-        filter: *filter,
+        filter: filter,
         // Persist oversize strings as we parse the Unified Logs
         oversize_strings: UnifiedLogData {
             header: Vec::new(),
@@ -101,7 +101,7 @@ fn parse_trace_file(
             "unifiedlogs",
             output,
             &options.start_time,
-            &options.filter,
+            options.filter,
         );
     }
 
@@ -151,7 +151,7 @@ fn iterate_logs(
             "unifiedlogs",
             output,
             &options.start_time,
-            &options.filter,
+            options.filter,
         );
         if missing_logs.catalog_data.is_empty()
             && missing_logs.header.is_empty()
@@ -200,7 +200,7 @@ mod tests {
                 sources,
             },
             &mut output,
-            &false,
+            false,
         )
         .unwrap();
     }

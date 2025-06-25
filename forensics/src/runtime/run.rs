@@ -103,7 +103,7 @@ pub(crate) fn output_data(
 ) -> Result<(), RuntimeError> {
     // We must never filter a script. Otherwise this would cause an infinite loop!
     let filter = false;
-    let status = output_artifact(serde_data, output_name, output, start_time, &filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
         error!("[runtime] Could not output data: {:?}", status.unwrap_err());
         return Err(RuntimeError::Output);

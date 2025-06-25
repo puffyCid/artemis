@@ -22,7 +22,7 @@ use log::error;
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
 pub(crate) fn grab_fseventsd(
     options: &FseventsOptions,
-    filter: &bool,
+    filter: bool,
     output: &mut Output,
 ) -> Result<(), FsEventsError> {
     let start_time = time_now();
@@ -125,7 +125,7 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 fn output_fsevents(
     entries: &[FsEvents],
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     start_time: &u64,
 ) -> Result<(), FsEventsError> {
     if entries.is_empty() {
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn test_grab_fseventsd() {
         let mut output = output_options("fsevents_test", "local", "./tmp", false);
-        grab_fseventsd(&FseventsOptions { alt_file: None }, &false, &mut output).unwrap();
+        grab_fseventsd(&FseventsOptions { alt_file: None }, false, &mut output).unwrap();
     }
 
     #[test]

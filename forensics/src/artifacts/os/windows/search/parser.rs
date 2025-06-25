@@ -31,7 +31,7 @@ use log::error;
 pub(crate) fn grab_search(
     options: &SearchOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let path = if let Some(alt) = &options.alt_file {
         alt.clone()
@@ -123,7 +123,7 @@ mod tests {
         let mut output = output_options("search_temp", "local", "./tmp", false);
         let options = SearchOptions { alt_file: None };
 
-        let _ = grab_search(&options, &mut output, &false);
+        let _ = grab_search(&options, &mut output, false);
     }
 
     #[test]

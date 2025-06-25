@@ -24,7 +24,7 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse and dump the provided SRUM tables
-pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: &bool) -> Result<(), SrumError> {
+pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Result<(), SrumError> {
     let start_time = time_now();
 
     let indexes = get_srum_ese(path, "SruDbIdMapTable")?;
@@ -166,7 +166,7 @@ mod tests {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
         let mut output = output_options("srum_temp", "local", "./tmp", true);
 
-        parse_srum(test_path, &mut output, &false).unwrap();
+        parse_srum(test_path, &mut output, false).unwrap();
     }
 
     #[test]

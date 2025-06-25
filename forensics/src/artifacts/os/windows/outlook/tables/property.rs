@@ -194,7 +194,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                             &all_desc,
                             &prop.property_type,
                             &prop.reference,
-                            &true,
+                            true,
                         );
 
                         let prop_value = match prop_result {
@@ -214,7 +214,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 }
 
                 let prop_result =
-                    get_property_data(block_data, &prop.property_type, &map_start, &false);
+                    get_property_data(block_data, &prop.property_type, &map_start, false);
                 let prop_value = match prop_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
@@ -276,9 +276,9 @@ pub(crate) fn get_property_data<'a>(
     data: &'a [u8],
     prop_type: &PropertyType,
     reference: &u32,
-    is_large: &bool,
+    is_large: bool,
 ) -> nom::IResult<&'a [u8], Value> {
-    let value_data = if *is_large {
+    let value_data = if is_large {
         data
     } else {
         // Get the allocation map start
@@ -714,7 +714,7 @@ mod tests {
             134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80,
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
-        let (_, value) = get_property_data(&test, &PropertyType::Time, &4, &false).unwrap();
+        let (_, value) = get_property_data(&test, &PropertyType::Time, &4, false).unwrap();
         assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.000Z");
     }
 
@@ -879,8 +879,7 @@ mod tests {
             196, 0, 204, 0, 232, 0, 240, 0, 4, 1, 25, 1, 71, 1, 129, 1, 39, 2, 85, 2,
         ];
 
-        let (_, result) =
-            get_property_data(&test, &PropertyType::MultiBinary, &20, &false).unwrap();
+        let (_, result) = get_property_data(&test, &PropertyType::MultiBinary, &20, false).unwrap();
 
         assert_eq!(
             result.as_array().unwrap(),

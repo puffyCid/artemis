@@ -13,10 +13,10 @@ use std::collections::HashMap;
 /// Parse the `UserAssist` data obtained from the Registry
 pub(crate) fn parse_userassist_data(
     reg_entry: &[UserAssistReg],
-    resolve: &bool,
+    resolve: bool,
 ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let mut userassist_entries: Vec<UserAssistEntry> = Vec::new();
-    let folder_result = if *resolve {
+    let folder_result = if resolve {
         get_folder_descriptions()
     } else {
         Ok(HashMap::new())
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_parse_userassist_data() {
         let results = get_userassist_drive(&'C').unwrap();
-        let results = parse_userassist_data(&results, &false).unwrap();
+        let results = parse_userassist_data(&results, false).unwrap();
         assert!(results.len() > 3);
         for entry in results {
             if entry.reg_path == "UEME_CTLSESSION" {
