@@ -58,7 +58,7 @@ pub(crate) fn parse_types<'a>(
             let (_, oletime) = le_f64(vt_data)?;
             (
                 input,
-                Value::String(unixepoch_to_iso(ole_automationtime_to_unixepoch(&oletime))),
+                Value::String(unixepoch_to_iso(ole_automationtime_to_unixepoch(oletime))),
             )
         }
         0x8 => {

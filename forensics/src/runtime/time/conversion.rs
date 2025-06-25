@@ -35,7 +35,7 @@ pub(crate) fn js_cocoatime_to_unixepoch(
 ) -> JsResult<JsValue> {
     let cocoatime = bigint_arg(args, &0)?;
 
-    Ok(JsValue::BigInt(cocoatime_to_unixepoch(&cocoatime).into()))
+    Ok(JsValue::BigInt(cocoatime_to_unixepoch(cocoatime).into()))
 }
 
 /// Expose converting HFS+ time to unixepoch
@@ -58,7 +58,7 @@ pub(crate) fn js_ole_automationtime_to_unixepoch(
     let oletime = bigint_arg(args, &0)?;
 
     Ok(JsValue::BigInt(
-        ole_automationtime_to_unixepoch(&oletime).into(),
+        ole_automationtime_to_unixepoch(oletime).into(),
     ))
 }
 

@@ -335,7 +335,7 @@ pub(crate) fn extract_property_value<'a>(
             // Supposdly this is OLE Time?
             let (_, float_data) = take(size_of::<u64>())(value_data)?;
             let (_, float_value) = le_f64(float_data)?;
-            let oletime = ole_automationtime_to_unixepoch(&float_value);
+            let oletime = ole_automationtime_to_unixepoch(float_value);
             value = serde_json::to_value(unixepoch_to_iso(oletime)).unwrap_or_default();
         }
         PropertyType::ErrorCode => {
@@ -479,7 +479,7 @@ pub(crate) fn extract_property_value<'a>(
                 let (input, float_data) = take(size_of::<u64>())(remaining)?;
                 let (_, float_value) = le_f64(float_data)?;
                 remaining = input;
-                let oletime = ole_automationtime_to_unixepoch(&float_value);
+                let oletime = ole_automationtime_to_unixepoch(float_value);
                 int_values.push(unixepoch_to_iso(oletime));
                 count += 1;
             }

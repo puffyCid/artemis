@@ -22,7 +22,7 @@ pub(crate) fn filetime_to_unixepoch(filetime: u64) -> i64 {
 }
 
 /// Convert macOS Cocoa timestamp to `UnixEpoch` (also called mac time, mach absolute time)
-pub(crate) fn cocoatime_to_unixepoch(cocoatime: &f64) -> i64 {
+pub(crate) fn cocoatime_to_unixepoch(cocoatime: f64) -> i64 {
     let adjust_to_unix = 978307200.0;
     (cocoatime + adjust_to_unix) as i64
 }
@@ -34,7 +34,7 @@ pub(crate) fn hfs_to_unixepoch(hfstime: i64) -> i64 {
 }
 
 /// Convert OLE Automation time (sometimes also referred to as Variant time) to `UnixEpoch`
-pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
+pub(crate) fn ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
     // OLE automation time is just the number of days since Jan 1 1900 as float64
     let hours = 24.0;
     let mins = 60.0;
@@ -226,14 +226,14 @@ mod tests {
     #[test]
     fn test_ole_automationtime_to_unixepoch() {
         let test = 43794.01875;
-        let result = ole_automationtime_to_unixepoch(&test);
+        let result = ole_automationtime_to_unixepoch(test);
         assert_eq!(result, 1574641620);
     }
 
     #[test]
     fn test_cocoatime_to_unixepoch() {
         let test = 10.01875;
-        let result = cocoatime_to_unixepoch(&test);
+        let result = cocoatime_to_unixepoch(test);
         assert_eq!(result, 978307210);
     }
 

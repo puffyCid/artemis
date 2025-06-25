@@ -242,7 +242,7 @@ fn extract_column_data_to_string<'a>(
             } else {
                 let (input, float_data) = take(size_of::<u64>())(data)?;
                 let (_, float_value) = le_f64(float_data)?;
-                let oletime = ole_automationtime_to_unixepoch(&float_value);
+                let oletime = ole_automationtime_to_unixepoch(float_value);
 
                 (input, unixepoch_to_iso(oletime))
             }
