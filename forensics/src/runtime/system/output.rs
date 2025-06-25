@@ -14,9 +14,9 @@ pub(crate) fn js_output_results(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let mut data = value_arg(args, &0, context)?;
-    let output_name = string_arg(args, &1)?;
-    let output_format = value_arg(args, &2, context)?;
+    let mut data = value_arg(args, 0, context)?;
+    let output_name = string_arg(args, 1)?;
+    let output_format = value_arg(args, 2, context)?;
 
     let sucess = true;
 
@@ -46,9 +46,9 @@ pub(crate) fn js_raw_dump(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = value_arg(args, &0, context)?;
-    let output_name = string_arg(args, &1)?;
-    let output_format = value_arg(args, &2, context)?;
+    let data = value_arg(args, 0, context)?;
+    let output_name = string_arg(args, 1)?;
+    let output_format = value_arg(args, 2, context)?;
     let sucess = true;
 
     let output_result = serde_json::from_value(output_format);

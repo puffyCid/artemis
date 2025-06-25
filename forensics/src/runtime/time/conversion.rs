@@ -22,7 +22,7 @@ pub(crate) fn js_filetime_to_unixepoch(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let filetime = bigint_arg(args, &0)? as u64;
+    let filetime = bigint_arg(args, 0)? as u64;
 
     Ok(JsValue::BigInt(filetime_to_unixepoch(filetime).into()))
 }
@@ -33,7 +33,7 @@ pub(crate) fn js_cocoatime_to_unixepoch(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let cocoatime = bigint_arg(args, &0)?;
+    let cocoatime = bigint_arg(args, 0)?;
 
     Ok(JsValue::BigInt(cocoatime_to_unixepoch(cocoatime).into()))
 }
@@ -44,7 +44,7 @@ pub(crate) fn js_hfs_to_unixepoch(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let hfstime = bigint_arg(args, &0)? as i64;
+    let hfstime = bigint_arg(args, 0)? as i64;
 
     Ok(JsValue::BigInt(hfs_to_unixepoch(hfstime).into()))
 }
@@ -55,7 +55,7 @@ pub(crate) fn js_ole_automationtime_to_unixepoch(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let oletime = bigint_arg(args, &0)?;
+    let oletime = bigint_arg(args, 0)?;
 
     Ok(JsValue::BigInt(
         ole_automationtime_to_unixepoch(oletime).into(),
@@ -68,7 +68,7 @@ pub(crate) fn js_webkit_time_to_unixepoch(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let webkittime = bigint_arg(args, &0)? as i64;
+    let webkittime = bigint_arg(args, 0)? as i64;
 
     Ok(JsValue::BigInt(webkit_time_to_unixepoch(webkittime).into()))
 }
@@ -79,7 +79,7 @@ pub(crate) fn js_fat_time_to_unixepoch(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let fattime = bytes_arg(args, &0, context)?;
+    let fattime = bytes_arg(args, 0, context)?;
     Ok(JsValue::BigInt(fattime_utc_to_unixepoch(&fattime).into()))
 }
 

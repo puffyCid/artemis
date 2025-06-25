@@ -82,7 +82,7 @@ pub(crate) fn decompress_lz4(
 pub(crate) fn decompress_zlib(
     data: &[u8],
     wbits: &Option<i32>,
-    decom_size: &usize,
+    decom_size: usize,
 ) -> Result<Vec<u8>, CompressionError> {
     // If window bits are provided, we need to user lower level miniz_oxide (already used by flate2)
     // In order to decompress the data. Flate2 does not expose the functions we require
@@ -90,7 +90,7 @@ pub(crate) fn decompress_zlib(
         let wbits_value = wbits.unwrap_or_default();
 
         let mut test = InflateState::new_boxed_with_window_bits(wbits_value);
-        let mut out = vec![0; *decom_size];
+        let mut out = vec![0; decom_size];
         let status = inflate(&mut test, data, &mut out, MZFlush::None);
         if status.status.is_err() {
             error!(
@@ -457,7 +457,7 @@ mod tests {
             120, 156, 5, 128, 209, 9, 0, 0, 4, 68, 87, 97, 56, 229, 227, 149, 194, 237, 127, 117,
             193, 196, 234, 62, 13, 25, 218, 4, 36,
         ];
-        let result = decompress_zlib(&test, &None, &0).unwrap();
+        let result = decompress_zlib(&test, &None, 0).unwrap();
         assert_eq!(
             result,
             [104, 101, 108, 108, 111, 32, 114, 117, 115, 116, 33]

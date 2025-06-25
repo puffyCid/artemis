@@ -9,7 +9,7 @@ pub(crate) fn js_get_journal(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let journal_data = match grab_journal_file(&path) {
         Ok(result) => result,

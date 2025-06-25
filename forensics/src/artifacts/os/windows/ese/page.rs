@@ -118,7 +118,7 @@ impl PageHeader {
 
         let (tag_start, _) = take(start)(data)?;
         // We now have start of tag data
-        let (_, page_tags) = PageTag::parse_tags(tag_start, &data.len())?;
+        let (_, page_tags) = PageTag::parse_tags(tag_start, data.len())?;
         header.page_tags = page_tags;
 
         // For large page sizes the tag flags are actually part of the first 2 bytes at the tag offset

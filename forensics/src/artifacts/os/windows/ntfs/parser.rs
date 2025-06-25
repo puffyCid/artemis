@@ -327,7 +327,7 @@ fn walk_ntfs(
                     fs,
                     &ntfs_file,
                     &file_info.full_path,
-                    &file_info.depth,
+                    file_info.depth,
                 ));
             }
         }

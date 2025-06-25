@@ -13,7 +13,7 @@ pub(crate) fn js_tasks(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let options = TasksOptions { alt_file: path };
     let task = match grab_tasks(&options) {

@@ -13,7 +13,7 @@ pub(crate) fn js_recycle_bin(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
 
     let options = RecycleBinOptions { alt_file: path };

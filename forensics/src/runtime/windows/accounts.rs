@@ -13,7 +13,7 @@ pub(crate) fn js_users_windows(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let options = WindowsUserOptions { alt_file: path };
 

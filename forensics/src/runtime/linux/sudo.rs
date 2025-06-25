@@ -11,7 +11,7 @@ pub(crate) fn js_get_sudologs_linux(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let mut options = LinuxSudoOptions { alt_path: None };
 

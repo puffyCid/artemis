@@ -40,7 +40,7 @@ pub(crate) fn js_read_dir(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     if !is_directory(&path) {
         error!("[runtime] Path is not a directory");
         return Err(JsError::from_opaque(js_string!("Not a directory").into()));
@@ -121,7 +121,7 @@ pub(crate) fn js_read_dir(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
                 // Get the value from the script
-                let script_value = string_arg(args, &0)?;
+                let script_value = string_arg(args, 0)?;
                 let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
                 let value = JsValue::from_json(&serde_value, ctx)?;
                 // Returh the JavaScript object

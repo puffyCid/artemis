@@ -7,7 +7,7 @@ pub(crate) fn js_get_logon(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let mut logons = Vec::new();
     grab_logon_file(&path, &mut logons);

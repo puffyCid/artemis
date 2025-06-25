@@ -25,7 +25,7 @@ pub(crate) fn js_url_parse(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let url_string = string_arg(args, &0)?;
+    let url_string = string_arg(args, 0)?;
 
     let res = match Url::parse(&url_string) {
         Ok(result) => result,

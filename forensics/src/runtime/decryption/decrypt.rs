@@ -7,9 +7,9 @@ pub(crate) fn js_decrypt_aes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let key = bytes_arg(args, &0, context)?;
-    let iv = bytes_arg(args, &1, context)?;
-    let mut data = bytes_arg(args, &2, context)?;
+    let key = bytes_arg(args, 0, context)?;
+    let iv = bytes_arg(args, 1, context)?;
+    let mut data = bytes_arg(args, 2, context)?;
 
     let results = match decrypt_aes_data(&key, &iv, &mut data) {
         Ok(result) => result,

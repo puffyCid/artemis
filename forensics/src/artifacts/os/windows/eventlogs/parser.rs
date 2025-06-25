@@ -43,8 +43,8 @@ pub(crate) fn grab_eventlogs(
 /// Parse the `EventLog` evtx file at provided path
 pub(crate) fn parse_eventlogs(
     path: &str,
-    offset: &usize,
-    limit: &usize,
+    offset: usize,
+    limit: usize,
     include_templates: bool,
     template_file: &Option<String>,
 ) -> Result<(Vec<EventMessage>, Vec<EventLogRecord>), EventLogsError> {
@@ -84,7 +84,7 @@ pub(crate) fn parse_eventlogs(
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
-    for record in evt_parser.records_json_value().skip(*offset) {
+    for record in evt_parser.records_json_value().skip(offset) {
         match record {
             Ok(data) => {
                 let event_record = EventLogRecord {
@@ -100,7 +100,7 @@ pub(crate) fn parse_eventlogs(
             }
         }
 
-        if eventlog_records.len() == *limit {
+        if eventlog_records.len() == limit {
             break;
         }
     }

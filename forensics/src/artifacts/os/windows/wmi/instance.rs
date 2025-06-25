@@ -134,7 +134,7 @@ fn grab_instance_data<'a>(
     }
 
     let prop_count = class_value.properties.len();
-    let (remaining, _prop_bit_data) = parse_instance_props(&instance.data, &prop_count)?;
+    let (remaining, _prop_bit_data) = parse_instance_props(&instance.data, prop_count)?;
     // Calculate the total property data containing offsets size
     let prop_data_size = get_prop_data_size(&class_value.properties);
     let (remaining, prop_data_offsets) = take(prop_data_size)(remaining)?;
@@ -237,7 +237,7 @@ fn get_prop_data_size(props: &[Property]) -> u32 {
 }
 
 /// Determine instance property data
-fn parse_instance_props<'a>(data: &'a [u8], prop_count: &usize) -> nom::IResult<&'a [u8], Vec<u8>> {
+fn parse_instance_props<'a>(data: &'a [u8], prop_count: usize) -> nom::IResult<&'a [u8], Vec<u8>> {
     let mut bit_size = prop_count * 2;
     let align = 3;
     // Align to next byte

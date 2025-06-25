@@ -265,7 +265,7 @@ fn parse_record<'a>(
         let (var_input, prop_value_size) = parse_variable_size(input)?;
 
         if spot_value.attribute == DataAttribute::AttrString {
-            let (input, string) = extract_string(var_input, &prop_value_size)?;
+            let (input, string) = extract_string(var_input, prop_value_size)?;
             spot_value.value = string;
             values.insert(props.name.clone(), spot_value);
             remaining_input = input;
@@ -273,7 +273,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrBinary {
-            let (input, binary) = extract_binary(var_input, &prop_value_size, &props.name)?;
+            let (input, binary) = extract_binary(var_input, prop_value_size, &props.name)?;
             spot_value.value = binary;
             values.insert(props.name.clone(), spot_value);
             remaining_input = input;
@@ -286,7 +286,7 @@ fn parse_record<'a>(
                 &meta.categories,
                 &meta.indexes1,
                 &meta.indexes2,
-                &prop_value_size,
+                prop_value_size,
                 &props.prop_type,
             );
 

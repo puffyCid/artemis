@@ -13,7 +13,7 @@ pub(crate) fn js_jumplists(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let options = JumplistsOptions { alt_file: path };
     let jumplist = match grab_jumplists(&options) {

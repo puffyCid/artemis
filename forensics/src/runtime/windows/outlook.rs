@@ -17,8 +17,8 @@ pub(crate) fn js_root_folder(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
@@ -98,8 +98,8 @@ pub(crate) fn js_message_store(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
@@ -179,8 +179,8 @@ pub(crate) fn js_name_map(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
@@ -260,9 +260,9 @@ pub(crate) fn js_read_folder(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs: bool = boolean_arg(args, &1, context)?;
-    let folder_id = bigint_arg(args, &2)? as u64;
+    let path = string_arg(args, 0)?;
+    let use_ntfs: bool = boolean_arg(args, 1, context)?;
+    let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
@@ -342,10 +342,10 @@ pub(crate) fn js_read_messages(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
-    let table = value_arg(args, &2, context)?;
-    let offset = bigint_arg(args, &3)? as u64;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
+    let table = value_arg(args, 2, context)?;
+    let offset = bigint_arg(args, 3)? as u64;
     let message_table: TableInfo = match serde_json::from_value(table) {
         Ok(result) => result,
         Err(err) => {
@@ -489,10 +489,10 @@ pub(crate) fn js_read_attachment(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
-    let block_id = bigint_arg(args, &2)? as u64;
-    let descriptor_id = bigint_arg(args, &3)? as u64;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
+    let block_id = bigint_arg(args, 2)? as u64;
+    let descriptor_id = bigint_arg(args, 3)? as u64;
 
     let attachment_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
@@ -572,9 +572,9 @@ pub(crate) fn js_folder_meta(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let use_ntfs = boolean_arg(args, &1, context)?;
-    let folder_id = bigint_arg(args, &2)? as u64;
+    let path = string_arg(args, 0)?;
+    let use_ntfs = boolean_arg(args, 1, context)?;
+    let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {

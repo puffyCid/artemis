@@ -12,9 +12,9 @@ pub(crate) fn js_spotlight(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let store_file = string_arg(args, &0)?;
-    let meta = value_arg(args, &1, context)?;
-    let offset = bigint_arg(args, &2)? as u32;
+    let store_file = string_arg(args, 0)?;
+    let meta = value_arg(args, 1, context)?;
+    let offset = bigint_arg(args, 2)? as u32;
 
     let serde_result = serde_json::from_value(meta);
     let store_meta: StoreMeta = match serde_result {
@@ -46,7 +46,7 @@ pub(crate) fn js_setup_spotlight_parser(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let glob_path = string_arg(args, &0)?;
+    let glob_path = string_arg(args, 0)?;
 
     let meta = match setup_spotlight_reader(&glob_path) {
         Ok(result) => result,

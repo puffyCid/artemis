@@ -13,7 +13,7 @@ pub(crate) fn js_shimdb(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &1)?)
+        Some(string_arg(args, 1)?)
     };
     let options = ShimdbOptions { alt_file: path };
     let shimdb = match grab_shimdb(&options) {

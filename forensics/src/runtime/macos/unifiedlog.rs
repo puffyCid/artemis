@@ -17,12 +17,12 @@ pub(crate) fn js_unified_log(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input_path = string_arg(args, &0)?;
+    let input_path = string_arg(args, 0)?;
 
     let archive_path = if args.get_or_undefined(1).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &1)?)
+        Some(string_arg(args, 1)?)
     };
 
     // If user provides /var/db re-map to /private/var/db

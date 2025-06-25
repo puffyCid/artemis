@@ -36,7 +36,7 @@ pub(crate) fn js_request(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let js_request = value_arg(args, &0, context)?;
+    let js_request = value_arg(args, 0, context)?;
     let request_result = serde_json::from_value(js_request);
     let request: ClientRequest = match request_result {
         Ok(result) => result,
@@ -85,7 +85,7 @@ pub(crate) fn js_request(
         format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
     );
 
-    let body = bytes_arg(args, &1, context)?;
+    let body = bytes_arg(args, 1, context)?;
 
     if request.body_type == "form" {
         let form_data_result = serde_json::from_slice(&body);
@@ -106,7 +106,7 @@ pub(crate) fn js_request(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
                 // Get the value from the script
-                let script_value = string_arg(args, &0)?;
+                let script_value = string_arg(args, 0)?;
                 let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
                 // Return the JavaScript object
                 let value = JsValue::from_json(&serde_value, ctx)?;

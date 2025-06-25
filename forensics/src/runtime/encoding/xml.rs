@@ -8,7 +8,7 @@ pub(crate) fn js_read_xml(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     // read_xml supports UTF16 and UTF8 encodings
     let xml = match read_xml(&path) {

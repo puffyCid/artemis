@@ -21,7 +21,7 @@ pub(crate) fn get_indx(
     fs: &mut BufReader<SectorReader<File>>,
     ntfs_file: &NtfsFile<'_>,
     directory: &str,
-    depth: &usize,
+    depth: usize,
 ) -> Vec<RawFilelist> {
     let mut attributes = ntfs_file.attributes();
     let mut attributes_allocation = attributes.clone();
@@ -70,7 +70,7 @@ fn get_slack(
     fs: &mut BufReader<SectorReader<File>>,
     attributes: &mut NtfsAttributes<'_, '_>,
     directory: &str,
-    depth: &usize,
+    depth: usize,
 ) -> Vec<RawFilelist> {
     let mut slack_entries: Vec<RawFilelist> = Vec::new();
 
@@ -149,7 +149,7 @@ fn get_slack(
 fn parse_indx_slack<'a>(
     data: &'a [u8],
     directory: &'a str,
-    depth: &usize,
+    depth: usize,
 ) -> nom::IResult<&'a [u8], Vec<RawFilelist>> {
     let mut indx_data = data;
     let mut slack_entries: Vec<RawFilelist> = Vec::new();

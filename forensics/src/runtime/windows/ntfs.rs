@@ -10,7 +10,7 @@ pub(crate) fn js_read_raw_file(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let data = match raw_read_file(&path) {
         Ok(result) => result,
@@ -29,8 +29,8 @@ pub(crate) fn js_read_ads(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let ads_name = string_arg(args, &1)?;
+    let path = string_arg(args, 0)?;
+    let ads_name = string_arg(args, 1)?;
 
     let data = match read_attribute(&path, &ads_name) {
         Ok(result) => result,

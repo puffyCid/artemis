@@ -49,22 +49,14 @@ pub(crate) trait AcquireActionRemote {
     fn reader(&self) -> Result<File, AcquireError>;
     fn compressor(&self) -> GzEncoder<Vec<u8>>;
     fn upload_setup(&mut self) -> Result<(), AcquireError>;
-    fn upload(
-        &mut self,
-        bytes: &[u8],
-        offset: &usize,
-        total_size: &str,
-    ) -> Result<(), AcquireError>;
+    fn upload(&mut self, bytes: &[u8], offset: usize, total_size: &str)
+    -> Result<(), AcquireError>;
 }
 
 trait GoogleUpload {
     fn gcp_start(&mut self) -> Result<(), AcquireError>;
-    fn gcp_upload(
-        &self,
-        bytes: &[u8],
-        offset: &usize,
-        total_size: &str,
-    ) -> Result<(), AcquireError>;
+    fn gcp_upload(&self, bytes: &[u8], offset: usize, total_size: &str)
+    -> Result<(), AcquireError>;
 }
 
 trait AmazonUpload {
@@ -115,7 +107,7 @@ impl AcquireActionRemote for AcquireFileApiRemote {
     fn upload(
         &mut self,
         bytes: &[u8],
-        offset: &usize,
+        offset: usize,
         total_size: &str,
     ) -> Result<(), AcquireError> {
         match self.remote {
@@ -170,7 +162,7 @@ impl GoogleUpload for AcquireFileApiRemote {
     fn gcp_upload(
         &self,
         bytes: &[u8],
-        offset: &usize,
+        offset: usize,
         total_size: &str,
     ) -> Result<(), AcquireError> {
         let max = 15;

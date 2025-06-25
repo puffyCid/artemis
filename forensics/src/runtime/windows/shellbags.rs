@@ -11,11 +11,11 @@ pub(crate) fn js_shellbags(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let resolve = boolean_arg(args, &0, context)?;
+    let resolve = boolean_arg(args, 0, context)?;
     let path = if args.get_or_undefined(1).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &1)?)
+        Some(string_arg(args, 1)?)
     };
 
     let options = ShellbagsOptions {

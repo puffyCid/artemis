@@ -403,7 +403,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 // We always check to make block index is less than the block length
                 let rows_result = extract_branch_row(
                     &all_block[branch.block_index as usize],
-                    &(branch.index as usize),
+                    branch.index as usize,
                 );
                 let message_rows = match rows_result {
                     Ok((_, result)) => result,
@@ -531,7 +531,7 @@ pub(crate) struct RowsInfo {
 }
 
 /// Extract the rows found in branches. This involves a lot more work then non-branch rows
-fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a [u8], RowsInfo> {
+fn extract_branch_row<'a>(data: &'a [u8], map_index: usize) -> nom::IResult<&'a [u8], RowsInfo> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -540,8 +540,8 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
 
-    if let Some(start) = map.allocation_table.get(*map_index - 1) {
-        if let Some(end) = map.allocation_table.get(*map_index) {
+    if let Some(start) = map.allocation_table.get(map_index - 1) {
+        if let Some(end) = map.allocation_table.get(map_index) {
             branch_row_start = *start;
             branch_row_end = *end;
         }

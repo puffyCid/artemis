@@ -16,7 +16,7 @@ pub(crate) fn js_get_catalog(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let ese = match get_catalog_info(&path) {
         Ok(result) => result,
         Err(err) => {
@@ -36,8 +36,8 @@ pub(crate) fn js_get_pages(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let first_page = number_arg(args, &1)? as u32;
+    let path = string_arg(args, 0)?;
+    let first_page = number_arg(args, 1)? as u32;
     let ese = match get_all_pages(&path, first_page) {
         Ok(result) => result,
         Err(err) => {
@@ -57,8 +57,8 @@ pub(crate) fn js_page_data(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let pages_value = value_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let pages_value = value_arg(args, 1, context)?;
     let pages: Vec<u32> = match serde_json::from_value(pages_value) {
         Ok(result) => result,
         Err(err) => {
@@ -66,7 +66,7 @@ pub(crate) fn js_page_data(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let info_value = value_arg(args, &2, context)?;
+    let info_value = value_arg(args, 2, context)?;
     let mut info: TableInfo = match serde_json::from_value(info_value) {
         Ok(result) => result,
         Err(err) => {
@@ -75,7 +75,7 @@ pub(crate) fn js_page_data(
         }
     };
 
-    let name = string_arg(args, &3)?;
+    let name = string_arg(args, 3)?;
 
     let ese = match get_page_data(&path, &pages, &mut info, &name) {
         Ok(result) => result,
@@ -95,8 +95,8 @@ pub(crate) fn js_filter_page_data(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let pages_value = value_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let pages_value = value_arg(args, 1, context)?;
     let pages: Vec<u32> = match serde_json::from_value(pages_value) {
         Ok(result) => result,
         Err(err) => {
@@ -104,7 +104,7 @@ pub(crate) fn js_filter_page_data(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let info_value = value_arg(args, &2, context)?;
+    let info_value = value_arg(args, 2, context)?;
     let mut info: TableInfo = match serde_json::from_value(info_value) {
         Ok(result) => result,
         Err(err) => {
@@ -113,10 +113,10 @@ pub(crate) fn js_filter_page_data(
         }
     };
 
-    let name = string_arg(args, &3)?;
-    let column_name = string_arg(args, &4)?;
+    let name = string_arg(args, 3)?;
+    let column_name = string_arg(args, 4)?;
 
-    let columns_serde = value_arg(args, &5, context)?;
+    let columns_serde = value_arg(args, 5, context)?;
     let mut column_values: HashMap<String, bool> = match serde_json::from_value(columns_serde) {
         Ok(result) => result,
         Err(err) => {
@@ -150,8 +150,8 @@ pub(crate) fn js_get_table_columns(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let pages_value = value_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let pages_value = value_arg(args, 1, context)?;
     let pages: Vec<u32> = match serde_json::from_value(pages_value) {
         Ok(result) => result,
         Err(err) => {
@@ -159,7 +159,7 @@ pub(crate) fn js_get_table_columns(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let info_value = value_arg(args, &2, context)?;
+    let info_value = value_arg(args, 2, context)?;
     let mut info: TableInfo = match serde_json::from_value(info_value) {
         Ok(result) => result,
         Err(err) => {
@@ -168,9 +168,9 @@ pub(crate) fn js_get_table_columns(
         }
     };
 
-    let name = string_arg(args, &3)?;
+    let name = string_arg(args, 3)?;
 
-    let columns_value: serde_json::Value = value_arg(args, &4, context)?;
+    let columns_value: serde_json::Value = value_arg(args, 4, context)?;
     let column_names: Vec<String> = match serde_json::from_value(columns_value) {
         Ok(result) => result,
         Err(err) => {

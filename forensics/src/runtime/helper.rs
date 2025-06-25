@@ -5,8 +5,8 @@ use boa_engine::{
 use serde_json::Value;
 
 /// Get the JS argument and convert to string
-pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn string_arg(args: &[JsValue], index: usize) -> JsResult<String> {
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_string() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not a string").into(),
@@ -26,8 +26,8 @@ pub(crate) fn string_arg(args: &[JsValue], index: &usize) -> JsResult<String> {
 }
 
 /// Get the JS argument and convert to char
-pub(crate) fn char_arg(args: &[JsValue], index: &usize) -> JsResult<char> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn char_arg(args: &[JsValue], index: usize) -> JsResult<char> {
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_string() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not a string").into(),
@@ -47,8 +47,8 @@ pub(crate) fn char_arg(args: &[JsValue], index: &usize) -> JsResult<char> {
 }
 
 /// Get the JS argument and convert to number
-pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn number_arg(args: &[JsValue], index: usize) -> JsResult<f64> {
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_number() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not a number").into(),
@@ -62,8 +62,8 @@ pub(crate) fn number_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
 }
 
 /// Get the JS argument and convert to big number
-pub(crate) fn bigint_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn bigint_arg(args: &[JsValue], index: usize) -> JsResult<f64> {
+    let arg_value = args.get_or_undefined(index);
     if arg_value.is_bigint() {
         // Unwrap is ok since we checked above to make sure its a number
         let value = arg_value.as_bigint().unwrap().to_f64();
@@ -79,8 +79,8 @@ pub(crate) fn bigint_arg(args: &[JsValue], index: &usize) -> JsResult<f64> {
 }
 
 /// Get the JS argument and convert to boolean
-pub(crate) fn bool_arg(args: &[JsValue], index: &usize) -> JsResult<bool> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn bool_arg(args: &[JsValue], index: usize) -> JsResult<bool> {
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_boolean() {
         return Err(JsError::from_opaque(js_string!("Arg is not a bool").into()));
     }
@@ -91,8 +91,8 @@ pub(crate) fn bool_arg(args: &[JsValue], index: &usize) -> JsResult<bool> {
 }
 
 /// Get the JS argument and convert to object
-pub(crate) fn value_arg(args: &[JsValue], index: &usize, context: &mut Context) -> JsResult<Value> {
-    let arg_value = args.get_or_undefined(*index);
+pub(crate) fn value_arg(args: &[JsValue], index: usize, context: &mut Context) -> JsResult<Value> {
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_object() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not an object").into(),
@@ -107,10 +107,10 @@ pub(crate) fn value_arg(args: &[JsValue], index: &usize, context: &mut Context) 
 /// Get the JS argument and convert to bytes
 pub(crate) fn bytes_arg(
     args: &[JsValue],
-    index: &usize,
+    index: usize,
     context: &mut Context,
 ) -> JsResult<Vec<u8>> {
-    let arg_value = args.get_or_undefined(*index);
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_object() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not an object").into(),
@@ -134,10 +134,10 @@ pub(crate) fn bytes_arg(
 /// Get the JS argument and convert to boolean
 pub(crate) fn boolean_arg(
     args: &[JsValue],
-    index: &usize,
+    index: usize,
     _context: &mut Context,
 ) -> JsResult<bool> {
-    let arg_value = args.get_or_undefined(*index);
+    let arg_value = args.get_or_undefined(index);
     if !arg_value.is_boolean() {
         return Err(JsError::from_opaque(
             js_string!("Arg is not a boolean").into(),

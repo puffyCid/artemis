@@ -15,7 +15,7 @@ pub(crate) fn js_shellitems(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let bytes = bytes_arg(args, &0, context)?;
+    let bytes = bytes_arg(args, 0, context)?;
     let results = get_shellitem(&bytes);
     let (remaining, item) = match results {
         Ok(result) => result,

@@ -11,8 +11,8 @@ pub(crate) fn js_get_processes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input = value_arg(args, &0, context)?;
-    let metadata = boolean_arg(args, &1, context)?;
+    let input = value_arg(args, 0, context)?;
+    let metadata = boolean_arg(args, 1, context)?;
 
     let hashes: Hashes = serde_json::from_value(input).unwrap_or(Hashes {
         md5: false,

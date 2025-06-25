@@ -14,17 +14,17 @@ pub(crate) fn js_usnjrnl(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let drive = if args.get_or_undefined(1).is_undefined() {
         None
     } else {
-        Some(char_arg(args, &1)?)
+        Some(char_arg(args, 1)?)
     };
     let mft_path = if args.get_or_undefined(2).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &2)?)
+        Some(string_arg(args, 2)?)
     };
 
     let options = UsnJrnlOptions {

@@ -7,10 +7,10 @@ use serde_json::{Value, json};
 /// Extract binary info associated with Spotlight property. This function will detect two (2) binary props and extract the data
 pub(crate) fn extract_binary<'a>(
     data: &'a [u8],
-    size: &usize,
+    size: usize,
     name: &str,
 ) -> nom::IResult<&'a [u8], Value> {
-    let (input, string_data) = take(*size)(data)?;
+    let (input, string_data) = take(size)(data)?;
 
     let string = if name == "kMDStoreProperties" {
         extract_utf8_string(string_data)
@@ -40,7 +40,7 @@ mod tests {
         test_location.push("tests/test_data/macos/spotlight/bigsur/binary.raw");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, result) = extract_binary(&data, &size, name).unwrap();
+        let (_, result) = extract_binary(&data, size, name).unwrap();
         assert_eq!(result.as_str().unwrap().len(), 2691);
     }
 }
