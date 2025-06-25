@@ -38,7 +38,7 @@ pub(crate) fn js_get_pages(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, &0)?;
     let first_page = number_arg(args, &1)? as u32;
-    let ese = match get_all_pages(&path, &first_page) {
+    let ese = match get_all_pages(&path, first_page) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get pages for {path}: {err:?}");

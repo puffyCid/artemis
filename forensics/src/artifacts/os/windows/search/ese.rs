@@ -35,10 +35,10 @@ pub(crate) fn parse_search(
     let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
+    let property_pages = search_pages(property_table.table_page as u32, path)?;
 
     let page_limit = 400;
     let mut gather_chunk = Vec::new();
@@ -248,7 +248,7 @@ pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
 }
 
 /// Get all pages for the provided table
-pub(crate) fn search_pages(table_page: &u32, path: &str) -> Result<Vec<u32>, SearchError> {
+pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, SearchError> {
     let pages_result = get_all_pages(path, table_page);
     let pages = match pages_result {
         Ok(result) => result,
@@ -269,10 +269,10 @@ pub(crate) fn parse_search_path(
     let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
+    let property_pages = search_pages(property_table.table_page as u32, path)?;
 
     let mut gather_chunk = Vec::new();
     let last_page = 0;
@@ -434,7 +434,7 @@ mod tests {
             return;
         }
 
-        search_pages(&1, test_path).unwrap();
+        search_pages(1, test_path).unwrap();
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -490,10 +490,10 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
 
         let page_limit = 1;
         let mut gather_chunk = Vec::new();
@@ -538,10 +538,10 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();

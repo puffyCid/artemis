@@ -190,7 +190,7 @@ pub(crate) fn decompress_xpress(
  * Decomress RTF compressed data. This is found mainly in Microsoft Outlook.
  * Inspired by <https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py> (MIT license)
  */
-pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, CompressionError> {
+pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, CompressionError> {
     let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
     const MAX_LZ_REFERENCE: usize = 4096;
     // Size of the intial string above
@@ -298,7 +298,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, C
         }
     }
 
-    if decom_data.len() as u32 != *decom_size {
+    if decom_data.len() as u32 != decom_size {
         error!(
             "[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}",
             decom_data.len()
@@ -492,7 +492,7 @@ mod tests {
         let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let result = decompress_rtf(input, &uncompressed_size).unwrap();
+        let result = decompress_rtf(input, uncompressed_size).unwrap();
 
         assert_eq!(result.len(), uncompressed_size as usize);
         assert_eq!(
@@ -533,6 +533,6 @@ mod tests {
         let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let _ = decompress_rtf(input, &uncompressed_size).unwrap();
+        let _ = decompress_rtf(input, uncompressed_size).unwrap();
     }
 }

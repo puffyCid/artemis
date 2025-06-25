@@ -315,7 +315,7 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
     let huffman = 0x18;
     let decompressed_data = if compression_type == huffman {
         let (input, decompress_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        decompress_ese(&mut input.to_owned(), &(decompress_size as u32))
+        decompress_ese(&mut input.to_owned(), decompress_size as u32)
     } else {
         // Any other value means seven bit compression
         decompress_seven_bit(input)
@@ -326,7 +326,7 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
 
 #[cfg(target_os = "windows")]
 /// Decompress ESE data with API
-fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
+fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
     use crate::utils::compression::xpress::api::decompress_huffman_api;
 
     let decom_result = decompress_huffman_api(data, &XpressType::Lz77, *decom_size);
@@ -350,8 +350,8 @@ fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
 
 #[cfg(target_family = "unix")]
 /// Decompress ESE data
-fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
-    let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
+fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
+    let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);
     match decom_result {
         Ok(result) => result,
         Err(err) => {
@@ -1132,7 +1132,7 @@ mod tests {
             79, 24, 12, 84, 104, 0, 65, 88, 23, 69, 200, 0, 255, 255, 95, 85, 73, 152, 0, 84, 88,
             0, 73, 72, 27, 85, 72, 0, 73, 8, 1, 78, 58, 4, 201, 14, 63, 4, 15, 103,
         ];
-        let out = decompress_ese(&mut test, &2048);
+        let out = decompress_ese(&mut test, 2048);
         assert_eq!(out.len(), 2048);
     }
 }

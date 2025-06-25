@@ -39,7 +39,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         return get_prefetch_data(data, path);
     };
 
-    let pf_data = decompress_pf(&mut pf_data.to_vec(), &header.uncompressed_size)?;
+    let pf_data = decompress_pf(&mut pf_data.to_vec(), header.uncompressed_size)?;
     get_prefetch_data(&pf_data, path)
 }
 
@@ -142,12 +142,12 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
 }
 
 /// Decompress Prefetch data
-fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchError> {
+fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchError> {
     #[cfg(target_os = "windows")]
     {
         use crate::utils::compression::xpress::api::decompress_huffman_api;
 
-        let pf_data = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+        let pf_data = decompress_huffman_api(data, &XpressType::XpressHuffman, decom_size);
         if pf_data.is_ok() {
             return Ok(pf_data.unwrap_or_default());
         }
@@ -156,7 +156,7 @@ fn decompress_pf(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, PrefetchE
             pf_data.unwrap_err()
         );
     }
-    let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+    let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
@@ -372,7 +372,7 @@ mod tests {
         test_location.push("tests/test_data/windows/compression/lz_huffman.raw");
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
 
-        let out = decompress_pf(&mut bytes, &153064).unwrap();
+        let out = decompress_pf(&mut bytes, 153064).unwrap();
         assert_eq!(out.len(), 153064);
     }
 }

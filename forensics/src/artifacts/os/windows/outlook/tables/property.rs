@@ -170,7 +170,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 continue;
             }
 
-            let (block_index, map_start) = get_map_offset(&prop.reference);
+            let (block_index, map_start) = get_map_offset(prop.reference);
             if let Some(block_data) = all_blocks.get(block_index as usize) {
                 let max_heap_size = 3580;
 
@@ -583,7 +583,7 @@ pub(crate) fn extract_property_value<'a>(
 }
 
 /// Get offsets in allocation map from reference
-pub(crate) fn get_map_offset(reference: &u32) -> (u32, u32) {
+pub(crate) fn get_map_offset(reference: u32) -> (u32, u32) {
     let unicode_4k = 19;
     let block_index = reference >> unicode_4k;
 
@@ -841,7 +841,7 @@ mod tests {
 
     #[test]
     fn test_get_map_offset() {
-        let (block_index, map_start) = get_map_offset(&96);
+        let (block_index, map_start) = get_map_offset(96);
         assert_eq!(block_index, 0);
         assert_eq!(map_start, 4);
     }

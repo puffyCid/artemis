@@ -145,7 +145,7 @@ impl Logon {
         };
 
         let logon = Logon {
-            logon_type: Logon::get_logon_type(&logon_type),
+            logon_type: Logon::get_logon_type(logon_type),
             pid,
             terminal: extract_utf8_string(term_data),
             terminal_id,
@@ -166,7 +166,7 @@ impl Logon {
     }
 
     /// Get the `LogonType`
-    fn get_logon_type(logon: &u32) -> LogonType {
+    fn get_logon_type(logon: u32) -> LogonType {
         match logon {
             1 => LogonType::RunLevel,
             2 => LogonType::BootTime,
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn test_get_logon_type() {
         let test = 9;
-        let logon_type = Logon::get_logon_type(&test);
+        let logon_type = Logon::get_logon_type(test);
         assert_eq!(logon_type, LogonType::Accounting);
     }
 }

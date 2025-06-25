@@ -65,7 +65,7 @@ impl Filename {
             accessed,
             allocated_size,
             size,
-            file_attributes: file_attribute_flags(&flag_data),
+            file_attributes: file_attribute_flags(flag_data),
             file_attributes_data: flag_data,
             extended_data,
             name_size,

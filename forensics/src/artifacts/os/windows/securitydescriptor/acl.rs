@@ -85,7 +85,7 @@ pub(crate) fn parse_acl<'a>(
         } else if is_ace == AceTypes::Object {
             let (ace_entry_data, object_flags_data) =
                 nom_unsigned_four_bytes(ace_entry_data, Endian::Le)?;
-            let object_flag = get_object_flag(&object_flags_data);
+            let object_flag = get_object_flag(object_flags_data);
             if object_flag == ObjectFlag::ObjectType {
                 let (ace_entry_data, guid_data) = take(size_of::<u128>())(ace_entry_data)?;
                 ace_entry.object_type_guid = format_guid_le_bytes(guid_data);
@@ -336,7 +336,7 @@ fn get_ace_flags(ace_flags: &u8) -> Vec<AceFlags> {
 }
 
 /// Determine the ACE Object flag
-fn get_object_flag(object_flags: &u32) -> ObjectFlag {
+fn get_object_flag(object_flags: u32) -> ObjectFlag {
     match object_flags {
         1 => ObjectFlag::ObjectType,
         2 => ObjectFlag::InheritedObjectType,
@@ -446,7 +446,7 @@ mod tests {
     #[test]
     fn test_get_object_flag() {
         let test = 1;
-        let results = get_object_flag(&test);
+        let results = get_object_flag(test);
         assert_eq!(results, ObjectFlag::ObjectType);
     }
 }

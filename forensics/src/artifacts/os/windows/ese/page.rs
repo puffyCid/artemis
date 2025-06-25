@@ -82,7 +82,7 @@ impl PageHeader {
             available_uncommitted_data_size,
             first_available_data_offset,
             first_available_page_tag,
-            page_flags: PageHeader::get_flags(&page_flags),
+            page_flags: PageHeader::get_flags(page_flags),
             extended_checksum: 0,
             extended_checksum2: 0,
             extended_checksum3: 0,
@@ -135,7 +135,7 @@ impl PageHeader {
     }
 
     /// Get the page flags
-    fn get_flags(page_flags: &u32) -> Vec<PageFlags> {
+    fn get_flags(page_flags: u32) -> Vec<PageFlags> {
         let root = 0x1;
         let leaf = 0x2;
         let parent = 0x4;
@@ -248,7 +248,7 @@ mod tests {
     fn test_page_flags() {
         let test = 43011;
 
-        let results = PageHeader::get_flags(&test);
+        let results = PageHeader::get_flags(test);
         assert_eq!(
             results,
             vec![

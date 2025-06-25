@@ -210,7 +210,7 @@ mod tests {
         let catalog = search_catalog(test_path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -257,7 +257,7 @@ mod tests {
         let catalog = search_catalog(test_path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();

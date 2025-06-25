@@ -146,7 +146,7 @@ fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
         last_password_failure: unixepoch_to_iso(filetime_to_unixepoch(last_password_failure)),
         relative_id,
         primary_group_id,
-        user_account_control_flags: get_flags(&account_control_flags),
+        user_account_control_flags: get_flags(account_control_flags),
         country_code,
         code_page,
         number_password_failures,
@@ -160,7 +160,7 @@ fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
 
 /// Determine the account flags  
 // Identified at: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SAMR/%5BMS-SAMR%5D-210625.pdf
-fn get_flags(account_control: &u32) -> Vec<UacFlags> {
+fn get_flags(account_control: u32) -> Vec<UacFlags> {
     let disabled = 0x1;
     let home_dir = 0x2;
     let no_pass = 0x4;
@@ -185,70 +185,70 @@ fn get_flags(account_control: &u32) -> Vec<UacFlags> {
     let aes_keys = 0x200000;
 
     let mut flags = Vec::new();
-    if &(account_control | disabled) == account_control {
+    if (account_control | disabled) == account_control {
         flags.push(UacFlags::AccountDisabled);
     }
-    if &(account_control | home_dir) == account_control {
+    if (account_control | home_dir) == account_control {
         flags.push(UacFlags::HomeDirectoryRequired);
     }
-    if &(account_control | no_pass) == account_control {
+    if (account_control | no_pass) == account_control {
         flags.push(UacFlags::PasswordNotRequired);
     }
-    if &(account_control | temp_dupe) == account_control {
+    if (account_control | temp_dupe) == account_control {
         flags.push(UacFlags::TempDuplicateAccount);
     }
-    if &(account_control | normal) == account_control {
+    if (account_control | normal) == account_control {
         flags.push(UacFlags::NormalAccount);
     }
-    if &(account_control | user_mns) == account_control {
+    if (account_control | user_mns) == account_control {
         flags.push(UacFlags::MNSLogonAccount);
     }
-    if &(account_control | interdomain) == account_control {
+    if (account_control | interdomain) == account_control {
         flags.push(UacFlags::InterdomainTrustAccount);
     }
-    if &(account_control | workstation) == account_control {
+    if (account_control | workstation) == account_control {
         flags.push(UacFlags::WorkstationTrustAccount);
     }
-    if &(account_control | server_trust) == account_control {
+    if (account_control | server_trust) == account_control {
         flags.push(UacFlags::ServerTrustAccount);
     }
-    if &(account_control | dont_expire) == account_control {
+    if (account_control | dont_expire) == account_control {
         flags.push(UacFlags::DontExpirePassword);
     }
-    if &(account_control | auto_lock) == account_control {
+    if (account_control | auto_lock) == account_control {
         flags.push(UacFlags::AccountAutoLocked);
     }
-    if &(account_control | text_pass) == account_control {
+    if (account_control | text_pass) == account_control {
         flags.push(UacFlags::EncryptedTextPasswordAllowed);
     }
-    if &(account_control | smartcard) == account_control {
+    if (account_control | smartcard) == account_control {
         flags.push(UacFlags::SmartcardRequired);
     }
-    if &(account_control | trusted_delegate) == account_control {
+    if (account_control | trusted_delegate) == account_control {
         flags.push(UacFlags::TrustedForDelegation);
     }
-    if &(account_control | not_delegate) == account_control {
+    if (account_control | not_delegate) == account_control {
         flags.push(UacFlags::NotDelegated);
     }
-    if &(account_control | des_key) == account_control {
+    if (account_control | des_key) == account_control {
         flags.push(UacFlags::UseDESKeyOnly);
     }
-    if &(account_control | dont_require_preauth) == account_control {
+    if (account_control | dont_require_preauth) == account_control {
         flags.push(UacFlags::DontRequirePreauth);
     }
-    if &(account_control | pass_expired) == account_control {
+    if (account_control | pass_expired) == account_control {
         flags.push(UacFlags::PasswordExpired);
     }
-    if &(account_control | trusted_to_auth) == account_control {
+    if (account_control | trusted_to_auth) == account_control {
         flags.push(UacFlags::TrustedToAuthenticateForDelegation);
     }
-    if &(account_control | no_auth_data) == account_control {
+    if (account_control | no_auth_data) == account_control {
         flags.push(UacFlags::NoAuthDataRequired);
     }
-    if &(account_control | partial_secrets) == account_control {
+    if (account_control | partial_secrets) == account_control {
         flags.push(UacFlags::PartialSecretsAccount);
     }
-    if &(account_control | aes_keys) == account_control {
+    if (account_control | aes_keys) == account_control {
         flags.push(UacFlags::UseAESKeys);
     }
     flags

@@ -116,7 +116,7 @@ pub(crate) fn get_srum_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
         warn!("[srum] No hit for table: {table}");
         return Ok(Vec::new());
     }
-    let pages_result = get_all_pages(path, &(info.table_page as u32));
+    let pages_result = get_all_pages(path, info.table_page as u32);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {

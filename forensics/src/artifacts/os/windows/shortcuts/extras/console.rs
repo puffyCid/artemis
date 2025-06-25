@@ -66,10 +66,10 @@ fn parse_console(data: &[u8]) -> nom::IResult<&[u8], Vec<Console>> {
         window_x_coordinate,
         window_y_coordinate,
         font_size,
-        font_family: get_family(&font_family),
-        font_weight: get_weight(&font_weight),
+        font_family: get_family(font_family),
+        font_weight: get_weight(font_weight),
         face_name: extract_utf16_string(string_data),
-        cursor_size: get_cursor(&cursor_size),
+        cursor_size: get_cursor(cursor_size),
         full_screen,
         insert_mode,
         automatic_position,
@@ -125,7 +125,7 @@ fn get_color(color: &u16) -> Vec<ColorFlags> {
 }
 
 /// Get Font Family
-fn get_family(font: &u32) -> FontFamily {
+fn get_family(font: u32) -> FontFamily {
     // Font Family is last 28 bits. First 4 bits may be Font Pitch? (https://github.com/Velocidex/velociraptor/blob/master/artifacts/definitions/Windows/Forensics/Lnk.yaml#L721)
     let start_bit = 3;
     let bits = 27;
@@ -144,10 +144,10 @@ fn get_family(font: &u32) -> FontFamily {
 }
 
 /// Get Font Weight
-fn get_weight(font: &u32) -> FontWeight {
+fn get_weight(font: u32) -> FontWeight {
     let regular = 700;
 
-    if font < &regular {
+    if font < regular {
         FontWeight::Regular
     } else {
         FontWeight::Bold
@@ -155,16 +155,16 @@ fn get_weight(font: &u32) -> FontWeight {
 }
 
 /// Get Cursor Size
-fn get_cursor(cursor: &u32) -> CursorSize {
+fn get_cursor(cursor: u32) -> CursorSize {
     let small = 25;
     let normal = 50;
     let large = 100;
 
-    if cursor <= &small {
+    if cursor <= small {
         CursorSize::Small
-    } else if cursor > &small && cursor <= &normal {
+    } else if cursor > small && cursor <= normal {
         CursorSize::Normal
-    } else if cursor > &normal && cursor <= &large {
+    } else if cursor > normal && cursor <= large {
         CursorSize::Large
     } else {
         CursorSize::Unknown
@@ -212,21 +212,21 @@ mod tests {
     #[test]
     fn test_get_cursor() {
         let test = 99;
-        let result = get_cursor(&test);
+        let result = get_cursor(test);
         assert_eq!(result, CursorSize::Large);
     }
 
     #[test]
     fn test_get_weight() {
         let test = 800;
-        let result = get_weight(&test);
+        let result = get_weight(test);
         assert_eq!(result, FontWeight::Bold);
     }
 
     #[test]
     fn test_get_family() {
         let test = 0x36;
-        let result = get_family(&test);
+        let result = get_family(test);
         assert_eq!(result, FontFamily::Modern);
     }
 

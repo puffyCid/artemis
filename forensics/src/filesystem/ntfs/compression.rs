@@ -274,7 +274,7 @@ fn walk_offset_table<'a>(
             // If there is only one array entry then always make sure the first chunk is read (first chunk is NOT part of the array of offsets)
             if first_chunk && !first_chunk_data.is_empty() {
                 let uncompressed_result =
-                    decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
+                    decompress_ntfs(&mut first_chunk_data.to_vec(), decom_size);
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
                     Err(err) => {
@@ -302,7 +302,7 @@ fn walk_offset_table<'a>(
         }
 
         if first_chunk && !first_chunk_data.is_empty() {
-            let uncompressed_result = decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
+            let uncompressed_result = decompress_ntfs(&mut first_chunk_data.to_vec(), decom_size);
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -320,7 +320,7 @@ fn walk_offset_table<'a>(
             continue;
         }
 
-        let uncompressed_result = decompress_ntfs(&mut compressed_data, &decom_size);
+        let uncompressed_result = decompress_ntfs(&mut compressed_data, decom_size);
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {
@@ -336,7 +336,7 @@ fn walk_offset_table<'a>(
 
 #[cfg(target_os = "windows")]
 /// Decompress WOF compressed data on Windows systems
-fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
+fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
     let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
     let pf_data = match pf_data_result {
         Ok(result) => result,
@@ -360,8 +360,8 @@ fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSys
 
 #[cfg(target_family = "unix")]
 /// Decompress WOF compressed data on non-Windows systems
-fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
-    let ntfs_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
+    let ntfs_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
     let ntfs_data = match ntfs_data_result {
         Ok(result) => result,
         Err(err) => {

@@ -105,7 +105,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     };
 
     let mut info = table_info(&catalog, table);
-    let pages_result = get_all_pages(path, &(info.table_page as u32));
+    let pages_result = get_all_pages(path, info.table_page as u32);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {

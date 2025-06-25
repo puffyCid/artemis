@@ -49,10 +49,10 @@ impl LnkNetwork {
 
         let mut network = LnkNetwork {
             _size: size,
-            _flags: LnkNetwork::get_flag_type(&flag),
+            _flags: LnkNetwork::get_flag_type(flag),
             name_offset,
             device_offset,
-            provider_type: LnkNetwork::get_provider_type(&provider),
+            provider_type: LnkNetwork::get_provider_type(provider),
             unicode_share_name_offset: 0,
             unicode_device_name_offset: 0,
             share_name: String::new(),
@@ -91,7 +91,7 @@ impl LnkNetwork {
     }
 
     /// Get flag type for network device
-    fn get_flag_type(flag: &u32) -> NetworkFlags {
+    fn get_flag_type(flag: u32) -> NetworkFlags {
         match flag {
             1 => NetworkFlags::ValidDevice,
             2 => NetworkFlags::ValidNetType,
@@ -100,7 +100,7 @@ impl LnkNetwork {
     }
 
     /// Get provider type for network device
-    fn get_provider_type(provider: &u32) -> NetworkProviderType {
+    fn get_provider_type(provider: u32) -> NetworkProviderType {
         match provider {
             0x1a0000 => NetworkProviderType::WnncNetAvid,
             0x1b0000 => NetworkProviderType::WnncNetDocuspace,
@@ -179,14 +179,14 @@ mod tests {
     #[test]
     fn test_get_provider_type() {
         let test = 1;
-        let result = LnkNetwork::get_flag_type(&test);
+        let result = LnkNetwork::get_flag_type(test);
         assert_eq!(result, NetworkFlags::ValidDevice);
     }
 
     #[test]
     fn test_get_flag_type() {
         let test = 0x3f0000;
-        let result = LnkNetwork::get_provider_type(&test);
+        let result = LnkNetwork::get_provider_type(test);
         assert_eq!(result, NetworkProviderType::WnncNetVmware);
     }
 }

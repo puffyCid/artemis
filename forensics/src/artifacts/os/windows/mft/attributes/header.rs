@@ -83,7 +83,7 @@ impl AttributeHeader {
         let (input, attrib_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let header = AttributeHeader {
-            attrib_type: AttributeHeader::get_type(&type_data),
+            attrib_type: AttributeHeader::get_type(type_data),
             size,
             small_size,
             resident_flag: AttributeHeader::get_resident(&resident_data),
@@ -98,7 +98,7 @@ impl AttributeHeader {
     }
 
     /// Determine attribute type
-    pub(crate) fn get_type(data: &u32) -> AttributeType {
+    pub(crate) fn get_type(data: u32) -> AttributeType {
         match data {
             0x0 => AttributeType::Unused,
             0x10 => AttributeType::StandardInformation,
@@ -181,7 +181,7 @@ mod tests {
             0xf0, 0x100, 0x1000, 0xffffffff,
         ];
         for entry in test {
-            let result = AttributeHeader::get_type(&entry);
+            let result = AttributeHeader::get_type(entry);
             assert_ne!(result, AttributeType::Unknown);
         }
     }

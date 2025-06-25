@@ -75,7 +75,7 @@ impl AttributeList {
             remaining = input;
 
             let mut list = AttributeList {
-                attribute_type: AttributeHeader::get_type(&attribute_type),
+                attribute_type: AttributeHeader::get_type(attribute_type),
                 size,
                 name_size,
                 name_offset,

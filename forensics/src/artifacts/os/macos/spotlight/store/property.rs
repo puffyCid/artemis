@@ -116,7 +116,7 @@ pub(crate) fn property_header(data: &[u8]) -> nom::IResult<&[u8], PropertyHeader
 
     // Also referred to as block_type
     let (input, property_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let property_types = get_property_types(&property_type_data);
+    let property_types = get_property_types(property_type_data);
 
     if !property_types.contains(&PropertyType::Lz4Compressed) {
         warn!("[spotlight] Got non-lz4 compressed data. This is unsupported!");
@@ -327,7 +327,7 @@ enum PropertyType {
 }
 
 /// Determine Property type
-fn get_property_types(data: &u32) -> Vec<PropertyType> {
+fn get_property_types(data: u32) -> Vec<PropertyType> {
     let records = 0x9;
     let attr_types = 0x11;
     let attr_values = 0x21;
@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn test_get_property_types() {
         let data = 9;
-        let result = get_property_types(&data);
+        let result = get_property_types(data);
         assert_eq!(result[0], PropertyType::ZlibDeflateRecords);
     }
 

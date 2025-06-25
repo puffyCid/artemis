@@ -126,8 +126,8 @@ fn triggers(data: &[u8]) -> nom::IResult<&[u8], Vec<VarTriggers>> {
             start_time,
             duration,
             interval_mins: interval,
-            flags: trigger_flags(&flag_data),
-            types: trigger_types(&type_data),
+            flags: trigger_flags(flag_data),
+            types: trigger_types(type_data),
         };
         trigger_vec.push(trigger);
         trigger_data = input;
@@ -139,7 +139,7 @@ fn triggers(data: &[u8]) -> nom::IResult<&[u8], Vec<VarTriggers>> {
 }
 
 /// Get Trigger Flags
-fn trigger_flags(data: &u32) -> Vec<TriggerFlags> {
+fn trigger_flags(data: u32) -> Vec<TriggerFlags> {
     let end_data = 0x1;
     let duration_end = 0x2;
     let disabled = 0x4;
@@ -160,7 +160,7 @@ fn trigger_flags(data: &u32) -> Vec<TriggerFlags> {
 }
 
 /// Get Trigger Types
-fn trigger_types(data: &u32) -> Vec<TriggerTypes> {
+fn trigger_types(data: u32) -> Vec<TriggerTypes> {
     let once = 0x0;
     let daily = 0x1;
     let weekly = 0x2;
@@ -274,14 +274,14 @@ mod tests {
     #[test]
     fn test_trigger_flags() {
         let test = 0x1;
-        let result = trigger_flags(&test);
+        let result = trigger_flags(test);
         assert_eq!(result, vec![TriggerFlags::HasEndDate]);
     }
 
     #[test]
     fn test_trigger_types() {
         let test = 0x1;
-        let result = trigger_types(&test);
+        let result = trigger_types(test);
         assert_eq!(result, vec![TriggerTypes::Once, TriggerTypes::Daily]);
     }
 }

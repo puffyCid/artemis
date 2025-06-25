@@ -163,7 +163,7 @@ fn read_attribute_data(
 }
 
 /// Determine attribute flags of a file
-pub(crate) fn file_attribute_flags(data: &u32) -> Vec<AttributeFlags> {
+pub(crate) fn file_attribute_flags(data: u32) -> Vec<AttributeFlags> {
     let mut attrs = Vec::new();
 
     if (data & 0x1) == 0x1 {

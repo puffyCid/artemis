@@ -312,12 +312,12 @@ impl EntryArray {
                 } else if data.message.starts_with("PRIORITY=") {
                     if let Some((_, priority)) = data.message.split_once('=') {
                         journal.priority =
-                            EntryArray::get_priority(&priority.parse::<u32>().unwrap_or_default());
+                            EntryArray::get_priority(priority.parse::<u32>().unwrap_or_default());
                     }
                 } else if data.message.starts_with("SYSLOG_FACILITY=") {
                     if let Some((_, facility)) = data.message.split_once('=') {
                         journal.syslog_facility =
-                            EntryArray::get_facility(&facility.parse::<u32>().unwrap_or_default());
+                            EntryArray::get_facility(facility.parse::<u32>().unwrap_or_default());
                     }
                 } else if data.message.starts_with("TID=") {
                     if let Some((_, tid)) = data.message.split_once('=') {
@@ -372,7 +372,7 @@ impl EntryArray {
     }
 
     /// Get message priority
-    fn get_priority(priority: &u32) -> Priority {
+    fn get_priority(priority: u32) -> Priority {
         match priority {
             0 => Priority::Emergency,
             1 => Priority::Alert,
@@ -387,7 +387,7 @@ impl EntryArray {
     }
 
     /// Get syslog facility if any
-    fn get_facility(facility: &u32) -> Facility {
+    fn get_facility(facility: u32) -> Facility {
         match facility {
             0 => Facility::Kernel,
             1 => Facility::User,
@@ -541,7 +541,7 @@ mod tests {
     fn test_get_priority() {
         let test = [0, 1, 2, 3, 4, 5, 6, 7];
         for entry in test {
-            let result = EntryArray::get_priority(&entry);
+            let result = EntryArray::get_priority(entry);
             assert!(result != Priority::None);
         }
     }
@@ -550,7 +550,7 @@ mod tests {
     fn test_get_facility() {
         let test: Vec<u32> = (0..23).collect();
         for entry in test {
-            let result = EntryArray::get_facility(&entry);
+            let result = EntryArray::get_facility(entry);
             assert!(result != Facility::None);
         }
     }

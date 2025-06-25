@@ -69,8 +69,8 @@ impl IndexRoot {
         let (input, cluster_block_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let header = RootHeader {
-            attribute_type: AttributeHeader::get_type(&attribute_type),
-            _collation_type: IndexRoot::get_collation_type(&collation_type),
+            attribute_type: AttributeHeader::get_type(attribute_type),
+            _collation_type: IndexRoot::get_collation_type(collation_type),
             _entry_size: entry_size,
             _cluster_block_count: cluster_block_count,
         };
@@ -128,7 +128,7 @@ impl IndexRoot {
     }
 
     /// Determine collection type for Index
-    fn get_collation_type(data: &u32) -> CollationType {
+    fn get_collation_type(data: u32) -> CollationType {
         match data {
             0x0 => CollationType::Binary,
             0x1 => CollationType::Filename,
@@ -221,7 +221,7 @@ mod tests {
         let test = [0x0, 0x1, 0x2, 0x10, 0x11, 0x12, 0x13];
 
         for entry in test {
-            let result = IndexRoot::get_collation_type(&entry);
+            let result = IndexRoot::get_collation_type(entry);
             assert_ne!(result, CollationType::Unknown);
         }
     }

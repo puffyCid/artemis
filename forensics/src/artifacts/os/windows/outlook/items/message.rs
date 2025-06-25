@@ -234,7 +234,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
         return Ok((input, value));
     }
 
-    let decom_result = decompress_rtf(input, &uncompressed_size);
+    let decom_result = decompress_rtf(input, uncompressed_size);
     let decom = match decom_result {
         Ok(result) => result,
         Err(err) => {

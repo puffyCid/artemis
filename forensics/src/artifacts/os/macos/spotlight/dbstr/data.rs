@@ -171,7 +171,7 @@ mod tests {
             let db_header = get_header(&data).unwrap();
             let offsets = header.full_path.replace("header", "offsets");
             let offset_data = read_file(&offsets).unwrap();
-            let offsets_vec = get_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            let offsets_vec = get_offsets(&offset_data, db_header.offset_entries).unwrap();
 
             let data = header.full_path.replace("header", "data");
             let prop_data = read_file(&data).unwrap();
@@ -203,7 +203,7 @@ mod tests {
             let db_header = get_header(&data).unwrap();
             let offsets = header.full_path.replace("header", "offsets");
             let offset_data = read_file(&offsets).unwrap();
-            let offsets_vec = get_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            let offsets_vec = get_offsets(&offset_data, db_header.offset_entries).unwrap();
 
             let data = header.full_path.replace("header", "data");
             let prop_data = read_file(&data).unwrap();
@@ -227,7 +227,7 @@ mod tests {
             let db_header = get_header(&data).unwrap();
             let offsets = header.full_path.replace("header", "offsets");
             let offset_data = read_file(&offsets).unwrap();
-            let offsets_vec = get_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            let offsets_vec = get_offsets(&offset_data, db_header.offset_entries).unwrap();
 
             let data = header.full_path.replace("header", "data");
             let prop_data = read_file(&data).unwrap();

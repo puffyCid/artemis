@@ -92,10 +92,10 @@ impl UsnJrnlFormat {
             let name = extract_utf16_string(name_data);
 
             let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
-            let update_reason = UsnJrnlFormat::reason_flags(&reason);
-            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+            let update_reason = UsnJrnlFormat::reason_flags(reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(source);
 
-            let file_attributes = file_attribute_flags(&flags);
+            let file_attributes = file_attribute_flags(flags);
 
             let path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
             {
@@ -205,10 +205,10 @@ impl UsnJrnlFormat {
             let name = extract_utf16_string(name_data);
 
             let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
-            let update_reason = UsnJrnlFormat::reason_flags(&reason);
-            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+            let update_reason = UsnJrnlFormat::reason_flags(reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(source);
 
-            let file_attributes = file_attribute_flags(&flags);
+            let file_attributes = file_attribute_flags(flags);
 
             let mut path = String::new();
             if reader.is_some() {
@@ -280,7 +280,7 @@ impl UsnJrnlFormat {
     }
 
     /// Get `UsnJrnl` update reason flags
-    fn reason_flags(flag: &u32) -> Vec<Reason> {
+    fn reason_flags(flag: u32) -> Vec<Reason> {
         let mut reasons = Vec::new();
 
         if (flag & 0x1) == 0x1 {
@@ -353,16 +353,16 @@ impl UsnJrnlFormat {
     }
 
     /// Get `UsnJrnl` source flags (none seen so far)
-    fn source_flag(flags: &u32) -> Source {
+    fn source_flag(flags: u32) -> Source {
         let data_manage = 0x1;
         let aux_data = 0x2;
         let replicated_manage = 0x4;
 
-        if flags == &data_manage {
+        if flags == data_manage {
             Source::DataManagement
-        } else if flags == &aux_data {
+        } else if flags == aux_data {
             Source::AuxiliaryData
-        } else if flags == &replicated_manage {
+        } else if flags == replicated_manage {
             Source::ReplicationManagement
         } else {
             Source::None

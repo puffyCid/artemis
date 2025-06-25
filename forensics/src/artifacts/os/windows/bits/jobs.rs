@@ -258,15 +258,15 @@ pub(crate) fn parse_job<'a>(
     // Not sure what this is used for, is it unique per Job?
     let (input, _access_token) = take(token_size)(input)?;
 
-    job_info.job_type = get_type(&job_type);
-    job_info.priority = get_priority(&job_priority);
-    job_info.job_state = get_state(&job_state);
+    job_info.job_type = get_type(job_type);
+    job_info.priority = get_priority(job_priority);
+    job_info.job_state = get_state(job_state);
     job_info.job_name = job_name;
     job_info.job_description = description;
     job_info.job_command = cmd;
     job_info.job_arguments = args;
     job_info.owner_sid = sid;
-    job_info.flags = get_flag(&job_flag);
+    job_info.flags = get_flag(job_flag);
 
     let padding_size: u16 = 982;
     let (input, _) = take(padding_size)(input)?;
@@ -396,7 +396,7 @@ pub(crate) fn job_details<'a>(
 }
 
 /// Determine the job type
-pub(crate) fn get_type(job_type: &u32) -> JobType {
+pub(crate) fn get_type(job_type: u32) -> JobType {
     match job_type {
         0 => JobType::Download,
         1 => JobType::Upload,
@@ -406,7 +406,7 @@ pub(crate) fn get_type(job_type: &u32) -> JobType {
 }
 
 /// Determien the job priority
-pub(crate) fn get_priority(job_priority: &u32) -> JobPriority {
+pub(crate) fn get_priority(job_priority: u32) -> JobPriority {
     match job_priority {
         0 => JobPriority::Foreground,
         1 => JobPriority::High,
@@ -417,7 +417,7 @@ pub(crate) fn get_priority(job_priority: &u32) -> JobPriority {
 }
 
 /// Determine the job state
-pub(crate) fn get_state(job_state: &u32) -> JobState {
+pub(crate) fn get_state(job_state: u32) -> JobState {
     match job_state {
         0 => JobState::Queued,
         1 => JobState::Connecting,
@@ -433,7 +433,7 @@ pub(crate) fn get_state(job_state: &u32) -> JobState {
 }
 
 /// Determine flag associated with job
-pub(crate) fn get_flag(job_flag: &u32) -> JobFlags {
+pub(crate) fn get_flag(job_flag: u32) -> JobFlags {
     match job_flag {
         1 => JobFlags::Transferred,
         2 => JobFlags::Error,
@@ -463,28 +463,28 @@ mod tests {
     #[test]
     fn test_get_flag() {
         let test = 1;
-        let results = get_flag(&test);
+        let results = get_flag(test);
         assert_eq!(results, JobFlags::Transferred);
     }
 
     #[test]
     fn test_get_state() {
         let test = 0;
-        let results = get_state(&test);
+        let results = get_state(test);
         assert_eq!(results, JobState::Queued);
     }
 
     #[test]
     fn test_get_priority() {
         let test = 0;
-        let results = get_priority(&test);
+        let results = get_priority(test);
         assert_eq!(results, JobPriority::Foreground);
     }
 
     #[test]
     fn test_get_type() {
         let test = 0;
-        let results = get_type(&test);
+        let results = get_type(test);
         assert_eq!(results, JobType::Download);
     }
 

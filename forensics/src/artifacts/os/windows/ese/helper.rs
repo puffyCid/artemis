@@ -79,7 +79,7 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
 }
 
 /// Get all pages from ESE table. First page can be found from the `Catalog`
-pub(crate) fn get_all_pages(path: &str, first_page: &u32) -> Result<Vec<u32>, EseError> {
+pub(crate) fn get_all_pages(path: &str, first_page: u32) -> Result<Vec<u32>, EseError> {
     let plat = get_platform();
 
     let pages = if plat != "Windows" {
@@ -387,7 +387,7 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
 
 /// Get array of pages
 fn get_pages<T: std::io::Seek + std::io::Read>(
-    first_page: &u32,
+    first_page: u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
     page_size: &u32,
@@ -426,7 +426,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     }
 
     let mut pages = Vec::new();
-    pages.push(*first_page);
+    pages.push(first_page);
 
     for tag in table_page_data.page_tags {
         // Defunct tags are not used

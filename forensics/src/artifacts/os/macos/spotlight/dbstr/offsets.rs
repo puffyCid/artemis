@@ -6,7 +6,7 @@ use log::error;
 use nom::bytes::complete::take;
 
 /// The offsets associated with Spotlight data
-pub(crate) fn get_offsets(data: &[u8], offset_entries: &u32) -> Result<Vec<u32>, SpotlightError> {
+pub(crate) fn get_offsets(data: &[u8], offset_entries: u32) -> Result<Vec<u32>, SpotlightError> {
     let offset_results = parse_offsets(data, offset_entries);
     let offsets = match offset_results {
         Ok((_, result)) => result,
@@ -20,9 +20,9 @@ pub(crate) fn get_offsets(data: &[u8], offset_entries: &u32) -> Result<Vec<u32>,
 }
 
 /// Parse the offsets info associated with Dbstr files
-fn parse_offsets<'a>(data: &'a [u8], offset_entries: &u32) -> nom::IResult<&'a [u8], Vec<u32>> {
+fn parse_offsets<'a>(data: &'a [u8], offset_entries: u32) -> nom::IResult<&'a [u8], Vec<u32>> {
     let offset_size = 4;
-    let (input, mut offsets_data) = take(*offset_entries * offset_size)(data)?;
+    let (input, mut offsets_data) = take(offset_entries * offset_size)(data)?;
 
     let mut offsets = Vec::new();
 
@@ -59,7 +59,7 @@ mod tests {
             let db_header = get_header(&data).unwrap();
             let offsets = header.full_path.replace("header", "offsets");
             let offset_data = read_file(&offsets).unwrap();
-            let offsets_vec = get_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            let offsets_vec = get_offsets(&offset_data, db_header.offset_entries).unwrap();
             assert!(offsets_vec.len() >= 1)
         }
     }
@@ -78,7 +78,7 @@ mod tests {
             let db_header = get_header(&data).unwrap();
             let offsets = header.full_path.replace("header", "offsets");
             let offset_data = read_file(&offsets).unwrap();
-            let (_, offsets_vec) = parse_offsets(&offset_data, &db_header.offset_entries).unwrap();
+            let (_, offsets_vec) = parse_offsets(&offset_data, db_header.offset_entries).unwrap();
             assert!(offsets_vec.len() >= 1)
         }
     }

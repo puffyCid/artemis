@@ -115,7 +115,7 @@ fn get_fsevent_data<'a>(data: &'a [u8], sig: &u32, path: &str) -> nom::IResult<&
 
     let (input, fsevent_id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
     let (input, fsevent_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let flag_list = match_flags(&fsevent_flags);
+    let flag_list = match_flags(fsevent_flags);
 
     fsevent_data.flags = flag_list;
     fsevent_data.event_id = fsevent_id;
@@ -147,7 +147,7 @@ fn get_fsevent_data<'a>(data: &'a [u8], sig: &u32, path: &str) -> nom::IResult<&
 }
 
 /// Identify Event flags in `FsEvent` entry
-fn match_flags(flags: &u32) -> Vec<String> {
+fn match_flags(flags: u32) -> Vec<String> {
     let mut flag_list: Vec<String> = Vec::new();
     if (flags & 0x01) != 0 {
         flag_list.push("Created".to_string());
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_match_flags() {
         let data: u32 = 11;
-        let results = match_flags(&data);
+        let results = match_flags(data);
         assert_eq!(results[0], "Created");
         assert_eq!(results[1], "Removed");
         assert_eq!(results[2], "Renamed");

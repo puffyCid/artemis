@@ -441,7 +441,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             }
             let rows_result = block_row_count(
                 &all_block[heap_btree.node.block_index as usize],
-                &heap_btree.node.index,
+                heap_btree.node.index,
             );
             info.total_rows = match rows_result {
                 Ok((_, result)) => result,
@@ -622,7 +622,7 @@ fn extract_branch_details<'a>(
 }
 
 /// Determine row count in block data
-fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8], u64> {
+fn block_row_count<'a>(data: &'a [u8], heap_index: u32) -> nom::IResult<&'a [u8], u64> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -631,8 +631,8 @@ fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(*heap_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(*heap_index as usize) {
+    if let Some(start) = map.allocation_table.get(heap_index as usize - adjust) {
+        if let Some(end) = map.allocation_table.get(heap_index as usize) {
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -866,7 +866,7 @@ fn parse_row_data<'a>(
         if offset == 0 {
             return Ok((row_data, value));
         }
-        let (block_index, map_start) = get_map_offset(&offset);
+        let (block_index, map_start) = get_map_offset(offset);
         if let Some(block_data) = all_blocks.get(block_index as usize) {
             let prop_result = get_property_data(block_data, prop_type, &map_start, false);
             let prop_value = match prop_result {
@@ -1174,7 +1174,7 @@ mod tests {
             42, 96, 64, 96,
         ];
 
-        let (_, rows) = block_row_count(&test, &11).unwrap();
+        let (_, rows) = block_row_count(&test, 11).unwrap();
         assert_eq!(rows, 0);
     }
 }
