@@ -520,7 +520,7 @@ fn parse_tagged_data<'a>(
                 let (input, data) = take(tag_size)(tag_data_start)?;
                 tag_data_start = input;
                 let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag);
+                let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
                     column: value.column,
@@ -543,7 +543,7 @@ fn parse_tagged_data<'a>(
             let (input, data) = take(tag_size)(tag_data_start)?;
             tag_data_start = input;
             let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag.into());
+            let flags = Catalog::get_flags(flag.into());
 
             let tag = TaggedData {
                 column: value.column,
@@ -564,7 +564,7 @@ fn parse_tagged_data<'a>(
             let flag = value.offset ^ bit_flag;
 
             let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag);
+            let flags = Catalog::get_flags(flag);
 
             let tag = TaggedData {
                 column: value.column,
@@ -578,7 +578,7 @@ fn parse_tagged_data<'a>(
         }
 
         let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-        let flags = Catalog::get_flags(&flag.into());
+        let flags = Catalog::get_flags(flag.into());
 
         let tag = TaggedData {
             column: value.column,

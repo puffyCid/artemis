@@ -38,7 +38,7 @@ impl PageTag {
             let tag = PageTag {
                 offset: offset & bit_adjust,
                 value_size: value_size & bit_adjust,
-                flags: PageTag::get_flags(&offset),
+                flags: PageTag::get_flags(offset),
             };
             tags.push(tag);
             tag_data = input;
@@ -54,7 +54,7 @@ impl PageTag {
     }
 
     /// Get the flags associated with the page tags
-    pub(crate) fn get_flags(offset: &u16) -> Vec<TagFlags> {
+    pub(crate) fn get_flags(offset: u16) -> Vec<TagFlags> {
         let flag_check = 13;
         let flag = offset >> flag_check;
 

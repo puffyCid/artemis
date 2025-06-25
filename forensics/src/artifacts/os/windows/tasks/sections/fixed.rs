@@ -51,7 +51,7 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
     let (_, system_time) = system_time(system_time_data)?;
 
     let fixed = Fixed {
-        product_version: product_version(&product_version_data),
+        product_version: product_version(product_version_data),
         format_version,
         job_id,
         app_offset,
@@ -72,7 +72,7 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
 }
 
 /// Determine the Product Version from the `Job` file
-fn product_version(version: &u16) -> String {
+fn product_version(version: u16) -> String {
     match version {
         0x400 => String::from("Windows NT 4.0"),
         0x500 => String::from("Windows 2000"),
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_product_version() {
         let test = 0x400;
-        let version = product_version(&test);
+        let version = product_version(test);
         assert_eq!(version, "Windows NT 4.0");
     }
 

@@ -85,7 +85,7 @@ pub(crate) fn parse_db<'a>(
         }
         let (tag_data, value) = match tag {
             Tags::String => break, // strings only found in stringtable, which we parse in stringref
-            Tags::Binary => parse_binary(sdb_data, &tag_value)?,
+            Tags::Binary => parse_binary(sdb_data, tag_value)?,
             Tags::List => {
                 let (sdb_data, mut index_data) =
                     parse_list(sdb_data, stringtable_data, tag_values)?;

@@ -90,7 +90,7 @@ impl AttributeHeader {
             name_size,
             name: String::new(),
             _name_offset: name_offset,
-            _data_flags: AttributeHeader::get_data_flags(&flag_data),
+            _data_flags: AttributeHeader::get_data_flags(flag_data),
             _attrib_id: attrib_id,
         };
 
@@ -138,7 +138,7 @@ impl AttributeHeader {
     }
 
     /// Determine data flags for the file
-    fn get_data_flags(data: &u16) -> Vec<DataFlags> {
+    fn get_data_flags(data: u16) -> Vec<DataFlags> {
         let mut flags = Vec::new();
         if (data & 0x1) == 0x1 {
             flags.push(DataFlags::Compressed);
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_get_data_flags() {
-        let result = AttributeHeader::get_data_flags(&0x4000);
+        let result = AttributeHeader::get_data_flags(0x4000);
         assert_eq!(result, vec![DataFlags::Encrypted]);
     }
 }

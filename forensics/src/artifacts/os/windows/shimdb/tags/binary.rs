@@ -6,13 +6,13 @@ use crate::utils::{
 use nom::bytes::complete::take;
 
 /// Get binary data and base64 encode it
-pub(crate) fn parse_binary<'a>(data: &'a [u8], tag_value: &u16) -> nom::IResult<&'a [u8], String> {
+pub(crate) fn parse_binary(data: &[u8], tag_value: u16) -> nom::IResult<&[u8], String> {
     let (input, binary_data) = get_binary(data)?;
 
     let tag_app_id = 0x9011;
     let tag_exe_id = 0x9004;
     let tag_fix_id = 0x9010;
-    if tag_value == &tag_app_id || tag_value == &tag_exe_id || tag_value == &tag_fix_id {
+    if tag_value == tag_app_id || tag_value == tag_exe_id || tag_value == tag_fix_id {
         return Ok((input, format_guid_le_bytes(binary_data)));
     }
 
@@ -39,7 +39,7 @@ mod tests {
             16, 0, 0, 0, 166, 192, 126, 161, 45, 215, 149, 47, 157, 134, 61, 18, 81, 227, 217, 212,
         ];
 
-        let (_, result) = parse_binary(&test_data, &1).unwrap();
+        let (_, result) = parse_binary(&test_data, 1).unwrap();
         assert_eq!(result, "psB+oS3XlS+dhj0SUePZ1A==")
     }
 

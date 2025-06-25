@@ -150,7 +150,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
             let mut prop = PropertyContext {
                 name,
-                property_type: get_property_type(&prop_type_num),
+                property_type: get_property_type(prop_type_num),
                 prop_id,
                 property_number: prop_type_num,
                 reference: value_reference,

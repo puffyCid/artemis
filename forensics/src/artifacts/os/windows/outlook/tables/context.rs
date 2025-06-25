@@ -908,7 +908,7 @@ fn get_column_definitions<'a>(
         col_data = input;
 
         let column = ColumnDescriptor {
-            property_type: get_property_type(&property_type),
+            property_type: get_property_type(property_type),
             property_name: property_id_to_name(&format!(
                 "0x{:04x?}_0x{:04x?}",
                 &id, &property_type
@@ -932,7 +932,7 @@ fn get_column_definitions<'a>(
 }
 
 /// Return the `PropertyType` name
-pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
+pub(crate) fn get_property_type(prop: u16) -> PropertyType {
     match prop {
         1 => PropertyType::Null,
         0 => PropertyType::Unspecified,
@@ -1141,7 +1141,7 @@ mod tests {
     #[test]
     fn test_get_property_type() {
         let test = 13;
-        let prop = get_property_type(&test);
+        let prop = get_property_type(test);
         assert_eq!(prop, PropertyType::Object);
     }
 

@@ -35,14 +35,14 @@ impl VolumeInfo {
         let info = VolumeInfo {
             major,
             minor,
-            flags: VolumeInfo::get_flags(&flag_data),
+            flags: VolumeInfo::get_flags(flag_data),
         };
 
         Ok((input, info))
     }
 
     /// Determine volume flags
-    fn get_flags(data: &u16) -> Vec<VolumeFlags> {
+    fn get_flags(data: u16) -> Vec<VolumeFlags> {
         let mut flags = Vec::new();
 
         if (data & 0x1) == 0x1 {
@@ -87,7 +87,7 @@ mod tests {
     fn test_get_flags() {
         let test = [0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x80, 0x4000, 0x8000];
         for entry in test {
-            assert!(!VolumeInfo::get_flags(&entry).is_empty());
+            assert!(!VolumeInfo::get_flags(entry).is_empty());
         }
     }
 }

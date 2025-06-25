@@ -127,7 +127,7 @@ impl PageHeader {
                 let (input, _) = take(tag.offset)(page_data)?;
                 let (_, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-                tag.flags = PageTag::get_flags(&flags);
+                tag.flags = PageTag::get_flags(flags);
             }
         }
 

@@ -165,7 +165,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                     continue;
                 }
 
-                let fixed_mft_bytes = apply_fixup(entry_bytes, &mft_header.fix_up_count)?;
+                let fixed_mft_bytes = apply_fixup(entry_bytes, mft_header.fix_up_count)?;
                 let mut entry = match grab_attributes(
                     &fixed_mft_bytes,
                     reader,
@@ -475,7 +475,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
         }
     };
 
-    let mft_bytes = apply_fixup(&entry_bytes, &header.fix_up_count)?;
+    let mft_bytes = apply_fixup(&entry_bytes, header.fix_up_count)?;
 
     let entry = match grab_attributes(
         &mft_bytes,
@@ -579,7 +579,7 @@ fn determine_header_info<T: std::io::Seek + std::io::Read>(
 }
 
 /// Apply fixup values to the FILE entry to ensure accurate data
-fn apply_fixup(data: &[u8], count: &u16) -> Result<Vec<u8>, MftError> {
+fn apply_fixup(data: &[u8], count: u16) -> Result<Vec<u8>, MftError> {
     let (entry_bytes, fixup) = match Fixup::get_fixup(data, count) {
         Ok(result) => result,
         Err(err) => {

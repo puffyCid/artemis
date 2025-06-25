@@ -57,8 +57,8 @@ fn parse_console(data: &[u8]) -> nom::IResult<&[u8], Vec<Console>> {
     let (input, color_table) = take(string_size)(input)?;
 
     let console = Console {
-        color_flags: get_color(&color_flags),
-        popup_fill_attributes: get_color(&popup_fill_attributes),
+        color_flags: get_color(color_flags),
+        popup_fill_attributes: get_color(popup_fill_attributes),
         screen_width_buffer_size,
         screen_height_buffer_size,
         window_width,
@@ -83,7 +83,7 @@ fn parse_console(data: &[u8]) -> nom::IResult<&[u8], Vec<Console>> {
 }
 
 /// Get Console Color Flags
-fn get_color(color: &u16) -> Vec<ColorFlags> {
+fn get_color(color: u16) -> Vec<ColorFlags> {
     let fore_blue = 0x1;
     let fore_green = 0x2;
     let fore_red = 0x4;
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_get_color() {
         let test = 12;
-        let result = get_color(&test);
+        let result = get_color(test);
         assert_eq!(
             result,
             [ColorFlags::ForegroundRed, ColorFlags::ForegroundIntensity]

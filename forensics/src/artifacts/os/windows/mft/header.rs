@@ -59,7 +59,7 @@ impl MftHeader {
             sequence,
             _ref_count: ref_count,
             _attrib_offset: attrib_offset,
-            entry_flags: MftHeader::get_flags(&entry_data),
+            entry_flags: MftHeader::get_flags(entry_data),
             _used_size: used_size,
             total_size,
             mft_base_index,
@@ -73,7 +73,7 @@ impl MftHeader {
     }
 
     /// Determine entry flags
-    fn get_flags(data: &u16) -> Vec<EntryFlags> {
+    fn get_flags(data: u16) -> Vec<EntryFlags> {
         let mut flags = Vec::new();
         if (data & 0x1) == 0x1 {
             flags.push(EntryFlags::InUse);
@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let test = 8;
-        let result = MftHeader::get_flags(&test);
+        let result = MftHeader::get_flags(test);
         assert_eq!(result, vec![EntryFlags::Index]);
     }
 }

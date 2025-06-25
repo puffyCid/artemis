@@ -130,7 +130,7 @@ impl AttributeList {
         ntfs_file: Option<&NtfsFile<'a>>,
     ) -> nom::IResult<&'a [u8], EntryAttributes> {
         let (remaining, header) = MftHeader::parse_header(data)?;
-        let (remaining, fixup) = Fixup::get_fixup(remaining, &header.fix_up_count)?;
+        let (remaining, fixup) = Fixup::get_fixup(remaining, header.fix_up_count)?;
 
         let mut mft_bytes = remaining.to_vec();
         Fixup::apply_fixup(&mut mft_bytes, &fixup);

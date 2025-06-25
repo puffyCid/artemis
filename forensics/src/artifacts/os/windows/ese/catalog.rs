@@ -595,7 +595,7 @@ impl Catalog {
                     let (input, data) = take(tag_size)(tag_data_start)?;
                     tag_data_start = input;
                     let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                    let flags = Catalog::get_flags(&flag);
+                    let flags = Catalog::get_flags(flag);
 
                     let tag = TaggedData {
                         column: value.column,
@@ -612,7 +612,7 @@ impl Catalog {
                 let (input, data) = take(tag_size)(tag_data_start)?;
                 tag_data_start = input;
                 let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag.into());
+                let flags = Catalog::get_flags(flag.into());
 
                 let tag = TaggedData {
                     column: value.column,
@@ -633,7 +633,7 @@ impl Catalog {
                 let flag = value.offset ^ bit_flag;
                 let (tag_data, _unknown_size_flag) =
                     nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag);
+                let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
                     column: value.column,
@@ -647,7 +647,7 @@ impl Catalog {
             }
 
             let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag.into());
+            let flags = Catalog::get_flags(flag.into());
 
             let tag = TaggedData {
                 column: value.column,
@@ -700,7 +700,7 @@ impl Catalog {
     }
 
     /// Get flags associated with tagged columns
-    pub(crate) fn get_flags(flags: &u16) -> Vec<TaggedDataFlag> {
+    pub(crate) fn get_flags(flags: u16) -> Vec<TaggedDataFlag> {
         let variable = 1;
         let compressed = 2;
         let long_value = 4;
