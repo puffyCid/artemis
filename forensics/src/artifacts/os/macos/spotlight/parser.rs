@@ -51,7 +51,7 @@ pub(crate) fn grab_spotlight(
 
     let start_time = time_now();
     for glob in paths {
-        let _ = parse_spotlight(&glob, output, &start_time, filter);
+        let _ = parse_spotlight(&glob, output, start_time, filter);
     }
 
     Ok(())

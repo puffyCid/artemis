@@ -30,7 +30,7 @@ impl EntryArray {
         is_compact: bool,
         output: &mut Output,
         filter: bool,
-        start_time: &u64,
+        start_time: u64,
     ) -> nom::IResult<&'a [u8], u64> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
@@ -475,7 +475,7 @@ mod tests {
             is_compact,
             &mut output,
             false,
-            &0,
+            0,
         )
         .unwrap();
         assert_eq!(result, 3744448);

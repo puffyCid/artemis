@@ -55,7 +55,7 @@ pub(crate) fn prefetch(
     };
 
     let output_name = "prefetch";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `EventLogs` artifact
@@ -138,7 +138,7 @@ pub(crate) fn shimdb(
     };
 
     let output_name = "shimdb";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `UserAssist` entries
@@ -167,7 +167,7 @@ pub(crate) fn userassist(
         }
     };
     let output_name = "userassist";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shimcache` entries
@@ -196,7 +196,7 @@ pub(crate) fn shimcache(
         }
     };
     let output_name = "shimcache";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shellbag` entries
@@ -226,7 +226,7 @@ pub(crate) fn shellbags(
         }
     };
     let output_name = "shellbags";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Amcache` entries
@@ -256,7 +256,7 @@ pub(crate) fn amcache(
         }
     };
     let output_name = "amcache";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shortcut` data
@@ -285,7 +285,7 @@ pub(crate) fn shortcuts(
         }
     };
     let output_name = "shortcuts";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `UsnJrnl` data
@@ -314,7 +314,7 @@ pub(crate) fn usnjrnl(
         }
     };
     let output_name = "usnjrnl";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Bits` data
@@ -343,7 +343,7 @@ pub(crate) fn bits(
         }
     };
     let output_name = "bits";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `SRUM` data
@@ -405,7 +405,7 @@ pub(crate) fn users_windows(
         }
     };
     let output_name = "users-windows";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Schedule Tasks` artifact
@@ -435,7 +435,7 @@ pub(crate) fn tasks(
     };
 
     let output_name = "tasks";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Services` artifact
@@ -465,7 +465,7 @@ pub(crate) fn services(
     };
 
     let output_name = "services";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Jumplists` artifact
@@ -495,7 +495,7 @@ pub(crate) fn jumplists(
     };
 
     let output_name = "jumplists";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Recycle Bin` artifact
@@ -525,7 +525,7 @@ pub(crate) fn recycle_bin(
     };
 
     let output_name = "recyclebin";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `WMI Persist` artifact
@@ -555,7 +555,7 @@ pub(crate) fn wmi_persist(
     };
 
     let output_name = "wmipersist";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Outlook` artifact
@@ -599,7 +599,7 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
@@ -895,7 +895,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

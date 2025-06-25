@@ -106,7 +106,7 @@ pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
 
         // Now get the child page
         let child_result = read_bytes(
-            &(branch_start as u64),
+            branch_start as u64,
             page_lv_data.len() as u64,
             ntfs_file,
             fs,

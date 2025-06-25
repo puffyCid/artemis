@@ -80,7 +80,7 @@ pub(crate) fn check_wofcompressed(
         let array_len = uncompressed_size / compression_unit as u64;
         let compressed_results = walk_offset_table(
             &compressed_data,
-            &array_len,
+            array_len,
             compression_unit,
             uncompressed_size as usize,
         );
@@ -215,7 +215,7 @@ fn parse_reparse(data: &[u8]) -> nom::IResult<&[u8], WofReparse> {
 /// Parse the compressed data by first walking the offset table and then decompressing each data chunk
 fn walk_offset_table<'a>(
     data: &'a [u8],
-    array_len: &u64,
+    array_len: u64,
     compression_unit: u32,
     uncompressed_size: usize,
 ) -> nom::IResult<&'a [u8], Vec<u8>> {
@@ -224,7 +224,7 @@ fn walk_offset_table<'a>(
 
     let mut array_offset = Vec::new();
     // Grab all offsets
-    while &array_count < array_len {
+    while array_count < array_len {
         let large_uncompressed = 4294967296; // 4GBs
         let (remaining_input, offset) = if uncompressed_size < large_uncompressed {
             let (data, result) = nom_unsigned_four_bytes(input, Endian::Le)?;

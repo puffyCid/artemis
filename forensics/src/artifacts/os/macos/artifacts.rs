@@ -52,7 +52,7 @@ pub(crate) fn loginitems(
     };
 
     let output_name = "loginitems";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse macOS `Emond`
@@ -82,7 +82,7 @@ pub(crate) fn emond(
     };
 
     let output_name = "emond";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get macOS `Users`
@@ -104,7 +104,7 @@ pub(crate) fn users_macos(
     };
 
     let output_name = "users-macos";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get macOS `Groups`
@@ -126,7 +126,7 @@ pub(crate) fn groups_macos(
     };
 
     let output_name = "groups-macos";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse macOS `FsEvents`
@@ -173,7 +173,7 @@ pub(crate) fn launchd(
     };
 
     let output_name = "launchd";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get macOS `Unifiedlogs`
@@ -212,7 +212,7 @@ pub(crate) fn execpolicy(
     };
 
     let output_name = "execpolicy";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse sudo logs on macOS
@@ -241,7 +241,7 @@ pub(crate) fn sudo_logs_macos(
     };
 
     let output_name = "sudologs-macos";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse spotlight on macOS
@@ -265,7 +265,7 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), MacArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
@@ -427,7 +427,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

@@ -162,7 +162,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         &mut serde_data,
         "registry",
         output,
-        &start_time,
+        start_time,
         params.filter,
     );
     match result {
@@ -246,7 +246,7 @@ fn parse_user_hives(
             &mut serde_data,
             "registry",
             output,
-            &start_time,
+            start_time,
             params.filter,
         );
         match result {

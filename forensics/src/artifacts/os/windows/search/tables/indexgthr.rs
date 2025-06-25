@@ -19,7 +19,7 @@ pub(crate) fn parse_index_gthr(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, HashMap<String, String>>,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), SearchError> {
     let mut entries = Vec::new();
@@ -237,7 +237,7 @@ mod tests {
                 &gather_rows.get("SystemIndex_Gthr").unwrap(),
                 &HashMap::new(),
                 &mut output,
-                &0,
+                0,
                 false,
             )
             .unwrap();

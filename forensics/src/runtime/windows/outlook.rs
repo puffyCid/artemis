@@ -525,7 +525,7 @@ pub(crate) fn js_read_attachment(
             let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
-        reader.read_attachment(Some(&ntfs_file), &block_id, &descriptor_id)
+        reader.read_attachment(Some(&ntfs_file), block_id, descriptor_id)
     } else {
         let reader = match setup_outlook_reader(&path) {
             Ok(result) => result,
@@ -550,7 +550,7 @@ pub(crate) fn js_read_attachment(
             let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
-        reader.read_attachment(None, &block_id, &descriptor_id)
+        reader.read_attachment(None, block_id, descriptor_id)
     };
 
     let attachment = match attachment_result {

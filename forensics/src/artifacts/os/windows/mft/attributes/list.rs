@@ -98,8 +98,7 @@ impl AttributeList {
             }
 
             let offset = list.parent_mft * entry_size;
-            let list_mft = match read_bytes(&(offset as u64), entry_size as u64, ntfs_file, reader)
-            {
+            let list_mft = match read_bytes(offset as u64, entry_size as u64, ntfs_file, reader) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[mft] Failed to read attribute list bytes: {err:?}");

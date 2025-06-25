@@ -21,7 +21,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
     };
 
     let output_name = "systeminfo";
-    let status = output_data(&mut serde_data, output_name, output, &start_time, filter);
+    let status = output_data(&mut serde_data, output_name, output, start_time, filter);
 
     if status.is_err() {
         error!(

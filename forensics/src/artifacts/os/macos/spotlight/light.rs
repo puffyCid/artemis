@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) fn parse_spotlight(
     glob_path: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), SpotlightError> {
     let paths_result = glob_paths(glob_path);
@@ -152,7 +152,7 @@ mod tests {
         test_location.push("tests/test_data/macos/spotlight/bigsur/*");
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_spotlight(test_location.to_str().unwrap(), &mut output, &0, false).unwrap();
+        parse_spotlight(test_location.to_str().unwrap(), &mut output, 0, false).unwrap();
     }
 
     #[test]

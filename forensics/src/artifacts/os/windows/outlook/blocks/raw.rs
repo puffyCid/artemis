@@ -37,7 +37,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
         alignment_size += size;
     }
     let bytes_result = read_bytes(
-        &block.block_offset,
+        block.block_offset,
         block.size as u64 + alignment_size as u64,
         ntfs_file,
         fs,

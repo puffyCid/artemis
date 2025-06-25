@@ -49,13 +49,13 @@ pub(crate) fn proc_list(
         let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
         if binary_data && processes_list.len() == binary_proc_limit {
-            let _ = output_process(&processes_list, output, filter, &start_time);
+            let _ = output_process(&processes_list, output, filter, start_time);
             processes_list = Vec::new();
         }
     }
 
     if !processes_list.is_empty() {
-        let _ = output_process(&processes_list, output, filter, &start_time);
+        let _ = output_process(&processes_list, output, filter, start_time);
     }
     Ok(())
 }
@@ -205,7 +205,7 @@ fn output_process(
     entries: &[Processes],
     output: &mut Output,
     filter: bool,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), ProcessError> {
     if entries.is_empty() {
         return Ok(());

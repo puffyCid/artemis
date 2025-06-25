@@ -18,7 +18,7 @@ pub(crate) fn json_format(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), FormatError> {
     // Get small amount of system metadata
     let info = get_info_metadata();
@@ -34,7 +34,7 @@ pub(crate) fn json_format(
                         "id": output.collection_id,
                         "artifact_name": output_name,
                         "complete_time": complete,
-                        "start_time": unixepoch_to_iso(*start_time as i64),
+                        "start_time": unixepoch_to_iso(start_time as i64),
                         "hostname": info.hostname,
                         "os_version": info.os_version,
                         "platform": info.platform,
@@ -54,7 +54,7 @@ pub(crate) fn json_format(
                 "id": output.collection_id,
                 "artifact_name": output_name,
                 "complete_time": complete,
-                "start_time": unixepoch_to_iso(*start_time as i64),
+                "start_time": unixepoch_to_iso(start_time as i64),
                 "hostname": info.hostname,
                 "os_version": info.os_version,
                 "platform": info.platform,
@@ -131,7 +131,7 @@ mod tests {
 
         let name = "test";
         let mut data = serde_json::Value::String(String::from("test"));
-        json_format(&mut data, name, &mut output, &start_time).unwrap();
+        json_format(&mut data, name, &mut output, start_time).unwrap();
     }
 
     #[test]

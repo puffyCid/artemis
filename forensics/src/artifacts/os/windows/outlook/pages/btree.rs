@@ -45,13 +45,13 @@ pub(crate) struct NodeBtree {
 pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    node_offset: &u64,
-    size: &u64,
+    node_offset: u64,
+    size: u64,
     format: &FormatType,
     node_tree: &mut Vec<NodeBtree>,
     branch_node: Option<u32>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -85,7 +85,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             get_node_btree(
                 ntfs_file,
                 fs,
-                &node.offset,
+                node.offset,
                 size,
                 format,
                 node_tree,
@@ -126,12 +126,12 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
 pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    node_offset: &u64,
-    size: &u64,
+    node_offset: u64,
+    size: u64,
     format: &FormatType,
     block_tree: &mut Vec<BTreeMap<u64, LeafBlockData>>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -161,7 +161,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             }
         };
         for node in branch_nodes {
-            get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
+            get_block_btree(ntfs_file, fs, node.offset, size, format, block_tree)?;
         }
     } else {
         let leaf_result = parse_leaf_block_data(&page.data, &page.number_entries, format);
@@ -501,8 +501,8 @@ mod tests {
         get_node_btree(
             None,
             &mut buf_reader,
-            &548864,
-            &4096,
+            548864,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
             None,
@@ -524,8 +524,8 @@ mod tests {
         get_block_btree(
             None,
             &mut buf_reader,
-            &475136,
-            &4096,
+            475136,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
         )

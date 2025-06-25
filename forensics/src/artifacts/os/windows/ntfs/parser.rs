@@ -152,7 +152,7 @@ pub(crate) fn ntfs_filelist(
     );
 
     // Output any remaining file metadata
-    raw_output(&params.filelist, output, &start_time, params.filter);
+    raw_output(&params.filelist, output, start_time, params.filter);
     Ok(())
 }
 
@@ -335,7 +335,7 @@ fn walk_ntfs(
         let max_list = 100000;
         // To keep memory usage small we only keep 100,000 files in the vec at a time
         if params.filelist.len() >= max_list {
-            raw_output(&params.filelist, output, &params.start_time, params.filter);
+            raw_output(&params.filelist, output, params.start_time, params.filter);
             params.filelist = Vec::new();
         }
 
@@ -355,7 +355,7 @@ fn walk_ntfs(
 }
 
 /// Send raw file data to configured output preference based on `Output` parameter
-fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, filter: bool) {
+fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -654,7 +654,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(result, ());
-        raw_output(&params.filelist, &mut output, &start_time, false)
+        raw_output(&params.filelist, &mut output, start_time, false)
     }
 
     #[test]

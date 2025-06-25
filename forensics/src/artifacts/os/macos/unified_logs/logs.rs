@@ -100,7 +100,7 @@ fn parse_trace_file(
             &mut serde_data,
             "unifiedlogs",
             output,
-            &options.start_time,
+            options.start_time,
             options.filter,
         );
     }
@@ -150,7 +150,7 @@ fn iterate_logs(
             &mut serde_data,
             "unifiedlogs",
             output,
-            &options.start_time,
+            options.start_time,
             options.filter,
         );
         if missing_logs.catalog_data.is_empty()

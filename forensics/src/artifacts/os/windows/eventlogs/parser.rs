@@ -190,7 +190,7 @@ fn alt_eventlogs(
             &mut serde_json::to_value(&templates),
             output,
             filter,
-            &0,
+            0,
             "eventlog_templates",
             true,
         )?;
@@ -247,7 +247,7 @@ fn read_directory(
             &mut serde_json::to_value(&templates),
             output,
             filter,
-            &0,
+            0,
             "eventlog_templates",
             true,
         )?;
@@ -346,7 +346,7 @@ fn read_eventlogs(
                     &mut serde_json::to_value(&raw_output),
                     output,
                     filter,
-                    &start_time,
+                    start_time,
                     "eventlogs",
                     false,
                 )?;
@@ -356,7 +356,7 @@ fn read_eventlogs(
                 &mut serde_data_result,
                 output,
                 filter,
-                &start_time,
+                start_time,
                 "eventlogs",
                 false,
             )?;
@@ -396,7 +396,7 @@ fn read_eventlogs(
                 &mut serde_json::to_value(&raw_output),
                 output,
                 filter,
-                &start_time,
+                start_time,
                 "eventlogs",
                 false,
             )?;
@@ -406,7 +406,7 @@ fn read_eventlogs(
             &mut serde_data_result,
             output,
             filter,
-            &start_time,
+            start_time,
             "eventlogs",
             false,
         )?;
@@ -420,7 +420,7 @@ fn output_logs(
     result: &mut Result<Value, Error>,
     output: &mut Output,
     filter: bool,
-    start_time: &u64,
+    start_time: u64,
     name: &str,
     raw: bool,
 ) -> Result<(), EventLogsError> {

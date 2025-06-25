@@ -142,7 +142,7 @@ impl Catalog {
         let catalog_page = 5;
         let catalog_start = catalog_page * page_size;
 
-        let catalog_results = read_bytes(&(catalog_start as u64), page_size as u64, ntfs_file, fs);
+        let catalog_results = read_bytes(catalog_start as u64, page_size as u64, ntfs_file, fs);
         let catalog_data = match catalog_results {
             Ok(results) => results,
             Err(err) => {
@@ -234,7 +234,7 @@ impl Catalog {
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) * page_size;
             // Now get the child page
-            let child_result = read_bytes(&(branch_start as u64), page_size as u64, ntfs_file, fs);
+            let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {

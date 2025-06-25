@@ -26,7 +26,7 @@ pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), 
     };
 
     let output_name = "connections";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Output connections
@@ -34,7 +34,7 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), ConnectionsError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);

@@ -29,7 +29,7 @@ pub(crate) fn grab_fseventsd(
 
     if let Some(alt_file) = &options.alt_file {
         let results = grab_fsventsd_file(alt_file)?;
-        return output_fsevents(&results, output, filter, &start_time);
+        return output_fsevents(&results, output, filter, start_time);
     }
 
     let mut events = get_fseventsd()?;
@@ -55,7 +55,7 @@ pub(crate) fn grab_fseventsd(
                 continue;
             }
         };
-        let _ = output_fsevents(&results, output, filter, &start_time);
+        let _ = output_fsevents(&results, output, filter, start_time);
     }
     Ok(())
 }
@@ -126,7 +126,7 @@ fn output_fsevents(
     entries: &[FsEvents],
     output: &mut Output,
     filter: bool,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), FsEventsError> {
     if entries.is_empty() {
         return Ok(());

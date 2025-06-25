@@ -257,8 +257,8 @@ mod tests {
         get_block_btree(
             None,
             &mut buf_reader,
-            &475136,
-            &4096,
+            475136,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
         )

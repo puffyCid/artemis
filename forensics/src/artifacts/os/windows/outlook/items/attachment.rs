@@ -97,7 +97,7 @@ mod tests {
         };
         outlook_reader.setup(None).unwrap();
 
-        let attach = outlook_reader.read_attachment(None, &8016, &8010).unwrap();
+        let attach = outlook_reader.read_attachment(None, 8016, 8010).unwrap();
 
         assert_eq!(attach.data.len(), 18752);
         assert_eq!(attach.extension, ".png");

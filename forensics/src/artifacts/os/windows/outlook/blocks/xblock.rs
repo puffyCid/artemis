@@ -46,7 +46,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     }
 
     let bytes_result = read_bytes(
-        &block.block_offset,
+        block.block_offset,
         block.size as u64 + alignment_size as u64,
         ntfs_file,
         fs,
@@ -83,7 +83,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 }
 
                 let bytes_result = read_bytes(
-                    &value.block_offset,
+                    value.block_offset,
                     value.size as u64 + alignment_size as u64,
                     ntfs_file,
                     fs,
@@ -240,8 +240,8 @@ mod tests {
         get_block_btree(
             None,
             &mut buf_reader,
-            &475136,
-            &4096,
+            475136,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
         )

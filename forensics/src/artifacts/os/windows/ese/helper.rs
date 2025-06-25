@@ -359,7 +359,7 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
     let header_size = 668;
     let offset = 0;
 
-    let header_result = read_bytes(&offset, header_size, ntfs_file, fs);
+    let header_result = read_bytes(offset, header_size, ntfs_file, fs);
     let header_data = match header_result {
         Ok(result) => result,
         Err(err) => {
@@ -391,7 +391,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     let adjust_page = 1;
     let page_number = (first_page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -468,7 +468,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         pages.push(branch.child_page);
 
         // Now get the child page
-        let child_result = read_bytes(&(branch_start as u64), page_size as u64, ntfs_file, fs);
+        let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
         let child_data = match child_result {
             Ok(result) => result,
             Err(err) => {
@@ -507,7 +507,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
     let adjust_page = 1;
     let page_number = (page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -637,7 +637,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     // Need to adjust page number to account for header page
     let page_number = (info.long_value_page as u32 + adjust_page) * page_size;
 
-    let page_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
+    let page_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match page_result {
         Ok(result) => result,
         Err(err) => {

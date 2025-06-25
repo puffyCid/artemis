@@ -28,7 +28,7 @@ pub(crate) fn safari_history(output: &mut Output, filter: bool) -> Result<(), Ap
     };
 
     let output_name = "safari_history";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse macOS Safari downloads
@@ -56,7 +56,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: bool) -> Result<(), 
     };
 
     let output_name = "safari_downloads";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 // Output application artifacts
@@ -64,7 +64,7 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), ApplicationError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);

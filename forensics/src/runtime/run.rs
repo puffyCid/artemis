@@ -90,7 +90,7 @@ fn decode_script(
         return Ok(());
     }
 
-    output_data(&mut script_value, script_name, output, &start_time)?;
+    output_data(&mut script_value, script_name, output, start_time)?;
     Ok(())
 }
 
@@ -99,7 +99,7 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), RuntimeError> {
     // We must never filter a script. Otherwise this would cause an infinite loop!
     let filter = false;
@@ -198,7 +198,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time).unwrap();
         assert_eq!(status, ());
     }
 }

@@ -69,7 +69,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
         gather_chunk = Vec::new();
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
     }
 
     Ok(())
@@ -207,7 +207,7 @@ fn process_search(
     properties: &HashMap<String, Vec<Vec<TableDump>>>,
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
 ) -> Result<(), SearchError> {
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
@@ -572,7 +572,7 @@ mod tests {
             let property_rows =
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ = process_search(&property_rows, &gather_rows, &mut output, &0, false).unwrap();
+            let _ = process_search(&property_rows, &gather_rows, &mut output, 0, false).unwrap();
             break;
         }
     }

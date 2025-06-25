@@ -62,7 +62,7 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Resul
             _ => continue,
         };
 
-        let result = output_data(&mut serde_data, "srum", output, &start_time, filter);
+        let result = output_data(&mut serde_data, "srum", output, start_time, filter);
         match result {
             Ok(_result) => {}
             Err(err) => {

@@ -95,7 +95,7 @@ pub(crate) fn parse_search_sqlite(
                                 }
                             };
                             let result =
-                                output_data(&mut serde_data, "search", output, &start_time, filter);
+                                output_data(&mut serde_data, "search", output, start_time, filter);
                             match result {
                                 Ok(_result) => {}
                                 Err(err) => {
@@ -125,7 +125,7 @@ pub(crate) fn parse_search_sqlite(
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&mut serde_data, "search", output, &start_time, filter);
+            let result = output_data(&mut serde_data, "search", output, start_time, filter);
             match result {
                 Ok(_result) => {}
                 Err(err) => {

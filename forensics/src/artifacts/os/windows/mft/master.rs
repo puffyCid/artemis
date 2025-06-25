@@ -31,7 +31,7 @@ pub(crate) fn parse_mft(
     path: &str,
     output: &mut Output,
     filter: bool,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), MftError> {
     let plat = get_platform();
     let size;
@@ -40,7 +40,7 @@ pub(crate) fn parse_mft(
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(&mut buf_reader, None, output, start_time, filter, &size);
+        return read_mft(&mut buf_reader, None, output, start_time, filter, size);
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -68,7 +68,7 @@ pub(crate) fn parse_mft(
         output,
         start_time,
         filter,
-        &size,
+        size,
     )
 }
 
@@ -77,9 +77,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
     filter: bool,
-    size: &u64,
+    size: u64,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
     // Keep a directory cache limit of 1000 entries
@@ -100,9 +100,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
         // Read through the MFT. We read 1000 entries at time
-        while let Ok(header) = determine_header_info(&offset, reader, ntfs_file) {
+        while let Ok(header) = determine_header_info(offset, reader, ntfs_file) {
             // If our offset is larger than the MFT size. Then we are done
-            if offset > *size {
+            if offset > size {
                 break;
             }
 
@@ -123,7 +123,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
             // Read 1000 MFT FILE entries
             let mut mft_bytes = match read_bytes(
-                &offset,
+                offset,
                 file_entries * header.total_size as u64,
                 ntfs_file,
                 reader,
@@ -384,12 +384,12 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     // If size is zero get FILE entry size of first MFT entry
     let empty = 0;
     if tracker.size == empty {
-        let header = determine_header_info(&0, reader, ntfs_file)?;
+        let header = determine_header_info(0, reader, ntfs_file)?;
         tracker.size = header.total_size;
     }
 
     let offset = (tracker.parent_index * tracker.size) as u64;
-    let header = determine_header_info(&offset, reader, ntfs_file)?;
+    let header = determine_header_info(offset, reader, ntfs_file)?;
 
     if (tracker.parent_sequence != header.sequence
         || !header.entry_flags.contains(&EntryFlags::InUse))
@@ -463,7 +463,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     let remaining_size = header.total_size - header_size as u32;
 
     let entry_bytes = match read_bytes(
-        &(header_size + offset),
+        header_size + offset,
         remaining_size as u64,
         ntfs_file,
         reader,
@@ -552,7 +552,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
 
 /// Try to determine FILE entry size by parsing first 48 bytes of the header
 fn determine_header_info<T: std::io::Seek + std::io::Read>(
-    offset: &u64,
+    offset: u64,
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
 ) -> Result<MftHeader, MftError> {
@@ -599,7 +599,7 @@ fn output_mft(
     entries: &[MftEntry],
     output: &mut Output,
     filter: bool,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), MftError> {
     if entries.is_empty() {
         return Ok(());
@@ -657,7 +657,7 @@ mod tests {
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.to_str().unwrap(), &mut output, false, &0).unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0).unwrap();
     }
 
     #[test]
@@ -680,9 +680,9 @@ mod tests {
             &mut ntfs_parser.fs,
             Some(&ntfs_file),
             &mut output,
-            &0,
+            0,
             false,
-            &size,
+            size,
         )
         .unwrap();
     }
@@ -698,6 +698,6 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.display().to_string(), &mut output, false, &0).unwrap();
+        parse_mft(&test_location.display().to_string(), &mut output, false, 0).unwrap();
     }
 }

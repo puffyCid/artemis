@@ -722,7 +722,7 @@ fn parse_descriptors<'a>(
         }
 
         // We always check to make sure the desc_index is less then descriptors array length
-        let row_result = get_row_data_entry(&descriptors[desc_index], &index, info);
+        let row_result = get_row_data_entry(&descriptors[desc_index], index, info);
         let row = match row_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -761,7 +761,7 @@ fn parse_branch_row<'a>(
 /// Get row data found in Branches
 fn get_row_data_entry<'a>(
     data: &'a [u8],
-    entry: &u64,
+    entry: u64,
     info: &TableInfo,
 ) -> nom::IResult<&'a [u8], Vec<TableRows>> {
     // Go to the start of the row

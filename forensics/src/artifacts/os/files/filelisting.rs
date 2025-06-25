@@ -120,11 +120,11 @@ pub(crate) fn get_filelist(
             1000
         };
         if filelist_vec.len() >= max_list {
-            file_output(&filelist_vec, output, &start_time, filter);
+            file_output(&filelist_vec, output, start_time, filter);
             filelist_vec = Vec::new();
         }
     }
-    file_output(&filelist_vec, output, &start_time, filter);
+    file_output(&filelist_vec, output, start_time, filter);
     Ok(())
 }
 
@@ -313,7 +313,7 @@ fn user_regex(input: &str) -> Result<Regex, FileError> {
 }
 
 /// Send filelisting to output based on `Output` parameter
-fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: &u64, filter: bool) {
+fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -416,7 +416,7 @@ mod tests {
             binary_info: Value::Null,
             yara_hits: Vec::new(),
         };
-        file_output(&vec![info], &mut output, &0, false);
+        file_output(&vec![info], &mut output, 0, false);
     }
 
     #[test]
