@@ -140,10 +140,10 @@ fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
     let (input, number_logons) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
     let user = UserInfo {
-        last_logon: unixepoch_to_iso(&filetime_to_unixepoch(&last_logon)),
-        password_last_set: unixepoch_to_iso(&filetime_to_unixepoch(&password_last_set)),
-        account_expires: unixepoch_to_iso(&filetime_to_unixepoch(&account_expires)),
-        last_password_failure: unixepoch_to_iso(&filetime_to_unixepoch(&last_password_failure)),
+        last_logon: unixepoch_to_iso(&filetime_to_unixepoch(last_logon)),
+        password_last_set: unixepoch_to_iso(&filetime_to_unixepoch(password_last_set)),
+        account_expires: unixepoch_to_iso(&filetime_to_unixepoch(account_expires)),
+        last_password_failure: unixepoch_to_iso(&filetime_to_unixepoch(last_password_failure)),
         relative_id,
         primary_group_id,
         user_account_control_flags: get_flags(&account_control_flags),

@@ -106,7 +106,7 @@ pub(crate) fn parse_energy_usage(
                 }
                 "EventTimestamp" => {
                     energy.event_timestamp = unixepoch_to_iso(&filetime_to_unixepoch(
-                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                        column.column_data.parse::<u64>().unwrap_or_default(),
                     ));
                 }
                 "StateTransition" => {

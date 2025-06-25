@@ -64,7 +64,7 @@ impl Volume {
                 _volume_path_offset: volume_path_offset,
                 _volume_number_chars: volume_number_chars,
                 volume_path: extract_utf16_string(volume_path_data),
-                volume_creation: filetime_to_unixepoch(&volume_creation),
+                volume_creation: filetime_to_unixepoch(volume_creation),
                 volume_serial,
                 _file_ref_offset: file_ref_offset,
                 _file_ref_data_size: file_ref_data_size,

@@ -26,7 +26,7 @@ pub(crate) fn parse_archive(data: &[u8]) -> nom::IResult<&[u8], (String, String)
     let (remaining, string_bytes) = take((size + size2) * adjust as u16)(input)?;
 
     // Modified timestamp of target folder
-    let modified = unixepoch_to_iso(&filetime_to_unixepoch(&time_bytes));
+    let modified = unixepoch_to_iso(&filetime_to_unixepoch(time_bytes));
     let path = extract_utf16_string(string_bytes);
 
     Ok((remaining, (modified, path)))

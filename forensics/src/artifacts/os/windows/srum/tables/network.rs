@@ -140,7 +140,7 @@ pub(crate) fn parse_network_connectivity(
                 }
                 "ConnectStartTime" => {
                     network.connect_start_time = unixepoch_to_iso(&filetime_to_unixepoch(
-                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                        column.column_data.parse::<u64>().unwrap_or_default(),
                     ));
                 }
                 _ => (),

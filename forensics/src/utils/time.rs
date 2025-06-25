@@ -13,7 +13,7 @@ pub(crate) fn time_now() -> u64 {
 }
 
 /// Convert Windows filetime values to `UnixEpoch`
-pub(crate) fn filetime_to_unixepoch(filetime: &u64) -> i64 {
+pub(crate) fn filetime_to_unixepoch(filetime: u64) -> i64 {
     let windows_nano = 10000000;
     let seconds_to_unix: i64 = 11644473600;
 
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn test_filetime_to_unixepoch() {
         let test_data = 132244766418940254;
-        assert_eq!(filetime_to_unixepoch(&test_data), 1580003041)
+        assert_eq!(filetime_to_unixepoch(test_data), 1580003041)
     }
 
     #[test]

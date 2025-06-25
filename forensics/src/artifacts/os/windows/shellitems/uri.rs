@@ -39,7 +39,7 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, _unknown2) = take(size_of::<u32>())(input)?;
 
     let (input, access) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-    uri_item.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&access));
+    uri_item.accessed = unixepoch_to_iso(&filetime_to_unixepoch(access));
 
     let (input, _unknown3) = take(size_of::<u32>())(input)?;
 

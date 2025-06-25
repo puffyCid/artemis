@@ -79,7 +79,7 @@ impl RegHeader {
             signature,
             primary_sequence_num,
             secondary_sequence_num,
-            modified: filetime_to_unixepoch(&modified),
+            modified: filetime_to_unixepoch(modified),
             major_version,
             minor_version,
             file_type,

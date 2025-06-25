@@ -77,7 +77,7 @@ fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], i64> {
     let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, filetime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-    Ok((input, filetime_to_unixepoch(&filetime)))
+    Ok((input, filetime_to_unixepoch(filetime)))
 }
 
 /// Scan `Property Store` bytes for cache key

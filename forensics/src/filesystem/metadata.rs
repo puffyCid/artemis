@@ -28,9 +28,9 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         use crate::utils::time::filetime_to_unixepoch;
         use std::os::windows::fs::MetadataExt;
         // Rust for Windows does not support getting Changed times :(
-        timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_access_time()));
-        timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(&meta.last_write_time()));
-        timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(&meta.creation_time()));
+        timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(meta.last_access_time()));
+        timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(meta.last_write_time()));
+        timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(meta.creation_time()));
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd"))]

@@ -107,7 +107,7 @@ pub(crate) fn parse_types<'a>(
             let (input, filetime) = nom_unsigned_eight_bytes(data, Endian::Le)?;
             (
                 input,
-                Value::String(unixepoch_to_iso(&filetime_to_unixepoch(&filetime))),
+                Value::String(unixepoch_to_iso(&filetime_to_unixepoch(filetime))),
             )
         }
         0x42 => {

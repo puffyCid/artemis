@@ -39,16 +39,16 @@ pub(crate) fn filename_info(
 
     file_info.filename = filename.name().to_string().unwrap_or_default();
     file_info.filename_created = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.creation_time().nt_timestamp(),
+        filename.creation_time().nt_timestamp(),
     ));
     file_info.filename_modified = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.modification_time().nt_timestamp(),
+        filename.modification_time().nt_timestamp(),
     ));
     file_info.filename_changed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.mft_record_modification_time().nt_timestamp(),
+        filename.mft_record_modification_time().nt_timestamp(),
     ));
     file_info.filename_accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.access_time().nt_timestamp(),
+        filename.access_time().nt_timestamp(),
     ));
     Ok(())
 }
@@ -56,16 +56,16 @@ pub(crate) fn filename_info(
 /// Get Standard attributes data
 pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut RawFilelist) {
     file_info.created = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.creation_time().nt_timestamp(),
+        standard.creation_time().nt_timestamp(),
     ));
     file_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.modification_time().nt_timestamp(),
+        standard.modification_time().nt_timestamp(),
     ));
     file_info.changed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.mft_record_modification_time().nt_timestamp(),
+        standard.mft_record_modification_time().nt_timestamp(),
     ));
     file_info.accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.access_time().nt_timestamp(),
+        standard.access_time().nt_timestamp(),
     ));
 
     file_info.usn = standard.usn().unwrap_or(0);
@@ -341,7 +341,7 @@ mod tests {
             let entry_index = entry.unwrap();
             let filename_result = entry_index.key().unwrap();
 
-            let result = filename_info(&filename_result, &mut file_info).unwrap();
+            let result = filename_info(filename_result, &mut file_info).unwrap();
             assert_eq!(result, ());
 
             assert!(file_info.filename.is_empty() == false);

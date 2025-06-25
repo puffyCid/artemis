@@ -91,7 +91,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
+            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(usn_time));
             let update_reason = UsnJrnlFormat::reason_flags(&reason);
             let update_source_flags = UsnJrnlFormat::source_flag(&source);
 
@@ -204,7 +204,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
+            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(usn_time));
             let update_reason = UsnJrnlFormat::reason_flags(&reason);
             let update_source_flags = UsnJrnlFormat::source_flag(&source);
 

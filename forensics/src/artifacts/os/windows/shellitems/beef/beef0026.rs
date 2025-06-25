@@ -22,9 +22,9 @@ pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], (String, String, St
     let (_, mod_filetime) = le_u64(modified_data)?;
     let (_, access_filetime) = le_u64(accessed_data)?;
 
-    let created = unixepoch_to_iso(&filetime_to_unixepoch(&create_filetime));
-    let modified = unixepoch_to_iso(&filetime_to_unixepoch(&mod_filetime));
-    let accessed = unixepoch_to_iso(&filetime_to_unixepoch(&access_filetime));
+    let created = unixepoch_to_iso(&filetime_to_unixepoch(create_filetime));
+    let modified = unixepoch_to_iso(&filetime_to_unixepoch(mod_filetime));
+    let accessed = unixepoch_to_iso(&filetime_to_unixepoch(access_filetime));
     Ok((remaining_data, (created, accessed, modified)))
 }
 

@@ -398,7 +398,7 @@ pub(crate) fn extract_property_value<'a>(
         }
         PropertyType::Time => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
-            let timestamp = filetime_to_unixepoch(&prop_value);
+            let timestamp = filetime_to_unixepoch(prop_value);
             value = serde_json::to_value(unixepoch_to_iso(&timestamp)).unwrap_or_default();
         }
         PropertyType::Guid => {
@@ -508,7 +508,7 @@ pub(crate) fn extract_property_value<'a>(
             let mut int_values = Vec::new();
             while count < int_count {
                 let (input, prop_value) = nom_unsigned_eight_bytes(remaining, Endian::Le)?;
-                let timestamp = filetime_to_unixepoch(&prop_value);
+                let timestamp = filetime_to_unixepoch(prop_value);
 
                 remaining = input;
                 int_values.push(unixepoch_to_iso(&timestamp));

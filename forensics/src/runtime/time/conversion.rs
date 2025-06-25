@@ -24,7 +24,7 @@ pub(crate) fn js_filetime_to_unixepoch(
 ) -> JsResult<JsValue> {
     let filetime = bigint_arg(args, &0)? as u64;
 
-    Ok(JsValue::BigInt(filetime_to_unixepoch(&filetime).into()))
+    Ok(JsValue::BigInt(filetime_to_unixepoch(filetime).into()))
 }
 
 /// Expose converting cocoatimes to unixepoch

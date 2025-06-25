@@ -236,7 +236,7 @@ fn extract_column_data_to_string<'a>(
             // Appears if flags contain NotNull, then the time is FILETIME
             if flags.contains(&ColumnFlags::NotNull) {
                 let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-                let filetime = filetime_to_unixepoch(&filetime_data);
+                let filetime = filetime_to_unixepoch(filetime_data);
 
                 (input, unixepoch_to_iso(&filetime))
             } else {

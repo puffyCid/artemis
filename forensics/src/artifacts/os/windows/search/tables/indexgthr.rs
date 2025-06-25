@@ -53,7 +53,7 @@ pub(crate) fn parse_index_gthr(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
+                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(result));
                         }
                     }
                 }
@@ -148,7 +148,7 @@ pub(crate) fn parse_index_gthr_path(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
+                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(result));
                         }
                     }
                 }

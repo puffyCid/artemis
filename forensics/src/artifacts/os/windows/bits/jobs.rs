@@ -345,10 +345,10 @@ pub(crate) fn job_details<'a>(
     let (input, expiration_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     job_info.error_count = error_count;
-    job_info.created = unixepoch_to_iso(&filetime_to_unixepoch(&created));
-    job_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(&modified));
-    job_info.completed = unixepoch_to_iso(&filetime_to_unixepoch(&complete_time));
-    job_info.expiration = unixepoch_to_iso(&filetime_to_unixepoch(&expiration_time));
+    job_info.created = unixepoch_to_iso(&filetime_to_unixepoch(created));
+    job_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(modified));
+    job_info.completed = unixepoch_to_iso(&filetime_to_unixepoch(complete_time));
+    job_info.expiration = unixepoch_to_iso(&filetime_to_unixepoch(expiration_time));
     job_info.timeout = timeout;
     job_info.retry_delay = retry_delay;
     job_info.transient_error_count = transient_error_count;
