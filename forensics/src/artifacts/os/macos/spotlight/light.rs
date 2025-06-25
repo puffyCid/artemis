@@ -63,7 +63,7 @@ pub(crate) fn parse_spotlight_reader(
     store_file: &str,
     meta: &SpotlightMeta,
     blocks: &[u32],
-    offset: &u32,
+    offset: u32,
 ) -> Result<Vec<SpotlightEntries>, SpotlightError> {
     let reader_result = file_reader(store_file);
     let mut store_reader = match reader_result {
@@ -177,7 +177,7 @@ mod tests {
             test_location.to_str().unwrap(),
             &result.meta,
             &result.blocks,
-            &0,
+            0,
         )
         .unwrap();
         assert_eq!(entries.len(), 1022);

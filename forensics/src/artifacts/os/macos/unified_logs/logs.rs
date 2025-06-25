@@ -22,7 +22,7 @@ pub(crate) fn grab_logs(
 ) -> Result<(), MacArtifactError> {
     let mut parse_options = ParseOptions {
         start_time: time_now(),
-        filter: filter,
+        filter,
         // Persist oversize strings as we parse the Unified Logs
         oversize_strings: UnifiedLogData {
             header: Vec::new(),

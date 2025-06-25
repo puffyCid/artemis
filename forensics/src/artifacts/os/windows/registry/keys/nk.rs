@@ -129,7 +129,7 @@ impl NameKey {
             let result = walk_values(
                 reg_data,
                 name_key.key_values_offset as u32,
-                &name_key.number_key_values,
+                name_key.number_key_values,
                 minor_version,
             );
             match result {

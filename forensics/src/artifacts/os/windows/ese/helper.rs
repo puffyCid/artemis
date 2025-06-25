@@ -87,17 +87,12 @@ pub(crate) fn get_all_pages(path: &str, first_page: u32) -> Result<Vec<u32>, Ese
         let mut buf_reader = BufReader::new(reader);
 
         let page_size = ese_page_size(None, &mut buf_reader)?;
-        get_pages(first_page, None, &mut buf_reader, &page_size)?
+        get_pages(first_page, None, &mut buf_reader, page_size)?
     } else {
         let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
         let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        get_pages(
-            first_page,
-            Some(&ntfs_file),
-            &mut ntfs_parser.fs,
-            &page_size,
-        )?
+        get_pages(first_page, Some(&ntfs_file), &mut ntfs_parser.fs, page_size)?
     };
 
     Ok(pages)
@@ -126,10 +121,10 @@ pub(crate) fn get_page_data(
             if page == &last_page {
                 continue;
             }
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
         let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
@@ -142,10 +137,10 @@ pub(crate) fn get_page_data(
                 continue;
             }
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -155,7 +150,7 @@ pub(crate) fn get_page_data(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -192,10 +187,10 @@ pub(crate) fn get_filtered_page_data(
         page_size = ese_page_size(None, &mut buf_reader)?;
         let mut rows = Vec::new();
         for page in pages {
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
         // On Windows use a NTFS reader
         let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
@@ -206,10 +201,10 @@ pub(crate) fn get_filtered_page_data(
 
         for page in pages {
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -219,7 +214,7 @@ pub(crate) fn get_filtered_page_data(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -272,10 +267,10 @@ pub(crate) fn dump_table_columns(
         page_size = ese_page_size(None, &mut buf_reader)?;
         let mut rows = Vec::new();
         for page in pages {
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
         let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
@@ -285,10 +280,10 @@ pub(crate) fn dump_table_columns(
 
         for page in pages {
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -298,7 +293,7 @@ pub(crate) fn dump_table_columns(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -390,13 +385,13 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     first_page: u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
 ) -> Result<Vec<u32>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (first_page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -473,7 +468,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         pages.push(branch.child_page);
 
         // Now get the child page
-        let child_result = read_bytes(&(branch_start as u64), *page_size as u64, ntfs_file, fs);
+        let child_result = read_bytes(&(branch_start as u64), page_size as u64, ntfs_file, fs);
         let child_data = match child_result {
             Ok(result) => result,
             Err(err) => {
@@ -502,17 +497,17 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
 
 /// Start parsing the page data to get rows
 fn page_data<T: std::io::Seek + std::io::Read>(
-    page: &u32,
+    page: u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
     info: &mut TableInfo,
 ) -> Result<Vec<Vec<ColumnInfo>>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -629,7 +624,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     rows: &mut Vec<Vec<ColumnInfo>>,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
     info: &mut TableInfo,
     name: &str,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
@@ -642,7 +637,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     // Need to adjust page number to account for header page
     let page_number = (info.long_value_page as u32 + adjust_page) * page_size;
 
-    let page_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let page_result = read_bytes(&(page_number as u64), page_size as u64, ntfs_file, fs);
     let page_start = match page_result {
         Ok(result) => result,
         Err(err) => {

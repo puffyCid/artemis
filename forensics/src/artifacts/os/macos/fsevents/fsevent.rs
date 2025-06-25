@@ -61,7 +61,7 @@ fn get_fsevent<'a>(data: &'a [u8], sig: u32, path: &str) -> nom::IResult<&'a [u8
 
     // Parse `FsEvent` stream and get each `FsEvent` record
     while !input_results.is_empty() {
-        let (input_data, fsevent_results) = get_fsevent_data(input_results, &sig, path)?;
+        let (input_data, fsevent_results) = get_fsevent_data(input_results, sig, path)?;
         input_results = input_data;
         fsevents_array.push(fsevent_results);
     }
@@ -84,7 +84,7 @@ fn fsevents_header(data: &[u8]) -> nom::IResult<&[u8], FsEventsHeader> {
 }
 
 /// Parse `FsEvent` stream entry
-fn get_fsevent_data<'a>(data: &'a [u8], sig: &u32, path: &str) -> nom::IResult<&'a [u8], FsEvents> {
+fn get_fsevent_data<'a>(data: &'a [u8], sig: u32, path: &str) -> nom::IResult<&'a [u8], FsEvents> {
     let mut fsevent_data = FsEvents {
         flags: Vec::new(),
         path: String::new(),
@@ -129,14 +129,14 @@ fn get_fsevent_data<'a>(data: &'a [u8], sig: &u32, path: &str) -> nom::IResult<&
     }
 
     let disk_loggerv1 = 0x444c5331;
-    if sig != &disk_loggerv1 {
+    if sig != disk_loggerv1 {
         let (input, fsevent_node) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         fsevent_data.node = fsevent_node;
 
         // Version 3 has another 4 bytes. Seems to alway be 0
         let disk_loggvrv3 = 0x444c5333;
-        if sig == &disk_loggvrv3 {
+        if sig == disk_loggvrv3 {
             let (input, _) = nom_unsigned_four_bytes(input, Endian::Le)?;
             return Ok((input, fsevent_data));
         }
@@ -278,7 +278,7 @@ mod tests {
         let (input, header) = fsevents_header(&buffer).unwrap();
 
         let (_, results) =
-            get_fsevent_data(input, &header.signature, test_location.to_str().unwrap()).unwrap();
+            get_fsevent_data(input, header.signature, test_location.to_str().unwrap()).unwrap();
 
         assert_eq!(results.event_id, 163140);
         assert_eq!(results.path, "/Volumes/Preboot");

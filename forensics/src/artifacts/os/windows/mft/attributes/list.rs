@@ -39,8 +39,8 @@ impl AttributeList {
         data: &'a [u8],
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'a>>,
-        entry_size: &u32,
-        current_mft: &u32,
+        entry_size: u32,
+        current_mft: u32,
     ) -> nom::IResult<&'a [u8], Vec<AttributeList>> {
         let mut remaining = data;
         let min_size = 32;
@@ -92,13 +92,13 @@ impl AttributeList {
                 },
             };
 
-            if list.parent_mft == *current_mft {
+            if list.parent_mft == current_mft {
                 lists.push(list);
                 continue;
             }
 
             let offset = list.parent_mft * entry_size;
-            let list_mft = match read_bytes(&(offset as u64), *entry_size as u64, ntfs_file, reader)
+            let list_mft = match read_bytes(&(offset as u64), entry_size as u64, ntfs_file, reader)
             {
                 Ok(result) => result,
                 Err(err) => {
@@ -139,8 +139,8 @@ impl AttributeList {
             remaining,
             reader,
             ntfs_file,
-            &header.total_size,
-            &header.index,
+            header.total_size,
+            header.index,
         )?;
 
         Ok((remaining, attribute))
@@ -178,7 +178,7 @@ mod tests {
         let mut buf_reader = BufReader::new(reader);
 
         let (_, results) =
-            AttributeList::parse_list(&test, &mut buf_reader, None, &1024, &9).unwrap();
+            AttributeList::parse_list(&test, &mut buf_reader, None, 1024, 9).unwrap();
         assert_eq!(results.len(), 9);
     }
 

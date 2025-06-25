@@ -376,7 +376,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             // Still not done. We only have references to the data now. We always check to make the block index is less than the block length
             let branch_result = extract_branch_details(
                 &all_block[heap_btree.node.block_index as usize],
-                &heap_btree.node.index,
+                heap_btree.node.index,
             );
             let branch_references = match branch_result {
                 Ok((_, result)) => result,
@@ -573,7 +573,7 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
 /// Parse rows found in branches
 fn extract_branch_details<'a>(
     data: &'a [u8],
-    map_index: &u32,
+    map_index: u32,
 ) -> nom::IResult<&'a [u8], Vec<HeapNode>> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
@@ -584,8 +584,8 @@ fn extract_branch_details<'a>(
     let mut branch_row_end = 0;
 
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(*map_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(*map_index as usize) {
+    if let Some(start) = map.allocation_table.get(map_index as usize - adjust) {
+        if let Some(end) = map.allocation_table.get(map_index as usize) {
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -868,7 +868,7 @@ fn parse_row_data<'a>(
         }
         let (block_index, map_start) = get_map_offset(offset);
         if let Some(block_data) = all_blocks.get(block_index as usize) {
-            let prop_result = get_property_data(block_data, prop_type, &map_start, false);
+            let prop_result = get_property_data(block_data, prop_type, map_start, false);
             let prop_value = match prop_result {
                 Ok((_, result)) => result,
                 Err(_err) => {

@@ -80,7 +80,7 @@ pub(crate) fn grab_search(
 /// Parse a provided Windows `Search` file and return its contents
 pub(crate) fn grab_search_path(
     path: &str,
-    page_limit: &u32,
+    page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
     let result = if path.ends_with(".edb") {
         parse_search_path(path, page_limit)?
@@ -136,7 +136,7 @@ mod tests {
             return;
         }
 
-        let results = grab_search_path(test_path, &50).unwrap();
+        let results = grab_search_path(test_path, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

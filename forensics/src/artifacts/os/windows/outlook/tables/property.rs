@@ -48,7 +48,7 @@ pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
-        reference: &u32,
+        reference: u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
 
@@ -176,7 +176,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
                 if prop.reference > max_heap_size && prop.value == Value::Null {
                     let desc_result =
-                        self.get_large_data(ntfs_file, block_descriptors, &prop.reference);
+                        self.get_large_data(ntfs_file, block_descriptors, prop.reference);
                     let desc_blocks = match desc_result {
                         Ok(result) => result,
                         Err(_err) => {
@@ -190,12 +190,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     if !desc_blocks.is_empty() {
                         let all_desc = desc_blocks.concat();
                         // Concat the descriptor data to get the entire property data
-                        let prop_result = get_property_data(
-                            &all_desc,
-                            &prop.property_type,
-                            &prop.reference,
-                            true,
-                        );
+                        let prop_result =
+                            get_property_data(&all_desc, &prop.property_type, prop.reference, true);
 
                         let prop_value = match prop_result {
                             Ok((_, result)) => result,
@@ -214,7 +210,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 }
 
                 let prop_result =
-                    get_property_data(block_data, &prop.property_type, &map_start, false);
+                    get_property_data(block_data, &prop.property_type, map_start, false);
                 let prop_value = match prop_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
@@ -234,9 +230,9 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
         block_descriptors: &BTreeMap<u64, DescriptorData>,
-        reference: &u32,
+        reference: u32,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
-        if let Some(value) = block_descriptors.get(&(*reference as u64)) {
+        if let Some(value) = block_descriptors.get(&(reference as u64)) {
             let mut leaf_block = LeafBlockData {
                 block_type: BlockType::Internal,
                 index_id: 0,
@@ -275,7 +271,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 pub(crate) fn get_property_data<'a>(
     data: &'a [u8],
     prop_type: &PropertyType,
-    reference: &u32,
+    reference: u32,
     is_large: bool,
 ) -> nom::IResult<&'a [u8], Value> {
     let value_data = if is_large {
@@ -288,11 +284,11 @@ pub(crate) fn get_property_data<'a>(
         // Skip the allocation count. We do not need it
         let (input, _) = nom_unsigned_four_bytes(allocation, Endian::Le)?;
 
-        if *reference as usize > input.len() {
+        if reference as usize > input.len() {
             return Ok((&[], Value::Null));
         }
         // Jump to the start of our value
-        let (value_start, _) = take(*reference)(input)?;
+        let (value_start, _) = take(reference)(input)?;
         let (input, value_start) = nom_unsigned_two_bytes(value_start, Endian::Le)?;
 
         let (_, value_end) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -714,7 +710,7 @@ mod tests {
             134, 135, 80, 80, 3, 3, 20, 32, 1, 30, 82, 184, 187, 80, 1, 91, 82, 219, 220, 80, 80,
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
-        let (_, value) = get_property_data(&test, &PropertyType::Time, &4, false).unwrap();
+        let (_, value) = get_property_data(&test, &PropertyType::Time, 4, false).unwrap();
         assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.000Z");
     }
 
@@ -879,7 +875,7 @@ mod tests {
             196, 0, 204, 0, 232, 0, 240, 0, 4, 1, 25, 1, 71, 1, 129, 1, 39, 2, 85, 2,
         ];
 
-        let (_, result) = get_property_data(&test, &PropertyType::MultiBinary, &20, false).unwrap();
+        let (_, result) = get_property_data(&test, &PropertyType::MultiBinary, 20, false).unwrap();
 
         assert_eq!(
             result.as_array().unwrap(),

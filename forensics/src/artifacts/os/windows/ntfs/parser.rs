@@ -140,7 +140,7 @@ pub(crate) fn ntfs_filelist(
         sids,
         hash: hash_data,
         metadata: rawfile_params.metadata.unwrap_or(false),
-        filter: filter,
+        filter,
     };
 
     let _ = walk_ntfs(
@@ -281,7 +281,7 @@ fn walk_ntfs(
 
         // Lookup traditional SID information (S-1-5-XXXXX) via the NTFS sid value
         (file_info.user_sid, file_info.group_sid) =
-            SecurityIDs::lookup_sids(&file_info.sid, &params.sids);
+            SecurityIDs::lookup_sids(file_info.sid, &params.sids);
 
         let dir_name = file_info.filename.clone();
 

@@ -264,7 +264,7 @@ pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, Sear
 /// Parse Windows `Search` at provided path
 pub(crate) fn parse_search_path(
     path: &str,
-    page_limit: &u32,
+    page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
     let catalog = search_catalog(path)?;
 
@@ -285,7 +285,7 @@ pub(crate) fn parse_search_path(
         }
 
         gather_chunk.push(gather_page);
-        if gather_chunk.len() != (*page_limit as usize) {
+        if gather_chunk.len() != page_limit as usize {
             continue;
         }
 
@@ -587,7 +587,7 @@ mod tests {
             return;
         }
 
-        let results = parse_search_path(test_path, &50).unwrap();
+        let results = parse_search_path(test_path, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

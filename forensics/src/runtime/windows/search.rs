@@ -13,7 +13,7 @@ pub(crate) fn js_search(
     let path = string_arg(args, &0)?;
     let page_limit = number_arg(args, &1)? as u32;
 
-    let search = match grab_search_path(&path, &page_limit) {
+    let search = match grab_search_path(&path, page_limit) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to parse search {path}: {err:?}");

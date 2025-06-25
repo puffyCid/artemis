@@ -239,7 +239,7 @@ impl CodeSign {
         let (_, id_data) = take_while(|b| b != 0)(id_data)?;
 
         let (remaining_data, hash_pages) =
-            CodeSign::get_page_hashes(hash_data, hash_size, &(n_special_slots + n_code_slots))?;
+            CodeSign::get_page_hashes(hash_data, hash_size, n_special_slots + n_code_slots)?;
 
         let mut code_directory = CodeDirectory {
             id: extract_utf8_string(id_data),
@@ -300,12 +300,12 @@ impl CodeSign {
     fn get_page_hashes<'a>(
         data: &'a [u8],
         hash_size: u8,
-        hash_count: &u32,
+        hash_count: u32,
     ) -> nom::IResult<&'a [u8], Vec<String>> {
         let mut count = 0;
         let mut hashes: Vec<String> = Vec::new();
         let mut page_data = data;
-        while &count < hash_count {
+        while count < hash_count {
             let (remaining_data, hash_data) = take(hash_size)(page_data)?;
             page_data = remaining_data;
 

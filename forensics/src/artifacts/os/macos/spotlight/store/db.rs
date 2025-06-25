@@ -63,7 +63,7 @@ pub(crate) fn parse_store(
             return Err(SpotlightError::StoreRead);
         }
 
-        let data_result = parse_property(&prop_data, meta, &prop_header.uncompressed_size, &dir);
+        let data_result = parse_property(&prop_data, meta, prop_header.uncompressed_size, &dir);
         let mut spotlight_data = match data_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -125,7 +125,7 @@ pub(crate) fn parse_store_blocks(
     reader: &mut File,
     meta: &SpotlightMeta,
     blocks: &[u32],
-    offset: &u32,
+    offset: u32,
     dir: &str,
 ) -> Result<Vec<SpotlightEntries>, SpotlightError> {
     let offset_size = 0x1000;
@@ -139,7 +139,7 @@ pub(crate) fn parse_store_blocks(
     let mut start_offset = 0;
     for block in blocks {
         // Make sure we start at specific offset
-        if &start_offset < offset {
+        if start_offset < offset {
             start_offset += 1;
             continue;
         }
@@ -174,7 +174,7 @@ pub(crate) fn parse_store_blocks(
             return Err(SpotlightError::StoreRead);
         }
 
-        let data_result = parse_property(&prop_data, meta, &prop_header.uncompressed_size, dir);
+        let data_result = parse_property(&prop_data, meta, prop_header.uncompressed_size, dir);
         let mut spotlight_data = match data_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -342,7 +342,7 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let (blocks, dir) = get_blocks(&mut data).unwrap();
 
-        let entries = parse_store_blocks(&mut data, &meta, &blocks, &0, &dir).unwrap();
+        let entries = parse_store_blocks(&mut data, &meta, &blocks, 0, &dir).unwrap();
         assert_eq!(entries.len(), 1022);
         assert_eq!(entries[0].inode, 1);
     }

@@ -170,8 +170,8 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                     &fixed_mft_bytes,
                     reader,
                     ntfs_file,
-                    &mft_header.total_size,
-                    &mft_header.index,
+                    mft_header.total_size,
+                    mft_header.index,
                 ) {
                     Ok((_, result)) => result,
                     Err(err) => {
@@ -481,8 +481,8 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
         &mft_bytes,
         reader,
         ntfs_file,
-        &header.total_size,
-        &header.index,
+        header.total_size,
+        header.index,
     ) {
         Ok((_, result)) => result,
         Err(err) => {

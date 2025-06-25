@@ -27,7 +27,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_property<'a>(
     data: &'a [u8],
     meta: &SpotlightMeta,
-    uncompressed_size: &u32,
+    uncompressed_size: u32,
     dir: &str,
 ) -> nom::IResult<&'a [u8], Vec<SpotlightEntries>> {
     let mut compressed_input = data;
@@ -444,7 +444,7 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let (input, header) = property_header(&data).unwrap();
 
-        let (_, results) = parse_property(input, &meta, &header.uncompressed_size, "test").unwrap();
+        let (_, results) = parse_property(input, &meta, header.uncompressed_size, "test").unwrap();
         assert_eq!(results.len(), 195);
     }
 

@@ -112,7 +112,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
         table_of_contents_data(input, toc_header.data_length)?;
 
     let (_, toc_content_data_record) =
-        table_of_contents_record(toc_record_data, &toc_content_data.number_of_records)?;
+        table_of_contents_record(toc_record_data, toc_content_data.number_of_records)?;
 
     let mut bookmark_data = BookmarkData {
         path: String::new(),
@@ -498,7 +498,7 @@ fn table_of_contents_data(
 /// Parse the TOC data record
 fn table_of_contents_record<'a>(
     data: &'a [u8],
-    records: &u32,
+    records: u32,
 ) -> nom::IResult<&'a [u8], Vec<TableOfContentsDataRecord>> {
     let mut input_data = data;
     let mut record: u32 = 0;
@@ -506,7 +506,7 @@ fn table_of_contents_record<'a>(
 
     // Loop through until all records have been parsed
     loop {
-        if &record == records {
+        if record == records {
             break;
         }
         record += 1;
@@ -1024,7 +1024,7 @@ mod tests {
             240, 0, 0, 88, 1, 0, 0, 0, 0, 0, 0,
         ];
         let records = 14;
-        let (_, record) = table_of_contents_record(&test_record, &records).unwrap();
+        let (_, record) = table_of_contents_record(&test_record, records).unwrap();
 
         assert_eq!(record[0].record_type, 4100);
         assert_eq!(record[0].data_offset, 48);

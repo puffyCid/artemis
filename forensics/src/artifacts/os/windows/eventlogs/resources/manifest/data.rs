@@ -33,9 +33,9 @@ pub(crate) fn parse_manifest_data<'a>(
 
     // Only some Signature types have similar format
     match sig_type {
-        SigType::Chan => parse_channel(resource, input, &data_count),
-        SigType::Levl | SigType::Opco => parse_opcode(resource, input, &data_count),
-        SigType::Keyw => parse_keyword(resource, input, &data_count),
+        SigType::Chan => parse_channel(resource, input, data_count),
+        SigType::Levl | SigType::Opco => parse_opcode(resource, input, data_count),
+        SigType::Keyw => parse_keyword(resource, input, data_count),
         _ => Ok((input, Vec::new())),
     }
 }
@@ -44,12 +44,12 @@ pub(crate) fn parse_manifest_data<'a>(
 fn parse_opcode<'a>(
     resource: &'a [u8],
     data: &'a [u8],
-    data_count: &u32,
+    data_count: u32,
 ) -> nom::IResult<&'a [u8], Vec<ManifestData>> {
     let mut input = data;
     let mut count = 0;
     let mut data_vec = Vec::new();
-    while count < *data_count {
+    while count < data_count {
         let (remaining, id) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (remaining, message_id) = nom_signed_four_bytes(remaining, Endian::Le)?;
         let (remaining, offset) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
@@ -86,13 +86,13 @@ fn parse_opcode<'a>(
 fn parse_channel<'a>(
     resource: &'a [u8],
     data: &'a [u8],
-    data_count: &u32,
+    data_count: u32,
 ) -> nom::IResult<&'a [u8], Vec<ManifestData>> {
     let mut input = data;
     let mut count = 0;
     let mut data_vec = Vec::new();
 
-    while count < *data_count {
+    while count < data_count {
         let (remaining, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (remaining, offset) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
         let (remaining, id) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
@@ -130,13 +130,13 @@ fn parse_channel<'a>(
 fn parse_keyword<'a>(
     resource: &'a [u8],
     data: &'a [u8],
-    data_count: &u32,
+    data_count: u32,
 ) -> nom::IResult<&'a [u8], Vec<ManifestData>> {
     let mut input = data;
     let mut count = 0;
     let mut data_vec = Vec::new();
 
-    while count < *data_count {
+    while count < data_count {
         let (remaining, id) = nom_unsigned_eight_bytes(input, Endian::Le)?;
         let (remaining, message_id) = nom_signed_four_bytes(remaining, Endian::Le)?;
         let (remaining, offset) = nom_unsigned_four_bytes(remaining, Endian::Le)?;

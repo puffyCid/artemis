@@ -63,9 +63,9 @@ pub(crate) fn parse_acl<'a>(
         let (ace_entry_data, rights_data) = nom_unsigned_four_bytes(ace_entry_data, endian)?;
 
         let access_rights = if ace_type == AceTypes::SystemMandatoryLabel {
-            get_access_rights(&rights_data, &AccessItem::Mandatory)
+            get_access_rights(rights_data, &AccessItem::Mandatory)
         } else {
-            get_access_rights(&rights_data, item)
+            get_access_rights(rights_data, item)
         };
         let mut ace_entry = AccessControlEntry {
             ace_type,
@@ -108,7 +108,7 @@ pub(crate) fn parse_acl<'a>(
 }
 
 /// Determine what rights are associated with the ACL
-fn get_access_rights(rights_data: &u32, item: &AccessItem) -> Vec<AccessMask> {
+fn get_access_rights(rights_data: u32, item: &AccessItem) -> Vec<AccessMask> {
     let mut rights = Vec::new();
 
     // Generic rights
@@ -417,7 +417,7 @@ mod tests {
     #[test]
     fn test_get_access_rights() {
         let test = 0x3f000f00;
-        let results = get_access_rights(&test, &super::AccessItem::NonFolder);
+        let results = get_access_rights(test, &super::AccessItem::NonFolder);
         assert_eq!(
             results,
             [

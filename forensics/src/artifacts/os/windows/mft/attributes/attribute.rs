@@ -36,8 +36,8 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
     data: &'a [u8],
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'a>>,
-    size: &u32,
-    current_mft: &u32,
+    size: u32,
+    current_mft: u32,
 ) -> nom::IResult<&'a [u8], EntryAttributes> {
     let mut entry_data = data;
     let header_size = 16;
@@ -228,7 +228,7 @@ mod tests {
         let reader = setup_mft_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
 
-        let (_, result) = grab_attributes(&test, &mut buf_reader, None, &0, &0).unwrap();
+        let (_, result) = grab_attributes(&test, &mut buf_reader, None, 0, 0).unwrap();
         assert_eq!(result.standard[0].created, 133665165395720108);
         assert_eq!(result.standard[0].modified, 133665165395720108);
         assert_eq!(result.standard[0].accessed, 133665165395720108);

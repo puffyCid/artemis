@@ -59,7 +59,7 @@ pub(crate) fn parse_registry(
         registry_list: Vec::new(),
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
-        filter: filter,
+        filter,
         registry_path: String::new(),
     };
 

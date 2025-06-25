@@ -126,7 +126,7 @@ pub(crate) fn list_classes(
 /// Get optional descriptions for a class
 pub(crate) fn class_description(
     namespace: &str,
-    locale: &u32,
+    locale: u32,
     class_name: &str,
     indexes: &[IndexBody],
     object_data: &[u8],

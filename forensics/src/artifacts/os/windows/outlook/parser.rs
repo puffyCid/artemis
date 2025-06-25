@@ -94,7 +94,7 @@ fn grab_outlook_file(
         yara_rule_attachment: options.yara_rule_attachment.clone(),
         yara_rule_message: options.yara_rule_message.clone(),
         start_time,
-        filter: filter,
+        filter,
         source: path.to_string(),
     };
 

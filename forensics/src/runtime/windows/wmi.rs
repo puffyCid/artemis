@@ -125,7 +125,7 @@ pub(crate) fn js_class_description(
 
     let desc = match class_description(
         &namespace,
-        &locale,
+        locale,
         &class_name,
         &indexes,
         &object_data,

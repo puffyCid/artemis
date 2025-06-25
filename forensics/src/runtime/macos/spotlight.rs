@@ -26,7 +26,7 @@ pub(crate) fn js_spotlight(
     };
 
     let entries =
-        match parse_spotlight_reader(&store_file, &store_meta.meta, &store_meta.blocks, &offset) {
+        match parse_spotlight_reader(&store_file, &store_meta.meta, &store_meta.blocks, offset) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to get spotlight: {err:?}");
