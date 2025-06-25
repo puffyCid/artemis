@@ -44,7 +44,7 @@ pub(crate) fn parse_mft(
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
-    let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
+    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {

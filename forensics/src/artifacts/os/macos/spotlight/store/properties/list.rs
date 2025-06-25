@@ -8,7 +8,7 @@ pub(crate) fn extract_list(
     indexes1: &HashMap<usize, Vec<u32>>,
     indexes2: &HashMap<usize, Vec<u32>>,
     list_value: usize,
-    prop_type: &u8,
+    prop_type: u8,
 ) -> Value {
     let item_kind = 3;
     let tree_kind = 2;
@@ -76,7 +76,7 @@ mod tests {
         let list_value = 1;
         let prop_type = 2;
 
-        let result = extract_list(&categories, &indexes1, &indexes2, list_value, &prop_type);
+        let result = extract_list(&categories, &indexes1, &indexes2, list_value, prop_type);
         assert_eq!(result.as_array().unwrap()[0].as_str().unwrap(), "fakeme");
     }
 
@@ -104,7 +104,7 @@ mod tests {
         let list_value = 1;
         let prop_type = 77;
 
-        let result = extract_list(&categories, &indexes1, &indexes2, list_value, &prop_type);
+        let result = extract_list(&categories, &indexes1, &indexes2, list_value, prop_type);
         assert_eq!(result.as_null().unwrap(), ());
     }
 }

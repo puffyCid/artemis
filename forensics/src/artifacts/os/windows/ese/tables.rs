@@ -371,13 +371,13 @@ pub(crate) fn parse_row(leaf_row: PageLeaf, column_info: &mut [ColumnInfo]) {
     let leaf_data: DataDefinition = serde_json::from_value(leaf_row.leaf_data).unwrap();
 
     let _ = parse_fixed_data(
-        &leaf_data.last_fixed_data,
+        leaf_data.last_fixed_data,
         &leaf_data.fixed_data,
         column_info,
     );
 
     let _ = parse_variable_data(
-        &leaf_data.last_variable_data,
+        leaf_data.last_variable_data,
         &leaf_data.variable_data,
         column_info,
     );
@@ -385,13 +385,13 @@ pub(crate) fn parse_row(leaf_row: PageLeaf, column_info: &mut [ColumnInfo]) {
 
 /// Parse the fixed data of a column
 fn parse_fixed_data<'a>(
-    last_fixed_data: &u8,
+    last_fixed_data: u8,
     fixed_data: &'a [u8],
     column_info: &mut [ColumnInfo],
 ) -> nom::IResult<&'a [u8], ()> {
     let mut column = 1;
     let mut data = fixed_data;
-    while &column <= last_fixed_data {
+    while column <= last_fixed_data {
         for entry in column_info.iter_mut() {
             if entry.column_id == column as i32 {
                 let (input, column_data) =
@@ -408,7 +408,7 @@ fn parse_fixed_data<'a>(
 
 /// Parse the variable data of a column. Follows fixed data
 fn parse_variable_data<'a>(
-    last_variable: &u8,
+    last_variable: u8,
     variable_data: &'a [u8],
     column_info: &mut [ColumnInfo],
 ) -> nom::IResult<&'a [u8], ()> {
@@ -416,7 +416,7 @@ fn parse_variable_data<'a>(
     let mut data = variable_data;
     // The first part of the variable data is the sizes of each variable column data
     let mut var_sizes: Vec<VariableData> = Vec::new();
-    while &start_column <= last_variable {
+    while start_column <= last_variable {
         let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
         let var_data = VariableData {
             column: start_column,
@@ -834,7 +834,7 @@ mod tests {
             column_tagged_flags: Vec::new(),
         };
         let mut info_vec = vec![info];
-        let (_, _) = parse_fixed_data(&last_fixed, &test, &mut info_vec).unwrap();
+        let (_, _) = parse_fixed_data(last_fixed, &test, &mut info_vec).unwrap();
         assert_eq!(info_vec[0].column_data, [2, 0, 0, 0]);
     }
 
@@ -852,7 +852,7 @@ mod tests {
             column_tagged_flags: Vec::new(),
         };
         let mut info_vec = vec![info];
-        let (_, _) = parse_variable_data(&last_variable, &test, &mut info_vec).unwrap();
+        let (_, _) = parse_variable_data(last_variable, &test, &mut info_vec).unwrap();
         assert_eq!(
             info_vec[0].column_data,
             [77, 83, 121, 115, 79, 98, 106, 101, 99, 116, 115]

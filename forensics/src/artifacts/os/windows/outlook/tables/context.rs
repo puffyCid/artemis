@@ -345,7 +345,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let row = get_heap_node_id(values_array_index_reference);
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
+        let (input, cols) = get_column_definitions(input, number_column_definitions)?;
 
         let mut info = TableInfo {
             block_data: all_block.to_vec(),
@@ -776,7 +776,7 @@ fn get_row_data_entry<'a>(
             row_data,
             &column.column.property_type,
             &column.column.offset,
-            &column.column.size,
+            column.column.size,
         )?;
 
         column.value = value;
@@ -818,7 +818,7 @@ fn get_row_data<'a>(
                 row_data,
                 &column.column.property_type,
                 &column.column.offset,
-                &column.column.size,
+                column.column.size,
             )?;
 
             column.value = value;
@@ -836,11 +836,11 @@ fn parse_row_data<'a>(
     row_data: &'a [u8],
     prop_type: &PropertyType,
     offset: &u16,
-    value_size: &u8,
+    value_size: u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
     let (value_start, _) = take(*offset)(row_data)?;
-    let (_, value_data) = take(*value_size)(value_start)?;
+    let (_, value_data) = take(value_size)(value_start)?;
 
     let multi_values = [
         PropertyType::String,
@@ -891,14 +891,14 @@ fn parse_row_data<'a>(
 /// Extract column definitions for our table. There can be a lot
 fn get_column_definitions<'a>(
     data: &'a [u8],
-    column_count: &u8,
+    column_count: u8,
 ) -> nom::IResult<&'a [u8], Vec<TableRows>> {
     let mut col_data = data;
     let mut count = 0;
 
     let mut values = Vec::new();
 
-    while &count < column_count {
+    while count < column_count {
         let (input, property_type) = nom_unsigned_two_bytes(col_data, Endian::Le)?;
         let (input, id) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -1134,7 +1134,7 @@ mod tests {
             84, 0, 82, 0, 69, 0, 69, 0, 6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1,
             108, 1,
         ];
-        let (_, rows) = get_column_definitions(&test, &15).unwrap();
+        let (_, rows) = get_column_definitions(&test, 15).unwrap();
         assert_eq!(rows.len(), 15);
     }
 

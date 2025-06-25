@@ -32,11 +32,11 @@ pub(crate) fn grab_shimcache(
         }
     };
 
-    drive_shimcache(&drive)
+    drive_shimcache(drive)
 }
 
 /// Get `Shimcache` entries using an alternative path
-fn drive_shimcache(drive: &char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
+fn drive_shimcache(drive: char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
     let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
     parse_shimcache(&path)
 }

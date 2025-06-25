@@ -52,7 +52,7 @@ pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> 
         }
     };
 
-    drive_tasks(&drive)
+    drive_tasks(drive)
 }
 
 /// Grab and parse single Task Job File at provided path
@@ -66,7 +66,7 @@ fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
 }
 
 /// Parse Tasks at provided drive
-fn drive_tasks(letter: &char) -> Result<TaskData, TaskError> {
+fn drive_tasks(letter: char) -> Result<TaskData, TaskError> {
     let path = format!("{letter}:\\Windows\\System32\\Tasks");
     // Tasks may be under nested directories. Glob everything at path
     let paths_result = glob_paths(&format!("{path}\\**\\*"));

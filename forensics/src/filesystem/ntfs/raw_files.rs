@@ -184,7 +184,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
         return Err(FileSystemError::NotFile);
     }
 
-    let drive = &path.chars().next().unwrap(); // Only need Drive letter
+    let drive = path.chars().next().unwrap(); // Only need Drive letter
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
     let root_dir = match root_dir_result {
@@ -314,7 +314,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
     if path.len() < min_path_len || !path.contains(':') {
         return Err(FileSystemError::NotFile);
     }
-    let drive = &path.chars().next().unwrap(); // Only need Drive letter
+    let drive = path.chars().next().unwrap(); // Only need Drive letter
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
 
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
@@ -377,7 +377,7 @@ pub(crate) struct UserRegistryFiles {
 
 /// Get paths and NTFS file references for all user Registry files on a drive (NTUSER.DAT and UsrClass.dat)
 pub(crate) fn get_user_registry_files(
-    drive: &char,
+    drive: char,
 ) -> Result<Vec<UserRegistryFiles>, FileSystemError> {
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);

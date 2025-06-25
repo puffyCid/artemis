@@ -10,7 +10,7 @@ pub(crate) struct NtfsParser {
 }
 
 /// Setup NTFS parser by opening drive letter and creating Sector Reader
-pub(crate) fn setup_ntfs_parser(drive_letter: &char) -> Result<NtfsParser, FileSystemError> {
+pub(crate) fn setup_ntfs_parser(drive_letter: char) -> Result<NtfsParser, FileSystemError> {
     let drive_path = format!("\\\\.\\{drive_letter}:");
 
     let fs_result = File::open(drive_path);

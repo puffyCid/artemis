@@ -207,7 +207,7 @@ fn parse_record<'a>(
         };
 
         if spot_value.attribute == DataAttribute::AttrVariableSizeIntMultiValue {
-            let (input, multi_values) = extract_multivalue(input, &props.prop_type)?;
+            let (input, multi_values) = extract_multivalue(input, props.prop_type)?;
             spot_value.value = multi_values;
 
             values.insert(props.name.clone(), spot_value);
@@ -287,7 +287,7 @@ fn parse_record<'a>(
                 &meta.indexes1,
                 &meta.indexes2,
                 prop_value_size,
-                &props.prop_type,
+                props.prop_type,
             );
 
             values.insert(props.name.clone(), spot_value);

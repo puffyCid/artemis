@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 /// Grab `UsnJrnl` entries by reading the $J ADS attribute and parsing its data runs
 pub(crate) fn parse_usnjrnl_data(
-    drive: &char,
+    drive: char,
     mft: &str,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     let data = get_data(drive)?;
@@ -143,7 +143,7 @@ pub(crate) fn get_usnjrnl_path(
 }
 
 /// `UsnJrnl` data is in an alternative data stream (ADS) at \<drive\>\\$Extend\\$UsnJrnl:$J (where $J is the ADS name)
-fn get_data(drive: &char) -> Result<Vec<u8>, UsnJrnlError> {
+fn get_data(drive: char) -> Result<Vec<u8>, UsnJrnlError> {
     let usn_path = format!("{drive}:\\$Extend\\$UsnJrnl");
     let attribute = "$J";
     // Read the $J attribute and get all the data runs

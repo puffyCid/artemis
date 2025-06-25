@@ -45,7 +45,7 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError>
             format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db");
         // If qmbgr.db is not found this may be an older system that uses the older BITS format
         if !is_file(&bits_path) {
-            return parse_legacy_bits(&systemdrive, options.carve);
+            return parse_legacy_bits(systemdrive, options.carve);
         }
         bits_path
     };

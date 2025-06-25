@@ -38,11 +38,11 @@ pub(crate) fn grab_userassist(
             return Err(UserAssistError::DriveLetter);
         }
     };
-    parse_userassist(&drive, resolve)
+    parse_userassist(drive, resolve)
 }
 
 /// Get `UserAssist` entries for all users in NTUSER.DAT files. Then parse the `UserAssist` data
-fn parse_userassist(drive: &char, resolve: bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
+fn parse_userassist(drive: char, resolve: bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let entries = get_userassist_drive(drive)?;
     parse_userassist_data(&entries, resolve)
 }

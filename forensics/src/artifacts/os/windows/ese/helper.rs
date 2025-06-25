@@ -61,7 +61,7 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
         Catalog::grab_catalog(None, &mut buf_reader, page_size)?
     } else {
         // On Windows use a NTFS reader
-        let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
+        let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
         let mut ntfs_parser = match ntfs_parser_result {
             Ok(result) => result,
             Err(err) => {
@@ -89,7 +89,7 @@ pub(crate) fn get_all_pages(path: &str, first_page: u32) -> Result<Vec<u32>, Ese
         let page_size = ese_page_size(None, &mut buf_reader)?;
         get_pages(first_page, None, &mut buf_reader, page_size)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
         let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
         get_pages(first_page, Some(&ntfs_file), &mut ntfs_parser.fs, page_size)?
@@ -126,7 +126,7 @@ pub(crate) fn get_page_data(
         }
         row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
@@ -193,7 +193,7 @@ pub(crate) fn get_filtered_page_data(
         row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
         // On Windows use a NTFS reader
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
@@ -272,7 +272,7 @@ pub(crate) fn dump_table_columns(
         }
         row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;

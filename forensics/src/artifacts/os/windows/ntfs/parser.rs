@@ -71,7 +71,7 @@ pub(crate) fn ntfs_filelist(
         return Err(NTFSError::BadStart);
     }
 
-    let ntfs_parser_result = setup_ntfs_parser(&rawfile_params.drive_letter);
+    let ntfs_parser_result = setup_ntfs_parser(rawfile_params.drive_letter);
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {

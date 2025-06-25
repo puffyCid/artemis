@@ -78,11 +78,11 @@ pub(crate) fn parse_registry(
     };
 
     if options.user_hives {
-        parse_user_hives(&drive, output, &mut params)?;
+        parse_user_hives(drive, output, &mut params)?;
     }
 
     if options.system_hives {
-        parse_default_system_hives(&drive, output, &mut params)?;
+        parse_default_system_hives(drive, output, &mut params)?;
     }
 
     Ok(())
@@ -102,7 +102,7 @@ fn user_regex(input: &str) -> Result<Regex, RegistryError> {
 
 /// Parse useful system hive files. Other hive files include: COMPONENTS, DEFAULT, DRIVERS, BBI, ELAM, userdiff, BCD-Template
 fn parse_default_system_hives(
-    drive: &char,
+    drive: char,
     output: &mut Output,
     params: &mut Params,
 ) -> Result<(), RegistryError> {
@@ -179,7 +179,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
 
 /// Parse the user `Registry` hives (NTUSER.DAT and UsrClass.dat)
 fn parse_user_hives(
-    drive: &char,
+    drive: char,
     output: &mut Output,
     params: &mut Params,
 ) -> Result<(), RegistryError> {

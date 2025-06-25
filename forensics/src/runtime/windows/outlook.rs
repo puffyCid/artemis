@@ -21,7 +21,7 @@ pub(crate) fn js_root_folder(
     let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -102,7 +102,7 @@ pub(crate) fn js_message_store(
     let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -183,7 +183,7 @@ pub(crate) fn js_name_map(
     let use_ntfs = boolean_arg(args, 1, context)?;
 
     let root_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -265,7 +265,7 @@ pub(crate) fn js_read_folder(
     let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -355,7 +355,7 @@ pub(crate) fn js_read_messages(
     };
 
     let messages = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -495,7 +495,7 @@ pub(crate) fn js_read_attachment(
     let descriptor_id = bigint_arg(args, 3)? as u64;
 
     let attachment_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");
@@ -577,7 +577,7 @@ pub(crate) fn js_folder_meta(
     let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {
-        let mut ntfs_parser = match setup_ntfs_parser(&path.chars().next().unwrap_or('C')) {
+        let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
             Ok(result) => result,
             Err(err) => {
                 let issue = format!("Failed to setup NTFS reader: {err:?}");

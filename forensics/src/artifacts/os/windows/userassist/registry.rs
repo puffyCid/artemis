@@ -13,7 +13,7 @@ pub(crate) struct UserAssistReg {
 }
 
 /// Grab the `UserAssist` data from the Registry based on provided drive letter
-pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, UserAssistError> {
+pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, UserAssistError> {
     let user_reg_results = get_user_registry_files(drive);
     let user_hives = match user_reg_results {
         Ok(result) => result,

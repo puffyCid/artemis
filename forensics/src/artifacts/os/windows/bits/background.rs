@@ -129,7 +129,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
 /**
  * Parse older version (pre-Win10) of BITS which is a custom binary format
  */
-pub(crate) fn parse_legacy_bits(systemdrive: &char, carve: bool) -> Result<WindowsBits, BitsError> {
+pub(crate) fn parse_legacy_bits(systemdrive: char, carve: bool) -> Result<WindowsBits, BitsError> {
     let mut bits_path =
         format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr0.dat");
 

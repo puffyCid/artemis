@@ -56,7 +56,7 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
         }
     };
 
-    parse_shellbags(&drive, options.resolve_guids)
+    parse_shellbags(drive, options.resolve_guids)
 }
 
 /// Parse `Shellbags` associated with provided alternative path
@@ -108,7 +108,7 @@ struct RegInfo {
  * Parse each user registry file for `ShellItem` data
  * Parse the `ShellItem` data and reconstruct browsed directories
  */
-fn parse_shellbags(drive: &char, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
+fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
     let user_hives_result = get_user_registry_files(drive);
     let user_hives = match user_hives_result {
         Ok(result) => result,

@@ -22,7 +22,7 @@ use log::error;
 /// Parse `UsnJrnl` data and return list of entries
 pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     if let Some(alt) = options.alt_drive {
-        return parse_usnjrnl_data(&alt, &format!("{alt}:\\$MFT"));
+        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"));
     }
     if let Some(path) = &options.alt_path {
         return grab_usnjrnl_path(path, &options.alt_mft);
@@ -36,7 +36,7 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
         }
     };
 
-    parse_usnjrnl_data(&systemdrive, &format!("{systemdrive}:\\$MFT"))
+    parse_usnjrnl_data(systemdrive, &format!("{systemdrive}:\\$MFT"))
 }
 
 /// Get `UsnJrnl` data at provided path
