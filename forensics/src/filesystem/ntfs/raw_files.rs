@@ -176,7 +176,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     if platform != "Windows" {
         // 3GB limit
         let max_size = 3221225472;
-        return read_file_custom(path, &max_size);
+        return read_file_custom(path, max_size);
     }
 
     let min_path_len = 4;

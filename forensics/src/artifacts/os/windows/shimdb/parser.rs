@@ -88,7 +88,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
     let max_size = 10485760; // 10MB
     // Custom SDB files are very small 1-5KB
     // The builtin sdb file (sysmain.sdb) is ~4MB
-    let buffer_result = read_file_custom(path, &max_size);
+    let buffer_result = read_file_custom(path, max_size);
     let buffer = match buffer_result {
         Ok(result) => result,
         Err(err) => {

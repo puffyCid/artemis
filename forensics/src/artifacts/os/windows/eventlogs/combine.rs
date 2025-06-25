@@ -73,7 +73,7 @@ pub(crate) fn add_message_strings(
     message.raw_event_data = raw_data(&log.data)?;
 
     let level = get_meta_number(meta, "Level")?;
-    message.level = get_level(&level);
+    message.level = get_level(level);
 
     // Some logs may not have a opcode number. Seen in logs with RenderingInfo element
     // Instead opcode is in RenderInfo and its a string...
@@ -369,7 +369,7 @@ fn get_event_id(data: &Value) -> Option<EventId> {
 }
 
 /// Determine log level
-fn get_level(level: &u64) -> EventLevel {
+fn get_level(level: u64) -> EventLevel {
     match level {
         0 | 4 => EventLevel::Information,
         1 => EventLevel::Critical,

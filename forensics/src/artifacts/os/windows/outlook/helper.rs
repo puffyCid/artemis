@@ -918,8 +918,8 @@ mod tests {
     };
     use std::{io::BufReader, path::PathBuf};
 
-    fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: &u64) {
-        let mut results = reader.read_folder(None, *folder).unwrap();
+    fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: u64) {
+        let mut results = reader.read_folder(None, folder).unwrap();
 
         for meta in results.associated_content {
             let _meta_value = reader.folder_metadata(None, meta.node).unwrap();
@@ -956,7 +956,7 @@ mod tests {
         }
 
         for sub in results.subfolders {
-            stream_ost(reader, &sub.node);
+            stream_ost(reader, sub.node);
         }
     }
 
@@ -981,7 +981,7 @@ mod tests {
     #[test]
     fn test_outlook_reader_only() {
         let mut outlook_reader = setup_reader::<std::fs::File>();
-        stream_ost(&mut outlook_reader, &290)
+        stream_ost(&mut outlook_reader, 290)
     }
 
     #[test]
