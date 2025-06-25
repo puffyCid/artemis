@@ -24,7 +24,7 @@ use std::{collections::HashMap, mem::size_of};
 /// Parse different OLE Type definitions
 pub(crate) fn parse_types<'a>(
     data: &'a [u8],
-    ole_type: &u16,
+    ole_type: u16,
     values: &mut HashMap<String, Value>,
     key: String,
 ) -> nom::IResult<&'a [u8], Vec<ShellItem>> {
@@ -201,7 +201,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let mut values = HashMap::new();
-        let _ = parse_types(&test_data, &0x48, &mut values, String::from("value")).unwrap();
+        let _ = parse_types(&test_data, 0x48, &mut values, String::from("value")).unwrap();
         assert_eq!(
             values.get("value").unwrap(),
             "c3693081-ccc2-4d8c-80df-6c0dd8f26709"

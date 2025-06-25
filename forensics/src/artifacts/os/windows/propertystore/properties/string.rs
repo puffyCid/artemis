@@ -36,7 +36,7 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
     let name = extract_utf16_string(name_data);
     let mut values = HashMap::new();
 
-    let (_, items) = parse_types(property_input, &prop_type, &mut values, String::new())?;
+    let (_, items) = parse_types(property_input, prop_type, &mut values, String::new())?;
     let serde_result = serde_json::to_value(items);
     let _ = match serde_result {
         Ok(results) => values.insert(name, results),

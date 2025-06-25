@@ -775,7 +775,7 @@ fn get_row_data_entry<'a>(
             &info.block_data,
             row_data,
             &column.column.property_type,
-            &column.column.offset,
+            column.column.offset,
             column.column.size,
         )?;
 
@@ -817,7 +817,7 @@ fn get_row_data<'a>(
                 &info.block_data,
                 row_data,
                 &column.column.property_type,
-                &column.column.offset,
+                column.column.offset,
                 column.column.size,
             )?;
 
@@ -835,11 +835,11 @@ fn parse_row_data<'a>(
     all_blocks: &[Vec<u8>],
     row_data: &'a [u8],
     prop_type: &PropertyType,
-    offset: &u16,
+    offset: u16,
     value_size: u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
-    let (value_start, _) = take(*offset)(row_data)?;
+    let (value_start, _) = take(offset)(row_data)?;
     let (_, value_data) = take(value_size)(value_start)?;
 
     let multi_values = [
