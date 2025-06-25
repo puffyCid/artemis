@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let test = 1;
-        let flags = get_flags(&test);
+        let flags = get_flags(test);
         assert_eq!(flags[0], UacFlags::AccountDisabled);
     }
 

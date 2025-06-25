@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn test_file_attribute_flags() {
         let test = 1;
-        let flag = file_attribute_flags(&test);
+        let flag = file_attribute_flags(test);
         assert_eq!(flag.len(), 1);
         assert_eq!(flag[0], AttributeFlags::ReadOnly)
     }

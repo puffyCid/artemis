@@ -718,7 +718,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(results[0].column_or_father_data_page as u32),
+            results[0].column_or_father_data_page as u32,
         )
         .unwrap();
         assert_eq!(pages.len(), 1);
@@ -733,7 +733,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(catalog[0].column_or_father_data_page as u32),
+            catalog[0].column_or_father_data_page as u32,
         )
         .unwrap();
         let mut info = TableInfo {
@@ -827,7 +827,7 @@ mod tests {
             }
         }
         let pages =
-            get_all_pages(test_location.to_str().unwrap(), &(info.table_page as u32)).unwrap();
+            get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
         let mut values = HashMap::from([(String::from("JobsById"), true)]);
@@ -853,7 +853,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(catalog[0].column_or_father_data_page as u32),
+            catalog[0].column_or_father_data_page as u32,
         )
         .unwrap();
 
@@ -949,7 +949,7 @@ mod tests {
         }
 
         let pages =
-            get_all_pages(test_location.to_str().unwrap(), &(info.table_page as u32)).unwrap();
+            get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
 

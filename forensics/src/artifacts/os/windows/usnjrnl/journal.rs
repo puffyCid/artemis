@@ -465,7 +465,7 @@ mod tests {
             0x8000, 0x10000, 0x20000, 0x80000, 0x100000, 0x200000, 0x400000, 0x80000000,
         ];
         for entry in test {
-            let reason = UsnJrnlFormat::reason_flags(&entry);
+            let reason = UsnJrnlFormat::reason_flags(entry);
             assert!(!reason.is_empty());
         }
     }
@@ -473,7 +473,7 @@ mod tests {
     #[test]
     fn test_source_flag() {
         let test = 1;
-        let result = UsnJrnlFormat::source_flag(&test);
+        let result = UsnJrnlFormat::source_flag(test);
         assert_eq!(result, DataManagement);
     }
 }

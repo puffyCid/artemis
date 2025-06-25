@@ -339,7 +339,7 @@ mod tests {
             let entry_index = entry.unwrap();
             let filename_result = entry_index.key().unwrap();
 
-            let result = filename_info(filename_result, &mut file_info).unwrap();
+            let result = filename_info(&filename_result, &mut file_info).unwrap();
             assert_eq!(result, ());
 
             assert!(file_info.filename.is_empty() == false);
