@@ -154,7 +154,7 @@ impl Logon {
             termination_status,
             exit_status,
             session,
-            timestamp: unixepoch_to_iso(&(timestamp as i64)),
+            timestamp: unixepoch_to_iso(timestamp as i64),
             microseconds,
             ip,
             status: status.clone(),

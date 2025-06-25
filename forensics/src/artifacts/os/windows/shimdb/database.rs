@@ -56,7 +56,7 @@ pub(crate) fn parse_db<'a>(
             let (sdb_data, compile_time) = get_db_time(sdb_data)?;
 
             input = sdb_data;
-            database_data.compile_time = unixepoch_to_iso(&filetime_to_unixepoch(compile_time));
+            database_data.compile_time = unixepoch_to_iso(filetime_to_unixepoch(compile_time));
             continue;
         } else if tag_value == tag_compiler_version {
             let (sdb_data, compiler_version) = get_compiler_version(sdb_data, stringtable_data)?;

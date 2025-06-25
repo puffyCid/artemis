@@ -210,11 +210,11 @@ fn get_account_policy(
     for (key, value) in account_info {
         match key.as_str() {
             "creationTime" => {
-                users_data.account_created = unixepoch_to_iso(&(get_float(value)? as i64));
+                users_data.account_created = unixepoch_to_iso(get_float(value)? as i64);
             }
 
             "passwordLastSetTime" => {
-                users_data.password_last_set = unixepoch_to_iso(&(get_float(value)? as i64));
+                users_data.password_last_set = unixepoch_to_iso(get_float(value)? as i64);
             }
             _ => (),
         }

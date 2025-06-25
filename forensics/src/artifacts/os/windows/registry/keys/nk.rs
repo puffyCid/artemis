@@ -111,7 +111,7 @@ impl NameKey {
             key: params.key_tracker.join("\\"),
             name: name_key.key_name.clone(),
             values: Vec::new(),
-            last_modified: unixepoch_to_iso(&filetime_to_unixepoch(last_modified)),
+            last_modified: unixepoch_to_iso(filetime_to_unixepoch(last_modified)),
             depth: params.key_tracker.len(),
             security_offset: key_security_offset,
             registry_file: get_filename(&params.registry_path),

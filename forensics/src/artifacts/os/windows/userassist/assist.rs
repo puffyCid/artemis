@@ -103,7 +103,7 @@ fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let (input, last_execution) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     userassist.count = count;
-    userassist.last_execution = unixepoch_to_iso(&filetime_to_unixepoch(last_execution));
+    userassist.last_execution = unixepoch_to_iso(filetime_to_unixepoch(last_execution));
 
     Ok((input, userassist))
 }

@@ -105,7 +105,7 @@ pub(crate) fn parse_energy_usage(
                     energy.user_id.clone_from(&column.column_data);
                 }
                 "EventTimestamp" => {
-                    energy.event_timestamp = unixepoch_to_iso(&filetime_to_unixepoch(
+                    energy.event_timestamp = unixepoch_to_iso(filetime_to_unixepoch(
                         column.column_data.parse::<u64>().unwrap_or_default(),
                     ));
                 }

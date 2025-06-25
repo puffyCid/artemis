@@ -136,7 +136,7 @@ pub(crate) fn parse_destlist(data: &[u8]) -> nom::IResult<&[u8], DestList> {
             birth_droid_file_id: format_guid_le_bytes(birth_file),
             hostname: extract_utf8_string(hostname_data),
             entry,
-            modified: unixepoch_to_iso(&filetime_to_unixepoch(modified)),
+            modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
             pin_status,
             path: extract_utf16_string(path_data),
         };

@@ -129,7 +129,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
             .push(format!("{:X?}", volume.volume_serial));
         prefetch
             .volume_creation
-            .push(unixepoch_to_iso(&volume.volume_creation));
+            .push(unixepoch_to_iso(volume.volume_creation));
         prefetch.volume_path.push(volume.volume_path);
 
         prefetch.accessed_directories_count += volume.number_directory_strings;

@@ -238,13 +238,13 @@ fn extract_column_data_to_string<'a>(
                 let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
                 let filetime = filetime_to_unixepoch(filetime_data);
 
-                (input, unixepoch_to_iso(&filetime))
+                (input, unixepoch_to_iso(filetime))
             } else {
                 let (input, float_data) = take(size_of::<u64>())(data)?;
                 let (_, float_value) = le_f64(float_data)?;
                 let oletime = ole_automationtime_to_unixepoch(&float_value);
 
-                (input, unixepoch_to_iso(&oletime))
+                (input, unixepoch_to_iso(oletime))
             }
         }
         ColumnType::LongBinary | ColumnType::Binary => {

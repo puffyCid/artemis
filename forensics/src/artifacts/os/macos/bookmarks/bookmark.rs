@@ -235,8 +235,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_data = bookmark_data_type_date(&record_data);
                 match creation_data {
                     Ok((_, creation)) => {
-                        bookmark_data.created =
-                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
+                        bookmark_data.created = unixepoch_to_iso(cocoatime_to_unixepoch(&creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Target File created timestamp: {err:?}");
@@ -287,7 +286,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 match creation_data {
                     Ok((_, creation)) => {
                         bookmark_data.volume_created =
-                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
+                            unixepoch_to_iso(cocoatime_to_unixepoch(&creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Volume Creation timestamp: {err:?}");

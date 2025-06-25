@@ -336,7 +336,7 @@ pub(crate) fn extract_property_value<'a>(
             let (_, float_data) = take(size_of::<u64>())(value_data)?;
             let (_, float_value) = le_f64(float_data)?;
             let oletime = ole_automationtime_to_unixepoch(&float_value);
-            value = serde_json::to_value(unixepoch_to_iso(&oletime)).unwrap_or_default();
+            value = serde_json::to_value(unixepoch_to_iso(oletime)).unwrap_or_default();
         }
         PropertyType::ErrorCode => {
             // In future we could perhaps translate this to proper error string
@@ -399,7 +399,7 @@ pub(crate) fn extract_property_value<'a>(
         PropertyType::Time => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
             let timestamp = filetime_to_unixepoch(prop_value);
-            value = serde_json::to_value(unixepoch_to_iso(&timestamp)).unwrap_or_default();
+            value = serde_json::to_value(unixepoch_to_iso(timestamp)).unwrap_or_default();
         }
         PropertyType::Guid => {
             let string_value = format_guid_le_bytes(value_data);
@@ -480,7 +480,7 @@ pub(crate) fn extract_property_value<'a>(
                 let (_, float_value) = le_f64(float_data)?;
                 remaining = input;
                 let oletime = ole_automationtime_to_unixepoch(&float_value);
-                int_values.push(unixepoch_to_iso(&oletime));
+                int_values.push(unixepoch_to_iso(oletime));
                 count += 1;
             }
             value = serde_json::to_value(int_values).unwrap_or_default();
@@ -511,7 +511,7 @@ pub(crate) fn extract_property_value<'a>(
                 let timestamp = filetime_to_unixepoch(prop_value);
 
                 remaining = input;
-                int_values.push(unixepoch_to_iso(&timestamp));
+                int_values.push(unixepoch_to_iso(timestamp));
                 count += 1;
             }
             value = serde_json::to_value(int_values).unwrap_or_default();

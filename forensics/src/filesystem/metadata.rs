@@ -28,9 +28,9 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         use crate::utils::time::filetime_to_unixepoch;
         use std::os::windows::fs::MetadataExt;
         // Rust for Windows does not support getting Changed times :(
-        timestamps.accessed = unixepoch_to_iso(&filetime_to_unixepoch(meta.last_access_time()));
-        timestamps.modified = unixepoch_to_iso(&filetime_to_unixepoch(meta.last_write_time()));
-        timestamps.created = unixepoch_to_iso(&filetime_to_unixepoch(meta.creation_time()));
+        timestamps.accessed = unixepoch_to_iso(filetime_to_unixepoch(meta.last_access_time()));
+        timestamps.modified = unixepoch_to_iso(filetime_to_unixepoch(meta.last_write_time()));
+        timestamps.created = unixepoch_to_iso(filetime_to_unixepoch(meta.creation_time()));
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd"))]
@@ -44,16 +44,16 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            timestamps.accessed = unixepoch_to_iso(&meta.st_atime());
-            timestamps.modified = unixepoch_to_iso(&meta.st_mtime());
-            timestamps.changed = unixepoch_to_iso(&meta.st_ctime());
+            timestamps.accessed = unixepoch_to_iso(meta.st_atime());
+            timestamps.modified = unixepoch_to_iso(meta.st_mtime());
+            timestamps.changed = unixepoch_to_iso(meta.st_ctime());
         }
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
         {
-            timestamps.accessed = unixepoch_to_iso(&meta.atime());
-            timestamps.modified = unixepoch_to_iso(&meta.mtime());
-            timestamps.changed = unixepoch_to_iso(&meta.ctime());
+            timestamps.accessed = unixepoch_to_iso(meta.atime());
+            timestamps.modified = unixepoch_to_iso(meta.mtime());
+            timestamps.changed = unixepoch_to_iso(meta.ctime());
         }
 
         #[cfg(target_os = "linux")]
@@ -66,11 +66,11 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            timestamps.created = unixepoch_to_iso(&(created as i64));
+            timestamps.created = unixepoch_to_iso(created as i64);
         }
         #[cfg(target_os = "macos")]
         {
-            timestamps.created = unixepoch_to_iso(&meta.st_birthtime());
+            timestamps.created = unixepoch_to_iso(meta.st_birthtime());
         }
     }
 

@@ -22,7 +22,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     // Primary name is either ASCII or UTF16. No size is given for name size. But the next directory `ShellItem` data is the signature 0xBEEF0004
     // We peek until we find the signature without nomming the input
     if let Ok((input, mut directory_item)) = check_beef(input) {
-        directory_item.modified = unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data));
+        directory_item.modified = unixepoch_to_iso(fattime_utc_to_unixepoch(modified_data));
 
         return Ok((input, directory_item));
     }
@@ -30,7 +30,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     // No beef0004 signature found. We should have end of string character then
     // Check UTF16 first
     if let Ok((input, mut directory_item)) = check_utf16(input) {
-        directory_item.modified = unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data));
+        directory_item.modified = unixepoch_to_iso(fattime_utc_to_unixepoch(modified_data));
         // Skipping 8.3 filename string that is after the UTF16 string
         return Ok((input, directory_item));
     }
@@ -41,7 +41,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         value: name,
         shell_type: ShellType::Directory,
         created: String::from("1970-01-01T00:00:00Z"),
-        modified: unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data)),
+        modified: unixepoch_to_iso(fattime_utc_to_unixepoch(modified_data)),
         accessed: String::from("1970-01-01T00:00:00Z"),
         mft_entry: 0,
         mft_sequence: 0,

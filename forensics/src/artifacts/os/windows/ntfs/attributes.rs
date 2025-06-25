@@ -38,35 +38,33 @@ pub(crate) fn filename_info(
     filename.parent_directory_reference().file_record_number();
 
     file_info.filename = filename.name().to_string().unwrap_or_default();
-    file_info.filename_created = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(
         filename.creation_time().nt_timestamp(),
     ));
-    file_info.filename_modified = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(
         filename.modification_time().nt_timestamp(),
     ));
-    file_info.filename_changed = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(
         filename.mft_record_modification_time().nt_timestamp(),
     ));
-    file_info.filename_accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        filename.access_time().nt_timestamp(),
-    ));
+    file_info.filename_accessed =
+        unixepoch_to_iso(filetime_to_unixepoch(filename.access_time().nt_timestamp()));
     Ok(())
 }
 
 /// Get Standard attributes data
 pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut RawFilelist) {
-    file_info.created = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.created = unixepoch_to_iso(filetime_to_unixepoch(
         standard.creation_time().nt_timestamp(),
     ));
-    file_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.modified = unixepoch_to_iso(filetime_to_unixepoch(
         standard.modification_time().nt_timestamp(),
     ));
-    file_info.changed = unixepoch_to_iso(&filetime_to_unixepoch(
+    file_info.changed = unixepoch_to_iso(filetime_to_unixepoch(
         standard.mft_record_modification_time().nt_timestamp(),
     ));
-    file_info.accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        standard.access_time().nt_timestamp(),
-    ));
+    file_info.accessed =
+        unixepoch_to_iso(filetime_to_unixepoch(standard.access_time().nt_timestamp()));
 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);

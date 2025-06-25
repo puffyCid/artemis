@@ -58,7 +58,7 @@ pub(crate) fn parse_types<'a>(
             let (_, oletime) = le_f64(vt_data)?;
             (
                 input,
-                Value::String(unixepoch_to_iso(&ole_automationtime_to_unixepoch(&oletime))),
+                Value::String(unixepoch_to_iso(ole_automationtime_to_unixepoch(&oletime))),
             )
         }
         0x8 => {
@@ -107,7 +107,7 @@ pub(crate) fn parse_types<'a>(
             let (input, filetime) = nom_unsigned_eight_bytes(data, Endian::Le)?;
             (
                 input,
-                Value::String(unixepoch_to_iso(&filetime_to_unixepoch(filetime))),
+                Value::String(unixepoch_to_iso(filetime_to_unixepoch(filetime))),
             )
         }
         0x42 => {

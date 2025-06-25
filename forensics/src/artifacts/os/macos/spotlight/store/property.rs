@@ -307,7 +307,7 @@ fn parse_record<'a>(
         parent_inode,
         flags,
         store_id,
-        last_updated: unixepoch_to_iso(&(last_updated as i64)),
+        last_updated: unixepoch_to_iso(last_updated as i64),
         values,
         directory: dir.to_string(),
     };

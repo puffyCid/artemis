@@ -56,7 +56,7 @@ pub(crate) fn grab_execpolicy(
             cdhash: row.get("cdhash").unwrap_or_default(),
             main_executable_hash: row.get("main_executable_hash").unwrap_or_default(),
             executable_timestamp: unixepoch_to_iso(
-                &row.get("executable_timestamp").unwrap_or_default(),
+                row.get("executable_timestamp").unwrap_or_default(),
             ),
             file_size: row.get("file_size").unwrap_or_default(),
             is_library: row.get("is_library").unwrap_or_default(),
@@ -65,10 +65,10 @@ pub(crate) fn grab_execpolicy(
             is_valid: row.get("is_valid").unwrap_or_default(),
             is_quarantined: row.get("is_quarantined").unwrap_or_default(),
             executable_measurements_v2_timestamp: unixepoch_to_iso(
-                &row.get("executable_measurements_v2_timestamp")
+                row.get("executable_measurements_v2_timestamp")
                     .unwrap_or_default(),
             ),
-            reported_timestamp: unixepoch_to_iso(&row.get("reported_timstamp").unwrap_or_default()),
+            reported_timestamp: unixepoch_to_iso(row.get("reported_timstamp").unwrap_or_default()),
             pk: row.get("pk").unwrap_or_default(),
             volume_uuid: row.get("volume_uuid").unwrap_or_default(),
             object_id: row.get("object_id").unwrap_or_default(),
@@ -79,10 +79,10 @@ pub(crate) fn grab_execpolicy(
             flags: row.get("flags").unwrap_or_default(),
             mod_time: row.get("mod_time").unwrap_or_default(),
             policy_scan_cache_timestamp: unixepoch_to_iso(
-                &row.get("policy_scan_cache_timestamp").unwrap_or_default(),
+                row.get("policy_scan_cache_timestamp").unwrap_or_default(),
             ),
             revocation_check_time: unixepoch_to_iso(
-                &row.get("revocation_check_time").unwrap_or_default(),
+                row.get("revocation_check_time").unwrap_or_default(),
             ),
             scan_version: row.get("scan_version").unwrap_or_default(),
             top_policy_match: row.get("top_policy_match").unwrap_or_default(),

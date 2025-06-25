@@ -129,7 +129,7 @@ fn proc_info(
             .to_string(),
         memory_usage: process.memory(),
         virtual_memory_usage: process.virtual_memory(),
-        start_time: unixepoch_to_iso(&(process.start_time() as i64)),
+        start_time: unixepoch_to_iso(process.start_time() as i64),
         uid,
         gid,
         md5: String::new(),

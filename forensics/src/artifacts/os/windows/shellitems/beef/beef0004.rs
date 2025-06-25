@@ -33,9 +33,9 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
     let mut directory_item = ShellItem {
         value: String::new(),
         shell_type,
-        created: unixepoch_to_iso(&fattime_utc_to_unixepoch(created_data)),
+        created: unixepoch_to_iso(fattime_utc_to_unixepoch(created_data)),
         modified: String::new(),
-        accessed: unixepoch_to_iso(&fattime_utc_to_unixepoch(accessed_data)),
+        accessed: unixepoch_to_iso(fattime_utc_to_unixepoch(accessed_data)),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),

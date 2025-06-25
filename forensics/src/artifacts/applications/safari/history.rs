@@ -81,7 +81,7 @@ pub(crate) fn history_query(path: &str) -> Result<Vec<SafariHistoryEntry>, Safar
                 .get("should_recompute_derived_visit_counts")?,
             visit_count_score: row.get("visit_count_score")?,
             status_code: row.get("status_code")?,
-            visit_time: unixepoch_to_iso(&cocoatime_to_unixepoch(
+            visit_time: unixepoch_to_iso(cocoatime_to_unixepoch(
                 &(row.get("visit_time").unwrap_or_default()),
             )),
             load_successful: row.get("load_successful")?,

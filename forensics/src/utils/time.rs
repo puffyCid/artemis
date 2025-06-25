@@ -120,8 +120,8 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
 }
 
 /// Convert `UnixEpoch` to ISO8601 format
-pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
-    let iso_opt = DateTime::from_timestamp(*timestamp, 0);
+pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
+    let iso_opt = DateTime::from_timestamp(timestamp, 0);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_unixepoch_to_iso() {
-        assert_eq!(unixepoch_to_iso(&1574819646), "2019-11-27T01:54:06.000Z")
+        assert_eq!(unixepoch_to_iso(1574819646), "2019-11-27T01:54:06.000Z")
     }
 
     #[test]
@@ -253,8 +253,8 @@ mod tests {
 
     #[test]
     fn test_compare_timestamps() {
-        let timestamp = unixepoch_to_iso(&1574819646);
-        let timestamp2 = unixepoch_to_iso(&1474819646);
+        let timestamp = unixepoch_to_iso(1574819646);
+        let timestamp2 = unixepoch_to_iso(1474819646);
 
         assert!(compare_timestamps(&timestamp, &timestamp2).unwrap());
     }

@@ -44,7 +44,7 @@ pub(crate) fn api_upload(
         if *complete {
             builder = builder.header(
                 "x-artemis-collection-complete",
-                unixepoch_to_iso(&(time_now() as i64)),
+                unixepoch_to_iso(time_now() as i64),
             );
         }
         if output_name.ends_with(".log") {
