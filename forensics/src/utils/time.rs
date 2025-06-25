@@ -28,7 +28,7 @@ pub(crate) fn cocoatime_to_unixepoch(cocoatime: &f64) -> i64 {
 }
 
 /// Convert macOS HFS+ timestamp to `UnixEpoch`
-pub(crate) fn hfs_to_unixepoch(hfstime: &i64) -> i64 {
+pub(crate) fn hfs_to_unixepoch(hfstime: i64) -> i64 {
     let adjust_to_unix = 2082844800;
     hfstime - adjust_to_unix
 }
@@ -52,7 +52,7 @@ pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
 }
 
 /// Convert Webkit time to `UnixEpoch`
-pub(crate) fn webkit_time_to_unixepoch(webkittime: &i64) -> i64 {
+pub(crate) fn webkit_time_to_unixepoch(webkittime: i64) -> i64 {
     let adjust_epoch = 11644473600;
     webkittime - adjust_epoch
 }
@@ -129,8 +129,8 @@ pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
 }
 
 /// Convert `UnixEpoch` to ISO8601 format
-pub(crate) fn unixepoch_microseconds_to_iso(timestamp: &i64) -> String {
-    let iso_opt = DateTime::from_timestamp_micros(*timestamp);
+pub(crate) fn unixepoch_microseconds_to_iso(timestamp: i64) -> String {
+    let iso_opt = DateTime::from_timestamp_micros(timestamp);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn test_unixepoch_microseconds_to_iso() {
         assert_eq!(
-            unixepoch_microseconds_to_iso(&2500000000000000),
+            unixepoch_microseconds_to_iso(2500000000000000),
             "2049-03-22T04:26:40.000Z"
         )
     }
@@ -240,14 +240,14 @@ mod tests {
     #[test]
     fn test_webkit_to_unixepoch() {
         let test = 13289983960;
-        let result = webkit_time_to_unixepoch(&test);
+        let result = webkit_time_to_unixepoch(test);
         assert_eq!(result, 1645510360);
     }
 
     #[test]
     fn test_hfs_to_unixepoch() {
         let test = 3453120824;
-        let result = hfs_to_unixepoch(&test);
+        let result = hfs_to_unixepoch(test);
         assert_eq!(result, 1370276024);
     }
 

@@ -204,7 +204,7 @@ impl EntryArray {
                 hostname: String::new(),
                 runtime_scope: String::new(),
                 source_realtime: String::new(),
-                realtime: unixepoch_microseconds_to_iso(&(entry.realtime as i64)),
+                realtime: unixepoch_microseconds_to_iso(entry.realtime as i64),
                 seqnum: entry.seqnum,
                 transport: String::new(),
                 message: String::new(),
@@ -306,7 +306,7 @@ impl EntryArray {
                 } else if data.message.starts_with("_SOURCE_REALTIME_TIMESTAMP=") {
                     if let Some((_, timestamp)) = data.message.split_once('=') {
                         journal.source_realtime = unixepoch_microseconds_to_iso(
-                            &timestamp.parse::<i64>().unwrap_or_default(),
+                            timestamp.parse::<i64>().unwrap_or_default(),
                         );
                     }
                 } else if data.message.starts_with("PRIORITY=") {

@@ -46,7 +46,7 @@ pub(crate) fn js_hfs_to_unixepoch(
 ) -> JsResult<JsValue> {
     let hfstime = bigint_arg(args, &0)? as i64;
 
-    Ok(JsValue::BigInt(hfs_to_unixepoch(&hfstime).into()))
+    Ok(JsValue::BigInt(hfs_to_unixepoch(hfstime).into()))
 }
 
 /// Expose converting OLE time to unixepoch
@@ -70,9 +70,7 @@ pub(crate) fn js_webkit_time_to_unixepoch(
 ) -> JsResult<JsValue> {
     let webkittime = bigint_arg(args, &0)? as i64;
 
-    Ok(JsValue::BigInt(
-        webkit_time_to_unixepoch(&webkittime).into(),
-    ))
+    Ok(JsValue::BigInt(webkit_time_to_unixepoch(webkittime).into()))
 }
 
 /// Expose converting `FATTIME` time to unixepoch
