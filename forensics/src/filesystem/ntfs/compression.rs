@@ -337,14 +337,14 @@ fn walk_offset_table<'a>(
 #[cfg(target_os = "windows")]
 /// Decompress WOF compressed data on Windows systems
 fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
-    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, decom_size);
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
             error!(
                 "[wofcompression] Could not decompress data: {err:?}. Will try manual decompression"
             );
-            let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+            let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
             match pf_data_result {
                 Ok(result) => result,
                 Err(err) => {
