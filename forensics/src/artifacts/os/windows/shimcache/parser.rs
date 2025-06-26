@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_drive_shimcache() {
-        let results = drive_shimcache(&'C').unwrap();
+        let results = drive_shimcache('C').unwrap();
         assert!(results.len() > 3);
     }
 

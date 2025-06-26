@@ -638,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_get_user_registry_files() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
@@ -653,18 +653,18 @@ mod tests {
 
     #[test]
     fn test_raw_read_by_file_ref() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
         let mut default = false;
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for entry in result {
             if entry.full_path.contains("Default") {
                 default = true;
             }
             let buffer_result =
-                raw_read_by_file_ref(&entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                raw_read_by_file_ref(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
                     .unwrap();
             assert!(buffer_result.len() > 10000);
         }
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_iterate_ntfs() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -723,7 +723,7 @@ mod tests {
 
     #[test]
     fn test_raw_reader() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let result = raw_reader(
             "C:\\Windows\\explorer.exe",
             &ntfs_parser.ntfs,

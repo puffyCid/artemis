@@ -751,10 +751,10 @@ mod tests {
 
         let binding = test_location.display().to_string();
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
@@ -933,7 +933,7 @@ mod tests {
 
     #[test]
     fn test_srum_catalog() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
 
         let reader = raw_reader(
             "C:\\Windows\\System32\\sru\\SRUDB.dat",
@@ -941,7 +941,7 @@ mod tests {
             &mut ntfs_parser.fs,
         )
         .unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
@@ -956,10 +956,10 @@ mod tests {
             return;
         }
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
 
         let reader = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
         if header_bytes.is_empty() {
             return;
         }

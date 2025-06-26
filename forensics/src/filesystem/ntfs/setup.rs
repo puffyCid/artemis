@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_setup_ntfs_parser() {
-        let result = setup_ntfs_parser(&'C').unwrap();
+        let result = setup_ntfs_parser('C').unwrap();
         assert_eq!(result.fs.capacity(), 8192);
         assert!(result.ntfs.size() > 10);
     }

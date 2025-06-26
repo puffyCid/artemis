@@ -233,8 +233,8 @@ mod tests {
 
     #[test]
     fn test_get_registry_keys_by_ref() {
-        let user_hives = get_user_registry_files(&'C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let user_hives = get_user_registry_files('C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" {
                 continue;
@@ -242,7 +242,7 @@ mod tests {
             let result = get_registry_keys_by_ref(
                 "",
                 &Regex::new("").unwrap(),
-                &hive.reg_reference,
+                hive.reg_reference,
                 &mut ntfs_parser,
             )
             .unwrap();
@@ -253,13 +253,13 @@ mod tests {
 
     #[test]
     fn test_read_registry_ref() {
-        let user_hives = get_user_registry_files(&'C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let user_hives = get_user_registry_files('C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" {
                 continue;
             }
-            let result = read_registry_ref(&hive.reg_reference, &mut ntfs_parser).unwrap();
+            let result = read_registry_ref(hive.reg_reference, &mut ntfs_parser).unwrap();
             assert!(result.len() > 10);
             break;
         }

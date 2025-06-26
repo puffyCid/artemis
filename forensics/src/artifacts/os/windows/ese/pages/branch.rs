@@ -282,7 +282,7 @@ mod tests {
         let mut tracker = HashMap::new();
 
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
         let ntfs_file = raw_reader(
             test_location.to_str().unwrap(),
             &ntfs_parser.ntfs,
@@ -313,7 +313,7 @@ mod tests {
         let mut tracker = HashMap::new();
         let mut pages = Vec::new();
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(
             test_location.to_str().unwrap(),

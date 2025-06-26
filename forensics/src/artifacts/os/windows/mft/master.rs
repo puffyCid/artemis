@@ -669,7 +669,7 @@ mod tests {
             filesystem::ntfs::attributes::get_raw_file_size,
         };
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
 
         let ntfs_file =
             setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, "C:\\$MFT").unwrap();

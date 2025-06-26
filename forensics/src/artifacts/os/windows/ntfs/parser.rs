@@ -545,7 +545,7 @@ mod tests {
             path_regex: Some(String::new()),
             filename_regex: Some(String::new()),
         };
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -607,7 +607,7 @@ mod tests {
             path_regex: Some(String::new()),
             filename_regex: Some(String::new()),
         };
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)

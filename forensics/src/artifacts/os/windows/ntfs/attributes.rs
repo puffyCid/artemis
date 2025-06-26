@@ -445,7 +445,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let drive_path = format!("\\\\.\\{}:", test_path.drive_letter);
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
 
         let fs = File::open(drive_path).unwrap();
 
@@ -512,7 +512,7 @@ mod tests {
             if !ntfs_file.is_directory() {
                 let result = file_data(
                     &ntfs_file,
-                    &entry_index.file_reference(),
+                    entry_index.file_reference(),
                     &mut file_info,
                     &mut ntfs_parser.fs,
                     &ntfs_parser.ntfs,
@@ -541,7 +541,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let drive_path = format!("\\\\.\\{}:", test_path.drive_letter);
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
 
         let fs = File::open(drive_path).unwrap();
 
@@ -564,7 +564,7 @@ mod tests {
                 .unwrap();
             if !ntfs_file.is_directory() && filename == "$UsnJrnl" {
                 let result = get_ads_names(
-                    &entry_index.file_reference(),
+                    entry_index.file_reference(),
                     &ntfs_parser.ntfs,
                     &mut ntfs_parser.fs,
                 )

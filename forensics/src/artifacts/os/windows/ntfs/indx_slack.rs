@@ -366,7 +366,7 @@ mod tests {
         let directory = "test";
         let depth = 1;
 
-        let (_, result) = parse_indx_slack(&buffer, &directory, &depth).unwrap();
+        let (_, result) = parse_indx_slack(&buffer, &directory, depth).unwrap();
         assert_eq!(result.len(), 1);
 
         assert_eq!(result[0].full_path, "test\\test.aut");
@@ -414,7 +414,7 @@ mod tests {
         let ntfs = Ntfs::new(&mut fs).unwrap();
         let root_dir = ntfs.root_directory(&mut fs).unwrap();
 
-        let result = get_indx(&mut fs, &root_dir, "test", &1);
+        let result = get_indx(&mut fs, &root_dir, "test", 1);
         assert!(result.len() > 0);
     }
 
@@ -457,7 +457,7 @@ mod tests {
                     &mut fs,
                     &mut attributes_allocation,
                     "test",
-                    &1,
+                    1,
                 ));
             }
         }

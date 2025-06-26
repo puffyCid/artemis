@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_parse_userassist() {
-        let results = parse_userassist(&'C', false).unwrap();
+        let results = parse_userassist('C', false).unwrap();
         assert!(results.len() > 3);
     }
 

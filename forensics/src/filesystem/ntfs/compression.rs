@@ -583,20 +583,20 @@ mod tests {
         let unit = 8192;
         let uncompressed_size = 8192;
 
-        let (_, result) = walk_offset_table(&test_data, &length, unit, uncompressed_size).unwrap();
+        let (_, result) = walk_offset_table(&test_data, length, unit, uncompressed_size).unwrap();
         assert_eq!(result.len(), 8192);
     }
 
     #[test]
     fn test_check_wofcompressed() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for entry in result {
             let (is_compressed, uncompressed, compressed_size) =
-                check_wofcompressed(&entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                check_wofcompressed(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
                     .unwrap();
             assert_eq!(is_compressed, false);
             assert_eq!(uncompressed.is_empty(), true);
@@ -610,7 +610,7 @@ mod tests {
         let path = "C:\\Windows\\explorer.exe";
 
         let drive = 'C';
-        let mut ntfs_parser = setup_ntfs_parser(&drive).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(drive).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -640,7 +640,7 @@ mod tests {
             }
 
             let unit =
-                grab_reparsepoint(&filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
+                grab_reparsepoint(filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
             let mut is_unit = false;
             if unit == 4096 || unit == 8192 || unit == 32768 || unit == 16384 {
                 is_unit = true;

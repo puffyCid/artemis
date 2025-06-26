@@ -191,13 +191,13 @@ mod tests {
 
     #[test]
     fn test_parse_usnjrnl_data() {
-        let result = parse_usnjrnl_data(&'C', "C:\\$MFT").unwrap();
+        let result = parse_usnjrnl_data('C', "C:\\$MFT").unwrap();
         assert!(result.len() > 20)
     }
 
     #[test]
     fn test_get_data() {
-        let result = get_data(&'C').unwrap();
+        let result = get_data('C').unwrap();
         assert!(result.len() > 20)
     }
 

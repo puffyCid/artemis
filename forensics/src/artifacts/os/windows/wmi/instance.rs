@@ -305,7 +305,7 @@ mod tests {
     fn test_parse_instance_props() {
         let data = vec![1, 0, 0, 0, 1, 0, 0, 0, 1];
         let count = 1;
-        let (_, result) = parse_instance_props(&data, &count).unwrap();
+        let (_, result) = parse_instance_props(&data, count).unwrap();
         assert_eq!(result.len(), 1);
     }
 

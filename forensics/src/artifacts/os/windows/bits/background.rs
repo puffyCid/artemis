@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_parse_legacy_bits() {
-        let results = parse_legacy_bits(&'C', false).unwrap();
+        let results = parse_legacy_bits('C', false).unwrap();
         assert_eq!(results.bits.is_empty(), true);
     }
 

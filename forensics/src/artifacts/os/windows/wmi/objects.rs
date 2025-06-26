@@ -225,7 +225,7 @@ mod tests {
             let (_, additional_pages) = parse_page(
                 &data,
                 &object_data,
-                &index,
+                index,
                 &results.mappings,
                 &mut object_page,
             )

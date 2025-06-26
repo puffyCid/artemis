@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_read_bytes() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let result = raw_reader(
             "C:\\Windows\\explorer.exe",
             &ntfs_parser.ntfs,
@@ -115,7 +115,7 @@ mod tests {
         )
         .unwrap();
 
-        let bytes = read_bytes(&0, 50, Some(&result), &mut ntfs_parser.fs).unwrap();
+        let bytes = read_bytes(0, 50, Some(&result), &mut ntfs_parser.fs).unwrap();
         assert_eq!(bytes.len(), 50);
     }
 
@@ -127,7 +127,7 @@ mod tests {
         let reader = file_reader(test_location.to_str().unwrap()).unwrap();
         let mut buf_reader = BufReader::new(reader);
 
-        let bytes = read_bytes_api(&0, 50, &mut buf_reader).unwrap();
+        let bytes = read_bytes_api(0, 50, &mut buf_reader).unwrap();
         assert_eq!(bytes.len(), 50);
     }
 }

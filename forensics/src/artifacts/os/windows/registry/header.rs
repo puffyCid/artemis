@@ -197,9 +197,9 @@ mod tests {
             setup::setup_ntfs_parser,
         };
 
-        let user_regs = get_user_registry_files(&'C').unwrap();
+        let user_regs = get_user_registry_files('C').unwrap();
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for reg in user_regs {
             let ntfs_file = reg
                 .reg_reference

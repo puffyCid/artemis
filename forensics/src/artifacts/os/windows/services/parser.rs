@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_alt_drive_services() {
-        let result = alt_drive_services(&'C').unwrap();
+        let result = alt_drive_services('C').unwrap();
         assert!(result.len() > 10);
     }
 

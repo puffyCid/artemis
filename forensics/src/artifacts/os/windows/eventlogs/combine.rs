@@ -1237,7 +1237,7 @@ mod tests {
 
     #[test]
     fn test_get_level() {
-        let result = get_level(&99);
+        let result = get_level(99);
         assert_eq!(result, EventLevel::Unknown);
     }
 

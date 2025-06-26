@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_drive_shimdb() {
-        let result = drive_shimdb(&'C').unwrap();
+        let result = drive_shimdb('C').unwrap();
         assert!(result.len() >= 1)
     }
 

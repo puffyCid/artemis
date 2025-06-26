@@ -236,7 +236,7 @@ mod tests {
         test_location.pop();
         test_location.push("qmgr.db");
         let binding = test_location.display().to_string();
-        let mut ntfs_parser = setup_ntfs_parser(&binding.chars().next().unwrap()).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(binding.chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
         let (_, results) = parse_long_value(&lv, Some(&reader), &mut ntfs_parser.fs).unwrap();

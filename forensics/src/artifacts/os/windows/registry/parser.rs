@@ -304,7 +304,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -334,7 +334,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -349,7 +349,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]

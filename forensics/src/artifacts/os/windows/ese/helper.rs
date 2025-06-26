@@ -745,11 +745,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -804,11 +804,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -868,11 +868,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -924,11 +924,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };

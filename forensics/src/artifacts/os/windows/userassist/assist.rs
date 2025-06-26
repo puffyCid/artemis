@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_parse_userassist_data() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         let results = parse_userassist_data(&results, false).unwrap();
         assert!(results.len() > 3);
         for entry in results {
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_get_entries() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         let mut entries = Vec::new();
         let folder = get_folder_descriptions().unwrap();
 
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_get_userassist_data() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         assert!(results.len() > 0);
         for reg_entries in results {
             for entry in &reg_entries.regs {

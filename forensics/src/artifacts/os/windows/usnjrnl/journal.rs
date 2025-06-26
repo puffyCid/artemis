@@ -391,7 +391,7 @@ mod tests {
             53, 0, 99, 0, 56, 0, 45, 0, 98, 0, 99, 0, 53, 0, 99, 0, 50, 0, 55, 0, 51, 0, 102, 0,
             52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
         ];
-        let mut parser = setup_ntfs_parser(&'C').unwrap();
+        let mut parser = setup_ntfs_parser('C').unwrap();
         let ntfs_file = setup_mft_reader_windows(&parser.ntfs, &mut parser.fs, "C:\\$MFT").unwrap();
         let (_, results) = UsnJrnlFormat::parse_usnjrnl(
             &test_data,

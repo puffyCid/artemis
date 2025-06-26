@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_amcache_file() {
-        let result = amcache_file(&'C').unwrap();
+        let result = amcache_file('C').unwrap();
         assert!(result.len() > 10);
     }
 

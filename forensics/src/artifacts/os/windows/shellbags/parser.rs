@@ -392,7 +392,7 @@ mod tests {
     #[test]
     fn test_parse_shellbags() {
         let drive = 'C';
-        let _results = parse_shellbags(&drive, false).unwrap();
+        let _results = parse_shellbags(drive, false).unwrap();
     }
 
     #[test]

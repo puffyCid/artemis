@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_drive_tasks() {
-        let result = drive_tasks(&'C').unwrap();
+        let result = drive_tasks('C').unwrap();
         assert!(result.tasks.len() > 10);
     }
 
