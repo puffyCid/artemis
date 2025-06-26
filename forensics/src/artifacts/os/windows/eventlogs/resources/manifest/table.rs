@@ -38,7 +38,7 @@ pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement
     let (input, guid_bytes) = take(guid_size)(input)?;
 
     let guid = format_guid_le_bytes(guid_bytes);
-    let _event_type = get_event_type(&event_type_data);
+    let _event_type = get_event_type(event_type_data);
 
     // Binary XML slightly different from EVTX files
     let (remaining, template) = parse_xml(input, guid)?;
@@ -71,7 +71,7 @@ enum EventType {
 }
 
 /// Get `EventLog` data type
-fn get_event_type(event: &u32) -> EventType {
+fn get_event_type(event: u32) -> EventType {
     match event {
         1 => EventType::EventData,
         2 => EventType::UserData,
@@ -110,6 +110,6 @@ mod tests {
 
     #[test]
     fn test_get_event_type() {
-        assert_eq!(get_event_type(&3), EventType::DebugData);
+        assert_eq!(get_event_type(3), EventType::DebugData);
     }
 }

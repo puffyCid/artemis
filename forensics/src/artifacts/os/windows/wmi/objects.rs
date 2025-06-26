@@ -28,7 +28,7 @@ pub(crate) fn parse_objects<'a>(
         }
         let (page_start, _) = take(page * page_size)(data)?;
         let (_, page_data) = take(page_size)(page_start)?;
-        let (_, additional_pages) = parse_page(page_data, data, &index, pages, &mut objects)?;
+        let (_, additional_pages) = parse_page(page_data, data, index, pages, &mut objects)?;
         // If we consumed additional pages. We skip equal number pages in loop.
         skip = additional_pages;
     }
@@ -48,7 +48,7 @@ pub(crate) struct ObjectPage {
 fn parse_page<'a>(
     data: &'a [u8],
     object_remaining: &'a [u8],
-    index: &usize,
+    index: usize,
     pages: &[u32],
     objects: &mut HashMap<u32, ObjectPage>,
 ) -> nom::IResult<&'a [u8], u32> {
@@ -225,7 +225,7 @@ mod tests {
             let (_, additional_pages) = parse_page(
                 &data,
                 &object_data,
-                &index,
+                index,
                 &results.mappings,
                 &mut object_page,
             )

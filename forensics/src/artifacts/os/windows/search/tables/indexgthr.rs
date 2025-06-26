@@ -19,8 +19,8 @@ pub(crate) fn parse_index_gthr(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, HashMap<String, String>>,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let mut entries = Vec::new();
     let limit = 100000;
@@ -53,7 +53,7 @@ pub(crate) fn parse_index_gthr(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
+                            entry.last_modified = unixepoch_to_iso(filetime_to_unixepoch(result));
                         }
                     }
                 }
@@ -148,7 +148,7 @@ pub(crate) fn parse_index_gthr_path(
 
                         let time_results = nom_unsigned_eight_bytes(&time_data, Endian::Be);
                         if let Ok((_, result)) = time_results {
-                            entry.last_modified = unixepoch_to_iso(&filetime_to_unixepoch(&result));
+                            entry.last_modified = unixepoch_to_iso(filetime_to_unixepoch(result));
                         }
                     }
                 }
@@ -210,7 +210,7 @@ mod tests {
         let catalog = search_catalog(test_path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -237,8 +237,8 @@ mod tests {
                 &gather_rows.get("SystemIndex_Gthr").unwrap(),
                 &HashMap::new(),
                 &mut output,
-                &0,
-                &false,
+                0,
+                false,
             )
             .unwrap();
             break;
@@ -257,7 +257,7 @@ mod tests {
         let catalog = search_catalog(test_path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();

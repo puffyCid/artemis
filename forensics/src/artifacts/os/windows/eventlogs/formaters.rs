@@ -18,7 +18,7 @@ pub(crate) fn formater_message_table<'a>(
 
     // Remove exclaimation points. Now we only have formating characters left
     let remaining_string = input.replace('!', "");
-    let text_result = parse_formats(&remaining_string, value, &value_number);
+    let text_result = parse_formats(&remaining_string, value, value_number);
     let text = match text_result {
         Ok((_, result)) => result,
         Err(_err) => String::from("Failed to get element index"),
@@ -57,7 +57,7 @@ pub(crate) fn formater_message<'a>(
 
     // Remove exclaimation points. Now we only have formating characters left
     let remaining_string = input.replace('!', "");
-    let text_result = parse_formats(&remaining_string, data, &value_number);
+    let text_result = parse_formats(&remaining_string, data, value_number);
     let text = match text_result {
         Ok((_, result)) => result,
         Err(_err) => String::from("Failed to get element index"),
@@ -69,7 +69,7 @@ pub(crate) fn formater_message<'a>(
 fn parse_formats<'a>(
     input: &'a str,
     data: &Value,
-    value_number: &u8,
+    value_number: u8,
 ) -> nom::IResult<&'a str, String> {
     // Get formater flags if any. If we do not have any, do not throw error, we just move on
     let flags_result = get_flags(input);
@@ -124,7 +124,7 @@ struct FormatOptions {
 fn format_message(
     options: &FormatOptions,
     _formater_type: &FormaterType,
-    _number: &u8,
+    _number: u8,
     data: &Value,
 ) -> String {
     let mut plus_option = String::new();

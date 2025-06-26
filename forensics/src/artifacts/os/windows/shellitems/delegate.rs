@@ -72,7 +72,7 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
     let class_id = format_guid_le_bytes(guid_bytes);
 
     let (input, mut directory_item) = beef0004::parse_beef(input, ShellType::Delegate)?;
-    directory_item.modified = unixepoch_to_iso(&fattime_utc_to_unixepoch(modified_data));
+    directory_item.modified = unixepoch_to_iso(fattime_utc_to_unixepoch(modified_data));
 
     let delegate_item = DelegateItem {
         value: directory_item.value,

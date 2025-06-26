@@ -51,7 +51,7 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
     let (_, system_time) = system_time(system_time_data)?;
 
     let fixed = Fixed {
-        product_version: product_version(&product_version_data),
+        product_version: product_version(product_version_data),
         format_version,
         job_id,
         app_offset,
@@ -60,11 +60,11 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
         error_retry_interval,
         idle_deadline,
         idle_wait,
-        priority: priority(&priority_data),
+        priority: priority(priority_data),
         max_run_time,
         exit_code,
-        status: status(&status_data),
-        flags: flags(&flag_data),
+        status: status(status_data),
+        flags: flags(flag_data),
         system_time,
     };
 
@@ -72,7 +72,7 @@ pub(crate) fn parse_fixed(data: &[u8]) -> nom::IResult<&[u8], Fixed> {
 }
 
 /// Determine the Product Version from the `Job` file
-fn product_version(version: &u16) -> String {
+fn product_version(version: u16) -> String {
     match version {
         0x400 => String::from("Windows NT 4.0"),
         0x500 => String::from("Windows 2000"),
@@ -87,7 +87,7 @@ fn product_version(version: &u16) -> String {
 }
 
 /// Determine the `Job` Priority
-fn priority(priority: &u32) -> Priority {
+fn priority(priority: u32) -> Priority {
     match priority {
         0x20 => Priority::Normal,
         0x40 => Priority::High,
@@ -98,7 +98,7 @@ fn priority(priority: &u32) -> Priority {
 }
 
 /// Determine the `Job` Status
-fn status(status: &u32) -> Status {
+fn status(status: u32) -> Status {
     match status {
         0x41300 => Status::Ready,
         0x41301 => Status::Running,
@@ -116,7 +116,7 @@ fn status(status: &u32) -> Status {
 }
 
 /// Determine the Flags associated with the `Job`
-fn flags(flags: &u32) -> Vec<Flags> {
+fn flags(flags: u32) -> Vec<Flags> {
     let interactive = 0x1;
     let delete_done = 0x2;
     let disabled = 0x4;
@@ -243,28 +243,28 @@ mod tests {
     #[test]
     fn test_product_version() {
         let test = 0x400;
-        let version = product_version(&test);
+        let version = product_version(test);
         assert_eq!(version, "Windows NT 4.0");
     }
 
     #[test]
     fn test_priority() {
         let test = 0x100;
-        let result = priority(&test);
+        let result = priority(test);
         assert_eq!(result, Priority::Realtime);
     }
 
     #[test]
     fn test_status() {
         let test = 0x41304;
-        let result = status(&test);
+        let result = status(test);
         assert_eq!(result, Status::NoMoreRuns);
     }
 
     #[test]
     fn test_flags() {
         let test = 0x1;
-        let result = flags(&test);
+        let result = flags(test);
         assert_eq!(result, vec![Flags::Interactive]);
     }
 

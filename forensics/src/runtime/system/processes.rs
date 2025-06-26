@@ -11,15 +11,15 @@ pub(crate) fn js_get_processes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input = value_arg(args, &0, context)?;
-    let metadata = boolean_arg(args, &1, context)?;
+    let input = value_arg(args, 0, context)?;
+    let metadata = boolean_arg(args, 1, context)?;
 
     let hashes: Hashes = serde_json::from_value(input).unwrap_or(Hashes {
         md5: false,
         sha1: false,
         sha256: false,
     });
-    let proc = match proc_list_entries(&hashes, &metadata) {
+    let proc = match proc_list_entries(&hashes, metadata) {
         Ok(results) => results,
         Err(err) => {
             let issue = format!("Failed to get process listing: {err:?}");

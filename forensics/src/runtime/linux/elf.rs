@@ -9,7 +9,7 @@ pub(crate) fn js_get_elf(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let elf_data = match parse_elf_file(&path) {
         Ok(result) => result,

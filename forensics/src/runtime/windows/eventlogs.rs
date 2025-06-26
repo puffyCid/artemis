@@ -10,22 +10,22 @@ pub(crate) fn js_eventlogs(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let offset = number_arg(args, &1)? as usize;
-    let limit = number_arg(args, &2)? as usize;
-    let include_templates = boolean_arg(args, &3, context)?;
+    let path = string_arg(args, 0)?;
+    let offset = number_arg(args, 1)? as usize;
+    let limit = number_arg(args, 2)? as usize;
+    let include_templates = boolean_arg(args, 3, context)?;
 
     let temp_option = if args.get_or_undefined(4).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &4)?)
+        Some(string_arg(args, 4)?)
     };
 
     let logs = match parse_eventlogs(
         &path,
-        &(offset as usize),
-        &(limit as usize),
-        &include_templates,
+        offset as usize,
+        limit as usize,
+        include_templates,
         &temp_option,
     ) {
         Ok(result) => result,

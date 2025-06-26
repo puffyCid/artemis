@@ -35,7 +35,7 @@ pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> 
 
     let mut recycle = RecycleBin {
         size,
-        deleted: unixepoch_to_iso(&filetime_to_unixepoch(&deletion)),
+        deleted: unixepoch_to_iso(filetime_to_unixepoch(deletion)),
         filename: get_filename(&full_path),
         directory: String::new(),
         full_path,

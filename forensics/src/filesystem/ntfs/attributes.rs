@@ -27,7 +27,7 @@ pub(crate) fn get_filename_attribute(
 
 /// Get attribute data by walking the attribute list until we find our attribute or reading the attribute directly. Returns a vec data from the data runs
 pub(crate) fn get_attribute_data(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
     attribute: &str,
@@ -163,7 +163,7 @@ fn read_attribute_data(
 }
 
 /// Determine attribute flags of a file
-pub(crate) fn file_attribute_flags(data: &u32) -> Vec<AttributeFlags> {
+pub(crate) fn file_attribute_flags(data: u32) -> Vec<AttributeFlags> {
     let mut attrs = Vec::new();
 
     if (data & 0x1) == 0x1 {
@@ -274,14 +274,14 @@ mod tests {
     #[test]
     fn test_file_attribute_flags() {
         let test = 1;
-        let flag = file_attribute_flags(&test);
+        let flag = file_attribute_flags(test);
         assert_eq!(flag.len(), 1);
         assert_eq!(flag[0], AttributeFlags::ReadOnly)
     }
 
     #[test]
     fn test_get_raw_file_size() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let ntfs_file = raw_reader("C:\\$MFT", &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
 
         let size = get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs).unwrap();
@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn test_get_attribute_data() {
         let drive = 'C';
-        let mut ntfs_parser = setup_ntfs_parser(&drive).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(drive).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -322,7 +322,7 @@ mod tests {
 
             // $MAX attribute is 32 bytes should be resident data
             let data = get_attribute_data(
-                &filelist.file,
+                filelist.file,
                 &ntfs_parser.ntfs,
                 &mut ntfs_parser.fs,
                 "$Max",
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn test_read_attribute_data() {
         let drive = 'C';
-        let mut ntfs_parser = setup_ntfs_parser(&drive).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(drive).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)

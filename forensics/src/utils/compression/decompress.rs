@@ -81,8 +81,8 @@ pub(crate) fn decompress_lz4(
 /// Attemp to decompress zlib raw data (no header)
 pub(crate) fn decompress_zlib(
     data: &[u8],
-    wbits: &Option<i32>,
-    decom_size: &usize,
+    wbits: Option<i32>,
+    decom_size: usize,
 ) -> Result<Vec<u8>, CompressionError> {
     // If window bits are provided, we need to user lower level miniz_oxide (already used by flate2)
     // In order to decompress the data. Flate2 does not expose the functions we require
@@ -90,7 +90,7 @@ pub(crate) fn decompress_zlib(
         let wbits_value = wbits.unwrap_or_default();
 
         let mut test = InflateState::new_boxed_with_window_bits(wbits_value);
-        let mut out = vec![0; *decom_size];
+        let mut out = vec![0; decom_size];
         let status = inflate(&mut test, data, &mut out, MZFlush::None);
         if status.status.is_err() {
             error!(
@@ -190,7 +190,7 @@ pub(crate) fn decompress_xpress(
  * Decomress RTF compressed data. This is found mainly in Microsoft Outlook.
  * Inspired by <https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py> (MIT license)
  */
-pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, CompressionError> {
+pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, CompressionError> {
     let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
     const MAX_LZ_REFERENCE: usize = 4096;
     // Size of the intial string above
@@ -298,7 +298,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: &u32) -> Result<Vec<u8>, C
         }
     }
 
-    if decom_data.len() as u32 != *decom_size {
+    if decom_data.len() as u32 != decom_size {
         error!(
             "[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}",
             decom_data.len()
@@ -457,7 +457,7 @@ mod tests {
             120, 156, 5, 128, 209, 9, 0, 0, 4, 68, 87, 97, 56, 229, 227, 149, 194, 237, 127, 117,
             193, 196, 234, 62, 13, 25, 218, 4, 36,
         ];
-        let result = decompress_zlib(&test, &None, &0).unwrap();
+        let result = decompress_zlib(&test, None, 0).unwrap();
         assert_eq!(
             result,
             [104, 101, 108, 108, 111, 32, 114, 117, 115, 116, 33]
@@ -492,7 +492,7 @@ mod tests {
         let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let result = decompress_rtf(input, &uncompressed_size).unwrap();
+        let result = decompress_rtf(input, uncompressed_size).unwrap();
 
         assert_eq!(result.len(), uncompressed_size as usize);
         assert_eq!(
@@ -533,6 +533,6 @@ mod tests {
         let (input, uncompressed_size) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
-        let _ = decompress_rtf(input, &uncompressed_size).unwrap();
+        let _ = decompress_rtf(input, uncompressed_size).unwrap();
     }
 }

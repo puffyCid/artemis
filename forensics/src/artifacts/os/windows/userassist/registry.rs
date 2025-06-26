@@ -13,7 +13,7 @@ pub(crate) struct UserAssistReg {
 }
 
 /// Grab the `UserAssist` data from the Registry based on provided drive letter
-pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, UserAssistError> {
+pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, UserAssistError> {
     let user_reg_results = get_user_registry_files(drive);
     let user_hives = match user_reg_results {
         Ok(result) => result,
@@ -50,7 +50,7 @@ pub(crate) fn get_userassist_drive(drive: &char) -> Result<Vec<UserAssistReg>, U
         let reg_results = get_registry_keys_by_ref(
             start_path,
             &assist_regex,
-            &hive.reg_reference,
+            hive.reg_reference,
             &mut ntfs_parser,
         );
         match reg_results {
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_get_userassist_drive() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         assert!(results.len() > 0);
     }
 
@@ -129,8 +129,8 @@ mod tests {
     fn test_filter_userassist() {
         let assist_regex = create_regex("").unwrap(); // always valid
         let start_path = "ROOT\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
-        let user_hives = get_user_registry_files(&'C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let user_hives = get_user_registry_files('C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" || hive.full_path.contains("Default") {
                 continue;
@@ -138,7 +138,7 @@ mod tests {
             let reg_results = get_registry_keys_by_ref(
                 start_path,
                 &assist_regex,
-                &hive.reg_reference,
+                hive.reg_reference,
                 &mut ntfs_parser,
             )
             .unwrap();

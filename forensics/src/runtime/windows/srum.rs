@@ -7,8 +7,8 @@ pub(crate) fn js_srum(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let table = string_arg(args, &1)?;
+    let path = string_arg(args, 0)?;
+    let table = string_arg(args, 1)?;
 
     let srum = match grab_srum_path(&path, &table) {
         Ok(result) => result,

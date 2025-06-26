@@ -22,8 +22,8 @@ use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
 /// Get process listing.
 pub(crate) fn proc_list(
     hashes: &Hashes,
-    binary_data: &bool,
-    filter: &bool,
+    binary_data: bool,
+    filter: bool,
     output: &mut Output,
 ) -> Result<(), ProcessError> {
     let mut proc = System::new();
@@ -48,22 +48,22 @@ pub(crate) fn proc_list(
     for process in proc.processes().values() {
         let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
-        if *binary_data && processes_list.len() == binary_proc_limit {
-            let _ = output_process(&processes_list, output, filter, &start_time);
+        if binary_data && processes_list.len() == binary_proc_limit {
+            let _ = output_process(&processes_list, output, filter, start_time);
             processes_list = Vec::new();
         }
     }
 
     if !processes_list.is_empty() {
-        let _ = output_process(&processes_list, output, filter, &start_time);
+        let _ = output_process(&processes_list, output, filter, start_time);
     }
     Ok(())
 }
 
-/// Pull a process listing and return the results. If we parse binary data for all processes. Expect alot of data
+/// Pull a process listing and return the results. If we parse binary data for all processes. Expect a lot of data
 pub(crate) fn proc_list_entries(
     hashes: &Hashes,
-    binary_data: &bool,
+    binary_data: bool,
 ) -> Result<Vec<Processes>, ProcessError> {
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
@@ -88,7 +88,7 @@ pub(crate) fn proc_list_entries(
 fn proc_info(
     process: &Process,
     hashes: &Hashes,
-    binary_data: &bool,
+    binary_data: bool,
     plat: &PlatformType,
 ) -> Processes {
     let uid_result = process.user_id();
@@ -129,7 +129,7 @@ fn proc_info(
             .to_string(),
         memory_usage: process.memory(),
         virtual_memory_usage: process.virtual_memory(),
-        start_time: unixepoch_to_iso(&(process.start_time() as i64)),
+        start_time: unixepoch_to_iso(process.start_time() as i64),
         uid,
         gid,
         md5: String::new(),
@@ -138,7 +138,7 @@ fn proc_info(
         binary_info: Value::Null,
     };
 
-    if *binary_data && !system_proc.full_path.is_empty() {
+    if binary_data && !system_proc.full_path.is_empty() {
         let binary_results = executable_metadata(&system_proc.full_path, plat);
         match binary_results {
             Ok(results) => {
@@ -204,8 +204,8 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, Process
 fn output_process(
     entries: &[Processes],
     output: &mut Output,
-    filter: &bool,
-    start_time: &u64,
+    filter: bool,
+    start_time: u64,
 ) -> Result<(), ProcessError> {
     if entries.is_empty() {
         return Ok(());
@@ -269,7 +269,7 @@ mod tests {
         };
         let mut output = output_options("proc_test", "local", "./tmp", false);
 
-        proc_list(&hashes, &false, &false, &mut output).unwrap();
+        proc_list(&hashes, false, false, &mut output).unwrap();
     }
 
     #[test]
@@ -287,7 +287,7 @@ mod tests {
 
         let plat = get_platform_enum();
         for process in proc.processes().values() {
-            let system_proc = proc_info(process, &hashes, &false, &plat);
+            let system_proc = proc_info(process, &hashes, false, &plat);
             processes_list.push(system_proc);
         }
         assert!(processes_list.len() > 10);

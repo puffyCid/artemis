@@ -10,7 +10,7 @@ pub(crate) fn js_extract_utf8_string(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
 
     Ok(js_string!(extract_utf8_string(&data)).into())
 }
@@ -21,7 +21,7 @@ pub(crate) fn js_extract_utf16_string(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
 
     Ok(js_string!(extract_utf16_string(&data)).into())
 }
@@ -32,7 +32,7 @@ pub(crate) fn js_bytes_to_hex_string(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
 
     let value: String = format!("{:02x?}", data)
         .trim_matches('[')

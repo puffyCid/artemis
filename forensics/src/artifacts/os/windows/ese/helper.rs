@@ -61,7 +61,7 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
         Catalog::grab_catalog(None, &mut buf_reader, page_size)?
     } else {
         // On Windows use a NTFS reader
-        let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
+        let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
         let mut ntfs_parser = match ntfs_parser_result {
             Ok(result) => result,
             Err(err) => {
@@ -79,7 +79,7 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
 }
 
 /// Get all pages from ESE table. First page can be found from the `Catalog`
-pub(crate) fn get_all_pages(path: &str, first_page: &u32) -> Result<Vec<u32>, EseError> {
+pub(crate) fn get_all_pages(path: &str, first_page: u32) -> Result<Vec<u32>, EseError> {
     let plat = get_platform();
 
     let pages = if plat != "Windows" {
@@ -87,17 +87,12 @@ pub(crate) fn get_all_pages(path: &str, first_page: &u32) -> Result<Vec<u32>, Es
         let mut buf_reader = BufReader::new(reader);
 
         let page_size = ese_page_size(None, &mut buf_reader)?;
-        get_pages(first_page, None, &mut buf_reader, &page_size)?
+        get_pages(first_page, None, &mut buf_reader, page_size)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
         let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        get_pages(
-            first_page,
-            Some(&ntfs_file),
-            &mut ntfs_parser.fs,
-            &page_size,
-        )?
+        get_pages(first_page, Some(&ntfs_file), &mut ntfs_parser.fs, page_size)?
     };
 
     Ok(pages)
@@ -126,12 +121,12 @@ pub(crate) fn get_page_data(
             if page == &last_page {
                 continue;
             }
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
@@ -142,10 +137,10 @@ pub(crate) fn get_page_data(
                 continue;
             }
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -155,7 +150,7 @@ pub(crate) fn get_page_data(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -192,13 +187,13 @@ pub(crate) fn get_filtered_page_data(
         page_size = ese_page_size(None, &mut buf_reader)?;
         let mut rows = Vec::new();
         for page in pages {
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
         // On Windows use a NTFS reader
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
@@ -206,10 +201,10 @@ pub(crate) fn get_filtered_page_data(
 
         for page in pages {
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -219,7 +214,7 @@ pub(crate) fn get_filtered_page_data(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -272,12 +267,12 @@ pub(crate) fn dump_table_columns(
         page_size = ese_page_size(None, &mut buf_reader)?;
         let mut rows = Vec::new();
         for page in pages {
-            let mut page_rows = page_data(page, None, &mut buf_reader, &page_size, info)?;
+            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
             rows.append(&mut page_rows);
         }
-        row_data(&mut rows, None, &mut buf_reader, &page_size, info, name)?
+        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
     } else {
-        let mut ntfs_parser = setup_ntfs_parser(&path.chars().next().unwrap_or('C')).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
         let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
         page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
@@ -285,10 +280,10 @@ pub(crate) fn dump_table_columns(
 
         for page in pages {
             let mut page_rows = page_data(
-                page,
+                *page,
                 Some(&ntfs_file),
                 &mut ntfs_parser.fs,
-                &page_size,
+                page_size,
                 info,
             )?;
 
@@ -298,7 +293,7 @@ pub(crate) fn dump_table_columns(
             &mut rows,
             Some(&ntfs_file),
             &mut ntfs_parser.fs,
-            &page_size,
+            page_size,
             info,
             name,
         )?
@@ -364,7 +359,7 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
     let header_size = 668;
     let offset = 0;
 
-    let header_result = read_bytes(&offset, header_size, ntfs_file, fs);
+    let header_result = read_bytes(offset, header_size, ntfs_file, fs);
     let header_data = match header_result {
         Ok(result) => result,
         Err(err) => {
@@ -387,16 +382,16 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
 
 /// Get array of pages
 fn get_pages<T: std::io::Seek + std::io::Read>(
-    first_page: &u32,
+    first_page: u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
 ) -> Result<Vec<u32>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (first_page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -426,7 +421,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     }
 
     let mut pages = Vec::new();
-    pages.push(*first_page);
+    pages.push(first_page);
 
     for tag in table_page_data.page_tags {
         // Defunct tags are not used
@@ -473,7 +468,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         pages.push(branch.child_page);
 
         // Now get the child page
-        let child_result = read_bytes(&(branch_start as u64), *page_size as u64, ntfs_file, fs);
+        let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
         let child_data = match child_result {
             Ok(result) => result,
             Err(err) => {
@@ -502,17 +497,17 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
 
 /// Start parsing the page data to get rows
 fn page_data<T: std::io::Seek + std::io::Read>(
-    page: &u32,
+    page: u32,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
     info: &mut TableInfo,
 ) -> Result<Vec<Vec<ColumnInfo>>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (page + adjust_page) * page_size;
 
-    let start_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
@@ -629,7 +624,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     rows: &mut Vec<Vec<ColumnInfo>>,
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    page_size: &u32,
+    page_size: u32,
     info: &mut TableInfo,
     name: &str,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
@@ -642,7 +637,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     // Need to adjust page number to account for header page
     let page_number = (info.long_value_page as u32 + adjust_page) * page_size;
 
-    let page_result = read_bytes(&(page_number as u64), *page_size as u64, ntfs_file, fs);
+    let page_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
     let page_start = match page_result {
         Ok(result) => result,
         Err(err) => {
@@ -718,7 +713,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(results[0].column_or_father_data_page as u32),
+            results[0].column_or_father_data_page as u32,
         )
         .unwrap();
         assert_eq!(pages.len(), 1);
@@ -733,7 +728,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(catalog[0].column_or_father_data_page as u32),
+            catalog[0].column_or_father_data_page as u32,
         )
         .unwrap();
         let mut info = TableInfo {
@@ -750,11 +745,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -809,11 +804,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -826,8 +821,7 @@ mod tests {
                 info.long_value_page = entry.column_or_father_data_page;
             }
         }
-        let pages =
-            get_all_pages(test_location.to_str().unwrap(), &(info.table_page as u32)).unwrap();
+        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
         let mut values = HashMap::from([(String::from("JobsById"), true)]);
@@ -853,7 +847,7 @@ mod tests {
 
         let pages = get_all_pages(
             test_location.to_str().unwrap(),
-            &(catalog[0].column_or_father_data_page as u32),
+            catalog[0].column_or_father_data_page as u32,
         )
         .unwrap();
 
@@ -874,11 +868,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -930,11 +924,11 @@ mod tests {
                 && entry.catalog_type == CatalogType::Column
             {
                 let column_info = ColumnInfo {
-                    column_type: get_column_type(&entry.column_or_father_data_page),
+                    column_type: get_column_type(entry.column_or_father_data_page),
                     column_name: entry.name.clone(),
                     column_data: Vec::new(),
                     column_id: entry.id,
-                    column_flags: get_column_flags(&entry.flags),
+                    column_flags: get_column_flags(entry.flags),
                     column_space_usage: entry.space_usage,
                     column_tagged_flags: Vec::new(),
                 };
@@ -948,8 +942,7 @@ mod tests {
             }
         }
 
-        let pages =
-            get_all_pages(test_location.to_str().unwrap(), &(info.table_page as u32)).unwrap();
+        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
 

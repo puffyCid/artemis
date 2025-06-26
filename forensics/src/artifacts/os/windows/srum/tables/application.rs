@@ -216,8 +216,8 @@ pub(crate) fn parse_app_timeline(
                 }
                 "Flags" => energy.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "EndTime" => {
-                    energy.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
-                        &column.column_data.parse::<u64>().unwrap_or_default(),
+                    energy.end_time = unixepoch_to_iso(filetime_to_unixepoch(
+                        column.column_data.parse::<u64>().unwrap_or_default(),
                     ));
                 }
                 "DurationMS" => {
@@ -404,13 +404,13 @@ pub(crate) fn parse_vfu_provider(
                 }
                 "Flags" => app.flags = column.column_data.parse::<i32>().unwrap_or_default(),
                 "StartTime" => {
-                    app.start_time = unixepoch_to_iso(&filetime_to_unixepoch(
-                        &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
+                    app.start_time = unixepoch_to_iso(filetime_to_unixepoch(
+                        column.column_data.parse::<i64>().unwrap_or_default() as u64,
                     ));
                 }
                 "EndTime" => {
-                    app.end_time = unixepoch_to_iso(&filetime_to_unixepoch(
-                        &(column.column_data.parse::<i64>().unwrap_or_default() as u64),
+                    app.end_time = unixepoch_to_iso(filetime_to_unixepoch(
+                        column.column_data.parse::<i64>().unwrap_or_default() as u64,
                     ));
                 }
                 "Usage" => app.usage.clone_from(&column.column_data),

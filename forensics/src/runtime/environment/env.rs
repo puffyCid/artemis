@@ -23,7 +23,7 @@ pub(crate) fn js_env_value(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input = string_arg(args, &0)?;
+    let input = string_arg(args, 0)?;
 
     let env = get_env_value(&input);
     let serde_value = serde_json::to_value(env).unwrap_or_default();

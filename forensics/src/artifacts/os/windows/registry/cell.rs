@@ -105,12 +105,12 @@ pub(crate) fn walk_registry<'a>(
 }
 
 /// Walkthrough the values list associated with a Name key
-pub(crate) fn walk_values<'a>(
-    reg_data: &'a [u8],
+pub(crate) fn walk_values(
+    reg_data: &[u8],
     offset: u32,
-    number_values: &u32,
+    number_values: u32,
     minor_version: u32,
-) -> nom::IResult<&'a [u8], Vec<KeyValue>> {
+) -> nom::IResult<&[u8], Vec<KeyValue>> {
     // Go to the value list offset
     let (list_data, _) = take(offset)(reg_data)?;
 
@@ -131,7 +131,7 @@ pub(crate) fn walk_values<'a>(
     let mut value_count = 0;
     let mut key_values: Vec<KeyValue> = Vec::new();
     // Go through each value offset in the list
-    while &value_count < number_values && !list_data.is_empty() {
+    while value_count < number_values && !list_data.is_empty() {
         // Get the value key offset
         let (input, vk_offset) = nom_signed_four_bytes(list_data, Endian::Le)?;
         list_data = input;
@@ -290,7 +290,7 @@ mod tests {
         let (_, result) = HiveBin::parse_hive_bin_header(&buffer).unwrap();
 
         assert_eq!(result.size, 4096);
-        let (_, result) = walk_values(&buffer, 752, &1, 4).unwrap();
+        let (_, result) = walk_values(&buffer, 752, 1, 4).unwrap();
 
         assert_eq!(result.len(), 1)
     }

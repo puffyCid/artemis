@@ -25,7 +25,7 @@ use crate::utils::compression::xpress::api::decompress_huffman_api;
  * We need to decompress the data in order to get the actual file contents
  */
 pub(crate) fn check_wofcompressed(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<(bool, Vec<u8>, u64), NtfsError> {
@@ -80,7 +80,7 @@ pub(crate) fn check_wofcompressed(
         let array_len = uncompressed_size / compression_unit as u64;
         let compressed_results = walk_offset_table(
             &compressed_data,
-            &array_len,
+            array_len,
             compression_unit,
             uncompressed_size as usize,
         );
@@ -101,7 +101,7 @@ pub(crate) fn check_wofcompressed(
 
 /// Get the compressed data and determine compression unit
 fn grab_reparsepoint(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<u32, NtfsError> {
@@ -213,18 +213,18 @@ fn parse_reparse(data: &[u8]) -> nom::IResult<&[u8], WofReparse> {
 }
 
 /// Parse the compressed data by first walking the offset table and then decompressing each data chunk
-fn walk_offset_table<'a>(
-    data: &'a [u8],
-    array_len: &u64,
+fn walk_offset_table(
+    data: &[u8],
+    array_len: u64,
     compression_unit: u32,
     uncompressed_size: usize,
-) -> nom::IResult<&'a [u8], Vec<u8>> {
+) -> nom::IResult<&[u8], Vec<u8>> {
     let mut array_count = 0;
     let mut input = data;
 
     let mut array_offset = Vec::new();
     // Grab all offsets
-    while &array_count < array_len {
+    while array_count < array_len {
         let large_uncompressed = 4294967296; // 4GBs
         let (remaining_input, offset) = if uncompressed_size < large_uncompressed {
             let (data, result) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -274,7 +274,7 @@ fn walk_offset_table<'a>(
             // If there is only one array entry then always make sure the first chunk is read (first chunk is NOT part of the array of offsets)
             if first_chunk && !first_chunk_data.is_empty() {
                 let uncompressed_result =
-                    decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
+                    decompress_ntfs(&mut first_chunk_data.to_vec(), decom_size);
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
                     Err(err) => {
@@ -302,7 +302,7 @@ fn walk_offset_table<'a>(
         }
 
         if first_chunk && !first_chunk_data.is_empty() {
-            let uncompressed_result = decompress_ntfs(&mut first_chunk_data.to_vec(), &decom_size);
+            let uncompressed_result = decompress_ntfs(&mut first_chunk_data.to_vec(), decom_size);
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -320,7 +320,7 @@ fn walk_offset_table<'a>(
             continue;
         }
 
-        let uncompressed_result = decompress_ntfs(&mut compressed_data, &decom_size);
+        let uncompressed_result = decompress_ntfs(&mut compressed_data, decom_size);
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {
@@ -336,15 +336,15 @@ fn walk_offset_table<'a>(
 
 #[cfg(target_os = "windows")]
 /// Decompress WOF compressed data on Windows systems
-fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
-    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, *decom_size);
+fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
+    let pf_data_result = decompress_huffman_api(data, &XpressType::XpressHuffman, decom_size);
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
             error!(
                 "[wofcompression] Could not decompress data: {err:?}. Will try manual decompression"
             );
-            let pf_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+            let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
             match pf_data_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -360,8 +360,8 @@ fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSys
 
 #[cfg(target_family = "unix")]
 /// Decompress WOF compressed data on non-Windows systems
-fn decompress_ntfs(data: &mut [u8], decom_size: &u32) -> Result<Vec<u8>, FileSystemError> {
-    let ntfs_data_result = decompress_xpress(data, *decom_size, &XpressType::XpressHuffman);
+fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
+    let ntfs_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
     let ntfs_data = match ntfs_data_result {
         Ok(result) => result,
         Err(err) => {
@@ -583,20 +583,20 @@ mod tests {
         let unit = 8192;
         let uncompressed_size = 8192;
 
-        let (_, result) = walk_offset_table(&test_data, &length, unit, uncompressed_size).unwrap();
+        let (_, result) = walk_offset_table(&test_data, length, unit, uncompressed_size).unwrap();
         assert_eq!(result.len(), 8192);
     }
 
     #[test]
     fn test_check_wofcompressed() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for entry in result {
             let (is_compressed, uncompressed, compressed_size) =
-                check_wofcompressed(&entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                check_wofcompressed(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
                     .unwrap();
             assert_eq!(is_compressed, false);
             assert_eq!(uncompressed.is_empty(), true);
@@ -610,7 +610,7 @@ mod tests {
         let path = "C:\\Windows\\explorer.exe";
 
         let drive = 'C';
-        let mut ntfs_parser = setup_ntfs_parser(&drive).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(drive).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -640,7 +640,7 @@ mod tests {
             }
 
             let unit =
-                grab_reparsepoint(&filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
+                grab_reparsepoint(filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
             let mut is_unit = false;
             if unit == 4096 || unit == 8192 || unit == 32768 || unit == 16384 {
                 is_unit = true;

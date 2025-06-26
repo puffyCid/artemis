@@ -16,10 +16,7 @@ pub(crate) enum TagFlags {
 
 impl PageTag {
     /// Get the tags for the page
-    pub(crate) fn parse_tags<'a>(
-        data: &'a [u8],
-        size: &usize,
-    ) -> nom::IResult<&'a [u8], Vec<PageTag>> {
+    pub(crate) fn parse_tags(data: &[u8], size: usize) -> nom::IResult<&[u8], Vec<PageTag>> {
         let mut tags: Vec<PageTag> = Vec::new();
         let mut tag_data = data;
 
@@ -30,7 +27,7 @@ impl PageTag {
             let (input, value_size) = nom_unsigned_two_bytes(tag_data, Endian::Le)?;
             let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-            let bit_adjust = if size == &page_16k || size == &page_32k {
+            let bit_adjust = if size == page_16k || size == page_32k {
                 32767
             } else {
                 8191
@@ -38,7 +35,7 @@ impl PageTag {
             let tag = PageTag {
                 offset: offset & bit_adjust,
                 value_size: value_size & bit_adjust,
-                flags: PageTag::get_flags(&offset),
+                flags: PageTag::get_flags(offset),
             };
             tags.push(tag);
             tag_data = input;
@@ -54,7 +51,7 @@ impl PageTag {
     }
 
     /// Get the flags associated with the page tags
-    pub(crate) fn get_flags(offset: &u16) -> Vec<TagFlags> {
+    pub(crate) fn get_flags(offset: u16) -> Vec<TagFlags> {
         let flag_check = 13;
         let flag = offset >> flag_check;
 
@@ -79,7 +76,7 @@ mod tests {
     #[test]
     fn test_parse_tags() {
         let test = [16, 0, 0, 0];
-        let (_, result) = PageTag::parse_tags(&test, &16384).unwrap();
+        let (_, result) = PageTag::parse_tags(&test, 16384).unwrap();
         assert_eq!(result[0].offset, 0);
         assert_eq!(result[0].value_size, 16);
     }
@@ -87,7 +84,7 @@ mod tests {
     #[test]
     fn test_parse_multiple_tags() {
         let test = [10, 0, 36, 0, 10, 0, 26, 0, 10, 0, 16, 0, 16, 0, 0, 0];
-        let (_, result) = PageTag::parse_tags(&test, &16384).unwrap();
+        let (_, result) = PageTag::parse_tags(&test, 16384).unwrap();
         assert_eq!(result[0].offset, 0);
         assert_eq!(result[0].value_size, 16);
 
@@ -98,7 +95,7 @@ mod tests {
     #[test]
     fn test_parse_tags_small_page() {
         let test = [55, 0, 13, 160];
-        let (_, result) = PageTag::parse_tags(&test, &4096).unwrap();
+        let (_, result) = PageTag::parse_tags(&test, 4096).unwrap();
         assert_eq!(result[0].offset, 13);
         assert_eq!(result[0].value_size, 55);
     }
@@ -110,7 +107,7 @@ mod tests {
             1, 247, 166, 39, 1, 208, 165, 39, 1, 169, 164, 39, 1, 130, 163, 39, 1, 91, 162, 39, 1,
             52, 161, 38, 1, 14, 160, 14, 0, 0, 0,
         ];
-        let (_, results) = PageTag::parse_tags(&test, &7).unwrap();
+        let (_, results) = PageTag::parse_tags(&test, 7).unwrap();
         for tag in results {
             if tag.offset == 0 {
                 continue;

@@ -50,7 +50,7 @@ pub(crate) struct Params {
 pub(crate) fn parse_registry(
     options: &RegistryOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), RegistryError> {
     let path_regex = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
     let mut params = Params {
@@ -59,7 +59,7 @@ pub(crate) fn parse_registry(
         registry_list: Vec::new(),
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
-        filter: *filter,
+        filter,
         registry_path: String::new(),
     };
 
@@ -78,11 +78,11 @@ pub(crate) fn parse_registry(
     };
 
     if options.user_hives {
-        parse_user_hives(&drive, output, &mut params)?;
+        parse_user_hives(drive, output, &mut params)?;
     }
 
     if options.system_hives {
-        parse_default_system_hives(&drive, output, &mut params)?;
+        parse_default_system_hives(drive, output, &mut params)?;
     }
 
     Ok(())
@@ -102,7 +102,7 @@ fn user_regex(input: &str) -> Result<Regex, RegistryError> {
 
 /// Parse useful system hive files. Other hive files include: COMPONENTS, DEFAULT, DRIVERS, BBI, ELAM, userdiff, BCD-Template
 fn parse_default_system_hives(
-    drive: &char,
+    drive: char,
     output: &mut Output,
     params: &mut Params,
 ) -> Result<(), RegistryError> {
@@ -162,8 +162,8 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         &mut serde_data,
         "registry",
         output,
-        &start_time,
-        &params.filter,
+        start_time,
+        params.filter,
     );
     match result {
         Ok(_) => Ok(()),
@@ -179,7 +179,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
 
 /// Parse the user `Registry` hives (NTUSER.DAT and UsrClass.dat)
 fn parse_user_hives(
-    drive: &char,
+    drive: char,
     output: &mut Output,
     params: &mut Params,
 ) -> Result<(), RegistryError> {
@@ -204,7 +204,7 @@ fn parse_user_hives(
 
     for path in user_hives {
         let buffer_result =
-            raw_read_by_file_ref(&path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+            raw_read_by_file_ref(path.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
         let buffer = match buffer_result {
             Ok(result) => result,
             Err(err) => {
@@ -246,8 +246,8 @@ fn parse_user_hives(
             &mut serde_data,
             "registry",
             output,
-            &start_time,
-            &params.filter,
+            start_time,
+            params.filter,
         );
         match result {
             Ok(_) => {}
@@ -304,7 +304,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -334,7 +334,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives(&'C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -349,7 +349,7 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives(&'C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
 
     #[test]
@@ -362,7 +362,7 @@ mod tests {
             alt_file: None,
             path_regex: None,
         };
-        parse_registry(&reg_options, &mut output, &false).unwrap();
+        parse_registry(&reg_options, &mut output, false).unwrap();
     }
 
     #[test]

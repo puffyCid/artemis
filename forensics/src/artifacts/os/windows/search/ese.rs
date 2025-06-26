@@ -29,16 +29,16 @@ pub(crate) struct SearchEntry {
 pub(crate) fn parse_search(
     path: &str,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let start_time = time_now();
     let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
+    let property_pages = search_pages(property_table.table_page as u32, path)?;
 
     let page_limit = 400;
     let mut gather_chunk = Vec::new();
@@ -69,7 +69,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
         gather_chunk = Vec::new();
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, &start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
     }
 
     Ok(())
@@ -207,8 +207,8 @@ fn process_search(
     properties: &HashMap<String, Vec<Vec<TableDump>>>,
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
         values
@@ -248,7 +248,7 @@ pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
 }
 
 /// Get all pages for the provided table
-pub(crate) fn search_pages(table_page: &u32, path: &str) -> Result<Vec<u32>, SearchError> {
+pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, SearchError> {
     let pages_result = get_all_pages(path, table_page);
     let pages = match pages_result {
         Ok(result) => result,
@@ -264,15 +264,15 @@ pub(crate) fn search_pages(table_page: &u32, path: &str) -> Result<Vec<u32>, Sea
 /// Parse Windows `Search` at provided path
 pub(crate) fn parse_search_path(
     path: &str,
-    page_limit: &u32,
+    page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
     let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(&(gather_table.table_page as u32), path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(&(property_table.table_page as u32), path)?;
+    let property_pages = search_pages(property_table.table_page as u32, path)?;
 
     let mut gather_chunk = Vec::new();
     let last_page = 0;
@@ -285,7 +285,7 @@ pub(crate) fn parse_search_path(
         }
 
         gather_chunk.push(gather_page);
-        if gather_chunk.len() != (*page_limit as usize) {
+        if gather_chunk.len() != page_limit as usize {
             continue;
         }
 
@@ -410,7 +410,7 @@ mod tests {
         }
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        parse_search(test_path, &mut output, &false).unwrap();
+        parse_search(test_path, &mut output, false).unwrap();
     }
 
     #[test]
@@ -434,7 +434,7 @@ mod tests {
             return;
         }
 
-        search_pages(&1, test_path).unwrap();
+        search_pages(1, test_path).unwrap();
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -490,10 +490,10 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
 
         let page_limit = 1;
         let mut gather_chunk = Vec::new();
@@ -538,10 +538,10 @@ mod tests {
         let catalog = search_catalog(path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(&(property_table.table_page as u32), path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -572,7 +572,7 @@ mod tests {
             let property_rows =
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ = process_search(&property_rows, &gather_rows, &mut output, &0, &false).unwrap();
+            let _ = process_search(&property_rows, &gather_rows, &mut output, 0, false).unwrap();
             break;
         }
     }
@@ -587,7 +587,7 @@ mod tests {
             return;
         }
 
-        let results = parse_search_path(test_path, &50).unwrap();
+        let results = parse_search_path(test_path, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

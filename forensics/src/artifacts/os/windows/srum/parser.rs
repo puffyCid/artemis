@@ -31,7 +31,7 @@ use serde_json::Value;
 pub(crate) fn grab_srum(
     options: &SrumOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SrumError> {
     let path = if let Some(alt) = &options.alt_file {
         alt.clone()
@@ -98,6 +98,6 @@ mod tests {
         let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_test", "local", "./tmp", false);
 
-        grab_srum(&options, &mut output, &false).unwrap();
+        grab_srum(&options, &mut output, false).unwrap();
     }
 }

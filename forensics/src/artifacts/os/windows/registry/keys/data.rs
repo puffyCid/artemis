@@ -87,8 +87,8 @@ pub(crate) fn parse_qword_filetime(
 
     let value = if filetime {
         let (_, value) = le_u64(allocated_data)?;
-        let reg_time = filetime_to_unixepoch(&value);
-        unixepoch_to_iso(&reg_time)
+        let reg_time = filetime_to_unixepoch(value);
+        unixepoch_to_iso(reg_time)
     } else {
         let (_, value) = le_i64(allocated_data)?;
         format!("{value}")

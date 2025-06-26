@@ -9,7 +9,7 @@ use log::error;
 /// Get a filelisting based on provided options
 pub(crate) fn filelisting(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &FileOptions,
 ) -> Result<(), FileError> {
     let hashes = Hashes {
@@ -78,7 +78,7 @@ mod tests {
             regex_filter: Some(String::new()),
             yara: None,
         };
-        let status = filelisting(&mut output, &false, &file_config).unwrap();
+        let status = filelisting(&mut output, false, &file_config).unwrap();
         assert_eq!(status, ());
     }
 
@@ -97,7 +97,7 @@ mod tests {
             regex_filter: Some(String::new()),
             yara: None,
         };
-        let status = filelisting(&mut output, &false, &file_config).unwrap();
+        let status = filelisting(&mut output, false, &file_config).unwrap();
         assert_eq!(status, ());
     }
 }

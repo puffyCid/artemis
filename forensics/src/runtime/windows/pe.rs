@@ -7,7 +7,7 @@ pub(crate) fn js_get_pe(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let pe = match parse_pe_file(&path) {
         Ok(result) => result,

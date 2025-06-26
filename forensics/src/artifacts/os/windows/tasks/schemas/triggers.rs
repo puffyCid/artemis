@@ -29,8 +29,8 @@ pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"BootTrigger" => process_boot(&mut info, reader, &true),
-                b"RegistrationTrigger" => process_boot(&mut info, reader, &false),
+                b"BootTrigger" => process_boot(&mut info, reader, true),
+                b"RegistrationTrigger" => process_boot(&mut info, reader, false),
                 b"IdleTrigger" => process_idle(&mut info, reader),
                 b"TimeTrigger" => process_time(&mut info, reader),
                 b"EventTrigger" => process_event(&mut info, reader),
@@ -53,7 +53,7 @@ pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
 }
 
 /// Parse `BootTrigger` options
-fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: &bool) {
+fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: bool) {
     let mut boot = BootTrigger {
         common: None,
         delay: None,
@@ -89,7 +89,7 @@ fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: &bool)
     }
 
     boot.common = Some(common);
-    if *is_boot {
+    if is_boot {
         info.boot.push(boot);
     } else {
         info.registration.push(boot);
@@ -754,7 +754,7 @@ mod tests {
             calendar: Vec::new(),
             wnf: Vec::new(),
         };
-        process_boot(&mut result, &mut reader, &true);
+        process_boot(&mut result, &mut reader, true);
         assert_eq!(
             result.boot[0].common.as_ref().unwrap().id.as_ref().unwrap(),
             "asdfsadfsadfsadf"

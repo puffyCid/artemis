@@ -12,10 +12,10 @@ pub(crate) fn output_artifact(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), CollectionError> {
-    if *filter {
+    if filter {
         if let Some(script) = &output.filter_script.clone() {
             let args = vec![serde_data.to_string(), output_name.to_string()];
             if let Some(name) = &output.filter_name.clone() {
@@ -88,7 +88,7 @@ mod tests {
 
         let name = "test";
         let mut data = serde_json::Value::String(String::from("test"));
-        let status = output_artifact(&mut data, name, &mut output, &start_time, &false).unwrap();
+        let status = output_artifact(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

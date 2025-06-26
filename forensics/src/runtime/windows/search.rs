@@ -10,10 +10,10 @@ pub(crate) fn js_search(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let page_limit = number_arg(args, &1)? as u32;
+    let path = string_arg(args, 0)?;
+    let page_limit = number_arg(args, 1)? as u32;
 
-    let search = match grab_search_path(&path, &page_limit) {
+    let search = match grab_search_path(&path, page_limit) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to parse search {path}: {err:?}");

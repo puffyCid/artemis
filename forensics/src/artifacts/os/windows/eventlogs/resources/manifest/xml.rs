@@ -47,7 +47,7 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
 
     // First element is the start header/tag?
     // remaining is the remaining bytes of the template. Will get parsed by parse_template
-    let (remaining, (start, mut input)) = element_start(input, &false)?;
+    let (remaining, (start, mut input)) = element_start(input, false)?;
 
     let next_element = 0x41;
     let next_element2 = 0x1;
@@ -56,7 +56,7 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
         .first()
         .is_some_and(|x| *x == next_element || *x == next_element2)
     {
-        let (remaining, (element, _)) = element_start(input, &false)?;
+        let (remaining, (element, _)) = element_start(input, false)?;
         input = remaining;
         template_elements.push(element);
     }
@@ -78,7 +78,7 @@ fn fragment_header(data: &[u8]) -> nom::IResult<&[u8], TokenType> {
     let (input, _minor_version) = nom_unsigned_one_byte(input, Endian::Le)?;
     let (input, _flags) = nom_unsigned_one_byte(input, Endian::Le)?;
 
-    Ok((input, get_token_type(&token)))
+    Ok((input, get_token_type(token)))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,13 +95,10 @@ pub(crate) struct Element {
 }
 
 /// Start parsing elements
-fn element_start<'a>(
-    data: &'a [u8],
-    is_substituion: &bool,
-) -> nom::IResult<&'a [u8], (Element, &'a [u8])> {
+fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Element, &[u8])> {
     let (mut input, token_number) = nom_unsigned_one_byte(data, Endian::Le)?;
     let mut start = Element {
-        token: get_token_type(&token_number),
+        token: get_token_type(token_number),
         token_number,
         depedency_id: 0,
         size: 0,
@@ -112,7 +109,7 @@ fn element_start<'a>(
         substitution_id: 0,
     };
 
-    if !*is_substituion {
+    if !is_substituion {
         let (remaining, depedency_id) = nom_signed_two_bytes(input, Endian::Le)?;
         input = remaining;
         start.depedency_id = depedency_id;
@@ -131,7 +128,7 @@ fn element_start<'a>(
         // We are done. Just get the closing element tag (0x2) and check for substitution
         let (data_input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(data_input, Endian::Le)?;
-        let is_substitution = get_token_type(&substitution_type);
+        let is_substitution = get_token_type(substitution_type);
         if is_substitution != TokenType::OptionalSubstitution
             && is_substitution != TokenType::NormalSubstitution
         {
@@ -146,7 +143,7 @@ fn element_start<'a>(
 
         start.substitution = is_substitution;
         start.substitution_id = substitution_id;
-        start.input_type = get_input_type(&input_type_data);
+        start.input_type = get_input_type(input_type_data);
 
         return Ok((remaining, (start, input)));
     }
@@ -195,7 +192,7 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
 
         let (input, mut value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
-        let value_token_type = get_input_type(&value_token_type_number);
+        let value_token_type = get_input_type(value_token_type_number);
 
         // This should always be a Unicode type (per: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#4110-value-text)
         if value_token_type != InputType::Unicode {
@@ -209,10 +206,10 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
 
         if value_input.is_empty() {
             let attribute = Attribute {
-                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token: get_token_type(attribute_token_number),
                 attribute_token_number,
                 value,
-                value_token: get_token_type(&value_token_number),
+                value_token: get_token_type(value_token_number),
                 value_token_number,
                 name,
                 input_type: InputType::Unknown,
@@ -227,7 +224,7 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         while value_token_number == next_value {
             let (input, next_value_token_number) = nom_unsigned_one_byte(value_input, Endian::Le)?;
             let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
-            let value_token_type = get_input_type(&value_token_type_number);
+            let value_token_type = get_input_type(value_token_type_number);
 
             // This should always be a Unicode type (per: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#4110-value-text)
             if value_token_type != InputType::Unicode {
@@ -257,14 +254,14 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         // Is this the ending tag? Seems to always be 0x2
         let (input, _end) = nom_unsigned_one_byte(value_input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(input, Endian::Le)?;
-        let is_substitution = get_token_type(&substitution_type);
+        let is_substitution = get_token_type(substitution_type);
 
         if is_substitution == TokenType::EndElement {
             let attribute = Attribute {
-                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token: get_token_type(attribute_token_number),
                 attribute_token_number,
                 value,
-                value_token: get_token_type(&value_token_number),
+                value_token: get_token_type(value_token_number),
                 value_token_number,
                 name,
                 input_type: InputType::Unknown,
@@ -275,10 +272,10 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
             break;
         } else if is_substitution == TokenType::OpenStartElement {
             let attribute = Attribute {
-                attribute_token: get_token_type(&attribute_token_number),
+                attribute_token: get_token_type(attribute_token_number),
                 attribute_token_number,
                 value,
-                value_token: get_token_type(&value_token_number),
+                value_token: get_token_type(value_token_number),
                 value_token_number,
                 name,
                 input_type: InputType::Unknown,
@@ -302,13 +299,13 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
 
         let attribute = Attribute {
-            attribute_token: get_token_type(&attribute_token_number),
+            attribute_token: get_token_type(attribute_token_number),
             attribute_token_number,
             value,
-            value_token: get_token_type(&value_token_number),
+            value_token: get_token_type(value_token_number),
             value_token_number,
             name,
-            input_type: get_input_type(&input_type_data),
+            input_type: get_input_type(input_type_data),
             substitution: is_substitution,
             substitution_id,
         };
@@ -361,7 +358,7 @@ pub(crate) enum TokenType {
 }
 
 /// Determine token type for element
-fn get_token_type(token: &u8) -> TokenType {
+fn get_token_type(token: u8) -> TokenType {
     match token {
         0x0 => TokenType::Eof,
         0x1 | 0x41 => TokenType::OpenStartElement,
@@ -412,7 +409,7 @@ pub(crate) enum InputType {
 }
 
 /// Determine input type for the manifest
-fn get_input_type(data: &u8) -> InputType {
+fn get_input_type(data: u8) -> InputType {
     match data {
         0x0 => InputType::Null,
         0x1 => InputType::Unicode,
@@ -486,7 +483,7 @@ mod tests {
             97, 0, 116, 0, 97, 0, 0, 0, 2, 99,
         ];
 
-        let (_, (result, _)) = element_start(&test, &false).unwrap();
+        let (_, (result, _)) = element_start(&test, false).unwrap();
         assert_eq!(result.depedency_id, -1);
         assert_eq!(result.element_name, "EventData");
         assert_eq!(result.token, TokenType::OpenStartElement);
@@ -512,7 +509,7 @@ mod tests {
         ];
 
         for entry in test {
-            let result = get_token_type(&entry);
+            let result = get_token_type(entry);
             assert!(result != TokenType::Unknown);
         }
     }
@@ -535,7 +532,7 @@ mod tests {
         ];
 
         for entry in test {
-            let result = get_input_type(&entry);
+            let result = get_input_type(entry);
             assert!(result != InputType::Unknown);
         }
     }

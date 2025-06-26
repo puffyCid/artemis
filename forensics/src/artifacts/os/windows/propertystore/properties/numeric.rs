@@ -37,7 +37,7 @@ pub(crate) fn parse_numeric<'a>(
         let (prop_data, prop_type) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
         let (prop_data, _padding) = nom_unsigned_two_bytes(prop_data, Endian::Le)?;
 
-        let _ = parse_types(prop_data, &prop_type, &mut values, format!("value{count}"))?;
+        let _ = parse_types(prop_data, prop_type, &mut values, format!("value{count}"))?;
         *count += 1;
     }
 

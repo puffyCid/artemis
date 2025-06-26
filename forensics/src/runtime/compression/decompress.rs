@@ -10,12 +10,12 @@ pub(crate) fn js_decompress_zlib(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
-    let wbits = number_arg(args, &1)? as i32;
-    let decom_size = number_arg(args, &2)? as usize;
+    let data = bytes_arg(args, 0, context)?;
+    let wbits = number_arg(args, 1)? as i32;
+    let decom_size = number_arg(args, 2)? as usize;
 
     let wbits_value = if wbits == 0 { None } else { Some(wbits) };
-    let decom_data = match decompress_zlib(&data, &wbits_value, &decom_size) {
+    let decom_data = match decompress_zlib(&data, wbits_value, decom_size) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");
@@ -33,7 +33,7 @@ pub(crate) fn js_decompress_gzip(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
 
     let decom_data = match decompress_gzip_data(&data) {
         Ok(result) => result,

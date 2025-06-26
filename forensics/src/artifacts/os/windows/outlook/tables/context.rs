@@ -345,7 +345,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let row = get_heap_node_id(values_array_index_reference);
 
         let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let (input, cols) = get_column_definitions(input, &number_column_definitions)?;
+        let (input, cols) = get_column_definitions(input, number_column_definitions)?;
 
         let mut info = TableInfo {
             block_data: all_block.to_vec(),
@@ -376,7 +376,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             // Still not done. We only have references to the data now. We always check to make the block index is less than the block length
             let branch_result = extract_branch_details(
                 &all_block[heap_btree.node.block_index as usize],
-                &heap_btree.node.index,
+                heap_btree.node.index,
             );
             let branch_references = match branch_result {
                 Ok((_, result)) => result,
@@ -403,7 +403,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 // We always check to make block index is less than the block length
                 let rows_result = extract_branch_row(
                     &all_block[branch.block_index as usize],
-                    &(branch.index as usize),
+                    branch.index as usize,
                 );
                 let message_rows = match rows_result {
                     Ok((_, result)) => result,
@@ -441,7 +441,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             }
             let rows_result = block_row_count(
                 &all_block[heap_btree.node.block_index as usize],
-                &heap_btree.node.index,
+                heap_btree.node.index,
             );
             info.total_rows = match rows_result {
                 Ok((_, result)) => result,
@@ -531,7 +531,7 @@ pub(crate) struct RowsInfo {
 }
 
 /// Extract the rows found in branches. This involves a lot more work then non-branch rows
-fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a [u8], RowsInfo> {
+fn extract_branch_row(data: &[u8], map_index: usize) -> nom::IResult<&[u8], RowsInfo> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -540,8 +540,8 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
 
-    if let Some(start) = map.allocation_table.get(*map_index - 1) {
-        if let Some(end) = map.allocation_table.get(*map_index) {
+    if let Some(start) = map.allocation_table.get(map_index - 1) {
+        if let Some(end) = map.allocation_table.get(map_index) {
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -571,10 +571,7 @@ fn extract_branch_row<'a>(data: &'a [u8], map_index: &usize) -> nom::IResult<&'a
 }
 
 /// Parse rows found in branches
-fn extract_branch_details<'a>(
-    data: &'a [u8],
-    map_index: &u32,
-) -> nom::IResult<&'a [u8], Vec<HeapNode>> {
+fn extract_branch_details(data: &[u8], map_index: u32) -> nom::IResult<&[u8], Vec<HeapNode>> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -584,8 +581,8 @@ fn extract_branch_details<'a>(
     let mut branch_row_end = 0;
 
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(*map_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(*map_index as usize) {
+    if let Some(start) = map.allocation_table.get(map_index as usize - adjust) {
+        if let Some(end) = map.allocation_table.get(map_index as usize) {
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -622,7 +619,7 @@ fn extract_branch_details<'a>(
 }
 
 /// Determine row count in block data
-fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8], u64> {
+fn block_row_count(data: &[u8], heap_index: u32) -> nom::IResult<&[u8], u64> {
     let (_, map_offset) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (map_start, _) = take(map_offset)(data)?;
 
@@ -631,8 +628,8 @@ fn block_row_count<'a>(data: &'a [u8], heap_index: &u32) -> nom::IResult<&'a [u8
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(*heap_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(*heap_index as usize) {
+    if let Some(start) = map.allocation_table.get(heap_index as usize - adjust) {
+        if let Some(end) = map.allocation_table.get(heap_index as usize) {
             branch_row_start = *start;
             branch_row_end = *end;
         }
@@ -722,7 +719,7 @@ fn parse_descriptors<'a>(
         }
 
         // We always check to make sure the desc_index is less then descriptors array length
-        let row_result = get_row_data_entry(&descriptors[desc_index], &index, info);
+        let row_result = get_row_data_entry(&descriptors[desc_index], index, info);
         let row = match row_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -761,7 +758,7 @@ fn parse_branch_row<'a>(
 /// Get row data found in Branches
 fn get_row_data_entry<'a>(
     data: &'a [u8],
-    entry: &u64,
+    entry: u64,
     info: &TableInfo,
 ) -> nom::IResult<&'a [u8], Vec<TableRows>> {
     // Go to the start of the row
@@ -775,8 +772,8 @@ fn get_row_data_entry<'a>(
             &info.block_data,
             row_data,
             &column.column.property_type,
-            &column.column.offset,
-            &column.column.size,
+            column.column.offset,
+            column.column.size,
         )?;
 
         column.value = value;
@@ -817,8 +814,8 @@ fn get_row_data<'a>(
                 &info.block_data,
                 row_data,
                 &column.column.property_type,
-                &column.column.offset,
-                &column.column.size,
+                column.column.offset,
+                column.column.size,
             )?;
 
             column.value = value;
@@ -835,12 +832,12 @@ fn parse_row_data<'a>(
     all_blocks: &[Vec<u8>],
     row_data: &'a [u8],
     prop_type: &PropertyType,
-    offset: &u16,
-    value_size: &u8,
+    offset: u16,
+    value_size: u8,
 ) -> nom::IResult<&'a [u8], Value> {
     let mut value = Value::Null;
-    let (value_start, _) = take(*offset)(row_data)?;
-    let (_, value_data) = take(*value_size)(value_start)?;
+    let (value_start, _) = take(offset)(row_data)?;
+    let (_, value_data) = take(value_size)(value_start)?;
 
     let multi_values = [
         PropertyType::String,
@@ -866,9 +863,9 @@ fn parse_row_data<'a>(
         if offset == 0 {
             return Ok((row_data, value));
         }
-        let (block_index, map_start) = get_map_offset(&offset);
+        let (block_index, map_start) = get_map_offset(offset);
         if let Some(block_data) = all_blocks.get(block_index as usize) {
-            let prop_result = get_property_data(block_data, prop_type, &map_start, &false);
+            let prop_result = get_property_data(block_data, prop_type, map_start, false);
             let prop_value = match prop_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
@@ -889,16 +886,13 @@ fn parse_row_data<'a>(
 }
 
 /// Extract column definitions for our table. There can be a lot
-fn get_column_definitions<'a>(
-    data: &'a [u8],
-    column_count: &u8,
-) -> nom::IResult<&'a [u8], Vec<TableRows>> {
+fn get_column_definitions(data: &[u8], column_count: u8) -> nom::IResult<&[u8], Vec<TableRows>> {
     let mut col_data = data;
     let mut count = 0;
 
     let mut values = Vec::new();
 
-    while &count < column_count {
+    while count < column_count {
         let (input, property_type) = nom_unsigned_two_bytes(col_data, Endian::Le)?;
         let (input, id) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, offset) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -908,7 +902,7 @@ fn get_column_definitions<'a>(
         col_data = input;
 
         let column = ColumnDescriptor {
-            property_type: get_property_type(&property_type),
+            property_type: get_property_type(property_type),
             property_name: property_id_to_name(&format!(
                 "0x{:04x?}_0x{:04x?}",
                 &id, &property_type
@@ -932,7 +926,7 @@ fn get_column_definitions<'a>(
 }
 
 /// Return the `PropertyType` name
-pub(crate) fn get_property_type(prop: &u16) -> PropertyType {
+pub(crate) fn get_property_type(prop: u16) -> PropertyType {
     match prop {
         1 => PropertyType::Null,
         0 => PropertyType::Unspecified,
@@ -1134,14 +1128,14 @@ mod tests {
             84, 0, 82, 0, 69, 0, 69, 0, 6, 0, 0, 0, 12, 0, 20, 0, 162, 0, 178, 0, 56, 1, 78, 1,
             108, 1,
         ];
-        let (_, rows) = get_column_definitions(&test, &15).unwrap();
+        let (_, rows) = get_column_definitions(&test, 15).unwrap();
         assert_eq!(rows.len(), 15);
     }
 
     #[test]
     fn test_get_property_type() {
         let test = 13;
-        let prop = get_property_type(&test);
+        let prop = get_property_type(test);
         assert_eq!(prop, PropertyType::Object);
     }
 
@@ -1174,7 +1168,7 @@ mod tests {
             42, 96, 64, 96,
         ];
 
-        let (_, rows) = block_row_count(&test, &11).unwrap();
+        let (_, rows) = block_row_count(&test, 11).unwrap();
         assert_eq!(rows, 0);
     }
 }

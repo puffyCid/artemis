@@ -27,10 +27,10 @@ impl EntryArray {
     pub(crate) fn walk_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
-        is_compact: &bool,
+        is_compact: bool,
         output: &mut Output,
-        filter: &bool,
-        start_time: &u64,
+        filter: bool,
+        start_time: u64,
     ) -> nom::IResult<&'a [u8], u64> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
@@ -43,7 +43,7 @@ impl EntryArray {
         // Limit memory usage by outputting every 1k log entries
         let limit = 1000;
         while !input.is_empty() && input.len() >= min_size {
-            let (remaining_input, offset) = if *is_compact {
+            let (remaining_input, offset) = if is_compact {
                 let (remaining_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
                 (remaining_input, offset as u64)
             } else {
@@ -123,7 +123,7 @@ impl EntryArray {
     pub(crate) fn walk_all_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
-        is_compact: &bool,
+        is_compact: bool,
     ) -> nom::IResult<&'a [u8], EntryArray> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
@@ -134,7 +134,7 @@ impl EntryArray {
         };
         let last_entry = 0;
         while !input.is_empty() && input.len() >= min_size {
-            let (remaining_input, offset) = if *is_compact {
+            let (remaining_input, offset) = if is_compact {
                 let (remaining_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
                 (remaining_input, offset as u64)
             } else {
@@ -204,7 +204,7 @@ impl EntryArray {
                 hostname: String::new(),
                 runtime_scope: String::new(),
                 source_realtime: String::new(),
-                realtime: unixepoch_microseconds_to_iso(&(entry.realtime as i64)),
+                realtime: unixepoch_microseconds_to_iso(entry.realtime as i64),
                 seqnum: entry.seqnum,
                 transport: String::new(),
                 message: String::new(),
@@ -306,18 +306,18 @@ impl EntryArray {
                 } else if data.message.starts_with("_SOURCE_REALTIME_TIMESTAMP=") {
                     if let Some((_, timestamp)) = data.message.split_once('=') {
                         journal.source_realtime = unixepoch_microseconds_to_iso(
-                            &timestamp.parse::<i64>().unwrap_or_default(),
+                            timestamp.parse::<i64>().unwrap_or_default(),
                         );
                     }
                 } else if data.message.starts_with("PRIORITY=") {
                     if let Some((_, priority)) = data.message.split_once('=') {
                         journal.priority =
-                            EntryArray::get_priority(&priority.parse::<u32>().unwrap_or_default());
+                            EntryArray::get_priority(priority.parse::<u32>().unwrap_or_default());
                     }
                 } else if data.message.starts_with("SYSLOG_FACILITY=") {
                     if let Some((_, facility)) = data.message.split_once('=') {
                         journal.syslog_facility =
-                            EntryArray::get_facility(&facility.parse::<u32>().unwrap_or_default());
+                            EntryArray::get_facility(facility.parse::<u32>().unwrap_or_default());
                     }
                 } else if data.message.starts_with("TID=") {
                     if let Some((_, tid)) = data.message.split_once('=') {
@@ -372,7 +372,7 @@ impl EntryArray {
     }
 
     /// Get message priority
-    fn get_priority(priority: &u32) -> Priority {
+    fn get_priority(priority: u32) -> Priority {
         match priority {
             0 => Priority::Emergency,
             1 => Priority::Alert,
@@ -387,7 +387,7 @@ impl EntryArray {
     }
 
     /// Get syslog facility if any
-    fn get_facility(facility: &u32) -> Facility {
+    fn get_facility(facility: u32) -> Facility {
         match facility {
             0 => Facility::Kernel,
             1 => Facility::User,
@@ -472,10 +472,10 @@ mod tests {
         let (_, result) = EntryArray::walk_entries(
             &mut reader,
             &object.payload,
-            &is_compact,
+            is_compact,
             &mut output,
-            &false,
-            &0,
+            false,
+            0,
         )
         .unwrap();
         assert_eq!(result, 3744448);
@@ -500,7 +500,7 @@ mod tests {
         };
 
         let (_, result) =
-            EntryArray::walk_all_entries(&mut reader, &object.payload, &is_compact).unwrap();
+            EntryArray::walk_all_entries(&mut reader, &object.payload, is_compact).unwrap();
         assert_eq!(result.entries.len(), 4);
         assert_eq!(result.entries[2].realtime, 1688346965580106);
     }
@@ -524,7 +524,7 @@ mod tests {
         };
 
         let (_, result) =
-            EntryArray::walk_all_entries(&mut reader, &object.payload, &is_compact).unwrap();
+            EntryArray::walk_all_entries(&mut reader, &object.payload, is_compact).unwrap();
         assert_eq!(result.entries.len(), 4);
         assert_eq!(result.entries[2].realtime, 1688346965580106);
 
@@ -541,7 +541,7 @@ mod tests {
     fn test_get_priority() {
         let test = [0, 1, 2, 3, 4, 5, 6, 7];
         for entry in test {
-            let result = EntryArray::get_priority(&entry);
+            let result = EntryArray::get_priority(entry);
             assert!(result != Priority::None);
         }
     }
@@ -550,7 +550,7 @@ mod tests {
     fn test_get_facility() {
         let test: Vec<u32> = (0..23).collect();
         for entry in test {
-            let result = EntryArray::get_facility(&entry);
+            let result = EntryArray::get_facility(entry);
             assert!(result != Facility::None);
         }
     }

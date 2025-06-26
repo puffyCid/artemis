@@ -93,11 +93,11 @@ pub(crate) fn table_info(catalog: &[Catalog], name: &str) -> TableInfo {
             && entry.catalog_type == CatalogType::Column
         {
             let column_info = ColumnInfo {
-                column_type: get_column_type(&entry.column_or_father_data_page),
+                column_type: get_column_type(entry.column_or_father_data_page),
                 column_name: entry.name.clone(),
                 column_data: Vec::new(),
                 column_id: entry.id,
-                column_flags: get_column_flags(&entry.flags),
+                column_flags: get_column_flags(entry.flags),
                 column_space_usage: entry.space_usage,
                 column_tagged_flags: Vec::new(),
             };
@@ -236,15 +236,15 @@ fn extract_column_data_to_string<'a>(
             // Appears if flags contain NotNull, then the time is FILETIME
             if flags.contains(&ColumnFlags::NotNull) {
                 let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-                let filetime = filetime_to_unixepoch(&filetime_data);
+                let filetime = filetime_to_unixepoch(filetime_data);
 
-                (input, unixepoch_to_iso(&filetime))
+                (input, unixepoch_to_iso(filetime))
             } else {
                 let (input, float_data) = take(size_of::<u64>())(data)?;
                 let (_, float_value) = le_f64(float_data)?;
-                let oletime = ole_automationtime_to_unixepoch(&float_value);
+                let oletime = ole_automationtime_to_unixepoch(float_value);
 
-                (input, unixepoch_to_iso(&oletime))
+                (input, unixepoch_to_iso(oletime))
             }
         }
         ColumnType::LongBinary | ColumnType::Binary => {
@@ -315,7 +315,7 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
     let huffman = 0x18;
     let decompressed_data = if compression_type == huffman {
         let (input, decompress_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        decompress_ese(&mut input.to_owned(), &(decompress_size as u32))
+        decompress_ese(&mut input.to_owned(), decompress_size as u32)
     } else {
         // Any other value means seven bit compression
         decompress_seven_bit(input)
@@ -326,17 +326,17 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
 
 #[cfg(target_os = "windows")]
 /// Decompress ESE data with API
-fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
+fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
     use crate::utils::compression::xpress::api::decompress_huffman_api;
 
-    let decom_result = decompress_huffman_api(data, &XpressType::Lz77, *decom_size);
+    let decom_result = decompress_huffman_api(data, &XpressType::Lz77, decom_size);
     match decom_result {
         Ok(result) => result,
         Err(err) => {
             error!(
                 "[ese] Could not decompress Lz77 data with API: {err:?}. Will try manual decompression"
             );
-            let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
+            let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);
             match decom_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -350,8 +350,8 @@ fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
 
 #[cfg(target_family = "unix")]
 /// Decompress ESE data
-fn decompress_ese(data: &mut [u8], decom_size: &u32) -> Vec<u8> {
-    let decom_result = decompress_xpress(data, *decom_size, &XpressType::Lz77);
+fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
+    let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);
     match decom_result {
         Ok(result) => result,
         Err(err) => {
@@ -371,13 +371,13 @@ pub(crate) fn parse_row(leaf_row: PageLeaf, column_info: &mut [ColumnInfo]) {
     let leaf_data: DataDefinition = serde_json::from_value(leaf_row.leaf_data).unwrap();
 
     let _ = parse_fixed_data(
-        &leaf_data.last_fixed_data,
+        leaf_data.last_fixed_data,
         &leaf_data.fixed_data,
         column_info,
     );
 
     let _ = parse_variable_data(
-        &leaf_data.last_variable_data,
+        leaf_data.last_variable_data,
         &leaf_data.variable_data,
         column_info,
     );
@@ -385,13 +385,13 @@ pub(crate) fn parse_row(leaf_row: PageLeaf, column_info: &mut [ColumnInfo]) {
 
 /// Parse the fixed data of a column
 fn parse_fixed_data<'a>(
-    last_fixed_data: &u8,
+    last_fixed_data: u8,
     fixed_data: &'a [u8],
     column_info: &mut [ColumnInfo],
 ) -> nom::IResult<&'a [u8], ()> {
     let mut column = 1;
     let mut data = fixed_data;
-    while &column <= last_fixed_data {
+    while column <= last_fixed_data {
         for entry in column_info.iter_mut() {
             if entry.column_id == column as i32 {
                 let (input, column_data) =
@@ -408,7 +408,7 @@ fn parse_fixed_data<'a>(
 
 /// Parse the variable data of a column. Follows fixed data
 fn parse_variable_data<'a>(
-    last_variable: &u8,
+    last_variable: u8,
     variable_data: &'a [u8],
     column_info: &mut [ColumnInfo],
 ) -> nom::IResult<&'a [u8], ()> {
@@ -416,7 +416,7 @@ fn parse_variable_data<'a>(
     let mut data = variable_data;
     // The first part of the variable data is the sizes of each variable column data
     let mut var_sizes: Vec<VariableData> = Vec::new();
-    while &start_column <= last_variable {
+    while start_column <= last_variable {
         let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
         let var_data = VariableData {
             column: start_column,
@@ -520,7 +520,7 @@ fn parse_tagged_data<'a>(
                 let (input, data) = take(tag_size)(tag_data_start)?;
                 tag_data_start = input;
                 let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag);
+                let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
                     column: value.column,
@@ -543,7 +543,7 @@ fn parse_tagged_data<'a>(
             let (input, data) = take(tag_size)(tag_data_start)?;
             tag_data_start = input;
             let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag.into());
+            let flags = Catalog::get_flags(flag.into());
 
             let tag = TaggedData {
                 column: value.column,
@@ -564,7 +564,7 @@ fn parse_tagged_data<'a>(
             let flag = value.offset ^ bit_flag;
 
             let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag);
+            let flags = Catalog::get_flags(flag);
 
             let tag = TaggedData {
                 column: value.column,
@@ -578,7 +578,7 @@ fn parse_tagged_data<'a>(
         }
 
         let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-        let flags = Catalog::get_flags(&flag.into());
+        let flags = Catalog::get_flags(flag.into());
 
         let tag = TaggedData {
             column: value.column,
@@ -710,7 +710,7 @@ fn nom_fixed_column<'a>(
 }
 
 /// Get the column type. Determines what kind of data is stored in the column
-pub(crate) fn get_column_type(column: &i32) -> ColumnType {
+pub(crate) fn get_column_type(column: i32) -> ColumnType {
     match column {
         0 => ColumnType::Nil,
         1 => ColumnType::Bit,
@@ -735,7 +735,7 @@ pub(crate) fn get_column_type(column: &i32) -> ColumnType {
 }
 
 /// Get flags associated with the column
-pub(crate) fn get_column_flags(flags: &i32) -> Vec<ColumnFlags> {
+pub(crate) fn get_column_flags(flags: i32) -> Vec<ColumnFlags> {
     let not_null = 0x1;
     let version = 0x2;
     let increment = 0x4;
@@ -834,7 +834,7 @@ mod tests {
             column_tagged_flags: Vec::new(),
         };
         let mut info_vec = vec![info];
-        let (_, _) = parse_fixed_data(&last_fixed, &test, &mut info_vec).unwrap();
+        let (_, _) = parse_fixed_data(last_fixed, &test, &mut info_vec).unwrap();
         assert_eq!(info_vec[0].column_data, [2, 0, 0, 0]);
     }
 
@@ -852,7 +852,7 @@ mod tests {
             column_tagged_flags: Vec::new(),
         };
         let mut info_vec = vec![info];
-        let (_, _) = parse_variable_data(&last_variable, &test, &mut info_vec).unwrap();
+        let (_, _) = parse_variable_data(last_variable, &test, &mut info_vec).unwrap();
         assert_eq!(
             info_vec[0].column_data,
             [77, 83, 121, 115, 79, 98, 106, 101, 99, 116, 115]
@@ -970,7 +970,7 @@ mod tests {
     #[test]
     fn test_get_column_type() {
         let test = 2;
-        let result = get_column_type(&test);
+        let result = get_column_type(test);
         assert_eq!(result, ColumnType::UnsignedByte);
     }
 
@@ -985,7 +985,7 @@ mod tests {
     #[test]
     fn test_get_column_flags() {
         let test = 4096;
-        let flags = get_column_flags(&test);
+        let flags = get_column_flags(test);
         assert_eq!(flags, vec![ColumnFlags::Compressed]);
     }
 
@@ -1132,7 +1132,7 @@ mod tests {
             79, 24, 12, 84, 104, 0, 65, 88, 23, 69, 200, 0, 255, 255, 95, 85, 73, 152, 0, 84, 88,
             0, 73, 72, 27, 85, 72, 0, 73, 8, 1, 78, 58, 4, 201, 14, 63, 4, 15, 103,
         ];
-        let out = decompress_ese(&mut test, &2048);
+        let out = decompress_ese(&mut test, 2048);
         assert_eq!(out.len(), 2048);
     }
 }

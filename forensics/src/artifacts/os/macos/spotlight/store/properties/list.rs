@@ -7,8 +7,8 @@ pub(crate) fn extract_list(
     categories: &HashMap<usize, String>,
     indexes1: &HashMap<usize, Vec<u32>>,
     indexes2: &HashMap<usize, Vec<u32>>,
-    list_value: &usize,
-    prop_type: &u8,
+    list_value: usize,
+    prop_type: u8,
 ) -> Value {
     let item_kind = 3;
     let tree_kind = 2;
@@ -20,7 +20,7 @@ pub(crate) fn extract_list(
     } else if (prop_type & tree_kind) == tree_kind {
         value = extract_categories(categories, indexes1, list_value);
     } else {
-        let cat_option = categories.get(list_value);
+        let cat_option = categories.get(&list_value);
         if cat_option.is_some() {
             let cat = cat_option.unwrap_or(&String::new()).clone();
             value = json!(cat);
@@ -36,9 +36,9 @@ pub(crate) fn extract_list(
 fn extract_categories(
     categories: &HashMap<usize, String>,
     indexes: &HashMap<usize, Vec<u32>>,
-    list_value: &usize,
+    list_value: usize,
 ) -> Value {
-    let value = indexes.get(list_value);
+    let value = indexes.get(&list_value);
     if value.is_none() {
         warn!(
             "[spotlight] No value found in indexes data. Cannot determine category for Attribute list"
@@ -76,7 +76,7 @@ mod tests {
         let list_value = 1;
         let prop_type = 2;
 
-        let result = extract_list(&categories, &indexes1, &indexes2, &list_value, &prop_type);
+        let result = extract_list(&categories, &indexes1, &indexes2, list_value, prop_type);
         assert_eq!(result.as_array().unwrap()[0].as_str().unwrap(), "fakeme");
     }
 
@@ -89,7 +89,7 @@ mod tests {
         categories.insert(1, String::from("fakeme"));
         let list_value = 1;
 
-        let result = extract_categories(&categories, &indexes1, &list_value);
+        let result = extract_categories(&categories, &indexes1, list_value);
         assert_eq!(result.as_array().unwrap()[0].as_str().unwrap(), "fakeme");
     }
 
@@ -104,7 +104,7 @@ mod tests {
         let list_value = 1;
         let prop_type = 77;
 
-        let result = extract_list(&categories, &indexes1, &indexes2, &list_value, &prop_type);
+        let result = extract_list(&categories, &indexes1, &indexes2, list_value, prop_type);
         assert_eq!(result.as_null().unwrap(), ());
     }
 }

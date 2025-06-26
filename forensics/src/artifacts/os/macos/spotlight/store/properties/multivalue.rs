@@ -2,10 +2,7 @@ use crate::artifacts::os::macos::spotlight::store::property::parse_variable_size
 use serde_json::{Value, json};
 
 /// Extract multivalue data associated with Spotlight property
-pub(crate) fn extract_multivalue<'a>(
-    data: &'a [u8],
-    prop_type: &u8,
-) -> nom::IResult<&'a [u8], Value> {
+pub(crate) fn extract_multivalue(data: &[u8], prop_type: u8) -> nom::IResult<&[u8], Value> {
     let mut multi_values = Vec::new();
     let (mut input, multi_number) = parse_variable_size(data)?;
 
@@ -44,7 +41,7 @@ mod tests {
         ];
         let prop_type = 76;
 
-        let (_, result) = extract_multivalue(&data, &prop_type).unwrap();
+        let (_, result) = extract_multivalue(&data, prop_type).unwrap();
         assert_eq!(result.as_array().unwrap()[0].as_u64().unwrap(), 0);
     }
 }

@@ -83,14 +83,14 @@ impl AttributeHeader {
         let (input, attrib_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
         let header = AttributeHeader {
-            attrib_type: AttributeHeader::get_type(&type_data),
+            attrib_type: AttributeHeader::get_type(type_data),
             size,
             small_size,
-            resident_flag: AttributeHeader::get_resident(&resident_data),
+            resident_flag: AttributeHeader::get_resident(resident_data),
             name_size,
             name: String::new(),
             _name_offset: name_offset,
-            _data_flags: AttributeHeader::get_data_flags(&flag_data),
+            _data_flags: AttributeHeader::get_data_flags(flag_data),
             _attrib_id: attrib_id,
         };
 
@@ -98,7 +98,7 @@ impl AttributeHeader {
     }
 
     /// Determine attribute type
-    pub(crate) fn get_type(data: &u32) -> AttributeType {
+    pub(crate) fn get_type(data: u32) -> AttributeType {
         match data {
             0x0 => AttributeType::Unused,
             0x10 => AttributeType::StandardInformation,
@@ -129,7 +129,7 @@ impl AttributeHeader {
     }
 
     /// Determine if data is resident or non-resident
-    fn get_resident(data: &u8) -> ResidentFlag {
+    fn get_resident(data: u8) -> ResidentFlag {
         match data {
             0x0 => ResidentFlag::Resident,
             0x1 => ResidentFlag::NonResident,
@@ -138,7 +138,7 @@ impl AttributeHeader {
     }
 
     /// Determine data flags for the file
-    fn get_data_flags(data: &u16) -> Vec<DataFlags> {
+    fn get_data_flags(data: u16) -> Vec<DataFlags> {
         let mut flags = Vec::new();
         if (data & 0x1) == 0x1 {
             flags.push(DataFlags::Compressed);
@@ -181,20 +181,20 @@ mod tests {
             0xf0, 0x100, 0x1000, 0xffffffff,
         ];
         for entry in test {
-            let result = AttributeHeader::get_type(&entry);
+            let result = AttributeHeader::get_type(entry);
             assert_ne!(result, AttributeType::Unknown);
         }
     }
 
     #[test]
     fn test_get_resident() {
-        let result = AttributeHeader::get_resident(&3);
+        let result = AttributeHeader::get_resident(3);
         assert_eq!(result, ResidentFlag::Unknown);
     }
 
     #[test]
     fn test_get_data_flags() {
-        let result = AttributeHeader::get_data_flags(&0x4000);
+        let result = AttributeHeader::get_data_flags(0x4000);
         assert_eq!(result, vec![DataFlags::Encrypted]);
     }
 }

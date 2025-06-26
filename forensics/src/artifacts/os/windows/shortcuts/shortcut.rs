@@ -33,9 +33,9 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
         source_path: String::new(),
         data_flags: header.data_flags,
         attribute_flags: header.attribute_flags,
-        created: unixepoch_to_iso(&header.created),
-        modified: unixepoch_to_iso(&header.modified),
-        accessed: unixepoch_to_iso(&header.access),
+        created: unixepoch_to_iso(header.created),
+        modified: unixepoch_to_iso(header.modified),
+        accessed: unixepoch_to_iso(header.access),
         file_size: header.file_size,
         location_flags: LocationFlag::None,
         path: String::new(),
@@ -115,7 +115,7 @@ fn get_shortcut_info<'a>(
         // After TargetIDList and LocationInfo five (5) strings may exists depending on the flags set in the header
         if flags == &HasName {
             let (remaining_input, (description, is_abnormal)) =
-                extract_string(input, &shortcut_info.data_flags, &false)?;
+                extract_string(input, &shortcut_info.data_flags, false)?;
             input = remaining_input;
 
             shortcut_info.description = description;
@@ -126,7 +126,7 @@ fn get_shortcut_info<'a>(
 
         if flags == &HasRelativePath {
             let (remaining_input, (relative_path, is_abnormal)) =
-                extract_string(input, &shortcut_info.data_flags, &false)?;
+                extract_string(input, &shortcut_info.data_flags, false)?;
             input = remaining_input;
 
             shortcut_info.relative_path = relative_path;
@@ -135,7 +135,7 @@ fn get_shortcut_info<'a>(
 
         if flags == &HasWorkingDirectory {
             let (remaining_input, (working_dir, is_abnormal)) =
-                extract_string(input, &shortcut_info.data_flags, &false)?;
+                extract_string(input, &shortcut_info.data_flags, false)?;
             input = remaining_input;
 
             shortcut_info.working_directory = working_dir;
@@ -146,7 +146,7 @@ fn get_shortcut_info<'a>(
 
         if flags == &HasArguements {
             let (remaining_input, (args, is_abnormal)) =
-                extract_string(input, &shortcut_info.data_flags, &true)?;
+                extract_string(input, &shortcut_info.data_flags, true)?;
             input = remaining_input;
 
             shortcut_info.command_line_args = args;
@@ -157,7 +157,7 @@ fn get_shortcut_info<'a>(
 
         if flags == &HasIconLocation {
             let (remaining_input, (icon_path, is_abnormal)) =
-                extract_string(input, &shortcut_info.data_flags, &false)?;
+                extract_string(input, &shortcut_info.data_flags, false)?;
             input = remaining_input;
 
             shortcut_info.icon_location = icon_path;
@@ -407,9 +407,9 @@ mod tests {
             source_path: String::new(),
             data_flags: header.data_flags,
             attribute_flags: header.attribute_flags,
-            created: unixepoch_to_iso(&header.created),
-            modified: unixepoch_to_iso(&header.modified),
-            accessed: unixepoch_to_iso(&header.access),
+            created: unixepoch_to_iso(header.created),
+            modified: unixepoch_to_iso(header.modified),
+            accessed: unixepoch_to_iso(header.access),
             file_size: header.file_size,
             location_flags: LocationFlag::None,
             path: String::new(),

@@ -21,7 +21,7 @@ pub(crate) fn get_indx(
     fs: &mut BufReader<SectorReader<File>>,
     ntfs_file: &NtfsFile<'_>,
     directory: &str,
-    depth: &usize,
+    depth: usize,
 ) -> Vec<RawFilelist> {
     let mut attributes = ntfs_file.attributes();
     let mut attributes_allocation = attributes.clone();
@@ -70,7 +70,7 @@ fn get_slack(
     fs: &mut BufReader<SectorReader<File>>,
     attributes: &mut NtfsAttributes<'_, '_>,
     directory: &str,
-    depth: &usize,
+    depth: usize,
 ) -> Vec<RawFilelist> {
     let mut slack_entries: Vec<RawFilelist> = Vec::new();
 
@@ -149,7 +149,7 @@ fn get_slack(
 fn parse_indx_slack<'a>(
     data: &'a [u8],
     directory: &'a str,
-    depth: &usize,
+    depth: usize,
 ) -> nom::IResult<&'a [u8], Vec<RawFilelist>> {
     let mut indx_data = data;
     let mut slack_entries: Vec<RawFilelist> = Vec::new();
@@ -228,10 +228,10 @@ fn parse_indx_slack<'a>(
                 modified: String::new(),
                 changed: String::new(),
                 accessed: String::new(),
-                filename_created: unixepoch_to_iso(&filetime_to_unixepoch(&created)),
-                filename_modified: unixepoch_to_iso(&filetime_to_unixepoch(&modified)),
-                filename_changed: unixepoch_to_iso(&filetime_to_unixepoch(&changed)),
-                filename_accessed: unixepoch_to_iso(&filetime_to_unixepoch(&accessed)),
+                filename_created: unixepoch_to_iso(filetime_to_unixepoch(created)),
+                filename_modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
+                filename_changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
+                filename_accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
                 size,
                 inode,
                 sequence_number: 0,
@@ -366,7 +366,7 @@ mod tests {
         let directory = "test";
         let depth = 1;
 
-        let (_, result) = parse_indx_slack(&buffer, &directory, &depth).unwrap();
+        let (_, result) = parse_indx_slack(&buffer, &directory, depth).unwrap();
         assert_eq!(result.len(), 1);
 
         assert_eq!(result[0].full_path, "test\\test.aut");
@@ -414,7 +414,7 @@ mod tests {
         let ntfs = Ntfs::new(&mut fs).unwrap();
         let root_dir = ntfs.root_directory(&mut fs).unwrap();
 
-        let result = get_indx(&mut fs, &root_dir, "test", &1);
+        let result = get_indx(&mut fs, &root_dir, "test", 1);
         assert!(result.len() > 0);
     }
 
@@ -457,7 +457,7 @@ mod tests {
                     &mut fs,
                     &mut attributes_allocation,
                     "test",
-                    &1,
+                    1,
                 ));
             }
         }

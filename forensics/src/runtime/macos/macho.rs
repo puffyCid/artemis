@@ -7,7 +7,7 @@ pub(crate) fn js_macho(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let macho = match parse_macho(&path) {
         Ok(result) => result,
         Err(err) => {

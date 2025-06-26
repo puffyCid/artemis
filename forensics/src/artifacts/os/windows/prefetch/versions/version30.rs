@@ -51,7 +51,7 @@ impl Version30 {
 
             let no_runs = 0;
             if runtime != no_runs {
-                run_times.push(unixepoch_to_iso(&filetime_to_unixepoch(&runtime)));
+                run_times.push(unixepoch_to_iso(filetime_to_unixepoch(runtime)));
             }
             count += 1;
             input = runs_data;

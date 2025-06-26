@@ -39,8 +39,8 @@ impl AttributeList {
         data: &'a [u8],
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'a>>,
-        entry_size: &u32,
-        current_mft: &u32,
+        entry_size: u32,
+        current_mft: u32,
     ) -> nom::IResult<&'a [u8], Vec<AttributeList>> {
         let mut remaining = data;
         let min_size = 32;
@@ -75,7 +75,7 @@ impl AttributeList {
             remaining = input;
 
             let mut list = AttributeList {
-                attribute_type: AttributeHeader::get_type(&attribute_type),
+                attribute_type: AttributeHeader::get_type(attribute_type),
                 size,
                 name_size,
                 name_offset,
@@ -92,14 +92,13 @@ impl AttributeList {
                 },
             };
 
-            if list.parent_mft == *current_mft {
+            if list.parent_mft == current_mft {
                 lists.push(list);
                 continue;
             }
 
             let offset = list.parent_mft * entry_size;
-            let list_mft = match read_bytes(&(offset as u64), *entry_size as u64, ntfs_file, reader)
-            {
+            let list_mft = match read_bytes(offset as u64, entry_size as u64, ntfs_file, reader) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[mft] Failed to read attribute list bytes: {err:?}");
@@ -130,7 +129,7 @@ impl AttributeList {
         ntfs_file: Option<&NtfsFile<'a>>,
     ) -> nom::IResult<&'a [u8], EntryAttributes> {
         let (remaining, header) = MftHeader::parse_header(data)?;
-        let (remaining, fixup) = Fixup::get_fixup(remaining, &header.fix_up_count)?;
+        let (remaining, fixup) = Fixup::get_fixup(remaining, header.fix_up_count)?;
 
         let mut mft_bytes = remaining.to_vec();
         Fixup::apply_fixup(&mut mft_bytes, &fixup);
@@ -139,8 +138,8 @@ impl AttributeList {
             remaining,
             reader,
             ntfs_file,
-            &header.total_size,
-            &header.index,
+            header.total_size,
+            header.index,
         )?;
 
         Ok((remaining, attribute))
@@ -178,7 +177,7 @@ mod tests {
         let mut buf_reader = BufReader::new(reader);
 
         let (_, results) =
-            AttributeList::parse_list(&test, &mut buf_reader, None, &1024, &9).unwrap();
+            AttributeList::parse_list(&test, &mut buf_reader, None, 1024, 9).unwrap();
         assert_eq!(results.len(), 9);
     }
 

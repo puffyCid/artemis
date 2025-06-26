@@ -4,12 +4,12 @@ use std::string::{FromUtf8Error, FromUtf16Error};
 
 /// Get a UTF16 string from provided bytes data. Will attempt to fix malformed UTF16. Such as UTF16 missing zeros
 pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
-    let result = bytes_to_utf16_string(data, &false);
+    let result = bytes_to_utf16_string(data, false);
     match result {
         Ok(result) => result,
         Err(_err) => {
             // If we fail, try again with adjustment. Just incase it works.
-            let result = bytes_to_utf16_string(data, &true);
+            let result = bytes_to_utf16_string(data, true);
             match result {
                 Ok(result) => result,
                 Err(err) => {
@@ -22,7 +22,7 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
 }
 
 /// Get a UTF16 string from provided bytes data
-fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16Error> {
+fn bytes_to_utf16_string(data: &[u8], adjust: bool) -> Result<String, FromUtf16Error> {
     let mut utf16_data: Vec<u16> = Vec::new();
     // Convert data to UTF16 (&[u16])
     let min_byte_size = 2;
@@ -36,7 +36,7 @@ fn bytes_to_utf16_string(data: &[u8], adjust: &bool) -> Result<String, FromUtf16
         }
 
         // Sometimes we have to encode to UTF16 for some strings
-        if !wide_char.contains(&0) && *adjust {
+        if !wide_char.contains(&0) && adjust {
             utf16_data.push(wide_char[0] as u16);
             utf16_data.push(wide_char[1] as u16);
             continue;
@@ -135,14 +135,14 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
         let result = bytes_to_utf8_string(data);
         match result {
             Ok(value) => value,
-            Err(_err) => match bytes_to_utf16_string(data, &true) {
+            Err(_err) => match bytes_to_utf16_string(data, true) {
                 Ok(result) => {
                     if format!("{result:?}").contains("\\u{") {
                         return extract_utf16_string(data);
                     }
                     result
                 }
-                Err(_err) => match bytes_to_utf16_string(data, &false) {
+                Err(_err) => match bytes_to_utf16_string(data, false) {
                     Ok(result) => result,
                     Err(_err) => extract_utf16_string(data),
                 },

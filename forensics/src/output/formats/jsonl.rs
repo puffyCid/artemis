@@ -18,13 +18,13 @@ pub(crate) fn jsonl_format(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
+    start_time: u64,
 ) -> Result<(), FormatError> {
     // Get small amount of system metadata
     let info = get_info_metadata();
 
     let uuid = generate_uuid();
-    let complete = unixepoch_to_iso(&(time_now() as i64));
+    let complete = unixepoch_to_iso(time_now() as i64);
 
     // If our data is an array loop through each element and output as a separate line
     if serde_data.is_array() {
@@ -42,8 +42,8 @@ pub(crate) fn jsonl_format(
                     "id": output.collection_id,
                     "uuid": uuid,
                     "artifact_name": output_name,
-                    "complete_time": unixepoch_to_iso(&(time_now() as i64)),
-                    "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                    "complete_time": unixepoch_to_iso(time_now() as i64),
+                    "start_time": unixepoch_to_iso(start_time as i64),
                     "hostname": info.hostname,
                     "os_version": info.os_version,
                     "platform": info.platform,
@@ -69,7 +69,7 @@ pub(crate) fn jsonl_format(
                             "id": output.collection_id,
                             "artifact_name": output_name,
                             "complete_time": complete,
-                            "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                            "start_time": unixepoch_to_iso(start_time as i64),
                             "hostname": info.hostname,
                             "os_version": info.os_version,
                             "platform": info.platform,
@@ -103,7 +103,7 @@ pub(crate) fn jsonl_format(
                     "id": output.collection_id,
                     "artifact_name": output_name,
                     "complete_time": complete,
-                    "start_time": unixepoch_to_iso(&(*start_time as i64)),
+                    "start_time": unixepoch_to_iso(start_time as i64),
                     "hostname": info.hostname,
                     "os_version": info.os_version,
                     "platform": info.platform,
@@ -261,7 +261,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        jsonl_format(&mut data, name, &mut output, &start_time).unwrap();
+        jsonl_format(&mut data, name, &mut output, start_time).unwrap();
     }
 
     #[test]

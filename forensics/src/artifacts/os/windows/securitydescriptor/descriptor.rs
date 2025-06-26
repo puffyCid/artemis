@@ -46,7 +46,7 @@ impl Descriptor {
 
         let empty = 0;
         let mut security_info = Descriptor {
-            control_flags: Descriptor::get_flags(&control_flags),
+            control_flags: Descriptor::get_flags(control_flags),
             sacls: Vec::new(),
             dacls: Vec::new(),
             owner_sid: String::new(),
@@ -79,7 +79,7 @@ impl Descriptor {
     }
 
     /// Get the Control Flags associated with the security descriptor
-    fn get_flags(control: &u16) -> Vec<ControlFlags> {
+    fn get_flags(control: u16) -> Vec<ControlFlags> {
         let own_default = 0x1;
         let group_default = 0x2;
         let dacl_present = 0x4;
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let test = 0x1;
-        let results = Descriptor::get_flags(&test);
+        let results = Descriptor::get_flags(test);
         assert_eq!(results[0], OwnerDefaulted)
     }
 }

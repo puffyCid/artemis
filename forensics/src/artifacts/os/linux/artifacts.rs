@@ -12,12 +12,12 @@ use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 /// Get Linux `Journals`
 pub(crate) fn journals(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_journal(output, &start_time, filter, options);
+    let artifact_result = grab_journal(output, start_time, filter, options);
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
@@ -30,7 +30,7 @@ pub(crate) fn journals(
 /// Get Linux `Logon` info
 pub(crate) fn logons(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &LogonOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
@@ -46,13 +46,13 @@ pub(crate) fn logons(
     };
 
     let output_name = "logons";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse sudo logs on Linux
 pub(crate) fn sudo_logs_linux(
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
     options: &LinuxSudoOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
@@ -76,7 +76,7 @@ pub(crate) fn sudo_logs_linux(
     };
 
     let output_name = "sudologs-linux";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Output Linux artifacts
@@ -84,8 +84,8 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), LinuxArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -130,7 +130,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, &&false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -140,7 +140,7 @@ mod tests {
 
         let status = journals(
             &mut output,
-            &false,
+            false,
             &JournalOptions {
                 alt_path: Some(String::from("./tmp")),
             },
@@ -155,7 +155,7 @@ mod tests {
 
         let status = logons(
             &mut output,
-            &false,
+            false,
             &LogonOptions {
                 alt_file: Some(String::from("/var/run/utmp")),
             },
@@ -170,7 +170,7 @@ mod tests {
 
         let status = sudo_logs_linux(
             &mut output,
-            &false,
+            false,
             &LinuxSudoOptions {
                 alt_path: Some(String::from("./tmp")),
             },

@@ -115,7 +115,7 @@ pub(crate) fn file_reader(path: &str) -> Result<File, FileSystemError> {
 
 /// Read a file that is less than the provided size in bytes
 /// Use `read_file_large` to read a file of any size or use `read_file` to use the the default size limit of 2GB
-pub(crate) fn read_file_custom(path: &str, size: &u64) -> Result<Vec<u8>, FileSystemError> {
+pub(crate) fn read_file_custom(path: &str, size: u64) -> Result<Vec<u8>, FileSystemError> {
     if file_too_large_custom(path, size) {
         return Err(FileSystemError::LargeFile);
     }
@@ -297,9 +297,9 @@ pub(crate) fn file_too_large(path: &str) -> bool {
 }
 
 /// Check if a provided file is too large than the a custom acceptable size
-fn file_too_large_custom(path: &str, max_size: &u64) -> bool {
+fn file_too_large_custom(path: &str, max_size: u64) -> bool {
     let size = get_file_size(path);
-    if &size < max_size {
+    if size < max_size {
         return false;
     }
     true
@@ -509,7 +509,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
 
-        let result = file_too_large_custom(&test_location.display().to_string(), &10000);
+        let result = file_too_large_custom(&test_location.display().to_string(), 10000);
         assert_eq!(result, false)
     }
 
@@ -519,7 +519,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
 
-        let result = read_file_custom(&test_location.display().to_string(), &10000).unwrap();
+        let result = read_file_custom(&test_location.display().to_string(), 10000).unwrap();
         assert_eq!(result.len(), 23);
     }
 

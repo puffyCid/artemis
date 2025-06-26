@@ -17,7 +17,7 @@ pub(crate) fn api_upload(
     data: &[u8],
     output: &Output,
     output_name: &str,
-    complete: &bool,
+    complete: bool,
 ) -> Result<(), RemoteError> {
     let api_url = if let Some(url) = &output.url {
         url
@@ -41,10 +41,10 @@ pub(crate) fn api_upload(
         part = part.file_name(output_name.to_string());
 
         // This is the last upload associated with the collection
-        if *complete {
+        if complete {
             builder = builder.header(
                 "x-artemis-collection-complete",
-                unixepoch_to_iso(&(time_now() as i64)),
+                unixepoch_to_iso(time_now() as i64),
             );
         }
         if output_name.ends_with(".log") {
@@ -126,7 +126,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", &true).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", true).unwrap();
         mock_me.assert();
     }
 
@@ -146,7 +146,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", &false).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", false).unwrap();
         mock_me.assert();
     }
 }

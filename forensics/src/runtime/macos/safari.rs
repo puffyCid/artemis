@@ -33,7 +33,7 @@ pub(crate) fn js_safari_history(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let history = match history_query(&path) {
         Ok(result) => result,
@@ -75,7 +75,7 @@ pub(crate) fn js_safari_downloads(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let downloads = match downloads_query(&path) {
         Ok(result) => result,

@@ -70,10 +70,8 @@ pub(crate) fn downloads_query(path: &str) -> Result<Vec<SafariDownload>, SafariE
             sandbox_id: data.download_sandbox_id,
             download_bytes: data.download_entry_progress_total_to_load,
             download_id: data.download_identifier,
-            download_entry_date: unixepoch_to_iso(&(data.download_entry_date_added_key as i64)),
-            download_entry_finish: unixepoch_to_iso(
-                &(data.download_entry_date_finished_key as i64),
-            ),
+            download_entry_date: unixepoch_to_iso(data.download_entry_date_added_key as i64),
+            download_entry_finish: unixepoch_to_iso(data.download_entry_date_finished_key as i64),
             path: bookmark.path,
             cnid_path: bookmark.cnid_path,
             created: bookmark.created,

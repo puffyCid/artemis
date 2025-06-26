@@ -14,7 +14,7 @@ pub(crate) fn js_users_macos(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
 
     let users = grab_users(&MacosUsersOptions { alt_path: path });
@@ -33,7 +33,7 @@ pub(crate) fn js_groups_macos(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let groups = grab_groups(&MacosGroupsOptions { alt_path: path });
 

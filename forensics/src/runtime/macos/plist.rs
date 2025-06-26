@@ -10,7 +10,7 @@ pub(crate) fn js_plist(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let plist = match parse_plist_file(&path) {
         Ok(result) => result,
@@ -31,7 +31,7 @@ pub(crate) fn js_plist_data(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let bytes = bytes_arg(args, &0, context)?;
+    let bytes = bytes_arg(args, 0, context)?;
     let plist_results = parse_plist_data(&bytes);
     let plist = match plist_results {
         Ok(result) => result,

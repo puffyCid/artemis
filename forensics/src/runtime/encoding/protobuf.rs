@@ -7,7 +7,7 @@ pub(crate) fn js_parse_protobuf(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
 
     let result = match parse_protobuf(&data) {
         Ok(result) => result,

@@ -57,11 +57,11 @@ impl LnkHeader {
         let header = LnkHeader {
             _size: size,
             _class_id: class_id,
-            data_flags: LnkHeader::get_flags(&data_flags),
-            attribute_flags: file_attribute_flags(&attribute_flags),
-            created: filetime_to_unixepoch(&created_filetime),
-            access: filetime_to_unixepoch(&access_filetime),
-            modified: filetime_to_unixepoch(&modified_filetime),
+            data_flags: LnkHeader::get_flags(data_flags),
+            attribute_flags: file_attribute_flags(attribute_flags),
+            created: filetime_to_unixepoch(created_filetime),
+            access: filetime_to_unixepoch(access_filetime),
+            modified: filetime_to_unixepoch(modified_filetime),
             file_size,
             _icon_index: icon_index,
             _window_value: window_value,
@@ -75,7 +75,7 @@ impl LnkHeader {
     }
 
     /// Get data flags from `Shortcut` header control if other structures are available
-    fn get_flags(flags: &u32) -> Vec<DataFlags> {
+    fn get_flags(flags: u32) -> Vec<DataFlags> {
         let mut lnk_flags: Vec<DataFlags> = Vec::new();
 
         let has_target_id_list = 0x1;
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let test = 1;
-        let result = LnkHeader::get_flags(&test);
+        let result = LnkHeader::get_flags(test);
         assert_eq!(result[0], DataFlags::HasTargetIdList)
     }
 

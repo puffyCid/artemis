@@ -61,7 +61,7 @@ struct Params {
 pub(crate) fn ntfs_filelist(
     rawfile_params: &RawFilesOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), NTFSError> {
     if rawfile_params.start_path.is_empty()
         || !rawfile_params
@@ -71,7 +71,7 @@ pub(crate) fn ntfs_filelist(
         return Err(NTFSError::BadStart);
     }
 
-    let ntfs_parser_result = setup_ntfs_parser(&rawfile_params.drive_letter);
+    let ntfs_parser_result = setup_ntfs_parser(rawfile_params.drive_letter);
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
@@ -140,7 +140,7 @@ pub(crate) fn ntfs_filelist(
         sids,
         hash: hash_data,
         metadata: rawfile_params.metadata.unwrap_or(false),
-        filter: *filter,
+        filter,
     };
 
     let _ = walk_ntfs(
@@ -152,7 +152,7 @@ pub(crate) fn ntfs_filelist(
     );
 
     // Output any remaining file metadata
-    raw_output(&params.filelist, output, &start_time, &params.filter);
+    raw_output(&params.filelist, output, start_time, params.filter);
     Ok(())
 }
 
@@ -281,7 +281,7 @@ fn walk_ntfs(
 
         // Lookup traditional SID information (S-1-5-XXXXX) via the NTFS sid value
         (file_info.user_sid, file_info.group_sid) =
-            SecurityIDs::lookup_sids(&file_info.sid, &params.sids);
+            SecurityIDs::lookup_sids(file_info.sid, &params.sids);
 
         let dir_name = file_info.filename.clone();
 
@@ -291,7 +291,7 @@ fn walk_ntfs(
             // Grab file data for hashing
             let _attribute_result = file_data(
                 &ntfs_file,
-                &entry_index.file_reference(),
+                entry_index.file_reference(),
                 &mut file_info,
                 fs,
                 ntfs,
@@ -299,7 +299,7 @@ fn walk_ntfs(
             );
 
             // Grab any alternative data streams (ADS)
-            let ads_result = get_ads_names(&entry_index.file_reference(), ntfs, fs);
+            let ads_result = get_ads_names(entry_index.file_reference(), ntfs, fs);
             match ads_result {
                 Ok(result) => file_info.ads_info = result,
                 Err(err) => {
@@ -327,7 +327,7 @@ fn walk_ntfs(
                     fs,
                     &ntfs_file,
                     &file_info.full_path,
-                    &file_info.depth,
+                    file_info.depth,
                 ));
             }
         }
@@ -335,7 +335,7 @@ fn walk_ntfs(
         let max_list = 100000;
         // To keep memory usage small we only keep 100,000 files in the vec at a time
         if params.filelist.len() >= max_list {
-            raw_output(&params.filelist, output, &params.start_time, &params.filter);
+            raw_output(&params.filelist, output, params.start_time, params.filter);
             params.filelist = Vec::new();
         }
 
@@ -355,7 +355,7 @@ fn walk_ntfs(
 }
 
 /// Send raw file data to configured output preference based on `Output` parameter
-fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: &u64, filter: &bool) {
+fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -422,7 +422,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -443,7 +443,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -464,7 +464,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
         assert_eq!(result, ())
     }
 
@@ -483,7 +483,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -503,7 +503,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -526,7 +526,7 @@ mod tests {
             filename_regex: Some(String::from(r".*\.rs")),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, &false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
 
         assert_eq!(result, ());
     }
@@ -545,7 +545,7 @@ mod tests {
             path_regex: Some(String::new()),
             filename_regex: Some(String::new()),
         };
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -607,7 +607,7 @@ mod tests {
             path_regex: Some(String::new()),
             filename_regex: Some(String::new()),
         };
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -654,7 +654,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(result, ());
-        raw_output(&params.filelist, &mut output, &start_time, &false)
+        raw_output(&params.filelist, &mut output, start_time, false)
     }
 
     #[test]

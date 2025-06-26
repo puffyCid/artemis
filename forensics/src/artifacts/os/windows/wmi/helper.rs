@@ -126,7 +126,7 @@ pub(crate) fn list_classes(
 /// Get optional descriptions for a class
 pub(crate) fn class_description(
     namespace: &str,
-    locale: &u32,
+    locale: u32,
     class_name: &str,
     indexes: &[IndexBody],
     object_data: &[u8],
@@ -343,7 +343,7 @@ mod tests {
         let class_name = "Win32_BIOS";
         let locale = 1033;
         let info =
-            class_description(namespace, &locale, class_name, &index, &objects, &pages).unwrap();
+            class_description(namespace, locale, class_name, &index, &objects, &pages).unwrap();
         assert_eq!(info.properties.len(), 27);
         assert_eq!(info.properties[0].name, "BiosCharacteristics");
         assert_eq!(info.properties[0].qualifiers[1].name, "Description");

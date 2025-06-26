@@ -13,7 +13,7 @@ pub(crate) fn time_now() -> u64 {
 }
 
 /// Convert Windows filetime values to `UnixEpoch`
-pub(crate) fn filetime_to_unixepoch(filetime: &u64) -> i64 {
+pub(crate) fn filetime_to_unixepoch(filetime: u64) -> i64 {
     let windows_nano = 10000000;
     let seconds_to_unix: i64 = 11644473600;
 
@@ -22,19 +22,19 @@ pub(crate) fn filetime_to_unixepoch(filetime: &u64) -> i64 {
 }
 
 /// Convert macOS Cocoa timestamp to `UnixEpoch` (also called mac time, mach absolute time)
-pub(crate) fn cocoatime_to_unixepoch(cocoatime: &f64) -> i64 {
+pub(crate) fn cocoatime_to_unixepoch(cocoatime: f64) -> i64 {
     let adjust_to_unix = 978307200.0;
     (cocoatime + adjust_to_unix) as i64
 }
 
 /// Convert macOS HFS+ timestamp to `UnixEpoch`
-pub(crate) fn hfs_to_unixepoch(hfstime: &i64) -> i64 {
+pub(crate) fn hfs_to_unixepoch(hfstime: i64) -> i64 {
     let adjust_to_unix = 2082844800;
     hfstime - adjust_to_unix
 }
 
 /// Convert OLE Automation time (sometimes also referred to as Variant time) to `UnixEpoch`
-pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
+pub(crate) fn ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
     // OLE automation time is just the number of days since Jan 1 1900 as float64
     let hours = 24.0;
     let mins = 60.0;
@@ -52,7 +52,7 @@ pub(crate) fn ole_automationtime_to_unixepoch(oletime: &f64) -> i64 {
 }
 
 /// Convert Webkit time to `UnixEpoch`
-pub(crate) fn webkit_time_to_unixepoch(webkittime: &i64) -> i64 {
+pub(crate) fn webkit_time_to_unixepoch(webkittime: i64) -> i64 {
     let adjust_epoch = 11644473600;
     webkittime - adjust_epoch
 }
@@ -120,8 +120,8 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
 }
 
 /// Convert `UnixEpoch` to ISO8601 format
-pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
-    let iso_opt = DateTime::from_timestamp(*timestamp, 0);
+pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
+    let iso_opt = DateTime::from_timestamp(timestamp, 0);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -129,8 +129,8 @@ pub(crate) fn unixepoch_to_iso(timestamp: &i64) -> String {
 }
 
 /// Convert `UnixEpoch` to ISO8601 format
-pub(crate) fn unixepoch_microseconds_to_iso(timestamp: &i64) -> String {
-    let iso_opt = DateTime::from_timestamp_micros(*timestamp);
+pub(crate) fn unixepoch_microseconds_to_iso(timestamp: i64) -> String {
+    let iso_opt = DateTime::from_timestamp_micros(timestamp);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn test_filetime_to_unixepoch() {
         let test_data = 132244766418940254;
-        assert_eq!(filetime_to_unixepoch(&test_data), 1580003041)
+        assert_eq!(filetime_to_unixepoch(test_data), 1580003041)
     }
 
     #[test]
@@ -204,13 +204,13 @@ mod tests {
 
     #[test]
     fn test_unixepoch_to_iso() {
-        assert_eq!(unixepoch_to_iso(&1574819646), "2019-11-27T01:54:06.000Z")
+        assert_eq!(unixepoch_to_iso(1574819646), "2019-11-27T01:54:06.000Z")
     }
 
     #[test]
     fn test_unixepoch_microseconds_to_iso() {
         assert_eq!(
-            unixepoch_microseconds_to_iso(&2500000000000000),
+            unixepoch_microseconds_to_iso(2500000000000000),
             "2049-03-22T04:26:40.000Z"
         )
     }
@@ -226,35 +226,35 @@ mod tests {
     #[test]
     fn test_ole_automationtime_to_unixepoch() {
         let test = 43794.01875;
-        let result = ole_automationtime_to_unixepoch(&test);
+        let result = ole_automationtime_to_unixepoch(test);
         assert_eq!(result, 1574641620);
     }
 
     #[test]
     fn test_cocoatime_to_unixepoch() {
         let test = 10.01875;
-        let result = cocoatime_to_unixepoch(&test);
+        let result = cocoatime_to_unixepoch(test);
         assert_eq!(result, 978307210);
     }
 
     #[test]
     fn test_webkit_to_unixepoch() {
         let test = 13289983960;
-        let result = webkit_time_to_unixepoch(&test);
+        let result = webkit_time_to_unixepoch(test);
         assert_eq!(result, 1645510360);
     }
 
     #[test]
     fn test_hfs_to_unixepoch() {
         let test = 3453120824;
-        let result = hfs_to_unixepoch(&test);
+        let result = hfs_to_unixepoch(test);
         assert_eq!(result, 1370276024);
     }
 
     #[test]
     fn test_compare_timestamps() {
-        let timestamp = unixepoch_to_iso(&1574819646);
-        let timestamp2 = unixepoch_to_iso(&1474819646);
+        let timestamp = unixepoch_to_iso(1574819646);
+        let timestamp2 = unixepoch_to_iso(1474819646);
 
         assert!(compare_timestamps(&timestamp, &timestamp2).unwrap());
     }

@@ -142,7 +142,7 @@ impl Catalog {
         let catalog_page = 5;
         let catalog_start = catalog_page * page_size;
 
-        let catalog_results = read_bytes(&(catalog_start as u64), page_size as u64, ntfs_file, fs);
+        let catalog_results = read_bytes(catalog_start as u64, page_size as u64, ntfs_file, fs);
         let catalog_data = match catalog_results {
             Ok(results) => results,
             Err(err) => {
@@ -234,7 +234,7 @@ impl Catalog {
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) * page_size;
             // Now get the child page
-            let child_result = read_bytes(&(branch_start as u64), page_size as u64, ntfs_file, fs);
+            let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -595,7 +595,7 @@ impl Catalog {
                     let (input, data) = take(tag_size)(tag_data_start)?;
                     tag_data_start = input;
                     let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                    let flags = Catalog::get_flags(&flag);
+                    let flags = Catalog::get_flags(flag);
 
                     let tag = TaggedData {
                         column: value.column,
@@ -612,7 +612,7 @@ impl Catalog {
                 let (input, data) = take(tag_size)(tag_data_start)?;
                 tag_data_start = input;
                 let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag.into());
+                let flags = Catalog::get_flags(flag.into());
 
                 let tag = TaggedData {
                     column: value.column,
@@ -633,7 +633,7 @@ impl Catalog {
                 let flag = value.offset ^ bit_flag;
                 let (tag_data, _unknown_size_flag) =
                     nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-                let flags = Catalog::get_flags(&flag);
+                let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
                     column: value.column,
@@ -647,7 +647,7 @@ impl Catalog {
             }
 
             let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-            let flags = Catalog::get_flags(&flag.into());
+            let flags = Catalog::get_flags(flag.into());
 
             let tag = TaggedData {
                 column: value.column,
@@ -700,7 +700,7 @@ impl Catalog {
     }
 
     /// Get flags associated with tagged columns
-    pub(crate) fn get_flags(flags: &u16) -> Vec<TaggedDataFlag> {
+    pub(crate) fn get_flags(flags: u16) -> Vec<TaggedDataFlag> {
         let variable = 1;
         let compressed = 2;
         let long_value = 4;
@@ -751,10 +751,10 @@ mod tests {
 
         let binding = test_location.display().to_string();
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
@@ -927,13 +927,13 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let flag = 1;
-        let flags = Catalog::get_flags(&flag);
+        let flags = Catalog::get_flags(flag);
         assert_eq!(flags, vec![TaggedDataFlag::Variable]);
     }
 
     #[test]
     fn test_srum_catalog() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
 
         let reader = raw_reader(
             "C:\\Windows\\System32\\sru\\SRUDB.dat",
@@ -941,7 +941,7 @@ mod tests {
             &mut ntfs_parser.fs,
         )
         .unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
         let results =
@@ -956,10 +956,10 @@ mod tests {
             return;
         }
 
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
 
         let reader = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(&0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
         if header_bytes.is_empty() {
             return;
         }

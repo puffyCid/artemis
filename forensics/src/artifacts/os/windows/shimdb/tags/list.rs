@@ -42,7 +42,7 @@ fn get_list_data<'a>(
         let (sdb_data, (tag, tag_value)) = get_tag(list_data)?;
         let (tag_data, value) = match tag {
             Tags::String => break, // strings only found in stringtable, which we parse in stringref
-            Tags::Binary => parse_binary(sdb_data, &tag_value)?,
+            Tags::Binary => parse_binary(sdb_data, tag_value)?,
             Tags::List => {
                 let (sdb_data, mut sublist_data) =
                     parse_sublist(sdb_data, stringtable_data, tag_values)?;
@@ -100,7 +100,7 @@ fn parse_sublist<'a>(
         // Parse list data based on tag type (ex: BINARY, STRING, WORD, etc)
         let (tag_data, value) = match tag {
             Tags::String => break, // strings only found in stringtable, which we parse in stringref
-            Tags::Binary => parse_binary(sdb_data, &tag_value)?,
+            Tags::Binary => parse_binary(sdb_data, tag_value)?,
             Tags::List => {
                 // If we encounter another list recurse that list and add to our list vec tracker
                 let (sdb_data, mut sublist_data) =

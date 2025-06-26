@@ -84,7 +84,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let (input, unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, unknown2) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let format_type = get_format(&format_data);
+    let format_type = get_format(format_data);
 
     if format_type == FormatType::ANSI32 {
         error!("[outlook] Got ANSI32 FormatType. This type is currently unsupported");
@@ -153,7 +153,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let header = OutlookHeader {
         sig,
         crc_hash,
-        content_type: get_content(&content_data),
+        content_type: get_content(content_data),
         format_type,
         client_version,
         creation_platform,
@@ -170,8 +170,8 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
         node_btree_root,
         block_btree_backpointer,
         block_btree_root,
-        allocation_type: get_allocation(&allocation_data),
-        encryption_type: get_encryption(&encryption_data),
+        allocation_type: get_allocation(allocation_data),
+        encryption_type: get_encryption(encryption_data),
         initial_data_free_map,
         initial_page_free_map,
     };
@@ -191,7 +191,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
 }
 
 /// Determine Outlook content format
-fn get_content(content: &u16) -> ContentType {
+fn get_content(content: u16) -> ContentType {
     match content {
         0x4f53 => ContentType::OfflineStorageTable,
         0x4d53 => ContentType::PersonalStorageTable,
@@ -201,7 +201,7 @@ fn get_content(content: &u16) -> ContentType {
 }
 
 /// Determine Outlook structure format
-fn get_format(format: &u16) -> FormatType {
+fn get_format(format: u16) -> FormatType {
     match format {
         14 | 15 => FormatType::ANSI32,
         21 | 23 => FormatType::Unicode64,
@@ -211,7 +211,7 @@ fn get_format(format: &u16) -> FormatType {
 }
 
 /// Get Outlook allocation type
-fn get_allocation(data: &u8) -> AllocationType {
+fn get_allocation(data: u8) -> AllocationType {
     match data {
         0 => AllocationType::InvalidMaps,
         1 | 2 => AllocationType::ValidMaps,
@@ -220,7 +220,7 @@ fn get_allocation(data: &u8) -> AllocationType {
 }
 
 /// Check if Outlook data is encrypted
-fn get_encryption(data: &u8) -> EncryptionType {
+fn get_encryption(data: u8) -> EncryptionType {
     match data {
         0 => EncryptionType::None,
         1 => EncryptionType::CompressEncryption,
@@ -322,25 +322,25 @@ mod tests {
     #[test]
     fn test_get_content() {
         let test = 0x4241;
-        assert_eq!(get_content(&test), ContentType::PersonalAddressBook);
+        assert_eq!(get_content(test), ContentType::PersonalAddressBook);
     }
 
     #[test]
     fn test_get_format() {
         let test = 14;
-        assert_eq!(get_format(&test), FormatType::ANSI32);
+        assert_eq!(get_format(test), FormatType::ANSI32);
     }
 
     #[test]
     fn test_get_allocation() {
         let test = 0;
-        assert_eq!(get_allocation(&test), AllocationType::InvalidMaps);
+        assert_eq!(get_allocation(test), AllocationType::InvalidMaps);
     }
 
     #[test]
     fn test_get_encryption() {
         let test = 1;
-        assert_eq!(get_encryption(&test), EncryptionType::CompressEncryption);
+        assert_eq!(get_encryption(test), EncryptionType::CompressEncryption);
     }
 
     #[test]

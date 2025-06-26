@@ -7,7 +7,7 @@ pub(crate) fn js_bookmark(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let bytes = bytes_arg(args, &0, context)?;
+    let bytes = bytes_arg(args, 0, context)?;
 
     let book = match parse_bookmark(&bytes) {
         Ok(result) => result,

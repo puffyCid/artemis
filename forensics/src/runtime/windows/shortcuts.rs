@@ -8,7 +8,7 @@ pub(crate) fn js_lnk(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let lnk = match grab_lnk_file(&path) {
         Ok(result) => result,

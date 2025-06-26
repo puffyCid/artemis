@@ -73,10 +73,10 @@ pub(crate) fn extract_name_id_map(
     // Now go through the entries and get the associated data. Either string or GUID
     for entry in entries.iter_mut() {
         if entry.name_type == NameType::Guid {
-            let name = property_name_ids(&entry.reference);
+            let name = property_name_ids(entry.reference);
             entry.value = serde_json::to_value(&name).unwrap_or_default();
         } else {
-            let string_result = name_string(&strings, &entry.reference);
+            let string_result = name_string(&strings, entry.reference);
             let name = match string_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
@@ -124,8 +124,8 @@ fn name_guids(data: &[u8]) -> nom::IResult<&[u8], Vec<String>> {
     Ok((input, guids))
 }
 
-fn name_string<'a>(data: &'a [u8], offset: &u32) -> nom::IResult<&'a [u8], String> {
-    let (string_start, _) = take(*offset)(data)?;
+fn name_string(data: &[u8], offset: u32) -> nom::IResult<&[u8], String> {
+    let (string_start, _) = take(offset)(data)?;
     let (input, string_size) = nom_unsigned_four_bytes(string_start, Endian::Le)?;
 
     let (input, string_data) = take(string_size)(input)?;
@@ -330,7 +330,7 @@ mod tests {
             0, 97, 0, 115, 0, 115, 0,
         ];
 
-        let (_, string) = name_string(&test, &0).unwrap();
+        let (_, string) = name_string(&test, 0).unwrap();
         assert_eq!(string, "content-class");
     }
 }

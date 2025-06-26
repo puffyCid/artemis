@@ -177,7 +177,7 @@ pub(crate) fn message_details(
                 .contains(&PropertyName::PidTagAttachMethod)
             {
                 let method = column.value.as_u64().unwrap_or_default();
-                info.method = get_attach_method(&method);
+                info.method = get_attach_method(method);
             }
         }
 
@@ -206,7 +206,7 @@ pub(crate) fn message_details(
 }
 
 /// Get info on how an attachment was attached to email
-pub(crate) fn get_attach_method(method: &u64) -> AttachMethod {
+pub(crate) fn get_attach_method(method: u64) -> AttachMethod {
     match method {
         0 => AttachMethod::None,
         1 => AttachMethod::ByValue,
@@ -234,7 +234,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
         return Ok((input, value));
     }
 
-    let decom_result = decompress_rtf(input, &uncompressed_size);
+    let decom_result = decompress_rtf(input, uncompressed_size);
     let decom = match decom_result {
         Ok(result) => result,
         Err(err) => {
@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn test_get_attach_method() {
         let test = 99;
-        assert_eq!(get_attach_method(&test), AttachMethod::Unknown);
+        assert_eq!(get_attach_method(test), AttachMethod::Unknown);
     }
 
     #[test]

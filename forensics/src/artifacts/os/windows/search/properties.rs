@@ -55,10 +55,10 @@ mod tests {
         let catalog = search_catalog(test_path).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(&(gather_table.table_page as u32), test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(&(property_table.table_page as u32), test_path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, test_path).unwrap();
 
         let page_limit = 1;
         let mut gather_chunk = Vec::new();

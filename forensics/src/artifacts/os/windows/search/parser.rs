@@ -31,7 +31,7 @@ use log::error;
 pub(crate) fn grab_search(
     options: &SearchOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), SearchError> {
     let path = if let Some(alt) = &options.alt_file {
         alt.clone()
@@ -80,7 +80,7 @@ pub(crate) fn grab_search(
 /// Parse a provided Windows `Search` file and return its contents
 pub(crate) fn grab_search_path(
     path: &str,
-    page_limit: &u32,
+    page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
     let result = if path.ends_with(".edb") {
         parse_search_path(path, page_limit)?
@@ -123,7 +123,7 @@ mod tests {
         let mut output = output_options("search_temp", "local", "./tmp", false);
         let options = SearchOptions { alt_file: None };
 
-        let _ = grab_search(&options, &mut output, &false);
+        let _ = grab_search(&options, &mut output, false);
     }
 
     #[test]
@@ -136,7 +136,7 @@ mod tests {
             return;
         }
 
-        let results = grab_search_path(test_path, &50).unwrap();
+        let results = grab_search_path(test_path, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

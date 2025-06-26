@@ -57,15 +57,15 @@ impl MachoHeader {
         let (macho_data, commands_size) = nom_unsigned_four_bytes(macho_data, Endian::Le)?;
         let (macho_data, flags) = nom_unsigned_four_bytes(macho_data, Endian::Le)?;
 
-        let (cpu_type_str, subtype_str) = MachoHeader::get_cpu_type(&cpu_type, &cpu_subtype);
+        let (cpu_type_str, subtype_str) = MachoHeader::get_cpu_type(cpu_type, cpu_subtype);
         let header = MachoHeader {
             signature,
             cpu_type: cpu_type_str,
             cpu_subtype: subtype_str,
-            filetype: MachoHeader::get_filetype(&filetype),
+            filetype: MachoHeader::get_filetype(filetype),
             number_commands,
             commands_size,
-            flags: MachoHeader::get_flags(&flags),
+            flags: MachoHeader::get_flags(flags),
         };
         if header.cpu_type == "X86_64" || header.cpu_type == "ARM64" {
             let (macho_data, _reserved) = nom_unsigned_four_bytes(macho_data, Endian::Le)?;
@@ -94,29 +94,35 @@ impl MachoHeader {
     }
 
     /// Check for CPU Type associated with binary
-    fn get_cpu_type(cpu_type: &u32, subtype: &u32) -> (String, String) {
+    fn get_cpu_type(cpu_type: u32, subtype: u32) -> (String, String) {
         let (cpu, sub) = match cpu_type {
-            0x1 => ("VAX", "Not supported"),
-            0x6 => ("MC680x0", "Not supported"),
-            0x7 => ("X86", MachoHeader::get_intel_subtype(subtype)),
-            0x1000007 => ("X86_64", MachoHeader::get_intel_subtype(subtype)),
-            0xa => ("MC98000", "Not supported"),
-            0xb => ("HPPA", "Not supported"),
-            0x100000C => ("ARM64", MachoHeader::get_arm_subtype(subtype)),
-            0xc => ("ARM", MachoHeader::get_arm_subtype(subtype)),
-            0xd => ("MC88000", "Not supported"),
-            0xe => ("SPARC", "Not supported"),
-            0xf => ("I860", "Not supported"),
-            0x12 => ("POWERPC", "Not supported"),
-            0x1000012 => ("POWERPC64", "Not supported"),
-            _ => ("Unknown MachO CPU Type", "Not supported"),
+            0x1 => (String::from("VAX"), String::from("Not supported")),
+            0x6 => (String::from("MC680x0"), String::from("Not supported")),
+            0x7 => (String::from("X86"), MachoHeader::get_intel_subtype(subtype)),
+            0x1000007 => (
+                String::from("X86_64"),
+                MachoHeader::get_intel_subtype(subtype),
+            ),
+            0xa => (String::from("MC98000"), String::from("Not supported")),
+            0xb => (String::from("HPPA"), String::from("Not supported")),
+            0x100000C => (String::from("ARM64"), MachoHeader::get_arm_subtype(subtype)),
+            0xc => (String::from("ARM"), MachoHeader::get_arm_subtype(subtype)),
+            0xd => (String::from("MC88000"), String::from("Not supported")),
+            0xe => (String::from("SPARC"), String::from("Not supported")),
+            0xf => (String::from("I860"), String::from("Not supported")),
+            0x12 => (String::from("POWERPC"), String::from("Not supported")),
+            0x1000012 => (String::from("POWERPC64"), String::from("Not supported")),
+            _ => (
+                String::from("Unknown MachO CPU Type"),
+                String::from("Not supported"),
+            ),
         };
-        (cpu.to_string(), sub.to_string())
+        (cpu, sub)
     }
 
     /// Get CPU subtype for Intel
-    fn get_intel_subtype(subtype: &u32) -> &str {
-        match subtype {
+    fn get_intel_subtype(subtype: u32) -> String {
+        let sub = match subtype {
             0 => "ALL",
             0x3 => "386",
             0x4 => "486",
@@ -142,12 +148,14 @@ impl MachoHeader {
                 warn!("[macho] Unknown MachO sub CPU Intel Type: {subtype}");
                 "Unknown MachO sub CPU Intel Type"
             }
-        }
+        };
+
+        sub.to_string()
     }
 
     /// Get CPU subtype for ARM
-    fn get_arm_subtype(subtype: &u32) -> &str {
-        match subtype {
+    fn get_arm_subtype(subtype: u32) -> String {
+        let sub = match subtype {
             0 => "ALL",
             0x1 => "ARM64v8",
             0x2 | 0x80000002 => "ARM64E",
@@ -167,11 +175,13 @@ impl MachoHeader {
                 warn!("[macho] Unknown MachO sub CPU ARM Type: {subtype}");
                 "Unknown MachO sub CPU ARM Type"
             }
-        }
+        };
+
+        sub.to_string()
     }
 
     /// Check filetype for binary
-    fn get_filetype(filetype: &u32) -> String {
+    fn get_filetype(filetype: u32) -> String {
         let file = match filetype {
             0x1 => "OBJECT",
             0x2 => "EXECUTE",
@@ -194,7 +204,7 @@ impl MachoHeader {
     }
 
     /// Get all flags for binary
-    fn get_flags(flag_data: &u32) -> Vec<MachoFlags> {
+    fn get_flags(flag_data: u32) -> Vec<MachoFlags> {
         let mut flags = Vec::new();
 
         let no_undefines = 0x1;
@@ -371,14 +381,14 @@ mod tests {
     #[test]
     fn test_get_intel_subtype() {
         let test_data = 0;
-        let result = MachoHeader::get_intel_subtype(&test_data);
+        let result = MachoHeader::get_intel_subtype(test_data);
         assert_eq!(result, "ALL")
     }
 
     #[test]
     fn test_get_arm_subtype() {
         let test_data = 0;
-        let result = MachoHeader::get_arm_subtype(&test_data);
+        let result = MachoHeader::get_arm_subtype(test_data);
         assert_eq!(result, "ALL")
     }
 
@@ -386,21 +396,21 @@ mod tests {
     fn test_get_cpu_type() {
         let test_data = 0x1000007;
         let subdata = 0;
-        let result = MachoHeader::get_cpu_type(&test_data, &subdata);
+        let result = MachoHeader::get_cpu_type(test_data, subdata);
         assert_eq!(result, (String::from("X86_64"), String::from("ALL")))
     }
 
     #[test]
     fn test_get_filetype() {
         let test_data = 3;
-        let result = MachoHeader::get_filetype(&test_data);
+        let result = MachoHeader::get_filetype(test_data);
         assert_eq!(result, "FVMLIB")
     }
 
     #[test]
     fn test_get_flags() {
         let test_data = 0x00200085;
-        let result = MachoHeader::get_flags(&test_data);
+        let result = MachoHeader::get_flags(test_data);
         assert_eq!(
             result,
             vec![

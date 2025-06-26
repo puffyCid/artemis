@@ -18,7 +18,7 @@ pub(crate) fn js_wmipersist(
     let path = if args.get_or_undefined(0).is_undefined() {
         None
     } else {
-        Some(string_arg(args, &0)?)
+        Some(string_arg(args, 0)?)
     };
     let options = WmiPersistOptions { alt_dir: path };
 
@@ -42,11 +42,11 @@ pub(crate) fn js_list_namespaces_classes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let namespace = string_arg(args, &0)?;
-    let indexes_value = value_arg(args, &1, context)?;
-    let object_data = bytes_arg(args, &2, context)?;
-    let pages_value = value_arg(args, &3, context)?;
-    let is_classes = boolean_arg(args, &4, context)?;
+    let namespace = string_arg(args, 0)?;
+    let indexes_value = value_arg(args, 1, context)?;
+    let object_data = bytes_arg(args, 2, context)?;
+    let pages_value = value_arg(args, 3, context)?;
+    let is_classes = boolean_arg(args, 4, context)?;
 
     let indexes: Vec<IndexBody> = match serde_json::from_value(indexes_value) {
         Ok(result) => result,
@@ -99,13 +99,13 @@ pub(crate) fn js_class_description(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let namespace = string_arg(args, &0)?;
-    let locale = number_arg(args, &1)? as u32;
-    let class_name = string_arg(args, &2)?;
+    let namespace = string_arg(args, 0)?;
+    let locale = number_arg(args, 1)? as u32;
+    let class_name = string_arg(args, 2)?;
 
-    let indexes_value = value_arg(args, &3, context)?;
-    let object_data = bytes_arg(args, &4, context)?;
-    let pages_value = value_arg(args, &5, context)?;
+    let indexes_value = value_arg(args, 3, context)?;
+    let object_data = bytes_arg(args, 4, context)?;
+    let pages_value = value_arg(args, 5, context)?;
 
     let indexes: Vec<IndexBody> = match serde_json::from_value(indexes_value) {
         Ok(result) => result,
@@ -125,7 +125,7 @@ pub(crate) fn js_class_description(
 
     let desc = match class_description(
         &namespace,
-        &locale,
+        locale,
         &class_name,
         &indexes,
         &object_data,
@@ -150,7 +150,7 @@ pub(crate) fn js_get_wmi_pages(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let map_path = string_arg(args, &0)?;
+    let map_path = string_arg(args, 0)?;
 
     let pages = match get_pages(&map_path) {
         Ok(result) => result,
@@ -172,7 +172,7 @@ pub(crate) fn js_get_wmi_indexes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
     let index = match parse_index(&data) {
         Ok((_, result)) => result,
         Err(err) => {

@@ -34,7 +34,7 @@ pub(crate) fn grab_shimdb(options: &ShimdbOptions) -> Result<Vec<ShimData>, Shim
         }
     };
 
-    drive_shimdb(&drive)
+    drive_shimdb(drive)
 }
 
 /// SDB files can technically exist anywhere and do not have to end in `.sdb`. Parse any custom paths provided
@@ -43,7 +43,7 @@ fn custom_shimdb_path(path: &str) -> Result<ShimData, ShimdbError> {
 }
 
 /// Parse the default sdb paths on an provide drive letter
-fn drive_shimdb(drive: &char) -> Result<Vec<ShimData>, ShimdbError> {
+fn drive_shimdb(drive: char) -> Result<Vec<ShimData>, ShimdbError> {
     let path = format!("{drive}:\\Windows\\apppatch\\sysmain.sdb");
 
     let custom32_bit_path = format!("{drive}:\\Windows\\apppatch\\Custom");
@@ -88,7 +88,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
     let max_size = 10485760; // 10MB
     // Custom SDB files are very small 1-5KB
     // The builtin sdb file (sysmain.sdb) is ~4MB
-    let buffer_result = read_file_custom(path, &max_size);
+    let buffer_result = read_file_custom(path, max_size);
     let buffer = match buffer_result {
         Ok(result) => result,
         Err(err) => {
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_drive_shimdb() {
-        let result = drive_shimdb(&'C').unwrap();
+        let result = drive_shimdb('C').unwrap();
         assert!(result.len() >= 1)
     }
 

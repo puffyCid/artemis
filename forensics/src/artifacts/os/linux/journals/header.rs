@@ -108,9 +108,9 @@ impl JournalHeader {
 
         let mut journal_header = JournalHeader {
             _sig: sig,
-            _compatible_flags: JournalHeader::compat_flags(&compatible_flags),
-            incompatible_flags: JournalHeader::incompat_flags(&incompatible_flags),
-            _state: JournalHeader::journal_state(&state),
+            _compatible_flags: JournalHeader::compat_flags(compatible_flags),
+            incompatible_flags: JournalHeader::incompat_flags(incompatible_flags),
+            _state: JournalHeader::journal_state(state),
             _reserved: reserved_data.to_vec(),
             _file_id: file_id,
             _machine_id: machine_id,
@@ -188,7 +188,7 @@ impl JournalHeader {
     }
 
     /// Get the incompatible flags. Which determine what kind of compression may be used
-    pub(crate) fn incompat_flags(flag: &u32) -> Vec<IncompatFlags> {
+    pub(crate) fn incompat_flags(flag: u32) -> Vec<IncompatFlags> {
         let xz = 1;
         let lz4 = 2;
         let keyed = 4;
@@ -216,7 +216,7 @@ impl JournalHeader {
     }
 
     /// Get the compatible flag. Determines if `Sealed` format is used
-    fn compat_flags(flag: &u32) -> Vec<CompatFlags> {
+    fn compat_flags(flag: u32) -> Vec<CompatFlags> {
         let sealed = 1;
 
         let mut flags: Vec<CompatFlags> = Vec::new();
@@ -228,16 +228,16 @@ impl JournalHeader {
     }
 
     /// Get state of the `Journal`
-    fn journal_state(state: &u8) -> State {
+    fn journal_state(state: u8) -> State {
         let offline = 0;
         let online = 1;
         let archive = 2;
 
-        if state == &offline {
+        if state == offline {
             State::Offline
-        } else if state == &online {
+        } else if state == online {
             State::Online
-        } else if state == &archive {
+        } else if state == archive {
             State::Archived
         } else {
             State::Unknown
@@ -292,21 +292,21 @@ mod tests {
     #[test]
     fn test_incompat_flags() {
         let test_data = 1;
-        let results = JournalHeader::incompat_flags(&test_data);
+        let results = JournalHeader::incompat_flags(test_data);
         assert_eq!(results[0], CompressedXz);
     }
 
     #[test]
     fn test_compat_flags() {
         let test_data = 1;
-        let results = JournalHeader::compat_flags(&test_data);
+        let results = JournalHeader::compat_flags(test_data);
         assert_eq!(results[0], CompatFlags::Sealed);
     }
 
     #[test]
     fn test_journal_state() {
         let test_data = 1;
-        let results = JournalHeader::journal_state(&test_data);
+        let results = JournalHeader::journal_state(test_data);
         assert_eq!(results, State::Online);
     }
 }

@@ -41,11 +41,11 @@ fn default_services() -> Result<Vec<ServicesData>, ServicesError> {
             return Err(ServicesError::DriveLetter);
         }
     };
-    alt_drive_services(&drive)
+    alt_drive_services(drive)
 }
 
 /// Get `Services` entries on a different system drive
-fn alt_drive_services(drive: &char) -> Result<Vec<ServicesData>, ServicesError> {
+fn alt_drive_services(drive: char) -> Result<Vec<ServicesData>, ServicesError> {
     let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
     parse_services(&path)
 }
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_alt_drive_services() {
-        let result = alt_drive_services(&'C').unwrap();
+        let result = alt_drive_services('C').unwrap();
         assert!(result.len() > 10);
     }
 

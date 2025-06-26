@@ -41,7 +41,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
 
         let offsets_path = path.full_path.replace("header", "offsets");
         let offset_data = read_dbstr(&offsets_path)?;
-        let offsets = get_offsets(&offset_data, &header.offset_entries)?;
+        let offsets = get_offsets(&offset_data, header.offset_entries)?;
 
         if path.full_path.contains("dbStr-1") {
             let props_path = path.full_path.replace("header", "data");
@@ -74,7 +74,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
         } else if path.full_path.contains("dbStr-4") {
             let indexes_path = path.full_path.replace("header", "data");
             let indexes_data = read_dbstr(&indexes_path)?;
-            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, &false);
+            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, false);
             match indexes_results {
                 Ok((_, results)) => meta.indexes1 = results,
                 Err(_err) => {
@@ -88,7 +88,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
         } else if path.full_path.contains("dbStr-5") {
             let indexes_path = path.full_path.replace("header", "data");
             let indexes_data = read_dbstr(&indexes_path)?;
-            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, &true);
+            let indexes_results = parse_dbstr_data(&indexes_data, &offsets, true);
             match indexes_results {
                 Ok((_, results)) => meta.indexes2 = results,
                 Err(_err) => {

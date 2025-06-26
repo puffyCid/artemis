@@ -13,10 +13,10 @@ use std::collections::HashMap;
 /// Parse the `UserAssist` data obtained from the Registry
 pub(crate) fn parse_userassist_data(
     reg_entry: &[UserAssistReg],
-    resolve: &bool,
+    resolve: bool,
 ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let mut userassist_entries: Vec<UserAssistEntry> = Vec::new();
-    let folder_result = if *resolve {
+    let folder_result = if resolve {
         get_folder_descriptions()
     } else {
         Ok(HashMap::new())
@@ -103,7 +103,7 @@ fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let (input, last_execution) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     userassist.count = count;
-    userassist.last_execution = unixepoch_to_iso(&filetime_to_unixepoch(&last_execution));
+    userassist.last_execution = unixepoch_to_iso(filetime_to_unixepoch(last_execution));
 
     Ok((input, userassist))
 }
@@ -134,8 +134,8 @@ mod tests {
 
     #[test]
     fn test_parse_userassist_data() {
-        let results = get_userassist_drive(&'C').unwrap();
-        let results = parse_userassist_data(&results, &false).unwrap();
+        let results = get_userassist_drive('C').unwrap();
+        let results = parse_userassist_data(&results, false).unwrap();
         assert!(results.len() > 3);
         for entry in results {
             if entry.reg_path == "UEME_CTLSESSION" {
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_get_entries() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         let mut entries = Vec::new();
         let folder = get_folder_descriptions().unwrap();
 
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_get_userassist_data() {
-        let results = get_userassist_drive(&'C').unwrap();
+        let results = get_userassist_drive('C').unwrap();
         assert!(results.len() > 0);
         for reg_entries in results {
             for entry in &reg_entries.regs {

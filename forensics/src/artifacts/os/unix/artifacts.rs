@@ -10,7 +10,7 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Get zsh history depending on target OS
-pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
+pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
     let zsh_results = get_user_zsh_history();
     let history_data = match zsh_results {
@@ -31,11 +31,11 @@ pub(crate) fn zsh_history(output: &mut Output, filter: &bool) -> Result<(), Unix
     };
 
     let output_name = "zsh_history";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get bash history depending on target OS
-pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
+pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_bash_history();
@@ -57,11 +57,11 @@ pub(crate) fn bash_history(output: &mut Output, filter: &bool) -> Result<(), Uni
     };
 
     let output_name = "bash_history";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get python history depending on target OS
-pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
+pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_python_history();
@@ -83,11 +83,11 @@ pub(crate) fn python_history(output: &mut Output, filter: &bool) -> Result<(), U
     };
 
     let output_name = "python_history";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse cron data
-pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArtifactError> {
+pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let cron_results = parse_cron();
@@ -109,7 +109,7 @@ pub(crate) fn cron_job(output: &mut Output, filter: &bool) -> Result<(), UnixArt
     };
 
     let output_name = "cron";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 // Output unix artifacts
@@ -117,8 +117,8 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), UnixArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -160,7 +160,7 @@ mod tests {
     fn test_zsh_history() {
         let mut output = output_options("zsh_history", "local", "./tmp", false);
 
-        let status = zsh_history(&mut output, &false).unwrap();
+        let status = zsh_history(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -168,14 +168,14 @@ mod tests {
     fn test_bash_history() {
         let mut output = output_options("bash_history", "local", "./tmp", false);
 
-        let _ = bash_history(&mut output, &false).unwrap();
+        let _ = bash_history(&mut output, false).unwrap();
     }
 
     #[test]
     fn test_python_history() {
         let mut output = output_options("python_history", "local", "./tmp", false);
 
-        let status = python_history(&mut output, &false).unwrap();
+        let status = python_history(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -183,7 +183,7 @@ mod tests {
     fn test_cron_job() {
         let mut output = output_options("cron", "local", "./tmp", false);
 
-        let status = cron_job(&mut output, &false).unwrap();
+        let status = cron_job(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -194,7 +194,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, &false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

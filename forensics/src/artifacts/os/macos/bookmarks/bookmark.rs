@@ -112,7 +112,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
         table_of_contents_data(input, toc_header.data_length)?;
 
     let (_, toc_content_data_record) =
-        table_of_contents_record(toc_record_data, &toc_content_data.number_of_records)?;
+        table_of_contents_record(toc_record_data, toc_content_data.number_of_records)?;
 
     let mut bookmark_data = BookmarkData {
         path: String::new(),
@@ -235,8 +235,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_data = bookmark_data_type_date(&record_data);
                 match creation_data {
                     Ok((_, creation)) => {
-                        bookmark_data.created =
-                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
+                        bookmark_data.created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Target File created timestamp: {err:?}");
@@ -287,7 +286,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 match creation_data {
                     Ok((_, creation)) => {
                         bookmark_data.volume_created =
-                            unixepoch_to_iso(&cocoatime_to_unixepoch(&creation));
+                            unixepoch_to_iso(cocoatime_to_unixepoch(creation));
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Volume Creation timestamp: {err:?}");
@@ -393,7 +392,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation_options_data = bookmark_data_type_number_four(&record_data);
                 match creation_options_data {
                     Ok((_, options)) => {
-                        bookmark_data.creation_options = get_creation_flags(&options);
+                        bookmark_data.creation_options = get_creation_flags(options);
                     }
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark Creation options: {err:?}");
@@ -497,17 +496,17 @@ fn table_of_contents_data(
 }
 
 /// Parse the TOC data record
-fn table_of_contents_record<'a>(
-    data: &'a [u8],
-    records: &u32,
-) -> nom::IResult<&'a [u8], Vec<TableOfContentsDataRecord>> {
+fn table_of_contents_record(
+    data: &[u8],
+    records: u32,
+) -> nom::IResult<&[u8], Vec<TableOfContentsDataRecord>> {
     let mut input_data = data;
     let mut record: u32 = 0;
     let mut toc_records_vec: Vec<TableOfContentsDataRecord> = Vec::new();
 
     // Loop through until all records have been parsed
     loop {
-        if &record == records {
+        if record == records {
             break;
         }
         record += 1;
@@ -873,7 +872,7 @@ fn get_volume_flags(flags: &[u64]) -> Vec<VolumeFlags> {
 }
 
 /// Determine Creation flags
-fn get_creation_flags(flags: &i32) -> Vec<CreationFlags> {
+fn get_creation_flags(flags: i32) -> Vec<CreationFlags> {
     let not_implict = 0x20000000;
     let prefer_id = 0x100;
     let read_only = 0x1000;
@@ -943,7 +942,7 @@ mod tests {
 
     #[test]
     fn test_get_creation_flags() {
-        let results = get_creation_flags(&0x100);
+        let results = get_creation_flags(0x100);
         assert_eq!(results[0], CreationFlags::PreferFileIDResolutionMask);
     }
 
@@ -1025,7 +1024,7 @@ mod tests {
             240, 0, 0, 88, 1, 0, 0, 0, 0, 0, 0,
         ];
         let records = 14;
-        let (_, record) = table_of_contents_record(&test_record, &records).unwrap();
+        let (_, record) = table_of_contents_record(&test_record, records).unwrap();
 
         assert_eq!(record[0].record_type, 4100);
         assert_eq!(record[0].data_offset, 48);

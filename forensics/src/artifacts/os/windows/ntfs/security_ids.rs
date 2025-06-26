@@ -372,10 +372,10 @@ impl SecurityIDs {
 
     /// Lookup the NTFS SID value and get the Windows User and Group SIDs (if any)
     pub(crate) fn lookup_sids(
-        sid: &u32,
+        sid: u32,
         security_ids: &HashMap<u32, SecurityIDs>,
     ) -> (String, String) {
-        let sid_option = security_ids.get(sid);
+        let sid_option = security_ids.get(&sid);
         match sid_option {
             Some(result) => (result.user_sid.clone(), result.group_sid.clone()),
             None => (String::new(), String::new()),
@@ -633,7 +633,7 @@ mod tests {
             },
         );
 
-        let result = SecurityIDs::lookup_sids(&sid, &test_data);
+        let result = SecurityIDs::lookup_sids(sid, &test_data);
         assert_eq!(result.0, "");
         assert_eq!(result.1, "");
     }

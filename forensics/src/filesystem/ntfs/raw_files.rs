@@ -176,7 +176,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     if platform != "Windows" {
         // 3GB limit
         let max_size = 3221225472;
-        return read_file_custom(path, &max_size);
+        return read_file_custom(path, max_size);
     }
 
     let min_path_len = 4;
@@ -184,7 +184,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
         return Err(FileSystemError::NotFile);
     }
 
-    let drive = &path.chars().next().unwrap(); // Only need Drive letter
+    let drive = path.chars().next().unwrap(); // Only need Drive letter
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
     let root_dir = match root_dir_result {
@@ -219,7 +219,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
             continue;
         }
 
-        file_data = raw_read_by_file_ref(&filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs)?;
+        file_data = raw_read_by_file_ref(filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs)?;
         break;
     }
 
@@ -238,7 +238,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
 * `raw_read_by_file_ref` can decompress the data and return a hash of the uncompressed data
 */
 pub(crate) fn raw_read_by_file_ref(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<u8>, FileSystemError> {
@@ -314,7 +314,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
     if path.len() < min_path_len || !path.contains(':') {
         return Err(FileSystemError::NotFile);
     }
-    let drive = &path.chars().next().unwrap(); // Only need Drive letter
+    let drive = path.chars().next().unwrap(); // Only need Drive letter
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
 
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
@@ -350,7 +350,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
         }
 
         let data_result = get_attribute_data(
-            &filelist.file,
+            filelist.file,
             &ntfs_parser.ntfs,
             &mut ntfs_parser.fs,
             attribute,
@@ -377,7 +377,7 @@ pub(crate) struct UserRegistryFiles {
 
 /// Get paths and NTFS file references for all user Registry files on a drive (NTUSER.DAT and UsrClass.dat)
 pub(crate) fn get_user_registry_files(
-    drive: &char,
+    drive: char,
 ) -> Result<Vec<UserRegistryFiles>, FileSystemError> {
     let mut ntfs_parser = setup_ntfs_parser(drive)?;
     let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
@@ -638,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_get_user_registry_files() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
@@ -653,18 +653,18 @@ mod tests {
 
     #[test]
     fn test_raw_read_by_file_ref() {
-        let result = get_user_registry_files(&'C').unwrap();
+        let result = get_user_registry_files('C').unwrap();
 
         // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
         assert!(result.len() >= 3);
         let mut default = false;
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for entry in result {
             if entry.full_path.contains("Default") {
                 default = true;
             }
             let buffer_result =
-                raw_read_by_file_ref(&entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                raw_read_by_file_ref(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
                     .unwrap();
             assert!(buffer_result.len() > 10000);
         }
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_iterate_ntfs() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let root_dir = ntfs_parser
             .ntfs
             .root_directory(&mut ntfs_parser.fs)
@@ -723,7 +723,7 @@ mod tests {
 
     #[test]
     fn test_raw_reader() {
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         let result = raw_reader(
             "C:\\Windows\\explorer.exe",
             &ntfs_parser.ntfs,

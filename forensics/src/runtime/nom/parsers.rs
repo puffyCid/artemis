@@ -15,8 +15,8 @@ pub(crate) fn js_nom_take_until_string(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = string_arg(args, &0)?;
-    let input = string_arg(args, &1)?;
+    let data = string_arg(args, 0)?;
+    let input = string_arg(args, 1)?;
 
     let results = nom_take_until_string(&data, &input);
     let (remaining, nommed) = match results {
@@ -48,8 +48,8 @@ pub(crate) fn js_nom_take_until_bytes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
-    let input = bytes_arg(args, &1, context)?;
+    let data = bytes_arg(args, 0, context)?;
+    let input = bytes_arg(args, 1, context)?;
 
     let results = nom_take_until_bytes(&data, &input);
     let (_remaining, nommed) = match results {
@@ -76,8 +76,8 @@ pub(crate) fn js_nom_take_while_string(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = string_arg(args, &0)?;
-    let input = string_arg(args, &1)?;
+    let data = string_arg(args, 0)?;
+    let input = string_arg(args, 1)?;
 
     let results = nom_take_while_string(&data, input.chars().next().unwrap_or_default());
     let (remaining, nommed) = match results {
@@ -109,8 +109,8 @@ pub(crate) fn js_nom_take_while_bytes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
-    let input = number_arg(args, &1)? as u8;
+    let data = bytes_arg(args, 0, context)?;
+    let input = number_arg(args, 1)? as u8;
 
     let results = nom_take_while_bytes(&data, input);
     let (_remaining, nommed) = match results {

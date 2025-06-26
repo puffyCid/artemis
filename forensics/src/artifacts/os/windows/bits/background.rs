@@ -105,7 +105,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     };
 
     let mut info = table_info(&catalog, table);
-    let pages_result = get_all_pages(path, &(info.table_page as u32));
+    let pages_result = get_all_pages(path, info.table_page as u32);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
@@ -129,7 +129,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
 /**
  * Parse older version (pre-Win10) of BITS which is a custom binary format
  */
-pub(crate) fn parse_legacy_bits(systemdrive: &char, carve: bool) -> Result<WindowsBits, BitsError> {
+pub(crate) fn parse_legacy_bits(systemdrive: char, carve: bool) -> Result<WindowsBits, BitsError> {
     let mut bits_path =
         format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr0.dat");
 
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_parse_legacy_bits() {
-        let results = parse_legacy_bits(&'C', false).unwrap();
+        let results = parse_legacy_bits('C', false).unwrap();
         assert_eq!(results.bits.is_empty(), true);
     }
 

@@ -39,7 +39,7 @@ use std::io::BufReader;
 pub(crate) fn grab_outlook(
     options: &OutlookOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), OutlookError> {
     if let Some(file) = &options.alt_file {
         return grab_outlook_file(file, options, filter, output);
@@ -82,7 +82,7 @@ pub(crate) fn grab_outlook(
 fn grab_outlook_file(
     path: &str,
     options: &OutlookOptions,
-    filter: &bool,
+    filter: bool,
     output: &mut Output,
 ) -> Result<(), OutlookError> {
     let start_time = time_now();
@@ -94,7 +94,7 @@ fn grab_outlook_file(
         yara_rule_attachment: options.yara_rule_attachment.clone(),
         yara_rule_message: options.yara_rule_message.clone(),
         start_time,
-        filter: *filter,
+        filter,
         source: path.to_string(),
     };
 
@@ -115,7 +115,7 @@ fn grab_outlook_file(
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked OST
-    let ntfs_parser_result = setup_ntfs_parser(&path.chars().next().unwrap_or('C'));
+    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
@@ -162,7 +162,7 @@ fn read_outlook<T: std::io::Seek + std::io::Read>(
     let root = reader.root_folder(use_ntfs)?;
 
     for folders in root.subfolders {
-        stream_outlook(reader, use_ntfs, options, output, &folders.node, &root.name)?;
+        stream_outlook(reader, use_ntfs, options, output, folders.node, &root.name)?;
     }
 
     Ok(())
@@ -174,11 +174,11 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     use_ntfs: Option<&NtfsFile<'_>>,
     options: &OutlookRunner,
     output: &mut Output,
-    folder: &u64,
+    folder: u64,
     folder_path: &str,
 ) -> Result<(), OutlookError> {
     // Read the provided folder
-    let mut results = reader.read_folder(use_ntfs, *folder)?;
+    let mut results = reader.read_folder(use_ntfs, folder)?;
 
     // If no messages or no subfolders, we are done
     if results.message_count == 0 && results.subfolder_count == 0 {
@@ -257,7 +257,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 use_ntfs,
                 options,
                 output,
-                &folder.node,
+                folder.node,
                 &new_folder_path,
             )?;
         }
@@ -347,7 +347,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
             use_ntfs,
             options,
             output,
-            &folder.node,
+            folder.node,
             &new_folder_path,
         )?;
     }
@@ -409,7 +409,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
     if options.include_attachments {
         for attach in &message.attachments {
             let attach_info =
-                reader.read_attachment(use_ntfs, &attach.block_id, &attach.descriptor_id)?;
+                reader.read_attachment(use_ntfs, attach.block_id, attach.descriptor_id)?;
 
             let message_attach = OutlookAttachment {
                 name: attach_info.name,
@@ -461,8 +461,8 @@ fn output_messages(
         &mut serde_data,
         "outlook",
         output,
-        &options.start_time,
-        &options.filter,
+        options.start_time,
+        options.filter,
     );
     match result {
         Ok(_result) => {}
@@ -512,7 +512,7 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 
     #[test]
@@ -546,7 +546,7 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 
     #[test]
@@ -577,6 +577,6 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, &false).unwrap()
+        grab_outlook(&options, &mut out, false).unwrap()
     }
 }

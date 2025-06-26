@@ -13,8 +13,8 @@ pub(crate) fn js_acquire_file(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let out = value_arg(args, &1, context)?;
+    let path = string_arg(args, 0)?;
+    let out = value_arg(args, 1, context)?;
 
     let output_result = serde_json::from_value(out);
     let output: Output = match output_result {

@@ -82,14 +82,14 @@ pub(crate) trait OutlookReaderAction<T: std::io::Seek + std::io::Read> {
     fn recipient_table(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data_id: &u64,
-        block_descriptor_id: &u64,
+        block_data_id: u64,
+        block_descriptor_id: u64,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError>;
     fn read_attachment(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data_id: &u64,
-        block_descriptor_id: &u64,
+        block_data_id: u64,
+        block_descriptor_id: u64,
     ) -> Result<Attachment, OutlookError>;
 }
 
@@ -97,7 +97,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     /// Get Block and Node `BTrees` and determine Outlook format type
     fn setup(&mut self, ntfs_file: Option<&NtfsFile<'_>>) -> Result<(), OutlookError> {
         let ost_size = 564;
-        let header_results = read_bytes(&0, ost_size, ntfs_file, &mut self.fs);
+        let header_results = read_bytes(0, ost_size, ntfs_file, &mut self.fs);
         let header_bytes = match header_results {
             Ok(result) => result,
             Err(err) => {
@@ -125,8 +125,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         get_block_btree(
             ntfs_file,
             &mut self.fs,
-            &header.block_btree_root,
-            &self.size,
+            header.block_btree_root,
+            self.size,
             &self.format,
             &mut block_tree,
         )?;
@@ -137,8 +137,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         get_node_btree(
             ntfs_file,
             &mut self.fs,
-            &header.node_btree_root,
-            &self.size,
+            header.node_btree_root,
+            self.size,
             &self.format,
             &mut node_tree,
             None,
@@ -637,8 +637,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     fn recipient_table(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data_id: &u64,
-        block_descriptor_id: &u64,
+        block_data_id: u64,
+        block_descriptor_id: u64,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
         let mut table_block = LeafBlockData {
             block_type: BlockType::Internal,
@@ -651,11 +651,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
         let mut table_descriptor = None;
         for blocks in self.block_btree.iter() {
-            if let Some(block_data) = blocks.get(block_data_id) {
+            if let Some(block_data) = blocks.get(&block_data_id) {
                 table_block = *block_data;
             }
-            if *block_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(block_descriptor_id) {
+            if block_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(&block_descriptor_id) {
                     table_descriptor = Some(*block_data);
                 }
             }
@@ -842,8 +842,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if recipient_block_id != 0 {
                 let table = self.recipient_table(
                     ntfs_file,
-                    &recipient_block_id,
-                    &recipient_block_descriptors,
+                    recipient_block_id,
+                    recipient_block_descriptors,
                 )?;
                 recipient_rows = table;
             }
@@ -858,8 +858,8 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     fn read_attachment(
         &mut self,
         ntfs_file: Option<&NtfsFile<'_>>,
-        block_data_id: &u64,
-        block_descriptor_id: &u64,
+        block_data_id: u64,
+        block_descriptor_id: u64,
     ) -> Result<Attachment, OutlookError> {
         let mut table_block = LeafBlockData {
             block_type: BlockType::Internal,
@@ -872,11 +872,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         };
         let mut table_descriptor = None;
         for blocks in self.block_btree.iter() {
-            if let Some(block_data) = blocks.get(block_data_id) {
+            if let Some(block_data) = blocks.get(&block_data_id) {
                 table_block = *block_data;
             }
-            if *block_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(block_descriptor_id) {
+            if block_descriptor_id != 0 {
+                if let Some(block_data) = blocks.get(&block_descriptor_id) {
                     table_descriptor = Some(*block_data);
                 }
             }
@@ -918,8 +918,8 @@ mod tests {
     };
     use std::{io::BufReader, path::PathBuf};
 
-    fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: &u64) {
-        let mut results = reader.read_folder(None, *folder).unwrap();
+    fn stream_ost<T: std::io::Seek + std::io::Read>(reader: &mut OutlookReader<T>, folder: u64) {
+        let mut results = reader.read_folder(None, folder).unwrap();
 
         for meta in results.associated_content {
             let _meta_value = reader.folder_metadata(None, meta.node).unwrap();
@@ -956,7 +956,7 @@ mod tests {
         }
 
         for sub in results.subfolders {
-            stream_ost(reader, &sub.node);
+            stream_ost(reader, sub.node);
         }
     }
 
@@ -981,7 +981,7 @@ mod tests {
     #[test]
     fn test_outlook_reader_only() {
         let mut outlook_reader = setup_reader::<std::fs::File>();
-        stream_ost(&mut outlook_reader, &290)
+        stream_ost(&mut outlook_reader, 290)
     }
 
     #[test]
@@ -1032,7 +1032,7 @@ mod tests {
     fn test_outlook_reader_read_attachment() {
         let mut outlook_reader = setup_reader::<std::fs::File>();
 
-        let attach = outlook_reader.read_attachment(None, &7592, &7586).unwrap();
+        let attach = outlook_reader.read_attachment(None, 7592, 7586).unwrap();
 
         assert_eq!(attach.data.len(), 15320);
         assert_eq!(attach.extension, ".png");
@@ -1060,7 +1060,7 @@ mod tests {
     fn test_outlook_reader_recipient_table() {
         let mut outlook_reader = setup_reader::<std::fs::File>();
 
-        let table = outlook_reader.recipient_table(None, &36, &0).unwrap();
+        let table = outlook_reader.recipient_table(None, 36, 0).unwrap();
         assert!(table.is_empty());
     }
 

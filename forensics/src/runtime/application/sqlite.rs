@@ -16,8 +16,8 @@ pub(crate) fn js_query_sqlite(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let query = string_arg(args, &1)?;
+    let path = string_arg(args, 0)?;
+    let query = string_arg(args, 1)?;
 
     // Bypass SQLITE file lock
     let sqlite_file = format!("file:{path}?immutable=1");

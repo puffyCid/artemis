@@ -37,7 +37,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = loginitems(&mut collector.output, &filter, options);
+                let results = loginitems(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected loginitems"),
                     Err(err) => {
@@ -50,7 +50,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = emond(&mut collector.output, &filter, options);
+                let results = emond(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected emond"),
                     Err(err) => {
@@ -63,7 +63,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = fseventsd(&mut collector.output, &filter, options);
+                let results = fseventsd(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected fseventsd"),
                     Err(err) => {
@@ -76,7 +76,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = launchd(&mut collector.output, &filter, options);
+                let results = launchd(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected launchd"),
                     Err(err) => {
@@ -90,7 +90,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = filelisting(&mut collector.output, &filter, options);
+                let results = filelisting(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
@@ -103,7 +103,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = users_macos(&mut collector.output, &filter, options);
+                let results = users_macos(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
@@ -116,7 +116,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = groups_macos(&mut collector.output, &filter, options);
+                let results = groups_macos(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
@@ -130,7 +130,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = processes(&mut collector.output, &filter, options);
+                let results = processes(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
@@ -139,7 +139,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "systeminfo" => {
-                let results = systeminfo(&mut collector.output, &filter);
+                let results = systeminfo(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
@@ -152,7 +152,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = execpolicy(&mut collector.output, &filter, options);
+                let results = execpolicy(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected execpolicy"),
                     Err(err) => {
@@ -166,7 +166,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = unifiedlogs(&mut collector.output, &filter, options);
+                let results = unifiedlogs(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
@@ -175,7 +175,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "safari-history" => {
-                let results = safari_history(&mut collector.output, &filter);
+                let results = safari_history(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Safari history"),
                     Err(err) => {
@@ -184,7 +184,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "safari-downloads" => {
-                let results = safari_downloads(&mut collector.output, &filter);
+                let results = safari_downloads(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Safari downloads"),
                     Err(err) => {
@@ -193,21 +193,21 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "shell_history" => {
-                let results = bash_history(&mut collector.output, &filter);
+                let results = bash_history(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected bash history"),
                     Err(err) => {
                         error!("[core] Failed to parse bash history: {err:?}");
                     }
                 }
-                let results = zsh_history(&mut collector.output, &filter);
+                let results = zsh_history(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected zsh history"),
                     Err(err) => {
                         error!("[core] Failed to parse zsh history: {err:?}");
                     }
                 }
-                let results = python_history(&mut collector.output, &filter);
+                let results = python_history(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected python history"),
                     Err(err) => {
@@ -216,7 +216,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "cron" => {
-                let results = cron_job(&mut collector.output, &filter);
+                let results = cron_job(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected cron"),
                     Err(err) => {
@@ -230,7 +230,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = sudo_logs_macos(&mut collector.output, &filter, options);
+                let results = sudo_logs_macos(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
@@ -243,7 +243,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = spotlight(&mut collector.output, &filter, options);
+                let results = spotlight(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected spotlight"),
                     Err(err) => {
@@ -272,7 +272,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = journals(&mut collector.output, &filter, options);
+                let results = journals(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected journals"),
                     Err(err) => {
@@ -286,7 +286,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = logons(&mut collector.output, &filter, options);
+                let results = logons(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected logons"),
                     Err(err) => {
@@ -300,7 +300,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = sudo_logs_linux(&mut collector.output, &filter, options);
+                let results = sudo_logs_linux(&mut collector.output, filter, options);
                 match results {
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
@@ -314,7 +314,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = prefetch(artifact, &mut collector.output, &filter);
+                let results = prefetch(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected prefetch"),
                     Err(err) => {
@@ -327,7 +327,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = eventlogs(artifact, &mut collector.output, &filter);
+                let results = eventlogs(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Eventlogs"),
                     Err(err) => {
@@ -340,7 +340,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = raw_filelist(artifact, &mut collector.output, &filter);
+                let results = raw_filelist(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Raw Filelisting"),
                     Err(err) => {
@@ -353,7 +353,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimdb(artifact, &mut collector.output, &filter);
+                let results = shimdb(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimdb"),
                     Err(err) => {
@@ -366,7 +366,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = registry(artifact, &mut collector.output, &filter);
+                let results = registry(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected registry"),
                     Err(err) => {
@@ -379,7 +379,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = userassist(artifact, &mut collector.output, &filter);
+                let results = userassist(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected userassist"),
                     Err(err) => {
@@ -392,7 +392,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimcache(artifact, &mut collector.output, &filter);
+                let results = shimcache(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimcache"),
                     Err(err) => {
@@ -405,7 +405,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shellbags(artifact, &mut collector.output, &filter);
+                let results = shellbags(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shellbags"),
                     Err(err) => {
@@ -418,7 +418,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = amcache(artifact, &mut collector.output, &filter);
+                let results = amcache(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected amcache"),
                     Err(err) => {
@@ -431,7 +431,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shortcuts(artifact, &mut collector.output, &filter);
+                let results = shortcuts(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shortcuts"),
                     Err(err) => {
@@ -444,7 +444,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = usnjrnl(artifact, &mut collector.output, &filter);
+                let results = usnjrnl(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected usnjrnl"),
                     Err(err) => {
@@ -457,7 +457,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = bits(artifact, &mut collector.output, &filter);
+                let results = bits(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected bits"),
                     Err(err) => {
@@ -470,7 +470,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = srum(artifact, &mut collector.output, &filter);
+                let results = srum(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected SRUM"),
                     Err(err) => {
@@ -483,7 +483,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = search(artifact, &mut collector.output, &filter);
+                let results = search(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected search"),
                     Err(err) => {
@@ -496,7 +496,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = users_windows(artifact, &mut collector.output, &filter);
+                let results = users_windows(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Users"),
                     Err(err) => {
@@ -509,7 +509,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = tasks(artifact, &mut collector.output, &filter);
+                let results = tasks(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Schedule Tasks"),
                     Err(err) => {
@@ -522,7 +522,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = services(artifact, &mut collector.output, &filter);
+                let results = services(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Services"),
                     Err(err) => {
@@ -535,7 +535,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = jumplists(artifact, &mut collector.output, &filter);
+                let results = jumplists(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Jumplists"),
                     Err(err) => {
@@ -548,7 +548,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = recycle_bin(artifact, &mut collector.output, &filter);
+                let results = recycle_bin(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Recycle Bin"),
                     Err(err) => {
@@ -561,7 +561,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = wmi_persist(artifact, &mut collector.output, &filter);
+                let results = wmi_persist(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected WMI Persistence"),
                     Err(err) => {
@@ -574,7 +574,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = outlook(artifact, &mut collector.output, &filter);
+                let results = outlook(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected outlook"),
                     Err(err) => {
@@ -587,7 +587,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     None => continue,
                 };
-                let results = mft(artifact, &mut collector.output, &filter);
+                let results = mft(artifact, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected MFT"),
                     Err(err) => {
@@ -596,7 +596,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 }
             }
             "connections" => {
-                let results = list_connections(&mut collector.output, &filter);
+                let results = list_connections(&mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {

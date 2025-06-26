@@ -44,7 +44,7 @@ pub(crate) fn extract_attachment(props: &mut Vec<PropertyContext>) -> Attachment
             attach.data = prop.value.as_str().unwrap_or_default().to_string();
         } else if prop.name.contains(&PropertyName::PidTagAttachMethod) {
             let method = prop.value.as_u64().unwrap_or_default();
-            attach.method = get_attach_method(&method);
+            attach.method = get_attach_method(method);
         } else if prop.name.contains(&PropertyName::PidTagAttachFilenameW) {
             // Sometimes we have DisplayNameW property, sometimes we may not. Do not override it
             if !attach.name.is_empty() {
@@ -97,7 +97,7 @@ mod tests {
         };
         outlook_reader.setup(None).unwrap();
 
-        let attach = outlook_reader.read_attachment(None, &8016, &8010).unwrap();
+        let attach = outlook_reader.read_attachment(None, 8016, 8010).unwrap();
 
         assert_eq!(attach.data.len(), 18752);
         assert_eq!(attach.extension, ".png");

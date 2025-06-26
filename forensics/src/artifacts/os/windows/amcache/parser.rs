@@ -33,7 +33,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
             return Err(AmcacheError::DefaultDrive);
         }
     };
-    amcache_file(&drive)
+    amcache_file(drive)
 }
 
 /// Parse `Amcache` associated with provided alternative path
@@ -42,7 +42,7 @@ fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
 }
 
 /// Based on Windows version get the path to `Amcache` file
-fn amcache_file(drive: &char) -> Result<Vec<Amcache>, AmcacheError> {
+fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
     let mut entries = Vec::new();
     let paths = vec![
         format!("{drive}:\\Windows\\appcompat\\Programs\\Amcache.hve"),
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_amcache_file() {
-        let result = amcache_file(&'C').unwrap();
+        let result = amcache_file('C').unwrap();
         assert!(result.len() > 10);
     }
 

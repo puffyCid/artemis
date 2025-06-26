@@ -32,7 +32,7 @@ use serde_json::Value;
 pub(crate) fn prefetch(
     options: &PrefetchOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -55,14 +55,14 @@ pub(crate) fn prefetch(
     };
 
     let output_name = "prefetch";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `EventLogs` artifact
 pub(crate) fn eventlogs(
     options: &EventLogsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
     let result = grab_eventlogs(options, output, filter);
@@ -80,7 +80,7 @@ pub(crate) fn eventlogs(
 pub(crate) fn registry(
     options: &RegistryOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
     let result = parse_registry(options, output, filter);
@@ -98,7 +98,7 @@ pub(crate) fn registry(
 pub(crate) fn raw_filelist(
     options: &RawFilesOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
     let result = ntfs_filelist(options, output, filter);
@@ -116,7 +116,7 @@ pub(crate) fn raw_filelist(
 pub(crate) fn shimdb(
     options: &ShimdbOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
     let shimdb_results = grab_shimdb(options);
@@ -138,14 +138,14 @@ pub(crate) fn shimdb(
     };
 
     let output_name = "shimdb";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `UserAssist` entries
 pub(crate) fn userassist(
     options: &UserAssistOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -167,14 +167,14 @@ pub(crate) fn userassist(
         }
     };
     let output_name = "userassist";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shimcache` entries
 pub(crate) fn shimcache(
     options: &ShimcacheOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -196,14 +196,14 @@ pub(crate) fn shimcache(
         }
     };
     let output_name = "shimcache";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shellbag` entries
 pub(crate) fn shellbags(
     options: &ShellbagsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -226,14 +226,14 @@ pub(crate) fn shellbags(
         }
     };
     let output_name = "shellbags";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Amcache` entries
 pub(crate) fn amcache(
     options: &AmcacheOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -256,14 +256,14 @@ pub(crate) fn amcache(
         }
     };
     let output_name = "amcache";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Shortcut` data
 pub(crate) fn shortcuts(
     options: &ShortcutOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -285,14 +285,14 @@ pub(crate) fn shortcuts(
         }
     };
     let output_name = "shortcuts";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `UsnJrnl` data
 pub(crate) fn usnjrnl(
     options: &UsnJrnlOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -314,14 +314,14 @@ pub(crate) fn usnjrnl(
         }
     };
     let output_name = "usnjrnl";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `Bits` data
 pub(crate) fn bits(
     options: &BitsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -343,14 +343,14 @@ pub(crate) fn bits(
         }
     };
     let output_name = "bits";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Get Windows `SRUM` data
 pub(crate) fn srum(
     options: &SrumOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let artifact_result = grab_srum(options, output, filter);
     match artifact_result {
@@ -367,7 +367,7 @@ pub(crate) fn srum(
 pub(crate) fn search(
     options: &SearchOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let artifact_result = grab_search(options, output, filter);
     match artifact_result {
@@ -384,7 +384,7 @@ pub(crate) fn search(
 pub(crate) fn users_windows(
     options: &WindowsUserOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -405,14 +405,14 @@ pub(crate) fn users_windows(
         }
     };
     let output_name = "users-windows";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Schedule Tasks` artifact
 pub(crate) fn tasks(
     options: &TasksOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -435,14 +435,14 @@ pub(crate) fn tasks(
     };
 
     let output_name = "tasks";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Services` artifact
 pub(crate) fn services(
     options: &ServicesOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -465,14 +465,14 @@ pub(crate) fn services(
     };
 
     let output_name = "services";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Jumplists` artifact
 pub(crate) fn jumplists(
     options: &JumplistsOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -495,14 +495,14 @@ pub(crate) fn jumplists(
     };
 
     let output_name = "jumplists";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Recycle Bin` artifact
 pub(crate) fn recycle_bin(
     options: &RecycleBinOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -525,14 +525,14 @@ pub(crate) fn recycle_bin(
     };
 
     let output_name = "recyclebin";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `WMI Persist` artifact
 pub(crate) fn wmi_persist(
     options: &WmiPersistOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -555,14 +555,14 @@ pub(crate) fn wmi_persist(
     };
 
     let output_name = "wmipersist";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse the Windows `Outlook` artifact
 pub(crate) fn outlook(
     options: &OutlookOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let outlook_result = grab_outlook(options, output, filter);
     match outlook_result {
@@ -580,7 +580,7 @@ pub(crate) fn outlook(
 pub(crate) fn mft(
     options: &MftOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let mft_results = grab_mft(options, output, filter);
     match mft_results {
@@ -599,8 +599,8 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), WinArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -664,7 +664,7 @@ mod tests {
         };
         let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 
-        let status = eventlogs(&evt, &mut output, &false).unwrap();
+        let status = eventlogs(&evt, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -673,7 +673,7 @@ mod tests {
         let sdb = ShimdbOptions { alt_file: None };
         let mut output = output_options("shimdb_temp", "json", "./tmp", false);
 
-        let status = shimdb(&sdb, &mut output, &false).unwrap();
+        let status = shimdb(&sdb, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -682,7 +682,7 @@ mod tests {
         let pf = PrefetchOptions { alt_dir: None };
         let mut output = output_options("prefetch_temp", "json", "./tmp", false);
 
-        let status = prefetch(&pf, &mut output, &false).unwrap();
+        let status = prefetch(&pf, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -696,7 +696,7 @@ mod tests {
         };
         let mut output = output_options("reg_temp", "json", "./tmp", true);
 
-        let status = registry(&options, &mut output, &false).unwrap();
+        let status = registry(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -716,7 +716,7 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "json", "./tmp", false);
 
-        let status = raw_filelist(&options, &mut output, &false).unwrap();
+        let status = raw_filelist(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -728,7 +728,7 @@ mod tests {
         };
         let mut output = output_options("assist_temp", "json", "./tmp", false);
 
-        let status = userassist(&options, &mut output, &false).unwrap();
+        let status = userassist(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -737,7 +737,7 @@ mod tests {
         let options = ShimcacheOptions { alt_file: None };
         let mut output = output_options("shimcache_temp", "json", "./tmp", false);
 
-        let status = shimcache(&options, &mut output, &false).unwrap();
+        let status = shimcache(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -749,7 +749,7 @@ mod tests {
         };
         let mut output = output_options("bags_temp", "json", "./tmp", false);
 
-        let status = shellbags(&options, &mut output, &false).unwrap();
+        let status = shellbags(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -758,7 +758,7 @@ mod tests {
         let options = AmcacheOptions { alt_file: None };
         let mut output = output_options("amcache_temp", "json", "./tmp", false);
 
-        let status = amcache(&options, &mut output, &false).unwrap();
+        let status = amcache(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -772,7 +772,7 @@ mod tests {
         };
         let mut output = output_options("usn_temp", "json", "./tmp", false);
 
-        let status = usnjrnl(&options, &mut output, &false).unwrap();
+        let status = usnjrnl(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -786,7 +786,7 @@ mod tests {
         };
         let mut output = output_options("shortcuts_temp", "json", "./tmp", false);
 
-        let status = shortcuts(&options, &mut output, &false).unwrap();
+        let status = shortcuts(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -798,7 +798,7 @@ mod tests {
         };
         let mut output = output_options("bits_temp", "json", "./tmp", false);
 
-        let status = bits(&options, &mut output, &false).unwrap();
+        let status = bits(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -807,7 +807,7 @@ mod tests {
         let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_temp", "json", "./tmp", false);
 
-        let status = srum(&options, &mut output, &false).unwrap();
+        let status = srum(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -817,7 +817,7 @@ mod tests {
         let options = SearchOptions { alt_file: None };
         let mut output = output_options("search_temp", "json", "./tmp", false);
 
-        let status = search(&options, &mut output, &false).unwrap();
+        let status = search(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -826,7 +826,7 @@ mod tests {
         let options = WmiPersistOptions { alt_dir: None };
         let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
 
-        let status = wmi_persist(&options, &mut output, &false).unwrap();
+        let status = wmi_persist(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -835,7 +835,7 @@ mod tests {
         let options = WindowsUserOptions { alt_file: None };
         let mut output = output_options("users_temp", "json", "./tmp", false);
 
-        let status = users_windows(&options, &mut output, &false).unwrap();
+        let status = users_windows(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -844,7 +844,7 @@ mod tests {
         let options = TasksOptions { alt_file: None };
         let mut output = output_options("tasks_temp", "json", "./tmp", false);
 
-        let status = tasks(&options, &mut output, &false).unwrap();
+        let status = tasks(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -853,7 +853,7 @@ mod tests {
         let options = ServicesOptions { alt_file: None };
         let mut output = output_options("services_temp", "json", "./tmp", false);
 
-        let status = services(&options, &mut output, &false).unwrap();
+        let status = services(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -862,7 +862,7 @@ mod tests {
         let options = JumplistsOptions { alt_file: None };
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
-        let status = jumplists(&options, &mut output, &false).unwrap();
+        let status = jumplists(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -871,7 +871,7 @@ mod tests {
         let options = RecycleBinOptions { alt_file: None };
         let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
 
-        let status = recycle_bin(&options, &mut output, &false).unwrap();
+        let status = recycle_bin(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -884,7 +884,7 @@ mod tests {
         };
         let mut output = output_options("mft_temp", "json", "./tmp", false);
 
-        let status = mft(&options, &mut output, &false).unwrap();
+        let status = mft(&options, &mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -895,7 +895,7 @@ mod tests {
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, &start_time, &false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

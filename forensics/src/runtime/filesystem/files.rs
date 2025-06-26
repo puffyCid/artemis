@@ -17,7 +17,7 @@ pub(crate) fn js_stat(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let timestamps = match get_timestamps(&path) {
         Ok(result) => result,
         Err(err) => {
@@ -77,7 +77,7 @@ pub(crate) fn js_glob(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let globs = match glob_paths(&path) {
         Ok(result) => result,
@@ -105,11 +105,11 @@ pub(crate) fn js_hash_file(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let hashes = Hashes {
-        md5: bool_arg(args, &1)?,
-        sha1: bool_arg(args, &2)?,
-        sha256: bool_arg(args, &3)?,
+        md5: bool_arg(args, 1)?,
+        sha1: bool_arg(args, 2)?,
+        sha256: bool_arg(args, 3)?,
     };
     let (md5_value, sha1_value, sha256_value) = hash_file(&hashes, &path);
     let info = HashInfo {
@@ -129,7 +129,7 @@ pub(crate) fn js_read_text_file(
     args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let data = match read_text_file(&path) {
         Ok(result) => result,
         Err(err) => {
@@ -146,7 +146,7 @@ pub(crate) fn js_read_file(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let data = match read_file(&path) {
         Ok(result) => result,
         Err(err) => {

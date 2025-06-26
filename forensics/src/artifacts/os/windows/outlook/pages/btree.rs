@@ -45,13 +45,13 @@ pub(crate) struct NodeBtree {
 pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    node_offset: &u64,
-    size: &u64,
+    node_offset: u64,
+    size: u64,
     format: &FormatType,
     node_tree: &mut Vec<NodeBtree>,
     branch_node: Option<u32>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -73,7 +73,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         return Ok(());
     }
     if page.node_level == NodeLevel::BranchNode {
-        let branch_result = parse_branch_data(&page.data, format, &page.number_entries);
+        let branch_result = parse_branch_data(&page.data, format, page.number_entries);
         let branch_nodes = match branch_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -85,7 +85,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             get_node_btree(
                 ntfs_file,
                 fs,
-                &node.offset,
+                node.offset,
                 size,
                 format,
                 node_tree,
@@ -93,7 +93,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
             )?;
         }
     } else {
-        let leaf_result = parse_leaf_node_data(&page.data, &page.number_entries, format);
+        let leaf_result = parse_leaf_node_data(&page.data, page.number_entries, format);
         let leaf_node = match leaf_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -126,12 +126,12 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
 pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     ntfs_file: Option<&NtfsFile<'_>>,
     fs: &mut BufReader<T>,
-    node_offset: &u64,
-    size: &u64,
+    node_offset: u64,
+    size: u64,
     format: &FormatType,
     block_tree: &mut Vec<BTreeMap<u64, LeafBlockData>>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, *size, ntfs_file, fs);
+    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -152,7 +152,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
         return Ok(());
     }
     if page.node_level == NodeLevel::BranchNode {
-        let branch_result = parse_branch_data(&page.data, format, &page.number_entries);
+        let branch_result = parse_branch_data(&page.data, format, page.number_entries);
         let branch_nodes = match branch_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -161,10 +161,10 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             }
         };
         for node in branch_nodes {
-            get_block_btree(ntfs_file, fs, &node.offset, size, format, block_tree)?;
+            get_block_btree(ntfs_file, fs, node.offset, size, format, block_tree)?;
         }
     } else {
-        let leaf_result = parse_leaf_block_data(&page.data, &page.number_entries, format);
+        let leaf_result = parse_leaf_block_data(&page.data, page.number_entries, format);
         let leaf_block = match leaf_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -257,7 +257,7 @@ pub(crate) struct BranchData {
 pub(crate) fn parse_branch_data<'a>(
     data: &'a [u8],
     format: &FormatType,
-    entries: &u16,
+    entries: u16,
 ) -> nom::IResult<&'a [u8], Vec<BranchData>> {
     let mut branch_data = data;
     let mut branch_nodes = Vec::new();
@@ -265,7 +265,7 @@ pub(crate) fn parse_branch_data<'a>(
     // Size depends on Outlook file format
     let size: u8 = if format == &FormatType::ANSI32 { 4 } else { 8 };
 
-    while branch_nodes.len() != *entries as usize && branch_data.len() >= (size * 3) as usize {
+    while branch_nodes.len() != entries as usize && branch_data.len() >= (size * 3) as usize {
         let (input, node_data) = take(size)(branch_data)?;
         let result = get_node_ids(node_data);
         let node = match result {
@@ -325,7 +325,7 @@ pub(crate) struct LeafNodeData {
  */
 pub(crate) fn parse_leaf_node_data<'a>(
     data: &'a [u8],
-    entries: &u16,
+    entries: u16,
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<LeafNodeData>> {
     let mut leaf_data = data;
@@ -339,7 +339,7 @@ pub(crate) fn parse_leaf_node_data<'a>(
         32
     };
 
-    while leaf_data.len() >= min_size && leaf_nodes.len() != *entries as usize {
+    while leaf_data.len() >= min_size && leaf_nodes.len() != entries as usize {
         let (input, node_data) = take(size)(leaf_data)?;
         let result = get_node_ids(node_data);
         let node = match result {
@@ -412,7 +412,7 @@ pub(crate) enum BlockType {
 /// Parse Leaf data. This is the actual Outlook data
 pub(crate) fn parse_leaf_block_data<'a>(
     data: &'a [u8],
-    entries: &u16,
+    entries: u16,
     format: &FormatType,
 ) -> nom::IResult<&'a [u8], Vec<LeafBlockData>> {
     let mut leaf_data = data;
@@ -426,7 +426,7 @@ pub(crate) fn parse_leaf_block_data<'a>(
         24
     };
 
-    while leaf_data.len() >= min_size && leaf_blocks.len() != *entries as usize {
+    while leaf_data.len() >= min_size && leaf_blocks.len() != entries as usize {
         let (input, index_data) = take(size)(leaf_data)?;
 
         let (input, block_data) = take(size)(input)?;
@@ -501,8 +501,8 @@ mod tests {
         get_node_btree(
             None,
             &mut buf_reader,
-            &548864,
-            &4096,
+            548864,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
             None,
@@ -524,8 +524,8 @@ mod tests {
         get_block_btree(
             None,
             &mut buf_reader,
-            &475136,
-            &4096,
+            475136,
+            4096,
             &FormatType::Unicode64_4k,
             &mut tree,
         )
@@ -563,7 +563,7 @@ mod tests {
         assert_eq!(results._entry_size, 24);
         assert_eq!(results.number_entries, 31);
 
-        let (_, blocks) = parse_branch_data(&results.data, &FormatType::Unicode64_4k, &31).unwrap();
+        let (_, blocks) = parse_branch_data(&results.data, &FormatType::Unicode64_4k, 31).unwrap();
         assert_eq!(blocks.len(), 31);
     }
 
@@ -577,7 +577,7 @@ mod tests {
             176, 64, 0, 0, 0, 0, 0, 0, 0, 80, 34, 1, 0, 0, 0, 0, 132, 23, 32, 0, 0, 0, 0, 0, 6, 84,
             0, 0, 0, 0, 0, 0, 0, 128, 56, 1, 0, 0, 0, 0,
         ];
-        let (_, nodes) = parse_branch_data(&test, &FormatType::Unicode64_4k, &6).unwrap();
+        let (_, nodes) = parse_branch_data(&test, &FormatType::Unicode64_4k, 6).unwrap();
         assert_eq!(nodes.len(), 6);
         assert_eq!(nodes[0].back_pointer, 22032);
         assert_eq!(nodes[0].offset, 18448384);
@@ -600,7 +600,7 @@ mod tests {
         assert_eq!(results.number_entries, 117);
 
         let (_, leafs) =
-            parse_leaf_node_data(&results.data, &126, &FormatType::Unicode64_4k).unwrap();
+            parse_leaf_node_data(&results.data, 126, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(leafs.len(), 126);
     }
 
@@ -620,7 +620,7 @@ mod tests {
         assert_eq!(results.number_entries, 100);
 
         let (_, leafs) =
-            parse_leaf_block_data(&results.data, &100, &FormatType::Unicode64_4k).unwrap();
+            parse_leaf_block_data(&results.data, 100, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(leafs.len(), 100);
     }
 
@@ -630,7 +630,7 @@ mod tests {
             33, 0, 0, 0, 0, 0, 0, 0, 188, 16, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let (_, nodes) = parse_leaf_node_data(&test, &1, &FormatType::Unicode64_4k).unwrap();
+        let (_, nodes) = parse_leaf_node_data(&test, 1, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes[0].node.node_id, NodeID::InternalNode);
         assert_eq!(nodes[0].node.node_id_num, 1);
@@ -644,7 +644,7 @@ mod tests {
         let test = [
             4, 0, 0, 0, 0, 0, 0, 0, 0, 80, 2, 0, 0, 0, 0, 0, 172, 0, 172, 0, 42, 0, 0, 0,
         ];
-        let (_, nodes) = parse_leaf_block_data(&test, &1, &FormatType::Unicode64_4k).unwrap();
+        let (_, nodes) = parse_leaf_block_data(&test, 1, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes[0].block_offset, 151552);
         assert_eq!(nodes[0].reference_count, 42);

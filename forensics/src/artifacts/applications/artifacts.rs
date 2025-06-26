@@ -4,7 +4,7 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse macOS Safari history
-pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
+pub(crate) fn safari_history(output: &mut Output, filter: bool) -> Result<(), ApplicationError> {
     use super::safari::history::get_safari_history;
 
     let start_time = time::time_now();
@@ -28,11 +28,11 @@ pub(crate) fn safari_history(output: &mut Output, filter: &bool) -> Result<(), A
     };
 
     let output_name = "safari_history";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 /// Parse macOS Safari downloads
-pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(), ApplicationError> {
+pub(crate) fn safari_downloads(output: &mut Output, filter: bool) -> Result<(), ApplicationError> {
     use super::safari::downloads::get_safari_downloads;
 
     let start_time = time::time_now();
@@ -56,7 +56,7 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: &bool) -> Result<(),
     };
 
     let output_name = "safari_downloads";
-    output_data(&mut serde_data, output_name, output, &start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
 // Output application artifacts
@@ -64,8 +64,8 @@ pub(crate) fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), ApplicationError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
@@ -102,7 +102,7 @@ mod tests {
     fn test_safari_history() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 
-        let status = safari_history(&mut output, &false).unwrap();
+        let status = safari_history(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
@@ -110,7 +110,7 @@ mod tests {
     fn test_safari_downloads() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 
-        let status = safari_downloads(&mut output, &false).unwrap();
+        let status = safari_downloads(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 }

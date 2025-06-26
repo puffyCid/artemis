@@ -165,7 +165,7 @@ fn parse_line<'a>(zsh_line: &'a str, zsh_regex: &'a Regex) -> Result<ZshHistoryD
             let zsh_timestamp_result = value[1].parse::<u64>();
             match zsh_timestamp_result {
                 Ok(zsh_timestamp) => {
-                    zsh_history_data.timestamp = unixepoch_to_iso(&(zsh_timestamp as i64));
+                    zsh_history_data.timestamp = unixepoch_to_iso(zsh_timestamp as i64);
                 }
                 Err(err) => info!("[shell_history] Failed to parse zsh timestamp: {err:?}"),
             }

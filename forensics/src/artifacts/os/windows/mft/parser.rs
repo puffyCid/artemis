@@ -16,12 +16,12 @@ use crate::{
 pub(crate) fn grab_mft(
     options: &MftOptions,
     output: &mut Output,
-    filter: &bool,
+    filter: bool,
 ) -> Result<(), MftError> {
     let start_time = time_now();
 
     let path = if let Some(file) = &options.alt_file {
-        return parse_mft(file, output, filter, &start_time);
+        return parse_mft(file, output, filter, start_time);
     } else {
         // Check if alternative drive letter provided
         if let Some(drive) = &options.alt_drive {
@@ -33,7 +33,7 @@ pub(crate) fn grab_mft(
         }
     };
 
-    parse_mft(&path, output, filter, &start_time)
+    parse_mft(&path, output, filter, start_time)
 }
 
 #[cfg(test)]
@@ -67,6 +67,6 @@ mod tests {
             alt_file: None,
         };
         let mut output = output_options("mft_temp", "local", "./tmp", false);
-        grab_mft(&options, &mut output, &false).unwrap();
+        grab_mft(&options, &mut output, false).unwrap();
     }
 }

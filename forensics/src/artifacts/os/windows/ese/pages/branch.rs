@@ -136,7 +136,7 @@ impl BranchPage {
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) as usize * data.len();
             // Now get the child page
-            let child_result = read_bytes(&(branch_start as u64), data.len() as u64, ntfs_file, fs);
+            let child_result = read_bytes(branch_start as u64, data.len() as u64, ntfs_file, fs);
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -222,7 +222,7 @@ impl BranchPage {
 
             // Now get the child page
             let child_result = read_bytes(
-                &(branch_start as u64),
+                branch_start as u64,
                 page_branch_data.len() as u64,
                 ntfs_file,
                 fs,
@@ -282,7 +282,7 @@ mod tests {
         let mut tracker = HashMap::new();
 
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
         let ntfs_file = raw_reader(
             test_location.to_str().unwrap(),
             &ntfs_parser.ntfs,
@@ -313,7 +313,7 @@ mod tests {
         let mut tracker = HashMap::new();
         let mut pages = Vec::new();
         let mut ntfs_parser =
-            setup_ntfs_parser(&test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
+            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
 
         let reader = raw_reader(
             test_location.to_str().unwrap(),

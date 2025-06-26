@@ -22,14 +22,14 @@ use log::error;
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
 pub(crate) fn grab_fseventsd(
     options: &FseventsOptions,
-    filter: &bool,
+    filter: bool,
     output: &mut Output,
 ) -> Result<(), FsEventsError> {
     let start_time = time_now();
 
     if let Some(alt_file) = &options.alt_file {
         let results = grab_fsventsd_file(alt_file)?;
-        return output_fsevents(&results, output, filter, &start_time);
+        return output_fsevents(&results, output, filter, start_time);
     }
 
     let mut events = get_fseventsd()?;
@@ -55,7 +55,7 @@ pub(crate) fn grab_fseventsd(
                 continue;
             }
         };
-        let _ = output_fsevents(&results, output, filter, &start_time);
+        let _ = output_fsevents(&results, output, filter, start_time);
     }
     Ok(())
 }
@@ -125,8 +125,8 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 fn output_fsevents(
     entries: &[FsEvents],
     output: &mut Output,
-    filter: &bool,
-    start_time: &u64,
+    filter: bool,
+    start_time: u64,
 ) -> Result<(), FsEventsError> {
     if entries.is_empty() {
         return Ok(());
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn test_grab_fseventsd() {
         let mut output = output_options("fsevents_test", "local", "./tmp", false);
-        grab_fseventsd(&FseventsOptions { alt_file: None }, &false, &mut output).unwrap();
+        grab_fseventsd(&FseventsOptions { alt_file: None }, false, &mut output).unwrap();
     }
 
     #[test]

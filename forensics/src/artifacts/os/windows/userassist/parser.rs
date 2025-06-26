@@ -27,7 +27,7 @@ pub(crate) fn grab_userassist(
 
     if let Some(path) = &options.alt_file {
         let entries = alt_userassist(path)?;
-        return parse_userassist_data(&entries, &resolve);
+        return parse_userassist_data(&entries, resolve);
     }
 
     let drive_result = get_systemdrive();
@@ -38,11 +38,11 @@ pub(crate) fn grab_userassist(
             return Err(UserAssistError::DriveLetter);
         }
     };
-    parse_userassist(&drive, &resolve)
+    parse_userassist(drive, resolve)
 }
 
 /// Get `UserAssist` entries for all users in NTUSER.DAT files. Then parse the `UserAssist` data
-fn parse_userassist(drive: &char, resolve: &bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
+fn parse_userassist(drive: char, resolve: bool) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let entries = get_userassist_drive(drive)?;
     parse_userassist_data(&entries, resolve)
 }
@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_parse_userassist() {
-        let results = parse_userassist(&'C', &false).unwrap();
+        let results = parse_userassist('C', false).unwrap();
         assert!(results.len() > 3);
     }
 

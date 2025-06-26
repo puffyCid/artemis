@@ -37,7 +37,7 @@ impl Standard {
             modified,
             changed,
             accessed,
-            file_attributes: file_attribute_flags(&flag_data),
+            file_attributes: file_attribute_flags(flag_data),
             file_attributes_data: flag_data,
             owner_id: 0,
             sid_id: 0,

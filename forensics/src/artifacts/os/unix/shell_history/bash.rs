@@ -132,7 +132,7 @@ fn parse_bash(bash_history: &str) -> Result<Vec<BashHistoryData>, ShellError> {
             // Parse and the the timestamp entry
             let timestamp = parse_line(&bash_entry, &bash_regex);
             bash_history_data.timestamp = match timestamp {
-                Ok(bash_timestamp) => unixepoch_to_iso(&(bash_timestamp as i64)),
+                Ok(bash_timestamp) => unixepoch_to_iso(bash_timestamp as i64),
                 Err(err) => {
                     warn!(
                         "[shell_history] Failed to get timestamp data for bash line {bash_entry}, error: {err:?}"

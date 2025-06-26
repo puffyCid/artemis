@@ -7,7 +7,7 @@ pub(crate) fn js_encode_bytes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = string_arg(args, &0)?;
+    let data = string_arg(args, 0)?;
 
     let input = data.as_bytes().to_vec();
     let bytes = JsUint8Array::from_iter(input, context)?;

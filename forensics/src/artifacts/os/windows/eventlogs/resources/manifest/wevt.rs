@@ -40,7 +40,7 @@ pub(crate) fn parse_manifest(
             let (element_start, _) = take(*offset)(data)?;
             let (_, sig) = nom_unsigned_four_bytes(element_start, Endian::Le)?;
 
-            let sig_type = get_sig_type(&sig);
+            let sig_type = get_sig_type(sig);
 
             match sig_type {
                 SigType::Chan => {
@@ -96,7 +96,7 @@ pub(crate) enum SigType {
 }
 
 /// Get data signature
-fn get_sig_type(sig: &u32) -> SigType {
+fn get_sig_type(sig: u32) -> SigType {
     match sig {
         0x4e414843 => SigType::Chan,
         0x4c425454 => SigType::Ttbl,
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_get_sig_type() {
-        assert_eq!(get_sig_type(&0), SigType::Unknown);
+        assert_eq!(get_sig_type(0), SigType::Unknown);
     }
 
     #[test]

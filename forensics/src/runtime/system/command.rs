@@ -20,8 +20,8 @@ pub(crate) fn js_command(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let command = string_arg(args, &0)?;
-    let command_args = value_arg(args, &1, context)?;
+    let command = string_arg(args, 0)?;
+    let command_args = value_arg(args, 1, context)?;
 
     let mut comm_args = Vec::new();
     if let Some(arguements) = command_args.as_array() {

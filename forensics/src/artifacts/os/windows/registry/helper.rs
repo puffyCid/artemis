@@ -44,7 +44,7 @@ pub(crate) fn get_registry_keys(
 pub(crate) fn get_registry_keys_by_ref(
     start_path: &str,
     regex: &Regex,
-    file_ref: &NtfsFileReference,
+    file_ref: NtfsFileReference,
     ntfs_parser: &mut NtfsParser,
 ) -> Result<Vec<RegistryData>, RegistryError> {
     let mut params = Params {
@@ -97,7 +97,7 @@ pub(crate) fn read_registry(path: &str) -> Result<Vec<u8>, RegistryError> {
 
 /// Read the `Registry` file provided at file reference
 pub(crate) fn read_registry_ref(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs_parser: &mut NtfsParser,
 ) -> Result<Vec<u8>, RegistryError> {
     let result = raw_read_by_file_ref(ntfs_ref, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
@@ -233,8 +233,8 @@ mod tests {
 
     #[test]
     fn test_get_registry_keys_by_ref() {
-        let user_hives = get_user_registry_files(&'C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let user_hives = get_user_registry_files('C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" {
                 continue;
@@ -242,7 +242,7 @@ mod tests {
             let result = get_registry_keys_by_ref(
                 "",
                 &Regex::new("").unwrap(),
-                &hive.reg_reference,
+                hive.reg_reference,
                 &mut ntfs_parser,
             )
             .unwrap();
@@ -253,13 +253,13 @@ mod tests {
 
     #[test]
     fn test_read_registry_ref() {
-        let user_hives = get_user_registry_files(&'C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser(&'C').unwrap();
+        let user_hives = get_user_registry_files('C').unwrap();
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" {
                 continue;
             }
-            let result = read_registry_ref(&hive.reg_reference, &mut ntfs_parser).unwrap();
+            let result = read_registry_ref(hive.reg_reference, &mut ntfs_parser).unwrap();
             assert!(result.len() > 10);
             break;
         }

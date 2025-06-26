@@ -32,7 +32,7 @@ impl LnkVolume {
 
         let mut volume_info = LnkVolume {
             _size: size,
-            drive_type: LnkVolume::get_drive_type(&drive_type),
+            drive_type: LnkVolume::get_drive_type(drive_type),
             drive_serial: format!("{drive_serial:X}"),
             label_offset,
             unicode_volume_label_offset: 0,
@@ -60,7 +60,7 @@ impl LnkVolume {
     }
 
     /// Get drive types from `shortcut` data
-    fn get_drive_type(drive_type: &u32) -> DriveType {
+    fn get_drive_type(drive_type: u32) -> DriveType {
         match drive_type {
             0 => DriveType::DriveUnknown,
             1 => DriveType::DriveNotRootDir,
@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn test_get_drive_type() {
         let test = 1;
-        let result = LnkVolume::get_drive_type(&test);
+        let result = LnkVolume::get_drive_type(test);
         assert_eq!(result, DriveNotRootDir);
     }
 

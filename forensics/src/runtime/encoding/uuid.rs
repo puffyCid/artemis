@@ -10,7 +10,7 @@ pub(crate) fn js_format_guid_le_bytes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
     Ok(js_string!(format_guid_le_bytes(&data)).into())
 }
 
@@ -20,7 +20,7 @@ pub(crate) fn js_format_guid_be_bytes(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = bytes_arg(args, &0, context)?;
+    let data = bytes_arg(args, 0, context)?;
     Ok(js_string!(format_guid_be_bytes(&data)).into())
 }
 

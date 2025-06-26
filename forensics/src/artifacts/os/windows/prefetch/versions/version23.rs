@@ -25,7 +25,7 @@ impl Version23 {
 
         let mut run_times: Vec<String> = Vec::new();
         let (input, runtime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-        run_times.push(unixepoch_to_iso(&filetime_to_unixepoch(&runtime)));
+        run_times.push(unixepoch_to_iso(filetime_to_unixepoch(runtime)));
 
         let (input, unknown2_data) = take(size_of::<u128>())(input)?;
 

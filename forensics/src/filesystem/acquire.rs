@@ -198,7 +198,7 @@ pub(crate) fn acquire_file_remote(
             String::from("*")
         };
 
-        let upload_result = acquire.upload(&upload_bytes, &bytes_offset, &total_size);
+        let upload_result = acquire.upload(&upload_bytes, bytes_offset, &total_size);
         if upload_result.is_err() {
             return Err(FileSystemError::AcquireFile);
         }
@@ -226,7 +226,7 @@ pub(crate) fn acquire_file_remote(
         // last upload
         let last_result = acquire.upload(
             &upload_bytes,
-            &bytes_offset,
+            bytes_offset,
             &format!("{}", bytes_offset + upload_bytes.len()),
         );
         acquire.bytes_sent += upload_bytes.len();
@@ -240,7 +240,7 @@ pub(crate) fn acquire_file_remote(
         // Always make sure we finalize the upload and closeout the session for AWS
         let last_result = acquire.upload(
             &[],
-            &bytes_offset,
+            bytes_offset,
             &format!("{}", bytes_offset + upload_bytes.len()),
         );
 

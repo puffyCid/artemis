@@ -38,35 +38,33 @@ pub(crate) fn filename_info(
     filename.parent_directory_reference().file_record_number();
 
     file_info.filename = filename.name().to_string().unwrap_or_default();
-    file_info.filename_created = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.creation_time().nt_timestamp(),
+    file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(
+        filename.creation_time().nt_timestamp(),
     ));
-    file_info.filename_modified = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.modification_time().nt_timestamp(),
+    file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(
+        filename.modification_time().nt_timestamp(),
     ));
-    file_info.filename_changed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.mft_record_modification_time().nt_timestamp(),
+    file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(
+        filename.mft_record_modification_time().nt_timestamp(),
     ));
-    file_info.filename_accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &filename.access_time().nt_timestamp(),
-    ));
+    file_info.filename_accessed =
+        unixepoch_to_iso(filetime_to_unixepoch(filename.access_time().nt_timestamp()));
     Ok(())
 }
 
 /// Get Standard attributes data
 pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut RawFilelist) {
-    file_info.created = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.creation_time().nt_timestamp(),
+    file_info.created = unixepoch_to_iso(filetime_to_unixepoch(
+        standard.creation_time().nt_timestamp(),
     ));
-    file_info.modified = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.modification_time().nt_timestamp(),
+    file_info.modified = unixepoch_to_iso(filetime_to_unixepoch(
+        standard.modification_time().nt_timestamp(),
     ));
-    file_info.changed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.mft_record_modification_time().nt_timestamp(),
+    file_info.changed = unixepoch_to_iso(filetime_to_unixepoch(
+        standard.mft_record_modification_time().nt_timestamp(),
     ));
-    file_info.accessed = unixepoch_to_iso(&filetime_to_unixepoch(
-        &standard.access_time().nt_timestamp(),
-    ));
+    file_info.accessed =
+        unixepoch_to_iso(filetime_to_unixepoch(standard.access_time().nt_timestamp()));
 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);
@@ -89,7 +87,7 @@ pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut 
 /// Get $DATA attribute data size and hash the data (if enabled)
 pub(crate) fn file_data(
     ntfs_file: &NtfsFile<'_>,
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     file_info: &mut RawFilelist,
     fs: &mut BufReader<SectorReader<File>>,
     ntfs: &Ntfs,
@@ -194,7 +192,7 @@ pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
 
 /// Get all alternative data streams (ADS) for a file
 pub(crate) fn get_ads_names(
-    ntfs_ref: &NtfsFileReference,
+    ntfs_ref: NtfsFileReference,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<ADSInfo>, NtfsError> {
@@ -447,7 +445,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let drive_path = format!("\\\\.\\{}:", test_path.drive_letter);
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
 
         let fs = File::open(drive_path).unwrap();
 
@@ -514,7 +512,7 @@ mod tests {
             if !ntfs_file.is_directory() {
                 let result = file_data(
                     &ntfs_file,
-                    &entry_index.file_reference(),
+                    entry_index.file_reference(),
                     &mut file_info,
                     &mut ntfs_parser.fs,
                     &ntfs_parser.ntfs,
@@ -543,7 +541,7 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let drive_path = format!("\\\\.\\{}:", test_path.drive_letter);
-        let mut ntfs_parser = setup_ntfs_parser(&test_path.drive_letter).unwrap();
+        let mut ntfs_parser = setup_ntfs_parser(test_path.drive_letter).unwrap();
 
         let fs = File::open(drive_path).unwrap();
 
@@ -566,7 +564,7 @@ mod tests {
                 .unwrap();
             if !ntfs_file.is_directory() && filename == "$UsnJrnl" {
                 let result = get_ads_names(
-                    &entry_index.file_reference(),
+                    entry_index.file_reference(),
                     &ntfs_parser.ntfs,
                     &mut ntfs_parser.fs,
                 )

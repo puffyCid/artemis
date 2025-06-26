@@ -10,7 +10,7 @@ pub(crate) fn js_base64_decode(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input = string_arg(args, &0)?;
+    let input = string_arg(args, 0)?;
 
     let decoded_data = match base64_decode_standard(&input) {
         Ok(result) => result,
@@ -30,7 +30,7 @@ pub(crate) fn js_base64_encode(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let input = bytes_arg(args, &0, context)?;
+    let input = bytes_arg(args, 0, context)?;
     Ok(js_string!(base64_encode_standard(&input)).into())
 }
 

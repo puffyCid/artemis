@@ -91,11 +91,11 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
-            let update_reason = UsnJrnlFormat::reason_flags(&reason);
-            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_reason = UsnJrnlFormat::reason_flags(reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(source);
 
-            let file_attributes = file_attribute_flags(&flags);
+            let file_attributes = file_attribute_flags(flags);
 
             let path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
             {
@@ -204,11 +204,11 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(&filetime_to_unixepoch(&usn_time));
-            let update_reason = UsnJrnlFormat::reason_flags(&reason);
-            let update_source_flags = UsnJrnlFormat::source_flag(&source);
+            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_reason = UsnJrnlFormat::reason_flags(reason);
+            let update_source_flags = UsnJrnlFormat::source_flag(source);
 
-            let file_attributes = file_attribute_flags(&flags);
+            let file_attributes = file_attribute_flags(flags);
 
             let mut path = String::new();
             if reader.is_some() {
@@ -280,7 +280,7 @@ impl UsnJrnlFormat {
     }
 
     /// Get `UsnJrnl` update reason flags
-    fn reason_flags(flag: &u32) -> Vec<Reason> {
+    fn reason_flags(flag: u32) -> Vec<Reason> {
         let mut reasons = Vec::new();
 
         if (flag & 0x1) == 0x1 {
@@ -353,16 +353,16 @@ impl UsnJrnlFormat {
     }
 
     /// Get `UsnJrnl` source flags (none seen so far)
-    fn source_flag(flags: &u32) -> Source {
+    fn source_flag(flags: u32) -> Source {
         let data_manage = 0x1;
         let aux_data = 0x2;
         let replicated_manage = 0x4;
 
-        if flags == &data_manage {
+        if flags == data_manage {
             Source::DataManagement
-        } else if flags == &aux_data {
+        } else if flags == aux_data {
             Source::AuxiliaryData
-        } else if flags == &replicated_manage {
+        } else if flags == replicated_manage {
             Source::ReplicationManagement
         } else {
             Source::None
@@ -391,7 +391,7 @@ mod tests {
             53, 0, 99, 0, 56, 0, 45, 0, 98, 0, 99, 0, 53, 0, 99, 0, 50, 0, 55, 0, 51, 0, 102, 0,
             52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
         ];
-        let mut parser = setup_ntfs_parser(&'C').unwrap();
+        let mut parser = setup_ntfs_parser('C').unwrap();
         let ntfs_file = setup_mft_reader_windows(&parser.ntfs, &mut parser.fs, "C:\\$MFT").unwrap();
         let (_, results) = UsnJrnlFormat::parse_usnjrnl(
             &test_data,
@@ -465,7 +465,7 @@ mod tests {
             0x8000, 0x10000, 0x20000, 0x80000, 0x100000, 0x200000, 0x400000, 0x80000000,
         ];
         for entry in test {
-            let reason = UsnJrnlFormat::reason_flags(&entry);
+            let reason = UsnJrnlFormat::reason_flags(entry);
             assert!(!reason.is_empty());
         }
     }
@@ -473,7 +473,7 @@ mod tests {
     #[test]
     fn test_source_flag() {
         let test = 1;
-        let result = UsnJrnlFormat::source_flag(&test);
+        let result = UsnJrnlFormat::source_flag(test);
         assert_eq!(result, DataManagement);
     }
 }

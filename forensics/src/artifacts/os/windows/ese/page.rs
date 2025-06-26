@@ -82,7 +82,7 @@ impl PageHeader {
             available_uncommitted_data_size,
             first_available_data_offset,
             first_available_page_tag,
-            page_flags: PageHeader::get_flags(&page_flags),
+            page_flags: PageHeader::get_flags(page_flags),
             extended_checksum: 0,
             extended_checksum2: 0,
             extended_checksum3: 0,
@@ -118,7 +118,7 @@ impl PageHeader {
 
         let (tag_start, _) = take(start)(data)?;
         // We now have start of tag data
-        let (_, page_tags) = PageTag::parse_tags(tag_start, &data.len())?;
+        let (_, page_tags) = PageTag::parse_tags(tag_start, data.len())?;
         header.page_tags = page_tags;
 
         // For large page sizes the tag flags are actually part of the first 2 bytes at the tag offset
@@ -127,7 +127,7 @@ impl PageHeader {
                 let (input, _) = take(tag.offset)(page_data)?;
                 let (_, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-                tag.flags = PageTag::get_flags(&flags);
+                tag.flags = PageTag::get_flags(flags);
             }
         }
 
@@ -135,7 +135,7 @@ impl PageHeader {
     }
 
     /// Get the page flags
-    fn get_flags(page_flags: &u32) -> Vec<PageFlags> {
+    fn get_flags(page_flags: u32) -> Vec<PageFlags> {
         let root = 0x1;
         let leaf = 0x2;
         let parent = 0x4;
@@ -248,7 +248,7 @@ mod tests {
     fn test_page_flags() {
         let test = 43011;
 
-        let results = PageHeader::get_flags(&test);
+        let results = PageHeader::get_flags(test);
         assert_eq!(
             results,
             vec![

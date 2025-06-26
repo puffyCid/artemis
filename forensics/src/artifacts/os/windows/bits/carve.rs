@@ -62,7 +62,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
             let (input, _) = nom_unsigned_sixteen_bytes(hit_data, Endian::Le)?;
             let (_, job_type_value) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let job_type = get_type(&job_type_value);
+            let job_type = get_type(job_type_value);
 
             if job_type == JobType::Unknown {
                 job_data = input;

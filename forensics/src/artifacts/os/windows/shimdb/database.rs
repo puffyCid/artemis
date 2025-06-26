@@ -56,7 +56,7 @@ pub(crate) fn parse_db<'a>(
             let (sdb_data, compile_time) = get_db_time(sdb_data)?;
 
             input = sdb_data;
-            database_data.compile_time = unixepoch_to_iso(&filetime_to_unixepoch(&compile_time));
+            database_data.compile_time = unixepoch_to_iso(filetime_to_unixepoch(compile_time));
             continue;
         } else if tag_value == tag_compiler_version {
             let (sdb_data, compiler_version) = get_compiler_version(sdb_data, stringtable_data)?;
@@ -85,7 +85,7 @@ pub(crate) fn parse_db<'a>(
         }
         let (tag_data, value) = match tag {
             Tags::String => break, // strings only found in stringtable, which we parse in stringref
-            Tags::Binary => parse_binary(sdb_data, &tag_value)?,
+            Tags::Binary => parse_binary(sdb_data, tag_value)?,
             Tags::List => {
                 let (sdb_data, mut index_data) =
                     parse_list(sdb_data, stringtable_data, tag_values)?;

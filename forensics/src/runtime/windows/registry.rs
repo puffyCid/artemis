@@ -11,7 +11,7 @@ pub(crate) fn js_registry(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
     let all = create_regex("").unwrap(); // Valid regex
     let start_root = "";
     let reg = match get_registry_keys(start_root, &all, &path) {
@@ -34,8 +34,8 @@ pub(crate) fn js_sk_info(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
-    let offset = number_arg(args, &1)? as i32;
+    let path = string_arg(args, 0)?;
+    let offset = number_arg(args, 1)? as i32;
 
     let sk = match lookup_sk_info(&path, offset) {
         Ok(result) => result,

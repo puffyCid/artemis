@@ -180,7 +180,7 @@ pub(crate) fn parse_qualifier<'a>(
         let msb_set: u32 = 0x80000000;
         let name = if name_offset > msb_set {
             let index = name_offset - msb_set;
-            get_predefine_name(&index)
+            get_predefine_name(index)
         } else {
             let (_, value) = get_class_name(name_offset, value_data)?;
             value
@@ -188,7 +188,7 @@ pub(crate) fn parse_qualifier<'a>(
 
         let mut qual = Qualifier {
             name,
-            value_data_type: get_cim_data_type(&cim_data_type),
+            value_data_type: get_cim_data_type(cim_data_type),
             data: Value::Null,
         };
 
@@ -216,7 +216,7 @@ fn parse_property<'a>(
         let msb_set: u32 = 0x80000000;
         let name = if name_offset > msb_set {
             let index = name_offset - msb_set;
-            get_predefine_name(&index)
+            get_predefine_name(index)
         } else {
             let (_, value) = get_class_name(name_offset, value_data)?;
             value
@@ -244,7 +244,7 @@ fn parse_property<'a>(
 
         let prop = Property {
             name,
-            property_data_type: get_cim_data_type(&prop_data_type),
+            property_data_type: get_cim_data_type(prop_data_type),
             qualifiers,
             property_index,
             data_offset,
@@ -285,7 +285,7 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
 }
 
 /// Get predefine string names
-fn get_predefine_name(index: &u32) -> String {
+fn get_predefine_name(index: u32) -> String {
     match index {
         1 => String::from("key"),
         3 => String::from("read"),
@@ -299,7 +299,7 @@ fn get_predefine_name(index: &u32) -> String {
 }
 
 /// Determine the CIM Type
-fn get_cim_data_type(data_type: &u32) -> CimType {
+fn get_cim_data_type(data_type: u32) -> CimType {
     match data_type {
         0x0 => CimType::None,
         0x2 => CimType::Sint16,
@@ -743,14 +743,14 @@ mod tests {
     #[test]
     fn test_get_predefine_name() {
         let test = 4;
-        let result = get_predefine_name(&test);
+        let result = get_predefine_name(test);
         assert_eq!(result, "write");
     }
 
     #[test]
     fn test_get_cim_data_type() {
         let test = 0x15;
-        let result = get_cim_data_type(&test);
+        let result = get_cim_data_type(test);
         assert_eq!(result, CimType::Uint64);
     }
 

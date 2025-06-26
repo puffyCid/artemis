@@ -27,7 +27,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_property<'a>(
     data: &'a [u8],
     meta: &SpotlightMeta,
-    uncompressed_size: &u32,
+    uncompressed_size: u32,
     dir: &str,
 ) -> nom::IResult<&'a [u8], Vec<SpotlightEntries>> {
     let mut compressed_input = data;
@@ -116,7 +116,7 @@ pub(crate) fn property_header(data: &[u8]) -> nom::IResult<&[u8], PropertyHeader
 
     // Also referred to as block_type
     let (input, property_type_data) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let property_types = get_property_types(&property_type_data);
+    let property_types = get_property_types(property_type_data);
 
     if !property_types.contains(&PropertyType::Lz4Compressed) {
         warn!("[spotlight] Got non-lz4 compressed data. This is unsupported!");
@@ -207,7 +207,7 @@ fn parse_record<'a>(
         };
 
         if spot_value.attribute == DataAttribute::AttrVariableSizeIntMultiValue {
-            let (input, multi_values) = extract_multivalue(input, &props.prop_type)?;
+            let (input, multi_values) = extract_multivalue(input, props.prop_type)?;
             spot_value.value = multi_values;
 
             values.insert(props.name.clone(), spot_value);
@@ -216,7 +216,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrFloat32 {
-            let (input, floats) = extract_float32(input, &props.prop_type)?;
+            let (input, floats) = extract_float32(input, props.prop_type)?;
             spot_value.value = floats;
 
             values.insert(props.name.clone(), spot_value);
@@ -225,7 +225,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrFloat64 {
-            let (input, floats) = extract_float64(input, &props.prop_type)?;
+            let (input, floats) = extract_float64(input, props.prop_type)?;
             spot_value.value = floats;
 
             values.insert(props.name.clone(), spot_value);
@@ -234,7 +234,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrDate {
-            let (input, dates) = extract_dates(input, &props.prop_type)?;
+            let (input, dates) = extract_dates(input, props.prop_type)?;
             spot_value.value = dates;
 
             values.insert(props.name.clone(), spot_value);
@@ -265,7 +265,7 @@ fn parse_record<'a>(
         let (var_input, prop_value_size) = parse_variable_size(input)?;
 
         if spot_value.attribute == DataAttribute::AttrString {
-            let (input, string) = extract_string(var_input, &prop_value_size)?;
+            let (input, string) = extract_string(var_input, prop_value_size)?;
             spot_value.value = string;
             values.insert(props.name.clone(), spot_value);
             remaining_input = input;
@@ -273,7 +273,7 @@ fn parse_record<'a>(
         }
 
         if spot_value.attribute == DataAttribute::AttrBinary {
-            let (input, binary) = extract_binary(var_input, &prop_value_size, &props.name)?;
+            let (input, binary) = extract_binary(var_input, prop_value_size, &props.name)?;
             spot_value.value = binary;
             values.insert(props.name.clone(), spot_value);
             remaining_input = input;
@@ -286,8 +286,8 @@ fn parse_record<'a>(
                 &meta.categories,
                 &meta.indexes1,
                 &meta.indexes2,
-                &prop_value_size,
-                &props.prop_type,
+                prop_value_size,
+                props.prop_type,
             );
 
             values.insert(props.name.clone(), spot_value);
@@ -307,7 +307,7 @@ fn parse_record<'a>(
         parent_inode,
         flags,
         store_id,
-        last_updated: unixepoch_to_iso(&(last_updated as i64)),
+        last_updated: unixepoch_to_iso(last_updated as i64),
         values,
         directory: dir.to_string(),
     };
@@ -327,7 +327,7 @@ enum PropertyType {
 }
 
 /// Determine Property type
-fn get_property_types(data: &u32) -> Vec<PropertyType> {
+fn get_property_types(data: u32) -> Vec<PropertyType> {
     let records = 0x9;
     let attr_types = 0x11;
     let attr_values = 0x21;
@@ -444,7 +444,7 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let (input, header) = property_header(&data).unwrap();
 
-        let (_, results) = parse_property(input, &meta, &header.uncompressed_size, "test").unwrap();
+        let (_, results) = parse_property(input, &meta, header.uncompressed_size, "test").unwrap();
         assert_eq!(results.len(), 195);
     }
 
@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn test_get_property_types() {
         let data = 9;
-        let result = get_property_types(&data);
+        let result = get_property_types(data);
         assert_eq!(result[0], PropertyType::ZlibDeflateRecords);
     }
 

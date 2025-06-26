@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 pub(crate) fn parse_spotlight(
     glob_path: &str,
     output: &mut Output,
-    start_time: &u64,
-    filter: &bool,
+    start_time: u64,
+    filter: bool,
 ) -> Result<(), SpotlightError> {
     let paths_result = glob_paths(glob_path);
     let paths = match paths_result {
@@ -63,7 +63,7 @@ pub(crate) fn parse_spotlight_reader(
     store_file: &str,
     meta: &SpotlightMeta,
     blocks: &[u32],
-    offset: &u32,
+    offset: u32,
 ) -> Result<Vec<SpotlightEntries>, SpotlightError> {
     let reader_result = file_reader(store_file);
     let mut store_reader = match reader_result {
@@ -152,7 +152,7 @@ mod tests {
         test_location.push("tests/test_data/macos/spotlight/bigsur/*");
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_spotlight(test_location.to_str().unwrap(), &mut output, &0, &false).unwrap();
+        parse_spotlight(test_location.to_str().unwrap(), &mut output, 0, false).unwrap();
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod tests {
             test_location.to_str().unwrap(),
             &result.meta,
             &result.blocks,
-            &0,
+            0,
         )
         .unwrap();
         assert_eq!(entries.len(), 1022);

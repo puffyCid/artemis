@@ -9,7 +9,7 @@ pub(crate) fn js_fsevents(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, &0)?;
+    let path = string_arg(args, 0)?;
 
     let fsevents = match grab_fsventsd_file(&path) {
         Ok(result) => result,
