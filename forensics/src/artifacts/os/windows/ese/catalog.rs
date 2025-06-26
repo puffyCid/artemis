@@ -927,7 +927,7 @@ mod tests {
     #[test]
     fn test_get_flags() {
         let flag = 1;
-        let flags = Catalog::get_flags(&flag);
+        let flags = Catalog::get_flags(flag);
         assert_eq!(flags, vec![TaggedDataFlag::Variable]);
     }
 

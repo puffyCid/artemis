@@ -633,7 +633,7 @@ mod tests {
             },
         );
 
-        let result = SecurityIDs::lookup_sids(&sid, &test_data);
+        let result = SecurityIDs::lookup_sids(sid, &test_data);
         assert_eq!(result.0, "");
         assert_eq!(result.1, "");
     }
