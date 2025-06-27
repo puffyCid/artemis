@@ -21,17 +21,17 @@ export async function setupFastify(): Promise<FastifyInstance> {
         preValidation: (request, reply, done) => {
             if (request.body.enroll_key === undefined) {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad enroll request" });
+                reply.send({ message: "Bad enroll request", endpoint_invalid: false });
             }
             if (request.body.enroll_key !== "my key") {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad enrollment key" });
+                reply.send({ message: "Bad enrollment key", endpoint_invalid: false });
             }
             done();
         },
     }, enrollEndpoint);
 
-    /** Handle configuratino requests */
+    /** Handle configuration requests */
     server.post<{ Body: ConfigType, Reply: ConfigTypeResponse | BadReqestType; }>("/v1/endpoint/config", {
         schema: {
             body: Config,
@@ -43,7 +43,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
         preValidation: (request, reply, done) => {
             if (request.body.endpoint_id === undefined) {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad config request" });
+                reply.send({ message: "Bad config request", endpoint_invalid: false });
             }
             done();
         },
@@ -61,7 +61,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
         preValidation: (request, reply, done) => {
             if ((request.body as ConfigType).endpoint_id === undefined) {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad collection request" });
+                reply.send({ message: "Bad collection request", endpoint_invalid: false });
             }
             done();
         },
@@ -78,7 +78,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
         preValidation: (request, reply, done) => {
             if (request.headers[ "x-artemis-endpoint_id" ] === undefined || request.headers[ "x-artemis-endpoint_id" ] === "") {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad upload request. No endpoint ID provided" });
+                reply.send({ message: "Bad upload request. No endpoint ID provided", endpoint_invalid: true });
             }
             done();
         },

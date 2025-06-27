@@ -60,6 +60,14 @@ pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectRespo
         }
     };
 
+    // Validate the output is JSONL and compressed
+    let collect_string = String::from_utf8(collection_bytes.clone()).unwrap_or_default();
+    let clean_string = collect_string.replace(" ", "");
+    if !clean_string.contains("format=jsonl") && !clean_string.contains("compressed=true") {
+        error!("[daemon] Invalid collection TOML. Format should be JSONL with compression");
+        return;
+    }
+
     if let Err(err) = forensics::core::parse_toml_data(&collection_bytes) {
         error!("[daemon] Could not process TOML collection {err:?}");
     }

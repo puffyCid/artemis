@@ -19,11 +19,11 @@ pub(crate) struct CollectRequest {
 }
 
 pub(crate) trait CollectEndpoint {
+    /// Check for any collection requests we need to run
     fn collect_request(&self) -> Result<CollectResponse, CollectError>;
 }
 
 impl CollectEndpoint for DaemonConfig {
-    /// Check for any collection requests we need to run
     fn collect_request(&self) -> Result<CollectResponse, CollectError> {
         let url = format!(
             "{}:{}/v{}/{}",
