@@ -10,14 +10,14 @@ use super::sudo::logs::grab_sudo_logs;
 use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 
 /// Get Linux `Journals`
-pub(crate) fn journals(
+pub(crate) async fn journals(
     output: &mut Output,
     filter: bool,
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_journal(output, start_time, filter, options);
+    let artifact_result = grab_journal(output, start_time, filter, options).await;
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
@@ -28,7 +28,7 @@ pub(crate) fn journals(
 }
 
 /// Get Linux `Logon` info
-pub(crate) fn logons(
+pub(crate) async fn logons(
     output: &mut Output,
     filter: bool,
     options: &LogonOptions,
@@ -46,11 +46,11 @@ pub(crate) fn logons(
     };
 
     let output_name = "logons";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse sudo logs on Linux
-pub(crate) fn sudo_logs_linux(
+pub(crate) async fn sudo_logs_linux(
     output: &mut Output,
     filter: bool,
     options: &LinuxSudoOptions,
@@ -76,18 +76,18 @@ pub(crate) fn sudo_logs_linux(
     };
 
     let output_name = "sudologs-linux";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Output Linux artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), LinuxArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(LinuxArtifactError::Output);

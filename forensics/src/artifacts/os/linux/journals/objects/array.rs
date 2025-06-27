@@ -24,7 +24,7 @@ pub(crate) struct EntryArray {
 impl EntryArray {
     /// Walk through Array of entries and output the results
     /// Returns offset to next array of data
-    pub(crate) fn walk_entries<'a>(
+    pub(crate) async fn walk_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
         is_compact: bool,
@@ -92,7 +92,7 @@ impl EntryArray {
                     }
                 };
 
-                let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+                let _ = output_data(&mut serde_data, "journal", output, start_time, filter).await;
                 // Now empty the vec
                 entry_array.entries = Vec::new();
             }
@@ -113,7 +113,7 @@ impl EntryArray {
             }
         };
 
-        let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+        let _ = output_data(&mut serde_data, "journal", output, start_time, filter).await;
 
         Ok((input, entry_array.next_entry_array_offset))
     }

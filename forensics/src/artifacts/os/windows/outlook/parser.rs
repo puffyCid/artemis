@@ -36,13 +36,13 @@ use ntfs::NtfsFile;
 use std::io::BufReader;
 
 /// Parse and grab Outlook messages based on options provided
-pub(crate) fn grab_outlook(
+pub(crate) async fn grab_outlook(
     options: &OutlookOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), OutlookError> {
     if let Some(file) = &options.alt_file {
-        return grab_outlook_file(file, options, filter, output);
+        return grab_outlook_file(file, options, filter, output).await;
     }
     let systemdrive_result = get_systemdrive();
     let drive = match systemdrive_result {
@@ -65,7 +65,7 @@ pub(crate) fn grab_outlook(
     };
 
     for path in paths {
-        let status = grab_outlook_file(&path.full_path, options, filter, output);
+        let status = grab_outlook_file(&path.full_path, options, filter, output).await;
         if status.is_err() {
             error!(
                 "[outlook] Could not extract messages from {}: {:?}",
@@ -79,7 +79,7 @@ pub(crate) fn grab_outlook(
 }
 
 /// Parse the provided OST file and grab messages
-fn grab_outlook_file(
+async fn grab_outlook_file(
     path: &str,
     options: &OutlookOptions,
     filter: bool,
@@ -111,7 +111,7 @@ fn grab_outlook_file(
             // This will get updated when parsing starts
             size: 4096,
         };
-        return read_outlook(&mut outlook_reader, None, &runner, output);
+        return read_outlook(&mut outlook_reader, None, &runner, output).await;
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked OST
@@ -134,7 +134,7 @@ fn grab_outlook_file(
         size: 4096,
     };
 
-    read_outlook(&mut outlook_reader, Some(&ntfs_file), &runner, output)
+    read_outlook(&mut outlook_reader, Some(&ntfs_file), &runner, output).await
 }
 
 struct OutlookRunner {
@@ -149,7 +149,7 @@ struct OutlookRunner {
 }
 
 /// Start reading the OST file
-fn read_outlook<T: std::io::Seek + std::io::Read>(
+async fn read_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
     options: &OutlookRunner,
@@ -162,14 +162,14 @@ fn read_outlook<T: std::io::Seek + std::io::Read>(
     let root = reader.root_folder(use_ntfs)?;
 
     for folders in root.subfolders {
-        stream_outlook(reader, use_ntfs, options, output, folders.node, &root.name)?;
+        stream_outlook(reader, use_ntfs, options, output, folders.node, &root.name).await?;
     }
 
     Ok(())
 }
 
 /// Loop and stream all folders and messages in OST
-fn stream_outlook<T: std::io::Seek + std::io::Read>(
+async fn stream_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
     options: &OutlookRunner,
@@ -218,7 +218,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 entries.push(entry.unwrap());
             }
 
-            output_messages(&entries, options, output)?;
+            output_messages(&entries, options, output).await?;
             chunks = Vec::new();
         }
 
@@ -246,20 +246,21 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 }
                 entries.push(entry.unwrap());
             }
-            output_messages(&entries, options, output)?;
+            output_messages(&entries, options, output).await?;
         }
 
         // Now check for subfolders
         for folder in results.subfolders {
             let new_folder_path = format!("{folder_path}/{}", results.name);
-            stream_outlook(
+            Box::pin(stream_outlook(
                 reader,
                 use_ntfs,
                 options,
                 output,
                 folder.node,
                 &new_folder_path,
-            )?;
+            ))
+            .await?;
         }
 
         return Ok(());
@@ -303,7 +304,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     entries.push(entry.unwrap());
                 }
 
-                output_messages(&entries, options, output)?;
+                output_messages(&entries, options, output).await?;
                 chunks = Vec::new();
             }
 
@@ -332,7 +333,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     entries.push(entry.unwrap());
                 }
 
-                output_messages(&entries, options, output)?;
+                output_messages(&entries, options, output).await?;
             }
 
             all_rows += branch.rows_info.count;
@@ -342,14 +343,15 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     // Now check for subfolders
     for folder in &results.subfolders {
         let new_folder_path = format!("{folder_path}/{}", results.name);
-        stream_outlook(
+        Box::pin(stream_outlook(
             reader,
             use_ntfs,
             options,
             output,
             folder.node,
             &new_folder_path,
-        )?;
+        ))
+        .await?;
     }
 
     Ok(())
@@ -441,7 +443,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
 }
 
 /// Output the extract messages
-fn output_messages(
+async fn output_messages(
     messages: &[OutlookMessage],
     options: &OutlookRunner,
     output: &mut Output,
@@ -463,7 +465,8 @@ fn output_messages(
         output,
         options.start_time,
         options.filter,
-    );
+    )
+    .await;
     match result {
         Ok(_result) => {}
         Err(err) => {

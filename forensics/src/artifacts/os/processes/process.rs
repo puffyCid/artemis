@@ -20,7 +20,7 @@ use std::ffi::OsStr;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
 
 /// Get process listing.
-pub(crate) fn proc_list(
+pub(crate) async fn proc_list(
     hashes: &Hashes,
     binary_data: bool,
     filter: bool,
@@ -49,13 +49,13 @@ pub(crate) fn proc_list(
         let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
         if binary_data && processes_list.len() == binary_proc_limit {
-            let _ = output_process(&processes_list, output, filter, start_time);
+            let _ = output_process(&processes_list, output, filter, start_time).await;
             processes_list = Vec::new();
         }
     }
 
     if !processes_list.is_empty() {
-        let _ = output_process(&processes_list, output, filter, start_time);
+        let _ = output_process(&processes_list, output, filter, start_time).await;
     }
     Ok(())
 }
@@ -201,7 +201,7 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, Process
 }
 
 /// Output processes results
-fn output_process(
+async fn output_process(
     entries: &[Processes],
     output: &mut Output,
     filter: bool,
@@ -219,7 +219,7 @@ fn output_process(
             return Err(ProcessError::Serialize);
         }
     };
-    let result = output_artifact(&mut serde_data, "processes", output, start_time, filter);
+    let result = output_artifact(&mut serde_data, "processes", output, start_time, filter).await;
     match result {
         Ok(_result) => {}
         Err(err) => {

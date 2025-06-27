@@ -4,7 +4,10 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse macOS Safari history
-pub(crate) fn safari_history(output: &mut Output, filter: bool) -> Result<(), ApplicationError> {
+pub(crate) async fn safari_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), ApplicationError> {
     use super::safari::history::get_safari_history;
 
     let start_time = time::time_now();
@@ -28,11 +31,14 @@ pub(crate) fn safari_history(output: &mut Output, filter: bool) -> Result<(), Ap
     };
 
     let output_name = "safari_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse macOS Safari downloads
-pub(crate) fn safari_downloads(output: &mut Output, filter: bool) -> Result<(), ApplicationError> {
+pub(crate) async fn safari_downloads(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), ApplicationError> {
     use super::safari::downloads::get_safari_downloads;
 
     let start_time = time::time_now();
@@ -56,18 +62,18 @@ pub(crate) fn safari_downloads(output: &mut Output, filter: bool) -> Result<(), 
     };
 
     let output_name = "safari_downloads";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 // Output application artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), ApplicationError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(ApplicationError::Output);

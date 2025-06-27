@@ -12,7 +12,7 @@ use serde_json::Value;
 use std::io::{Error, ErrorKind};
 
 /// Output data as csv
-pub(crate) fn csv_format(
+pub(crate) async fn csv_format(
     serde_data: &Value,
     output_name: &str,
     output: &mut Output,
@@ -40,7 +40,7 @@ pub(crate) fn csv_format(
         writer.into_inner().unwrap_or_default()
     };
 
-    let output_result: Result<_, _> = final_output(&bytes, output, &uuid);
+    let output_result: Result<_, _> = final_output(&bytes, output, &uuid).await;
     match output_result {
         Ok(_) => info!("[core] {output_name} csv output success"),
         Err(err) => {
@@ -109,8 +109,8 @@ mod tests {
     use crate::{structs::toml::Output, utils::time::time_now};
     use serde_json::json;
 
-    #[test]
-    fn test_csv_format() {
+    #[tokio::test]
+    async fn test_csv_format() {
         let mut output = Output {
             name: String::from("format_test"),
             directory: String::from("./tmp"),
@@ -136,7 +136,9 @@ mod tests {
 
         }];
 
-        csv_format(&collection_output, "test", &mut output).unwrap();
+        csv_format(&collection_output, "test", &mut output)
+            .await
+            .unwrap();
     }
 
     #[test]

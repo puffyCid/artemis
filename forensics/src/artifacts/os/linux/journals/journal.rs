@@ -12,7 +12,7 @@ use log::error;
 use std::{collections::HashSet, fs::File, io::Read};
 
 /// Parse provided `Journal` file path. Will output results when finished. Use `parse_journal_file` if you want the results
-pub(crate) fn parse_journal(
+pub(crate) async fn parse_journal(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -54,7 +54,8 @@ pub(crate) fn parse_journal(
         output,
         filter,
         start_time,
-    )?;
+    )
+    .await?;
 
     Ok(())
 }
@@ -137,7 +138,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
 }
 
 /// Loop through the `Journal` entries and get the data
-fn get_entries(
+async fn get_entries(
     reader: &mut File,
     array_offset: u64,
     is_compact: bool,
@@ -169,7 +170,8 @@ fn get_entries(
             output,
             filter,
             start_time,
-        );
+        )
+        .await;
         let next_offset = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {

@@ -4,7 +4,7 @@ use common::files::Hashes;
 use log::warn;
 
 /// Collect a process listing from a system
-pub(crate) fn processes(
+pub(crate) async fn processes(
     output: &mut Output,
     filter: bool,
     options: &ProcessOptions,
@@ -15,7 +15,7 @@ pub(crate) fn processes(
         sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, options.metadata, filter, output);
+    let results = proc_list(&hashes, options.metadata, filter, output).await;
     if results.is_err() {
         warn!(
             "[core] Failed to get process list: {:?}",

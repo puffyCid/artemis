@@ -26,7 +26,7 @@ use crate::{
 use common::linux::Journal;
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
-pub(crate) fn grab_journal(
+pub(crate) async fn grab_journal(
     output: &mut Output,
     start_time: u64,
     filter: bool,
@@ -49,7 +49,7 @@ pub(crate) fn grab_journal(
             continue;
         }
         if is_file(&path) {
-            let _ = parse_journal(&path, output, filter, start_time);
+            let _ = parse_journal(&path, output, filter, start_time).await;
             continue;
         }
 
@@ -60,7 +60,7 @@ pub(crate) fn grab_journal(
                     continue;
                 }
                 if is_file(&log) {
-                    let _ = parse_journal(&log, output, filter, start_time);
+                    let _ = parse_journal(&log, output, filter, start_time).await;
                 }
             }
         }

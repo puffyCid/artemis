@@ -13,7 +13,7 @@ use log::{error, warn};
 use std::fs::{remove_dir, remove_file};
 
 /// Output artifact data based on output type
-pub(crate) fn final_output(
+pub(crate) async fn final_output(
     artifact_data: &[u8],
     output: &Output,
     output_name: &str,
@@ -48,7 +48,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Remote);
             }
         },
-        "api" => match api_upload(artifact_data, output, output_name, false) {
+        "api" => match api_upload(artifact_data, output, output_name, false).await {
             Ok(_) => {}
             Err(err) => {
                 error!("[core] Failed to upload to API server: {err:?}");
@@ -122,8 +122,8 @@ mod tests {
     use crate::structs::toml::Output;
     use std::{fs::remove_file, path::PathBuf};
 
-    #[test]
-    fn test_final_output() {
+    #[tokio::test]
+    async fn test_final_output() {
         let output = Output {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
@@ -142,7 +142,7 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        let result = final_output(test.as_bytes(), &output, name).unwrap();
+        let result = final_output(test.as_bytes(), &output, name).await.unwrap();
         assert_eq!(result, ());
     }
 

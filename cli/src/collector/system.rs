@@ -46,7 +46,7 @@ pub(crate) enum Commands {
 }
 
 /// Run the collector and parse specified artifacts
-pub(crate) fn run_collector(command: &Commands, output: Output) {
+pub(crate) async fn run_collector(command: &Commands, output: Output) {
     let mut collector = ArtemisToml {
         output,
         artifacts: Vec::new(),
@@ -88,7 +88,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         }
     }
 
-    artemis_collection(&mut collector).unwrap();
+    artemis_collection(&mut collector).await.unwrap();
 }
 
 /// Setup any artifact options

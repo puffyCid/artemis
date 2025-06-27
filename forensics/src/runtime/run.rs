@@ -3,7 +3,7 @@ use super::{
     setup::{run_async_script, run_script},
 };
 use crate::{
-    artifacts::output::output_artifact,
+    output::formats::{csv::csv_format, json::json_format, jsonl::jsonl_format},
     structs::{artifacts::runtime::script::JSScript, toml::Output},
     utils::{encoding::base64_decode_standard, time},
 };
@@ -12,18 +12,21 @@ use serde_json::Value;
 use std::str::from_utf8;
 
 /// Execute the provided JavaScript data from the TOML input
-pub(crate) fn execute_script(output: &mut Output, script: &JSScript) -> Result<(), RuntimeError> {
-    decode_script(output, &script.name, &script.script, &[])
+pub(crate) async fn execute_script(
+    output: &mut Output,
+    script: &JSScript,
+) -> Result<(), RuntimeError> {
+    decode_script(output, &script.name, &script.script, &[]).await
 }
 
 /// Execute the provided JavaScript data from the TOML and provide a stringified serde Value as an argument to JavaScript
-pub(crate) fn filter_script(
+pub(crate) async fn filter_script(
     output: &mut Output,
     args: &[String],
     filter_name: &str,
     filter_script: &str,
 ) -> Result<(), RuntimeError> {
-    decode_script(output, filter_name, filter_script, args)
+    decode_script(output, filter_name, filter_script, args).await
 }
 
 /// Execute raw JavaScript code
@@ -47,7 +50,7 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
 }
 
 /// Base64 decode the Javascript string and execute using Boa runtime and output the returned value
-fn decode_script(
+async fn decode_script(
     output: &mut Output,
     script_name: &str,
     encoded_script: &str,
@@ -90,20 +93,27 @@ fn decode_script(
         return Ok(());
     }
 
-    output_data(&mut script_value, script_name, output, start_time)?;
+    output_data(&mut script_value, script_name, output, start_time).await?;
     Ok(())
 }
 
 /// Output Javascript results based on the output options provided from the TOML file
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
 ) -> Result<(), RuntimeError> {
-    // We must never filter a script. Otherwise this would cause an infinite loop!
-    let filter = false;
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = if output.format.to_lowercase() == "jsonl" || output.timeline {
+        jsonl_format(serde_data, output_name, output, start_time).await
+    } else if output.format.to_lowercase() == "json" {
+        json_format(serde_data, output_name, output, start_time).await
+    } else if output.format.to_lowercase() == "csv" {
+        csv_format(serde_data, output_name, output).await
+    } else {
+        error!("[core] Unknown formatter provided: {}", output.format);
+        return Err(RuntimeError::Output);
+    };
     if status.is_err() {
         error!("[runtime] Could not output data: {:?}", status.unwrap_err());
         return Err(RuntimeError::Output);
@@ -139,12 +149,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_decode_script() {
+    #[tokio::test]
+    async fn test_decode_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
-        decode_script(&mut output, "hello world", test, &[]).unwrap();
+        decode_script(&mut output, "hello world", test, &[])
+            .await
+            .unwrap();
     }
 
     #[test]
@@ -153,15 +165,15 @@ mod tests {
         raw_script(&test).unwrap();
     }
 
-    #[test]
-    fn test_execute_script() {
+    #[tokio::test]
+    async fn test_execute_script() {
         let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("hello world"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
     #[test]

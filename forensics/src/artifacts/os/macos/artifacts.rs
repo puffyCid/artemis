@@ -26,7 +26,7 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse macOS `LoginItems`
-pub(crate) fn loginitems(
+pub(crate) async fn loginitems(
     output: &mut Output,
     filter: bool,
     options: &LoginitemsOptions,
@@ -52,11 +52,11 @@ pub(crate) fn loginitems(
     };
 
     let output_name = "loginitems";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse macOS `Emond`
-pub(crate) fn emond(
+pub(crate) async fn emond(
     output: &mut Output,
     filter: bool,
     options: &EmondOptions,
@@ -82,11 +82,11 @@ pub(crate) fn emond(
     };
 
     let output_name = "emond";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get macOS `Users`
-pub(crate) fn users_macos(
+pub(crate) async fn users_macos(
     output: &mut Output,
     filter: bool,
     options: &MacosUsersOptions,
@@ -104,11 +104,11 @@ pub(crate) fn users_macos(
     };
 
     let output_name = "users-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get macOS `Groups`
-pub(crate) fn groups_macos(
+pub(crate) async fn groups_macos(
     output: &mut Output,
     filter: bool,
     options: &MacosGroupsOptions,
@@ -126,16 +126,16 @@ pub(crate) fn groups_macos(
     };
 
     let output_name = "groups-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse macOS `FsEvents`
-pub(crate) fn fseventsd(
+pub(crate) async fn fseventsd(
     output: &mut Output,
     filter: bool,
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
-    let results = grab_fseventsd(options, filter, output);
+    let results = grab_fseventsd(options, filter, output).await;
     if results.is_err() {
         warn!(
             "[core] Failed to parse fseventsd: {:?}",
@@ -147,7 +147,7 @@ pub(crate) fn fseventsd(
 }
 
 /// Parse macOS `Launchd`
-pub(crate) fn launchd(
+pub(crate) async fn launchd(
     output: &mut Output,
     filter: bool,
     options: &LaunchdOptions,
@@ -173,7 +173,7 @@ pub(crate) fn launchd(
     };
 
     let output_name = "launchd";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get macOS `Unifiedlogs`
@@ -186,7 +186,7 @@ pub(crate) fn unifiedlogs(
 }
 
 /// Get macOS `ExecPolicy`
-pub(crate) fn execpolicy(
+pub(crate) async fn execpolicy(
     output: &mut Output,
     filter: bool,
     options: &ExecPolicyOptions,
@@ -212,11 +212,11 @@ pub(crate) fn execpolicy(
     };
 
     let output_name = "execpolicy";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse sudo logs on macOS
-pub(crate) fn sudo_logs_macos(
+pub(crate) async fn sudo_logs_macos(
     output: &mut Output,
     filter: bool,
     options: &MacosSudoOptions,
@@ -241,7 +241,7 @@ pub(crate) fn sudo_logs_macos(
     };
 
     let output_name = "sudologs-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse spotlight on macOS
@@ -261,14 +261,14 @@ pub(crate) fn spotlight(
 }
 
 /// Output macOS artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), MacArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(MacArtifactError::Output);

@@ -5,7 +5,10 @@ use lumination::connections::connections;
 use serde_json::Value;
 
 /// Attempt to get network connections on a system
-pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), ConnectionsError> {
+pub(crate) async fn list_connections(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), ConnectionsError> {
     let start_time = time::time_now();
 
     let conns = match connections() {
@@ -26,18 +29,18 @@ pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), 
     };
 
     let output_name = "connections";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Output connections
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), ConnectionsError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(ConnectionsError::OutputData);

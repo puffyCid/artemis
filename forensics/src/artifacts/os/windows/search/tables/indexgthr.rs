@@ -15,7 +15,7 @@ use log::error;
 use std::collections::HashMap;
 
 /// Parse the `SystemIndex_Gthr` table and output data
-pub(crate) fn parse_index_gthr(
+pub(crate) async fn parse_index_gthr(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, HashMap<String, String>>,
     output: &mut Output,
@@ -78,7 +78,7 @@ pub(crate) fn parse_index_gthr(
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&mut serde_data, "search", output, start_time, filter);
+            let result = output_data(&mut serde_data, "search", output, start_time, filter).await;
             match result {
                 Ok(_result) => {}
                 Err(err) => {
@@ -103,7 +103,7 @@ pub(crate) fn parse_index_gthr(
             return Err(SearchError::Serialize);
         }
     };
-    let result = output_data(&mut serde_data, "search", output, start_time, filter);
+    let result = output_data(&mut serde_data, "search", output, start_time, filter).await;
     match result {
         Ok(_result) => {}
         Err(err) => {
@@ -197,8 +197,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_index_gthr() {
+    #[tokio::test]
+    async fn test_parse_index_gthr() {
         let test_path =
             "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
@@ -240,6 +240,7 @@ mod tests {
                 0,
                 false,
             )
+            .await
             .unwrap();
             break;
         }

@@ -13,7 +13,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 /// Parse the Spotlight database and output results
-pub(crate) fn parse_spotlight(
+pub(crate) async fn parse_spotlight(
     glob_path: &str,
     output: &mut Output,
     start_time: u64,
@@ -45,7 +45,7 @@ pub(crate) fn parse_spotlight(
             }
         };
 
-        let result = parse_store(&mut store_reader, &meta, output, start_time, filter);
+        let result = parse_store(&mut store_reader, &meta, output, start_time, filter).await;
         if result.is_err() {
             error!(
                 "[spotlight] Could not parse the spotlight store at: {}",

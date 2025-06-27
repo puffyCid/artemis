@@ -7,7 +7,7 @@ use common::files::Hashes;
 use log::error;
 
 /// Get a filelisting based on provided options
-pub(crate) fn filelisting(
+pub(crate) async fn filelisting(
     output: &mut Output,
     filter: bool,
     options: &FileOptions,
@@ -28,7 +28,7 @@ pub(crate) fn filelisting(
             .unwrap_or(&String::new())
             .clone(),
     };
-    let artifact_result = get_filelist(&args, &hashes, output, filter);
+    let artifact_result = get_filelist(&args, &hashes, output, filter).await;
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {

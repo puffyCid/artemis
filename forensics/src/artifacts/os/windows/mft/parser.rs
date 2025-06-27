@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Try create a filelisting from provided MFT file
-pub(crate) fn grab_mft(
+pub(crate) async fn grab_mft(
     options: &MftOptions,
     output: &mut Output,
     filter: bool,
@@ -21,7 +21,7 @@ pub(crate) fn grab_mft(
     let start_time = time_now();
 
     let path = if let Some(file) = &options.alt_file {
-        return parse_mft(file, output, filter, start_time);
+        return parse_mft(file, output, filter, start_time).await;
     } else {
         // Check if alternative drive letter provided
         if let Some(drive) = &options.alt_drive {
@@ -33,7 +33,7 @@ pub(crate) fn grab_mft(
         }
     };
 
-    parse_mft(&path, output, filter, start_time)
+    parse_mft(&path, output, filter, start_time).await
 }
 
 #[cfg(test)]

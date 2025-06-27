@@ -8,7 +8,7 @@ use log::error;
 use serde_json::Value;
 
 /// Output forensic artifacts
-pub(crate) fn output_artifact(
+pub(crate) async fn output_artifact(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
@@ -19,7 +19,7 @@ pub(crate) fn output_artifact(
         if let Some(script) = &output.filter_script.clone() {
             let args = vec![serde_data.to_string(), output_name.to_string()];
             if let Some(name) = &output.filter_name.clone() {
-                let filter_result = filter_script(output, &args, name, script);
+                let filter_result = filter_script(output, &args, name, script).await;
                 return match filter_result {
                     Ok(_) => Ok(()),
                     Err(err) => {
@@ -28,7 +28,7 @@ pub(crate) fn output_artifact(
                     }
                 };
             }
-            let filter_result = filter_script(output, &args, "UnknownFilterName", script);
+            let filter_result = filter_script(output, &args, "UnknownFilterName", script).await;
             return match filter_result {
                 Ok(_) => Ok(()),
                 Err(err) => {
@@ -40,11 +40,11 @@ pub(crate) fn output_artifact(
     }
 
     let output_status = if output.format.to_lowercase() == "jsonl" || output.timeline {
-        jsonl_format(serde_data, output_name, output, start_time)
+        jsonl_format(serde_data, output_name, output, start_time).await
     } else if output.format.to_lowercase() == "json" {
-        json_format(serde_data, output_name, output, start_time)
+        json_format(serde_data, output_name, output, start_time).await
     } else if output.format.to_lowercase() == "csv" {
-        csv_format(serde_data, output_name, output)
+        csv_format(serde_data, output_name, output).await
     } else {
         error!("[core] Unknown formatter provided: {}", output.format);
         return Err(CollectionError::Format);

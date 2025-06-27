@@ -14,7 +14,7 @@ use log::{error, info};
 use serde_json::{Value, json};
 
 /// Output to `json` format with some metadata
-pub(crate) fn json_format(
+pub(crate) async fn json_format(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
@@ -67,11 +67,11 @@ pub(crate) fn json_format(
         }];
     }
 
-    raw_json(serde_data, output_name, output)
+    raw_json(serde_data, output_name, output).await
 }
 
 /// Output to `json` format
-pub(crate) fn raw_json(
+pub(crate) async fn raw_json(
     serde_data: &Value,
     output_name: &str,
     output: &mut Output,
@@ -92,7 +92,7 @@ pub(crate) fn raw_json(
     }
 
     let uuid = generate_uuid();
-    let output_result = final_output(&collection_data, output, &uuid);
+    let output_result = final_output(&collection_data, output, &uuid).await;
     match output_result {
         Ok(_) => info!("[core] {} json output success", output_name),
         Err(err) => {
@@ -110,8 +110,8 @@ mod tests {
     use super::raw_json;
     use crate::{output::formats::json::json_format, structs::toml::Output, utils::time::time_now};
 
-    #[test]
-    fn test_json_format() {
+    #[tokio::test]
+    async fn test_json_format() {
         let mut output = Output {
             name: String::from("format_test"),
             directory: String::from("./tmp"),
@@ -131,11 +131,13 @@ mod tests {
 
         let name = "test";
         let mut data = serde_json::Value::String(String::from("test"));
-        json_format(&mut data, name, &mut output, start_time).unwrap();
+        json_format(&mut data, name, &mut output, start_time)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_raw_json() {
+    #[tokio::test]
+    async fn test_raw_json() {
         let mut output = Output {
             name: String::from("format_test_raw"),
             directory: String::from("./tmp"),
@@ -154,6 +156,6 @@ mod tests {
 
         let name = "test";
         let data = serde_json::Value::String(String::from("test123"));
-        raw_json(&data, name, &mut output).unwrap();
+        raw_json(&data, name, &mut output).await.unwrap();
     }
 }

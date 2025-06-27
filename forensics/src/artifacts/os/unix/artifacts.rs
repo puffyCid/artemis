@@ -10,7 +10,10 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Get zsh history depending on target OS
-pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn zsh_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
     let zsh_results = get_user_zsh_history();
     let history_data = match zsh_results {
@@ -31,11 +34,14 @@ pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixA
     };
 
     let output_name = "zsh_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get bash history depending on target OS
-pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn bash_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_bash_history();
@@ -57,11 +63,14 @@ pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), Unix
     };
 
     let output_name = "bash_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get python history depending on target OS
-pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn python_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_python_history();
@@ -83,11 +92,11 @@ pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), Un
     };
 
     let output_name = "python_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse cron data
-pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let cron_results = parse_cron();
@@ -109,18 +118,18 @@ pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArti
     };
 
     let output_name = "cron";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 // Output unix artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), UnixArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(UnixArtifactError::Output);

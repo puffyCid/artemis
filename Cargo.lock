@@ -182,6 +182,7 @@ dependencies = [
  "clap",
  "forensics",
  "log",
+ "tokio",
 ]
 
 [[package]]

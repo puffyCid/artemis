@@ -6,7 +6,9 @@ use crate::{
     },
     structs::toml::Output,
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use boa_engine::{
+    Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
+};
 use log::error;
 
 pub(crate) fn js_output_results(
@@ -31,14 +33,35 @@ pub(crate) fn js_output_results(
     };
 
     let empty_start = 0;
-    let status = output_data(&mut data, &output_name, &mut output, empty_start);
-    if status.is_err() {
-        error!("[runtime] Failed could not output script data");
-        let issue = String::from("Failed could not output script data");
-        return Err(JsError::from_opaque(js_string!(issue).into()));
-    }
+    let promise = JsPromise::from_future(
+        async move {
+            let status = output_data(&mut data, &output_name, &mut output, empty_start).await;
+            if status.is_err() {
+                error!("[runtime] Failed could not output script data");
+                let issue = String::from("Failed could not output script data");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+            Ok(JsValue::Boolean(true))
+        },
+        context,
+    )
+    .then(
+        Some(
+            NativeFunction::from_fn_ptr(|_, args, ctx| {
+                // Get the value from the script
+                let script_value = string_arg(args, 0)?;
+                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                let value = JsValue::from_json(&serde_value, ctx)?;
+                // Returh the JavaScript object
+                Ok(value)
+            })
+            .to_js_function(context.realm()),
+        ),
+        None,
+        context,
+    );
 
-    Ok(JsValue::Boolean(sucess))
+    Ok(promise.into())
 }
 
 pub(crate) fn js_raw_dump(
@@ -61,23 +84,44 @@ pub(crate) fn js_raw_dump(
         }
     };
 
-    if output.format == "jsonl" {
-        if raw_jsonl(&data, &output_name, &mut output).is_err() {
-            let issue = String::from("Failed could not output raw jsonl data");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    } else if output.format == "json" {
-        if raw_json(&data, &output_name, &mut output).is_err() {
-            let issue = String::from("Failed could not output raw json data");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    } else {
-        return Err(JsError::from_opaque(
-            js_string!(format!("bad format: {}", output.format)).into(),
-        ));
-    }
+    let promise = JsPromise::from_future(
+        async move {
+            if output.format == "jsonl" {
+                if raw_jsonl(&data, &output_name, &mut output).await.is_err() {
+                    let issue = String::from("Failed could not output raw jsonl data");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            } else if output.format == "json" {
+                if raw_json(&data, &output_name, &mut output).await.is_err() {
+                    let issue = String::from("Failed could not output raw json data");
+                    return Err(JsError::from_opaque(js_string!(issue).into()));
+                }
+            } else {
+                return Err(JsError::from_opaque(
+                    js_string!(format!("bad format: {}", output.format)).into(),
+                ));
+            }
+            Ok(JsValue::Boolean(true))
+        },
+        context,
+    )
+    .then(
+        Some(
+            NativeFunction::from_fn_ptr(|_, args, ctx| {
+                // Get the value from the script
+                let script_value = string_arg(args, 0)?;
+                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                let value = JsValue::from_json(&serde_value, ctx)?;
+                // Returh the JavaScript object
+                Ok(value)
+            })
+            .to_js_function(context.realm()),
+        ),
+        None,
+        context,
+    );
 
-    Ok(JsValue::Boolean(sucess))
+    Ok(promise.into())
 }
 
 #[cfg(test)]

@@ -24,19 +24,19 @@ struct Args {
     #[command(subcommand)]
     command: Option<Commands>,
 }
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
-    parse_args(&args)
+    parse_args(&args).await
 }
 
 /// Parse the support `artemis` options
-fn parse_args(args: &Args) {
+async fn parse_args(args: &Args) {
     println!("[artemis] Starting artemis collection!");
 
     if let Some(toml) = &args.toml {
         if !toml.is_empty() {
-            let collection_results = forensics::core::parse_toml_file(toml);
+            let collection_results = forensics::core::parse_toml_file(toml).await;
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -57,7 +57,7 @@ fn parse_args(args: &Args) {
                     return;
                 }
             };
-            let collection_results = forensics::core::parse_toml_data(&toml_data);
+            let collection_results = forensics::core::parse_toml_data(&toml_data).await;
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -93,7 +93,7 @@ fn parse_args(args: &Args) {
             api_key: None,
             logging: None,
         };
-        run_collector(command, out)
+        run_collector(command, out).await
     } else {
         println!("[artemis] No valid command args provided!");
         return;

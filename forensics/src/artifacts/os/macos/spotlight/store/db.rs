@@ -22,7 +22,7 @@ use std::{
 };
 
 /// Parse the Spotlight store.db and extract entries
-pub(crate) fn parse_store(
+pub(crate) async fn parse_store(
     reader: &mut File,
     meta: &SpotlightMeta,
     output: &mut Output,
@@ -83,7 +83,8 @@ pub(crate) fn parse_store(
                     continue;
                 }
             };
-            let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
+            let result =
+                output_data(&mut serde_data, "spotlight", output, start_time, filter).await;
             if result.is_err() {
                 error!(
                     "[spotlight] Could not output spotlight data: {:?}",
@@ -104,7 +105,7 @@ pub(crate) fn parse_store(
                 return Err(SpotlightError::Serialize);
             }
         };
-        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
+        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter).await;
         if result.is_err() {
             error!(
                 "[spotlight] Could not output last spotlight data: {:?}",

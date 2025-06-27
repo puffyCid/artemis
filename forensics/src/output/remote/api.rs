@@ -13,7 +13,7 @@ use std::{thread::sleep, time::Duration};
 /// Upload data to a remote server. We use our unique endpoint ID for authentication
 /// It should have been obtained from our initial enrollment when running in deamon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
-pub(crate) fn api_upload(
+pub(crate) async fn api_upload(
     data: &[u8],
     output: &Output,
     output_name: &str,
@@ -112,8 +112,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_api_upload() {
+    #[tokio::test]
+    async fn test_api_upload() {
         let server = MockServer::start();
         let port = server.port();
         let output = output_options("api_upload_test", "api", "tmp", false, port);
@@ -126,13 +126,15 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", true).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", true)
+            .await
+            .unwrap();
         mock_me.assert();
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "RemoteUrl")]
-    fn test_api_bad_upload() {
+    async fn test_api_bad_upload() {
         let server = MockServer::start();
         let port = server.port();
         let mut output = output_options("api_upload_test", "api", "tmp", false, port);
@@ -146,7 +148,9 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", false).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip", false)
+            .await
+            .unwrap();
         mock_me.assert();
     }
 }

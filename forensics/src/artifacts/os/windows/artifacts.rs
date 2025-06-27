@@ -29,7 +29,7 @@ use log::error;
 use serde_json::Value;
 
 /// Parse the Windows `Prefetch` artifact
-pub(crate) fn prefetch(
+pub(crate) async fn prefetch(
     options: &PrefetchOptions,
     output: &mut Output,
     filter: bool,
@@ -55,17 +55,17 @@ pub(crate) fn prefetch(
     };
 
     let output_name = "prefetch";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `EventLogs` artifact
-pub(crate) fn eventlogs(
+pub(crate) async fn eventlogs(
     options: &EventLogsOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    let result = grab_eventlogs(options, output, filter);
+    let result = grab_eventlogs(options, output, filter).await;
     match result {
         Ok(_) => {}
         Err(err) => {
@@ -77,13 +77,13 @@ pub(crate) fn eventlogs(
 }
 
 /// Parse the Windows `Registry` artifact
-pub(crate) fn registry(
+pub(crate) async fn registry(
     options: &RegistryOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    let result = parse_registry(options, output, filter);
+    let result = parse_registry(options, output, filter).await;
     match result {
         Ok(_) => {}
         Err(err) => {
@@ -95,13 +95,13 @@ pub(crate) fn registry(
 }
 
 /// Parse the Windows `NTFS` artifact
-pub(crate) fn raw_filelist(
+pub(crate) async fn raw_filelist(
     options: &RawFilesOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
-    let result = ntfs_filelist(options, output, filter);
+    let result = ntfs_filelist(options, output, filter).await;
     match result {
         Ok(_) => {}
         Err(err) => {
@@ -113,7 +113,7 @@ pub(crate) fn raw_filelist(
 }
 
 /// Get Windows `Shimdatabase(s)`
-pub(crate) fn shimdb(
+pub(crate) async fn shimdb(
     options: &ShimdbOptions,
     output: &mut Output,
     filter: bool,
@@ -138,11 +138,11 @@ pub(crate) fn shimdb(
     };
 
     let output_name = "shimdb";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `UserAssist` entries
-pub(crate) fn userassist(
+pub(crate) async fn userassist(
     options: &UserAssistOptions,
     output: &mut Output,
     filter: bool,
@@ -167,11 +167,11 @@ pub(crate) fn userassist(
         }
     };
     let output_name = "userassist";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `Shimcache` entries
-pub(crate) fn shimcache(
+pub(crate) async fn shimcache(
     options: &ShimcacheOptions,
     output: &mut Output,
     filter: bool,
@@ -196,11 +196,11 @@ pub(crate) fn shimcache(
         }
     };
     let output_name = "shimcache";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `Shellbag` entries
-pub(crate) fn shellbags(
+pub(crate) async fn shellbags(
     options: &ShellbagsOptions,
     output: &mut Output,
     filter: bool,
@@ -226,11 +226,11 @@ pub(crate) fn shellbags(
         }
     };
     let output_name = "shellbags";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `Amcache` entries
-pub(crate) fn amcache(
+pub(crate) async fn amcache(
     options: &AmcacheOptions,
     output: &mut Output,
     filter: bool,
@@ -256,11 +256,11 @@ pub(crate) fn amcache(
         }
     };
     let output_name = "amcache";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `Shortcut` data
-pub(crate) fn shortcuts(
+pub(crate) async fn shortcuts(
     options: &ShortcutOptions,
     output: &mut Output,
     filter: bool,
@@ -285,11 +285,11 @@ pub(crate) fn shortcuts(
         }
     };
     let output_name = "shortcuts";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `UsnJrnl` data
-pub(crate) fn usnjrnl(
+pub(crate) async fn usnjrnl(
     options: &UsnJrnlOptions,
     output: &mut Output,
     filter: bool,
@@ -314,11 +314,11 @@ pub(crate) fn usnjrnl(
         }
     };
     let output_name = "usnjrnl";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `Bits` data
-pub(crate) fn bits(
+pub(crate) async fn bits(
     options: &BitsOptions,
     output: &mut Output,
     filter: bool,
@@ -343,16 +343,16 @@ pub(crate) fn bits(
         }
     };
     let output_name = "bits";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get Windows `SRUM` data
-pub(crate) fn srum(
+pub(crate) async fn srum(
     options: &SrumOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let artifact_result = grab_srum(options, output, filter);
+    let artifact_result = grab_srum(options, output, filter).await;
     match artifact_result {
         Ok(_) => (),
         Err(err) => {
@@ -364,12 +364,12 @@ pub(crate) fn srum(
 }
 
 /// Get Windows `Search` data
-pub(crate) fn search(
+pub(crate) async fn search(
     options: &SearchOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let artifact_result = grab_search(options, output, filter);
+    let artifact_result = grab_search(options, output, filter).await;
     match artifact_result {
         Ok(_) => (),
         Err(err) => {
@@ -381,7 +381,7 @@ pub(crate) fn search(
 }
 
 /// Get Windows `Users` info
-pub(crate) fn users_windows(
+pub(crate) async fn users_windows(
     options: &WindowsUserOptions,
     output: &mut Output,
     filter: bool,
@@ -405,11 +405,11 @@ pub(crate) fn users_windows(
         }
     };
     let output_name = "users-windows";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `Schedule Tasks` artifact
-pub(crate) fn tasks(
+pub(crate) async fn tasks(
     options: &TasksOptions,
     output: &mut Output,
     filter: bool,
@@ -435,11 +435,11 @@ pub(crate) fn tasks(
     };
 
     let output_name = "tasks";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `Services` artifact
-pub(crate) fn services(
+pub(crate) async fn services(
     options: &ServicesOptions,
     output: &mut Output,
     filter: bool,
@@ -465,11 +465,11 @@ pub(crate) fn services(
     };
 
     let output_name = "services";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `Jumplists` artifact
-pub(crate) fn jumplists(
+pub(crate) async fn jumplists(
     options: &JumplistsOptions,
     output: &mut Output,
     filter: bool,
@@ -495,11 +495,11 @@ pub(crate) fn jumplists(
     };
 
     let output_name = "jumplists";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `Recycle Bin` artifact
-pub(crate) fn recycle_bin(
+pub(crate) async fn recycle_bin(
     options: &RecycleBinOptions,
     output: &mut Output,
     filter: bool,
@@ -525,11 +525,11 @@ pub(crate) fn recycle_bin(
     };
 
     let output_name = "recyclebin";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `WMI Persist` artifact
-pub(crate) fn wmi_persist(
+pub(crate) async fn wmi_persist(
     options: &WmiPersistOptions,
     output: &mut Output,
     filter: bool,
@@ -555,16 +555,16 @@ pub(crate) fn wmi_persist(
     };
 
     let output_name = "wmipersist";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse the Windows `Outlook` artifact
-pub(crate) fn outlook(
+pub(crate) async fn outlook(
     options: &OutlookOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let outlook_result = grab_outlook(options, output, filter);
+    let outlook_result = grab_outlook(options, output, filter).await;
     match outlook_result {
         Ok(results) => results,
         Err(err) => {
@@ -577,12 +577,12 @@ pub(crate) fn outlook(
 }
 
 /// Parse the Windows `MFT` artifact
-pub(crate) fn mft(
+pub(crate) async fn mft(
     options: &MftOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let mft_results = grab_mft(options, output, filter);
+    let mft_results = grab_mft(options, output, filter).await;
     match mft_results {
         Ok(results) => results,
         Err(err) => {
@@ -595,14 +595,14 @@ pub(crate) fn mft(
 }
 
 /// Output Windows artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
         return Err(WinArtifactError::Output);

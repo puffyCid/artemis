@@ -47,7 +47,7 @@ pub(crate) struct Params {
 }
 
 /// Parse Windows `Registry` files based on provided options
-pub(crate) fn parse_registry(
+pub(crate) async fn parse_registry(
     options: &RegistryOptions,
     output: &mut Output,
     filter: bool,
@@ -65,7 +65,7 @@ pub(crate) fn parse_registry(
 
     if let Some(path) = &options.alt_file {
         params.registry_path = path.clone();
-        return parse_registry_file(output, &mut params);
+        return parse_registry_file(output, &mut params).await;
     }
 
     let drive_result = get_systemdrive();
@@ -78,11 +78,11 @@ pub(crate) fn parse_registry(
     };
 
     if options.user_hives {
-        parse_user_hives(drive, output, &mut params)?;
+        parse_user_hives(drive, output, &mut params).await?;
     }
 
     if options.system_hives {
-        parse_default_system_hives(drive, output, &mut params)?;
+        parse_default_system_hives(drive, output, &mut params).await?;
     }
 
     Ok(())
@@ -101,7 +101,7 @@ fn user_regex(input: &str) -> Result<Regex, RegistryError> {
 }
 
 /// Parse useful system hive files. Other hive files include: COMPONENTS, DEFAULT, DRIVERS, BBI, ELAM, userdiff, BCD-Template
-fn parse_default_system_hives(
+async fn parse_default_system_hives(
     drive: char,
     output: &mut Output,
     params: &mut Params,
@@ -115,7 +115,7 @@ fn parse_default_system_hives(
 
     for path in paths {
         params.registry_path = path;
-        let result = parse_registry_file(output, params);
+        let result = parse_registry_file(output, params).await;
         match result {
             Ok(_) => {}
             Err(err) => {
@@ -130,7 +130,10 @@ fn parse_default_system_hives(
 }
 
 /// Parse a provided `Registry` file and output the results
-fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), RegistryError> {
+async fn parse_registry_file(
+    output: &mut Output,
+    params: &mut Params,
+) -> Result<(), RegistryError> {
     let start_time = time_now();
 
     let buffer = read_registry(&params.registry_path)?;
@@ -164,7 +167,8 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         output,
         start_time,
         params.filter,
-    );
+    )
+    .await;
     match result {
         Ok(_) => Ok(()),
         Err(err) => {
@@ -178,7 +182,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
 }
 
 /// Parse the user `Registry` hives (NTUSER.DAT and UsrClass.dat)
-fn parse_user_hives(
+async fn parse_user_hives(
     drive: char,
     output: &mut Output,
     params: &mut Params,
@@ -248,7 +252,8 @@ fn parse_user_hives(
             output,
             start_time,
             params.filter,
-        );
+        )
+        .await;
         match result {
             Ok(_) => {}
             Err(err) => {

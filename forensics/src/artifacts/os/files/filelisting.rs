@@ -39,7 +39,7 @@ pub(crate) struct FileArgs {
 }
 
 /// Get file listing
-pub(crate) fn get_filelist(
+pub(crate) async fn get_filelist(
     args: &FileArgs,
     hashes: &Hashes,
     output: &mut Output,
@@ -120,11 +120,11 @@ pub(crate) fn get_filelist(
             1000
         };
         if filelist_vec.len() >= max_list {
-            file_output(&filelist_vec, output, start_time, filter);
+            file_output(&filelist_vec, output, start_time, filter).await;
             filelist_vec = Vec::new();
         }
     }
-    file_output(&filelist_vec, output, start_time, filter);
+    file_output(&filelist_vec, output, start_time, filter).await;
     Ok(())
 }
 
@@ -313,7 +313,7 @@ fn user_regex(input: &str) -> Result<Regex, FileError> {
 }
 
 /// Send filelisting to output based on `Output` parameter
-fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filter: bool) {
+async fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -323,7 +323,7 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filt
         }
     };
 
-    let status = output_artifact(&mut serde_data, "files", output, start_time, filter);
+    let status = output_artifact(&mut serde_data, "files", output, start_time, filter).await;
     if status.is_err() {
         error!("[core] Could not output data: {:?}", status.unwrap_err());
     }

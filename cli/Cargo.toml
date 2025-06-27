@@ -10,6 +10,8 @@ description = { workspace = true }
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
+tokio = { workspace = true }
+
 forensics = { path = "../forensics", default-features = false }
 clap = { version = "4.5.40", features = ["std", "help", "derive"] }
 

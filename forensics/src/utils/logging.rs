@@ -92,7 +92,7 @@ pub(crate) fn collection_status(
 }
 
 /// Upload artemis logs
-pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), ArtemisError> {
+pub(crate) async fn upload_logs(output_dir: &str, output: &Output) -> Result<(), ArtemisError> {
     let files_res = list_files(output_dir);
     let log_files = match files_res {
         Ok(results) => results,
@@ -117,13 +117,13 @@ pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), Artem
         };
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
-            if let Err(err) = api_upload(&log_data, output, &get_filename(log), true) {
+            if let Err(err) = api_upload(&log_data, output, &get_filename(log), true).await {
                 error!("[core] Failed to upload to API server: {err:?}");
             }
             let _ = remove_file(log);
             break;
         }
-        final_output(&log_data, output, &get_filename(log))?;
+        final_output(&log_data, output, &get_filename(log)).await?;
         let _ = remove_file(log);
     }
 
