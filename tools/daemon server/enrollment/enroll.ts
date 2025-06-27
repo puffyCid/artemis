@@ -65,6 +65,7 @@ export type EnrollReponseType = Static<typeof EnrollResponse>;
 
 export const BadRequest = Type.Object({
     message: Type.String(),
+    endpoint_invalid: Type.Boolean(),
 });
 
 export type BadReqestType = Static<typeof BadRequest>;

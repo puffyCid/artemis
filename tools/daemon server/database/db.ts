@@ -32,6 +32,21 @@ export class LocalSqlite {
     }
 
     /**
+     * Function to check if provided endpoint ID is found in the database
+     * @param endpoint_id ID for the endpoint to check
+     * @returns True if endpoint was found. False if not found
+     */
+    public validateEndpoint(endpoint_id: string): boolean {
+        const query = this.db.prepare(`SELECT * FROM endpoints where endpoint_id = ?`);
+        const values = query.get(endpoint_id);
+        if (values === undefined) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Get list of enrolled endpoints
      * @returns Array of rows from `endpoints` table
      */

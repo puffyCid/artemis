@@ -28,6 +28,10 @@ export type CollectTypeResponse = Static<typeof CollectResponse>;
 export async function collectionEndpoint(request: FastifyRequest<{ Body: CollectType; }>, reply: FastifyReply) {
     try {
         const db = new LocalSqlite("./build/test.db");
+        if (!db.validateEndpoint(request.body.endpoint_id)) {
+            reply.statusCode = 500;
+            reply.send({ message: `Endpoint not found in database`, endpoint_invalid: true });
+        }
         const script = db.getCollections(request.body.endpoint_id);
         if (script === undefined) {
             reply.statusCode = 204;
@@ -47,7 +51,7 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
             console.warn(`Could not read file ${err}`);
         }
         reply.statusCode = 500;
-        reply.send({ message: `Failed to read collection toml file` });
+        reply.send({ message: `Failed to read collection toml file`, endpoint_invalid: false });
     }
 }
 
@@ -63,6 +67,10 @@ export async function collectionUploadEndpoint(request: FastifyRequest, reply: F
     if (data === undefined) {
         reply.statusCode = 400;
         return reply.send({ message: "Missing multipart data", endpoint_invalid: false });
+    }
+    const db = new LocalSqlite("./build/test.db");
+    if (!db.validateEndpoint(request.headers[ "x-artemis-endpoint_id" ] as string)) {
+        reply.send({ message: `Endpoint not found in database`, endpoint_invalid: true });
     }
 
     await streamFile(data, request.headers);
