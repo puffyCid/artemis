@@ -48,7 +48,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
 }
 
 /// Process our collection request
-pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
+pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
     if collect.endpoint_invalid {
         setup_enrollment(config);
     }
@@ -68,7 +68,7 @@ pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectRespo
         return;
     }
 
-    if let Err(err) = forensics::core::parse_toml_data(&collection_bytes) {
+    if let Err(err) = forensics::core::parse_toml_data(&collection_bytes).await {
         error!("[daemon] Could not process TOML collection {err:?}");
     }
 }

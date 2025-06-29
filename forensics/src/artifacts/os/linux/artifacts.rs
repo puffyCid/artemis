@@ -123,19 +123,21 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_journals() {
+    #[tokio::test]
+    async fn test_journals() {
         let mut output = output_options("journals_test", "local", "./tmp", false);
 
         let status = journals(
@@ -145,12 +147,13 @@ mod tests {
                 alt_path: Some(String::from("./tmp")),
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_logons() {
+    #[tokio::test]
+    async fn test_logons() {
         let mut output = output_options("logons_test", "local", "./tmp", false);
 
         let status = logons(
@@ -160,12 +163,13 @@ mod tests {
                 alt_file: Some(String::from("/var/run/utmp")),
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_sudo_logs_linux() {
+    #[tokio::test]
+    async fn test_sudo_logs_linux() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
         let status = sudo_logs_linux(
@@ -175,6 +179,7 @@ mod tests {
                 alt_path: Some(String::from("./tmp")),
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }

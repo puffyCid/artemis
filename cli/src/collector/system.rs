@@ -541,8 +541,8 @@ mod tests {
         out
     }
 
-    #[test]
-    fn test_run_collector_proc() {
+    #[tokio::test]
+    async fn test_run_collector_proc() {
         let command = Commands::Acquire {
             artifact: Some(Processes {
                 md5: true,
@@ -557,11 +557,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_files() {
+    #[tokio::test]
+    async fn test_run_collector_files() {
         let command = Commands::Acquire {
             artifact: Some(Filelisting {
                 md5: true,
@@ -580,11 +580,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_macos_collector_root() {
+    #[tokio::test]
+    async fn test_run_macos_collector_root() {
         let command = Commands::Acquire {
             artifact: Some(Launchd { alt_file: None }),
             format: String::from("json"),
@@ -594,7 +594,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(UsersMacos { alt_path: None }),
@@ -605,7 +605,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(SudologsMacos {
@@ -618,7 +618,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Cron {}),
@@ -629,7 +629,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Systeminfo {}),
@@ -640,7 +640,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(GroupsMacos { alt_path: None }),
@@ -651,7 +651,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Execpolicy { alt_file: None }),
@@ -662,7 +662,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Shellhistory {}),
@@ -673,7 +673,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Fsevents { alt_file: None }),
@@ -684,7 +684,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Emond { alt_path: None }),
@@ -695,7 +695,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(SafariDownloads {}),
@@ -706,7 +706,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(SafariHistory {}),
@@ -717,11 +717,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_logs() {
+    #[tokio::test]
+    async fn test_run_collector_logs() {
         let command = Commands::Acquire {
             artifact: Some(Unifiedlogs {
                 sources: vec![String::from("Special")],
@@ -734,11 +734,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_spotlight() {
+    #[tokio::test]
+    async fn test_run_collector_spotlight() {
         let command = Commands::Acquire {
             artifact: Some(Spotlight {
                 alt_path: None,
@@ -751,7 +751,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
     #[test]
@@ -760,8 +760,8 @@ mod tests {
         assert_eq!(result.artifact_name, "loginitems");
     }
 
-    #[test]
-    fn test_run_linux_collector_others() {
+    #[tokio::test]
+    async fn test_run_linux_collector_others() {
         let command = Commands::Acquire {
             artifact: Some(Logons { alt_file: None }),
             format: String::from("json"),
@@ -771,7 +771,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Journals {
@@ -784,7 +784,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(SudologsLinux { alt_path: None }),
@@ -795,11 +795,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_reg() {
+    #[tokio::test]
+    async fn test_run_collector_reg() {
         let command = Commands::Acquire {
             artifact: Some(Registry {
                 user_hives: true,
@@ -814,11 +814,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_eventlogs() {
+    #[tokio::test]
+    async fn test_run_collector_eventlogs() {
         let command = Commands::Acquire {
             artifact: Some(Eventlogs {
                 alt_file: None,
@@ -835,11 +835,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_prefetch() {
+    #[tokio::test]
+    async fn test_run_collector_prefetch() {
         let command = Commands::Acquire {
             artifact: Some(Prefetch { alt_dir: None }),
             format: String::from("json"),
@@ -849,11 +849,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_alts() {
+    #[tokio::test]
+    async fn test_run_collector_alts() {
         let command = Commands::Acquire {
             artifact: Some(Services { alt_file: None }),
             format: String::from("json"),
@@ -863,7 +863,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Shimcache { alt_file: None }),
@@ -874,7 +874,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Shimdb { alt_file: None }),
@@ -885,7 +885,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Recyclebin { alt_file: None }),
@@ -896,7 +896,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(UsersWindows { alt_file: None }),
@@ -907,7 +907,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Tasks { alt_file: None }),
@@ -918,7 +918,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
 
         let command = Commands::Acquire {
             artifact: Some(Amcache { alt_file: None }),
@@ -929,11 +929,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_shellbags() {
+    #[tokio::test]
+    async fn test_run_collector_shellbags() {
         let command = Commands::Acquire {
             artifact: Some(Shellbags {
                 resolve_guids: false,
@@ -946,11 +946,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_srum() {
+    #[tokio::test]
+    async fn test_run_collector_srum() {
         let command = Commands::Acquire {
             artifact: Some(Srum { alt_file: None }),
             format: String::from("json"),
@@ -960,11 +960,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_bits() {
+    #[tokio::test]
+    async fn test_run_collector_bits() {
         let command = Commands::Acquire {
             artifact: Some(Bits {
                 carve: false,
@@ -977,11 +977,11 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
-    #[test]
-    fn test_run_collector_rawfiles() {
+    #[tokio::test]
+    async fn test_run_collector_rawfiles() {
         let command = Commands::Acquire {
             artifact: Some(Rawfilelisting {
                 drive_letter: 'C',
@@ -1002,7 +1002,7 @@ mod tests {
         };
 
         let out = output();
-        run_collector(&command, out);
+        run_collector(&command, out).await;
     }
 
     #[test]

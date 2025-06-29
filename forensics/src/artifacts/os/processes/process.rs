@@ -260,8 +260,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_proc_list() {
+    #[tokio::test]
+    async fn test_proc_list() {
         let hashes = Hashes {
             md5: false,
             sha1: false,
@@ -269,7 +269,7 @@ mod tests {
         };
         let mut output = output_options("proc_test", "local", "./tmp", false);
 
-        proc_list(&hashes, false, false, &mut output).unwrap();
+        proc_list(&hashes, false, false, &mut output).await.unwrap();
     }
 
     #[test]

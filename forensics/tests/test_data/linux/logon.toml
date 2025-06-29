@@ -10,7 +10,7 @@ collection_id = 1
 output = "local"
 
 [[artifacts]]
-artifact_name = "logon"
+artifact_name = "logons"
 [artifacts.logons]
 # Optional
 # alt_file = ""

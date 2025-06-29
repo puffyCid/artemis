@@ -81,14 +81,16 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_output_artifact() {
+    #[tokio::test]
+    async fn test_output_artifact() {
         let mut output = output_options("output_test", "json", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = serde_json::Value::String(String::from("test"));
-        let status = output_artifact(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_artifact(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }

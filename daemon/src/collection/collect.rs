@@ -98,8 +98,8 @@ mod tests {
     use serde_json::json;
     use std::path::PathBuf;
 
-    #[test]
-    fn test_collect_request() {
+    #[tokio::test]
+    async fn test_collect_request() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -134,6 +134,6 @@ mod tests {
         assert!(status.collection.len() > 100);
 
         let data = base64_decode_standard(&status.collection).unwrap();
-        forensics::core::parse_toml_data(&data).unwrap();
+        forensics::core::parse_toml_data(&data).await.unwrap();
     }
 }

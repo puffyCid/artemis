@@ -55,11 +55,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_systeminfo() {
+    #[tokio::test]
+    async fn test_systeminfo() {
         let mut output = output_options("system_test", "local", "./tmp", false);
 
-        let status = systeminfo(&mut output, false).unwrap();
+        let status = systeminfo(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 }

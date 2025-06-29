@@ -218,23 +218,27 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_journal() {
+    #[tokio::test]
+    async fn test_parse_journal() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_get_entries() {
+    #[tokio::test]
+    async fn test_get_entries() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let mut output = output_options("journal_test", "local", "./tmp", false);
-        get_entries(&mut reader, 3738992, true, &mut output, false, 0).unwrap();
+        get_entries(&mut reader, 3738992, true, &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
     #[test]
@@ -255,12 +259,14 @@ mod tests {
         assert_eq!(result.len(), 4);
     }
 
-    #[test]
-    fn test_parse_journal_bad() {
+    #[tokio::test]
+    async fn test_parse_journal_bad() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 }

@@ -17,6 +17,7 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 reqwest = { workspace = true }
 base64 = { workspace = true }
+tokio = { workspace = true }
 
 chrono = "0.4.41"
 

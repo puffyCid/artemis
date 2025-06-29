@@ -92,61 +92,67 @@ mod tests {
     };
     use std::path::PathBuf;
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
     #[ignore = "Runs full macos.toml collection"]
-    fn test_parse_macos_toml_file() {
+    async fn test_parse_macos_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
     #[ignore = "Runs full windows.toml collection"]
-    fn test_parse_windows_toml_file() {
+    async fn test_parse_windows_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
     #[ignore = "Runs full linux.toml collection"]
-    fn test_parse_linux_toml_file() {
+    async fn test_parse_linux_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_parse_windows_toml_data() {
+    async fn test_parse_windows_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
-    fn test_parse_macos_toml_data() {
+    async fn test_parse_macos_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_linux_toml_data() {
+    async fn test_parse_linux_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
     #[test]
@@ -156,8 +162,8 @@ mod tests {
         parse_js_file(&test_location.display().to_string()).unwrap();
     }
 
-    #[test]
-    fn test_bad_parse_toml_file() {
+    #[tokio::test]
+    async fn test_bad_parse_toml_file() {
         let mut collection = ArtemisToml {
             output: Output {
                 name: String::from("core"),
@@ -176,6 +182,6 @@ mod tests {
             },
             artifacts: Vec::new(),
         };
-        artemis_collection(&mut collection).unwrap();
+        artemis_collection(&mut collection).await.unwrap();
     }
 }

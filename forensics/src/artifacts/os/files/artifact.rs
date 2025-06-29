@@ -63,9 +63,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_filelisting_unix() {
+    async fn test_filelisting_unix() {
         let mut output = output_options("file_test", "local", "./tmp", false);
 
         let file_config = FileOptions {
@@ -78,7 +78,7 @@ mod tests {
             regex_filter: Some(String::new()),
             yara: None,
         };
-        let status = filelisting(&mut output, false, &file_config).unwrap();
+        let status = filelisting(&mut output, false, &file_config).await.unwrap();
         assert_eq!(status, ());
     }
 

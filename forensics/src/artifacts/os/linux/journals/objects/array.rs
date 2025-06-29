@@ -450,8 +450,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_walk_entries() {
+    #[tokio::test]
+    async fn test_walk_entries() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
@@ -477,6 +477,7 @@ mod tests {
             false,
             0,
         )
+        .await
         .unwrap();
         assert_eq!(result, 3744448);
     }

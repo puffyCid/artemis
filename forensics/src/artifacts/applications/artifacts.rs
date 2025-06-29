@@ -104,19 +104,19 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_safari_history() {
+    #[tokio::test]
+    async fn test_safari_history() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 
-        let status = safari_history(&mut output, false).unwrap();
+        let status = safari_history(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_safari_downloads() {
+    #[tokio::test]
+    async fn test_safari_downloads() {
         let mut output = output_options("safari_test", "local", "./tmp", false);
 
-        let status = safari_downloads(&mut output, false).unwrap();
+        let status = safari_downloads(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 }

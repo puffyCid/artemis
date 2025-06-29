@@ -47,7 +47,7 @@ elf = "0.8.0"
 ruzstd = "0.8.1"
 lz4_flex = "0.11.5"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
-macos-unifiedlogs = "0.3.0"
+macos-unifiedlogs = "0.3.1"
 plist = "1.7.2"
 aes = "0.8.4"
 cbc = "0.1.2"
@@ -85,7 +85,7 @@ ntapi = "0.4.1"
 # Dependencies for tests
 [dev-dependencies]
 httpmock = "0.7.0"
-criterion = "0.6.0"
+criterion = { version = "0.6.0", features = ["async_tokio"] }
 
 [build-dependencies]
 vergen = { version = "9.0.6", features = ["build", "rustc"] }

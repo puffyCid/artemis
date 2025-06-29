@@ -70,9 +70,9 @@ mod tests {
             logging: Some(String::new()),
         }
     }
-    #[test]
-    fn test_list_connections() {
+    #[tokio::test]
+    async fn test_list_connections() {
         let mut output = output_options("connections_test", "local", "./tmp", false);
-        list_connections(&mut output, false).unwrap();
+        list_connections(&mut output, false).await.unwrap();
     }
 }

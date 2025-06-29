@@ -52,8 +52,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_processes() {
+    #[tokio::test]
+    async fn test_processes() {
         let mut output = output_options("processes_test", "local", "./tmp", false);
 
         let proc_config = ProcessOptions {
@@ -63,7 +63,7 @@ mod tests {
             metadata: true,
         };
 
-        let status = processes(&mut output, false, &proc_config).unwrap();
+        let status = processes(&mut output, false, &proc_config).await.unwrap();
         assert_eq!(status, ());
     }
 }

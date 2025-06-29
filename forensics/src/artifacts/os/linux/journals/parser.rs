@@ -105,10 +105,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_grab_journal() {
+    #[tokio::test]
+    async fn test_grab_journal() {
         let mut output = output_options("grab_journal", "local", "./tmp", false);
-        grab_journal(&mut output, 0, false, &JournalOptions { alt_path: None }).unwrap();
+        grab_journal(&mut output, 0, false, &JournalOptions { alt_path: None })
+            .await
+            .unwrap();
     }
 
     #[test]

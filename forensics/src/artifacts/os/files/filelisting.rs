@@ -363,9 +363,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "/System/Volumes/Data/Users";
         let depth = 4;
         let metadata = true;
@@ -385,12 +385,14 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 
-    #[test]
-    fn test_file_output() {
+    #[tokio::test]
+    async fn test_file_output() {
         let mut output = output_options("files_temp", "local", "./tmp", false);
         let info = FileInfo {
             full_path: String::from("/root"),
@@ -416,7 +418,7 @@ mod tests {
             binary_info: Value::Null,
             yara_hits: Vec::new(),
         };
-        file_output(&vec![info], &mut output, 0, false);
+        file_output(&vec![info], &mut output, 0, false).await;
     }
 
     #[test]
@@ -426,9 +428,9 @@ mod tests {
         assert_eq!(reg.as_str(), ".*/Downloads");
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "C:\\Windows";
         let depth = 1;
         let metadata = true;
@@ -448,13 +450,15 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "/bin";
         let depth = 1;
         let metadata = false;
@@ -474,7 +478,9 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 

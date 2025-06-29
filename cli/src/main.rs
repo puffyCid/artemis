@@ -106,9 +106,9 @@ mod tests {
     use crate::{Args, parse_args};
     use std::path::PathBuf;
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_toml() {
+    async fn test_parse_args_toml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../artemis-core/tests/test_data/linux/systeminfo.toml");
         let args = Args {
@@ -118,12 +118,12 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_decode() {
+    async fn test_parse_args_decode() {
         let args = Args {
             toml: None,
             decode: Some(String::from(
@@ -133,7 +133,7 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
     #[test]
@@ -249,9 +249,9 @@ mod tests {
         parse_args(&args);
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_command_linux() {
+    async fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
         use crate::collector::system::Commands;
 
@@ -273,11 +273,11 @@ mod tests {
             }),
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
-    #[test]
-    fn test_parse_args_js() {
+    #[tokio::test]
+    async fn test_parse_args_js() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../artemis-core/tests/test_data/deno_scripts/vanilla.js");
         let args = Args {
@@ -287,6 +287,6 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 }

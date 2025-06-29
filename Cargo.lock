@@ -1231,6 +1231,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tinytemplate",
+ "tokio",
  "walkdir",
 ]
 
@@ -1333,6 +1334,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
+ "tokio",
  "toml",
  "uuid",
  "vergen",
@@ -3089,9 +3091,9 @@ dependencies = [
 
 [[package]]
 name = "macos-unifiedlogs"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de341146f352468332293fa3f9047f8815392eaf17231c9695661c329a3ca81e"
+checksum = "36adda3238a378f26cf82aafa69ba8ea79e36600a09e223430f6dff08102054a"
 dependencies = [
  "base64 0.22.1",
  "byteorder",

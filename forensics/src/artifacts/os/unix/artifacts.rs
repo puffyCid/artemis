@@ -165,45 +165,47 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_zsh_history() {
+    #[tokio::test]
+    async fn test_zsh_history() {
         let mut output = output_options("zsh_history", "local", "./tmp", false);
 
-        let status = zsh_history(&mut output, false).unwrap();
+        let status = zsh_history(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_bash_history() {
+    #[tokio::test]
+    async fn test_bash_history() {
         let mut output = output_options("bash_history", "local", "./tmp", false);
 
-        let _ = bash_history(&mut output, false).unwrap();
+        let _ = bash_history(&mut output, false).await.unwrap();
     }
 
-    #[test]
-    fn test_python_history() {
+    #[tokio::test]
+    async fn test_python_history() {
         let mut output = output_options("python_history", "local", "./tmp", false);
 
-        let status = python_history(&mut output, false).unwrap();
+        let status = python_history(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_cron_job() {
+    #[tokio::test]
+    async fn test_cron_job() {
         let mut output = output_options("cron", "local", "./tmp", false);
 
-        let status = cron_job(&mut output, false).unwrap();
+        let status = cron_job(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }
