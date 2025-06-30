@@ -12,7 +12,7 @@ use log::error;
 use std::{collections::HashSet, fs::File, io::Read};
 
 /// Parse provided `Journal` file path. Will output results when finished. Use `parse_journal_file` if you want the results
-pub(crate) fn parse_journal(
+pub(crate) async fn parse_journal(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -54,7 +54,8 @@ pub(crate) fn parse_journal(
         output,
         filter,
         start_time,
-    )?;
+    )
+    .await?;
 
     Ok(())
 }
@@ -137,7 +138,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
 }
 
 /// Loop through the `Journal` entries and get the data
-fn get_entries(
+async fn get_entries(
     reader: &mut File,
     array_offset: u64,
     is_compact: bool,
@@ -169,7 +170,8 @@ fn get_entries(
             output,
             filter,
             start_time,
-        );
+        )
+        .await;
         let next_offset = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -216,23 +218,27 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_journal() {
+    #[tokio::test]
+    async fn test_parse_journal() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_get_entries() {
+    #[tokio::test]
+    async fn test_get_entries() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let mut output = output_options("journal_test", "local", "./tmp", false);
-        get_entries(&mut reader, 3738992, true, &mut output, false, 0).unwrap();
+        get_entries(&mut reader, 3738992, true, &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
     #[test]
@@ -253,12 +259,14 @@ mod tests {
         assert_eq!(result.len(), 4);
     }
 
-    #[test]
-    fn test_parse_journal_bad() {
+    #[tokio::test]
+    async fn test_parse_journal_bad() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
         let mut output = output_options("journal_test", "local", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 }

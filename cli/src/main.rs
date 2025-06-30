@@ -24,19 +24,19 @@ struct Args {
     #[command(subcommand)]
     command: Option<Commands>,
 }
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
-    parse_args(&args)
+    parse_args(&args).await
 }
 
 /// Parse the support `artemis` options
-fn parse_args(args: &Args) {
+async fn parse_args(args: &Args) {
     println!("[artemis] Starting artemis collection!");
 
     if let Some(toml) = &args.toml {
         if !toml.is_empty() {
-            let collection_results = forensics::core::parse_toml_file(toml);
+            let collection_results = forensics::core::parse_toml_file(toml).await;
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -57,7 +57,7 @@ fn parse_args(args: &Args) {
                     return;
                 }
             };
-            let collection_results = forensics::core::parse_toml_data(&toml_data);
+            let collection_results = forensics::core::parse_toml_data(&toml_data).await;
             match collection_results {
                 Ok(_) => info!("[artemis] Collection success"),
                 Err(err) => {
@@ -93,7 +93,7 @@ fn parse_args(args: &Args) {
             api_key: None,
             logging: None,
         };
-        run_collector(command, out)
+        run_collector(command, out).await
     } else {
         println!("[artemis] No valid command args provided!");
         return;
@@ -106,9 +106,9 @@ mod tests {
     use crate::{Args, parse_args};
     use std::path::PathBuf;
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_toml() {
+    async fn test_parse_args_toml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../artemis-core/tests/test_data/linux/systeminfo.toml");
         let args = Args {
@@ -118,12 +118,12 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_decode() {
+    async fn test_parse_args_decode() {
         let args = Args {
             toml: None,
             decode: Some(String::from(
@@ -133,7 +133,7 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
     #[test]
@@ -249,9 +249,9 @@ mod tests {
         parse_args(&args);
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_args_command_linux() {
+    async fn test_parse_args_command_linux() {
         use crate::collector::commands::CommandArgs::Processes;
         use crate::collector::system::Commands;
 
@@ -273,11 +273,11 @@ mod tests {
             }),
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 
-    #[test]
-    fn test_parse_args_js() {
+    #[tokio::test]
+    async fn test_parse_args_js() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("../artemis-core/tests/test_data/deno_scripts/vanilla.js");
         let args = Args {
@@ -287,6 +287,6 @@ mod tests {
             command: None,
         };
 
-        parse_args(&args);
+        parse_args(&args).await;
     }
 }

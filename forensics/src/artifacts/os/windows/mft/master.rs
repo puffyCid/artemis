@@ -27,7 +27,7 @@ use std::{
 };
 
 /// Parse the provided $MFT file and try to re-create filelisting
-pub(crate) fn parse_mft(
+pub(crate) async fn parse_mft(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -40,7 +40,7 @@ pub(crate) fn parse_mft(
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(&mut buf_reader, None, output, start_time, filter, size);
+        return read_mft(&mut buf_reader, None, output, start_time, filter, size).await;
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -70,10 +70,11 @@ pub(crate) fn parse_mft(
         filter,
         size,
     )
+    .await
 }
 
 /// Read the MFT in small chunks
-fn read_mft<T: std::io::Seek + std::io::Read>(
+async fn read_mft<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     output: &mut Output,
@@ -339,7 +340,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
                 let limit = 1000;
                 if entries.len() >= limit {
-                    let _ = output_mft(&entries, output, filter, start_time);
+                    let _ = output_mft(&entries, output, filter, start_time).await;
                     entries = Vec::new();
                 }
             }
@@ -352,7 +353,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     }
 
     if !entries.is_empty() {
-        let _ = output_mft(&entries, output, filter, start_time);
+        let _ = output_mft(&entries, output, filter, start_time).await;
     }
 
     Ok(())
@@ -595,7 +596,7 @@ fn apply_fixup(data: &[u8], count: u16) -> Result<Vec<u8>, MftError> {
 }
 
 /// Output MFT data. Due to size of $MFT we will output every 10k entries we parse
-fn output_mft(
+async fn output_mft(
     entries: &[MftEntry],
     output: &mut Output,
     filter: bool,
@@ -613,7 +614,7 @@ fn output_mft(
             return Err(MftError::Serialize);
         }
     };
-    let result = output_data(&mut serde_data, "mft", output, start_time, filter);
+    let result = output_data(&mut serde_data, "mft", output, start_time, filter).await;
     match result {
         Ok(_result) => {}
         Err(err) => {
@@ -647,9 +648,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_parse_mft() {
+    async fn test_parse_mft() {
         use super::parse_mft;
         use std::path::PathBuf;
 
@@ -657,7 +658,9 @@ mod tests {
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0).unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
     #[test]
@@ -687,9 +690,9 @@ mod tests {
         .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_nonresident_large_record_length() {
+    async fn test_nonresident_large_record_length() {
         use super::parse_mft;
         use std::path::PathBuf;
 
@@ -698,6 +701,8 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_mft(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 }

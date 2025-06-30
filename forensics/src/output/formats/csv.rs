@@ -12,7 +12,7 @@ use serde_json::Value;
 use std::io::{Error, ErrorKind};
 
 /// Output data as csv
-pub(crate) fn csv_format(
+pub(crate) async fn csv_format(
     serde_data: &Value,
     output_name: &str,
     output: &mut Output,
@@ -21,7 +21,7 @@ pub(crate) fn csv_format(
     let writer = match writer_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not create csv writer: {err:?}");
+            error!("[forensics] Could not create csv writer: {err:?}");
             return Err(FormatError::Output);
         }
     };
@@ -32,7 +32,7 @@ pub(crate) fn csv_format(
         match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to compress data: {err:?}");
+                error!("[forensics] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         }
@@ -40,11 +40,11 @@ pub(crate) fn csv_format(
         writer.into_inner().unwrap_or_default()
     };
 
-    let output_result: Result<_, _> = final_output(&bytes, output, &uuid);
+    let output_result: Result<_, _> = final_output(&bytes, output, &uuid).await;
     match output_result {
-        Ok(_) => info!("[core] {output_name} csv output success"),
+        Ok(_) => info!("[forensics] {output_name} csv output success"),
         Err(err) => {
-            error!("[core] Failed to output {output_name} csv: {err:?}");
+            error!("[forensics] Failed to output {output_name} csv: {err:?}");
             return Err(FormatError::Output);
         }
     }
@@ -109,8 +109,8 @@ mod tests {
     use crate::{structs::toml::Output, utils::time::time_now};
     use serde_json::json;
 
-    #[test]
-    fn test_csv_format() {
+    #[tokio::test]
+    async fn test_csv_format() {
         let mut output = Output {
             name: String::from("format_test"),
             directory: String::from("./tmp"),
@@ -136,7 +136,9 @@ mod tests {
 
         }];
 
-        csv_format(&collection_output, "test", &mut output).unwrap();
+        csv_format(&collection_output, "test", &mut output)
+            .await
+            .unwrap();
     }
 
     #[test]

@@ -6,13 +6,13 @@ use timeline::timeline::{Artifacts, timeline_artifact};
 pub(crate) fn timeline_data(artifact: &mut Value, artifact_name: &str) {
     let target = get_artifact(artifact_name);
     if target == Artifacts::Unknown {
-        error!("[core] Unknown artifact to timeline {artifact_name}");
+        error!("[forensics] Unknown artifact to timeline {artifact_name}");
         return;
     }
 
     let status = timeline_artifact(artifact, &target);
     if status.is_none() {
-        warn!("[core] Could not timeline {artifact_name}");
+        warn!("[forensics] Could not timeline {artifact_name}");
     }
 }
 

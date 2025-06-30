@@ -10,7 +10,7 @@ impl ArtemisToml {
         let mut artemis_collector: ArtemisToml = match toml_results {
             Ok(results) => results,
             Err(err) => {
-                error!("[core] Artemis failed to parse TOML data. Error: {err:?}");
+                error!("[forensics] Artemis failed to parse TOML data. Error: {err:?}");
                 return Err(ArtemisError::BadToml);
             }
         };

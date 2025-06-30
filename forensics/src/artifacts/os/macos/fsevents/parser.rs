@@ -20,7 +20,7 @@ use common::macos::FsEvents;
 use log::error;
 
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
-pub(crate) fn grab_fseventsd(
+pub(crate) async fn grab_fseventsd(
     options: &FseventsOptions,
     filter: bool,
     output: &mut Output,
@@ -29,7 +29,7 @@ pub(crate) fn grab_fseventsd(
 
     if let Some(alt_file) = &options.alt_file {
         let results = grab_fsventsd_file(alt_file)?;
-        return output_fsevents(&results, output, filter, start_time);
+        return output_fsevents(&results, output, filter, start_time).await;
     }
 
     let mut events = get_fseventsd()?;
@@ -122,7 +122,7 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 }
 
 /// Output `FsEvents` results
-fn output_fsevents(
+async fn output_fsevents(
     entries: &[FsEvents],
     output: &mut Output,
     filter: bool,
@@ -140,7 +140,7 @@ fn output_fsevents(
             return Err(FsEventsError::Serialize);
         }
     };
-    let result = output_artifact(&mut serde_data, "fseventsd", output, start_time, filter);
+    let result = output_artifact(&mut serde_data, "fseventsd", output, start_time, filter).await;
     match result {
         Ok(_result) => {}
         Err(err) => {

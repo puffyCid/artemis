@@ -24,7 +24,7 @@ pub(crate) struct EntryArray {
 impl EntryArray {
     /// Walk through Array of entries and output the results
     /// Returns offset to next array of data
-    pub(crate) fn walk_entries<'a>(
+    pub(crate) async fn walk_entries<'a>(
         reader: &mut File,
         data: &'a [u8],
         is_compact: bool,
@@ -92,7 +92,7 @@ impl EntryArray {
                     }
                 };
 
-                let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+                let _ = output_data(&mut serde_data, "journal", output, start_time, filter).await;
                 // Now empty the vec
                 entry_array.entries = Vec::new();
             }
@@ -113,7 +113,7 @@ impl EntryArray {
             }
         };
 
-        let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+        let _ = output_data(&mut serde_data, "journal", output, start_time, filter).await;
 
         Ok((input, entry_array.next_entry_array_offset))
     }
@@ -450,8 +450,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_walk_entries() {
+    #[tokio::test]
+    async fn test_walk_entries() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
@@ -477,6 +477,7 @@ mod tests {
             false,
             0,
         )
+        .await
         .unwrap();
         assert_eq!(result, 3744448);
     }

@@ -41,7 +41,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
         let bytes_read = reader.read(&mut buf);
         if bytes_read.is_err() {
             error!(
-                "[core] Failed to read all bytes from file {path}: {:?}",
+                "[forensics] Failed to read all bytes from file {path}: {:?}",
                 bytes_read.unwrap_err()
             );
             return Err(FileSystemError::ReadFile);
@@ -61,7 +61,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
         let bytes_written = compressor.write_all(&buf);
         if bytes_written.is_err() {
             error!(
-                "[core] Failed to compress all bytes from file {path}: {:?}",
+                "[forensics] Failed to compress all bytes from file {path}: {:?}",
                 bytes_written.unwrap_err()
             );
             return Err(FileSystemError::CompressFile);
@@ -71,7 +71,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
     let compress_file = compressor.finish();
     if compress_file.is_err() {
         error!(
-            "[core] Could not finish compression: {:?}",
+            "[forensics] Could not finish compression: {:?}",
             compress_file.unwrap_err()
         );
         return Err(FileSystemError::CompressedBytes);
@@ -82,7 +82,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
     let status = acquire.finish();
     if status.is_err() {
         error!(
-            "[core] Could not finish file acquisition: {:?}",
+            "[forensics] Could not finish file acquisition: {:?}",
             status.unwrap_err()
         );
         return Err(FileSystemError::AcquireFile);
@@ -92,7 +92,7 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
 }
 
 /// Acquire a file using OS APIs and upload to remote services
-pub(crate) fn acquire_file_remote(
+pub(crate) async fn acquire_file_remote(
     path: &str,
     output: Output,
     remote: RemoteType,
@@ -136,7 +136,7 @@ pub(crate) fn acquire_file_remote(
     let mut md5 = Md5::new();
     let mut bytes_offset = 0;
 
-    let setup_result = acquire.upload_setup();
+    let setup_result = acquire.upload_setup().await;
     if setup_result.is_err() {
         return Err(FileSystemError::UploadSetup);
     }
@@ -149,7 +149,7 @@ pub(crate) fn acquire_file_remote(
         let bytes_read = reader.read(&mut buf);
         if bytes_read.is_err() {
             error!(
-                "[core] Failed to read all bytes from file {path}: {:?}",
+                "[forensics] Failed to read all bytes from file {path}: {:?}",
                 bytes_read.unwrap_err()
             );
             return Err(FileSystemError::ReadFile);
@@ -171,7 +171,7 @@ pub(crate) fn acquire_file_remote(
         let bytes_written = compressor.write_all(&buf);
         if bytes_written.is_err() {
             error!(
-                "[core] Failed to compress all bytes from file {path}: {:?}",
+                "[forensics] Failed to compress all bytes from file {path}: {:?}",
                 bytes_written.unwrap_err()
             );
             return Err(FileSystemError::CompressFile);
@@ -180,7 +180,7 @@ pub(crate) fn acquire_file_remote(
         let mut compress_data = match compress_data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not finish compression: {err:?}");
+                error!("[forensics] Could not finish compression: {err:?}");
                 return Err(FileSystemError::CompressedBytes);
             }
         };
@@ -198,7 +198,9 @@ pub(crate) fn acquire_file_remote(
             String::from("*")
         };
 
-        let upload_result = acquire.upload(&upload_bytes, bytes_offset, &total_size);
+        let upload_result = acquire
+            .upload(&upload_bytes, bytes_offset, &total_size)
+            .await;
         if upload_result.is_err() {
             return Err(FileSystemError::AcquireFile);
         }
@@ -224,11 +226,13 @@ pub(crate) fn acquire_file_remote(
         acquire.md5 = format!("{hash:x}");
 
         // last upload
-        let last_result = acquire.upload(
-            &upload_bytes,
-            bytes_offset,
-            &format!("{}", bytes_offset + upload_bytes.len()),
-        );
+        let last_result = acquire
+            .upload(
+                &upload_bytes,
+                bytes_offset,
+                &format!("{}", bytes_offset + upload_bytes.len()),
+            )
+            .await;
         acquire.bytes_sent += upload_bytes.len();
         if last_result.is_err() {
             return Err(FileSystemError::FinalUpload);
@@ -238,11 +242,13 @@ pub(crate) fn acquire_file_remote(
         || acquire.remote == RemoteType::Azure
     {
         // Always make sure we finalize the upload and closeout the session for AWS
-        let last_result = acquire.upload(
-            &[],
-            bytes_offset,
-            &format!("{}", bytes_offset + upload_bytes.len()),
-        );
+        let last_result = acquire
+            .upload(
+                &[],
+                bytes_offset,
+                &format!("{}", bytes_offset + upload_bytes.len()),
+            )
+            .await;
 
         if last_result.is_err() {
             return Err(FileSystemError::FinalUpload);
@@ -319,8 +325,8 @@ mod tests {
         acquire_file(&test_location.display().to_string(), out).unwrap();
     }
 
-    #[test]
-    fn test_acquire_file_gcp() {
+    #[tokio::test]
+    async fn test_acquire_file_gcp() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/unix/bash/bash_history");
 
@@ -346,14 +352,16 @@ mod tests {
             ),
         );
 
-        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Gcp).unwrap();
+        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Gcp)
+            .await
+            .unwrap();
 
         mock_me.assert_hits(5);
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "UploadSetup")]
-    fn test_acquire_file_aws() {
+    async fn test_acquire_file_aws() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/unix/bash/bash_history");
 
@@ -383,13 +391,15 @@ mod tests {
             ),
         );
 
-        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Aws).unwrap();
+        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Aws)
+            .await
+            .unwrap();
 
         mock_me.assert_hits(5);
     }
 
-    #[test]
-    fn test_acquire_file_azure() {
+    #[tokio::test]
+    async fn test_acquire_file_azure() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/unix/bash/bash_history");
 
@@ -419,7 +429,9 @@ mod tests {
             ),
         );
 
-        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Azure).unwrap();
+        acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Azure)
+            .await
+            .unwrap();
 
         mock_me.assert_hits(2);
     }

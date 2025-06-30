@@ -22,7 +22,7 @@ use std::{
 };
 
 /// Parse the Spotlight store.db and extract entries
-pub(crate) fn parse_store(
+pub(crate) async fn parse_store(
     reader: &mut File,
     meta: &SpotlightMeta,
     output: &mut Output,
@@ -83,7 +83,8 @@ pub(crate) fn parse_store(
                     continue;
                 }
             };
-            let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
+            let result =
+                output_data(&mut serde_data, "spotlight", output, start_time, filter).await;
             if result.is_err() {
                 error!(
                     "[spotlight] Could not output spotlight data: {:?}",
@@ -104,7 +105,7 @@ pub(crate) fn parse_store(
                 return Err(SpotlightError::Serialize);
             }
         };
-        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
+        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter).await;
         if result.is_err() {
             error!(
                 "[spotlight] Could not output last spotlight data: {:?}",
@@ -313,8 +314,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_store_db() {
+    #[tokio::test]
+    async fn test_parse_store_db() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
         let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
@@ -326,7 +327,9 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_store(&mut data, &meta, &mut output, 0, false).unwrap();
+        parse_store(&mut data, &meta, &mut output, 0, false)
+            .await
+            .unwrap();
     }
 
     #[test]

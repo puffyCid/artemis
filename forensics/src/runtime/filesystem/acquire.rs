@@ -4,7 +4,9 @@ use crate::{
     runtime::helper::{string_arg, value_arg},
     structs::toml::Output,
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use boa_engine::{
+    Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
+};
 use log::error;
 
 /// Acquire file from system
@@ -27,46 +29,67 @@ pub(crate) fn js_acquire_file(
         }
     };
 
-    if output.output == "local" {
-        let status = acquire_file(&path, output);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file {path}");
-            let err = format!("Local acquire failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "gcp" {
-        let status = acquire_file_remote(&path, output, RemoteType::Gcp);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("GCP upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "aws" {
-        let status = acquire_file_remote(&path, output, RemoteType::Aws);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("AWS upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "azure" {
-        let status = acquire_file_remote(&path, output, RemoteType::Azure);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("Azure upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else {
-        return Err(JsError::from_opaque(
-            js_string!(format!("Unknown acquire type {}", output.output)).into(),
-        ));
-    }
+    let promise = JsPromise::from_future(
+        async move {
+            if output.output == "local" {
+                let status = acquire_file(&path, output);
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file {path}");
+                    let err = format!("Local acquire failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "gcp" {
+                let status = acquire_file_remote(&path, output, RemoteType::Gcp).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("GCP upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "aws" {
+                let status = acquire_file_remote(&path, output, RemoteType::Aws).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("AWS upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "azure" {
+                let status = acquire_file_remote(&path, output, RemoteType::Azure).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("Azure upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else {
+                return Err(JsError::from_opaque(
+                    js_string!(format!("Unknown acquire type {}", output.output)).into(),
+                ));
+            }
+            Ok(JsValue::Boolean(true))
+        },
+        context,
+    )
+    .then(
+        Some(
+            NativeFunction::from_fn_ptr(|_, args, ctx| {
+                // Get the value from the script
+                let script_value = string_arg(args, 0)?;
+                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                let value = JsValue::from_json(&serde_value, ctx)?;
+                // Returh the JavaScript object
+                Ok(value)
+            })
+            .to_js_function(context.realm()),
+        ),
+        None,
+        context,
+    );
 
     let sucess = true;
-    Ok(JsValue::Boolean(sucess))
+    Ok(promise.into())
 }
 
 #[cfg(test)]
@@ -100,19 +123,19 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_acquire_file_local() {
+    #[tokio::test]
+    async fn test_js_acquire_file_local() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9maWxlc3lzdGVtL2Vycm9ycy50cwp2YXIgRmlsZUVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugewp9OwoKLy8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvZmlsZXN5c3RlbS9hY3F1aXJlLnRzCmZ1bmN0aW9uIGFjcXVpcmVGaWxlKHBhdGgsIG91dHB1dCkgewogIHRyeSB7CiAgICBjb25zdCBzdGF0dXMgPSBqc19hY3F1aXJlX2ZpbGUoCiAgICAgIHBhdGgsCiAgICAgIG91dHB1dAogICAgKTsKICAgIHJldHVybiBzdGF0dXM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IEZpbGVFcnJvcihgQUNRVUlSRWAsIGBmYWlsZWQgdG8gYWNxdWlyZSBmaWxlOiAke2Vycn1gKTsKICB9Cn0KCi8vIC4uLy4uL1Byb2plY3RzL0Rlbm8vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgdHJ5IHsKICAgIGNvbnN0IHJlc3VsdCA9IGpzX2dsb2IocGF0dGVybik7CiAgICByZXR1cm4gcmVzdWx0OwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIkdMT0IiLCBgZmFpbGVkIHRvIGdsb2IgcGF0dGVybiAke3BhdHRlcm59IiAke2Vycn1gKTsKICB9Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBvdXQgPSB7CiAgICBuYW1lOiAianNfYWNxdWlyZSIsCiAgICBkaXJlY3Rvcnk6ICIuL3RtcCIsCiAgICBmb3JtYXQ6ICJqc29uIiAvKiBKU09OICovLAogICAgY29tcHJlc3M6IGZhbHNlLAogICAgdGltZWxpbmU6IGZhbHNlLAogICAgZW5kcG9pbnRfaWQ6ICJhZGJjZCIsCiAgICBjb2xsZWN0aW9uX2lkOiAwLAogICAgb3V0cHV0OiAibG9jYWwiIC8qIExPQ0FMICovCiAgfTsKICBjb25zdCBwYXRoID0gIi4uLyoiOwogIGNvbnN0IGdsb2JzID0gZ2xvYihwYXRoKTsKICBpZiAoZ2xvYnMgaW5zdGFuY2VvZiBGaWxlRXJyb3IpIHsKICAgIHJldHVybjsKICB9CiAgZm9yIChjb25zdCBlbnRyeSBvZiBnbG9icykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgICBjb250aW51ZTsKICAgICB9CiAgICBjb25zdCBzdGF0dXMgPSBhY3F1aXJlRmlsZShlbnRyeS5mdWxsX3BhdGgsIG91dCk7CiAgICBjb25zb2xlLmxvZyhgYWNxIHN1Y2Nlc3M6ICR7c3RhdHVzfWApOwogICAgYnJlYWs7CiAgfQp9Cm1haW4oKTsKCgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("acquire_result"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
-    fn test_js_acquire_file_gcp() {
+    #[tokio::test]
+    async fn test_js_acquire_file_gcp() {
         let server = MockServer::start();
         let port = server.port();
 
@@ -134,7 +157,7 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
         mock_me.assert_hits(5);
     }
 }

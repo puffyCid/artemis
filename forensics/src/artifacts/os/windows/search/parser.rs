@@ -28,7 +28,7 @@ use crate::{
 use log::error;
 
 /// Grab the Windows `Search` data
-pub(crate) fn grab_search(
+pub(crate) async fn grab_search(
     options: &SearchOptions,
     output: &mut Output,
     filter: bool,
@@ -71,7 +71,7 @@ pub(crate) fn grab_search(
          * `https://www.sqlite.org/datatype3.html#collation`
          * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
          */
-        return parse_search_sqlite(&win11, output, filter);
+        return parse_search_sqlite(&win11, output, filter).await;
     }
 
     parse_search(&path, output, filter)

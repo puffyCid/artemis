@@ -28,7 +28,7 @@ use serde_json::Value;
  * Grab the `SRUM` data from the default or an alternative path  
  * We then dump all of the tables associated with `SRUM`
  */
-pub(crate) fn grab_srum(
+pub(crate) async fn grab_srum(
     options: &SrumOptions,
     output: &mut Output,
     filter: bool,
@@ -47,7 +47,7 @@ pub(crate) fn grab_srum(
         format!("{systemdrive}:\\Windows\\System32\\sru\\SRUDB.dat")
     };
 
-    parse_srum(&path, output, filter)
+    parse_srum(&path, output, filter).await
 }
 
 /**

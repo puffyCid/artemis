@@ -1,6 +1,7 @@
 use std::{env, path::Path};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("Starting Artemis Core collector...");
 
     let args: Vec<String> = env::args().collect();
@@ -8,7 +9,7 @@ fn main() {
     if args.len() == 2 {
         let path = &args[1];
         if Path::new(path).is_file() {
-            forensics::core::parse_toml_file(path).unwrap();
+            forensics::core::parse_toml_file(path).await.unwrap();
             println!("Collected data!")
         } else {
             println!("Not a file")

@@ -16,8 +16,7 @@ use crate::{
 use flate2::{Compression, write::GzEncoder};
 use log::error;
 use reqwest::{
-    StatusCode, Url,
-    blocking::Client,
+    Client, StatusCode, Url,
     header::{HeaderMap, HeaderValue},
 };
 use rusty_s3::{Bucket, Credentials};
@@ -48,25 +47,33 @@ pub(crate) enum RemoteType {
 pub(crate) trait AcquireActionRemote {
     fn reader(&self) -> Result<File, AcquireError>;
     fn compressor(&self) -> GzEncoder<Vec<u8>>;
-    fn upload_setup(&mut self) -> Result<(), AcquireError>;
-    fn upload(&mut self, bytes: &[u8], offset: usize, total_size: &str)
-    -> Result<(), AcquireError>;
+    async fn upload_setup(&mut self) -> Result<(), AcquireError>;
+    async fn upload(
+        &mut self,
+        bytes: &[u8],
+        offset: usize,
+        total_size: &str,
+    ) -> Result<(), AcquireError>;
 }
 
 trait GoogleUpload {
-    fn gcp_start(&mut self) -> Result<(), AcquireError>;
-    fn gcp_upload(&self, bytes: &[u8], offset: usize, total_size: &str)
-    -> Result<(), AcquireError>;
+    async fn gcp_start(&mut self) -> Result<(), AcquireError>;
+    async fn gcp_upload(
+        &self,
+        bytes: &[u8],
+        offset: usize,
+        total_size: &str,
+    ) -> Result<(), AcquireError>;
 }
 
 trait AmazonUpload {
-    fn aws_start(&mut self) -> Result<(), AcquireError>;
-    fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
+    async fn aws_start(&mut self) -> Result<(), AcquireError>;
+    async fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
 }
 
 trait MicrosoftUpload {
-    fn azure_start(&mut self) -> Result<(), AcquireError>;
-    fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
+    async fn azure_start(&mut self) -> Result<(), AcquireError>;
+    async fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError>;
 }
 
 impl AcquireActionRemote for AcquireFileApiRemote {
@@ -77,7 +84,7 @@ impl AcquireActionRemote for AcquireFileApiRemote {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[core] Failed to open file reader for{}: {err:?}",
+                    "[forensics] Failed to open file reader for{}: {err:?}",
                     &self.path
                 );
                 return Err(AcquireError::Reader);
@@ -93,27 +100,27 @@ impl AcquireActionRemote for AcquireFileApiRemote {
     }
 
     /// Setup the upload process
-    fn upload_setup(&mut self) -> Result<(), AcquireError> {
+    async fn upload_setup(&mut self) -> Result<(), AcquireError> {
         match self.remote {
-            RemoteType::Gcp => self.gcp_start()?,
-            RemoteType::Azure => self.azure_start()?,
-            RemoteType::Aws => self.aws_start()?,
+            RemoteType::Gcp => self.gcp_start().await?,
+            RemoteType::Azure => self.azure_start().await?,
+            RemoteType::Aws => self.aws_start().await?,
         }
 
         Ok(())
     }
 
     /// Begin uploading data to cloud services
-    fn upload(
+    async fn upload(
         &mut self,
         bytes: &[u8],
         offset: usize,
         total_size: &str,
     ) -> Result<(), AcquireError> {
         match self.remote {
-            RemoteType::Gcp => self.gcp_upload(bytes, offset, total_size)?,
-            RemoteType::Azure => self.azure_upload(bytes)?,
-            RemoteType::Aws => self.aws_upload(bytes)?,
+            RemoteType::Gcp => self.gcp_upload(bytes, offset, total_size).await?,
+            RemoteType::Azure => self.azure_upload(bytes).await?,
+            RemoteType::Aws => self.aws_upload(bytes).await?,
         }
 
         Ok(())
@@ -122,12 +129,12 @@ impl AcquireActionRemote for AcquireFileApiRemote {
 
 impl GoogleUpload for AcquireFileApiRemote {
     /// Start uploading data to GCP
-    fn gcp_start(&mut self) -> Result<(), AcquireError> {
+    async fn gcp_start(&mut self) -> Result<(), AcquireError> {
         let setup_result = setup_gcp_upload(&self.output, &self.filename);
         let setup = match setup_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not setup GCP upload: {err:?}");
+                error!("[forensics] Could not setup GCP upload: {err:?}");
                 return Err(AcquireError::GcpSetup);
             }
         };
@@ -138,16 +145,16 @@ impl GoogleUpload for AcquireFileApiRemote {
         let token = match token_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not create GCP token: {err:?}");
+                error!("[forensics] Could not create GCP token: {err:?}");
                 return Err(AcquireError::GcpToken);
             }
         };
 
-        let session_result = gcp_session(&session_url, &token);
+        let session_result = gcp_session(&session_url, &token).await;
         let session = match session_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not setup GCP session: {err:?}");
+                error!("[forensics] Could not setup GCP session: {err:?}");
                 return Err(AcquireError::GcpSession);
             }
         };
@@ -159,7 +166,7 @@ impl GoogleUpload for AcquireFileApiRemote {
     }
 
     /// Upload data to GCP
-    fn gcp_upload(
+    async fn gcp_upload(
         &self,
         bytes: &[u8],
         offset: usize,
@@ -204,11 +211,13 @@ impl GoogleUpload for AcquireFileApiRemote {
                 }
             }
 
-            let res_result = builder.body(bytes.to_vec()).send();
+            let res_result = builder.body(bytes.to_vec()).send().await;
             let res = match res_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[core] Could not upload to GCP storage: {err:?}. Attempting again");
+                    error!(
+                        "[forensics] Could not upload to GCP storage: {err:?}. Attempting again"
+                    );
                     max_attempts += 1;
                     continue;
                 }
@@ -219,18 +228,18 @@ impl GoogleUpload for AcquireFileApiRemote {
                 && res.status() != StatusCode::PERMANENT_REDIRECT
             {
                 error!(
-                    "[core] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
-                    res.text()
+                    "[forensics] Non-200 and non-308 response from GCP storage: {:?}. Attempting again",
+                    res.text().await
                 );
                 max_attempts += 1;
                 continue;
             }
 
             // Check to make sure GCP received our upload
-            let status_result = gcp_get_upload_status(&self.session, "*");
+            let status_result = gcp_get_upload_status(&self.session, "*").await;
             if status_result.is_err() {
                 error!(
-                    "[core] Could not check status of upload: {:?}",
+                    "[forensics] Could not check status of upload: {:?}",
                     status_result.unwrap_err()
                 );
                 return Err(AcquireError::GcpStatus);
@@ -238,19 +247,19 @@ impl GoogleUpload for AcquireFileApiRemote {
 
             return Ok(());
         }
-        error!("[core] Max attempts reached for uploading to Google Cloud");
+        error!("[forensics] Max attempts reached for uploading to Google Cloud");
         Err(AcquireError::MaxAttempts)
     }
 }
 
 impl AmazonUpload for AcquireFileApiRemote {
     /// Start the upload process to AWS
-    fn aws_start(&mut self) -> Result<(), AcquireError> {
+    async fn aws_start(&mut self) -> Result<(), AcquireError> {
         let info_results = aws_creds(self.output.api_key.as_ref().unwrap_or(&String::new()));
         let info = match info_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not parse AWS creds: {err:?}");
+                error!("[forensics] Could not parse AWS creds: {err:?}");
                 return Err(AcquireError::AwsSetup);
             }
         };
@@ -293,11 +302,11 @@ impl AmazonUpload for AcquireFileApiRemote {
             headers.insert(String::from("x-amz-meta-size"), metadata.len().to_string());
         }
 
-        let setup_results = setup_upload(info, url, &self.filename, &headers);
+        let setup_results = setup_upload(info, url, &self.filename, &headers).await;
         let setup = match setup_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not setup AWS upload: {err:?}");
+                error!("[forensics] Could not setup AWS upload: {err:?}");
                 return Err(AcquireError::AwsSetup);
             }
         };
@@ -310,9 +319,9 @@ impl AmazonUpload for AcquireFileApiRemote {
     }
 
     /// Upload bytes to AWS
-    fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
+    async fn aws_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
         if self.aws_creds.is_none() || self.bucket.is_none() {
-            error!("[core] AWS bucket and/or creds not setup");
+            error!("[forensics] AWS bucket and/or creds not setup");
             return Err(AcquireError::AwsUpload);
         }
         let bucket = self.bucket.as_ref().unwrap();
@@ -322,9 +331,9 @@ impl AmazonUpload for AcquireFileApiRemote {
             let etags: Vec<&str> = self.aws_tags.iter().map(|tag| tag as &str).collect();
 
             let status =
-                aws_complete_multipart(bucket, creds, &self.filename, &self.session, etags);
+                aws_complete_multipart(bucket, creds, &self.filename, &self.session, etags).await;
             if status.is_err() {
-                error!("[core] Could not finish AWS upload");
+                error!("[forensics] Could not finish AWS upload");
                 return Err(AcquireError::AwsUpload);
             }
 
@@ -339,7 +348,8 @@ impl AmazonUpload for AcquireFileApiRemote {
             creds,
             &self.filename,
             self.aws_id,
-        );
+        )
+        .await;
         let mut tags = match result {
             Ok(tags) => tags,
             Err(_err) => return Err(AcquireError::AwsUpload),
@@ -353,7 +363,7 @@ impl AmazonUpload for AcquireFileApiRemote {
 
 impl MicrosoftUpload for AcquireFileApiRemote {
     /// Setup Azure uploader
-    fn azure_start(&mut self) -> Result<(), AcquireError> {
+    async fn azure_start(&mut self) -> Result<(), AcquireError> {
         let url = self.output.url.as_ref().unwrap();
         let filename = format!(
             "{}%2F{}%2F{}.{}",
@@ -374,7 +384,7 @@ impl MicrosoftUpload for AcquireFileApiRemote {
     }
 
     /// Upload bytes to Azure
-    fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
+    async fn azure_upload(&mut self, bytes: &[u8]) -> Result<(), AcquireError> {
         if self.output.url.is_none() {
             return Err(AcquireError::AzureMissingUrl);
         }
@@ -473,7 +483,8 @@ impl MicrosoftUpload for AcquireFileApiRemote {
                 &headers,
                 commit_body.as_bytes(),
                 self.bytes_sent,
-            );
+            )
+            .await;
             if status.is_err() {
                 return Err(AcquireError::AzureCommit);
             }
@@ -490,7 +501,7 @@ impl MicrosoftUpload for AcquireFileApiRemote {
         let azure_url = format!("{url}&comp=block&blockid={block_id}");
         self.aws_tags.push(block_id);
 
-        let status = azure_url_upload(&azure_url, &headers, bytes, bytes.len());
+        let status = azure_url_upload(&azure_url, &headers, bytes, bytes.len()).await;
         if status.is_err() {
             return Err(AcquireError::AzureUpload);
         }

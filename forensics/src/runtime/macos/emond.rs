@@ -57,14 +57,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_get_emond() {
+    #[tokio::test]
+    async fn test_get_emond() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfZW1vbmQoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldEVtb25kKCkgewogICAgcmV0dXJuIGdldF9lbW9uZCgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBkYXRhID0gZ2V0RW1vbmQoKTsKICAgIHJldHVybiBkYXRhOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("emond"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

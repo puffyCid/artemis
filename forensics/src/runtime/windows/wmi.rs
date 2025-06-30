@@ -212,25 +212,25 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_wmipersist() {
+    #[tokio::test]
+    async fn test_js_wmipersist() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW52aXJvbm1lbnQvZW52LnRzCmZ1bmN0aW9uIGdldEVudlZhbHVlKGtleSkgewogIGNvbnN0IGRhdGEgPSBqc19lbnZfdmFsdWUoa2V5KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvd21pLnRzCmZ1bmN0aW9uIGdldFdtaVBlcnNpc3QoKSB7CiAgdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc193bWlwZXJzaXN0KCk7CiAgICByZXR1cm4gZGF0YTsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgV2luZG93c0Vycm9yKCJXTUlQRVJTSVNUIiwgYGZhaWxlZCB0byBwYXJzZSBXTUkgcmVwbzogJHtlcnJ9YCk7CiAgfQp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldFdtaVBlcnNpc3QoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("wmipersist"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
-    fn test_js_wmi() {
+    #[tokio::test]
+    async fn test_js_wmi() {
         let test = "KCgpPT57dmFyIGE9Y2xhc3MgZXh0ZW5kcyBFcnJvcntuYW1lO21lc3NhZ2U7Y29uc3RydWN0b3IocixvKXtzdXBlcigpLHRoaXMubmFtZT1yLHRoaXMubWVzc2FnZT1vfX07dmFyIHQ9Y2xhc3MgZXh0ZW5kcyBhe307ZnVuY3Rpb24gcChlPSJyb290IixyLG8sbil7dHJ5e3JldHVybiBqc19saXN0X25hbWVzcGFjZXNfY2xhc3NlcyhlLHIsbyxuLCExKX1jYXRjaChzKXtyZXR1cm4gbmV3IHQoIldNSVBFUlNJU1QiLGBmYWlsZWQgdG8gbGlzdCBuYW1lc3BhY2VzOiAke3N9YCl9fWZ1bmN0aW9uIEkoZT0icm9vdCIscixvLG4pe3RyeXtyZXR1cm4ganNfbGlzdF9uYW1lc3BhY2VzX2NsYXNzZXMoZSxyLG8sbiwhMCl9Y2F0Y2gocyl7cmV0dXJuIG5ldyB0KCJXTUlQRVJTSVNUIixgZmFpbGVkIHRvIGxpc3QgY2xhc3NlczogJHtzfWApfX1mdW5jdGlvbiBTKGUscixvLG4scyxkKXt0cnl7cmV0dXJuIGpzX2NsYXNzX2Rlc2NyaXB0aW9uKGUscixvLG4scyxkKX1jYXRjaChpKXtyZXR1cm4gbmV3IHQoIldNSVBFUlNJU1QiLGBmYWlsZWQgdG8gZ2V0IGNsYXNzIGRlc2NyaXB0aW9uOiAke2l9YCl9fWZ1bmN0aW9uIGcoZSl7dHJ5e3JldHVybiBqc19nZXRfd21pX3BhZ2VzKGUpfWNhdGNoKHIpe3JldHVybiBuZXcgdCgiV01JUEVSU0lTVCIsYGZhaWxlZCB0byBnZXQgd21pIHBhZ2VzOiAke3J9YCl9fWZ1bmN0aW9uIHgoZSl7dHJ5e3JldHVybiBqc19nZXRfd21pX2luZGV4ZXMoZSl9Y2F0Y2gocil7cmV0dXJuIG5ldyB0KCJXTUlQRVJTSVNUIixgZmFpbGVkIHRvIGdldCB3bWkgaW5kZXhlczogJHtyfWApfX12YXIgYz1jbGFzcyBleHRlbmRzIGF7fTtmdW5jdGlvbiBsKGUpe3RyeXtyZXR1cm4ganNfcmVhZF9maWxlKGUpfWNhdGNoKHIpe3JldHVybiBuZXcgYygiUkVBRF9GSUxFIixgZmFpbGVkIHRvIHJlYWQgZmlsZSAke2V9OiAke3J9YCl9fWZ1bmN0aW9uIFQoKXtsZXQgZT0iQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFx3YmVtXFxSZXBvc2l0b3J5XFxNQVBQSU5HKi5NQVAiLHI9IkM6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcd2JlbVxcUmVwb3NpdG9yeVxcSU5ERVguQlRSIixvPSJDOlxcV2luZG93c1xcU3lzdGVtMzJcXHdiZW1cXFJlcG9zaXRvcnlcXE9CSkVDVFMuREFUQSIsbj1nKGUpLHM9bChvKSxkPWwociksaT14KGQpLEU9cCgicm9vdCIsaSxzLG4pO2lmKEUgaW5zdGFuY2VvZiB0KXJldHVybjtmb3IobGV0IG0gb2YgRSlpZihjb25zb2xlLmxvZyhgTmFtZXNwYWNlOiAke20ucGF0aH1gKSxtLm5hbWUuaW5jbHVkZXMoImNpbXYyIikpe2xldCB1PUkobS5wYXRoLGkscyxuKTtpZih1IGluc3RhbmNlb2YgdCljb250aW51ZTtjb25zb2xlLmxvZyhgRm91bmQgJHt1Lmxlbmd0aH0gZm9yIENJTXYyYCl9bGV0IGY9Uygicm9vdFxcY2ltdjIiLDEwMzMsIldpbjMyX0JJT1MiLGkscyxuKTtmIGluc3RhbmNlb2YgdHx8Y29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkoZi5wcm9wZXJ0aWVzKSl9VCgpO30pKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("wmipersist"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

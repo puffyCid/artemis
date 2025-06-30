@@ -182,6 +182,7 @@ dependencies = [
  "clap",
  "forensics",
  "log",
+ "tokio",
 ]
 
 [[package]]
@@ -1230,6 +1231,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tinytemplate",
+ "tokio",
  "walkdir",
 ]
 
@@ -1332,6 +1334,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
+ "tokio",
  "toml",
  "uuid",
  "vergen",
@@ -1945,7 +1948,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
 dependencies = [
  "futures-core",
- "futures-sink",
 ]
 
 [[package]]
@@ -2003,11 +2005,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
  "futures-core",
- "futures-io",
  "futures-macro",
- "futures-sink",
  "futures-task",
- "memchr",
  "pin-project-lite",
  "pin-utils",
  "slab",
@@ -3088,9 +3087,9 @@ dependencies = [
 
 [[package]]
 name = "macos-unifiedlogs"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de341146f352468332293fa3f9047f8815392eaf17231c9695661c329a3ca81e"
+checksum = "36adda3238a378f26cf82aafa69ba8ea79e36600a09e223430f6dff08102054a"
 dependencies = [
  "base64 0.22.1",
  "byteorder",
@@ -4135,7 +4134,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
- "futures-channel",
  "futures-core",
  "futures-util",
  "h2",
