@@ -176,9 +176,9 @@ mod tests {
         execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
-    fn test_advanced_decode_script() {
+    async fn test_advanced_decode_script() {
         use crate::filesystem::files::read_file;
         use std::{path::PathBuf, str::from_utf8};
 
@@ -194,23 +194,26 @@ mod tests {
             from_utf8(&buffer).unwrap(),
             &[],
         )
+        .await
         .unwrap();
     }
 
-    #[test]
-    fn test_filter_script() {
+    #[tokio::test]
+    async fn test_filter_script() {
         let mut output = output_options("split_string", "local", "./tmp", false);
-        filter_script(&mut output, &vec![String::from("helloRust")], "test", "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IFNUQVRJQ19BUkdTOwogICAgaWYgKGFyZ3MubGVuZ3RoID09PSAwKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdGVzdCA9IGFyZ3NbMF07CiAgICBjb25zdCB2YWx1ZXMgPSB0ZXN0LnNwbGl0KCJoZWxsbyIpCgogICAgcmV0dXJuIHZhbHVlczsKfQptYWluKCk7Cgo=").unwrap();
+        filter_script(&mut output, &vec![String::from("helloRust")], "test", "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IFNUQVRJQ19BUkdTOwogICAgaWYgKGFyZ3MubGVuZ3RoID09PSAwKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdGVzdCA9IGFyZ3NbMF07CiAgICBjb25zdCB2YWx1ZXMgPSB0ZXN0LnNwbGl0KCJoZWxsbyIpCgogICAgcmV0dXJuIHZhbHVlczsKfQptYWluKCk7Cgo=").await.unwrap();
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }

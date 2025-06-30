@@ -484,9 +484,9 @@ mod tests {
     use crate::structs::{artifacts::os::windows::OutlookOptions, toml::Output};
     use std::path::PathBuf;
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_grab_outlook() {
+    async fn test_grab_outlook() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
@@ -515,7 +515,7 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out, false).await.unwrap()
     }
 
     #[test]

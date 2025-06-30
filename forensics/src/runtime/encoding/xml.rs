@@ -56,27 +56,27 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_js_read_xml() {
+    async fn test_js_read_xml() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYWluL3NyYy9lbmNvZGluZy94bWwudHMKZnVuY3Rpb24gcmVhZFhtbChwYXRoKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfcmVhZF94bWwocGF0aCk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiQzpcXCpcXCoueG1sIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBnbG9iIHBhdGg6ICR7cGF0aHN9YCk7CiAgICByZXR1cm4gcGF0aHM7CiAgfQogIGZvciAoY29uc3QgZW50cnkgb2YgcGF0aHMpIHsKICAgIGlmICghZW50cnkuaXNfZmlsZSkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IHJldXNsdCA9IHJlYWRYbWwoZW50cnkuZnVsbF9wYXRoKTsKICAgIHJldHVybiByZXVzbHQ7CiAgfQp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("xml_test"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_js_read_xml() {
+    async fn test_js_read_xml() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYWluL3NyYy9lbmNvZGluZy94bWwudHMKZnVuY3Rpb24gcmVhZFhtbChwYXRoKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfcmVhZF94bWwocGF0aCk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiLyovKi54bWwiKTsKICBpZiAocGF0aHMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIGdsb2IgcGF0aDogJHtwYXRoc31gKTsKICAgIHJldHVybiBwYXRoczsKICB9CiAgZm9yIChjb25zdCBlbnRyeSBvZiBwYXRocykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgcmV1c2x0ID0gcmVhZFhtbChlbnRyeS5mdWxsX3BhdGgpOwogICAgcmV0dXJuIHJldXNsdDsKICB9Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("xml_test"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

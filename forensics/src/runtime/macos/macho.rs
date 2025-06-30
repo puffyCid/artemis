@@ -46,8 +46,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_macho() {
+    #[tokio::test]
+    async fn test_js_macho() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbWFjaG8udHMKZnVuY3Rpb24gZ2V0TWFjaG8ocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19tYWNobyhwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgYmluX3BhdGggPSAiL2JpbiI7CiAgY29uc3QgbWFjaG9zID0gW107CiAgZm9yIChjb25zdCBlbnRyeSBvZiBhd2FpdCByZWFkRGlyKGJpbl9wYXRoKSkgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgbWFjaG9fcGF0aCA9IGAke2Jpbl9wYXRofS8ke2VudHJ5LmZpbGVuYW1lfWA7CiAgICBjb25zdCBpbmZvID0gZ2V0TWFjaG8obWFjaG9fcGF0aCk7CiAgICBpZiAoaW5mbyA9PT0gbnVsbCkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IG1ldGEgPSB7CiAgICAgIHBhdGg6IG1hY2hvX3BhdGgsCiAgICAgIG1hY2hvOiBpbmZvCiAgICB9OwogICAgbWFjaG9zLnB1c2gobWV0YSk7CiAgfQogIHJldHVybiBtYWNob3M7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
 
@@ -55,6 +55,6 @@ mod tests {
             name: String::from("bin_machos"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

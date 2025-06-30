@@ -56,14 +56,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_loginitems() {
+    #[tokio::test]
+    async fn test_js_loginitems() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfbG9naW5pdGVtcygpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19sb2dpbml0ZW1zKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRMb2dpbkl0ZW1zKCkgewogICAgcmV0dXJuIGdldF9sb2dpbml0ZW1zKCk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGRhdGEgPSBnZXRMb2dpbkl0ZW1zKCk7CiAgICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cgo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("loginitems"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

@@ -82,36 +82,37 @@ mod tests {
             logging: Some(String::new()),
         }
     }
-    #[test]
-    fn test_get_bash_history() {
+
+    #[tokio::test]
+    async fn test_get_bash_history() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3VuaXgvc2hlbGxfaGlzdG9yeS50cwpmdW5jdGlvbiBnZXRfYmFzaF9oaXN0b3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19iYXNoX2hpc3RvcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldEJhc2hIaXN0b3J5KCkgewogIHJldHVybiBnZXRfYmFzaF9oaXN0b3J5KCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0QmFzaEhpc3RvcnkoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("bash_history"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
-    fn test_python_history() {
+    #[tokio::test]
+    async fn test_python_history() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3VuaXgvc2hlbGxfaGlzdG9yeS50cwpmdW5jdGlvbiBnZXRfcHl0aG9uX2hpc3RvcnkoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3B5dGhvbl9oaXN0b3J5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL21vZC50cwpmdW5jdGlvbiBnZXRQeXRob25IaXN0b3J5KCkgewogIHJldHVybiBnZXRfcHl0aG9uX2hpc3RvcnkoKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRQeXRob25IaXN0b3J5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("python_history"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
-    fn test_zsh_history() {
+    #[tokio::test]
+    async fn test_zsh_history() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3VuaXgvc2hlbGxfaGlzdG9yeS50cwpmdW5jdGlvbiBnZXRfenNoX2hpc3RvcnkoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3pzaF9oaXN0b3J5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL21vZC50cwpmdW5jdGlvbiBnZXRac2hIaXN0b3J5KCkgewogIHJldHVybiBnZXRfenNoX2hpc3RvcnkoKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGRhdGEgPSBnZXRac2hIaXN0b3J5KCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("zsh_history"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

@@ -314,8 +314,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_store_db() {
+    #[tokio::test]
+    async fn test_parse_store_db() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
         let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
@@ -327,7 +327,9 @@ mod tests {
         let meta = get_spotlight_meta(&paths).unwrap();
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_store(&mut data, &meta, &mut output, 0, false).unwrap();
+        parse_store(&mut data, &meta, &mut output, 0, false)
+            .await
+            .unwrap();
     }
 
     #[test]

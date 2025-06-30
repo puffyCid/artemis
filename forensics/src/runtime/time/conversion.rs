@@ -108,14 +108,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_time() {
+    #[tokio::test]
+    async fn test_js_time() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3RpbWUvY29udmVyc2lvbi50cwpmdW5jdGlvbiB0aW1lTm93KCkgewogIGNvbnN0IGRhdGEgPSBqc190aW1lX25vdygpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGZpbGV0aW1lVG9Vbml4RXBvY2goZmlsZXRpbWUpIHsKICBjb25zdCBkYXRhID0ganNfZmlsZXRpbWVfdG9fdW5peGVwb2NoKGZpbGV0aW1lKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBjb2NvYXRpbWVUb1VuaXhFcG9jaChjb2NvYXRpbWUpIHsKICBjb25zdCBkYXRhID0ganNfY29jb2F0aW1lX3RvX3VuaXhlcG9jaChjb2NvYXRpbWUpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGhmc1RvVW5peEVwb2NoKGhmc3RpbWUpIHsKICBjb25zdCBkYXRhID0ganNfaGZzX3RvX3VuaXhlcG9jaChoZnN0aW1lKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvbGVUb1VuaXhFcG9jaChvbGV0aW1lKSB7CiAgY29uc3QgZGF0YSA9IGpzX29sZV9hdXRvbWF0aW9udGltZV90b191bml4ZXBvY2gob2xldGltZSk7CiAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gd2Via2l0VG9Vbml4RXBvY2god2Via2l0dGltZSkgewogIGNvbnN0IGRhdGEgPSBqc193ZWJraXRfdGltZV90b191bml4ZXBvY2god2Via2l0dGltZSk7CiAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZmF0VG9Vbml4RXBvY2goZmF0dGltZSkgewogIGNvbnN0IGRhdGEgPSBqc19mYXRfdGltZV90b191bml4ZXBvY2goZmF0dGltZSk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBsZXQgZGF0YSA9IHRpbWVOb3coKTsKICBjb25zdCBiaWcgPSAxMzIyNDQ3NjY0MTg5NDAyNTRuOwogIGRhdGEgPSBmaWxldGltZVRvVW5peEVwb2NoKGJpZyk7CiAgY29uc3QgZmF0dGVzdCA9IFsxMjMsIDc5LCAxOTUsIDE0XTsKICBkYXRhID0gZmF0VG9Vbml4RXBvY2goVWludDhBcnJheS5mcm9tKGZhdHRlc3QpKTsKICBsZXQgdGVzdCA9IDQzNzk0LjAxODc1OwogIGRhdGEgPSBvbGVUb1VuaXhFcG9jaCh0ZXN0KTsKICB0ZXN0ID0gMTAuMDE4NzU7CiAgZGF0YSA9IGNvY29hdGltZVRvVW5peEVwb2NoKHRlc3QpOwogIHRlc3QgPSAxMzI4OTk4Mzk2MDsKICBkYXRhID0gd2Via2l0VG9Vbml4RXBvY2godGVzdCk7CiAgdGVzdCA9IDM0NTMxMjA4MjQ7CiAgZGF0YSA9IGhmc1RvVW5peEVwb2NoKHRlc3QpOwogIGNvbnNvbGUubG9nKGRhdGEpOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("timestuff"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

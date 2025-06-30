@@ -146,13 +146,15 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_spotlight() {
+    #[tokio::test]
+    async fn test_parse_spotlight() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*");
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
-        parse_spotlight(test_location.to_str().unwrap(), &mut output, 0, false).unwrap();
+        parse_spotlight(test_location.to_str().unwrap(), &mut output, 0, false)
+            .await
+            .unwrap();
     }
 
     #[test]

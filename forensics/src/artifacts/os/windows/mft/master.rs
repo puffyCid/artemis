@@ -648,9 +648,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_parse_mft() {
+    async fn test_parse_mft() {
         use super::parse_mft;
         use std::path::PathBuf;
 
@@ -658,7 +658,9 @@ mod tests {
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0).unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 
     #[test]
@@ -688,9 +690,9 @@ mod tests {
         .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_nonresident_large_record_length() {
+    async fn test_nonresident_large_record_length() {
         use super::parse_mft;
         use std::path::PathBuf;
 
@@ -699,6 +701,8 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_mft(&test_location.display().to_string(), &mut output, false, 0)
+            .await
+            .unwrap();
     }
 }

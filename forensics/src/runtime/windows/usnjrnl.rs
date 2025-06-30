@@ -71,14 +71,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_usnjrnl_rs_files() {
+    #[tokio::test]
+    async fn test_js_usnjrnl_rs_files() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNuanJubCgpIHsKdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc191c25qcm5sKCk7CiAgICByZXR1cm4gZGF0YTsKfWNhdGNoKGVycikge3JldHVybiBlcnI7fQp9CmZ1bmN0aW9uIGdldFVzbkpybmwoKSB7CiAgICByZXR1cm4gZ2V0X3VzbmpybmwoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QganJubF9lbnRyaWVzID0gZ2V0VXNuSnJubCgpOwogICAgY29uc3QgcnNfZW50cmllcyA9IFtdOwogICAgZm9yKGxldCBlbnRyeSA9IDA7IGVudHJ5IDwganJubF9lbnRyaWVzLmxlbmd0aDsgZW50cnkrKyl7CiAgICAgICAgaWYgKGpybmxfZW50cmllc1tlbnRyeV0uZXh0ZW5zaW9uID09PSAicnMiKSB7CiAgICAgICAgICAgIHJzX2VudHJpZXMucHVzaChqcm5sX2VudHJpZXNbZW50cnldKTsKICAgICAgICAgICAgaWYocnNfZW50cmllcy5sZW5ndGggPiAxMDApewogICAgICAgICAgICAgIGJyZWFrOwogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQogICAgcmV0dXJuIHJzX2VudHJpZXM7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("usnjnl_rs_files"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

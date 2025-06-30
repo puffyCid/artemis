@@ -57,14 +57,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_execpolicy() {
+    #[tokio::test]
+    async fn test_js_execpolicy() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0ganNfZXhlY3BvbGljeSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL21vZC50cwpmdW5jdGlvbiBnZXRFeGVjUG9saWN5KCkgewogIHJldHVybiBnZXRfZXhlY3BvbGljeSgpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEV4ZWNQb2xpY3koKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("execpolicy"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

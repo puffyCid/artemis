@@ -57,14 +57,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_get_processes() {
+    #[tokio::test]
+    async fn test_js_get_processes() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfcHJvY2Vzc2VzKG1kNSwgc2hhMSwgc2hhMjU2LCBwZV9pbmZvKSB7CiAgICBjb25zdCBoYXNoZXMgPSB7CiAgICAgICAgbWQ1LAogICAgICAgIHNoYTEsCiAgICAgICAgc2hhMjU2CiAgICB9OwogICAgY29uc3QgZGF0YSA9IGpzX2dldF9wcm9jZXNzZXMoaGFzaGVzLCBwZV9pbmZvKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldFByb2Nlc3NlcyhtZDUsIHNoYTEsIHNoYTI1NiwgcGVfaW5mbykgewogICAgcmV0dXJuIGdldF9wcm9jZXNzZXMobWQ1LCBzaGExLCBzaGEyNTYsIHBlX2luZm8pOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwcm9jX2xpc3QgPSBnZXRQcm9jZXNzZXMoZmFsc2UsIGZhbHNlLCBmYWxzZSwgdHJ1ZSk7CiAgICByZXR1cm4gcHJvY19saXN0Owp9Cm1haW4oKTs=";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("processes"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }
