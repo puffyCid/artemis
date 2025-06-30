@@ -3,10 +3,10 @@ use std::time::Duration;
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::{error, info, warn};
-use reqwest::{StatusCode, blocking::Client, header::HeaderMap};
+use reqwest::{Client, StatusCode, header::HeaderMap};
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
-pub(crate) fn azure_upload(
+pub(crate) async fn azure_upload(
     data: &[u8],
     output: &Output,
     filename: &str,
@@ -28,15 +28,18 @@ pub(crate) fn azure_upload(
 
     let azure_full_url = compose_azure_url(azure_url, &azure_filename)?;
 
-    azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len())?;
+    azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len()).await?;
 
-    info!("[core] Uploaded {} bytes to Azure blob storage", data.len());
+    info!(
+        "[forensics] Uploaded {} bytes to Azure blob storage",
+        data.len()
+    );
 
     Ok(())
 }
 
 /// Upload bytes to Azure
-pub(crate) fn azure_url_upload(
+pub(crate) async fn azure_url_upload(
     url: &str,
     headers: &HeaderMap,
     data: &[u8],
@@ -63,11 +66,11 @@ pub(crate) fn azure_url_upload(
         builder = builder.timeout(Duration::from_secs(300));
 
         builder = builder.body(data.to_vec());
-        let res_result = builder.send();
+        let res_result = builder.send().await;
         let res = match res_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to upload data to Azure blob storage: {err:?}");
+                error!("[forensics] Failed to upload data to Azure blob storage: {err:?}");
                 return Err(RemoteError::RemoteUpload);
             }
         };
@@ -75,15 +78,15 @@ pub(crate) fn azure_url_upload(
         if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
             if attempts < max_attempts {
                 warn!(
-                    "[core] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}"
+                    "[forensics] Non-200 response on attempt {attempts} out of {max_attempts}. Response: {res:?}"
                 );
 
                 attempts += 1;
                 continue;
             }
             error!(
-                "[core] Non-200 response from Azure blob storage: {:?}",
-                res.text()
+                "[forensics] Non-200 response from Azure blob storage: {:?}",
+                res.text().await
             );
             return Err(RemoteError::RemoteUpload);
         }
@@ -98,7 +101,7 @@ pub(crate) fn compose_azure_url(azure_url: &str, filename: &str) -> Result<Strin
     let azure_uris: Vec<&str> = azure_url.split('?').collect();
     let expected_len = 2;
     if azure_uris.len() < expected_len {
-        error!("[core] Unexpected Azure URL provided: {azure_url}");
+        error!("[forensics] Unexpected Azure URL provided: {azure_url}");
         return Err(RemoteError::RemoteUrl);
     }
 
@@ -135,8 +138,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_azure_upload() {
+    #[tokio::test]
+    async fn test_azure_upload() {
         let server = MockServer::start();
         let port = server.port();
         let output = output_options(
@@ -157,7 +160,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &output, name).await.unwrap();
         mock_me.assert();
     }
 
@@ -172,8 +175,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_azure_upload_compress() {
+    #[tokio::test]
+    async fn test_azure_upload_compress() {
         let server = MockServer::start();
         let port = server.port();
         let output = output_options(
@@ -194,13 +197,13 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &output, name).await.unwrap();
         mock_me.assert();
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "RemoteUrl")]
-    fn test_azure_upload_bad_url() {
+    async fn test_azure_upload_bad_url() {
         let server = MockServer::start();
         let port = server.port();
         let output = output_options(
@@ -221,7 +224,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &output, name).await.unwrap();
         mock_me.assert();
     }
 }

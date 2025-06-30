@@ -20,7 +20,7 @@ pub(crate) fn scan_file(path: &str, encoded_rule: &str) -> Result<Vec<String>, A
         let hits = match results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to scan file {path}: {err:?}",);
+                error!("[forensics] Failed to scan file {path}: {err:?}",);
                 return Err(ArtemisError::YaraScan);
             }
         };
@@ -49,7 +49,7 @@ pub(crate) fn scan_bytes(data: &[u8], encoded_rule: &str) -> Result<Vec<String>,
         let hits = match results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to scan bytes: {err:?}",);
+                error!("[forensics] Failed to scan bytes: {err:?}",);
                 return Err(ArtemisError::YaraScan);
             }
         };
@@ -70,7 +70,7 @@ pub(crate) fn scan_base64_bytes(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to base64 target bytes: {err:?}");
+            error!("[forensics] Failed to base64 target bytes: {err:?}");
             return Err(ArtemisError::Encoding);
         }
     };
@@ -84,7 +84,7 @@ fn rule_decode(rule: &str) -> Result<String, ArtemisError> {
     let rule_bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to base64 decode rule: {err:?}");
+            error!("[forensics] Failed to base64 decode rule: {err:?}");
             return Err(ArtemisError::Encoding);
         }
     };
@@ -99,7 +99,10 @@ fn compile_rule(rule: &str) -> Result<Compiler<'_>, ArtemisError> {
     compile.error_on_slow_pattern(true);
     let status = compile.add_source(rule);
     if status.is_err() {
-        error!("[core] Failed to add yara rule: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Failed to add yara rule: {:?}",
+            status.unwrap_err()
+        );
         return Err(ArtemisError::YaraRule);
     }
 

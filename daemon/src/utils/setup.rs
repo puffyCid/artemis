@@ -12,8 +12,8 @@ use log::error;
 use std::{fs::rename, str::from_utf8, thread::sleep, time::Duration};
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
-pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
-    let mut enroll = match config.enroll_request() {
+pub(crate) async fn setup_enrollment(config: &mut DaemonConfig) {
+    let mut enroll = match config.enroll_request().await {
         Ok(result) => result,
         Err(_err) => return,
     };
@@ -27,7 +27,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
         // Pause for 6 seconds between each attempt
         sleep(Duration::from_secs(pause));
 
-        let enroll_attempt = match config.enroll_request() {
+        let enroll_attempt = match config.enroll_request().await {
             Ok(result) => result,
             Err(_err) => return,
         };
@@ -50,7 +50,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
 /// Process our collection request
 pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
     if collect.endpoint_invalid {
-        setup_enrollment(config);
+        setup_enrollment(config).await;
     }
     let collection_bytes = match base64_decode_standard(&collect.collection) {
         Ok(result) => result,
@@ -74,15 +74,15 @@ pub(crate) async fn setup_collection(config: &mut DaemonConfig, collect: &Collec
 }
 
 /// Get a daemon configuration from our server. If none is provided we will generate a default config
-pub(crate) fn setup_config(config: &mut DaemonConfig) {
-    let daemon_config = match config.config_request() {
+pub(crate) async fn setup_config(config: &mut DaemonConfig) {
+    let daemon_config = match config.config_request().await {
         Ok(result) => result,
         Err(_err) => return setup_daemon(config),
     };
 
     // Check if we got a endpoint_invalid response
     if daemon_config.endpoint_invalid {
-        setup_enrollment(config);
+        setup_enrollment(config).await;
     }
 
     let toml_bytes = match base64_decode_standard(&daemon_config.config) {

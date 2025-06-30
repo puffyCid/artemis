@@ -41,8 +41,8 @@ pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     };
 
     // Attempt to connect to server
-    setup_enrollment(&mut config);
-    setup_config(&mut config);
+    setup_enrollment(&mut config).await;
+    setup_config(&mut config).await;
 
     // We have enough info connect to our server.
     // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
@@ -64,7 +64,7 @@ async fn start(config: &mut DaemonConfig) {
             sleep(Duration::from_secs(long_pause));
             count = 0;
         }
-        let collection = match config.collect_request() {
+        let collection = match config.collect_request().await {
             Ok(result) => result,
             Err(_err) => {
                 count += 1;

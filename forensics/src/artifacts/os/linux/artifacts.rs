@@ -21,7 +21,7 @@ pub(crate) async fn journals(
     match artifact_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[core] Failed to get journals: {err:?}");
+            error!("[forensics] Failed to get journals: {err:?}");
             Err(LinuxArtifactError::Journal)
         }
     }
@@ -40,7 +40,7 @@ pub(crate) async fn logons(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize logons: {err:?}");
+            error!("[forensics] Failed to serialize logons: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
@@ -57,20 +57,20 @@ pub(crate) async fn sudo_logs_linux(
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let cron_results = grab_sudo_logs(options);
-    let cron_data = match cron_results {
+    let sudo_results = grab_sudo_logs(options);
+    let sudo_data = match sudo_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Failed to get sudo log data: {err:?}");
+            warn!("[forensics] Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
 
-    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data_result = serde_json::to_value(&sudo_data);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize sudo log data: {err:?}");
+            error!("[forensics] Failed to serialize sudo log data: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
@@ -89,7 +89,10 @@ pub(crate) async fn output_data(
 ) -> Result<(), LinuxArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(LinuxArtifactError::Output);
     }
     Ok(())

@@ -1,7 +1,7 @@
 use super::error::ConfigError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
 use log::error;
-use reqwest::{StatusCode, blocking::Client};
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -19,12 +19,12 @@ pub(crate) struct ConfigRequest {
 }
 
 pub(crate) trait ConfigEndpoint {
-    fn config_request(&self) -> Result<ConfigResponse, ConfigError>;
+    async fn config_request(&self) -> Result<ConfigResponse, ConfigError>;
 }
 
 impl ConfigEndpoint for DaemonConfig {
     /// Send request to server for a daemon configuration
-    fn config_request(&self) -> Result<ConfigResponse, ConfigError> {
+    async fn config_request(&self) -> Result<ConfigResponse, ConfigError> {
         let url = format!(
             "{}:{}/v{}/{}",
             self.server.server.url,
@@ -40,7 +40,7 @@ impl ConfigEndpoint for DaemonConfig {
         let client = Client::new();
         let mut builder = client.post(&url).json(&config_req);
         builder = builder.header("accept", "application/json");
-        let res = match builder.send() {
+        let res = match builder.send().await {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to send request for config: {err:?}");
@@ -48,7 +48,7 @@ impl ConfigEndpoint for DaemonConfig {
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
-            let message = bad_request(&res.bytes().unwrap_or_default());
+            let message = bad_request(&res.bytes().await.unwrap_or_default());
             error!("[daemon] Config request was bad: {}", message.message);
             return Err(ConfigError::BadConfig);
         }
@@ -58,7 +58,7 @@ impl ConfigEndpoint for DaemonConfig {
             return Err(ConfigError::ConfigNotOk);
         }
 
-        let bytes = match res.bytes() {
+        let bytes = match res.bytes().await {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to get config bytes: {err:?}");
@@ -89,8 +89,8 @@ mod tests {
     use serde_json::json;
     use std::path::PathBuf;
 
-    #[test]
-    fn test_config_request() {
+    #[tokio::test]
+    async fn test_config_request() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -119,16 +119,16 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let status = config.config_request().unwrap();
+        let status = config.config_request().await.unwrap();
         mock_me.assert();
 
         assert_eq!(status.config, "base64 blob");
         assert_eq!(status.endpoint_invalid, false);
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "BadConfig")]
-    fn test_config_bad_enrollment() {
+    async fn test_config_bad_enrollment() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -157,13 +157,13 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.config_request().unwrap();
+        let _ = config.config_request().await.unwrap();
         mock_me.assert();
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "FailedConfig")]
-    fn test_config_bad_response() {
+    async fn test_config_bad_response() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -192,13 +192,13 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.config_request().unwrap();
+        let _ = config.config_request().await.unwrap();
         mock_me.assert();
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "ConfigNotOk")]
-    fn test_config_not_ok() {
+    async fn test_config_not_ok() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/configs/server.toml");
 
@@ -228,7 +228,7 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let _ = config.config_request().unwrap();
+        let _ = config.config_request().await.unwrap();
         mock_me.assert();
     }
 }

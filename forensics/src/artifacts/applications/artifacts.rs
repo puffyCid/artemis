@@ -16,7 +16,7 @@ pub(crate) async fn safari_history(
     let history_data = match history_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis macOS failed to get Safari history: {err:?}");
+            warn!("[forensics] Artemis macOS failed to get Safari history: {err:?}");
             return Err(ApplicationError::SafariHistory);
         }
     };
@@ -25,7 +25,7 @@ pub(crate) async fn safari_history(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Safari history: {err:?}");
+            error!("[forensics] Failed to serialize Safari history: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -47,7 +47,7 @@ pub(crate) async fn safari_downloads(
     let download_data = match download_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis macOS failed to get Safari downloads: {err:?}");
+            warn!("[forensics] Artemis macOS failed to get Safari downloads: {err:?}");
             return Err(ApplicationError::SafariDownloads);
         }
     };
@@ -56,7 +56,7 @@ pub(crate) async fn safari_downloads(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Safari downloads: {err:?}");
+            error!("[forensics] Failed to serialize Safari downloads: {err:?}");
             return Err(ApplicationError::Serialize);
         }
     };
@@ -75,7 +75,10 @@ pub(crate) async fn output_data(
 ) -> Result<(), ApplicationError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(ApplicationError::Output);
     }
     Ok(())

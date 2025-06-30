@@ -43,7 +43,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             let mut user_path = if let Some(result) = user_path_result {
                 result
             } else {
-                error!("[core] Failed get user home paths");
+                error!("[forensics] Failed get user home paths");
                 return Err(FileSystemError::UserPaths);
             };
 
@@ -124,7 +124,7 @@ pub(crate) fn get_parent_directory(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[core] Failed to get parent directory for path: {path}");
+        warn!("[forensics] Failed to get parent directory for path: {path}");
         return path.to_string();
     }
 

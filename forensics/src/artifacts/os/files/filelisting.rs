@@ -325,7 +325,10 @@ async fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64
 
     let status = output_artifact(&mut serde_data, "files", output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
     }
 }
 

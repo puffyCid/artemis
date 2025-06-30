@@ -4,7 +4,9 @@ use crate::{
     runtime::helper::{string_arg, value_arg},
     structs::toml::Output,
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use boa_engine::{
+    Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
+};
 use log::error;
 
 /// Acquire file from system
@@ -27,46 +29,67 @@ pub(crate) fn js_acquire_file(
         }
     };
 
-    if output.output == "local" {
-        let status = acquire_file(&path, output);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file {path}");
-            let err = format!("Local acquire failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "gcp" {
-        let status = acquire_file_remote(&path, output, RemoteType::Gcp);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("GCP upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "aws" {
-        let status = acquire_file_remote(&path, output, RemoteType::Aws);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("AWS upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else if output.output == "azure" {
-        let status = acquire_file_remote(&path, output, RemoteType::Azure);
-        if status.is_err() {
-            error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("Azure upload failed for {path}: {:?}", status.unwrap_err());
-            let err = js_string!(err).into();
-            return Err(JsError::from_opaque(err));
-        }
-    } else {
-        return Err(JsError::from_opaque(
-            js_string!(format!("Unknown acquire type {}", output.output)).into(),
-        ));
-    }
+    let promise = JsPromise::from_future(
+        async move {
+            if output.output == "local" {
+                let status = acquire_file(&path, output);
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file {path}");
+                    let err = format!("Local acquire failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "gcp" {
+                let status = acquire_file_remote(&path, output, RemoteType::Gcp).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("GCP upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "aws" {
+                let status = acquire_file_remote(&path, output, RemoteType::Aws).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("AWS upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else if output.output == "azure" {
+                let status = acquire_file_remote(&path, output, RemoteType::Azure).await;
+                if status.is_err() {
+                    error!("[runtime] Failed to acquire file for upload {path}");
+                    let err = format!("Azure upload failed for {path}: {:?}", status.unwrap_err());
+                    let err = js_string!(err).into();
+                    return Err(JsError::from_opaque(err));
+                }
+            } else {
+                return Err(JsError::from_opaque(
+                    js_string!(format!("Unknown acquire type {}", output.output)).into(),
+                ));
+            }
+            Ok(JsValue::Boolean(true))
+        },
+        context,
+    )
+    .then(
+        Some(
+            NativeFunction::from_fn_ptr(|_, args, ctx| {
+                // Get the value from the script
+                let script_value = string_arg(args, 0)?;
+                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                let value = JsValue::from_json(&serde_value, ctx)?;
+                // Returh the JavaScript object
+                Ok(value)
+            })
+            .to_js_function(context.realm()),
+        ),
+        None,
+        context,
+    );
 
     let sucess = true;
-    Ok(JsValue::Boolean(sucess))
+    Ok(promise.into())
 }
 
 #[cfg(test)]

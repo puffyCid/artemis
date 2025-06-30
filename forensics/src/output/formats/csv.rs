@@ -21,7 +21,7 @@ pub(crate) async fn csv_format(
     let writer = match writer_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not create csv writer: {err:?}");
+            error!("[forensics] Could not create csv writer: {err:?}");
             return Err(FormatError::Output);
         }
     };
@@ -32,7 +32,7 @@ pub(crate) async fn csv_format(
         match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to compress data: {err:?}");
+                error!("[forensics] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         }
@@ -42,9 +42,9 @@ pub(crate) async fn csv_format(
 
     let output_result: Result<_, _> = final_output(&bytes, output, &uuid).await;
     match output_result {
-        Ok(_) => info!("[core] {output_name} csv output success"),
+        Ok(_) => info!("[forensics] {output_name} csv output success"),
         Err(err) => {
-            error!("[core] Failed to output {output_name} csv: {err:?}");
+            error!("[forensics] Failed to output {output_name} csv: {err:?}");
             return Err(FormatError::Output);
         }
     }

@@ -37,7 +37,7 @@ pub(crate) async fn loginitems(
     let result = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to parse loginitems: {err:?}");
+            error!("[forensics] Failed to parse loginitems: {err:?}");
             return Err(MacArtifactError::LoginItem);
         }
     };
@@ -46,7 +46,7 @@ pub(crate) async fn loginitems(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize loginitems: {err:?}");
+            error!("[forensics] Failed to serialize loginitems: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -67,7 +67,7 @@ pub(crate) async fn emond(
     let emond_data = match results {
         Ok(result) => result,
         Err(err) => {
-            warn!("[core] Failed to parse emond rules: {err:?}");
+            warn!("[forensics] Failed to parse emond rules: {err:?}");
             return Err(MacArtifactError::Emond);
         }
     };
@@ -76,7 +76,7 @@ pub(crate) async fn emond(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize emond: {err:?}");
+            error!("[forensics] Failed to serialize emond: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -98,7 +98,7 @@ pub(crate) async fn users_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize users: {err:?}");
+            error!("[forensics] Failed to serialize users: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -120,7 +120,7 @@ pub(crate) async fn groups_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize groups: {err:?}");
+            error!("[forensics] Failed to serialize groups: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -138,7 +138,7 @@ pub(crate) async fn fseventsd(
     let results = grab_fseventsd(options, filter, output).await;
     if results.is_err() {
         warn!(
-            "[core] Failed to parse fseventsd: {:?}",
+            "[forensics] Failed to parse fseventsd: {:?}",
             results.unwrap_err()
         );
         return Err(MacArtifactError::FsEventsd);
@@ -158,7 +158,7 @@ pub(crate) async fn launchd(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to parse launchd: {err:?}");
+            error!("[forensics] Failed to parse launchd: {err:?}");
             return Err(MacArtifactError::Launchd);
         }
     };
@@ -167,7 +167,7 @@ pub(crate) async fn launchd(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize launchd: {err:?}");
+            error!("[forensics] Failed to serialize launchd: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -197,7 +197,7 @@ pub(crate) async fn execpolicy(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to query execpolicy: {err:?}");
+            error!("[forensics] Failed to query execpolicy: {err:?}");
             return Err(MacArtifactError::ExecPolicy);
         }
     };
@@ -206,7 +206,7 @@ pub(crate) async fn execpolicy(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize execpolicy: {err:?}");
+            error!("[forensics] Failed to serialize execpolicy: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -226,7 +226,7 @@ pub(crate) async fn sudo_logs_macos(
     let results = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Failed to get sudo log data: {err:?}");
+            warn!("[forensics] Failed to get sudo log data: {err:?}");
             return Err(MacArtifactError::SudoLog);
         }
     };
@@ -235,7 +235,7 @@ pub(crate) async fn sudo_logs_macos(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize sudo log data: {err:?}");
+            error!("[forensics] Failed to serialize sudo log data: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
@@ -254,7 +254,7 @@ pub(crate) fn spotlight(
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {
-            warn!("[core] Failed to get spotlight data: {err:?}");
+            warn!("[forensics] Failed to get spotlight data: {err:?}");
             Err(MacArtifactError::Spotlight)
         }
     }
@@ -270,7 +270,10 @@ pub(crate) async fn output_data(
 ) -> Result<(), MacArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(MacArtifactError::Output);
     }
     Ok(())

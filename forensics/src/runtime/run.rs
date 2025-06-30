@@ -111,7 +111,7 @@ pub(crate) async fn output_data(
     } else if output.format.to_lowercase() == "csv" {
         csv_format(serde_data, output_name, output).await
     } else {
-        error!("[core] Unknown formatter provided: {}", output.format);
+        error!("[forensics] Unknown formatter provided: {}", output.format);
         return Err(RuntimeError::Output);
     };
     if status.is_err() {

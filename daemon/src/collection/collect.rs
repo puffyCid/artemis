@@ -1,7 +1,7 @@
 use super::error::CollectError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
 use log::{error, info};
-use reqwest::{StatusCode, blocking::Client};
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -20,11 +20,11 @@ pub(crate) struct CollectRequest {
 
 pub(crate) trait CollectEndpoint {
     /// Check for any collection requests we need to run
-    fn collect_request(&self) -> Result<CollectResponse, CollectError>;
+    async fn collect_request(&self) -> Result<CollectResponse, CollectError>;
 }
 
 impl CollectEndpoint for DaemonConfig {
-    fn collect_request(&self) -> Result<CollectResponse, CollectError> {
+    async fn collect_request(&self) -> Result<CollectResponse, CollectError> {
         let url = format!(
             "{}:{}/v{}/{}",
             self.server.server.url,
@@ -41,7 +41,7 @@ impl CollectEndpoint for DaemonConfig {
         let mut builder = client.post(&url).json(&req);
         builder = builder.header("accept", "application/json");
 
-        let res = match builder.send() {
+        let res = match builder.send().await {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to send request for collection: {err:?}");
@@ -49,7 +49,7 @@ impl CollectEndpoint for DaemonConfig {
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
-            let message = bad_request(&res.bytes().unwrap_or_default());
+            let message = bad_request(&res.bytes().await.unwrap_or_default());
             error!("[daemon] Collection request was bad: {}", message.message);
             return Err(CollectError::BadCollect);
         }
@@ -64,7 +64,7 @@ impl CollectEndpoint for DaemonConfig {
             return Err(CollectError::CollectNotOk);
         }
 
-        let bytes = match res.bytes() {
+        let bytes = match res.bytes().await {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to get collection bytes: {err:?}");
@@ -128,7 +128,7 @@ mod tests {
         };
         config.server.server.port = port;
 
-        let status = config.collect_request().unwrap();
+        let status = config.collect_request().await.unwrap();
         mock_me.assert();
         assert_eq!(status.endpoint_invalid, false);
         assert!(status.collection.len() > 100);

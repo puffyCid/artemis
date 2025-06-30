@@ -46,7 +46,7 @@ impl AcquireActionLocal for AcquireFileApi {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[core] Failed to open file reader for{}: {err:?}",
+                    "[forensics] Failed to open file reader for{}: {err:?}",
                     &self.path
                 );
                 return Err(AcquireError::Reader);
@@ -63,7 +63,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let result = create_dir_all(&output_path);
         if result.is_err() {
             error!(
-                "[core] Failed to create output directory for {output_path}. Error: {:?}",
+                "[forensics] Failed to create output directory for {output_path}. Error: {:?}",
                 result.unwrap_err()
             );
             return Err(AcquireError::CreateDirectory);
@@ -78,7 +78,7 @@ impl AcquireActionLocal for AcquireFileApi {
             Ok(results) => results,
             Err(err) => {
                 error!(
-                    "[core] Failed to create output file {} at {output_path}. Error: {err:?}",
+                    "[forensics] Failed to create output file {} at {output_path}. Error: {err:?}",
                     &self.filename
                 );
                 return Err(AcquireError::Compressor);
@@ -93,7 +93,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let timestamps = match timestamps_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get timestamps: {err:?}");
+                error!("[forensics] Failed to get timestamps: {err:?}");
                 return Err(AcquireError::Timestamps);
             }
         };
@@ -102,7 +102,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let meta = match meta_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get metadata: {err:?}");
+                error!("[forensics] Failed to get metadata: {err:?}");
                 return Err(AcquireError::Metadata);
             }
         };
@@ -128,7 +128,7 @@ impl AcquireActionLocal for AcquireFileApi {
 
         if result.is_err() {
             error!(
-                "[core] Failed to serialize metadata: {:?}",
+                "[forensics] Failed to serialize metadata: {:?}",
                 result.unwrap_err()
             );
             return Err(AcquireError::Metadata);
@@ -140,7 +140,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let zip_out = compress_output_zip(&directory, &zip_name);
         if zip_out.is_err() {
             error!(
-                "[core] Failed to complete acquisition: {:?}",
+                "[forensics] Failed to complete acquisition: {:?}",
                 zip_out.unwrap_err()
             );
             return Err(AcquireError::ZipOutput);
@@ -150,7 +150,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let status = remove_file(acq_file);
         if status.is_err() {
             error!(
-                "[core] Failed to remove acquired file: {:?}",
+                "[forensics] Failed to remove acquired file: {:?}",
                 status.unwrap_err()
             );
             return Err(AcquireError::Cleanup);
@@ -160,7 +160,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let status = remove_file(acq_file_json);
         if status.is_err() {
             error!(
-                "[core] Failed to remove acquired file metadata: {:?}",
+                "[forensics] Failed to remove acquired file metadata: {:?}",
                 status.unwrap_err()
             );
             return Err(AcquireError::Cleanup);
@@ -169,7 +169,7 @@ impl AcquireActionLocal for AcquireFileApi {
         let status = remove_dir(directory);
         if status.is_err() {
             error!(
-                "[core] Failed to remove output directory name: {:?}",
+                "[forensics] Failed to remove output directory name: {:?}",
                 status.unwrap_err()
             );
             return Err(AcquireError::Cleanup);

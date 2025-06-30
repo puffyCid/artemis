@@ -23,7 +23,9 @@ pub(crate) async fn output_artifact(
                 return match filter_result {
                     Ok(_) => Ok(()),
                     Err(err) => {
-                        error!("[core] Could not apply filter script to windows data: {err:?}");
+                        error!(
+                            "[forensics] Could not apply filter script to windows data: {err:?}"
+                        );
                         Err(CollectionError::FilterOutput)
                     }
                 };
@@ -32,7 +34,9 @@ pub(crate) async fn output_artifact(
             return match filter_result {
                 Ok(_) => Ok(()),
                 Err(err) => {
-                    error!("[core] Could not apply unknown filter script to windows data: {err:?}");
+                    error!(
+                        "[forensics] Could not apply unknown filter script to windows data: {err:?}"
+                    );
                     Err(CollectionError::FilterOutput)
                 }
             };
@@ -46,13 +50,13 @@ pub(crate) async fn output_artifact(
     } else if output.format.to_lowercase() == "csv" {
         csv_format(serde_data, output_name, output).await
     } else {
-        error!("[core] Unknown formatter provided: {}", output.format);
+        error!("[forensics] Unknown formatter provided: {}", output.format);
         return Err(CollectionError::Format);
     };
     match output_status {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Could not output data: {err:?}");
+            error!("[forensics] Could not output data: {err:?}");
             return Err(CollectionError::Output);
         }
     }

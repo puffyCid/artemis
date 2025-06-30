@@ -4,10 +4,7 @@ use crate::{
     utils::time::{time_now, unixepoch_to_iso},
 };
 use log::error;
-use reqwest::{
-    StatusCode,
-    blocking::{Client, multipart},
-};
+use reqwest::{Client, StatusCode, multipart};
 use std::{thread::sleep, time::Duration};
 
 /// Upload data to a remote server. We use our unique endpoint ID for authentication
@@ -57,11 +54,11 @@ pub(crate) async fn api_upload(
         }
         let form = multipart::Form::new().part("artemis-upload", part);
         builder = builder.multipart(form);
-        let status = match builder.send() {
+        let status = match builder.send().await {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[core] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
+                    "[forensics] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
                 );
                 // Pause for 6 seconds between each attempt
                 sleep(Duration::from_secs(pause));

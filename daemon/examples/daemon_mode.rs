@@ -1,6 +1,7 @@
 use std::{env, path::Path};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("Starting Artemis Daemon...");
 
     let args: Vec<String> = env::args().collect();
@@ -8,7 +9,7 @@ fn main() {
     if args.len() == 2 {
         let path = &args[1];
         if Path::new(path).is_file() {
-            daemon::start::start_daemon(Some(path), None);
+            daemon::start::start_daemon(Some(path), None).await;
             println!("Started daemon example")
         } else {
             println!("Not a file")

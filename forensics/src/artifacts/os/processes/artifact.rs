@@ -18,7 +18,7 @@ pub(crate) async fn processes(
     let results = proc_list(&hashes, options.metadata, filter, output).await;
     if results.is_err() {
         warn!(
-            "[core] Failed to get process list: {:?}",
+            "[forensics] Failed to get process list: {:?}",
             results.unwrap_err()
         );
         return Err(ProcessError::ProcessList);
