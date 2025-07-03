@@ -67,7 +67,7 @@ pub(crate) fn raw_reader<'a>(
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -95,7 +95,7 @@ pub(crate) fn raw_reader<'a>(
         let ntfs_file = match ntfs_file_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get NTFS root directory, error: {err:?}");
+                error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
                 return Err(FileSystemError::NtfsSectorReader);
             }
         };
@@ -104,7 +104,7 @@ pub(crate) fn raw_reader<'a>(
         return Ok(ntfs_file);
     }
 
-    warn!("[core] Could not create reader for {path}");
+    warn!("[forensics] Could not create reader for {path}");
     Err(FileSystemError::OpenFile)
 }
 
@@ -124,7 +124,7 @@ pub(crate) fn raw_hash_data(
         let bytes = match bytes_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to read data for hashing: {err:?}");
+                error!("[forensics] Failed to read data for hashing: {err:?}");
                 break;
             }
         };
@@ -190,7 +190,7 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -251,7 +251,7 @@ pub(crate) fn raw_read_by_file_ref(
         }
         Err(err) => {
             error!(
-                "[core] Could not check for decompression error: {err:?}. Returning regular data."
+                "[forensics] Could not check for decompression error: {err:?}. Returning regular data."
             );
         }
     }
@@ -260,7 +260,7 @@ pub(crate) fn raw_read_by_file_ref(
     let ntfs_file = match ntfs_file_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS file, error: {err:?}");
+            error!("[forensics] Failed to get NTFS file, error: {err:?}");
             return Err(FileSystemError::NotFile);
         }
     };
@@ -274,7 +274,7 @@ pub(crate) fn raw_read_by_file_ref(
     let ntfs_data = match ntfs_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS data error: {err:?}");
+            error!("[forensics] Failed to get NTFS data error: {err:?}");
             return Err(FileSystemError::FileData);
         }
     };
@@ -283,7 +283,7 @@ pub(crate) fn raw_read_by_file_ref(
     let ntfs_attribute = match ntfs_attribute_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS attribute error: {err:?}");
+            error!("[forensics] Failed to get NTFS attribute error: {err:?}");
             return Err(FileSystemError::NoAttribute);
         }
     };
@@ -292,7 +292,7 @@ pub(crate) fn raw_read_by_file_ref(
     let mut data_attr_value = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS attribute data error: {err:?}");
+            error!("[forensics] Failed to get NTFS attribute data error: {err:?}");
             return Err(FileSystemError::NoDataAttributeValue);
         }
     };
@@ -301,7 +301,7 @@ pub(crate) fn raw_read_by_file_ref(
     let file_data = match file_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not read file error: {err:?}");
+            error!("[forensics] Could not read file error: {err:?}");
             return Err(FileSystemError::ReadFile);
         }
     };
@@ -321,7 +321,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -358,7 +358,9 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
         match data_result {
             Ok(result) => return Ok(result),
             Err(err) => {
-                error!("[core] Could not get data for attribute {attribute} at {path}: {err:?}");
+                error!(
+                    "[forensics] Could not get data for attribute {attribute} at {path}: {err:?}"
+                );
                 break;
             }
         }
@@ -384,7 +386,7 @@ pub(crate) fn get_user_registry_files(
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -461,7 +463,7 @@ pub(crate) fn iterate_ntfs(
     let index = match index_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS index directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS index directory, error: {err:?}");
             return Err(FileSystemError::IndexDirectory);
         }
     };
@@ -472,7 +474,7 @@ pub(crate) fn iterate_ntfs(
         let entry_index = match entry_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get NTFS entry index, error: {err:?}");
+                error!("[forensics] Failed to get NTFS entry index, error: {err:?}");
                 continue;
             }
         };
@@ -501,7 +503,7 @@ pub(crate) fn iterate_ntfs(
         let ntfs_file = match ntfs_file_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get NTFS file, error: {err:?}");
+                error!("[forensics] Failed to get NTFS file, error: {err:?}");
                 continue;
             }
         };

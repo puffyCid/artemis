@@ -58,7 +58,7 @@ struct Params {
 }
 
 /// Parse the raw NTFS data and get a file listing
-pub(crate) fn ntfs_filelist(
+pub(crate) async fn ntfs_filelist(
     rawfile_params: &RawFilesOptions,
     output: &mut Output,
     filter: bool,
@@ -149,10 +149,11 @@ pub(crate) fn ntfs_filelist(
         &ntfs_parser.ntfs,   // Ntfs object
         &mut params, // Used to determinine what NTFS data to return. Ex: paths, starting location
         output,
-    );
+    )
+    .await;
 
     // Output any remaining file metadata
-    raw_output(&params.filelist, output, start_time, params.filter);
+    raw_output(&params.filelist, output, start_time, params.filter).await;
     Ok(())
 }
 
@@ -169,7 +170,7 @@ fn user_regex(input: &str) -> Result<Regex, NTFSError> {
 }
 
 /// Iterate through NTFS files and directories
-fn walk_ntfs(
+async fn walk_ntfs(
     root_dir: NtfsFile<'_>,
     fs: &mut BufReader<SectorReader<File>>,
     ntfs: &Ntfs,
@@ -335,7 +336,7 @@ fn walk_ntfs(
         let max_list = 100000;
         // To keep memory usage small we only keep 100,000 files in the vec at a time
         if params.filelist.len() >= max_list {
-            raw_output(&params.filelist, output, params.start_time, params.filter);
+            raw_output(&params.filelist, output, params.start_time, params.filter).await;
             params.filelist = Vec::new();
         }
 
@@ -346,7 +347,7 @@ fn walk_ntfs(
         {
             // Track directories so we can build paths while recursing
             params.directory_tracker.push(dir_name);
-            walk_ntfs(ntfs_file, fs, ntfs, params, output)?;
+            Box::pin(walk_ntfs(ntfs_file, fs, ntfs, params, output)).await?;
         }
     }
     // At end of recursion remove directories we are done with
@@ -355,7 +356,7 @@ fn walk_ntfs(
 }
 
 /// Send raw file data to configured output preference based on `Output` parameter
-fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, filter: bool) {
+async fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -365,7 +366,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, fi
         }
     };
 
-    let output_result = output_data(&mut serde_data, "rawfiles", output, start_time, filter);
+    let output_result = output_data(&mut serde_data, "rawfiles", output, start_time, filter).await;
     match output_result {
         Ok(_) => {}
         Err(err) => {

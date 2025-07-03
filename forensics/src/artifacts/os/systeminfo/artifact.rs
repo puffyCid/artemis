@@ -7,7 +7,7 @@ use crate::{
 use log::error;
 
 /// Get basic sysinfo for a system
-pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), SystemInfoError> {
+pub(crate) async fn systeminfo(output: &mut Output, filter: bool) -> Result<(), SystemInfoError> {
     let start_time = time::time_now();
 
     let system_data = get_info();
@@ -15,17 +15,17 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize systeminfo: {err:?}");
+            error!("[forensics] Failed to serialize systeminfo: {err:?}");
             return Err(SystemInfoError::Serialize);
         }
     };
 
     let output_name = "systeminfo";
-    let status = output_data(&mut serde_data, output_name, output, start_time, filter);
+    let status = output_data(&mut serde_data, output_name, output, start_time, filter).await;
 
     if status.is_err() {
         error!(
-            "[core] Could not output process data: {:?}",
+            "[forensics] Could not output process data: {:?}",
             status.unwrap_err()
         );
     }
@@ -55,11 +55,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_systeminfo() {
+    #[tokio::test]
+    async fn test_systeminfo() {
         let mut output = output_options("system_test", "local", "./tmp", false);
 
-        let status = systeminfo(&mut output, false).unwrap();
+        let status = systeminfo(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 }

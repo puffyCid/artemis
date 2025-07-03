@@ -52,14 +52,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_search() {
+    #[tokio::test]
+    async fn test_js_search() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZWFyY2gudHMKZnVuY3Rpb24gZ2V0U2VhcmNoKHBhdGgpIHsKICBjb25zdCBkYXRhPSBqc19zZWFyY2gocGF0aCwgNTApOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGpzX2Vudl92YWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIHN0YXQocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19zdGF0KHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHBhdGggPSBgJHtkcml2ZX1cXFByb2dyYW1EYXRhXFxNaWNyb3NvZnRcXFNlYXJjaFxcRGF0YVxcQXBwbGljYXRpb25zXFxXaW5kb3dzYDsKICB0cnkgewogICAgY29uc3Qgc2VhcmNoX3BhdGggPSBgJHtwYXRofVxcV2luZG93cy5lZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoX2UpIHsKICAgIGNvbnN0IHNlYXJjaF9wYXRoID0gYCR7cGF0aH1cXFdpbmRvd3MuZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfQp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("search"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

@@ -55,14 +55,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_tasks() {
+    #[tokio::test]
+    async fn test_js_tasks() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy90YXNrcy50cwpmdW5jdGlvbiBnZXRUYXNrcygpIHsKICBjb25zdCBkYXRhID0ganNfdGFza3MoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRhc2tzID0gZ2V0VGFza3MoKTsKICBpZiAodGFza3MgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgR290IHRhc2sgcGFyc2luZyBlcnJvciEgJHt0YXNrc31gKTsKICB9CiAgcmV0dXJuIHRhc2tzOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("task_default"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

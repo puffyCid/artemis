@@ -10,13 +10,16 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Get zsh history depending on target OS
-pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn zsh_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
     let zsh_results = get_user_zsh_history();
     let history_data = match zsh_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to get zsh history: {err:?}");
+            error!("[forensics] Artemis failed to get zsh history: {err:?}");
             return Err(UnixArtifactError::Zsh);
         }
     };
@@ -25,24 +28,27 @@ pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixA
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize zsh history: {err:?}");
+            error!("[forensics] Failed to serialize zsh history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
 
     let output_name = "zsh_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get bash history depending on target OS
-pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn bash_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_bash_history();
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get bash history: {err:?}");
+            warn!("[forensics] Artemis unix failed to get bash history: {err:?}");
             return Err(UnixArtifactError::Bash);
         }
     };
@@ -51,24 +57,27 @@ pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), Unix
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize bash history: {err:?}");
+            error!("[forensics] Failed to serialize bash history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
 
     let output_name = "bash_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Get python history depending on target OS
-pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn python_history(
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let bash_results = get_user_python_history();
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get python history: {err:?}");
+            warn!("[forensics] Artemis unix failed to get python history: {err:?}");
             return Err(UnixArtifactError::Python);
         }
     };
@@ -77,24 +86,24 @@ pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), Un
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize python history: {err:?}");
+            error!("[forensics] Failed to serialize python history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
 
     let output_name = "python_history";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 /// Parse cron data
-pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
+pub(crate) async fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
     let start_time = time::time_now();
 
     let cron_results = parse_cron();
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get cron data: {err:?}");
+            warn!("[forensics] Artemis unix failed to get cron data: {err:?}");
             return Err(UnixArtifactError::Cron);
         }
     };
@@ -103,26 +112,29 @@ pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArti
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize cron data: {err:?}");
+            error!("[forensics] Failed to serialize cron data: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
 
     let output_name = "cron";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    output_data(&mut serde_data, output_name, output, start_time, filter).await
 }
 
 // Output unix artifacts
-pub(crate) fn output_data(
+pub(crate) async fn output_data(
     serde_data: &mut Value,
     output_name: &str,
     output: &mut Output,
     start_time: u64,
     filter: bool,
 ) -> Result<(), UnixArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
+    let status = output_artifact(serde_data, output_name, output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(UnixArtifactError::Output);
     }
     Ok(())
@@ -156,45 +168,47 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_zsh_history() {
+    #[tokio::test]
+    async fn test_zsh_history() {
         let mut output = output_options("zsh_history", "local", "./tmp", false);
 
-        let status = zsh_history(&mut output, false).unwrap();
+        let status = zsh_history(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_bash_history() {
+    #[tokio::test]
+    async fn test_bash_history() {
         let mut output = output_options("bash_history", "local", "./tmp", false);
 
-        let _ = bash_history(&mut output, false).unwrap();
+        let _ = bash_history(&mut output, false).await.unwrap();
     }
 
-    #[test]
-    fn test_python_history() {
+    #[tokio::test]
+    async fn test_python_history() {
         let mut output = output_options("python_history", "local", "./tmp", false);
 
-        let status = python_history(&mut output, false).unwrap();
+        let status = python_history(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_cron_job() {
+    #[tokio::test]
+    async fn test_cron_job() {
         let mut output = output_options("cron", "local", "./tmp", false);
 
-        let status = cron_job(&mut output, false).unwrap();
+        let status = cron_job(&mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }

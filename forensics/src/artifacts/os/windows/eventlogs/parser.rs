@@ -28,16 +28,16 @@ use log::{error, warn};
 use serde_json::{Error, Value};
 
 /// Parse `EventLogs` based on `EventLogsOptions`
-pub(crate) fn grab_eventlogs(
+pub(crate) async fn grab_eventlogs(
     options: &EventLogsOptions,
     output: &mut Output,
     filter: bool,
 ) -> Result<(), EventLogsError> {
     if let Some(file) = &options.alt_file {
-        return alt_eventlogs(file, output, filter, options);
+        return alt_eventlogs(file, output, filter, options).await;
     }
 
-    default_eventlogs(output, filter, options)
+    default_eventlogs(output, filter, options).await
 }
 
 /// Parse the `EventLog` evtx file at provided path
@@ -133,7 +133,7 @@ pub(crate) fn parse_eventlogs(
 }
 
 /// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
-fn default_eventlogs(
+async fn default_eventlogs(
     output: &mut Output,
     filter: bool,
     options: &EventLogsOptions,
@@ -152,11 +152,11 @@ fn default_eventlogs(
         &format!("{drive}:\\Windows\\System32\\winevt\\Logs")
     };
 
-    read_directory(path, output, filter, options)
+    read_directory(path, output, filter, options).await
 }
 
 /// Read and parse `EventLog` files with alternative path
-fn alt_eventlogs(
+async fn alt_eventlogs(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -193,18 +193,19 @@ fn alt_eventlogs(
             0,
             "eventlog_templates",
             true,
-        )?;
+        )
+        .await?;
 
         if options.only_templates {
             return Ok(());
         }
     }
 
-    read_eventlogs(path, output, filter, &templates)
+    read_eventlogs(path, output, filter, &templates).await
 }
 
 /// Read all files at provided path
-fn read_directory(
+async fn read_directory(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -250,7 +251,8 @@ fn read_directory(
             0,
             "eventlog_templates",
             true,
-        )?;
+        )
+        .await?;
 
         if options.only_templates {
             return Ok(());
@@ -263,7 +265,7 @@ fn read_directory(
             continue;
         }
 
-        let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
+        let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates).await;
         match eventlogs_results {
             Ok(_) => (),
             Err(err) => {
@@ -276,7 +278,7 @@ fn read_directory(
 }
 
 /// Read and parse the `EventLog` file
-fn read_eventlogs(
+async fn read_eventlogs(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -349,7 +351,8 @@ fn read_eventlogs(
                     start_time,
                     "eventlogs",
                     false,
-                )?;
+                )
+                .await?;
             }
 
             output_logs(
@@ -359,7 +362,8 @@ fn read_eventlogs(
                 start_time,
                 "eventlogs",
                 false,
-            )?;
+            )
+            .await?;
 
             eventlog_records = Vec::new();
         }
@@ -399,7 +403,8 @@ fn read_eventlogs(
                 start_time,
                 "eventlogs",
                 false,
-            )?;
+            )
+            .await?;
         }
 
         output_logs(
@@ -409,14 +414,15 @@ fn read_eventlogs(
             start_time,
             "eventlogs",
             false,
-        )?;
+        )
+        .await?;
     }
 
     Ok(())
 }
 
 /// Output log results
-fn output_logs(
+async fn output_logs(
     result: &mut Result<Value, Error>,
     output: &mut Output,
     filter: bool,
@@ -434,7 +440,7 @@ fn output_logs(
 
     // Skip adding metadata to the output if we are just dumping templates
     if raw {
-        let status = raw_json(serde_data, name, output);
+        let status = raw_json(serde_data, name, output).await;
         if status.is_err() {
             error!(
                 "[eventlogs] Could not output raw json results: {:?}",
@@ -444,7 +450,7 @@ fn output_logs(
         return Ok(());
     }
 
-    match output_data(serde_data, name, output, start_time, filter) {
+    match output_data(serde_data, name, output, start_time, filter).await {
         Ok(_result) => {}
         Err(err) => {
             error!("[eventlogs] Could not output last eventlogs data: {err:?}");

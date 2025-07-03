@@ -11,7 +11,7 @@ use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
 
 /// Parse a TOML file at provided path
-pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
+pub async fn parse_toml_file(path: &str) -> Result<(), TomlError> {
     let buffer_results = read_file(path);
     let buffer = match buffer_results {
         Ok(results) => results,
@@ -28,12 +28,12 @@ pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
         }
     };
 
-    artemis_collection(&mut collection)?;
+    artemis_collection(&mut collection).await?;
     Ok(())
 }
 
 /// Parse an already read TOML file
-pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
+pub async fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
     let toml_results = ArtemisToml::parse_artemis_toml(data);
     let mut collection = match toml_results {
         Ok(results) => results,
@@ -41,12 +41,12 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
             return Err(TomlError::BadToml);
         }
     };
-    artemis_collection(&mut collection)?;
+    artemis_collection(&mut collection).await?;
     Ok(())
 }
 
 /// Execute a JavaScript file at provided path
-pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
+pub async fn parse_js_file(path: &str) -> Result<Value, TomlError> {
     let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
     let code_result = read_text_file(path);
     let script = match code_result {
@@ -56,7 +56,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
         }
     };
 
-    let script_result = raw_script(&script);
+    let script_result = raw_script(&script).await;
     if script_result.is_err() {
         error!("[runtime] Failed to execute js file");
         return Err(TomlError::BadJs);
@@ -66,16 +66,16 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 }
 
 /// Based on target system collect data based on TOML config
-pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
+pub async fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
     if let Ok((log_file, level)) = create_log_file(&collection.output) {
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
-    let result = collect(collection);
+    let result = collect(collection).await;
     match result {
-        Ok(_) => info!("[core] Core parsed TOML data"),
+        Ok(_) => info!("[forensics] Core parsed TOML data"),
         Err(err) => {
-            error!("[core] Core failed to parse collection: {err:?}");
+            error!("[forensics] Core failed to parse collection: {err:?}");
             return Err(TomlError::BadToml);
         }
     }
@@ -92,72 +92,80 @@ mod tests {
     };
     use std::path::PathBuf;
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
     #[ignore = "Runs full macos.toml collection"]
-    fn test_parse_macos_toml_file() {
+    async fn test_parse_macos_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
     #[ignore = "Runs full windows.toml collection"]
-    fn test_parse_windows_toml_file() {
+    async fn test_parse_windows_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
     #[ignore = "Runs full linux.toml collection"]
-    fn test_parse_linux_toml_file() {
+    async fn test_parse_linux_toml_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux.toml");
-        parse_toml_file(&test_location.display().to_string()).unwrap();
+        parse_toml_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_parse_windows_toml_data() {
+    async fn test_parse_windows_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
-    fn test_parse_macos_toml_data() {
+    async fn test_parse_macos_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_parse_linux_toml_data() {
+    async fn test_parse_linux_toml_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/processes.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        parse_toml_data(&buffer).unwrap();
+        parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
-    fn test_parse_js_file() {
+    #[tokio::test]
+    async fn test_parse_js_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/deno_scripts/vanilla.js");
-        parse_js_file(&test_location.display().to_string()).unwrap();
+        parse_js_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_bad_parse_toml_file() {
+    #[tokio::test]
+    async fn test_bad_parse_toml_file() {
         let mut collection = ArtemisToml {
             output: Output {
                 name: String::from("core"),
@@ -176,6 +184,6 @@ mod tests {
             },
             artifacts: Vec::new(),
         };
-        artemis_collection(&mut collection).unwrap();
+        artemis_collection(&mut collection).await.unwrap();
     }
 }

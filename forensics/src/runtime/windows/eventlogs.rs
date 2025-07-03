@@ -66,14 +66,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_eventlogs() {
+    #[tokio::test]
+    async fn test_js_eventlogs() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvZXJyb3JzLnRzCnZhciBXaW5kb3dzRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gcGxhdGZvcm0oKSB7CiAgY29uc3QgZGF0YSA9IGpzX3BsYXRmb3JtKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy93aW5kb3dzL2V2ZW50bG9ncy50cwpmdW5jdGlvbiBnZXRFdmVudGxvZ3MocGF0aCwgb2Zmc2V0LCBsaW1pdCwgaW5jbHVkZV90ZW1wbGF0ZXMgPSBmYWxzZSwgdGVtcGxhdGVfZmlsZSA9IHVuZGVmaW5lZCkgewogIGlmIChpbmNsdWRlX3RlbXBsYXRlcyAmJiBwbGF0Zm9ybSgpICE9ICJXaW5kb3dzIiAmJiB0ZW1wbGF0ZV9maWxlID09IHVuZGVmaW5lZCkgewogICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoCiAgICAgICJFVkVOVExPRyIsCiAgICAgIGBjYW5ub3QgaW5jbHVkZSB0ZW1wbGF0ZSBzdHJpbmdzIG9uIG5vbi1XaW5kb3dzIHBsYXRmb3JtIHdpdGhvdXQgYSB0ZW1wbGF0ZSBmaWxlYAogICAgKTsKICB9CiAgdHJ5IHsKICAgIGNvbnN0IHJlc3VsdHMgPSBqc19ldmVudGxvZ3MoCiAgICAgIHBhdGgsCiAgICAgIG9mZnNldCwKICAgICAgbGltaXQsCiAgICAgIGluY2x1ZGVfdGVtcGxhdGVzLAogICAgICB0ZW1wbGF0ZV9maWxlCiAgICApOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IFdpbmRvd3NFcnJvcigKICAgICAgIkVWRU5UTE9HIiwKICAgICAgYGZhaWxlZCB0byBwYXJzZSBldmVudGxvZyAke3BhdGh9OiAke2Vycn1gCiAgICApOwogIH0KfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFx3aW5ldnRcXExvZ3NcXEFwcGxpY2F0aW9uLmV2dHgiOwogIGNvbnN0IGxvZ3MgPSBnZXRFdmVudGxvZ3MoCiAgICBwYXRoLAogICAgMTAsCiAgICAxMCwKICAgIHRydWUKICApOwogIGlmIChsb2dzIGluc3RhbmNlb2YgV2luZG93c0Vycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKGxvZ3MpOwogICAgcmV0dXJuOwogIH0KICBjb25zdCBtZXNzYWdlcyA9IGxvZ3NbMF07CiAgY29uc3QgcmF3ID0gbG9nc1sxXTsKICBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeShtZXNzYWdlcykpOwogIGNvbnNvbGUubG9nKEpTT04uc3RyaW5naWZ5KHJhdykpOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("service_installs"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

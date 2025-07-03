@@ -5,7 +5,6 @@ use crate::{
 use boa_engine::{
     Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
 };
-
 use reqwest::{ClientBuilder, RequestBuilder, redirect::Policy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -188,8 +187,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_request() {
+    #[tokio::test]
+    async fn test_js_request() {
         let server = MockServer::start();
         let port = server.port();
 
@@ -210,7 +209,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
         mock_me.assert();
     }
 }

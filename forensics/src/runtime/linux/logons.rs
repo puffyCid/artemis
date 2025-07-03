@@ -42,8 +42,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_get_logon() {
+    #[tokio::test]
+    async fn test_js_get_logon() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbGludXgvbG9nb24udHMKZnVuY3Rpb24gZ2V0TG9nb24ocGF0aCkgewogIGlmIChwYXRoLmVuZHNXaXRoKCJidG1wIikgJiYgIXBhdGguZW5kc1dpdGgoInd0bXAiKSAmJiAhcGF0aC5lbmRzV2l0aCgidXRtcCIpKSB7CiAgICBjb25zb2xlLmVycm9yKGBQcm92aWRlZCBub24tbG9nb24gZmlsZSAke3BhdGh9YCk7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IGRhdGEgPSBqc19nZXRfbG9nb24ocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB3dG1wID0gIi92YXIvbG9nL3d0bXAiOwogIGNvbnN0IHJlc3VsdHMgPSBnZXRMb2dvbih3dG1wKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
 
@@ -51,6 +51,6 @@ mod tests {
             name: String::from("logon"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

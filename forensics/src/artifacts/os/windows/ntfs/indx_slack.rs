@@ -42,7 +42,7 @@ pub(crate) fn get_indx(
         let attr_data = match attr_data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get NTFS attribute error: {err:?}");
+                error!("[forensics] Failed to get NTFS attribute error: {err:?}");
                 continue;
             }
         };
@@ -89,7 +89,7 @@ fn get_slack(
         let attr_data = match attr_data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to get NTFS attribute error: {err:?}");
+                error!("[forensics] Failed to get NTFS attribute error: {err:?}");
                 continue;
             }
         };

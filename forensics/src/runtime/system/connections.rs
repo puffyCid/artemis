@@ -38,14 +38,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_connections() {
+    #[tokio::test]
+    async fn test_js_connections() {
         let test = "ZnVuY3Rpb24gbygpe3JldHVybiBqc19jb25uZWN0aW9ucygpfWZ1bmN0aW9uIG4oKXtyZXR1cm4gbygpfW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", true);
         let script = JSScript {
             name: String::from("connections"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

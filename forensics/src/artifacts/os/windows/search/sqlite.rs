@@ -13,7 +13,7 @@ struct SqlEntry {
 }
 
 /// Parse the Windows `Search` SQLITE file
-pub(crate) fn parse_search_sqlite(
+pub(crate) async fn parse_search_sqlite(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -95,7 +95,8 @@ pub(crate) fn parse_search_sqlite(
                                 }
                             };
                             let result =
-                                output_data(&mut serde_data, "search", output, start_time, filter);
+                                output_data(&mut serde_data, "search", output, start_time, filter)
+                                    .await;
                             match result {
                                 Ok(_result) => {}
                                 Err(err) => {
@@ -125,7 +126,7 @@ pub(crate) fn parse_search_sqlite(
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&mut serde_data, "search", output, start_time, filter);
+            let result = output_data(&mut serde_data, "search", output, start_time, filter).await;
             match result {
                 Ok(_result) => {}
                 Err(err) => {
@@ -245,13 +246,15 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_search_sqlite() {
+    #[tokio::test]
+    async fn test_parse_search_sqlite() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/search/win11/Windows.db");
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        parse_search_sqlite(&test_location.display().to_string(), &mut output, false).unwrap();
+        parse_search_sqlite(&test_location.display().to_string(), &mut output, false)
+            .await
+            .unwrap();
     }
 
     #[test]

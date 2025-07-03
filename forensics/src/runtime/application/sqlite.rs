@@ -141,14 +141,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_query_sqlite() {
+    #[tokio::test]
+    async fn test_js_query_sqlite() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9hcHBsaWNhdGlvbnMvZXJyb3JzLnRzCnZhciBBcHBsaWNhdGlvbkVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugewp9OwoKLy8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvYXBwbGljYXRpb25zL3NxbGl0ZS50cwpmdW5jdGlvbiBxdWVyeVNxbGl0ZShwYXRoLCBxdWVyeSkgewogIHRyeSB7CiAgICBjb25zdCBkYXRhID0ganNfcXVlcnlfc3FsaXRlKHBhdGgsIHF1ZXJ5KTsKICAgIHJldHVybiBkYXRhOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBBcHBsaWNhdGlvbkVycm9yKAogICAgICAiU1FMSVRFIiwKICAgICAgYGZhaWxlZCB0byBleGVjdXRlIHF1ZXJ5ICR7ZXJyfWAKICAgICk7CiAgfQp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVzdWx0cyA9IHF1ZXJ5U3FsaXRlKCIvTGlicmFyeS9BcHBsaWNhdGlvbiBTdXBwb3J0L2NvbS5hcHBsZS5UQ0MvVENDLmRiIiwgInNlbGVjdCAqIGZyb20gYWNjZXNzIik7Cn0KbWFpbigpOw==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("sqlite_script"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

@@ -14,7 +14,7 @@ pub(crate) struct DaemonConfig {
 }
 
 /// Start artemis as a daemon and collect data based on remote server responses
-pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
+pub async fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     // We will enroll to a remote server based on a server.toml config
     // By default we assume server.toml is in same directory as binary
     let mut server_path = "server.toml";
@@ -41,17 +41,17 @@ pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
     };
 
     // Attempt to connect to server
-    setup_enrollment(&mut config);
-    setup_config(&mut config);
+    setup_enrollment(&mut config).await;
+    setup_config(&mut config).await;
 
     // We have enough info connect to our server.
     // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
     move_server_config(server_path, alt_base);
-    start(&mut config);
+    start(&mut config).await;
 }
 
 /// Continuously poll our server for jobs and collections
-fn start(config: &mut DaemonConfig) {
+async fn start(config: &mut DaemonConfig) {
     let max_attempts = 8;
     let mut count = 0;
 
@@ -64,7 +64,7 @@ fn start(config: &mut DaemonConfig) {
             sleep(Duration::from_secs(long_pause));
             count = 0;
         }
-        let collection = match config.collect_request() {
+        let collection = match config.collect_request().await {
             Ok(result) => result,
             Err(_err) => {
                 count += 1;
@@ -72,7 +72,7 @@ fn start(config: &mut DaemonConfig) {
                 continue;
             }
         };
-        setup_collection(config, &collection);
+        setup_collection(config, &collection).await;
         // Next poll will be in 60 seconds
         sleep(Duration::from_secs(collection_poll));
     }

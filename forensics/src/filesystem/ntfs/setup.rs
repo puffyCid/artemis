@@ -17,7 +17,7 @@ pub(crate) fn setup_ntfs_parser(drive_letter: char) -> Result<NtfsParser, FileSy
     let fs = match fs_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to open drive: {drive_letter}, error: {err:?}");
+            error!("[forensics] Failed to open drive: {drive_letter}, error: {err:?}");
             return Err(FileSystemError::OpenFile);
         }
     };
@@ -28,7 +28,7 @@ pub(crate) fn setup_ntfs_parser(drive_letter: char) -> Result<NtfsParser, FileSy
     let sector_reader = match sector_reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to setup sector reader, error: {err:?}");
+            error!("[forensics] Failed to setup sector reader, error: {err:?}");
             return Err(FileSystemError::NtfsSectorReader);
         }
     };
@@ -47,7 +47,7 @@ fn get_ntfs(fs: &mut BufReader<SectorReader<File>>) -> Result<Ntfs, FileSystemEr
     match ntfs_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[core] Failed to start NTFS parser, error: {err:?}");
+            error!("[forensics] Failed to start NTFS parser, error: {err:?}");
             Err(FileSystemError::NtfsNew)
         }
     }

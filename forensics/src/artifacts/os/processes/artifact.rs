@@ -4,7 +4,7 @@ use common::files::Hashes;
 use log::warn;
 
 /// Collect a process listing from a system
-pub(crate) fn processes(
+pub(crate) async fn processes(
     output: &mut Output,
     filter: bool,
     options: &ProcessOptions,
@@ -15,10 +15,10 @@ pub(crate) fn processes(
         sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, options.metadata, filter, output);
+    let results = proc_list(&hashes, options.metadata, filter, output).await;
     if results.is_err() {
         warn!(
-            "[core] Failed to get process list: {:?}",
+            "[forensics] Failed to get process list: {:?}",
             results.unwrap_err()
         );
         return Err(ProcessError::ProcessList);
@@ -52,8 +52,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_processes() {
+    #[tokio::test]
+    async fn test_processes() {
         let mut output = output_options("processes_test", "local", "./tmp", false);
 
         let proc_config = ProcessOptions {
@@ -63,7 +63,7 @@ mod tests {
             metadata: true,
         };
 
-        let status = processes(&mut output, false, &proc_config).unwrap();
+        let status = processes(&mut output, false, &proc_config).await.unwrap();
         assert_eq!(status, ());
     }
 }

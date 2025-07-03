@@ -7,7 +7,7 @@ use common::files::Hashes;
 use log::error;
 
 /// Get a filelisting based on provided options
-pub(crate) fn filelisting(
+pub(crate) async fn filelisting(
     output: &mut Output,
     filter: bool,
     options: &FileOptions,
@@ -28,11 +28,11 @@ pub(crate) fn filelisting(
             .unwrap_or(&String::new())
             .clone(),
     };
-    let artifact_result = get_filelist(&args, &hashes, output, filter);
+    let artifact_result = get_filelist(&args, &hashes, output, filter).await;
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {
-            error!("[core] Failed to get file listing: {err:?}");
+            error!("[forensics] Failed to get file listing: {err:?}");
             Err(FileError::Filelisting)
         }
     }
@@ -63,9 +63,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_filelisting_unix() {
+    async fn test_filelisting_unix() {
         let mut output = output_options("file_test", "local", "./tmp", false);
 
         let file_config = FileOptions {
@@ -78,7 +78,7 @@ mod tests {
             regex_filter: Some(String::new()),
             yara: None,
         };
-        let status = filelisting(&mut output, false, &file_config).unwrap();
+        let status = filelisting(&mut output, false, &file_config).await.unwrap();
         assert_eq!(status, ());
     }
 

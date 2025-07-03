@@ -24,7 +24,11 @@ use log::{error, warn};
 use serde_json::Value;
 
 /// Parse and dump the provided SRUM tables
-pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Result<(), SrumError> {
+pub(crate) async fn parse_srum(
+    path: &str,
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), SrumError> {
     let start_time = time_now();
 
     let indexes = get_srum_ese(path, "SruDbIdMapTable")?;
@@ -62,7 +66,7 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Resul
             _ => continue,
         };
 
-        let result = output_data(&mut serde_data, "srum", output, start_time, filter);
+        let result = output_data(&mut serde_data, "srum", output, start_time, filter).await;
         match result {
             Ok(_result) => {}
             Err(err) => {

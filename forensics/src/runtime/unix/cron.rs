@@ -45,14 +45,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_get_cron() {
+    #[tokio::test]
+    async fn test_get_cron() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3VuaXgvY3Jvbi50cwpmdW5jdGlvbiBnZXRfY3JvbigpIHsKICBjb25zdCBkYXRhID0ganNfZ2V0X2Nyb24oKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldENyb24oKSB7CiAgcmV0dXJuIGdldF9jcm9uKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gZ2V0Q3JvbigpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("cron_script"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

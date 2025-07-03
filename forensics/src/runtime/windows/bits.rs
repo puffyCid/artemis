@@ -61,14 +61,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_js_bits() {
+    #[tokio::test]
+    async fn test_js_bits() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfYml0cyhjYXJ2ZSkgewp0cnkgewogICAgY29uc3QgZGF0YSA9IGpzX2JpdHMoY2FydmUpOwogICAgcmV0dXJuIGRhdGE7Cn1jYXRjaChlcnIpe3JldHVybiBlcnI7fQp9CmZ1bmN0aW9uIGdldEJpdHMoY2FydmUpIHsKICAgIHJldHVybiBnZXRfYml0cyhjYXJ2ZSk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGVudHJpZXMgPSBnZXRCaXRzKHRydWUpOwogICAgcmV0dXJuIGVudHJpZXM7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("bits"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }

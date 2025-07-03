@@ -26,7 +26,7 @@ pub(crate) struct SearchEntry {
 }
 
 /// Parse the Windows `Search` ESE database
-pub(crate) fn parse_search(
+pub(crate) async fn parse_search(
     path: &str,
     output: &mut Output,
     filter: bool,
@@ -69,7 +69,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter).await;
         gather_chunk = Vec::new();
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
+        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter).await;
     }
 
     Ok(())
@@ -203,7 +203,7 @@ pub(crate) fn get_properties(
 }
 
 /// Process all the Search entries
-fn process_search(
+async fn process_search(
     properties: &HashMap<String, Vec<Vec<TableDump>>>,
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
     output: &mut Output,
@@ -228,7 +228,7 @@ fn process_search(
         );
         return Err(SearchError::ParseEse);
     };
-    let _ = parse_index_gthr(entries, &props, output, start_time, filter);
+    let _ = parse_index_gthr(entries, &props, output, start_time, filter).await;
 
     Ok(())
 }
@@ -399,9 +399,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Can take a long time"]
-    fn test_parse_search() {
+    async fn test_parse_search() {
         let test_path =
             "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
@@ -410,7 +410,7 @@ mod tests {
         }
         let mut output = output_options("search_temp", "local", "./tmp", false);
 
-        parse_search(test_path, &mut output, false).unwrap();
+        parse_search(test_path, &mut output, false).await.unwrap();
     }
 
     #[test]
@@ -527,8 +527,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_process_search() {
+    #[tokio::test]
+    async fn test_process_search() {
         let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
         if !is_file(path) {
@@ -572,7 +572,9 @@ mod tests {
             let property_rows =
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ = process_search(&property_rows, &gather_rows, &mut output, 0, false).unwrap();
+            let _ = process_search(&property_rows, &gather_rows, &mut output, 0, false)
+                .await
+                .unwrap();
             break;
         }
     }

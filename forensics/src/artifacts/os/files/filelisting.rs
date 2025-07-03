@@ -39,7 +39,7 @@ pub(crate) struct FileArgs {
 }
 
 /// Get file listing
-pub(crate) fn get_filelist(
+pub(crate) async fn get_filelist(
     args: &FileArgs,
     hashes: &Hashes,
     output: &mut Output,
@@ -120,11 +120,11 @@ pub(crate) fn get_filelist(
             1000
         };
         if filelist_vec.len() >= max_list {
-            file_output(&filelist_vec, output, start_time, filter);
+            file_output(&filelist_vec, output, start_time, filter).await;
             filelist_vec = Vec::new();
         }
     }
-    file_output(&filelist_vec, output, start_time, filter);
+    file_output(&filelist_vec, output, start_time, filter).await;
     Ok(())
 }
 
@@ -313,7 +313,7 @@ fn user_regex(input: &str) -> Result<Regex, FileError> {
 }
 
 /// Send filelisting to output based on `Output` parameter
-fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filter: bool) {
+async fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filter: bool) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -323,9 +323,12 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filt
         }
     };
 
-    let status = output_artifact(&mut serde_data, "files", output, start_time, filter);
+    let status = output_artifact(&mut serde_data, "files", output, start_time, filter).await;
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
     }
 }
 
@@ -363,9 +366,9 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "macos")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "/System/Volumes/Data/Users";
         let depth = 4;
         let metadata = true;
@@ -385,12 +388,14 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 
-    #[test]
-    fn test_file_output() {
+    #[tokio::test]
+    async fn test_file_output() {
         let mut output = output_options("files_temp", "local", "./tmp", false);
         let info = FileInfo {
             full_path: String::from("/root"),
@@ -416,7 +421,7 @@ mod tests {
             binary_info: Value::Null,
             yara_hits: Vec::new(),
         };
-        file_output(&vec![info], &mut output, 0, false);
+        file_output(&vec![info], &mut output, 0, false).await;
     }
 
     #[test]
@@ -426,9 +431,9 @@ mod tests {
         assert_eq!(reg.as_str(), ".*/Downloads");
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "C:\\Windows";
         let depth = 1;
         let metadata = true;
@@ -448,13 +453,15 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "linux")]
-    fn test_get_filelist() {
+    async fn test_get_filelist() {
         let start_location = "/bin";
         let depth = 1;
         let metadata = false;
@@ -474,7 +481,9 @@ mod tests {
             path_filter: path_filter.to_string(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&args, &hashes, &mut output, false)
+            .await
+            .unwrap();
         assert_eq!(results, ());
     }
 

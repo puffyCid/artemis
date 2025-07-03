@@ -15,7 +15,7 @@ use macos_unifiedlogs::{
 use std::{collections::HashMap, io::Read, path::Path};
 
 /// Use the provided strings, shared strings, timesync data to parse the Unified Log data at provided path.
-pub(crate) fn grab_logs(
+pub(crate) async fn grab_logs(
     options: &UnifiedLogsOptions,
     output: &mut Output,
     filter: bool,
@@ -37,11 +37,11 @@ pub(crate) fn grab_logs(
         let mut provider = LogarchiveProvider::new(Path::new(path));
         // Parse all timesync files
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output);
+        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output).await;
     } else {
         let mut provider = LiveSystemProvider::default();
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output);
+        let _ = parse_trace_file(&timesync_data, &mut provider, &mut parse_options, output).await;
     };
     Ok(())
 }
@@ -54,7 +54,7 @@ struct ParseOptions {
     sources: Vec<String>,
 }
 
-fn parse_trace_file(
+async fn parse_trace_file(
     timesync_data: &HashMap<String, TimesyncBoot>,
     provider: &mut dyn FileProvider,
     options: &mut ParseOptions,
@@ -67,12 +67,13 @@ fn parse_trace_file(
                 if !source.source_path().contains(entry) {
                     continue;
                 }
-                let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
+                let _ =
+                    iterate_logs(source.reader(), timesync_data, options, output, provider).await;
             }
             continue;
         }
 
-        let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
+        let _ = iterate_logs(source.reader(), timesync_data, options, output, provider).await;
     }
 
     let include_missing = false;
@@ -102,13 +103,14 @@ fn parse_trace_file(
             output,
             options.start_time,
             options.filter,
-        );
+        )
+        .await;
     }
 
     Ok(())
 }
 
-fn iterate_logs(
+async fn iterate_logs(
     mut reader: impl Read,
     timesync_data: &HashMap<String, TimesyncBoot>,
     options: &mut ParseOptions,
@@ -152,7 +154,8 @@ fn iterate_logs(
             output,
             options.start_time,
             options.filter,
-        );
+        )
+        .await;
         if missing_logs.catalog_data.is_empty()
             && missing_logs.header.is_empty()
             && missing_logs.oversize.is_empty()
@@ -189,8 +192,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_grab_logs() {
+    #[tokio::test]
+    async fn test_grab_logs() {
         let mut output = output_options("unified_log_test", "local", "./tmp", false);
         let sources = vec![String::from("Special")];
 
@@ -202,6 +205,7 @@ mod tests {
             &mut output,
             false,
         )
+        .await
         .unwrap();
     }
 }

@@ -161,26 +161,26 @@ mod tests {
         }
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_family = "unix")]
-    fn test_read_dir_root() {
+    async fn test_read_dir_root() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3Qgc3RhcnQgPSAiLyI7CiAgY29uc3QgZmlsZXMgPSBhd2FpdCByZWFkRGlyKHN0YXJ0KTsKICByZXR1cm4gZmlsZXM7Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("root_list"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 
-    #[test]
-    fn test_read_dir_root_windows() {
+    #[tokio::test]
+    async fn test_read_dir_root_windows() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZXJyb3JzLnRzCnZhciBGaWxlRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgdHJ5IHsKICAgIGNvbnN0IHJlc3VsdCA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogICAgcmV0dXJuIHJlc3VsdDsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgRmlsZUVycm9yKAogICAgICAiUkVBRF9ESVIiLAogICAgICBgZmFpbGVkIHRvIHJlYWQgZGlyZWN0b3J5ICR7cGF0aH06ICR7ZXJyfWAKICAgICk7CiAgfQp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVzdWx0ID0gYXdhaXQgcmVhZERpcigiQzpcXCIpOwogIHJldHVybiByZXN1bHQ7Cn0KbWFpbigpOwoK";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("root_list"),
             script: test.to_string(),
         };
-        execute_script(&mut output, &script).unwrap();
+        execute_script(&mut output, &script).await.unwrap();
     }
 }
