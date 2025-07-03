@@ -158,14 +158,16 @@ async fn gcp_resume_upload(session_uri: &str, output_data: &[u8]) -> Result<(), 
     let client = Client::new();
 
     while max_attempts < max {
+        max_attempts += 1;
+
         let status = gcp_get_upload_status(session_uri, &format!("{}", output_data.len())).await?;
         let complete = -1;
         if status == complete {
             return Ok(());
         }
-        let data_remaining = output_data.len() - status as usize;
-
+        let data_remaining = output_data.len() - status as usize - 1;
         let mut builder = client.put(session_uri);
+
         builder = builder.header("Content-Length", data_remaining);
 
         let range_adjust = 1;
@@ -180,14 +182,12 @@ async fn gcp_resume_upload(session_uri: &str, output_data: &[u8]) -> Result<(), 
         );
 
         let output_left = output_data[status as usize + 1..output_data.len()].to_vec();
-
-        let res_result = builder.body(output_left).send().await;
+        builder = builder.body(output_left);
+        let res_result = builder.send().await;
         let res = match res_result {
             Ok(result) => result,
             Err(err) => {
                 error!("[forensics] Could not upload to GCP storage: {err:?}. Attempting again");
-                let try_again = 1;
-                max_attempts += try_again;
                 continue;
             }
         };
@@ -196,9 +196,11 @@ async fn gcp_resume_upload(session_uri: &str, output_data: &[u8]) -> Result<(), 
                 "[forensics] Non-200 response from GCP storage: {:?}. Attempting again",
                 res.text().await
             );
-            let try_again = 1;
-            max_attempts += try_again;
             continue;
+        }
+
+        if res.text().await.is_ok_and(|b| b.contains("timeCreated")) {
+            return Ok(());
         }
     }
 
@@ -452,9 +454,7 @@ mod tests {
             when.method(PUT)
                 .header("Content-Range", "bytes */5")
                 .header("Content-Length", "0");
-            then.status(308)
-                .header("Range", "0-2")
-                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+            then.status(308).header("Range", "0-2");
         });
         let mock_me_resume = server.mock(|when, then| {
             when.method(PUT)
@@ -469,7 +469,7 @@ mod tests {
             .await
             .unwrap();
         mock_me.assert();
-        // mock_me_resume.assert();
+        mock_me_resume.assert();
     }
 
     #[tokio::test]
