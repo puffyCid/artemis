@@ -55,7 +55,7 @@ pub(crate) async fn grab_fseventsd(
                 continue;
             }
         };
-        let _ = output_fsevents(&results, output, filter, start_time);
+        let _ = output_fsevents(&results, output, filter, start_time).await;
     }
     Ok(())
 }

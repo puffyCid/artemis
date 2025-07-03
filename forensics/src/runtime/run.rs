@@ -30,10 +30,10 @@ pub(crate) async fn filter_script(
 }
 
 /// Execute raw JavaScript code
-pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
+pub(crate) async fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     let args = [];
     let result = if script.contains("async function ") || script.contains(" await ") {
-        run_async_script(script, &args)
+        run_async_script(script, &args).await
     } else {
         run_script(script, &args)
     };
@@ -77,7 +77,7 @@ async fn decode_script(
     };
 
     let result = if script.contains("async function") || script.contains(" await ") {
-        run_async_script(script, args)
+        run_async_script(script, args).await
     } else {
         run_script(script, args)
     };
@@ -159,10 +159,10 @@ mod tests {
             .unwrap();
     }
 
-    #[test]
-    fn test_raw_script() {
+    #[tokio::test]
+    async fn test_raw_script() {
         let test = r#"console.log(2+2);"#;
-        raw_script(&test).unwrap();
+        raw_script(&test).await.unwrap();
     }
 
     #[tokio::test]

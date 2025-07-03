@@ -28,7 +28,7 @@ pub(crate) async fn azure_upload(
 
     let azure_full_url = compose_azure_url(azure_url, &azure_filename)?;
 
-    azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len()).await?;
+    azure_url_upload(&azure_full_url, &HeaderMap::new(), data).await?;
 
     info!(
         "[forensics] Uploaded {} bytes to Azure blob storage",
@@ -43,7 +43,6 @@ pub(crate) async fn azure_url_upload(
     url: &str,
     headers: &HeaderMap,
     data: &[u8],
-    size: usize,
 ) -> Result<(), RemoteError> {
     let client = Client::new();
     let max_attempts = 15;
@@ -52,7 +51,7 @@ pub(crate) async fn azure_url_upload(
     while attempts < max_attempts {
         let mut builder = client.put(url);
         builder = builder.header("Content-Type", "application/json-seq");
-        builder = builder.header("Content-Length", size);
+        builder = builder.header("Content-Length", data.len());
         builder = builder.header("x-ms-version", "2019-12-12");
 
         if !url.contains("&comp=") {

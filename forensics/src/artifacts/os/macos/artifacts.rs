@@ -177,12 +177,12 @@ pub(crate) async fn launchd(
 }
 
 /// Get macOS `Unifiedlogs`
-pub(crate) fn unifiedlogs(
+pub(crate) async fn unifiedlogs(
     output: &mut Output,
     filter: bool,
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
-    grab_logs(options, output, filter)
+    grab_logs(options, output, filter).await
 }
 
 /// Get macOS `ExecPolicy`
@@ -245,12 +245,12 @@ pub(crate) async fn sudo_logs_macos(
 }
 
 /// Parse spotlight on macOS
-pub(crate) fn spotlight(
+pub(crate) async fn spotlight(
     output: &mut Output,
     filter: bool,
     options: &SpotlightOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_spotlight(options, output, filter);
+    let artifact_result = grab_spotlight(options, output, filter).await;
     match artifact_result {
         Ok(results) => Ok(results),
         Err(err) => {

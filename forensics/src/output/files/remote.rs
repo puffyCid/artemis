@@ -478,13 +478,7 @@ impl MicrosoftUpload for AcquireFileApiRemote {
                 self.md5.parse().unwrap_or(HeaderValue::from_static("")),
             );
 
-            let status = azure_url_upload(
-                &azure_url,
-                &headers,
-                commit_body.as_bytes(),
-                self.bytes_sent,
-            )
-            .await;
+            let status = azure_url_upload(&azure_url, &headers, commit_body.as_bytes()).await;
             if status.is_err() {
                 return Err(AcquireError::AzureCommit);
             }
@@ -501,7 +495,7 @@ impl MicrosoftUpload for AcquireFileApiRemote {
         let azure_url = format!("{url}&comp=block&blockid={block_id}");
         self.aws_tags.push(block_id);
 
-        let status = azure_url_upload(&azure_url, &headers, bytes, bytes.len()).await;
+        let status = azure_url_upload(&azure_url, &headers, bytes).await;
         if status.is_err() {
             return Err(AcquireError::AzureUpload);
         }

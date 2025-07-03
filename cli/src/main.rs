@@ -68,7 +68,7 @@ async fn parse_args(args: &Args) {
         }
     } else if let Some(js) = &args.javascript {
         if !js.is_empty() {
-            let collection_results = forensics::core::parse_js_file(js);
+            let collection_results = forensics::core::parse_js_file(js).await;
             match collection_results {
                 Ok(_) => info!("[artemis] JavaScript execution success"),
                 Err(err) => {

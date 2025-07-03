@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// Dump the Spotlight database. Requires root
-pub(crate) fn grab_spotlight(
+pub(crate) async fn grab_spotlight(
     options: &SpotlightOptions,
     output: &mut Output,
     filter: bool,
@@ -51,7 +51,7 @@ pub(crate) fn grab_spotlight(
 
     let start_time = time_now();
     for glob in paths {
-        let _ = parse_spotlight(&glob, output, start_time, filter);
+        let _ = parse_spotlight(&glob, output, start_time, filter).await;
     }
 
     Ok(())
@@ -82,8 +82,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_grab_spotlight() {
+    #[tokio::test]
+    async fn test_grab_spotlight() {
         let mut output = output_options("spotlight_test", "local", "./tmp", false);
 
         grab_spotlight(
@@ -94,6 +94,7 @@ mod tests {
             &mut output,
             false,
         )
+        .await
         .unwrap();
     }
 }

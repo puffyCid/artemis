@@ -166,7 +166,7 @@ pub(crate) async fn collect(collector: &mut ArtemisToml) -> Result<(), Collectio
                     _ => continue,
                 };
 
-                let results = unifiedlogs(&mut collector.output, filter, options);
+                let results = unifiedlogs(&mut collector.output, filter, options).await;
                 match results {
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
@@ -243,7 +243,7 @@ pub(crate) async fn collect(collector: &mut ArtemisToml) -> Result<(), Collectio
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = spotlight(&mut collector.output, filter, options);
+                let results = spotlight(&mut collector.output, filter, options).await;
                 match results {
                     Ok(_) => info!("Collected spotlight"),
                     Err(err) => {

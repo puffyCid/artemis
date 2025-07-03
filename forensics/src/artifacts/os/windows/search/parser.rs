@@ -74,7 +74,7 @@ pub(crate) async fn grab_search(
         return parse_search_sqlite(&win11, output, filter).await;
     }
 
-    parse_search(&path, output, filter)
+    parse_search(&path, output, filter).await
 }
 
 /// Parse a provided Windows `Search` file and return its contents

@@ -202,8 +202,8 @@ mod tests {
         collection_status("test", &test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
     }
 
-    #[test]
-    fn test_upload_logs() {
+    #[tokio::test]
+    async fn test_upload_logs() {
         let server = MockServer::start();
         let port = server.port();
 
@@ -252,13 +252,13 @@ mod tests {
 
         let output_dir = format!("{}/{}", output.directory, output.name);
 
-        let _ = upload_logs(&output_dir, &output);
+        let _ = upload_logs(&output_dir, &output).await;
         mock_me.assert();
         mock_me_put.assert();
     }
 
-    #[test]
-    fn test_api_upload_logs() {
+    #[tokio::test]
+    async fn test_api_upload_logs() {
         let server = MockServer::start();
         let port = server.port();
 
@@ -297,7 +297,7 @@ mod tests {
 
         let output_dir = format!("{}/{}", output.directory, output.name);
 
-        let _ = upload_logs(&output_dir, &output);
+        let _ = upload_logs(&output_dir, &output).await;
         mock_me.assert();
     }
 }

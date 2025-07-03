@@ -1,7 +1,7 @@
 use crate::{
     output::formats::{json::raw_json, jsonl::raw_jsonl},
     runtime::{
-        helper::{string_arg, value_arg},
+        helper::{boolean_arg, string_arg, value_arg},
         run::output_data,
     },
     structs::toml::Output,
@@ -19,8 +19,6 @@ pub(crate) fn js_output_results(
     let mut data = value_arg(args, 0, context)?;
     let output_name = string_arg(args, 1)?;
     let output_format = value_arg(args, 2, context)?;
-
-    let sucess = true;
 
     let output_result = serde_json::from_value(output_format);
     let mut output: Output = match output_result {
@@ -48,9 +46,9 @@ pub(crate) fn js_output_results(
     .then(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
-                // Get the value from the script
-                let script_value = string_arg(args, 0)?;
-                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                // Get the value for the script
+                let script_value = boolean_arg(args, 0, ctx)?;
+                let serde_value = serde_json::Value::Bool(script_value);
                 let value = JsValue::from_json(&serde_value, ctx)?;
                 // Returh the JavaScript object
                 Ok(value)
@@ -72,7 +70,6 @@ pub(crate) fn js_raw_dump(
     let data = value_arg(args, 0, context)?;
     let output_name = string_arg(args, 1)?;
     let output_format = value_arg(args, 2, context)?;
-    let sucess = true;
 
     let output_result = serde_json::from_value(output_format);
     let mut output: Output = match output_result {
@@ -108,9 +105,9 @@ pub(crate) fn js_raw_dump(
     .then(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
-                // Get the value from the script
-                let script_value = string_arg(args, 0)?;
-                let serde_value = serde_json::from_str(&script_value).unwrap_or_default();
+                // Get the value for the script
+                let script_value = boolean_arg(args, 0, ctx)?;
+                let serde_value = serde_json::Value::Bool(script_value);
                 let value = JsValue::from_json(&serde_value, ctx)?;
                 // Returh the JavaScript object
                 Ok(value)

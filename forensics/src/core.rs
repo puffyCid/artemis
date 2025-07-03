@@ -46,7 +46,7 @@ pub async fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
 }
 
 /// Execute a JavaScript file at provided path
-pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
+pub async fn parse_js_file(path: &str) -> Result<Value, TomlError> {
     let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
     let code_result = read_text_file(path);
     let script = match code_result {
@@ -56,7 +56,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
         }
     };
 
-    let script_result = raw_script(&script);
+    let script_result = raw_script(&script).await;
     if script_result.is_err() {
         error!("[runtime] Failed to execute js file");
         return Err(TomlError::BadJs);
@@ -155,11 +155,13 @@ mod tests {
         parse_toml_data(&buffer).await.unwrap();
     }
 
-    #[test]
-    fn test_parse_js_file() {
+    #[tokio::test]
+    async fn test_parse_js_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/deno_scripts/vanilla.js");
-        parse_js_file(&test_location.display().to_string()).unwrap();
+        parse_js_file(&test_location.display().to_string())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]

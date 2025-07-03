@@ -205,7 +205,7 @@ async fn gcp_resume_upload(session_uri: &str, output_data: &[u8]) -> Result<(), 
     }
 
     error!("[forensics] Max attempts reached for uploading to Google Cloud");
-    return Err(RemoteError::MaxAttempts);
+    Err(RemoteError::MaxAttempts)
 }
 
 /// Check the GCP upload status. A value of -1 means we are done

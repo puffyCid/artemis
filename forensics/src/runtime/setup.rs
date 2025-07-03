@@ -183,7 +183,7 @@ impl JobQueue for Queue {
 }
 
 /// Execute async scripts
-pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
+pub(crate) async fn run_async_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
     let queue = Queue::new();
     let mut context = match ContextBuilder::new().job_queue(Rc::new(queue)).build() {
         Ok(result) => result,
@@ -224,8 +224,46 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         }
     };
 
+    let local_set = &mut task::LocalSet::default();
+    let script_result = local_set
+        .run_until(async {
+            // Run and wait for our script to complete
+            context.run_jobs_async().await;
+            if result.is_undefined() {
+                return Ok(Value::Null);
+            } else if result.is_promise() {
+                // Handle async/await promises
+                if let Some(promise) = result.as_promise() {
+                    // Wait for promise to resolve
+                    if let Ok(js_value) = promise.await_blocking(&mut context) {
+                        if js_value.is_undefined() {
+                            return Ok(Value::Null);
+                        }
+                        let value = match js_value.to_json(&mut context) {
+                            Ok(result) => result,
+                            Err(err) => {
+                                error!("[runtime] Could not serialize promise value: {err:?}");
+                                return Err(RuntimeError::ScriptResult);
+                            }
+                        };
+                        return Ok(value);
+                    }
+                }
+            }
+            Ok(Value::Null)
+        })
+        .await;
+
+    let script_value = match script_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not get promise value: {err:?}");
+            return Err(RuntimeError::ScriptResult);
+        }
+    };
     // Run and wait for our script to complete
-    context.run_jobs();
+    /*
+    context.run_jobs_async().await;
     if result.is_undefined() {
         return Ok(Value::Null);
     } else if result.is_promise() {
@@ -254,9 +292,9 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
             error!("[runtime] Could not serialize script value: {err:?}");
             return Err(RuntimeError::ScriptResult);
         }
-    };
+    };*/
 
-    Ok(value)
+    Ok(script_value)
 }
 
 /// Register and create our custom JavaScript runtime
@@ -288,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_async_script() {
+    fn test_run_script_weird_js() {
         let script = "console.warn(`true + true = ${true + true}. Classic JS, gotta love it`)";
         let _ = run_script(script, &[]).unwrap();
     }
