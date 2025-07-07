@@ -663,9 +663,9 @@ mod tests {
             .unwrap();
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_read_mft() {
+    async fn test_read_mft() {
         use super::setup_ntfs_parser;
         use crate::{
             artifacts::os::windows::mft::master::{read_mft, setup_mft_reader_windows},
@@ -687,6 +687,7 @@ mod tests {
             false,
             size,
         )
+        .await
         .unwrap();
     }
 

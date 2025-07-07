@@ -82,9 +82,9 @@ mod tests {
         assert_eq!(status, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_filelisting_windows() {
+    async fn test_filelisting_windows() {
         let mut output = output_options("file_test", "local", "./tmp", false);
 
         let file_config = FileOptions {
@@ -97,7 +97,7 @@ mod tests {
             regex_filter: Some(String::new()),
             yara: None,
         };
-        let status = filelisting(&mut output, false, &file_config).unwrap();
+        let status = filelisting(&mut output, false, &file_config).await.unwrap();
         assert_eq!(status, ());
     }
 }

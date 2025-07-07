@@ -407,8 +407,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_ntfs_filelist() {
+    #[tokio::test]
+    async fn test_ntfs_filelist() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\"),
@@ -423,13 +423,13 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
         assert_eq!(result, ())
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Full file listing"]
-    fn test_full_filelist() {
+    async fn test_full_filelist() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\"),
@@ -444,13 +444,13 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
         assert_eq!(result, ())
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "BadStart")]
-    fn test_ntfs_filelist_bad_start() {
+    async fn test_ntfs_filelist_bad_start() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("I:\\"),
@@ -465,12 +465,12 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
         assert_eq!(result, ())
     }
 
-    #[test]
-    fn test_get_users() {
+    #[tokio::test]
+    async fn test_get_users() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\Users"),
@@ -484,13 +484,13 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
 
         assert_eq!(result, ());
     }
 
-    #[test]
-    fn test_get_users_downloads() {
+    #[tokio::test]
+    async fn test_get_users_downloads() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\Users"),
@@ -504,13 +504,13 @@ mod tests {
             filename_regex: Some(String::new()),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
 
         assert_eq!(result, ());
     }
 
-    #[test]
-    fn test_get_rust_files() {
+    #[tokio::test]
+    async fn test_get_rust_files() {
         let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let letter = test_location.display().to_string().chars().next().unwrap();
 
@@ -527,13 +527,13 @@ mod tests {
             filename_regex: Some(String::from(r".*\.rs")),
         };
         let mut output = output_options("rawfiles_temp", "local", "./tmp", true);
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output, false).await.unwrap();
 
         assert_eq!(result, ());
     }
 
-    #[test]
-    fn test_walk_ntfs() {
+    #[tokio::test]
+    async fn test_walk_ntfs() {
         let test_path = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\"),
@@ -585,14 +585,15 @@ mod tests {
             &mut params,
             &mut output,
         )
+        .await
         .unwrap();
 
         assert_eq!(result, ());
         assert!(params.filelist.len() > 1);
     }
 
-    #[test]
-    fn test_raw_output() {
+    #[tokio::test]
+    async fn test_raw_output() {
         let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let letter = test_location.display().to_string().chars().next().unwrap();
 
@@ -652,10 +653,11 @@ mod tests {
             &mut params,
             &mut output,
         )
+        .await
         .unwrap();
 
         assert_eq!(result, ());
-        raw_output(&params.filelist, &mut output, start_time, false)
+        raw_output(&params.filelist, &mut output, start_time, false).await
     }
 
     #[test]

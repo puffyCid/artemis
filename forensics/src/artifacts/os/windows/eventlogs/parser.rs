@@ -490,8 +490,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_grab_eventlogs() {
+    #[tokio::test]
+    async fn test_grab_eventlogs() {
         let options = EventLogsOptions {
             alt_file: None,
             include_templates: false,
@@ -502,12 +502,12 @@ mod tests {
         };
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
-        let results = grab_eventlogs(&options, &mut output, false).unwrap();
+        let results = grab_eventlogs(&options, &mut output, false).await.unwrap();
         assert_eq!(results, ())
     }
 
-    #[test]
-    fn test_default_eventlogs() {
+    #[tokio::test]
+    async fn test_default_eventlogs() {
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
         let options = EventLogsOptions {
             alt_file: None,
@@ -518,13 +518,15 @@ mod tests {
             only_templates: false,
         };
 
-        let results = default_eventlogs(&mut output, false, &options).unwrap();
+        let results = default_eventlogs(&mut output, false, &options)
+            .await
+            .unwrap();
         assert_eq!(results, ())
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "Parser")]
-    fn test_alt_eventlogs() {
+    async fn test_alt_eventlogs() {
         let path = "madeup";
         let mut output = output_options("eventlog_temp", "local", "./tmp", true);
 
@@ -537,12 +539,14 @@ mod tests {
             only_templates: false,
         };
 
-        let results = alt_eventlogs(&path, &mut output, false, &options).unwrap();
+        let results = alt_eventlogs(&path, &mut output, false, &options)
+            .await
+            .unwrap();
         assert_eq!(results, ())
     }
 
-    #[test]
-    fn test_read_directory() {
+    #[tokio::test]
+    async fn test_read_directory() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
@@ -561,12 +565,13 @@ mod tests {
             false,
             &options,
         )
+        .await
         .unwrap();
         assert_eq!(results, ())
     }
 
-    #[test]
-    fn test_read_eventlogs() {
+    #[tokio::test]
+    async fn test_read_eventlogs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
         let read_dir = read_dir(test_location.display().to_string()).unwrap();
@@ -582,18 +587,21 @@ mod tests {
                 false,
                 &None,
             )
+            .await
             .unwrap();
             assert_eq!(results, ())
         }
     }
 
-    #[test]
-    fn test_output_log() {
+    #[tokio::test]
+    async fn test_output_log() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
         let mut output = output_options("eventlog_temp", "local", "./tmp", false);
 
         let test = json!({"key": "value"});
-        output_logs(&mut Ok(test), &mut output, false, 0, "testing", true).unwrap();
+        output_logs(&mut Ok(test), &mut output, false, 0, "testing", true)
+            .await
+            .unwrap();
     }
 }

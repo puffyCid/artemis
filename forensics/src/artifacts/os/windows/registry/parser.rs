@@ -297,8 +297,8 @@ mod tests {
             logging: None,
         }
     }
-    #[test]
-    fn test_parse_user_hives() {
+    #[tokio::test]
+    async fn test_parse_user_hives() {
         let mut output = output_options("reg_temp", "local", "./tmp", true);
         let mut params = Params {
             start_path: String::from("ROOT"),
@@ -309,11 +309,13 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives('C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_parse_default_system_hives() {
+    #[tokio::test]
+    async fn test_parse_default_system_hives() {
         let mut output = output_options("reg_temp", "local", "./tmp", true);
         let mut params = Params {
             start_path: String::from("ROOT"),
@@ -324,11 +326,13 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives('C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_parse_all_users_typed_paths() {
+    #[tokio::test]
+    async fn test_parse_all_users_typed_paths() {
         let mut output = output_options("reg_temp", "local", "./tmp", false);
         let mut params = Params {
             start_path: String::from("ROOT\\SOFTWARE\\Microsoft\\"),
@@ -339,11 +343,13 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_user_hives('C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_parse_system_run_key() {
+    #[tokio::test]
+    async fn test_parse_system_run_key() {
         let mut output = output_options("reg_temp", "local", "./tmp", false);
         let mut params = Params {
             start_path: String::from("ROOT\\Microsoft\\Windows\\CurrentVersion\\Run"),
@@ -354,11 +360,13 @@ mod tests {
             filter: false,
             registry_path: String::new(),
         };
-        parse_default_system_hives('C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_parse_registry() {
+    #[tokio::test]
+    async fn test_parse_registry() {
         let mut output = output_options("reg_temp", "local", "./tmp", true);
 
         let reg_options = RegistryOptions {
@@ -367,11 +375,13 @@ mod tests {
             alt_file: None,
             path_regex: None,
         };
-        parse_registry(&reg_options, &mut output, false).unwrap();
+        parse_registry(&reg_options, &mut output, false)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn test_parse_registry_file() {
+    #[tokio::test]
+    async fn test_parse_registry_file() {
         let mut output = output_options("reg_temp", "local", "./tmp", false);
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
@@ -384,7 +394,7 @@ mod tests {
             filter: false,
             registry_path: test_location.to_str().unwrap().to_string(),
         };
-        parse_registry_file(&mut output, &mut params).unwrap();
+        parse_registry_file(&mut output, &mut params).await.unwrap();
     }
 
     #[test]

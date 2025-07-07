@@ -655,8 +655,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_eventlogs() {
+    #[tokio::test]
+    async fn test_eventlogs() {
         let evt = EventLogsOptions {
             alt_file: None,
             alt_dir: None,
@@ -667,30 +667,30 @@ mod tests {
         };
         let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
 
-        let status = eventlogs(&evt, &mut output, false).unwrap();
+        let status = eventlogs(&evt, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_shimdb() {
+    #[tokio::test]
+    async fn test_shimdb() {
         let sdb = ShimdbOptions { alt_file: None };
         let mut output = output_options("shimdb_temp", "json", "./tmp", false);
 
-        let status = shimdb(&sdb, &mut output, false).unwrap();
+        let status = shimdb(&sdb, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_prefetch() {
+    #[tokio::test]
+    async fn test_prefetch() {
         let pf = PrefetchOptions { alt_dir: None };
         let mut output = output_options("prefetch_temp", "json", "./tmp", false);
 
-        let status = prefetch(&pf, &mut output, false).unwrap();
+        let status = prefetch(&pf, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_registry() {
+    #[tokio::test]
+    async fn test_registry() {
         let options = RegistryOptions {
             user_hives: false,
             system_hives: true,
@@ -699,12 +699,12 @@ mod tests {
         };
         let mut output = output_options("reg_temp", "json", "./tmp", true);
 
-        let status = registry(&options, &mut output, false).unwrap();
+        let status = registry(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_raw_filelist() {
+    #[tokio::test]
+    async fn test_raw_filelist() {
         let options = RawFilesOptions {
             drive_letter: 'C',
             start_path: String::from("C:\\"),
@@ -719,55 +719,55 @@ mod tests {
         };
         let mut output = output_options("rawfiles_temp", "json", "./tmp", false);
 
-        let status = raw_filelist(&options, &mut output, false).unwrap();
+        let status = raw_filelist(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_userassist() {
+    #[tokio::test]
+    async fn test_userassist() {
         let options = UserAssistOptions {
             alt_file: None,
             resolve_descriptions: Some(true),
         };
         let mut output = output_options("assist_temp", "json", "./tmp", false);
 
-        let status = userassist(&options, &mut output, false).unwrap();
+        let status = userassist(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_shimcache() {
+    #[tokio::test]
+    async fn test_shimcache() {
         let options = ShimcacheOptions { alt_file: None };
         let mut output = output_options("shimcache_temp", "json", "./tmp", false);
 
-        let status = shimcache(&options, &mut output, false).unwrap();
+        let status = shimcache(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_shellbags() {
+    #[tokio::test]
+    async fn test_shellbags() {
         let options = ShellbagsOptions {
             alt_file: None,
             resolve_guids: false,
         };
         let mut output = output_options("bags_temp", "json", "./tmp", false);
 
-        let status = shellbags(&options, &mut output, false).unwrap();
+        let status = shellbags(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_amcache() {
+    #[tokio::test]
+    async fn test_amcache() {
         let options = AmcacheOptions { alt_file: None };
         let mut output = output_options("amcache_temp", "json", "./tmp", false);
 
-        let status = amcache(&options, &mut output, false).unwrap();
+        let status = amcache(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Takes a long time"]
-    fn test_usnjrnl() {
+    async fn test_usnjrnl() {
         let options = UsnJrnlOptions {
             alt_drive: None,
             alt_path: None,
@@ -775,12 +775,12 @@ mod tests {
         };
         let mut output = output_options("usn_temp", "json", "./tmp", false);
 
-        let status = usnjrnl(&options, &mut output, false).unwrap();
+        let status = usnjrnl(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_shortcuts() {
+    #[tokio::test]
+    async fn test_shortcuts() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/lnk/win11");
 
@@ -789,116 +789,118 @@ mod tests {
         };
         let mut output = output_options("shortcuts_temp", "json", "./tmp", false);
 
-        let status = shortcuts(&options, &mut output, false).unwrap();
+        let status = shortcuts(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_bits() {
+    #[tokio::test]
+    async fn test_bits() {
         let options = BitsOptions {
             alt_file: None,
             carve: false,
         };
         let mut output = output_options("bits_temp", "json", "./tmp", false);
 
-        let status = bits(&options, &mut output, false).unwrap();
+        let status = bits(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_srum() {
+    #[tokio::test]
+    async fn test_srum() {
         let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_temp", "json", "./tmp", false);
 
-        let status = srum(&options, &mut output, false).unwrap();
+        let status = srum(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Takes a long time"]
-    fn test_search() {
+    async fn test_search() {
         let options = SearchOptions { alt_file: None };
         let mut output = output_options("search_temp", "json", "./tmp", false);
 
-        let status = search(&options, &mut output, false).unwrap();
+        let status = search(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_wmipersist() {
+    #[tokio::test]
+    async fn test_wmipersist() {
         let options = WmiPersistOptions { alt_dir: None };
         let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
 
-        let status = wmi_persist(&options, &mut output, false).unwrap();
+        let status = wmi_persist(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_users_windows() {
+    #[tokio::test]
+    async fn test_users_windows() {
         let options = WindowsUserOptions { alt_file: None };
         let mut output = output_options("users_temp", "json", "./tmp", false);
 
-        let status = users_windows(&options, &mut output, false).unwrap();
+        let status = users_windows(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_tasks() {
+    #[tokio::test]
+    async fn test_tasks() {
         let options = TasksOptions { alt_file: None };
         let mut output = output_options("tasks_temp", "json", "./tmp", false);
 
-        let status = tasks(&options, &mut output, false).unwrap();
+        let status = tasks(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_services() {
+    #[tokio::test]
+    async fn test_services() {
         let options = ServicesOptions { alt_file: None };
         let mut output = output_options("services_temp", "json", "./tmp", false);
 
-        let status = services(&options, &mut output, false).unwrap();
+        let status = services(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_jumplists() {
+    #[tokio::test]
+    async fn test_jumplists() {
         let options = JumplistsOptions { alt_file: None };
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
-        let status = jumplists(&options, &mut output, false).unwrap();
+        let status = jumplists(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_recycle_bin() {
+    #[tokio::test]
+    async fn test_recycle_bin() {
         let options = RecycleBinOptions { alt_file: None };
         let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
 
-        let status = recycle_bin(&options, &mut output, false).unwrap();
+        let status = recycle_bin(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Takes time to run"]
-    fn test_mft() {
+    async fn test_mft() {
         let options = MftOptions {
             alt_drive: None,
             alt_file: None,
         };
         let mut output = output_options("mft_temp", "json", "./tmp", false);
 
-        let status = mft(&options, &mut output, false).unwrap();
+        let status = mft(&options, &mut output, false).await.unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "json", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }

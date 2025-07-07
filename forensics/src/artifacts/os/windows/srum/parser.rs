@@ -93,11 +93,11 @@ mod tests {
         assert_eq!(results.is_null(), false)
     }
 
-    #[test]
-    fn test_grab_srum() {
+    #[tokio::test]
+    async fn test_grab_srum() {
         let options = SrumOptions { alt_file: None };
         let mut output = output_options("srum_test", "local", "./tmp", false);
 
-        grab_srum(&options, &mut output, false).unwrap();
+        grab_srum(&options, &mut output, false).await.unwrap();
     }
 }

@@ -518,9 +518,9 @@ mod tests {
         grab_outlook(&options, &mut out, false).await.unwrap()
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_grab_outlook_windows_alt() {
+    async fn test_grab_outlook_windows_alt() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\outlook\\windows11\\test@outlook.com.ost");
 
@@ -549,12 +549,12 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out, false).await.unwrap()
     }
 
-    #[test]
+    #[tokio::test]
     #[cfg(target_os = "windows")]
-    fn test_grab_outlook_windows() {
+    async fn test_grab_outlook_windows() {
         let options = OutlookOptions {
             alt_file: None,
             include_attachments: true,
@@ -580,6 +580,6 @@ mod tests {
             logging: None,
         };
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out, false).await.unwrap()
     }
 }

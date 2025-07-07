@@ -165,12 +165,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_srum() {
+    #[tokio::test]
+    async fn test_parse_srum() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
         let mut output = output_options("srum_temp", "local", "./tmp", true);
 
-        parse_srum(test_path, &mut output, false).unwrap();
+        parse_srum(test_path, &mut output, false).await.unwrap();
     }
 
     #[test]

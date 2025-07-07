@@ -60,13 +60,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_grab_mft() {
+    #[tokio::test]
+    async fn test_grab_mft() {
         let options = MftOptions {
             alt_drive: None,
             alt_file: None,
         };
         let mut output = output_options("mft_temp", "local", "./tmp", false);
-        grab_mft(&options, &mut output, false).unwrap();
+        grab_mft(&options, &mut output, false).await.unwrap();
     }
 }
