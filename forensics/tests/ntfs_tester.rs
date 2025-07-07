@@ -1,6 +1,6 @@
-#[test]
+#[tokio::test]
 #[cfg(target_os = "windows")]
-fn test_ntfs_parser() {
+async fn test_ntfs_parser() {
     use std::path::PathBuf;
 
     use forensics::core::parse_toml_file;
@@ -8,13 +8,15 @@ fn test_ntfs_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/ntfs.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
+    let results = parse_toml_file(&test_location.display().to_string())
+        .await
+        .unwrap();
     assert_eq!(results, ())
 }
 
-#[test]
+#[tokio::test]
 #[cfg(target_os = "windows")]
-fn test_ntfs_registry_parser() {
+async fn test_ntfs_registry_parser() {
     use std::path::PathBuf;
 
     use forensics::core::parse_toml_file;
@@ -22,13 +24,15 @@ fn test_ntfs_registry_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/ntfs_registry.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
+    let results = parse_toml_file(&test_location.display().to_string())
+        .await
+        .unwrap();
     assert_eq!(results, ())
 }
 
-#[test]
+#[tokio::test]
 #[cfg(target_os = "windows")]
-fn test_ntfs_downloads_parser() {
+async fn test_ntfs_downloads_parser() {
     use std::path::PathBuf;
 
     use forensics::core::parse_toml_file;
@@ -36,6 +40,8 @@ fn test_ntfs_downloads_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/ntfs_downloads.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
+    let results = parse_toml_file(&test_location.display().to_string())
+        .await
+        .unwrap();
     assert_eq!(results, ())
 }

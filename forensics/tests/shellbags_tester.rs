@@ -1,6 +1,6 @@
-#[test]
+#[tokio::test]
 #[cfg(target_os = "windows")]
-fn test_shellbags_parser() {
+async fn test_shellbags_parser() {
     use std::path::PathBuf;
 
     use forensics::core::parse_toml_file;
@@ -8,6 +8,8 @@ fn test_shellbags_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/shellbags.toml");
 
-    let results = parse_toml_file(&test_location.display().to_string()).unwrap();
+    let results = parse_toml_file(&test_location.display().to_string())
+        .await
+        .unwrap();
     assert_eq!(results, ())
 }
