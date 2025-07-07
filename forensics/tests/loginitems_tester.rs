@@ -1,6 +1,6 @@
-#[test]
+#[tokio::test]
 #[cfg(target_os = "macos")]
-fn test_loginitems_parser() {
+async fn test_loginitems_parser() {
     use std::path::PathBuf;
 
     use forensics::core::parse_toml_file;

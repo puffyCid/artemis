@@ -1,6 +1,6 @@
-#[test]
+#[tokio::test]
 #[cfg(target_os = "macos")]
-fn test_execpolicy_parser() {
+async fn test_execpolicy_parser() {
     use forensics::core::parse_toml_file;
     use std::path::PathBuf;
 

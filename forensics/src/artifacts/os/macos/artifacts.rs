@@ -317,59 +317,69 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_loginitems() {
+    #[tokio::test]
+    async fn test_loginitems() {
         let mut output = output_options("loginitems_test", "local", "./tmp", false);
 
-        let status = loginitems(&mut output, false, &LoginitemsOptions { alt_file: None }).unwrap();
+        let status = loginitems(&mut output, false, &LoginitemsOptions { alt_file: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_emond() {
+    #[tokio::test]
+    async fn test_emond() {
         let mut output = output_options("emond_test", "local", "./tmp", false);
 
-        let status = emond(&mut output, false, &EmondOptions { alt_path: None }).unwrap();
+        let status = emond(&mut output, false, &EmondOptions { alt_path: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_users_macos() {
+    #[tokio::test]
+    async fn test_users_macos() {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
-        let status =
-            users_macos(&mut output, false, &&MacosUsersOptions { alt_path: None }).unwrap();
+        let status = users_macos(&mut output, false, &&MacosUsersOptions { alt_path: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_groups_macos() {
+    #[tokio::test]
+    async fn test_groups_macos() {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
-        let status =
-            groups_macos(&mut output, false, &&MacosGroupsOptions { alt_path: None }).unwrap();
+        let status = groups_macos(&mut output, false, &&MacosGroupsOptions { alt_path: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore = "Takes a long time to run"]
-    fn test_fseventsd() {
+    async fn test_fseventsd() {
         let mut output = output_options("fseventsd_test", "local", "./tmp", false);
 
-        let status = fseventsd(&mut output, false, &FseventsOptions { alt_file: None }).unwrap();
+        let status = fseventsd(&mut output, false, &FseventsOptions { alt_file: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_launchd() {
+    #[tokio::test]
+    async fn test_launchd() {
         let mut output = output_options("launchd_test", "local", "./tmp", false);
 
-        let status = launchd(&mut output, false, &LaunchdOptions { alt_file: None }).unwrap();
+        let status = launchd(&mut output, false, &LaunchdOptions { alt_file: None })
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_unifiedlogs() {
+    #[tokio::test]
+    async fn test_unifiedlogs() {
         let mut output = output_options("unifiedlogs_test", "local", "./tmp", false);
         let sources = vec![String::from("Special")];
 
@@ -381,19 +391,20 @@ mod tests {
                 logarchive_path: None,
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_execpolicy() {
+    #[tokio::test]
+    async fn test_execpolicy() {
         let mut output = output_options("execpolicy_test", "local", "./tmp", true);
 
         let _status = execpolicy(&mut output, false, &ExecPolicyOptions { alt_file: None });
     }
 
-    #[test]
-    fn test_sudo_logs_macos() {
+    #[tokio::test]
+    async fn test_sudo_logs_macos() {
         let mut output = output_options("sudologs", "local", "./tmp", false);
 
         let status = sudo_logs_macos(
@@ -403,12 +414,13 @@ mod tests {
                 logarchive_path: None,
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_spotlight() {
+    #[tokio::test]
+    async fn test_spotlight() {
         let mut output = output_options("spotlight", "local", "./tmp", false);
 
         let status = spotlight(
@@ -419,18 +431,21 @@ mod tests {
                 include_additional: None,
             },
         )
+        .await
         .unwrap();
         assert_eq!(status, ());
     }
 
-    #[test]
-    fn test_output_data() {
+    #[tokio::test]
+    async fn test_output_data() {
         let mut output = output_options("output_test", "local", "./tmp", false);
         let start_time = time::time_now();
 
         let name = "test";
         let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = output_data(&mut data, name, &mut output, start_time, false)
+            .await
+            .unwrap();
         assert_eq!(status, ());
     }
 }

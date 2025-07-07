@@ -187,10 +187,12 @@ mod tests {
         assert!(files.len() > 3);
     }
 
-    #[test]
-    fn test_grab_fseventsd() {
+    #[tokio::test]
+    async fn test_grab_fseventsd() {
         let mut output = output_options("fsevents_test", "local", "./tmp", false);
-        grab_fseventsd(&FseventsOptions { alt_file: None }, false, &mut output).unwrap();
+        grab_fseventsd(&FseventsOptions { alt_file: None }, false, &mut output)
+            .await
+            .unwrap();
     }
 
     #[test]

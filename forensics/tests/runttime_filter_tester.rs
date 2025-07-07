@@ -1,6 +1,6 @@
-#[test]
+#[tokio::test]
 #[cfg(target_os = "macos")]
-fn test_runtime_filter_apps_info() {
+async fn test_runtime_filter_apps_info() {
     use forensics::core::parse_toml_file;
     use std::path::PathBuf;
 
