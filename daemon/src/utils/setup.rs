@@ -48,10 +48,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
 }
 
 /// Process our collection request
-pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectResponse) {
-    if collect.endpoint_invalid {
-        setup_enrollment(config);
-    }
+pub(crate) fn setup_collection(collect: &CollectResponse) {
     let collection_bytes = match base64_decode_standard(&collect.collection) {
         Ok(result) => result,
         Err(err) => {
@@ -63,7 +60,7 @@ pub(crate) fn setup_collection(config: &mut DaemonConfig, collect: &CollectRespo
     // Validate the output is JSONL and compressed
     let collect_string = String::from_utf8(collection_bytes.clone()).unwrap_or_default();
     let clean_string = collect_string.replace(" ", "");
-    if !clean_string.contains("format=jsonl") && !clean_string.contains("compressed=true") {
+    if !clean_string.contains("format=\"jsonl\"") && !clean_string.contains("compressed=true") {
         error!("[daemon] Invalid collection TOML. Format should be JSONL with compression");
         return;
     }

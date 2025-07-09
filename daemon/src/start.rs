@@ -1,4 +1,7 @@
-use std::{thread::sleep, time::Duration};
+use std::{
+    thread::{sleep, spawn},
+    time::Duration,
+};
 
 use crate::{
     collection::collect::CollectEndpoint,
@@ -72,7 +75,42 @@ fn start(config: &mut DaemonConfig) {
                 continue;
             }
         };
-        setup_collection(config, &collection);
+
+        if collection.endpoint_invalid {
+            setup_enrollment(config);
+            continue;
+        }
+
+        let handle = spawn(move || {
+            setup_collection(&collection);
+        });
+
+        // While thread is running continue to poll the server
+        while !handle.is_finished() {
+            if count == max_attempts {
+                let long_pause = 300;
+
+                sleep(Duration::from_secs(long_pause));
+                count = 0;
+            }
+            let collection = match config.collect_request() {
+                Ok(result) => result,
+                Err(_err) => {
+                    count += 1;
+                    sleep(Duration::from_secs(pause));
+                    continue;
+                }
+            };
+
+            if collection.endpoint_invalid {
+                setup_enrollment(config);
+                continue;
+            }
+            // Next poll will be in 60 seconds
+            sleep(Duration::from_secs(collection_poll));
+        }
+        let _ = handle.join();
+
         // Next poll will be in 60 seconds
         sleep(Duration::from_secs(collection_poll));
     }
