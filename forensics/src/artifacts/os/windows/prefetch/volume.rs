@@ -75,10 +75,11 @@ impl Volume {
             volume_vec.push(volume);
             count += 1;
 
+            let version31 = 31;
             let version30 = 30;
             let version26 = 26;
             let version23 = 23;
-            volume_data = if version30 == version {
+            volume_data = if version30 == version || version31 == version {
                 let unknown_size: usize = 60;
                 let (input, _) = take(unknown_size)(input)?;
                 input

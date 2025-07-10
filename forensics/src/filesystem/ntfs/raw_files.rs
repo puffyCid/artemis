@@ -418,7 +418,7 @@ pub(crate) fn get_user_registry_files(
             filename: String::new(),
         };
         let usrclass_path = "\\appdata\\local\\microsoft\\windows\\usrclass.dat";
-        if reg_file.full_path.ends_with("NTUSER.DAT")
+        if reg_file.full_path.to_lowercase().ends_with("ntuser.dat")
             && reg_file.full_path.split('\\').count() == ntuser_depth
         {
             reg_file.filename = String::from("NTUSER.DAT");
