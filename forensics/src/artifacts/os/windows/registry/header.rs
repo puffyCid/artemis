@@ -1,33 +1,40 @@
-use crate::utils::{
-    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
-    strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+use std::io::BufReader;
+
+use crate::{
+    artifacts::os::windows::registry::error::RegistryError,
+    filesystem::ntfs::reader::read_bytes,
+    utils::{
+        nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
+        strings::extract_utf16_string,
+        time::filetime_to_unixepoch,
+    },
 };
 use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use ntfs::NtfsFile;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct RegHeader {
-    signature: u32,
+    pub(crate) signature: u32,
     pub(crate) primary_sequence_num: u32,
     pub(crate) secondary_sequence_num: u32,
     pub(crate) modified: i64,
     pub(crate) major_version: u32,
     pub(crate) minor_version: u32,
-    file_type: u32,
-    file_format: u32,
+    pub(crate) file_type: u32,
+    pub(crate) file_format: u32,
     pub(crate) root_offset: u32,
     pub(crate) hive_bins_size: u32, // Total size of all hbin cells
     pub(crate) cluster_factor: u32,
-    filename: String,  // 64 bytes
+    pub(crate) filename: String, // 64 bytes
     reserved: Vec<u8>, // 396 bytes, currently not parsing the small extra details of Windows 10 in reserved space
     pub(crate) checksum: u32,
     reserved2: Vec<u8>, // 3576 bytes
-    boot_type: u32,
-    boot_recover: u32,
-    is_dirty: bool,
-    valid_checksum: bool,
+    pub(crate) boot_type: u32,
+    pub(crate) boot_recover: u32,
+    pub(crate) is_dirty: bool,
+    pub(crate) valid_checksum: bool,
 }
 
 impl RegHeader {
@@ -100,6 +107,29 @@ impl RegHeader {
         Ok((input, reg_header))
     }
 
+    pub(crate) fn read_header<T: std::io::Seek + std::io::Read>(
+        reader: &mut BufReader<T>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<RegHeader, RegistryError> {
+        let header_size = 4096;
+        let header_bytes = match read_bytes(0, header_size, ntfs_file, reader) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[registry] Could not read header bytes: {err:?}");
+                return Err(RegistryError::ReadRegistry);
+            }
+        };
+
+        let header = match RegHeader::parse_header(&header_bytes) {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[registry] Could not parse header bytes");
+                return Err(RegistryError::Parser);
+            }
+        };
+
+        Ok(header)
+    }
     /// Validate the Registry checksum value
     fn verify_checksum(data: &[u8]) -> nom::IResult<&[u8], u32> {
         let mut checksum = 0;
@@ -117,8 +147,11 @@ impl RegHeader {
 #[cfg(test)]
 mod tests {
     use super::RegHeader;
-    use crate::filesystem::files::read_file;
-    use std::path::PathBuf;
+    use crate::{
+        artifacts::os::windows::registry::reader::setup_registry_reader,
+        filesystem::files::read_file,
+    };
+    use std::{io::BufReader, path::PathBuf};
 
     #[test]
     fn test_parse_header() {
@@ -187,6 +220,37 @@ mod tests {
         let test_data = [166, 79, 85, 5];
         let (_, result) = RegHeader::verify_checksum(&test_data).unwrap();
         assert_eq!(result, 89477030);
+    }
+
+    #[test]
+    fn test_read_header() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+
+        let reader = setup_registry_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let header = RegHeader::read_header(&mut buf_reader, None).unwrap();
+        assert_eq!(header.signature, 0x66676572); // regf
+        assert_eq!(header.primary_sequence_num, 20);
+        assert_eq!(header.secondary_sequence_num, 20);
+        assert_eq!(header.modified, -11644473600);
+        assert_eq!(header.major_version, 1);
+        assert_eq!(header.minor_version, 5);
+        assert_eq!(header.file_type, 0);
+        assert_eq!(header.file_format, 1);
+        assert_eq!(header.root_offset, 32);
+
+        assert_eq!(header.hive_bins_size, 196608);
+        assert_eq!(header.filename, "\\??\\C:\\Users\\Default\\NTUSER.DAT");
+        assert_eq!(header.reserved.len(), 396);
+        assert_eq!(header.reserved2.len(), 3576);
+
+        assert_eq!(header.boot_type, 0);
+        assert_eq!(header.boot_recover, 0);
+        assert_eq!(header.checksum, 89477030);
+        assert_eq!(header.is_dirty, false);
+        assert_eq!(header.valid_checksum, true);
     }
 
     #[test]

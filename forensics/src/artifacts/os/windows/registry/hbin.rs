@@ -1,13 +1,19 @@
+use std::io::BufReader;
+
 use super::parser::Params;
 use crate::{
     artifacts::os::windows::registry::{
         cell::{CellType, get_cell_type, is_allocated},
+        error::RegistryError,
         keys::nk::NameKey,
     },
+    filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };
 use common::windows::RegistryData;
+use log::error;
 use nom::{Needed, bytes::complete::take};
+use ntfs::NtfsFile;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -40,6 +46,30 @@ impl HiveBin {
         };
 
         Ok((input, hbin))
+    }
+
+    pub(crate) fn read_hive_bin<T: std::io::Seek + std::io::Read>(
+        reader: &mut BufReader<T>,
+        ntfs_file: Option<&NtfsFile<'_>>,
+    ) -> Result<HiveBin, RegistryError> {
+        let bin_header_size = 32;
+        let header_bytes = match read_bytes(4096, bin_header_size, ntfs_file, reader) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[registry] Could not read hbin header bytes: {err:?}");
+                return Err(RegistryError::ReadRegistry);
+            }
+        };
+
+        let header = match HiveBin::parse_hive_bin_header(&header_bytes) {
+            Ok((_, result)) => result,
+            Err(_err) => {
+                error!("[registry] Could not parse hbin header bytes");
+                return Err(RegistryError::Parser);
+            }
+        };
+
+        Ok(header)
     }
 
     /// Start parsing the Registry from the ROOT key

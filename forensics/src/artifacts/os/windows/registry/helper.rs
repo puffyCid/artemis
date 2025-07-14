@@ -1,16 +1,39 @@
 use super::{
     error::RegistryError, hbin::HiveBin, header::RegHeader, keys::sk::SecurityKey, parser::Params,
 };
-use crate::filesystem::ntfs::{
-    raw_files::{raw_read_by_file_ref, raw_read_file},
-    setup::NtfsParser,
+use crate::{
+    artifacts::os::{
+        systeminfo::info::get_platform,
+        windows::{
+            artifacts::output_data,
+            registry::{
+                parser::ParamsReader,
+                reader::{setup_registry_reader, setup_registry_reader_windows},
+            },
+        },
+    },
+    filesystem::{
+        files::get_filename,
+        ntfs::{
+            raw_files::{raw_read_by_file_ref, raw_read_file},
+            setup::{NtfsParser, setup_ntfs_parser},
+        },
+    },
+    structs::toml::Output,
+    utils::{
+        regex_options::regex_check,
+        time::{filetime_to_unixepoch, time_now, unixepoch_to_iso},
+    },
 };
 use common::windows::RegistryData;
 use log::error;
 use nom::bytes::complete::take;
-use ntfs::NtfsFileReference;
+use ntfs::{NtfsFile, NtfsFileReference};
 use regex::Regex;
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    io::BufReader,
+};
 
 /// Parse provided `Registry` file at starting Key path and apply any optional Key path regex filtering
 /// Use `get_registry_keys_by_ref` if you want to provide a `Registry` file reference
@@ -132,6 +155,289 @@ pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, 
     Ok(sk)
 }
 
+pub(crate) fn stream_registry(
+    path: &str,
+    start_path: &str,
+    regex: Option<&Regex>,
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), RegistryError> {
+    let start_time = time_now();
+    let plat = get_platform();
+
+    let mut reg_data = Vec::new();
+    if plat != "Windows" {
+        let reader = setup_registry_reader(path)?;
+        let mut buf_reader = BufReader::new(reader);
+        let header = RegHeader::read_header(&mut buf_reader, None)?;
+        let mut params = ParamsReader {
+            start_path: start_path.to_string(),
+            path_regex: regex.cloned(),
+            filter,
+            registry_path: path.to_string(),
+            reader: buf_reader,
+            offset: 0,
+            size: 0,
+            minor_version: header.minor_version,
+            key_tracker: Vec::new(),
+            offset_tracker: HashSet::new(),
+        };
+
+        let root = params.root_key(None)?;
+        params.key_tracker.push(root.key_name.clone());
+        let no_lists = -1;
+
+        let mut registry_entry = RegistryData {
+            path: params.key_tracker.join("\\"),
+            key: params.key_tracker.join("\\"),
+            name: root.key_name,
+            values: Vec::new(),
+            last_modified: unixepoch_to_iso(filetime_to_unixepoch(root.last_modified)),
+            depth: params.key_tracker.len(),
+            security_offset: root.key_security_offset,
+            registry_path: params.registry_path.clone(),
+            registry_file: get_filename(&params.registry_path),
+        };
+        if root.key_values_offset != no_lists {
+            params.offset = root.key_values_offset as u32;
+            let values = params.list_values(None, root.number_key_values)?;
+            registry_entry.values = values;
+        }
+
+        // Case sensitivity does not matter for Registry keys
+        if registry_entry
+            .path
+            .to_lowercase()
+            .starts_with(&params.start_path.to_lowercase())
+            && params.path_regex.as_ref().is_some_and(|regex_match| {
+                regex_check(&regex_match, &registry_entry.path.to_lowercase())
+            })
+        {
+            reg_data.push(registry_entry);
+        }
+
+        if root.subkeys_list_offset != no_lists {
+            params.offset = root.subkeys_list_offset as u32;
+            recurse_registry(&mut params, output, filter, &mut reg_data, None, start_time)?;
+        }
+
+        if !reg_data.is_empty() {
+            let mut serde_data = match serde_json::to_value(&reg_data) {
+                Ok(results) => results,
+                Err(err) => {
+                    error!(
+                        "[registry] Failed to serialize Registry file {}: {err:?}",
+                        params.registry_path
+                    );
+                    return Err(RegistryError::Serialize);
+                }
+            };
+
+            if let Err(err) = output_data(
+                &mut serde_data,
+                "registry",
+                output,
+                start_time,
+                params.filter,
+            ) {
+                error!(
+                    "[registry] Failed to output data for {}, error: {err:?}",
+                    params.registry_path
+                );
+                return Err(RegistryError::Output);
+            }
+        }
+        return Ok(());
+    }
+
+    // On Windows we default to parsing the NTFS in order to bypass locked Registry files
+    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
+    let mut ntfs_parser = match ntfs_parser_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[registry] Could not setup NTFS parser: {err:?}");
+            return Err(RegistryError::SystemDrive);
+        }
+    };
+    let ntfs_file = setup_registry_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
+    let header = RegHeader::read_header(&mut ntfs_parser.fs, Some(&ntfs_file))?;
+
+    let mut params = ParamsReader {
+        start_path: start_path.to_string(),
+        path_regex: regex.cloned(),
+        filter,
+        registry_path: path.to_string(),
+        reader: ntfs_parser.fs,
+        offset: 0,
+        size: 0,
+        minor_version: header.minor_version,
+        key_tracker: Vec::new(),
+        offset_tracker: HashSet::new(),
+    };
+
+    let root = params.root_key(Some(&ntfs_file))?;
+    params.key_tracker.push(root.key_name.clone());
+    let no_lists = -1;
+
+    let mut registry_entry = RegistryData {
+        path: params.key_tracker.join("\\"),
+        key: params.key_tracker.join("\\"),
+        name: root.key_name,
+        values: Vec::new(),
+        last_modified: unixepoch_to_iso(filetime_to_unixepoch(root.last_modified)),
+        depth: params.key_tracker.len(),
+        security_offset: root.key_security_offset,
+        registry_path: params.registry_path.clone(),
+        registry_file: get_filename(&params.registry_path),
+    };
+    if root.key_values_offset != no_lists {
+        params.offset = root.key_values_offset as u32;
+        let values = params.list_values(Some(&ntfs_file), root.number_key_values)?;
+        registry_entry.values = values;
+    }
+
+    // Case sensitivity does not matter for Registry keys
+    if registry_entry
+        .path
+        .to_lowercase()
+        .starts_with(&params.start_path.to_lowercase())
+        && (params.path_regex.as_ref().is_some_and(|regex_match| {
+            regex_check(&regex_match, &registry_entry.path.to_lowercase())
+        }) || params.path_regex.is_none())
+    {
+        reg_data.push(registry_entry);
+    }
+
+    if root.subkeys_list_offset != no_lists {
+        params.offset = root.subkeys_list_offset as u32;
+        recurse_registry(
+            &mut params,
+            output,
+            filter,
+            &mut reg_data,
+            Some(&ntfs_file),
+            start_time,
+        )?;
+    }
+
+    if !reg_data.is_empty() {
+        let mut serde_data = match serde_json::to_value(&reg_data) {
+            Ok(results) => results,
+            Err(err) => {
+                error!(
+                    "[registry] Failed to serialize Registry file {}: {err:?}",
+                    params.registry_path
+                );
+                return Err(RegistryError::Serialize);
+            }
+        };
+
+        if let Err(err) = output_data(
+            &mut serde_data,
+            "registry",
+            output,
+            start_time,
+            params.filter,
+        ) {
+            error!(
+                "[registry] Failed to output data for {}, error: {err:?}",
+                params.registry_path
+            );
+            return Err(RegistryError::Output);
+        }
+    }
+
+    Ok(())
+}
+
+fn recurse_registry<'a, T: std::io::Seek + std::io::Read>(
+    params: &mut ParamsReader<T>,
+    output: &mut Output,
+    filter: bool,
+    reg_data: &mut Vec<RegistryData>,
+    use_ntfs: Option<&NtfsFile<'a>>,
+    start_time: u64,
+) -> Result<(), RegistryError> {
+    // Max Registry keys to store in our array. Before outputting
+    // Smaller limit should mean less memory
+    let key_limit = 200;
+    if params.offset_tracker.contains(&params.offset) || reg_data.len() > key_limit {
+        let mut serde_data = match serde_json::to_value(&reg_data) {
+            Ok(results) => results,
+            Err(err) => {
+                error!(
+                    "[registry] Failed to serialize Registry file {}: {err:?}",
+                    params.registry_path
+                );
+                return Err(RegistryError::Serialize);
+            }
+        };
+
+        if let Err(err) = output_data(
+            &mut serde_data,
+            "registry",
+            output,
+            start_time,
+            params.filter,
+        ) {
+            error!(
+                "[registry] Failed to output data for {}, error: {err:?}",
+                params.registry_path
+            );
+            return Err(RegistryError::Output);
+        }
+        *reg_data = Vec::new();
+
+        if params.offset_tracker.contains(&params.offset) {
+            return Ok(());
+        }
+    }
+    let names = params.list_keys(use_ntfs)?;
+
+    for name in names {
+        params.key_tracker.push(name.key_name.clone());
+        let no_lists = -1;
+
+        let mut registry_entry = RegistryData {
+            path: params.key_tracker.join("\\"),
+            key: params.key_tracker.join("\\"),
+            name: name.key_name,
+            values: Vec::new(),
+            last_modified: unixepoch_to_iso(filetime_to_unixepoch(name.last_modified)),
+            depth: params.key_tracker.len(),
+            security_offset: name.key_security_offset,
+            registry_path: params.registry_path.clone(),
+            registry_file: get_filename(&params.registry_path),
+        };
+        if name.key_values_offset != no_lists {
+            params.offset = name.key_values_offset as u32;
+            let values = params.list_values(use_ntfs, name.number_key_values)?;
+            registry_entry.values = values;
+        }
+
+        // Case sensitivity does not matter for Registry keys
+        if registry_entry
+            .path
+            .to_lowercase()
+            .starts_with(&params.start_path.to_lowercase())
+            && (params.path_regex.as_ref().is_some_and(|regex_match| {
+                regex_check(&regex_match, &registry_entry.path.to_lowercase())
+            }) || params.path_regex.is_none())
+        {
+            reg_data.push(registry_entry);
+        }
+
+        if name.subkeys_list_offset != no_lists {
+            params.offset = name.subkeys_list_offset as u32;
+            recurse_registry(params, output, filter, reg_data, use_ntfs, start_time)?;
+        }
+
+        // pop the params.key_tracker if we finished parsing a name key
+        params.key_tracker.pop();
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
@@ -140,8 +446,13 @@ mod tests {
         read_registry_ref,
     };
     use crate::{
-        artifacts::os::windows::registry::{helper::lookup_sk_info, parser::Params},
+        artifacts::os::windows::registry::{
+            helper::{lookup_sk_info, stream_registry},
+            parser::Params,
+            reader::setup_registry_reader,
+        },
         filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+        structs::toml::Output,
     };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
@@ -263,5 +574,35 @@ mod tests {
             assert!(result.len() > 10);
             break;
         }
+    }
+
+    #[test]
+    fn test_stream_registry() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let mut output = Output {
+            name: String::from("stream_registry"),
+            directory: String::from("./tmp"),
+            format: String::from("jsonl"),
+            compress: false,
+            timeline: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("local"),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        };
+
+        stream_registry(
+            test_location.to_str().unwrap(),
+            "",
+            None,
+            &mut output,
+            false,
+        )
+        .unwrap();
     }
 }

@@ -33,7 +33,10 @@ use crate::{
 use common::windows::RegistryData;
 use log::error;
 use regex::Regex;
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    io::BufReader,
+};
 
 /// Parameters used for determining what `Registry` data to return
 pub(crate) struct Params {
@@ -44,6 +47,21 @@ pub(crate) struct Params {
     pub(crate) offset_tracker: HashMap<u32, u32>, // Track Registry offsets to prevent infinite loops
     pub(crate) filter: bool,
     pub(crate) registry_path: String,
+}
+
+/// Parameters used for determining what `Registry` data to return
+pub(crate) struct ParamsReader<T: std::io::Seek + std::io::Read> {
+    pub(crate) start_path: String, // Start Path to use when walking the Registry
+    pub(crate) path_regex: Option<Regex>, // Any optional key path filtering
+    //pub(crate) registry_list: Vec<RegistryData>, // Store Registry entries
+    pub(crate) key_tracker: Vec<String>, // Track Registry paths as we walk them
+    pub(crate) offset_tracker: HashSet<u32>, // Track Registry offsets to prevent infinite loops
+    pub(crate) filter: bool,
+    pub(crate) registry_path: String,
+    pub(crate) reader: BufReader<T>,
+    pub(crate) offset: u32,
+    pub(crate) size: u32,
+    pub(crate) minor_version: u32,
 }
 
 /// Parse Windows `Registry` files based on provided options
