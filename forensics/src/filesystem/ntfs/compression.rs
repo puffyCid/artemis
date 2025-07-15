@@ -278,7 +278,7 @@ fn walk_offset_table(
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[wofcompression] Could not decompress chunk: {:?}", err);
+                        error!("[wofcompression] Could not decompress chunk: {err:?}");
                         return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                     }
                 };
@@ -295,7 +295,7 @@ fn walk_offset_table(
             decom_size = match last_size {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[wofcompression] Could not get last offset size: {:?}", err);
+                    error!("[wofcompression] Could not get last offset size: {err:?}");
                     return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                 }
             };
@@ -306,7 +306,7 @@ fn walk_offset_table(
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[wofcompression] Could not decompress chunk: {:?}", err);
+                    error!("[wofcompression] Could not decompress chunk: {err:?}");
                     return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                 }
             };
@@ -324,7 +324,7 @@ fn walk_offset_table(
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[wofcompression] Could not decompress chunk: {:?}", err);
+                error!("[wofcompression] Could not decompress chunk: {err:?}");
                 return Err(nom::Err::Incomplete(nom::Needed::Unknown));
             }
         };

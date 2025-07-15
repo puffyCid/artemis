@@ -90,7 +90,7 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
                     } else {
                         format!("Binary data size larger than 2MB, size: {}", data.len())
                     };
-                    format!("Failed to get UTF16 multi-line string: {}", issue)
+                    format!("Failed to get UTF16 multi-line string: {issue}")
                 }
             };
             result = format!("{result}{value}");
@@ -119,7 +119,7 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
                     data.len()
                 )
             };
-            format!("[strings] Failed to get UTF8 string: {}", issue)
+            format!("[strings] Failed to get UTF8 string: {issue}")
         }
     }
 }

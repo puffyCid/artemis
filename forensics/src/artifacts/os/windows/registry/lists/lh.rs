@@ -1,18 +1,9 @@
-use std::{collections::HashSet, io::BufReader};
-
-use log::error;
-use ntfs::NtfsFile;
-
 use crate::{
-    artifacts::os::windows::registry::{
-        cell::{walk_registry, walk_registry_list},
-        error::RegistryError,
-        keys::nk::NameKey,
-        parser::Params,
-    },
-    filesystem::ntfs::reader::read_bytes,
+    artifacts::os::windows::registry::{cell::walk_registry_list, keys::nk::NameKey},
     utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
+use ntfs::NtfsFile;
+use std::{collections::HashSet, io::BufReader};
 
 #[derive(Debug)]
 pub(crate) struct HashLeaf {
@@ -21,37 +12,6 @@ pub(crate) struct HashLeaf {
 }
 
 impl HashLeaf {
-    pub(crate) fn parse_hash_leaf<'a>(
-        reg_data: &'a [u8],
-        lh_data: &'a [u8],
-        params: &mut Params,
-        minor_version: u32,
-    ) -> nom::IResult<&'a [u8], ()> {
-        let (input, sig) = nom_unsigned_two_bytes(lh_data, Endian::Le)?;
-        let (mut input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-        let lh_list = HashLeaf {
-            _sig: sig,
-            number_entries,
-        };
-
-        let mut entry_count = 0;
-        while entry_count < lh_list.number_entries {
-            let (lh_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            let (lh_input, _hash) = nom_unsigned_four_bytes(lh_input, Endian::Le)?;
-            entry_count += 1;
-            input = lh_input;
-
-            let empty_offset = 0;
-            if offset == empty_offset {
-                continue;
-            }
-
-            walk_registry(reg_data, offset, params, minor_version)?;
-        }
-        Ok((reg_data, ()))
-    }
-
     pub(crate) fn read_hash_leaf<'a, T: std::io::Seek + std::io::Read>(
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -132,6 +92,6 @@ mod tests {
         .unwrap();
 
         assert_eq!(names.len(), 10);
-        assert_eq!(names[8].key_name, "Network")
+        assert_eq!(names[7].key_name, "Network")
     }
 }

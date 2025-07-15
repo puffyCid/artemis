@@ -1,7 +1,6 @@
 use super::{
     keys::{nk::NameKey, vk::ValueKey},
-    lists::{lf::Leaf, lh::HashLeaf, li::LeafItem, ri::RefItem},
-    parser::Params,
+    lists::{lh::HashLeaf, li::LeafItem},
 };
 use crate::{
     artifacts::os::windows::registry::{
@@ -10,7 +9,7 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{Endian, nom_data, nom_signed_four_bytes},
 };
-use common::windows::{KeyValue, RegistryData};
+use common::windows::KeyValue;
 use log::{error, warn};
 use nom::{
     Needed, Parser, bytes::complete::take, combinator::peek, error::ErrorKind,
@@ -54,136 +53,6 @@ pub(crate) fn get_cell_type(data: &[u8]) -> nom::IResult<&[u8], CellType> {
     };
 
     Ok((cell_data, cell))
-}
-
-/// Iterate through the Registry data based on provided offset
-pub(crate) fn walk_registry<'a>(
-    reg_data: &'a [u8],
-    offset: u32,
-    params: &mut Params,
-    minor_version: u32,
-) -> nom::IResult<&'a [u8], ()> {
-    if let Some(_value) = params.offset_tracker.get(&offset) {
-        error!(
-            "[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
-        );
-        return Err(nom::Err::Failure(nom::error::Error::new(
-            reg_data,
-            ErrorKind::Fail,
-        )));
-    }
-    params.offset_tracker.insert(offset, offset);
-    let (list_data, _) = take(offset)(reg_data)?;
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
-    let (list_data, (allocated, size)) = is_allocated(list_data)?;
-    if !allocated {
-        return Ok((reg_data, ()));
-    }
-    // Size includes the size itself. We nommed that away
-    let adjust_cell_size = 4;
-    if size < adjust_cell_size {
-        return Err(nom::Err::Incomplete(Needed::Unknown));
-    }
-    // Grab all data associated with the list based on list size
-    let (_, list_data) = take(size - adjust_cell_size)(list_data)?;
-
-    let (list_data, cell_type) = get_cell_type(list_data)?;
-
-    if cell_type == CellType::Lh {
-        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version)?;
-    } else if cell_type == CellType::Nk {
-        NameKey::parse_name_key(reg_data, list_data, params, minor_version)?;
-    } else if cell_type == CellType::Lf {
-        Leaf::parse_leaf(reg_data, list_data, params, minor_version)?;
-    } else if cell_type == CellType::Li {
-        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version)?;
-    } else if cell_type == CellType::Ri {
-        RefItem::parse_reference_item(reg_data, list_data, params, minor_version)?;
-    } else {
-        error!("[registry] Got unknown cell type: {cell_type:?}.");
-        return Err(nom::Err::Failure(nom::error::Error::new(
-            reg_data,
-            ErrorKind::Fail,
-        )));
-    }
-    params.offset_tracker.remove_entry(&offset);
-
-    Ok((reg_data, ()))
-}
-
-/// Walkthrough the values list associated with a Name key
-pub(crate) fn walk_values(
-    reg_data: &[u8],
-    offset: u32,
-    number_values: u32,
-    minor_version: u32,
-) -> nom::IResult<&[u8], Vec<KeyValue>> {
-    // Go to the value list offset
-    let (list_data, _) = take(offset)(reg_data)?;
-
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
-    let (list_data, (allocated, size)) = is_allocated(list_data)?;
-    if !allocated {
-        return Ok((reg_data, Vec::new()));
-    }
-
-    // Size includes the size itself. We nommed that away
-    let adjust_cell_size = 4;
-    if size < adjust_cell_size {
-        return Err(nom::Err::Incomplete(Needed::Unknown));
-    }
-    // Grab all data associated with the list based on list size
-    let (_, mut list_data) = take(size - adjust_cell_size)(list_data)?;
-
-    let mut value_count = 0;
-    let mut key_values: Vec<KeyValue> = Vec::new();
-    // Go through each value offset in the list
-    while value_count < number_values && !list_data.is_empty() {
-        // Get the value key offset
-        let (input, vk_offset) = nom_signed_four_bytes(list_data, Endian::Le)?;
-        list_data = input;
-
-        let empty_offset = 0;
-        let unallocated = -1;
-        if vk_offset == empty_offset || vk_offset == unallocated {
-            value_count += 1;
-            continue;
-        }
-        // Go to the value key offset
-        let (vk_data, _) = take(vk_offset as u32)(reg_data)?;
-
-        // Get the size of the valeu key and check if its allocated (negative numbers = allocated, postive number = unallocated)
-        let (vk_data, (allocated, size)) = is_allocated(vk_data)?;
-        if !allocated {
-            value_count += 1;
-            continue;
-        }
-
-        // Size includes the size itself. We nommed that away
-        let adjust_cell_size = 4;
-        if size < adjust_cell_size {
-            return Err(nom::Err::Incomplete(Needed::Unknown));
-        }
-        let (_, vk_data) = take(size - adjust_cell_size)(vk_data)?;
-        // Check for the value key signature (vk)
-        let (vk_data, cell_type) = get_cell_type(vk_data)?;
-        if cell_type != CellType::Vk {
-            warn!("[registry] Got non Vk cell type while iterating value list: {cell_type:?}");
-            value_count += 1;
-            continue;
-        }
-        // Parse the Value key data
-        let (_, value_key) = ValueKey::parse_value_key(reg_data, vk_data, minor_version)?;
-        let value = KeyValue {
-            value: value_key.value_name,
-            data: value_key.data,
-            data_type: value_key.data_type,
-        };
-        key_values.push(value);
-        value_count += 1;
-    }
-
-    Ok((reg_data, key_values))
 }
 
 /// Check if a cell is allocated. Negative number = allocated, postive number = unallocated
@@ -433,14 +302,10 @@ pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
     size: u32,
     names: &mut Vec<NameKey>,
 ) -> Result<(), RegistryError> {
-    // Skip Registry header
-    let skip_header = 1;
-    // Size should almost always be 4096
     // Skip hbin header
-    //let skip_hbin = 32;
-    let real_offset = offset + size; //+ skip_hbin;
+    let real_offset = offset + size;
     if let Some(_value) = offset_tracker.get(&real_offset) {
-        error!(
+        panic!(
             "[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
         );
         return Err(RegistryError::ReadRegistry);
@@ -452,7 +317,7 @@ pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
             return Err(RegistryError::ReadRegistry);
         }
     };
-    offset_tracker.insert(offset);
+    offset_tracker.insert(real_offset);
     parse_list(
         reader,
         ntfs_file,
@@ -520,7 +385,7 @@ fn parse_list<'a, T: std::io::Seek + std::io::Read>(
             ErrorKind::Fail,
         )));
     }
-    offset_tracker.remove(&offset);
+    offset_tracker.remove(&(offset + reg_data.len() as u32));
 
     Ok((reg_data, ()))
 }
@@ -528,21 +393,10 @@ fn parse_list<'a, T: std::io::Seek + std::io::Read>(
 #[cfg(test)]
 mod tests {
     use super::{CellType, get_cell_type, is_allocated};
-    use crate::{
-        artifacts::os::windows::registry::{
-            cell::{walk_registry, walk_values},
-            hbin::HiveBin,
-            parser::{Params, ParamsReader},
-            reader::setup_registry_reader,
-        },
-        filesystem::files::read_file,
+    use crate::artifacts::os::windows::registry::{
+        parser::ParamsReader, reader::setup_registry_reader,
     };
-    use regex::Regex;
-    use std::{
-        collections::{HashMap, HashSet},
-        io::BufReader,
-        path::PathBuf,
-    };
+    use std::{collections::HashSet, io::BufReader, path::PathBuf};
 
     #[test]
     fn test_get_cell_type() {
@@ -584,50 +438,11 @@ mod tests {
     }
 
     #[test]
-    fn test_walk_registry() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/registry/win10/hbins.raw");
-
-        let buffer = read_file(&test_location.display().to_string()).unwrap();
-
-        let (_, result) = HiveBin::parse_hive_bin_header(&buffer).unwrap();
-
-        assert_eq!(result.size, 4096);
-        let mut params = Params {
-            start_path: String::from("ROOT"),
-            path_regex: Regex::new("").unwrap(),
-            registry_list: Vec::new(),
-            key_tracker: Vec::new(),
-            offset_tracker: HashMap::new(),
-            filter: false,
-            registry_path: String::from("test\\test"),
-        };
-        let (_, result) = walk_registry(&buffer, 216, &mut params, 4).unwrap();
-
-        assert_eq!(result, ())
-    }
-
-    #[test]
     fn test_is_allocated() {
         let test_data = [12, 12, 12, 12];
         let (_, (allocated, size)) = is_allocated(&test_data).unwrap();
         assert_eq!(allocated, false);
         assert_eq!(size, 0);
-    }
-
-    #[test]
-    fn test_walk_values() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/registry/win10/hbins.raw");
-
-        let buffer = read_file(&test_location.display().to_string()).unwrap();
-
-        let (_, result) = HiveBin::parse_hive_bin_header(&buffer).unwrap();
-
-        assert_eq!(result.size, 4096);
-        let (_, result) = walk_values(&buffer, 752, 1, 4).unwrap();
-
-        assert_eq!(result.len(), 1)
     }
 
     #[test]

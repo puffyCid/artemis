@@ -1,15 +1,9 @@
-use std::{collections::HashSet, io::BufReader};
-
-use ntfs::NtfsFile;
-
 use crate::{
-    artifacts::os::windows::registry::{
-        cell::{walk_registry, walk_registry_list},
-        keys::nk::NameKey,
-        parser::Params,
-    },
+    artifacts::os::windows::registry::{cell::walk_registry_list, keys::nk::NameKey},
     utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
+use ntfs::NtfsFile;
+use std::{collections::HashSet, io::BufReader};
 
 #[derive(Debug)]
 pub(crate) struct LeafItem {
@@ -18,37 +12,7 @@ pub(crate) struct LeafItem {
 }
 
 impl LeafItem {
-    /// Parse the Leaf Item (Li) list which points to a list of offsets
-    pub(crate) fn parse_leaf_item<'a>(
-        reg_data: &'a [u8],
-        li_data: &'a [u8],
-        params: &mut Params,
-        minor_version: u32,
-    ) -> nom::IResult<&'a [u8], ()> {
-        let (input, sig) = nom_unsigned_two_bytes(li_data, Endian::Le)?;
-        let (mut input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-        let li_list = LeafItem {
-            _sig: sig,
-            number_entries,
-        };
-
-        let mut entry_count = 0;
-        while entry_count < li_list.number_entries {
-            let (li_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-            entry_count += 1;
-            input = li_input;
-
-            let empty_offset = 0;
-            if offset == empty_offset {
-                continue;
-            }
-
-            walk_registry(reg_data, offset, params, minor_version)?;
-        }
-        Ok((reg_data, ()))
-    }
-
+    /// Read Leaf Item data
     pub(crate) fn read_leaf_item<'a, T: std::io::Seek + std::io::Read>(
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -58,7 +22,6 @@ impl LeafItem {
         size: u32,
         names: &mut Vec<NameKey>,
     ) -> nom::IResult<&'a [u8], ()> {
-        panic!("{li_data:?}");
         let (input, sig) = nom_unsigned_two_bytes(li_data, Endian::Le)?;
         let (mut input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
@@ -94,43 +57,11 @@ impl LeafItem {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        artifacts::os::windows::registry::{
-            hbin::HiveBin, lists::li::LeafItem, parser::Params, reader::setup_registry_reader,
-        },
-        filesystem::files::read_file,
+    use crate::artifacts::os::windows::registry::{
+        lists::li::LeafItem, reader::setup_registry_reader,
     };
-    use regex::Regex;
-    use std::{
-        collections::{HashMap, HashSet},
-        io::BufReader,
-        path::PathBuf,
-    };
+    use std::{collections::HashSet, io::BufReader, path::PathBuf};
 
-    #[test]
-    fn test_parse_hash_leaf() {
-        let test_data = [108, 105, 0, 0];
-
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/registry/win10/hbins.raw");
-
-        let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let (_, result) = HiveBin::parse_hive_bin_header(&buffer).unwrap();
-
-        assert_eq!(result.size, 4096);
-        let mut params = Params {
-            start_path: String::from(""),
-            path_regex: Regex::new("").unwrap(),
-            registry_list: Vec::new(),
-            key_tracker: Vec::new(),
-            offset_tracker: HashMap::new(),
-            filter: false,
-            registry_path: String::from("path/NTUSER.dat"),
-        };
-
-        let (_, result) = LeafItem::parse_leaf_item(&buffer, &test_data, &mut params, 4).unwrap();
-        assert_eq!(result, ());
-    }
     #[test]
     fn test_read_leaf_item() {
         let test_data = [108, 105, 0, 0];
@@ -153,7 +84,6 @@ mod tests {
             &mut names,
         )
         .unwrap();
-        println!("{names:?}");
         assert_eq!(result, ());
     }
 }

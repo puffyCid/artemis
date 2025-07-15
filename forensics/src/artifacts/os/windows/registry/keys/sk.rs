@@ -16,12 +16,8 @@ pub(crate) struct SecurityKey {
 
 impl SecurityKey {
     /// Parse the Security Key information on a Key. Contains ACLs and SIDs
-    pub(crate) fn parse_security_key(
-        reg_data: &[u8],
-        offset: u32,
-    ) -> nom::IResult<&[u8], SecurityKey> {
-        let (offset_start, _) = take(offset)(reg_data)?;
-        let (input, (is_allocated, size)) = is_allocated(offset_start)?;
+    pub(crate) fn parse_security_key(reg_data: &[u8]) -> nom::IResult<&[u8], SecurityKey> {
+        let (input, (is_allocated, size)) = is_allocated(reg_data)?;
 
         let mut sk_info = SecurityKey {
             reference_count: 0,
@@ -82,7 +78,7 @@ mod tests {
             203, 25, 126, 122, 166, 192, 250, 230, 151, 241, 25, 163, 12, 206, 1, 2, 0, 0, 0, 0, 0,
             5, 32, 0, 0, 0, 32, 2, 0, 0, 1, 1, 0, 0, 0, 0, 0, 5, 18, 0, 0, 0,
         ];
-        let (_, results) = SecurityKey::parse_security_key(&test, 0).unwrap();
+        let (_, results) = SecurityKey::parse_security_key(&test).unwrap();
 
         assert_eq!(results.reference_count, 1);
         assert_eq!(results.info.owner_sid, "S-1-5-32-544");

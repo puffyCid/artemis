@@ -94,7 +94,7 @@ pub(crate) fn raw_json(
     let uuid = generate_uuid();
     let output_result = final_output(&collection_data, output, &uuid);
     match output_result {
-        Ok(_) => info!("[core] {} json output success", output_name),
+        Ok(_) => info!("[core] {output_name} json output success"),
         Err(err) => {
             error!("[core] Failed to output {output_name} json: {err:?}");
             return Err(FormatError::Output);

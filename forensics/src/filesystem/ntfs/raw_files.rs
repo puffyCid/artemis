@@ -308,6 +308,25 @@ pub(crate) fn raw_read_by_file_ref(
     Ok(file_data)
 }
 
+/// Return a NTFS reader for a file reference. This reader currently does not handle decompression
+/// Use `raw_read_by_file_ref` if you want to decompress files before reading
+pub(crate) fn raw_reader_by_file_ref<'a>(
+    ntfs_ref: NtfsFileReference,
+    ntfs: &'a Ntfs,
+    fs: &mut BufReader<SectorReader<File>>,
+) -> Result<NtfsFile<'a>, FileSystemError> {
+    let ntfs_file_result = ntfs_ref.to_file(ntfs, fs);
+    let ntfs_file = match ntfs_file_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[core] Failed to get NTFS file, error: {err:?}");
+            return Err(FileSystemError::NotFile);
+        }
+    };
+
+    Ok(ntfs_file)
+}
+
 /// Read a provided NTFS attribute. Can be used to read non-resident Alternative Data Streams (ADS)
 pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, FileSystemError> {
     let min_path_len = 4;

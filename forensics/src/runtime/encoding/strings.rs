@@ -34,7 +34,7 @@ pub(crate) fn js_bytes_to_hex_string(
 ) -> JsResult<JsValue> {
     let data = bytes_arg(args, 0, context)?;
 
-    let value: String = format!("{:02x?}", data)
+    let value: String = format!("{data:02x?}")
         .trim_matches('[')
         .trim_matches(']')
         .split(", ")

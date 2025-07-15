@@ -1,7 +1,7 @@
 use super::error::UserAssistError;
 use crate::{
     artifacts::os::windows::registry::helper::{get_registry_keys, get_registry_keys_by_ref},
-    filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+    filesystem::ntfs::raw_files::get_user_registry_files,
     utils::regex_options::create_regex,
 };
 use common::windows::RegistryData;
@@ -23,15 +23,6 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
         }
     };
 
-    let parser_result = setup_ntfs_parser(drive);
-    let mut ntfs_parser = match parser_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[userassist] Could no create ntfs parser: {err:?}");
-            return Err(UserAssistError::UserAssistData);
-        }
-    };
-
     let assist_regex =
         create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
             .unwrap(); // always valid
@@ -43,16 +34,17 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
         if hive.filename != "NTUSER.DAT" {
             continue;
         }
-        let mut assist_entry = UserAssistReg {
-            regs: Vec::new(),
-            reg_file: hive.full_path,
-        };
+
         let reg_results = get_registry_keys_by_ref(
             start_path,
             &assist_regex,
             hive.reg_reference,
-            &mut ntfs_parser,
+            &hive.full_path,
         );
+        let mut assist_entry = UserAssistReg {
+            regs: Vec::new(),
+            reg_file: hive.full_path,
+        };
         match reg_results {
             Ok(result) => {
                 assist_entry.regs.append(&mut filter_userassist(&result));
@@ -130,7 +122,6 @@ mod tests {
         let assist_regex = create_regex("").unwrap(); // always valid
         let start_path = "ROOT\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
         let user_hives = get_user_registry_files('C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for hive in user_hives {
             if hive.filename != "NTUSER.DAT" || hive.full_path.contains("Default") {
                 continue;
@@ -139,7 +130,7 @@ mod tests {
                 start_path,
                 &assist_regex,
                 hive.reg_reference,
-                &mut ntfs_parser,
+                &hive.full_path,
             )
             .unwrap();
             let _results = filter_userassist(&reg_results);
