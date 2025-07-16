@@ -44,6 +44,7 @@ pub(crate) struct Params {
     pub(crate) offset_tracker: HashMap<u32, u32>, // Track Registry offsets to prevent infinite loops
     pub(crate) filter: bool,
     pub(crate) registry_path: String,
+    pub(crate) start_time: u64,
 }
 
 /// Parse Windows `Registry` files based on provided options
@@ -61,6 +62,7 @@ pub(crate) fn parse_registry(
         offset_tracker: HashMap::new(),
         filter,
         registry_path: String::new(),
+        start_time: time_now(),
     };
 
     if let Some(path) = &options.alt_file {
@@ -131,10 +133,8 @@ fn parse_default_system_hives(
 
 /// Parse a provided `Registry` file and output the results
 fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), RegistryError> {
-    let start_time = time_now();
-
     let buffer = read_registry(&params.registry_path)?;
-    let reg_results = parse_raw_registry(&buffer, params);
+    let reg_results = parse_raw_registry(&buffer, params, &mut Some(output));
     let reg_data = match reg_results {
         Ok((_, results)) => results,
         Err(_err) => {
@@ -162,7 +162,7 @@ fn parse_registry_file(output: &mut Output, params: &mut Params) -> Result<(), R
         &mut serde_data,
         "registry",
         output,
-        start_time,
+        params.start_time,
         params.filter,
     );
     match result {
@@ -218,7 +218,7 @@ fn parse_user_hives(
 
         params.registry_path = path.full_path;
 
-        let reg_results = parse_raw_registry(&buffer, params);
+        let reg_results = parse_raw_registry(&buffer, params, &mut Some(output));
         let reg_data = match reg_results {
             Ok((_, results)) => results,
             Err(_err) => {
@@ -303,6 +303,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::new(),
+            start_time: 0,
         };
         parse_user_hives('C', &mut output, &mut params).unwrap();
     }
@@ -318,6 +319,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::new(),
+            start_time: 0,
         };
         parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
@@ -333,6 +335,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::new(),
+            start_time: 0,
         };
         parse_user_hives('C', &mut output, &mut params).unwrap();
     }
@@ -348,6 +351,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::new(),
+            start_time: 0,
         };
         parse_default_system_hives('C', &mut output, &mut params).unwrap();
     }
@@ -378,6 +382,7 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: test_location.to_str().unwrap().to_string(),
+            start_time: 0,
         };
         parse_registry_file(&mut output, &mut params).unwrap();
     }

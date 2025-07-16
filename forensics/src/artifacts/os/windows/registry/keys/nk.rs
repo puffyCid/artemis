@@ -1,9 +1,13 @@
 use crate::{
-    artifacts::os::windows::registry::{
-        cell::{walk_registry, walk_values},
-        parser::Params,
+    artifacts::os::windows::{
+        artifacts::output_data,
+        registry::{
+            cell::{walk_registry, walk_values},
+            parser::Params,
+        },
     },
     filesystem::files::get_filename,
+    structs::toml::Output,
     utils::{
         nom_helper::{
             Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -50,6 +54,7 @@ impl NameKey {
         name_key: &'a [u8],
         params: &mut Params,
         minor_version: u32,
+        output: &mut Option<&mut Output>,
     ) -> nom::IResult<&'a [u8], ()> {
         let (input, sig) = nom_unsigned_two_bytes(name_key, Endian::Le)?;
         let (input, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -151,6 +156,24 @@ impl NameKey {
             && regex_check(&params.path_regex, &registry_entry.path.to_lowercase())
         {
             params.registry_list.push(registry_entry);
+            let max_limit = 200;
+            if output.is_some() && params.registry_list.len() >= max_limit {
+                if let Ok(mut serde_data) = serde_json::to_value(&params.registry_list) {
+                    if let Err(err) = output_data(
+                        &mut serde_data,
+                        "registry",
+                        output.as_mut().unwrap(),
+                        params.start_time,
+                        params.filter,
+                    ) {
+                        error!(
+                            "[registry] Failed to output data for {}, error: {err:?}",
+                            params.registry_path
+                        );
+                    }
+                }
+                params.registry_list = Vec::new();
+            }
         }
 
         if name_key.subkeys_list_offset != no_lists
@@ -164,6 +187,7 @@ impl NameKey {
                 name_key.subkeys_list_offset as u32,
                 params,
                 minor_version,
+                output,
             );
             match result {
                 Ok((_, _)) => {}
@@ -214,9 +238,11 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::from("test/test"),
+            start_time: 0,
         };
 
-        let (_, result) = NameKey::parse_name_key(&buffer, &test_data, &mut params, 4).unwrap();
+        let (_, result) =
+            NameKey::parse_name_key(&buffer, &test_data, &mut params, 4, &mut None).unwrap();
         assert_eq!(result, ())
     }
 }
