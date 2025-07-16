@@ -151,7 +151,7 @@ fn gather_resource_paths() -> Result<StringResource, EventLogsError> {
 
     // Grab eventlog resource registry paths
     let reg_result = get_registry_keys(
-        "ROOT",
+        "",
         &create_regex(r".*\\controlset.*\\services\\eventlog\\.*").unwrap(),
         &format!("{drive}:\\Windows\\System32\\config\\SYSTEM"),
     );
@@ -164,8 +164,12 @@ fn gather_resource_paths() -> Result<StringResource, EventLogsError> {
         }
     };
 
+    if reg_paths.is_empty() {
+        panic!("um what?");
+    }
+
     let reg_software_result = get_registry_keys(
-        "ROOT",
+        "",
         &create_regex(r".*\\microsoft\\windows\\currentversion\\winevt\\publishers\\.*").unwrap(),
         &format!("{drive}:\\Windows\\System32\\config\\SOFTWARE"),
     );

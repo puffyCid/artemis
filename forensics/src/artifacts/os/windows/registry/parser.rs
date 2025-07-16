@@ -46,7 +46,7 @@ pub(crate) struct ParamsReader<T: std::io::Seek + std::io::Read> {
     pub(crate) offset: u32,
     /**Size of the HBIN data. Typically 4096 */
     pub(crate) size: u32,
-    /**Registry minor version. Version 3 and higher have BigData lists */
+    /**Registry minor version. Version 4 and higher may have `BigData`` lists */
     pub(crate) minor_version: u32,
 }
 

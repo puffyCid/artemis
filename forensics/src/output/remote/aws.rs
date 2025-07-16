@@ -41,7 +41,7 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
     let aws_endpoint_url: Url = match aws_endpoint_url_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not parse AWS URL: {err:?}");
+            error!("[forensics] Could not parse AWS URL: {err:?}");
             return Err(RemoteError::RemoteUrl);
         }
     };
@@ -71,7 +71,7 @@ pub(crate) fn setup_upload(
     let bucket = match bucket_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not create bucket request: {err:?}");
+            error!("[forensics] Could not create bucket request: {err:?}");
             return Err(RemoteError::RemoteUpload);
         }
     };
@@ -97,7 +97,7 @@ pub(crate) fn setup_upload(
     let session = match multipart_res {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not parse session for multipart upload: {err:?}");
+            error!("[forensics] Could not parse session for multipart upload: {err:?}");
             return Err(RemoteError::BadResponse);
         }
     };
@@ -126,7 +126,7 @@ fn aws_start_upload(setup: AwsSetup, output_data: &[u8]) -> Result<(), RemoteErr
     let etag = if let Ok(result) = etag_res {
         result
     } else {
-        error!("[core] Could not finish AWS S3 upload");
+        error!("[forensics] Could not finish AWS S3 upload");
         return Err(RemoteError::RemoteUpload);
     };
 
@@ -160,14 +160,14 @@ fn aws_create_multipart(
         let session = match session_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not create session for multipart upload: {err:?}");
+                error!("[forensics] Could not create session for multipart upload: {err:?}");
                 return Err(RemoteError::RemoteUpload);
             }
         };
 
         if session.status() != StatusCode::OK && attempts < max_attempts {
             warn!(
-                "[core] Non-200 response create on attempt {attempts} out of {max_attempts}. Response: {session:?}"
+                "[forensics] Non-200 response create on attempt {attempts} out of {max_attempts}. Response: {session:?}"
             );
             attempts += 1;
             continue;
@@ -177,7 +177,7 @@ fn aws_create_multipart(
         let response = match res_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not read response for multipart upload start: {err:?}");
+                error!("[forensics] Could not read response for multipart upload start: {err:?}");
                 return Err(RemoteError::BadResponse);
             }
         };
@@ -220,7 +220,7 @@ pub(crate) fn aws_complete_multipart(
         let complete = match complete_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not complete multipart upload: {err:?}");
+                error!("[forensics] Could not complete multipart upload: {err:?}");
                 return Err(RemoteError::RemoteUpload);
             }
         };
@@ -229,13 +229,13 @@ pub(crate) fn aws_complete_multipart(
         if status != StatusCode::OK {
             if attempts < max_attempts {
                 warn!(
-                    "[core] Non-200 response on complete attempt {attempts} out of {max_attempts}. Response: {complete:?}"
+                    "[forensics] Non-200 response on complete attempt {attempts} out of {max_attempts}. Response: {complete:?}"
                 );
                 attempts += 1;
                 continue;
             }
             error!(
-                "[core] Non-200 response when trying to complete upload: {:?}",
+                "[forensics] Non-200 response when trying to complete upload: {:?}",
                 complete.text()
             );
             return Err(RemoteError::RemoteUpload);
@@ -243,7 +243,7 @@ pub(crate) fn aws_complete_multipart(
         let body = complete.text().unwrap_or_default();
         if status == StatusCode::OK && body.contains("Internal Error") && attempts < max_attempts {
             error!(
-                "[core] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}"
+                "[forensics] 200 response on attempt {attempts} out of {max_attempts} but the response contained an error. Response body: {body:?}"
             );
             attempts += 1;
             continue;
@@ -299,7 +299,7 @@ pub(crate) fn aws_multipart_upload(
         let response = match res_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Could not upload data for multipart upload: {err:?}");
+                error!("[forensics] Could not upload data for multipart upload: {err:?}");
                 return Err(RemoteError::RemoteUpload);
             }
         };
@@ -307,14 +307,14 @@ pub(crate) fn aws_multipart_upload(
         if response.status() != StatusCode::OK {
             if attempts < max_attempts {
                 warn!(
-                    "[core] Non-200 response on upload attempt {attempts} out of {max_attempts}. Response: {response:?}"
+                    "[forensics] Non-200 response on upload attempt {attempts} out of {max_attempts}. Response: {response:?}"
                 );
                 attempts += 1;
                 continue;
             }
 
             error!(
-                "[core] Non-200 response from AWS S3 bucket: {:?}",
+                "[forensics] Non-200 response from AWS S3 bucket: {:?}",
                 response.text()
             );
             return Err(RemoteError::RemoteUpload);
@@ -323,16 +323,16 @@ pub(crate) fn aws_multipart_upload(
         if let Some(etag_header) = response.headers().get(ETAG) {
             let etag = etag_header.to_str().unwrap_or_default();
             if etag.is_empty() {
-                error!("[core] Got empty ETAG");
+                error!("[forensics] Got empty ETAG");
                 return Err(RemoteError::RemoteUpload);
             }
             etags.push(etag.to_string());
             return Ok(etags);
         }
-        error!("[core] Missing ETAG header in response");
+        error!("[forensics] Missing ETAG header in response");
         return Err(RemoteError::RemoteUpload);
     }
-    error!("[core] Failed to upload to S3 bucket max retries reached");
+    error!("[forensics] Failed to upload to S3 bucket max retries reached");
     Err(RemoteError::RemoteUpload)
 }
 
@@ -350,7 +350,7 @@ pub(crate) fn aws_creds(keys: &str) -> Result<AwsInfo, RemoteError> {
     let aws_info = match aws_info_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not base64 decode AWS API key info: {err:?}");
+            error!("[forensics] Could not base64 decode AWS API key info: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };
@@ -358,7 +358,7 @@ pub(crate) fn aws_creds(keys: &str) -> Result<AwsInfo, RemoteError> {
     let aws_key: AwsInfo = match aws_key_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not parse AWS API key json: {err:?}");
+            error!("[forensics] Could not parse AWS API key json: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };

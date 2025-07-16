@@ -57,14 +57,7 @@ pub(crate) fn get_registry_keys(
         };
 
         let mut reg_data = get_root(&mut params, None)?;
-        recurse_registry(
-            &mut params,
-            &mut None,
-            false,
-            &mut reg_data,
-            None,
-            start_time,
-        )?;
+        recurse_registry(&mut params, &mut None, &mut reg_data, None, start_time)?;
         return Ok(reg_data);
     }
 
@@ -97,7 +90,6 @@ pub(crate) fn get_registry_keys(
     recurse_registry(
         &mut params,
         &mut None,
-        false,
         &mut reg_data,
         Some(&ntfs_file),
         start_time,
@@ -140,7 +132,6 @@ pub(crate) fn get_registry_keys_by_ref(
     recurse_registry(
         &mut params,
         &mut None,
-        false,
         &mut reg_data,
         Some(&use_ntfs),
         time_now(),
@@ -258,7 +249,6 @@ pub(crate) fn stream_registry(
             recurse_registry(
                 &mut params,
                 &mut Some(output),
-                filter,
                 &mut reg_data,
                 None,
                 start_time,
@@ -324,7 +314,6 @@ pub(crate) fn stream_registry(
         recurse_registry(
             &mut params,
             &mut Some(output),
-            filter,
             &mut reg_data,
             Some(&ntfs_file),
             start_time,
@@ -332,30 +321,13 @@ pub(crate) fn stream_registry(
     }
 
     if !reg_data.is_empty() {
-        let mut serde_data = match serde_json::to_value(&reg_data) {
-            Ok(results) => results,
-            Err(err) => {
-                error!(
-                    "[registry] Failed to serialize Registry file {}: {err:?}",
-                    params.registry_path
-                );
-                return Err(RegistryError::Serialize);
-            }
-        };
-
-        if let Err(err) = output_data(
-            &mut serde_data,
-            "registry",
+        output_registry(
+            &reg_data,
             output,
+            &params.registry_path,
             start_time,
             params.filter,
-        ) {
-            error!(
-                "[registry] Failed to output data for {}, error: {err:?}",
-                params.registry_path
-            );
-            return Err(RegistryError::Output);
-        }
+        )?;
     }
 
     Ok(())
@@ -365,7 +337,6 @@ pub(crate) fn stream_registry(
 fn recurse_registry<'a, T: std::io::Seek + std::io::Read>(
     params: &mut ParamsReader<T>,
     output: &mut Option<&mut Output>,
-    filter: bool,
     reg_data: &mut Vec<RegistryData>,
     use_ntfs: Option<&NtfsFile<'a>>,
     start_time: u64,
@@ -381,35 +352,25 @@ fn recurse_registry<'a, T: std::io::Seek + std::io::Read>(
     let key_limit = 200;
     if params.offset_tracker.contains(&params.offset) || reg_data.len() > key_limit {
         if let Some(out) = output {
-            let mut serde_data = match serde_json::to_value(&reg_data) {
-                Ok(results) => results,
-                Err(err) => {
-                    error!(
-                        "[registry] Failed to serialize Registry file {}: {err:?}",
-                        params.registry_path
-                    );
-                    return Err(RegistryError::Serialize);
-                }
-            };
-            if let Err(err) =
-                output_data(&mut serde_data, "registry", out, start_time, params.filter)
-            {
-                error!(
-                    "[registry] Failed to output data for {}, error: {err:?}",
-                    params.registry_path
-                );
-                return Err(RegistryError::Output);
-            }
+            output_registry(
+                reg_data,
+                out,
+                &params.registry_path,
+                start_time,
+                params.filter,
+            )?;
             *reg_data = Vec::new();
         }
 
+        // Encountered recursive offset in the Registry. Stop parsing now
+        // Should not happen for legititmate Registry files
         if params.offset_tracker.contains(&params.offset) {
             return Ok(());
         }
     }
-    params.offset_tracker.insert(params.offset);
 
     let names = params.list_keys(use_ntfs)?;
+    params.offset_tracker.insert(params.offset);
 
     for name in names {
         if params
@@ -446,7 +407,7 @@ fn recurse_registry<'a, T: std::io::Seek + std::io::Read>(
             .to_lowercase()
             .starts_with(&params.start_path.to_lowercase())
             && (params.path_regex.as_ref().is_some_and(|regex_match| {
-                regex_check(&regex_match, &registry_entry.path.to_lowercase())
+                regex_check(regex_match, &registry_entry.path.to_lowercase())
             }) || params.path_regex.is_none())
         {
             reg_data.push(registry_entry);
@@ -454,7 +415,7 @@ fn recurse_registry<'a, T: std::io::Seek + std::io::Read>(
 
         if name.subkeys_list_offset != no_lists {
             params.offset = name.subkeys_list_offset as u32;
-            recurse_registry(params, output, filter, reg_data, use_ntfs, start_time)?;
+            recurse_registry(params, output, reg_data, use_ntfs, start_time)?;
         }
 
         // pop the params.key_tracker if we finished parsing a name key
@@ -503,13 +464,35 @@ fn get_root<'a, T: std::io::Seek + std::io::Read>(
         .to_lowercase()
         .starts_with(&params.start_path.to_lowercase())
         && params.path_regex.as_ref().is_some_and(|regex_match| {
-            regex_check(&regex_match, &registry_entry.path.to_lowercase())
+            regex_check(regex_match, &registry_entry.path.to_lowercase())
         })
     {
         reg_data.push(registry_entry);
     }
 
     Ok(reg_data)
+}
+
+/// Output Registry data
+fn output_registry(
+    reg_data: &[RegistryData],
+    output: &mut Output,
+    reg_file: &str,
+    start_time: u64,
+    filter: bool,
+) -> Result<(), RegistryError> {
+    let mut serde_data = match serde_json::to_value(reg_data) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("[registry] Failed to serialize Registry file {reg_file}: {err:?}",);
+            return Err(RegistryError::Serialize);
+        }
+    };
+    if let Err(err) = output_data(&mut serde_data, "registry", output, start_time, filter) {
+        error!("[registry] Failed to output data for {reg_file}, error: {err:?}",);
+        return Err(RegistryError::Output);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -585,8 +568,9 @@ mod tests {
         let regex = Regex::new("").unwrap();
         let result =
             get_registry_keys(start_path, &regex, &test_location.display().to_string()).unwrap();
-        // The infinte loop causes the parser to skip two values
-        assert_eq!(result.len(), 664);
+
+        // The infinte loop causes the parser to skip one key
+        assert_eq!(result.len(), 665);
     }
 
     #[test]

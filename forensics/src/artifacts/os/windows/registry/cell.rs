@@ -72,6 +72,7 @@ pub(crate) fn is_allocated(data: &[u8]) -> nom::IResult<&[u8], (bool, u32)> {
 }
 
 impl<T: std::io::Seek + std::io::Read> ParamsReader<T> {
+    /// Parse Registry header info
     pub(crate) fn get_header(
         &mut self,
         use_ntfs: Option<&NtfsFile<'_>>,
@@ -81,6 +82,7 @@ impl<T: std::io::Seek + std::io::Read> ParamsReader<T> {
         Ok(header)
     }
 
+    /// Get the ROOT key
     pub(crate) fn root_key(
         &mut self,
         use_ntfs: Option<&NtfsFile<'_>>,
@@ -92,6 +94,7 @@ impl<T: std::io::Seek + std::io::Read> ParamsReader<T> {
         NameKey::read_name_key(&mut self.reader, use_ntfs, root, self.size)
     }
 
+    /// List child Registry Keys associated with `ParamsReader.offset`
     pub(crate) fn list_keys(
         &mut self,
         use_ntfs: Option<&NtfsFile<'_>>,
@@ -110,6 +113,7 @@ impl<T: std::io::Seek + std::io::Read> ParamsReader<T> {
         Ok(names)
     }
 
+    /// List all Registry Key values associated with `ParamsReader.offset`
     pub(crate) fn list_values(
         &mut self,
         use_ntfs: Option<&NtfsFile<'_>>,
@@ -126,7 +130,8 @@ impl<T: std::io::Seek + std::io::Read> ParamsReader<T> {
     }
 }
 
-fn walk_registry_values<'a, T: std::io::Seek + std::io::Read>(
+/// Walk the Registry Value list
+fn walk_registry_values<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     minor_version: u32,
@@ -134,14 +139,39 @@ fn walk_registry_values<'a, T: std::io::Seek + std::io::Read>(
     size: u32,
     number_values: u32,
 ) -> Result<Vec<KeyValue>, RegistryError> {
-    let real_offset = offset + size; //+ skip_hbin;
-    let value_data = match read_bytes(real_offset as u64, size as u64, ntfs_file, reader) {
+    let real_offset = offset + size;
+    let mut value_data = match read_bytes(real_offset as u64, size as u64, ntfs_file, reader) {
         Ok(result) => result,
         Err(err) => {
             error!("[registry] Could not read value bytes: {err:?}");
             return Err(RegistryError::ReadRegistry);
         }
     };
+
+    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    let (list_data, (allocated, value_size)) = match is_allocated(&value_data) {
+        Ok(result) => result,
+        Err(_err) => {
+            error!("[registry] Could not determine allocation for value bytes");
+            return Err(RegistryError::Parser);
+        }
+    };
+    if !allocated {
+        return Ok(Vec::new());
+    }
+
+    if value_size > list_data.len() as u32 {
+        let large_value_data =
+            match read_bytes(real_offset as u64, value_size as u64, ntfs_file, reader) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[registry] Could not read larger value bytes: {err:?}");
+                    return Err(RegistryError::ReadRegistry);
+                }
+            };
+
+        value_data = large_value_data;
+    }
 
     let values = match parse_values(
         reader,
@@ -161,6 +191,7 @@ fn walk_registry_values<'a, T: std::io::Seek + std::io::Read>(
     Ok(values)
 }
 
+/// Parse Registry values
 fn parse_values<'a, T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
@@ -172,15 +203,15 @@ fn parse_values<'a, T: std::io::Seek + std::io::Read>(
     // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(reg_data)?;
     if !allocated {
-        panic!("value not allocated");
         return Ok((reg_data, Vec::new()));
     }
 
-    // Size includes the size itself. We nommed that away
+    // Size includes the size itself. We nommed that away above in `is_allocated`
     let adjust_cell_size = 4;
     if size < adjust_cell_size {
         return Err(nom::Err::Incomplete(Needed::Unknown));
     }
+
     // Grab all data associated with the list based on list size
     let (_, mut list_data) = take(size - adjust_cell_size)(list_data)?;
 
@@ -293,7 +324,7 @@ fn parse_values<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Iterate through the Registry data based on provided offset
-pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn walk_registry_list<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     minor_version: u32,
@@ -305,12 +336,12 @@ pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
     // Skip hbin header
     let real_offset = offset + size;
     if let Some(_value) = offset_tracker.get(&real_offset) {
-        panic!(
+        error!(
             "[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
         );
         return Err(RegistryError::ReadRegistry);
     }
-    let list_bytes = match read_bytes(real_offset as u64, size as u64, ntfs_file, reader) {
+    let mut list_bytes = match read_bytes(real_offset as u64, size as u64, ntfs_file, reader) {
         Ok(result) => result,
         Err(err) => {
             error!("[registry] Could not read key list bytes: {err:?}");
@@ -318,7 +349,33 @@ pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
         }
     };
     offset_tracker.insert(real_offset);
-    parse_list(
+
+    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    let (list_data, (allocated, list_size)) = match is_allocated(&list_bytes) {
+        Ok(result) => result,
+        Err(_err) => {
+            error!("[registry] Could not determine allocation for list bytes");
+            return Err(RegistryError::Parser);
+        }
+    };
+    if !allocated {
+        return Ok(());
+    }
+
+    if list_size > list_data.len() as u32 {
+        let large_list_data =
+            match read_bytes(real_offset as u64, list_size as u64, ntfs_file, reader) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[registry] Could not read larger list bytes: {err:?}");
+                    return Err(RegistryError::ReadRegistry);
+                }
+            };
+
+        list_bytes = large_list_data;
+    }
+
+    if let Err(_err) = parse_list(
         reader,
         ntfs_file,
         minor_version,
@@ -326,10 +383,14 @@ pub(crate) fn walk_registry_list<'a, T: std::io::Seek + std::io::Read>(
         names,
         &list_bytes,
         offset,
-    );
+        size,
+    ) {
+        error!("[registry] Failed to completely parse Registry key list at offset: {real_offset}");
+    }
     Ok(())
 }
 
+/// Parse Registry cell list data
 fn parse_list<'a, T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
@@ -338,6 +399,7 @@ fn parse_list<'a, T: std::io::Seek + std::io::Read>(
     names: &mut Vec<NameKey>,
     reg_data: &'a [u8],
     offset: u32,
+    hbin_size: u32,
 ) -> nom::IResult<&'a [u8], ()> {
     // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(reg_data)?;
@@ -360,12 +422,11 @@ fn parse_list<'a, T: std::io::Seek + std::io::Read>(
             list_data,
             minor_version,
             offset_tracker,
-            reg_data.len() as u32,
+            hbin_size,
             names,
         )?;
     } else if cell_type == CellType::Nk {
-        if let Ok(value) = NameKey::read_name_key(reader, ntfs_file, offset, reg_data.len() as u32)
-        {
+        if let Ok(value) = NameKey::read_name_key(reader, ntfs_file, offset, hbin_size) {
             names.push(value);
         }
     } else if cell_type == CellType::Li || cell_type == CellType::Ri {
@@ -375,17 +436,17 @@ fn parse_list<'a, T: std::io::Seek + std::io::Read>(
             list_data,
             minor_version,
             offset_tracker,
-            reg_data.len() as u32,
+            hbin_size,
             names,
         )?;
     } else {
-        panic!("[registry] Got unknown cell type: {cell_type:?}.");
+        error!("[registry] Got unknown cell type: {cell_type:?}.");
         return Err(nom::Err::Failure(nom::error::Error::new(
             reg_data,
             ErrorKind::Fail,
         )));
     }
-    offset_tracker.remove(&(offset + reg_data.len() as u32));
+    offset_tracker.remove(&(offset + hbin_size));
 
     Ok((reg_data, ()))
 }

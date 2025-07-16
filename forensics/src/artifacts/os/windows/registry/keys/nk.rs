@@ -3,18 +3,15 @@ use crate::{
         cell::{CellType, get_cell_type, is_allocated},
         error::RegistryError,
     },
-    filesystem::{files::get_filename, ntfs::reader::read_bytes},
+    filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
             Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
             nom_unsigned_two_bytes,
         },
-        regex_options::regex_check,
-        strings::{extract_ascii_utf16_string, extract_utf16_string, strings_contains},
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        strings::{extract_ascii_utf16_string, extract_utf16_string},
     },
 };
-use common::windows::RegistryData;
 use log::error;
 use nom::{Needed, bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;

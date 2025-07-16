@@ -23,7 +23,7 @@ enum DataTypes {
 }
 
 /// Parse Registry data that contains a qword (64 bit) data.
-pub(crate) fn parse_qword_filetime_reader<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn parse_qword_filetime_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     offset: u32,
@@ -98,7 +98,7 @@ pub(crate) fn parse_qword_filetime_reader<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Parse Registry data that contains a string
-pub(crate) fn parse_reg_sz_reader<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn parse_reg_sz_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     offset: u32,
@@ -121,7 +121,7 @@ pub(crate) fn parse_reg_sz_reader<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Parse Registry data that contains binary data. Return as base64 encoded string
-pub(crate) fn parse_reg_binary_reader<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn parse_reg_binary_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     offset: u32,
@@ -144,7 +144,7 @@ pub(crate) fn parse_reg_binary_reader<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Parse Registry data that contains a multi-line string
-pub(crate) fn parse_reg_multi_sz_reader<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn parse_reg_multi_sz_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     offset: u32,
@@ -167,7 +167,7 @@ pub(crate) fn parse_reg_multi_sz_reader<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Setup the big data reader
-fn check_big_data_reader<'a, T: std::io::Seek + std::io::Read>(
+fn check_big_data_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     offset: u32,
@@ -316,10 +316,10 @@ fn check_big_data_reader<'a, T: std::io::Seek + std::io::Read>(
 }
 
 /// Parse and get big data
-fn big_data_reader<'a, T: std::io::Seek + std::io::Read>(
+fn big_data_reader<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
-    db_data: &'a [u8],
+    db_data: &[u8],
     size: u32,
 ) -> Result<(Vec<u32>, Vec<u8>), RegistryError> {
     let (input, _sig) = match nom_unsigned_two_bytes(db_data, Endian::Le) {
@@ -386,7 +386,7 @@ fn big_data_reader<'a, T: std::io::Seek + std::io::Read>(
         let data = match read_bytes((offset + size) as u64, size as u64, ntfs_file, reader) {
             Ok(result) => result,
             Err(err) => {
-                panic!(
+                error!(
                     "[registry] Failed to read full big data. Data will be incomplete!: {err:?}"
                 );
                 offset_count += 1;
@@ -395,7 +395,7 @@ fn big_data_reader<'a, T: std::io::Seek + std::io::Read>(
         };
 
         // Get the allocated size
-        let (data, (allocated, data_cell_size)) = match is_allocated(&data) {
+        let (_, (allocated, data_cell_size)) = match is_allocated(&data) {
             Ok(result) => result,
             Err(_err) => {
                 error!("[registry] Failed to get next big data offset");
@@ -423,7 +423,7 @@ fn big_data_reader<'a, T: std::io::Seek + std::io::Read>(
         ) {
             Ok(result) => result,
             Err(err) => {
-                panic!(
+                error!(
                     "[registry] Failed to read full big data. Data will be incomplete!: {err:?}"
                 );
                 offset_count += 1;
@@ -432,7 +432,7 @@ fn big_data_reader<'a, T: std::io::Seek + std::io::Read>(
         };
 
         sizes.push(data_cell_size - adjust_cell_size);
-        large_data.append(&mut allocated_data.to_vec());
+        large_data.append(&mut allocated_data.clone());
         offset_count += 1;
     }
 

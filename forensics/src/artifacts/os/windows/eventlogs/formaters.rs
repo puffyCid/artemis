@@ -2,6 +2,7 @@ use super::resources::manifest::xml::Element;
 use nom::bytes::complete::is_a;
 use serde_json::{Map, Value};
 
+/// Apply Eventlog format messages
 pub(crate) fn formater_message_table<'a>(
     formater: &'a str,
     values: &[Value],

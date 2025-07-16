@@ -83,7 +83,7 @@ pub(crate) fn raw_json(
         collection_data = match compressed_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to compress data: {err:?}");
+                error!("[forensics] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         };
@@ -94,9 +94,9 @@ pub(crate) fn raw_json(
     let uuid = generate_uuid();
     let output_result = final_output(&collection_data, output, &uuid);
     match output_result {
-        Ok(_) => info!("[core] {output_name} json output success"),
+        Ok(_) => info!("[forensics] {output_name} json output success"),
         Err(err) => {
-            error!("[core] Failed to output {output_name} json: {err:?}");
+            error!("[forensics] Failed to output {output_name} json: {err:?}");
             return Err(FormatError::Output);
         }
     }

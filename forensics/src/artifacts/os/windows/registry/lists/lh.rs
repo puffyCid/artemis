@@ -12,6 +12,7 @@ pub(crate) struct HashLeaf {
 }
 
 impl HashLeaf {
+    /// Parse Leaf Hash data and Leaf data
     pub(crate) fn read_hash_leaf<'a, T: std::io::Seek + std::io::Read>(
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'_>>,

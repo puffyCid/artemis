@@ -144,7 +144,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
             let (remaining, prop_type_num) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
             let (remaining, value_reference) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
 
-            let name = property_id_to_name(&format!("0x{:04x?}_0x{:04x?}", prop_id, prop_type_num));
+            let name = property_id_to_name(&format!("0x{prop_id:04x?}_0x{prop_type_num:04x?}"));
             props = remaining;
             count += 1;
 

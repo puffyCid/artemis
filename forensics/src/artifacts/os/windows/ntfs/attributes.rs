@@ -137,7 +137,7 @@ pub(crate) fn file_data(
     let ntfs_attribute = match ntfs_attribute_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to get NTFS attribute error: {err:?}");
+            error!("[forensics] Failed to get NTFS attribute error: {err:?}");
             return Err(NTFSError::NoAttribute);
         }
     };

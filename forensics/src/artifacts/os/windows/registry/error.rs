@@ -6,7 +6,6 @@ pub(crate) enum RegistryError {
     Regex,
     ReadRegistry,
     GetUserHives,
-    NtfsSetup,
     Serialize,
     Output,
     SystemDrive,
@@ -23,7 +22,6 @@ impl fmt::Display for RegistryError {
             RegistryError::GetUserHives => {
                 write!(f, "Could not get user Registry hives via NTFS parser")
             }
-            RegistryError::NtfsSetup => write!(f, "Could not setup NTFS parser"),
             RegistryError::Serialize => write!(f, "Could not serialize Registry data"),
             RegistryError::Output => write!(f, "Could not output Registry data"),
             RegistryError::SystemDrive => write!(f, "Could not get systemdrive"),

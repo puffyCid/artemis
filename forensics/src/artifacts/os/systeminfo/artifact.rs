@@ -15,7 +15,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize systeminfo: {err:?}");
+            error!("[forensics] Failed to serialize systeminfo: {err:?}");
             return Err(SystemInfoError::Serialize);
         }
     };
@@ -25,7 +25,7 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
 
     if status.is_err() {
         error!(
-            "[core] Could not output process data: {:?}",
+            "[forensics] Could not output process data: {:?}",
             status.unwrap_err()
         );
     }

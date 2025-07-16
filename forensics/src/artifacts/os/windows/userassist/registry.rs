@@ -106,7 +106,7 @@ mod tests {
         artifacts::os::windows::{
             registry::helper::get_registry_keys_by_ref, userassist::registry::filter_userassist,
         },
-        filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+        filesystem::ntfs::raw_files::get_user_registry_files,
         utils::regex_options::create_regex,
     };
     use std::path::PathBuf;

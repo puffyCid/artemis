@@ -19,7 +19,9 @@ pub(crate) fn local_output(
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Failed to create output directory for {output_path}. Error: {err:?}");
+            error!(
+                "[forensics] Failed to create output directory for {output_path}. Error: {err:?}"
+            );
             return Err(LocalError::CreateDirectory);
         }
     }
@@ -39,7 +41,7 @@ pub(crate) fn local_output(
         Ok(results) => results,
         Err(err) => {
             error!(
-                "[core] Failed to create output file {output_name} at {output_path}. Error: {err:?}"
+                "[forensics] Failed to create output file {output_name} at {output_path}. Error: {err:?}"
             );
             return Err(LocalError::CreateFile);
         }
@@ -50,7 +52,7 @@ pub(crate) fn local_output(
         Ok(_) => {}
         Err(err) => {
             error!(
-                "[core] Failed to write output to file {output_name} at {output_path}. Error: {err:?}",
+                "[forensics] Failed to write output to file {output_name} at {output_path}. Error: {err:?}",
             );
             return Err(LocalError::WriteJson);
         }

@@ -12,7 +12,7 @@ pub(crate) struct LeafItem {
 }
 
 impl LeafItem {
-    /// Read Leaf Item data
+    /// Read Leaf Item data and RItem data
     pub(crate) fn read_leaf_item<'a, T: std::io::Seek + std::io::Read>(
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'_>>,

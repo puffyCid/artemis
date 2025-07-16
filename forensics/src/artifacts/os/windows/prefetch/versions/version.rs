@@ -44,7 +44,7 @@ impl VersionInfo {
         } else if version == version23 {
             Version23::parse_file_info_ver23(data)?
         } else {
-            error!("[prefetch] Unsupported Prefetch version: {}", version);
+            error!("[prefetch] Unsupported Prefetch version: {version}");
             return Err(nom::Err::Incomplete(nom::Needed::Unknown));
         };
 

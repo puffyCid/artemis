@@ -16,7 +16,7 @@ pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixA
     let history_data = match zsh_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to get zsh history: {err:?}");
+            error!("[forensics] Artemis failed to get zsh history: {err:?}");
             return Err(UnixArtifactError::Zsh);
         }
     };
@@ -25,7 +25,7 @@ pub(crate) fn zsh_history(output: &mut Output, filter: bool) -> Result<(), UnixA
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize zsh history: {err:?}");
+            error!("[forensics] Failed to serialize zsh history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
@@ -42,7 +42,7 @@ pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), Unix
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get bash history: {err:?}");
+            warn!("[forensics] Artemis unix failed to get bash history: {err:?}");
             return Err(UnixArtifactError::Bash);
         }
     };
@@ -51,7 +51,7 @@ pub(crate) fn bash_history(output: &mut Output, filter: bool) -> Result<(), Unix
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize bash history: {err:?}");
+            error!("[forensics] Failed to serialize bash history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
@@ -68,7 +68,7 @@ pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), Un
     let history_data = match bash_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get python history: {err:?}");
+            warn!("[forensics] Artemis unix failed to get python history: {err:?}");
             return Err(UnixArtifactError::Python);
         }
     };
@@ -77,7 +77,7 @@ pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), Un
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize python history: {err:?}");
+            error!("[forensics] Failed to serialize python history: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
@@ -94,7 +94,7 @@ pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArti
     let cron_data = match cron_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[core] Artemis unix failed to get cron data: {err:?}");
+            warn!("[forensics] Artemis unix failed to get cron data: {err:?}");
             return Err(UnixArtifactError::Cron);
         }
     };
@@ -103,7 +103,7 @@ pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArti
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize cron data: {err:?}");
+            error!("[forensics] Failed to serialize cron data: {err:?}");
             return Err(UnixArtifactError::Serialize);
         }
     };
@@ -122,7 +122,10 @@ pub(crate) fn output_data(
 ) -> Result<(), UnixArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(UnixArtifactError::Output);
     }
     Ok(())

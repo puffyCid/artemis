@@ -93,6 +93,7 @@ impl ValueKey {
         Ok((input, value_key))
     }
 
+    /// Support reading all Value data types
     fn data_reader<'a, T: std::io::Seek + std::io::Read>(
         reader: &mut BufReader<T>,
         ntfs_file: Option<&NtfsFile<'_>>,
@@ -190,7 +191,7 @@ impl ValueKey {
             0x7 => {
                 data = if data.is_empty() {
                     let (_, offset) = le_u32(data_offset)?;
-                    let value = match parse_reg_multi_sz_reader(
+                    match parse_reg_multi_sz_reader(
                         reader,
                         ntfs_file,
                         offset + size,
@@ -206,8 +207,7 @@ impl ValueKey {
                                 ErrorKind::Fail,
                             )));
                         }
-                    };
-                    value
+                    }
                 } else if data != "(NULL)" {
                     extract_multiline_utf16_string(data_offset)
                 } else {
@@ -255,7 +255,6 @@ impl ValueKey {
             0xb => {
                 let (_, offset) = le_u32(data_offset)?;
                 let filetime = false;
-                //let (_, result) = parse_qword_filetime(reg_data, offset, data_size, filetime)?;
                 let result = match parse_qword_filetime_reader(
                     reader,
                     ntfs_file,
@@ -280,7 +279,6 @@ impl ValueKey {
             0x10 => {
                 let (_, offset) = le_u32(data_offset)?;
                 let filetime = true;
-                //let (_, result) = parse_qword_filetime(reg_data, offset, data_size, filetime)?;
                 let result = match parse_qword_filetime_reader(
                     reader,
                     ntfs_file,
@@ -331,7 +329,7 @@ impl ValueKey {
     ) -> nom::IResult<&'a [u8], String> {
         let value = if data.is_empty() {
             let (_, offset) = le_u32(data_offset)?;
-            let result = match parse_reg_binary_reader(
+            match parse_reg_binary_reader(
                 reader,
                 ntfs_file,
                 offset + size,
@@ -347,8 +345,7 @@ impl ValueKey {
                         ErrorKind::Fail,
                     )));
                 }
-            };
-            result
+            }
         } else if data != "(NULL)" {
             base64_encode_standard(data_offset)
         } else {
@@ -370,7 +367,7 @@ impl ValueKey {
         let value = if data.is_empty() {
             let (_, offset) = le_u32(data_offset)?;
             //let (_, value) = parse_reg_sz(reg_data, offset, data_size, minor_version)?;
-            let value = match parse_reg_sz_reader(
+            match parse_reg_sz_reader(
                 reader,
                 ntfs_file,
                 offset + size,
@@ -386,8 +383,7 @@ impl ValueKey {
                         ErrorKind::Fail,
                     )));
                 }
-            };
-            value
+            }
         } else if data != "(NULL)" {
             extract_utf16_string(data_offset)
         } else {
@@ -399,9 +395,86 @@ impl ValueKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        artifacts::os::windows::registry::{hbin::HiveBin, keys::vk::ValueKey},
-        filesystem::files::read_file,
+    use crate::artifacts::os::windows::registry::{
+        keys::vk::ValueKey, reader::setup_registry_reader,
     };
-    use std::path::PathBuf;
+    use std::{io::BufReader, path::PathBuf};
+
+    #[test]
+    fn test_value_key_reader() {
+        let test_data = [
+            118, 107, 0, 0, 26, 0, 0, 0, 128, 57, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+
+        let reader = setup_registry_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, value) =
+            ValueKey::value_key_reader(&mut buf_reader, None, &test_data, 4, 4096).unwrap();
+        assert_eq!(value.value_name, "(default)");
+    }
+
+    #[test]
+    fn test_data_reader() {
+        let test_data = [128, 57, 2, 0];
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+
+        let reader = setup_registry_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, value) =
+            ValueKey::data_reader(&mut buf_reader, None, 1, 26, &test_data, 4, 4096).unwrap();
+        assert_eq!(value.0, "REG_SZ");
+        assert_eq!(value.1, "Default Beep");
+    }
+
+    #[test]
+    fn test_get_binary_data_reader() {
+        let test_data = [152, 56, 1, 0];
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+
+        let reader = setup_registry_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, value) = ValueKey::get_binary_data_reader(
+            &mut buf_reader,
+            None,
+            String::new(),
+            712,
+            &test_data,
+            4,
+            4096,
+        )
+        .unwrap();
+        assert_eq!(
+            value,
+            "AgAAAEYAAAABAAAAEQAAABEAAAAUAAAAFAAAAPX///8AAAAAAAAAAAAAAAC8AgAAAAAAAAAAAABNAGkAYwByAG8AcwBvAGYAdAAgAFMAYQBuAHMAIABTAGUAcgBpAGYAAAD8fyIU/H+w/hIAAAAAAAAAAACYI+t3DwAAAA8AAAD1////AAAAAAAAAAAAAAAAvAIAAAAAAAAAAAAATQBpAGMAcgBvAHMAbwBmAHQAIABTAGEAbgBzACAAUwBlAHIAaQBmAAAA8HcAIBQAAAAAEIAFFADwHxQAAAAUABIAAAASAAAA9f///wAAAAAAAAAAAAAAAJABAAAAAAAAAAAAAE0AaQBjAHIAbwBzAG8AZgB0ACAAUwBhAG4AcwAgAFMAZQByAGkAZgAAABQAiPvodwICAACsufB3AAAAACAAAAD1////AAAAAAAAAAAAAAAAkAEAAAAAAAAAAAAATQBpAGMAcgBvAHMAbwBmAHQAIABTAGEAbgBzACAAUwBlAHIAaQBmAAAAAAAAAAAAAAAAAAAAAAB8a+h3AAAAAPX///8AAAAAAAAAAAAAAACQAQAAAAAAAAAAAABNAGkAYwByAG8AcwBvAGYAdAAgAFMAYQBuAHMAIABTAGUAcgBpAGYAAAAAAAYAAAAYAAAA//////BLIfwAxPB39f///wAAAAAAAAAAAAAAALwCAAAAAAAAAAAAAE0AaQBjAHIAbwBzAG8AZgB0ACAAUwBhAG4AcwAgAFMAZQByAGkAZgAAABQACwAAAAD/EgBQAAAAwP4SAAwQAAEAAAAAAAAAAAAA/wAA//8AAAAAAAAAAAD///8A////AP//AAD///8AAAD/AAD//wAAAAAAAIAAAP///wAAAAAAgICAAAD/AAD///8AAAAAAMDAwAD///8A////AP//AAAAAAAAwMDAAICA/wAAAP8AAP//AA=="
+        );
+    }
+
+    #[test]
+    fn test_get_string_data_reader() {
+        let test_data = [128, 57, 2, 0];
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+
+        let reader = setup_registry_reader(test_location.to_str().unwrap()).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+
+        let (_, value) = ValueKey::get_binary_data_reader(
+            &mut buf_reader,
+            None,
+            String::new(),
+            26,
+            &test_data,
+            4,
+            4096,
+        )
+        .unwrap();
+        assert_eq!(value, "RABlAGYAYQB1AGwAdAAgAEIAZQBlAHAAAAA=");
+    }
 }
