@@ -409,7 +409,7 @@ pub(crate) fn get_user_registry_files(
 
     let mut user_reg_files: Vec<UserRegistryFiles> = Vec::new();
 
-    // Remove any possible false postives
+    // Remove any possible false positives
     for entries in ntfs_options.filelist {
         let ntuser_depth = 4;
         let mut reg_file = UserRegistryFiles {

@@ -1,6 +1,5 @@
 use super::li::LeafItem;
-use crate::artifacts::os::windows::registry::parser::Params;
-
+use crate::{artifacts::os::windows::registry::parser::Params, structs::toml::Output};
 pub(crate) type RefItem = LeafItem;
 
 impl RefItem {
@@ -10,8 +9,9 @@ impl RefItem {
         ri_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
+        output: &mut Option<&mut Output>,
     ) -> nom::IResult<&'a [u8], ()> {
-        RefItem::parse_leaf_item(reg_data, ri_data, params, minor_version)
+        RefItem::parse_leaf_item(reg_data, ri_data, params, minor_version, output)
     }
 }
 
@@ -43,10 +43,11 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::from("path/NTUSER.dat"),
+            start_time: 0,
         };
 
         let (_, result) =
-            RefItem::parse_reference_item(&buffer, &test_data, &mut params, 4).unwrap();
+            RefItem::parse_reference_item(&buffer, &test_data, &mut params, 4, &mut None).unwrap();
         assert_eq!(result, ())
     }
 }

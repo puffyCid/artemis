@@ -89,7 +89,7 @@ pub(crate) fn parse_file<'a>(
             54, 218, 86, 119, 111, 81, 90, 67, 172, 172, 68, 162, 72, 255, 243, 77,
         ];
         let (remaining_input, _) = take_until(delimiter.as_slice())(input)?;
-        let (remaining_input, _delimilter_data) =
+        let (remaining_input, _delimiter_data) =
             nom_unsigned_sixteen_bytes(remaining_input, Endian::Le)?;
         let (remaining_input, number_files) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
         file_info.files_transferred = number_files;

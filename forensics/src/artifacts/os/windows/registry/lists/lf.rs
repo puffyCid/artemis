@@ -1,5 +1,5 @@
 use super::lh::HashLeaf;
-use crate::artifacts::os::windows::registry::parser::Params;
+use crate::{artifacts::os::windows::registry::parser::Params, structs::toml::Output};
 
 pub(crate) type Leaf = HashLeaf;
 
@@ -10,21 +10,20 @@ impl Leaf {
         lf_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
+        output: &mut Option<&mut Output>,
     ) -> nom::IResult<&'a [u8], ()> {
-        Leaf::parse_hash_leaf(reg_data, lf_data, params, minor_version)
+        Leaf::parse_hash_leaf(reg_data, lf_data, params, minor_version, output)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf};
-
-    use regex::Regex;
-
     use crate::{
         artifacts::os::windows::registry::{hbin::HiveBin, lists::lf::Leaf, parser::Params},
         filesystem::files::read_file,
     };
+    use regex::Regex;
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn parse_leaf() {
@@ -51,9 +50,10 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::from("path/NTUSER.dat"),
+            start_time: 0,
         };
 
-        let (_, result) = Leaf::parse_leaf(&buffer, &test_data, &mut params, 4).unwrap();
+        let (_, result) = Leaf::parse_leaf(&buffer, &test_data, &mut params, 4, &mut None).unwrap();
         assert_eq!(result, ())
     }
 }

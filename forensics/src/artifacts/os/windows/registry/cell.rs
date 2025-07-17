@@ -3,7 +3,10 @@ use super::{
     lists::{lf::Leaf, lh::HashLeaf, li::LeafItem, ri::RefItem},
     parser::Params,
 };
-use crate::utils::nom_helper::{Endian, nom_signed_four_bytes};
+use crate::{
+    structs::toml::Output,
+    utils::nom_helper::{Endian, nom_signed_four_bytes},
+};
 use common::windows::KeyValue;
 use log::{error, warn};
 use nom::{
@@ -55,6 +58,7 @@ pub(crate) fn walk_registry<'a>(
     offset: u32,
     params: &mut Params,
     minor_version: u32,
+    output: &mut Option<&mut Output>,
 ) -> nom::IResult<&'a [u8], ()> {
     if let Some(_value) = params.offset_tracker.get(&offset) {
         error!(
@@ -67,7 +71,7 @@ pub(crate) fn walk_registry<'a>(
     }
     params.offset_tracker.insert(offset, offset);
     let (list_data, _) = take(offset)(reg_data)?;
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(list_data)?;
     if !allocated {
         return Ok((reg_data, ()));
@@ -83,15 +87,15 @@ pub(crate) fn walk_registry<'a>(
     let (list_data, cell_type) = get_cell_type(list_data)?;
 
     if cell_type == CellType::Lh {
-        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version)?;
+        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version, output)?;
     } else if cell_type == CellType::Nk {
-        NameKey::parse_name_key(reg_data, list_data, params, minor_version)?;
+        NameKey::parse_name_key(reg_data, list_data, params, minor_version, output)?;
     } else if cell_type == CellType::Lf {
-        Leaf::parse_leaf(reg_data, list_data, params, minor_version)?;
+        Leaf::parse_leaf(reg_data, list_data, params, minor_version, output)?;
     } else if cell_type == CellType::Li {
-        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version)?;
+        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version, output)?;
     } else if cell_type == CellType::Ri {
-        RefItem::parse_reference_item(reg_data, list_data, params, minor_version)?;
+        RefItem::parse_reference_item(reg_data, list_data, params, minor_version, output)?;
     } else {
         error!("[registry] Got unknown cell type: {cell_type:?}.");
         return Err(nom::Err::Failure(nom::error::Error::new(
@@ -114,7 +118,7 @@ pub(crate) fn walk_values(
     // Go to the value list offset
     let (list_data, _) = take(offset)(reg_data)?;
 
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(list_data)?;
     if !allocated {
         return Ok((reg_data, Vec::new()));
@@ -145,7 +149,7 @@ pub(crate) fn walk_values(
         // Go to the value key offset
         let (vk_data, _) = take(vk_offset as u32)(reg_data)?;
 
-        // Get the size of the valeu key and check if its allocated (negative numbers = allocated, postive number = unallocated)
+        // Get the size of the value key and check if its allocated (negative numbers = allocated, positive number = unallocated)
         let (vk_data, (allocated, size)) = is_allocated(vk_data)?;
         if !allocated {
             value_count += 1;
@@ -179,12 +183,12 @@ pub(crate) fn walk_values(
     Ok((reg_data, key_values))
 }
 
-/// Check if a cell is allocated. Negative number = allocated, postive number = unallocated
+/// Check if a cell is allocated. Negative number = allocated, positive number = unallocated
 pub(crate) fn is_allocated(data: &[u8]) -> nom::IResult<&[u8], (bool, u32)> {
     let (list_data, mut list_size) = nom_signed_four_bytes(data, Endian::Le)?;
     let cell_allocated = 0;
 
-    // If the size is a postive number then the cell is unallocated (deleted)
+    // If the size is a positive number then the cell is unallocated (deleted)
     // We currently do not parse deleted cells
     if list_size >= cell_allocated {
         return Ok((list_data, (false, 0)));
@@ -266,10 +270,9 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::from("test\\test"),
+            start_time: 0,
         };
-        let (_, result) = walk_registry(&buffer, 216, &mut params, 4).unwrap();
-
-        assert_eq!(result, ())
+        let _ = walk_registry(&buffer, 216, &mut params, 4, &mut None).unwrap();
     }
 
     #[test]

@@ -4,6 +4,7 @@ use crate::{
         cell::{CellType, get_cell_type, is_allocated},
         keys::nk::NameKey,
     },
+    structs::toml::Output,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };
 use common::windows::RegistryData;
@@ -48,6 +49,7 @@ impl HiveBin {
         hive_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
+        output: &mut Option<&mut Output>,
     ) -> nom::IResult<&'a [u8], Vec<RegistryData>> {
         let skip_header: usize = 32;
         // We already parsed the header data. We can skip it
@@ -55,7 +57,7 @@ impl HiveBin {
         let mut all_cells_data = input;
 
         while !all_cells_data.is_empty() {
-            // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+            // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
             let (input, (allocated, size)) = is_allocated(all_cells_data)?;
 
             // Size includes the size itself. We nommed that away
@@ -81,7 +83,7 @@ impl HiveBin {
                 continue;
             }
             // We only need the ROOT key
-            NameKey::parse_name_key(reg_data, cell_data, params, minor_version)?;
+            NameKey::parse_name_key(reg_data, cell_data, params, minor_version, output)?;
             break;
         }
 
@@ -140,9 +142,11 @@ mod tests {
             offset_tracker: HashMap::new(),
             filter: false,
             registry_path: String::from("test\\test"),
+            start_time: 0,
         };
 
-        let (_, result) = HiveBin::parse_hive_cells(&buffer, &buffer, &mut params, 4).unwrap();
+        let (_, result) =
+            HiveBin::parse_hive_cells(&buffer, &buffer, &mut params, 4, &mut None).unwrap();
         assert_eq!(result.len(), 666)
     }
 }

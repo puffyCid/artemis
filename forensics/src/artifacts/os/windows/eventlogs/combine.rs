@@ -734,7 +734,7 @@ fn add_event_string(
 
     let mut event_value = serde_json::from_value(value.clone()).unwrap_or(value.to_string());
     if event_value.contains('%') {
-        // To avoid false postives in our regex from replacement event values. Remove % values
+        // To avoid false positives in our regex from replacement event values. Remove % values
         event_value = event_value.replace('%', "TEMP_ARTEMIS_VALUE");
     }
 
