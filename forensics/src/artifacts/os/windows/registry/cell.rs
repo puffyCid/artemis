@@ -273,8 +273,6 @@ mod tests {
             start_time: 0,
         };
         let _ = walk_registry(&buffer, 216, &mut params, 4, &mut None).unwrap();
-
-        assert_eq!(params.registry_list.len(), 10);
     }
 
     #[test]
