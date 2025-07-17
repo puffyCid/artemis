@@ -57,7 +57,7 @@ impl HiveBin {
         let mut all_cells_data = input;
 
         while !all_cells_data.is_empty() {
-            // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+            // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
             let (input, (allocated, size)) = is_allocated(all_cells_data)?;
 
             // Size includes the size itself. We nommed that away

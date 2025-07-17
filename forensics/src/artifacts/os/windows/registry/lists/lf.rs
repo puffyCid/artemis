@@ -18,14 +18,12 @@ impl Leaf {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf};
-
-    use regex::Regex;
-
     use crate::{
         artifacts::os::windows::registry::{hbin::HiveBin, lists::lf::Leaf, parser::Params},
         filesystem::files::read_file,
     };
+    use regex::Regex;
+    use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn parse_leaf() {

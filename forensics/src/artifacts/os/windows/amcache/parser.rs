@@ -63,7 +63,7 @@ fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
 }
 
 /**
- * `Amcache` is typically stored at the Registry file `C:\Windows\appcompat\Promgrams\Amcache.hve`
+ * `Amcache` is typically stored at the Registry file `C:\Windows\appcompat\Programs\Amcache.hve`
  * Parse the raw Registry file and get the entries related to file execution
  */
 fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {

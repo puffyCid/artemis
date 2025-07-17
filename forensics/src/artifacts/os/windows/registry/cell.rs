@@ -71,7 +71,7 @@ pub(crate) fn walk_registry<'a>(
     }
     params.offset_tracker.insert(offset, offset);
     let (list_data, _) = take(offset)(reg_data)?;
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(list_data)?;
     if !allocated {
         return Ok((reg_data, ()));
@@ -118,7 +118,7 @@ pub(crate) fn walk_values(
     // Go to the value list offset
     let (list_data, _) = take(offset)(reg_data)?;
 
-    // Get the size of the list and check if its allocated (negative numbers = allocated, postive number = unallocated)
+    // Get the size of the list and check if its allocated (negative numbers = allocated, positive number = unallocated)
     let (list_data, (allocated, size)) = is_allocated(list_data)?;
     if !allocated {
         return Ok((reg_data, Vec::new()));
@@ -149,7 +149,7 @@ pub(crate) fn walk_values(
         // Go to the value key offset
         let (vk_data, _) = take(vk_offset as u32)(reg_data)?;
 
-        // Get the size of the valeu key and check if its allocated (negative numbers = allocated, postive number = unallocated)
+        // Get the size of the value key and check if its allocated (negative numbers = allocated, positive number = unallocated)
         let (vk_data, (allocated, size)) = is_allocated(vk_data)?;
         if !allocated {
             value_count += 1;
@@ -183,12 +183,12 @@ pub(crate) fn walk_values(
     Ok((reg_data, key_values))
 }
 
-/// Check if a cell is allocated. Negative number = allocated, postive number = unallocated
+/// Check if a cell is allocated. Negative number = allocated, positive number = unallocated
 pub(crate) fn is_allocated(data: &[u8]) -> nom::IResult<&[u8], (bool, u32)> {
     let (list_data, mut list_size) = nom_signed_four_bytes(data, Endian::Le)?;
     let cell_allocated = 0;
 
-    // If the size is a postive number then the cell is unallocated (deleted)
+    // If the size is a positive number then the cell is unallocated (deleted)
     // We currently do not parse deleted cells
     if list_size >= cell_allocated {
         return Ok((list_data, (false, 0)));
