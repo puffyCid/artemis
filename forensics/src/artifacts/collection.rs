@@ -11,7 +11,7 @@ use super::{
         },
         processes::artifact::processes,
         systeminfo::artifact::systeminfo,
-        unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
+        unix::artifacts::{bash_history, python_history, zsh_history},
         windows::artifacts::{
             amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_filelist, recycle_bin,
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
@@ -212,15 +212,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected python history"),
                     Err(err) => {
                         error!("[core] Failed to parse python history: {err:?}");
-                    }
-                }
-            }
-            "cron" => {
-                let results = cron_job(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected cron"),
-                    Err(err) => {
-                        error!("[core] Failed to parse cron data: {err:?}");
                     }
                 }
             }

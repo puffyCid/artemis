@@ -337,8 +337,6 @@ pub(crate) enum CommandArgs {
     },
     /// unix: Parse Shellhistory
     Shellhistory {},
-    /// unix: Parse Cron Jobs
-    Cron {},
     /// linux: Grab Sudo logs
     SudologsLinux {
         /// Alternative Sudo log directory to use

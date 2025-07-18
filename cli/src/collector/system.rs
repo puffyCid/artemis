@@ -175,7 +175,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.files = Some(options);
             collect.artifact_name = String::from("files");
         }
-        CommandArgs::Cron {} => collect.artifact_name = String::from("cron"),
         CommandArgs::Shellhistory {} => collect.artifact_name = String::from("shell_history"),
         CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
         CommandArgs::Emond { alt_path } => {
@@ -514,11 +513,11 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 mod tests {
     use super::{Commands, run_collector, setup_artifact};
     use crate::collector::system::CommandArgs::{
-        Amcache, Bits, Cron, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos,
-        Journals, Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting,
-        Recyclebin, Registry, SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory,
-        Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks,
-        Unifiedlogs, UsersMacos, UsersWindows,
+        Amcache, Bits, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos, Journals,
+        Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin,
+        Registry, SafariDownloads, SafariHistory, Services, Shellbags, Shellhistory, Shimcache,
+        Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs,
+        UsersMacos, UsersWindows,
     };
     use forensics::structs::toml::Output;
     fn output() -> Output {
@@ -611,17 +610,6 @@ mod tests {
             artifact: Some(SudologsMacos {
                 logarchive_path: None,
             }),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-            timeline: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(Cron {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,

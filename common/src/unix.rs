@@ -1,23 +1,6 @@
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub struct CronFile {
-    pub cron_data: Vec<Cron>,
-    pub path: String,
-    pub contents: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Cron {
-    pub hour: String,
-    pub min: String,
-    pub day: String,
-    pub month: String,
-    pub weekday: String,
-    pub command: String,
-}
-
-#[derive(Debug, Serialize)]
 pub struct BashHistory {
     pub history: Vec<BashHistoryData>,
     pub path: String,

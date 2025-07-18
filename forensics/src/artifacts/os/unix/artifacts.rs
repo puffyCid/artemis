@@ -1,5 +1,4 @@
 use super::{
-    cron::crontab::parse_cron,
     error::UnixArtifactError,
     shell_history::{
         bash::get_user_bash_history, python::get_user_python_history, zsh::get_user_zsh_history,
@@ -86,32 +85,6 @@ pub(crate) fn python_history(output: &mut Output, filter: bool) -> Result<(), Un
     output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
-/// Parse cron data
-pub(crate) fn cron_job(output: &mut Output, filter: bool) -> Result<(), UnixArtifactError> {
-    let start_time = time::time_now();
-
-    let cron_results = parse_cron();
-    let cron_data = match cron_results {
-        Ok(results) => results,
-        Err(err) => {
-            warn!("[core] Artemis unix failed to get cron data: {err:?}");
-            return Err(UnixArtifactError::Cron);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(cron_data);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[core] Failed to serialize cron data: {err:?}");
-            return Err(UnixArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "cron";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
-}
-
 // Output unix artifacts
 pub(crate) fn output_data(
     serde_data: &mut Value,
@@ -132,7 +105,7 @@ pub(crate) fn output_data(
 mod tests {
     use super::output_data;
     use crate::{
-        artifacts::os::unix::artifacts::{bash_history, cron_job, python_history, zsh_history},
+        artifacts::os::unix::artifacts::{bash_history, python_history, zsh_history},
         structs::toml::Output,
         utils::time,
     };
@@ -176,14 +149,6 @@ mod tests {
         let mut output = output_options("python_history", "local", "./tmp", false);
 
         let status = python_history(&mut output, false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_cron_job() {
-        let mut output = output_options("cron", "local", "./tmp", false);
-
-        let status = cron_job(&mut output, false).unwrap();
         assert_eq!(status, ());
     }
 
