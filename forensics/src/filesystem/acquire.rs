@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_acquire_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_history");
+        test_location.push("tests/test_data/dfir/LICENSE");
 
         let out = output_options("acquire_file", "local", "./tmp", false, 0, String::from(""));
 
@@ -303,7 +303,7 @@ mod tests {
     #[should_panic(expected = "ReadFile")]
     fn test_acquire_bad_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_historyadsfasdfsdf");
+        test_location.push("tests/test_data/dfir/LICENSEaefdsfsadf");
 
         let out = output_options(
             "acquire_file",
@@ -322,7 +322,7 @@ mod tests {
     #[test]
     fn test_acquire_file_gcp() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_history");
+        test_location.push("tests/test_data/dfir/LICENSE");
 
         let server = MockServer::start();
         let port = server.port();
@@ -355,7 +355,7 @@ mod tests {
     #[should_panic(expected = "UploadSetup")]
     fn test_acquire_file_aws() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_history");
+        test_location.push("tests/test_data/dfir/LICENSE");
 
         let server = MockServer::start();
         let port = server.port();
@@ -391,7 +391,7 @@ mod tests {
     #[test]
     fn test_acquire_file_azure() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_history");
+        test_location.push("tests/test_data/dfir/LICENSE");
 
         let server = MockServer::start();
         let port = server.port();

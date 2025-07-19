@@ -19,7 +19,6 @@ pub(crate) enum FileSystemError {
     FileData,
     NoDataAttributeValue,
     LargeFile,
-    NoRootHome,
     CompressFile,
     CompressedBytes,
     AcquireFile,
@@ -50,7 +49,6 @@ impl fmt::Display for FileSystemError {
             FileSystemError::NoDataAttributeValue => {
                 write!(f, "Failed to get NTFS $DATA attribute")
             }
-            FileSystemError::NoRootHome => write!(f, "Could not find root home directory"),
             FileSystemError::NoAttribute => write!(f, "No attribute for entry"),
             FileSystemError::CompressFile => write!(f, "Cannot compress acquire file"),
             FileSystemError::CompressedBytes => write!(f, "Cannot compress all bytes"),
