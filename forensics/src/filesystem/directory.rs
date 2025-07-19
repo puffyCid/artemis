@@ -2,10 +2,7 @@ use super::{
     error::FileSystemError,
     files::{file_lines, list_files_directories},
 };
-use crate::{
-    artifacts::os::systeminfo::info::{PlatformType, get_platform, get_platform_enum},
-    utils::environment::get_env_value,
-};
+use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform_enum};
 use log::{error, warn};
 use std::path::Path;
 use sysinfo::Users;
@@ -97,24 +94,6 @@ fn linux_user_paths() -> Result<Vec<String>, FileSystemError> {
     Ok(user_list)
 }
 
-/// Get the path to the root user's home directory
-pub(crate) fn get_root_home() -> Result<String, FileSystemError> {
-    let plat = get_platform();
-
-    let root_home = if plat == "Windows" {
-        get_env_value("SystemRoot")
-    } else if plat == "Darwin" {
-        String::from("/var/root")
-    } else {
-        String::from("/root")
-    };
-
-    if !is_directory(&root_home) {
-        return Err(FileSystemError::NoRootHome);
-    }
-    Ok(root_home)
-}
-
 /// Get the parent directory of a provided path. From: "C:\\Users\\bob\\1.txt" will return "C:\\Users\\bob"
 pub(crate) fn get_parent_directory(path: &str) -> String {
     let entry_opt = if path.contains('/') {
@@ -186,15 +165,6 @@ mod tests {
         let result = get_user_paths().unwrap();
 
         assert!(!result.is_empty());
-    }
-
-    #[test]
-    #[cfg(target_family = "unix")]
-    fn test_get_root_home() {
-        use crate::filesystem::directory::get_root_home;
-
-        let result = get_root_home().unwrap();
-        assert!(result.contains("root"));
     }
 
     #[test]

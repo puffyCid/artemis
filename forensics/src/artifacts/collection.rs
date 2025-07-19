@@ -11,7 +11,6 @@ use super::{
         },
         processes::artifact::processes,
         systeminfo::artifact::systeminfo,
-        unix::artifacts::{bash_history, python_history, zsh_history},
         windows::artifacts::{
             amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_filelist, recycle_bin,
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
@@ -189,29 +188,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Safari downloads"),
                     Err(err) => {
                         error!("[core] Failed to parse Safari downloads: {err:?}");
-                    }
-                }
-            }
-            "shell_history" => {
-                let results = bash_history(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected bash history"),
-                    Err(err) => {
-                        error!("[core] Failed to parse bash history: {err:?}");
-                    }
-                }
-                let results = zsh_history(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected zsh history"),
-                    Err(err) => {
-                        error!("[core] Failed to parse zsh history: {err:?}");
-                    }
-                }
-                let results = python_history(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected python history"),
-                    Err(err) => {
-                        error!("[core] Failed to parse python history: {err:?}");
                     }
                 }
             }
