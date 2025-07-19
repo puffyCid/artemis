@@ -217,7 +217,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
         let bit = data[position];
         position += 1;
 
-        let bits = format!("{0:08b}", bit);
+        let bits = format!("{bit:08b}");
         let bit_string = bits.chars().rev();
         for entry in bit_string {
             if entry == '1' {

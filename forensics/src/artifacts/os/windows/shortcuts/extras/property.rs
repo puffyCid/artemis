@@ -27,7 +27,7 @@ fn parse_property(data: &[u8]) -> nom::IResult<&[u8], Vec<HashMap<String, Value>
     match prop_result {
         Ok(stores) => Ok((input, stores)),
         Err(err) => {
-            error!("[shortcut] Failed to parse extra property data: {:?}", err);
+            error!("[shortcut] Failed to parse extra property data: {err:?}");
             Ok((input, Vec::new()))
         }
     }
