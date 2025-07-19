@@ -364,13 +364,10 @@ mod tests {
     #[test]
     fn test_file_lines() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/unix/bash/bash_history");
+        test_location.push("tests/test_data/dfir/LICENSE");
 
-        let mut results = file_lines(&test_location.display().to_string()).unwrap();
-        assert_eq!(
-            results.next().unwrap().unwrap().to_string(),
-            "sudo cp /.fseventsd ~/Desktop/"
-        );
+        let results = file_lines(&test_location.display().to_string()).unwrap();
+        assert_eq!(results.count(), 5);
     }
 
     #[test]
