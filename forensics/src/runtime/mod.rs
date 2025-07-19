@@ -14,5 +14,4 @@ pub(crate) mod run;
 mod setup;
 mod system;
 mod time;
-mod unix;
 mod windows;

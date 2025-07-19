@@ -335,10 +335,6 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         include_additional: bool,
     },
-    /// unix: Parse Shellhistory
-    Shellhistory {},
-    /// unix: Parse Cron Jobs
-    Cron {},
     /// linux: Grab Sudo logs
     SudologsLinux {
         /// Alternative Sudo log directory to use

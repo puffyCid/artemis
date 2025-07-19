@@ -1,5 +1,0 @@
-./osquery/osqueryi
-./osquery/osqueryi
-./osquery/osqueryi
-./osquery/osqueryi
-cmake --build . -j $(sysctl -n hw.ncpu)

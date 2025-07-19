@@ -56,28 +56,10 @@ artifact_name = "groups-macos"
 artifact_name = "systeminfo"
 
 [[artifacts]]
-artifact_name = "shell_history"
-
-[[artifacts]]
-artifact_name = "chromium-history"
-
-[[artifacts]]
-artifact_name = "chromium-downloads"
-
-[[artifacts]]
-artifact_name = "firefox-history"
-
-[[artifacts]]
-artifact_name = "firefox-downloads"
-
-[[artifacts]]
 artifact_name = "safari-history"
 
 [[artifacts]]
 artifact_name = "safari-downloads"
-
-[[artifacts]]
-artifact_name = "cron"
 
 [[artifacts]]
 artifact_name = "unifiedlogs"

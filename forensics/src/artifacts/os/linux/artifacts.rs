@@ -57,8 +57,8 @@ pub(crate) fn sudo_logs_linux(
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let cron_results = grab_sudo_logs(options);
-    let cron_data = match cron_results {
+    let sudo_results = grab_sudo_logs(options);
+    let sudo_data = match sudo_results {
         Ok(results) => results,
         Err(err) => {
             warn!("[core] Failed to get sudo log data: {err:?}");
@@ -66,7 +66,7 @@ pub(crate) fn sudo_logs_linux(
         }
     };
 
-    let serde_data_result = serde_json::to_value(cron_data);
+    let serde_data_result = serde_json::to_value(sudo_data);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {

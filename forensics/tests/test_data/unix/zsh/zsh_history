@@ -1,5 +1,0 @@
-: 1659414442:0;pwd
-: 1659414442:0;cd ~/Projects/Rust/macos-bookmarks
-: 1659414442:0;cargo test --release
-
-
