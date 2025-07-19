@@ -88,8 +88,6 @@ Commands:
   unifiedlogs        macos: Parse the Unified Logs
   sudologs-macos     macos: Parse Sudo log entries from Unified Logs
   spotlight          macos: Parse the Spotlight database
-  shellhistory       unix: Parse Shellhistory
-  cron               unix: Parse Cron Jobs
   sudologs-linux     linux: Grab Sudo logs
   journals           linux: Parse systemd Journal files
   logons             linux: Parse Logon files
