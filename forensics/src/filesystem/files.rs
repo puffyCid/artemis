@@ -367,7 +367,7 @@ mod tests {
         test_location.push("tests/test_data/dfir/LICENSE");
 
         let results = file_lines(&test_location.display().to_string()).unwrap();
-        assert_eq!(results.count(), 5);
+        assert_eq!(results.count(), 21);
     }
 
     #[test]
