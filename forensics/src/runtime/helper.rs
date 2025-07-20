@@ -78,18 +78,6 @@ pub(crate) fn bigint_arg(args: &[JsValue], index: usize) -> JsResult<f64> {
     ))
 }
 
-/// Get the JS argument and convert to boolean
-pub(crate) fn bool_arg(args: &[JsValue], index: usize) -> JsResult<bool> {
-    let arg_value = args.get_or_undefined(index);
-    if !arg_value.is_boolean() {
-        return Err(JsError::from_opaque(js_string!("Arg is not a bool").into()));
-    }
-
-    let value = arg_value.to_boolean();
-
-    Ok(value)
-}
-
 /// Get the JS argument and convert to object
 pub(crate) fn value_arg(args: &[JsValue], index: usize, context: &mut Context) -> JsResult<Value> {
     let arg_value = args.get_or_undefined(index);
@@ -132,11 +120,7 @@ pub(crate) fn bytes_arg(
 }
 
 /// Get the JS argument and convert to boolean
-pub(crate) fn boolean_arg(
-    args: &[JsValue],
-    index: usize,
-    _context: &mut Context,
-) -> JsResult<bool> {
+pub(crate) fn boolean_arg(args: &[JsValue], index: usize) -> JsResult<bool> {
     let arg_value = args.get_or_undefined(index);
     if !arg_value.is_boolean() {
         return Err(JsError::from_opaque(

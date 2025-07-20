@@ -11,7 +11,7 @@ pub(crate) fn js_bits(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let carve = boolean_arg(args, 0, context)?;
+    let carve = boolean_arg(args, 0)?;
     let path = if args.get_or_undefined(1).is_undefined() {
         None
     } else {

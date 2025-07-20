@@ -1,6 +1,7 @@
 use super::{
     base64::{js_base64_decode, js_base64_encode},
     bytes::js_encode_bytes,
+    csv::js_read_csv,
     protobuf::js_parse_protobuf,
     strings::{js_bytes_to_hex_string, js_extract_utf8_string, js_extract_utf16_string},
     uuid::{js_format_guid_be_bytes, js_format_guid_le_bytes, js_generate_uuid},
@@ -74,6 +75,12 @@ pub(crate) fn encoding_functions(context: &mut Context) {
         JsString::from("js_read_xml"),
         0,
         NativeFunction::from_fn_ptr(js_read_xml),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_csv"),
+        3,
+        NativeFunction::from_fn_ptr(js_read_csv),
     );
 }
 
