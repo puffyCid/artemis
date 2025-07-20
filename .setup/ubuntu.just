@@ -1,5 +1,4 @@
 import "rust.just"
-import "node.just"
 
 @_ubuntu: (_rust-setup-unix) && (_cargo-plugins)
   echo "Installing dev dependencies!"

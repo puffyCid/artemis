@@ -11,12 +11,12 @@ primary focus is: speed, ease of use, and low resource usage.\
 Notable features _so far_:
 
 - Setup collections using basic TOML files
-- Parsing support for large amount of forensic artifacts (25+)
+- Parsing support for large amount of forensic artifacts (40+)
 - Output to JSON, JSONL, or CSV file(s)
 - Can output results to local system or upload to cloud services.
 - Embedded JavaScript runtime via [Boa](https://boajs.dev)
 
-Checkout the online guide at https://puffycid.github.io/artemis-api for indepth
+Checkout the online guide at https://puffycid.github.io/artemis-api for in-depth
 walkthrough on using artemis
 
 ## Quick Guide
