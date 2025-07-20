@@ -54,7 +54,6 @@ References for signing and notarizing cli/Rust tools:
 
 
 # MSI 
-0. 
 1. Install [dotnet](https://dotnet.microsoft.com/en-us/)
 2. Disable telemetry `setx DOTNET_CLI_TELEMETRY_OPTOUT 1`
 3. Install WiX via dotnet: `dotnet tool install --global wix`

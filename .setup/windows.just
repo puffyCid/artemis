@@ -1,3 +1,3 @@
-@_windows: (_cargo-plugins) && (_node_modules)
+@_windows: (_cargo-plugins)
   echo "Installing dev dependencies!"
   choco install nodejs

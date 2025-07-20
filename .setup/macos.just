@@ -1,3 +1,3 @@
-@_macos: (_rust-setup-unix) && (_cargo-plugins) (_node_modules)
+@_macos: (_rust-setup-unix) && (_cargo-plugins)
   echo "Installing dev dependencies!"
   brew install nodejs
