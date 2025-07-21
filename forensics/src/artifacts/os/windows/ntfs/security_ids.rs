@@ -279,7 +279,7 @@ impl SecurityIDs {
             let mut data_attr_value = match data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS $SDS data error: {:?}", err);
+                    error!("[ntfs] Failed to get NTFS $SDS data error: {err:?}");
                     continue;
                 }
             };

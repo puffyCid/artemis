@@ -214,7 +214,7 @@ fn check_clients() -> bool {
     let clients = match clients_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[emond] Failed to read Emond clients directory: {:?}", err);
+            error!("[emond] Failed to read Emond clients directory: {err:?}");
             return false;
         }
     };

@@ -18,7 +18,7 @@ pub(crate) fn js_root_folder(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
@@ -99,7 +99,7 @@ pub(crate) fn js_message_store(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
@@ -180,7 +180,7 @@ pub(crate) fn js_name_map(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
 
     let root_result = if use_ntfs {
         let mut ntfs_parser = match setup_ntfs_parser(path.chars().next().unwrap_or('C')) {
@@ -261,7 +261,7 @@ pub(crate) fn js_read_folder(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs: bool = boolean_arg(args, 1, context)?;
+    let use_ntfs: bool = boolean_arg(args, 1)?;
     let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {
@@ -343,7 +343,7 @@ pub(crate) fn js_read_messages(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
     let table = value_arg(args, 2, context)?;
     let offset = bigint_arg(args, 3)? as u64;
     let message_table: TableInfo = match serde_json::from_value(table) {
@@ -490,7 +490,7 @@ pub(crate) fn js_read_attachment(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
     let block_id = bigint_arg(args, 2)? as u64;
     let descriptor_id = bigint_arg(args, 3)? as u64;
 
@@ -573,7 +573,7 @@ pub(crate) fn js_folder_meta(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
-    let use_ntfs = boolean_arg(args, 1, context)?;
+    let use_ntfs = boolean_arg(args, 1)?;
     let folder_id = bigint_arg(args, 2)? as u64;
 
     let folder_result = if use_ntfs {

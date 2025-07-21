@@ -4,7 +4,7 @@ use crate::{
         files::{file_extension, get_filename, hash_file, read_file, read_text_file},
         metadata::{get_metadata, get_timestamps, glob_paths},
     },
-    runtime::helper::{bool_arg, string_arg},
+    runtime::helper::{boolean_arg, string_arg},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 use common::files::Hashes;
@@ -107,9 +107,9 @@ pub(crate) fn js_hash_file(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
     let hashes = Hashes {
-        md5: bool_arg(args, 1)?,
-        sha1: bool_arg(args, 2)?,
-        sha256: bool_arg(args, 3)?,
+        md5: boolean_arg(args, 1)?,
+        sha1: boolean_arg(args, 2)?,
+        sha256: boolean_arg(args, 3)?,
     };
     let (md5_value, sha1_value, sha256_value) = hash_file(&hashes, &path);
     let info = HashInfo {

@@ -46,7 +46,7 @@ pub(crate) fn js_list_namespaces_classes(
     let indexes_value = value_arg(args, 1, context)?;
     let object_data = bytes_arg(args, 2, context)?;
     let pages_value = value_arg(args, 3, context)?;
-    let is_classes = boolean_arg(args, 4, context)?;
+    let is_classes = boolean_arg(args, 4)?;
 
     let indexes: Vec<IndexBody> = match serde_json::from_value(indexes_value) {
         Ok(result) => result,

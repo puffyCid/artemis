@@ -13,7 +13,7 @@ pub(crate) fn js_eventlogs(
     let path = string_arg(args, 0)?;
     let offset = number_arg(args, 1)? as usize;
     let limit = number_arg(args, 2)? as usize;
-    let include_templates = boolean_arg(args, 3, context)?;
+    let include_templates = boolean_arg(args, 3)?;
 
     let temp_option = if args.get_or_undefined(4).is_undefined() {
         None

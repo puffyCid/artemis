@@ -130,7 +130,7 @@ impl UsnJrnlFormat {
             };
 
             if entry.file_attributes.contains(&AttributeFlags::Directory) {
-                journal_cache.insert(format!("{}_{}", mft_entry, mft_seq), entry.clone());
+                journal_cache.insert(format!("{mft_entry}_{mft_seq}"), entry.clone());
             }
             entries.push(entry);
 
@@ -249,7 +249,7 @@ impl UsnJrnlFormat {
             };
 
             if entry.file_attributes.contains(&AttributeFlags::Directory) {
-                journal_cache.insert(format!("{}_{}", mft_entry, mft_seq), entry.clone());
+                journal_cache.insert(format!("{mft_entry}_{mft_seq}"), entry.clone());
             }
             entries.push(entry);
 
