@@ -7,8 +7,9 @@ use crate::{
 };
 use common::windows::WmiPersist;
 use log::{error, warn};
+use md5::Md5;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 /// Parse the WMI repository and return data associated with provided classes
 pub(crate) fn parse_wmi_repo(
@@ -65,6 +66,8 @@ pub(crate) fn parse_wmi_repo(
  */
 pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiPersist>, WmiError> {
     let mut persist_vec = Vec::new();
+    // Small tracker when looping through the data
+    let mut hits = HashSet::new();
     for event_consumer in namespace_data {
         if event_consumer.super_class_name != "__EventConsumer" {
             continue;
@@ -88,8 +91,14 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiP
                     consumer_name: String::new(),
                 };
                 assemble_wmi_persist(event_consumer, filter_consumer, event_filter, &mut persist);
-                if !persist.class.is_empty() {
+                let mut md5 = Md5::new();
+                let bytes = serde_json::to_vec(&persist).unwrap_or_default();
+                md5.update(&bytes);
+                let hash = md5.finalize();
+
+                if !persist.class.is_empty() && !hits.contains(&format!("{hash:x}")) {
                     persist_vec.push(persist);
+                    hits.insert(format!("{hash:x}"));
                     break;
                 }
             }
@@ -120,7 +129,18 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let filter_consumer_name = filter_consumer_value.to_string().replace(['"', '\\'], "");
+    let filter_consumer_string = filter_consumer_value.to_string();
+    let filter_consumer_name = if filter_consumer_string.contains(':') {
+        let (_, name) = filter_consumer_string.split_once(':').unwrap_or_else(|| {
+            (
+                filter_consumer_string.as_str(),
+                filter_consumer_string.as_str(),
+            )
+        });
+        name.to_string().replace(['"', '\\'], "")
+    } else {
+        filter_consumer_string.replace(['"', '\\'], "")
+    };
     if format!("{}.Name={consumer_name}", consumer.class_name) != filter_consumer_name {
         return;
     }
@@ -131,9 +151,21 @@ fn assemble_wmi_persist(
         None => return,
     };
 
-    let filter_consumer_filter = filter_consumer_filter_value
-        .to_string()
-        .replace(['\"', '\\'], "");
+    let filter_consumer_filter_string = filter_consumer_filter_value.to_string();
+    let filter_consumer_filter = if filter_consumer_filter_string.contains(':') {
+        let (_, name) = filter_consumer_filter_string
+            .split_once(':')
+            .unwrap_or_else(|| {
+                (
+                    filter_consumer_filter_string.as_str(),
+                    filter_consumer_filter_string.as_str(),
+                )
+            });
+        name.to_string().replace(['"', '\\'], "")
+    } else {
+        filter_consumer_filter_string.replace(['"', '\\'], "")
+    };
+
     let event_filter_opt = event_filter.values.get("Name");
     let event_filter_value = match event_filter_opt {
         Some(result) => result,
