@@ -1,3 +1,0 @@
-kind: Removed
-body: Removed binary macOS releases from stable releases. PKG files can be used instead. Binaries can still be downloaded from nightly releases though,
-time: 2025-06-21T18:28:17.728683-04:00

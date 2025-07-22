@@ -1,3 +1,0 @@
-kind: Changed
-body: Do not return error if we fail to parse the full UsnJrnl. Instead artemis will log an error but return existing entries it has already parsed.
-time: 2025-06-21T18:37:33.513299-04:00
