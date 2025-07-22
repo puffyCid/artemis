@@ -131,12 +131,10 @@ fn assemble_wmi_persist(
 
     let filter_consumer_string = filter_consumer_value.to_string();
     let filter_consumer_name = if filter_consumer_string.contains(':') {
-        let (_, name) = filter_consumer_string.split_once(':').unwrap_or_else(|| {
-            (
-                filter_consumer_string.as_str(),
-                filter_consumer_string.as_str(),
-            )
-        });
+        let (_, name) = filter_consumer_string.split_once(':').unwrap_or((
+            filter_consumer_string.as_str(),
+            filter_consumer_string.as_str(),
+        ));
         name.to_string().replace(['"', '\\'], "")
     } else {
         filter_consumer_string.replace(['"', '\\'], "")
@@ -153,14 +151,10 @@ fn assemble_wmi_persist(
 
     let filter_consumer_filter_string = filter_consumer_filter_value.to_string();
     let filter_consumer_filter = if filter_consumer_filter_string.contains(':') {
-        let (_, name) = filter_consumer_filter_string
-            .split_once(':')
-            .unwrap_or_else(|| {
-                (
-                    filter_consumer_filter_string.as_str(),
-                    filter_consumer_filter_string.as_str(),
-                )
-            });
+        let (_, name) = filter_consumer_filter_string.split_once(':').unwrap_or((
+            filter_consumer_filter_string.as_str(),
+            filter_consumer_filter_string.as_str(),
+        ));
         name.to_string().replace(['"', '\\'], "")
     } else {
         filter_consumer_filter_string.replace(['"', '\\'], "")
