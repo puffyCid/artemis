@@ -84,14 +84,26 @@ pub(crate) fn parse_instances<'a>(
         }
 
         for class in classes.iter_mut() {
-            if let Some(class_value) = class.get_mut(&instance.hash_name) {
-                let value_result = grab_instance_data(instance, class_value, lookup_parents);
+            if let Some(class_info) = class.get_mut(&instance.hash_name) {
+                let mut is_amendment = false;
+                for qual in &class_info.qualifiers {
+                    if qual.name == "AMENDMENT" {
+                        is_amendment = true;
+                        break;
+                    }
+                }
+
+                // Amendments are for localized versions of namespaces
+                if is_amendment {
+                    continue;
+                }
+                let value_result = grab_instance_data(instance, class_info, lookup_parents);
                 let class_value = match value_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
                         warn!(
                             "[wmi] Could not grab instance data for class {}. There may not be any data",
-                            class_value.class_name
+                            class_info.class_name
                         );
                         empty_instances.insert(instance.hash_name.clone());
                         continue;
@@ -180,11 +192,16 @@ fn grab_instance_data<'a>(
         }
 
         let (start, _) = take(prop.data_offset)(prop_data_offsets)?;
+        if start.starts_with(&[0, 0, 0, 0]) && prop.property_data_type == CimType::String {
+            prop_value.insert(prop.name.clone(), Value::Null);
+            continue;
+        }
         let result = match extract_cim_data(&prop.property_data_type, start, value_data) {
             Ok((_, result)) => result,
             // CIM data can be null
             Err(_err) => Value::Null,
         };
+
         prop_value.insert(prop.name.clone(), result);
     }
     let class_value = ClassValues {
