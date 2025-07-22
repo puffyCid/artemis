@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where WMI parser improperly handled localization classes
+time: 2025-07-21T22:30:45.72464456-04:00
