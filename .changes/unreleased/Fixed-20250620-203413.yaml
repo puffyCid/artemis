@@ -1,3 +1,0 @@
-kind: Fixed
-body: Issue where artemis would not fully parse malformed/malicious shortcut files
-time: 2025-06-20T20:34:13.381917362-04:00
