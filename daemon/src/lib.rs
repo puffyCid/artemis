@@ -74,5 +74,6 @@ mod collection;
 mod configuration;
 mod enrollment;
 mod error;
+mod logging;
 pub mod start;
 mod utils;

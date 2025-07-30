@@ -1,3 +1,6 @@
+log_path = "./tmp/artemis"
+log_level = "warning"
+
 [server]
 url = "http://127.0.0.1"
 port = 8000
@@ -5,5 +8,6 @@ ignore_ssl = false
 enrollment = "endpoint/enroll"
 collections = "endpoint/collections"
 config = "endpoint/config"
+logging = "endpoint/logging"
 version = 1
 key = "my key"

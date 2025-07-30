@@ -40,7 +40,7 @@ pub(crate) fn prefetch(
     let pf_data = match pf_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Prefetch: {err:?}");
+            error!("[forensics] Artemis failed to parse Prefetch: {err:?}");
             return Err(WinArtifactError::Prefetch);
         }
     };
@@ -49,7 +49,7 @@ pub(crate) fn prefetch(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize prefetch: {err:?}");
+            error!("[forensics] Failed to serialize prefetch: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -69,7 +69,7 @@ pub(crate) fn eventlogs(
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Artemis failed to parse EventLogs: {err:?}");
+            error!("[forensics] Artemis failed to parse EventLogs: {err:?}");
             return Err(WinArtifactError::EventLogs);
         }
     };
@@ -87,7 +87,7 @@ pub(crate) fn registry(
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Failed to parse Registry: {err:?}");
+            error!("[forensics] Failed to parse Registry: {err:?}");
             return Err(WinArtifactError::Registry);
         }
     }
@@ -105,7 +105,7 @@ pub(crate) fn raw_filelist(
     match result {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Failed to parse NTFS: {err:?}");
+            error!("[forensics] Failed to parse NTFS: {err:?}");
             return Err(WinArtifactError::Ntfs);
         }
     }
@@ -123,7 +123,7 @@ pub(crate) fn shimdb(
     let sdb_data = match shimdb_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Shimdb: {err:?}");
+            error!("[forensics] Artemis failed to parse Shimdb: {err:?}");
             return Err(WinArtifactError::Shimdb);
         }
     };
@@ -132,7 +132,7 @@ pub(crate) fn shimdb(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Shimdb: {err:?}");
+            error!("[forensics] Failed to serialize Shimdb: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -153,7 +153,7 @@ pub(crate) fn userassist(
     let assist_data = match assist_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse UserAssist: {err:?}");
+            error!("[forensics] Artemis failed to parse UserAssist: {err:?}");
             return Err(WinArtifactError::UserAssist);
         }
     };
@@ -162,7 +162,7 @@ pub(crate) fn userassist(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize UserAssist: {err:?}");
+            error!("[forensics] Failed to serialize UserAssist: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -182,7 +182,7 @@ pub(crate) fn shimcache(
     let shim_data = match shim_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Shimcache: {err:?}");
+            error!("[forensics] Artemis failed to parse Shimcache: {err:?}");
             return Err(WinArtifactError::Shimcache);
         }
     };
@@ -191,7 +191,7 @@ pub(crate) fn shimcache(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Shimcache: {err:?}");
+            error!("[forensics] Failed to serialize Shimcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -212,7 +212,7 @@ pub(crate) fn shellbags(
     match artifact_result {
         Ok(mut result) => entries.append(&mut result),
         Err(err) => {
-            error!("[core] Artemis failed to parse Shellbags: {err:?}");
+            error!("[forensics] Artemis failed to parse Shellbags: {err:?}");
             return Err(WinArtifactError::Shellbag);
         }
     }
@@ -221,7 +221,7 @@ pub(crate) fn shellbags(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Shellbags: {err:?}");
+            error!("[forensics] Failed to serialize Shellbags: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -242,7 +242,7 @@ pub(crate) fn amcache(
     match artifact_result {
         Ok(mut result) => entries.append(&mut result),
         Err(err) => {
-            error!("[core] Artemis failed to parse Amcache: {err:?}");
+            error!("[forensics] Artemis failed to parse Amcache: {err:?}");
             return Err(WinArtifactError::Amcache);
         }
     }
@@ -251,7 +251,7 @@ pub(crate) fn amcache(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize Amcache: {err:?}");
+            error!("[forensics] Failed to serialize Amcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -271,7 +271,7 @@ pub(crate) fn shortcuts(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Artemis failed to parse Shortcut data: {err:?}");
+            error!("[forensics] Artemis failed to parse Shortcut data: {err:?}");
             return Err(WinArtifactError::Shortcuts);
         }
     };
@@ -280,7 +280,7 @@ pub(crate) fn shortcuts(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize shortcuts: {err:?}");
+            error!("[forensics] Failed to serialize shortcuts: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -300,7 +300,7 @@ pub(crate) fn usnjrnl(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Artemis failed to parse UsnJrnl data: {err:?}");
+            error!("[forensics] Artemis failed to parse UsnJrnl data: {err:?}");
             return Err(WinArtifactError::UsnJrnl);
         }
     };
@@ -309,7 +309,7 @@ pub(crate) fn usnjrnl(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize usnjrnl: {err:?}");
+            error!("[forensics] Failed to serialize usnjrnl: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -329,7 +329,7 @@ pub(crate) fn bits(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Artemis failed to parse Bits data: {err:?}");
+            error!("[forensics] Artemis failed to parse Bits data: {err:?}");
             return Err(WinArtifactError::Bits);
         }
     };
@@ -338,7 +338,7 @@ pub(crate) fn bits(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize bits: {err:?}");
+            error!("[forensics] Failed to serialize bits: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -356,7 +356,7 @@ pub(crate) fn srum(
     match artifact_result {
         Ok(_) => (),
         Err(err) => {
-            error!("[core] Artemis failed to parse SRUM data: {err:?}");
+            error!("[forensics] Artemis failed to parse SRUM data: {err:?}");
             return Err(WinArtifactError::Srum);
         }
     };
@@ -373,7 +373,7 @@ pub(crate) fn search(
     match artifact_result {
         Ok(_) => (),
         Err(err) => {
-            error!("[core] Artemis failed to parse Search data: {err:?}");
+            error!("[forensics] Artemis failed to parse Search data: {err:?}");
             return Err(WinArtifactError::Search);
         }
     };
@@ -392,7 +392,7 @@ pub(crate) fn users_windows(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Artemis failed to parse User info: {err:?}");
+            error!("[forensics] Artemis failed to parse User info: {err:?}");
             return Err(WinArtifactError::Users);
         }
     };
@@ -400,7 +400,7 @@ pub(crate) fn users_windows(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize users: {err:?}");
+            error!("[forensics] Failed to serialize users: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -420,7 +420,7 @@ pub(crate) fn tasks(
     let task_data = match task_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Tasks: {err:?}");
+            error!("[forensics] Artemis failed to parse Tasks: {err:?}");
             return Err(WinArtifactError::Tasks);
         }
     };
@@ -429,7 +429,7 @@ pub(crate) fn tasks(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize tasks: {err:?}");
+            error!("[forensics] Failed to serialize tasks: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -450,7 +450,7 @@ pub(crate) fn services(
     let service_data = match service_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Services: {err:?}");
+            error!("[forensics] Artemis failed to parse Services: {err:?}");
             return Err(WinArtifactError::Services);
         }
     };
@@ -459,7 +459,7 @@ pub(crate) fn services(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize services: {err:?}");
+            error!("[forensics] Failed to serialize services: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -480,7 +480,7 @@ pub(crate) fn jumplists(
     let jumplist_data = match jumplist_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Jumplists: {err:?}");
+            error!("[forensics] Artemis failed to parse Jumplists: {err:?}");
             return Err(WinArtifactError::Jumplists);
         }
     };
@@ -489,7 +489,7 @@ pub(crate) fn jumplists(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize jumplists: {err:?}");
+            error!("[forensics] Failed to serialize jumplists: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -510,7 +510,7 @@ pub(crate) fn recycle_bin(
     let bin_data = match bin_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Recycle Bin: {err:?}");
+            error!("[forensics] Artemis failed to parse Recycle Bin: {err:?}");
             return Err(WinArtifactError::RecycleBin);
         }
     };
@@ -519,7 +519,7 @@ pub(crate) fn recycle_bin(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize recycle bin: {err:?}");
+            error!("[forensics] Failed to serialize recycle bin: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -540,7 +540,7 @@ pub(crate) fn wmi_persist(
     let wmi_data = match wmi_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse WMI Persistence: {err:?}");
+            error!("[forensics] Artemis failed to parse WMI Persistence: {err:?}");
             return Err(WinArtifactError::WmiPersist);
         }
     };
@@ -549,7 +549,7 @@ pub(crate) fn wmi_persist(
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize recycle bin: {err:?}");
+            error!("[forensics] Failed to serialize recycle bin: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
@@ -568,7 +568,7 @@ pub(crate) fn outlook(
     match outlook_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse Outlook: {err:?}");
+            error!("[forensics] Artemis failed to parse Outlook: {err:?}");
             return Err(WinArtifactError::Outlook);
         }
     };
@@ -586,7 +586,7 @@ pub(crate) fn mft(
     match mft_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Artemis failed to parse MFT: {err:?}");
+            error!("[forensics] Artemis failed to parse MFT: {err:?}");
             return Err(WinArtifactError::Mft);
         }
     };
@@ -604,7 +604,10 @@ pub(crate) fn output_data(
 ) -> Result<(), WinArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(WinArtifactError::Output);
     }
     Ok(())

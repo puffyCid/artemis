@@ -61,7 +61,7 @@ pub(crate) fn api_upload(
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[core] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
+                    "[forensics] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
                 );
                 // Pause for 6 seconds between each attempt
                 sleep(Duration::from_secs(pause));

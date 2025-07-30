@@ -20,7 +20,7 @@ pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), 
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[core] Failed to serialize connections: {err:?}");
+            error!("[forensics] Failed to serialize connections: {err:?}");
             return Err(ConnectionsError::Serialize);
         }
     };
@@ -39,7 +39,10 @@ pub(crate) fn output_data(
 ) -> Result<(), ConnectionsError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
     if status.is_err() {
-        error!("[core] Could not output data: {:?}", status.unwrap_err());
+        error!(
+            "[forensics] Could not output data: {:?}",
+            status.unwrap_err()
+        );
         return Err(ConnectionsError::OutputData);
     }
     Ok(())

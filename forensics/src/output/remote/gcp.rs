@@ -38,13 +38,16 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to upload data to GCP storage: {err:?}");
+            error!("[forensics] Failed to upload data to GCP storage: {err:?}");
             let attempt = 0;
             return gcp_resume_upload(&session_uri, data, attempt);
         }
     };
     if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
-        error!("[core] Non-200 response from GCP storage: {:?}", res.text());
+        error!(
+            "[forensics] Non-200 response from GCP storage: {:?}",
+            res.text()
+        );
         let attempt = 0;
         return gcp_resume_upload(&session_uri, data, attempt);
     }
@@ -54,15 +57,18 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
             let upload_status: Result<UploadResponse, Error> = serde_json::from_slice(&result);
             match upload_status {
                 Ok(status) => {
-                    info!("[core] Uploaded {} at {}", status.name, status.time_created);
+                    info!(
+                        "[forensics] Uploaded {} at {}",
+                        status.name, status.time_created
+                    );
                 }
                 Err(err) => {
-                    warn!("[core] Got non-standard upload response: {err:?}");
+                    warn!("[forensics] Got non-standard upload response: {err:?}");
                 }
             }
         }
         Err(err) => {
-            warn!("[core] Could not get bytes of OK response: {err:?}");
+            warn!("[forensics] Could not get bytes of OK response: {err:?}");
         }
     }
 
@@ -116,13 +122,13 @@ pub(crate) fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError>
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to establish Google Cloud Session: {err:?}");
+            error!("[forensics] Failed to establish Google Cloud Session: {err:?}");
             return Err(RemoteError::RemoteUpload);
         }
     };
     if res.status() != StatusCode::OK {
         error!(
-            "[core] Non-200 response from Google Cloud Session: {:?}",
+            "[forensics] Non-200 response from Google Cloud Session: {:?}",
             res.text()
         );
         return Err(RemoteError::BadResponse);
@@ -132,14 +138,14 @@ pub(crate) fn gcp_session(url: &str, token: &str) -> Result<String, RemoteError>
         let session = match session_res {
             Ok(result) => result.to_string(),
             Err(err) => {
-                error!("[core] Could not get Session URI string: {err:?}");
+                error!("[forensics] Could not get Session URI string: {err:?}");
                 return Err(RemoteError::BadResponse);
             }
         };
         return Ok(session);
     }
 
-    error!("[core] No Location header in response");
+    error!("[forensics] No Location header in response");
     Err(RemoteError::BadResponse)
 }
 
@@ -152,7 +158,7 @@ fn gcp_resume_upload(
     let max = 15;
 
     if max_attempts > max {
-        error!("[core] Max attempts reached for uploading to Google Cloud");
+        error!("[forensics] Max attempts reached for uploading to Google Cloud");
         return Err(RemoteError::MaxAttempts);
     }
     let client = Client::new();
@@ -183,7 +189,7 @@ fn gcp_resume_upload(
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not upload to GCP storage: {err:?}. Attempting again");
+            error!("[forensics] Could not upload to GCP storage: {err:?}. Attempting again");
             let try_again: u8 = 1;
             let attempt = try_again + max_attempts;
             return gcp_resume_upload(session_uri, output_data, attempt);
@@ -191,7 +197,7 @@ fn gcp_resume_upload(
     };
     if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
         error!(
-            "[core] Non-200 response from GCP storage: {:?}. Attempting again",
+            "[forensics] Non-200 response from GCP storage: {:?}. Attempting again",
             res.text()
         );
         let try_again: u8 = 1;
@@ -213,7 +219,7 @@ pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isiz
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to check upload status: {err:?}");
+            error!("[forensics] Failed to check upload status: {err:?}");
             return Err(RemoteError::RemoteUpload);
         }
     };
@@ -225,7 +231,7 @@ pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isiz
 
     if res.status() != StatusCode::PERMANENT_REDIRECT {
         error!(
-            "[core] Unknown response received from Google Cloud when checking status: {:?}",
+            "[forensics] Unknown response received from Google Cloud when checking status: {:?}",
             res.text()
         );
         return Err(RemoteError::BadResponse);
@@ -236,7 +242,7 @@ pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isiz
         let session = match session_res {
             Ok(result) => result.to_string(),
             Err(err) => {
-                error!("[core] Could not get Session URI string: {err:?}");
+                error!("[forensics] Could not get Session URI string: {err:?}");
                 return Err(RemoteError::BadResponse);
             }
         };
@@ -244,7 +250,7 @@ pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isiz
         let upper_bytes: Vec<&str> = session.split('-').collect();
         let expected_len = 2;
         if upper_bytes.len() != expected_len {
-            error!("[core] Unexpected Range header response: {session}");
+            error!("[forensics] Unexpected Range header response: {session}");
             return Err(RemoteError::BadResponse);
         }
 
@@ -252,7 +258,7 @@ pub(crate) fn gcp_get_upload_status(url: &str, upload_size: &str) -> Result<isiz
         let bytes = match bytes_res {
             Ok(results) => results,
             Err(err) => {
-                error!("[core] Could not parse uploaded bytes status: {err:?}");
+                error!("[forensics] Could not parse uploaded bytes status: {err:?}");
                 return Err(RemoteError::BadResponse);
             }
         };
@@ -286,7 +292,7 @@ pub(crate) fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
     let priv_key = match priv_key_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not base64 decode GCP key: {err:?}");
+            error!("[forensics] Could not base64 decode GCP key: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };
@@ -294,7 +300,7 @@ pub(crate) fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
     let gcp_key: GcpKey = match gcp_key_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not parse GCP key json: {err:?}");
+            error!("[forensics] Could not parse GCP key json: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };
@@ -317,7 +323,7 @@ pub(crate) fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
     let encoding = match encoding_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not creating encoding from Private Key: {err:?}");
+            error!("[forensics] Could not creating encoding from Private Key: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };
@@ -325,7 +331,7 @@ pub(crate) fn create_jwt_gcp(key: &str) -> Result<String, RemoteError> {
     let token = match token_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not create token from encoding: {err:?}");
+            error!("[forensics] Could not create token from encoding: {err:?}");
             return Err(RemoteError::RemoteApiKey);
         }
     };
