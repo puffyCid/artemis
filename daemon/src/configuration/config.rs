@@ -54,7 +54,7 @@ impl ConfigEndpoint for DaemonConfig {
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok response");
+            error!("[daemon] Got non-Ok config response");
             return Err(ConfigError::ConfigNotOk);
         }
 

@@ -1,4 +1,4 @@
 [daemon]
 endpoint_id = "my important key"
-collection_storage = "/var/artemis/collections"
+collection_path = "/var/artemis/collections"
 log_level = "warn"

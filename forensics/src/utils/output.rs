@@ -48,7 +48,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Remote);
             }
         },
-        "api" => match api_upload(artifact_data, output, output_name, false) {
+        "api" => match api_upload(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to API server: {err:?}");

@@ -5,7 +5,7 @@ use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Lines},
 };
 
 #[derive(Deserialize, Debug)]
@@ -34,13 +34,67 @@ impl LoggingEndpoint for DaemonConfig {
             self.server.server.version,
             self.server.server.logging
         );
-
-        let log_request = LoggingRequest {
-            endpoint_id: self.client.daemon.endpoint_id.clone(),
-            logs: read_log(&format!("{}/daemon.log", self.server.log_path))?,
-        };
+        println!("{url}");
+        let log_path = format!("{}/daemon.log", self.server.log_path);
+        let mut lines = read_log(&log_path)?;
 
         let client = Client::new();
+
+        let mut messages = Vec::new();
+
+        let limit = 200;
+        while let Some(Ok(line)) = lines.next() {
+            messages.push(line);
+
+            if messages.len() == limit {
+                let log_request = LoggingRequest {
+                    endpoint_id: self.client.daemon.endpoint_id.clone(),
+                    logs: messages,
+                };
+
+                let mut builder = client.post(&url).json(&log_request);
+                builder = builder.header("accept", "application/json");
+                let res = match builder.send() {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[daemon] Failed to send request for log upload: {err:?}");
+                        return Err(LoggingError::FailedUpload);
+                    }
+                };
+                if res.status() == StatusCode::BAD_REQUEST {
+                    let message = bad_request(&res.bytes().unwrap_or_default());
+                    error!("[daemon] Log request was bad: {}", message.message);
+                    return Err(LoggingError::FailedUpload);
+                }
+
+                if res.status() != StatusCode::OK {
+                    error!("[daemon] Got non-Ok logging response");
+                    return Err(LoggingError::UploadNotOk);
+                }
+
+                let bytes = match res.bytes() {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("[daemon] Failed to get config bytes: {err:?}");
+                        return Err(LoggingError::FailedUpload);
+                    }
+                };
+
+                if let Err(err) = serde_json::from_slice::<LoggingResponse>(&bytes) {
+                    error!("[daemon] Failed to serialize config response: {err:?}");
+                    return Err(LoggingError::UploadBadResponse);
+                }
+
+                messages = Vec::new();
+            }
+        }
+
+        // Send any remaining logs event if messages is empty
+        let log_request = LoggingRequest {
+            endpoint_id: self.client.daemon.endpoint_id.clone(),
+            logs: messages,
+        };
+
         let mut builder = client.post(&url).json(&log_request);
         builder = builder.header("accept", "application/json");
         let res = match builder.send() {
@@ -57,7 +111,7 @@ impl LoggingEndpoint for DaemonConfig {
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok response");
+            error!("[daemon] Got non-Ok logging response");
             return Err(LoggingError::UploadNotOk);
         }
 
@@ -69,7 +123,7 @@ impl LoggingEndpoint for DaemonConfig {
             }
         };
 
-        let config_data: LoggingResponse = match serde_json::from_slice(&bytes) {
+        let log_response = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
                 error!("[daemon] Failed to serialize config response: {err:?}");
@@ -77,12 +131,15 @@ impl LoggingEndpoint for DaemonConfig {
             }
         };
 
-        Ok(config_data)
+        // Upload was successful. We clear the log to prevent duplicate entries from getting uploaded again
+        clear_log(&log_path)?;
+
+        Ok(log_response)
     }
 }
 
 /// Read the daemon.log file
-fn read_log(path: &str) -> Result<Vec<String>, LoggingError> {
+fn read_log(path: &str) -> Result<Lines<BufReader<File>>, LoggingError> {
     let reader = match File::open(path) {
         Ok(result) => result,
         Err(err) => {
@@ -91,25 +148,25 @@ fn read_log(path: &str) -> Result<Vec<String>, LoggingError> {
         }
     };
     let buf_reader = BufReader::new(reader);
-    let mut lines = buf_reader.lines();
-    let mut messages = Vec::new();
+    let lines = buf_reader.lines();
 
-    let limit = 2000;
-    while let Some(Ok(line)) = lines.next() {
-        messages.push(line);
+    Ok(lines)
+}
 
-        // If we have more than 2000 lines. Only keep the last 1000
-        if messages.len() > limit {
-            messages = messages[999..].to_vec();
-        }
+/// When we upload log data to the server. We can clear the log
+fn clear_log(path: &str) -> Result<(), LoggingError> {
+    if let Err(err) = File::create(path) {
+        error!("[daemon] Failed to clear log file {path}: {err:?}");
+        return Err(LoggingError::ClearLog);
     }
-    Ok(messages)
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        logging::logs::{LoggingEndpoint, read_log},
+        logging::logs::{LoggingEndpoint, clear_log, read_log},
         start::DaemonConfig,
         utils::config::{Daemon, DaemonToml, server},
     };
@@ -165,7 +222,13 @@ mod tests {
         warn!("test warning");
 
         let lines = read_log("./tmp/artemis/daemon2.log").unwrap();
-        assert_eq!(lines.len(), 1);
+        assert_eq!(lines.count(), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "ClearLog")]
+    fn test_clear_log() {
+        clear_log("./tmp/artemis/asdfasf/daemon.log").unwrap();
     }
 
     #[test]

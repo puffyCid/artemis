@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum ConfigError {
+pub(crate) enum ConfigError {
     FailedConfig,
     BadConfig,
     ConfigNotOk,

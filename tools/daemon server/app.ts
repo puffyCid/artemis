@@ -4,6 +4,7 @@ import fastifyMultipart from "@fastify/multipart";
 import { BadReqestType, BadRequest, Enroll, enrollEndpoint, EnrollReponseType, EnrollResponse, EnrollType } from "./enrollment/enroll";
 import { Config, configEndpoint, ConfigResponse, ConfigType, ConfigTypeResponse } from "./configuration/config";
 import { Collect, collectionEndpoint, collectionUploadEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
+import { loggingEndpoint, LogsResponse, LogsResponseType, LogsType } from "./logging/logs";
 
 export async function setupFastify(): Promise<FastifyInstance> {
     const server = fastify();
@@ -48,6 +49,25 @@ export async function setupFastify(): Promise<FastifyInstance> {
             done();
         },
     }, configEndpoint);
+
+    /** Handle logging requests */
+    server.post<{ Body: LogsType, Reply: LogsResponseType | BadReqestType; }>("/v1/endpoint/logging", {
+        schema: {
+            body: Config,
+            response: {
+                200: LogsResponse,
+                400: BadRequest,
+            }
+        },
+        preValidation: (request, reply, done) => {
+            console.log(request.body);
+            if (request.body.endpoint_id === undefined) {
+                reply.statusCode = 400;
+                reply.send({ message: "Bad log upload", endpoint_invalid: false });
+            }
+            done();
+        },
+    }, loggingEndpoint);
 
     /** Handle collection requests */
     server.post<{ Body: CollectType, Reply: CollectTypeResponse | BadReqestType; }>("/v1/endpoint/collections", {

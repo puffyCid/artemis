@@ -1,11 +1,12 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum LoggingError {
+pub(crate) enum LoggingError {
     FailedUpload,
     OpenFile,
     UploadNotOk,
     UploadBadResponse,
+    ClearLog,
 }
 
 impl std::error::Error for LoggingError {}
@@ -17,6 +18,7 @@ impl fmt::Display for LoggingError {
             LoggingError::OpenFile => write!(f, "Failed to open log file"),
             LoggingError::UploadNotOk => write!(f, "Server did not like log file upload"),
             LoggingError::UploadBadResponse => write!(f, "Server provided bad response"),
+            LoggingError::ClearLog => write!(f, "Could not clear the log file"),
         }
     }
 }

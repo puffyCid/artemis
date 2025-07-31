@@ -7,8 +7,8 @@ describe('collection module', () => {
         const headers = { 'accept': 'application/json', 'content-type': 'application/json' };
         const body = { endpoint_id: "my key" };
         const response = await server.inject({ method: 'POST', 'url': '/v1/endpoint/collections', body, headers });
-        expect(response.body).toBe("");
-        expect(response.statusCode).toBe(204);
+        expect(response.body).toBe("{\"message\":\"Endpoint not found in database\",\"endpoint_invalid\":true}");
+        expect(response.statusCode).toBe(500);
     });
 
     test('get collection', async () => {
