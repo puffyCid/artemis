@@ -34,7 +34,6 @@ impl LoggingEndpoint for DaemonConfig {
             self.server.server.version,
             self.server.server.logging
         );
-        println!("{url}");
         let log_path = format!("{}/daemon.log", self.server.log_path);
         let mut lines = read_log(&log_path)?;
 

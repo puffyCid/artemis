@@ -61,10 +61,29 @@ fn start(config: &mut DaemonConfig) {
 
     let pause = 8;
     let collection_poll = 60;
+    let mut log_counter = 0;
+    let long_pause = 300;
     loop {
-        if count == max_attempts {
-            let long_pause = 300;
+        // Upload any logs accumulated
+        if log_counter > long_pause {
+            log_counter = 0;
+            let log_status = match config.log_upload() {
+                Ok(result) => result,
+                Err(_err) => {
+                    count += 1;
+                    sleep(Duration::from_secs(pause));
+                    continue;
+                }
+            };
 
+            // If server responded with invalid endpoint, we have to re-enroll
+            if log_status.endpoint_invalid {
+                setup_enrollment(config);
+                continue;
+            }
+        }
+
+        if count == max_attempts {
             sleep(Duration::from_secs(long_pause));
             count = 0;
         }
@@ -72,6 +91,7 @@ fn start(config: &mut DaemonConfig) {
             Ok(result) => result,
             Err(_err) => {
                 count += 1;
+                log_counter += pause;
                 sleep(Duration::from_secs(pause));
                 continue;
             }
@@ -88,10 +108,7 @@ fn start(config: &mut DaemonConfig) {
 
         // While thread is running continue to poll the server
         while !handle.is_finished() {
-            println!("{}", handle.is_finished());
-
             if count == max_attempts {
-                println!("long pause?");
                 let long_pause = 300;
 
                 sleep(Duration::from_secs(long_pause));
@@ -115,13 +132,14 @@ fn start(config: &mut DaemonConfig) {
             // Next poll will be in 60 seconds
             sleep(Duration::from_secs(collection_poll));
         }
-        println!("log upload?");
+
         let _ = handle.join();
         // Upload any logs from the collection
         let log_status = match config.log_upload() {
             Ok(result) => result,
             Err(_err) => {
                 count += 1;
+                log_counter += pause;
                 sleep(Duration::from_secs(pause));
                 continue;
             }
@@ -132,6 +150,7 @@ fn start(config: &mut DaemonConfig) {
             setup_enrollment(config);
             continue;
         }
+        log_counter = 0;
 
         // Next poll will be in 60 seconds
         sleep(Duration::from_secs(collection_poll));
