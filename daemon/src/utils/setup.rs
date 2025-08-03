@@ -85,18 +85,25 @@ pub(crate) fn setup_config(config: &mut DaemonConfig) {
     let toml_bytes = match base64_decode_standard(&daemon_config.config) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Could not decode daemon config: {err:?}. Will use default config");
+            error!(
+                "[daemon] Could not decode daemon toml config: {err:?}. Will use default config"
+            );
             return setup_daemon(config);
         }
     };
 
-    let toml_config: DaemonToml = match toml::from_str(from_utf8(&toml_bytes).unwrap_or_default()) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[daemon] Could not parse toml daemon config: {err:?}. Will use default config");
-            return setup_daemon(config);
-        }
-    };
+    let mut toml_config: DaemonToml =
+        match toml::from_str(from_utf8(&toml_bytes).unwrap_or_default()) {
+            Ok(result) => result,
+            Err(err) => {
+                error!(
+                    "[daemon] Could not parse daemon toml config: {err:?}. Will use default config"
+                );
+                return setup_daemon(config);
+            }
+        };
+
+    toml_config.daemon.endpoint_id = config.client.daemon.endpoint_id.clone();
 
     config.client = toml_config;
     setup_daemon(config);

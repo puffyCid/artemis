@@ -1,7 +1,7 @@
 use std::fmt;
 
-#[derive(Debug)]
-pub enum CollectError {
+#[derive(Debug, PartialEq)]
+pub(crate) enum CollectError {
     FailedCollect,
     BadCollect,
     CollectNotOk,

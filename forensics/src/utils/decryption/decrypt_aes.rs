@@ -24,7 +24,7 @@ pub(crate) fn decrypt_aes_data(
     let decrypt = match decrypt_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Failed to decrypt data: {err:?}");
+            error!("[forensics] Failed to decrypt data: {err:?}");
             return Err(DecryptError::AesDecrypt);
         }
     };

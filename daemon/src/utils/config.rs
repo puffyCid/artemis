@@ -1,10 +1,11 @@
 use super::{
-    error::ConfigError,
     info::{PlatformType, get_platform_enum},
+    logging::setup_logging,
 };
 use crate::{error::DaemonError, utils::env::get_env_value};
 use log::error;
 use serde::{Deserialize, Serialize};
+use simplelog::{ConfigBuilder, WriteLogger};
 use std::{
     fs::{create_dir_all, read, write},
     str::from_utf8,
@@ -13,6 +14,8 @@ use std::{
 #[derive(Deserialize, Debug)]
 pub(crate) struct ServerToml {
     pub(crate) server: Server,
+    pub(crate) log_path: String,
+    pub(crate) log_level: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -23,15 +26,16 @@ pub(crate) struct Server {
     pub(crate) enrollment: String,
     pub(crate) collections: String,
     pub(crate) config: String,
+    pub(crate) logging: String,
     pub(crate) version: u8,
     pub(crate) key: String,
 }
 
 /// Parse the provided `Server` TOML config file
-pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, ConfigError> {
+pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, DaemonError> {
     let bytes = match read_file(path) {
         Ok(result) => result,
-        Err(_err) => return Err(ConfigError::BadToml),
+        Err(_err) => return Err(DaemonError::BadToml),
     };
 
     let mut default_path = String::from("/var/artemis");
@@ -40,7 +44,7 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, C
         default_path = format!("{}\\artemis", get_env_value("ProgramData"));
         if default_path == "\\artemis" && alt_base.is_none() {
             error!("[daemon] Failed to find ProgramData env value and alt_base is none");
-            return Err(ConfigError::NoPath);
+            return Err(DaemonError::NoPath);
         }
     }
 
@@ -54,9 +58,13 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, C
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Failed to parse server config {path}: {err:?}");
-            return Err(ConfigError::BadToml);
+            return Err(DaemonError::BadToml);
         }
     };
+
+    let (log_file, level) = setup_logging(&config)?;
+    let log_config = ConfigBuilder::new().set_time_format_rfc3339().build();
+    let _ = WriteLogger::init(level, log_config, log_file);
 
     Ok(config)
 }
@@ -78,7 +86,7 @@ pub(crate) struct Daemon {
 pub(crate) fn daemon(
     config: &mut DaemonToml,
     alt_artemis_path: Option<&str>,
-) -> Result<(), ConfigError> {
+) -> Result<(), DaemonError> {
     let mut collect_path = String::from("/var/artemis/collections");
     let mut artemis_path = String::from("/var/artemis");
 
@@ -86,7 +94,7 @@ pub(crate) fn daemon(
         let programdata = get_env_value("ProgramData");
         if programdata.is_empty() && alt_artemis_path.is_none() {
             error!("[daemon] Failed to find ProgramData env value and alt path is none");
-            return Err(ConfigError::NoPath);
+            return Err(DaemonError::NoPath);
         }
 
         collect_path = format!("{programdata}\\artemis\\collections");
@@ -112,7 +120,7 @@ pub(crate) fn daemon(
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Failed to parse daemon config: {err:?}");
-            return Err(ConfigError::BadToml);
+            return Err(DaemonError::BadToml);
         }
     };
 
@@ -122,7 +130,7 @@ pub(crate) fn daemon(
         &format!("{artemis_path}/daemon.toml"),
     ) {
         error!("[daemon] Could not write daemon TOML file at {artemis_path}: {status:?}");
-        return Err(ConfigError::DaemonTomlWrite);
+        return Err(DaemonError::DaemonTomlWrite);
     }
 
     Ok(())

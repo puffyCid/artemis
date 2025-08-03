@@ -27,7 +27,7 @@ export async function configEndpoint(request: FastifyRequest<{ Body: ConfigType;
         reply.send({ message: `Endpoint not found in database`, endpoint_invalid: true });
         return;
     }
-    const toml = "W2RhZW1vbl0Kbm9kZV9rZXkgPSAibXkgaW1wb3J0YW50IGtleSIKY29sbGVjdGlvbl9zdG9yYWdlID0gIi92YXIvYXJ0ZW1pcy9jb2xsZWN0aW9ucyIKbG9nX2xldmVsID0gIndhcm4iCg==";
+    const toml = "W2RhZW1vbl0KZW5kcG9pbnRfaWQgPSAibXkgaW1wb3J0YW50IGtleSIKY29sbGVjdGlvbl9wYXRoID0gIi92YXIvYXJ0ZW1pcy9jb2xsZWN0aW9ucyIKbG9nX2xldmVsID0gIndhcm4iCg==";
 
     reply.statusCode = 200;
     reply.send({ config: toml, endpoint_invalid: false });

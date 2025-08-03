@@ -37,6 +37,7 @@ pub(crate) enum PlatformType {
     Windows,
     Unknown,
 }
+
 /// Get endpoint platform type enum. Use `get_platform` if you want a string.
 pub(crate) fn get_platform_enum() -> PlatformType {
     let plat =

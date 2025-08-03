@@ -35,7 +35,7 @@ chrono = "0.4.41"
 simplelog = "0.12.2"
 zip = { version = "4.3.0", default-features = false }
 jsonwebtoken = "9.3.1"
-rusty-s3 = "0.7.0"
+rusty-s3 = "0.8.0"
 quick-xml = { version = "0.38.0", default-features = false }
 xml2json-rs = "1.0.1"
 evtx = { version = "0.8.5", default-features = false, features = [
@@ -85,7 +85,7 @@ ntapi = "0.4.1"
 # Dependencies for tests
 [dev-dependencies]
 httpmock = "0.7.0"
-criterion = "0.6.0"
+criterion = "0.7.0"
 
 [build-dependencies]
 vergen = { version = "9.0.6", features = ["build", "rustc"] }

@@ -60,7 +60,7 @@ impl CollectEndpoint for DaemonConfig {
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok response");
+            error!("[daemon] Got non-Ok collection response");
             return Err(CollectError::CollectNotOk);
         }
 

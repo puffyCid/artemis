@@ -29,7 +29,7 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not read XML file at {path}: {err:?}");
+            error!("[forensics] Could not read XML file at {path}: {err:?}");
             return Err(ArtemisError::ReadXml);
         }
     };
@@ -38,7 +38,7 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     let (data, utf_status) = match utf_check {
         Ok(result) => result,
         Err(_err) => {
-            error!("[core] Could not determine UTF encoding for XML {path}");
+            error!("[forensics] Could not determine UTF encoding for XML {path}");
             return Err(ArtemisError::UtfType);
         }
     };
@@ -60,7 +60,7 @@ pub(crate) fn parse_protobuf(data: &[u8]) -> Result<HashMap<usize, ProtoTag>, Ar
     let result = match extract_protobuf(data) {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not parse protobuf: {err:?}");
+            error!("[forensics] Could not parse protobuf: {err:?}");
             return Err(ArtemisError::Protobuf);
         }
     };

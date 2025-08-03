@@ -23,35 +23,35 @@ pub(crate) fn final_output(
         "local" => match local_output(artifact_data, output, output_name, &output.format) {
             Ok(_) => {}
             Err(err) => {
-                error!("[core] Failed to output to local system: {err:?}");
+                error!("[forensics] Failed to output to local system: {err:?}");
                 return Err(ArtemisError::Local);
             }
         },
         "gcp" => match gcp_upload(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
-                error!("[core] Failed to upload to Google Cloud Storage: {err:?}");
+                error!("[forensics] Failed to upload to Google Cloud Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
         "azure" => match azure_upload(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
-                error!("[core] Failed to upload to Azure Blog Storage: {err:?}");
+                error!("[forensics] Failed to upload to Azure Blog Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
         "aws" => match aws_upload(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
-                error!("[core] Failed to upload to AWS S3 Bucket: {err:?}");
+                error!("[forensics] Failed to upload to AWS S3 Bucket: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "api" => match api_upload(artifact_data, output, output_name, false) {
+        "api" => match api_upload(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
-                error!("[core] Failed to upload to API server: {err:?}");
+                error!("[forensics] Failed to upload to API server: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
@@ -70,7 +70,7 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
     match zip_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Failed to zip output directory: {err:?}. DID NOT DELETE OUTPUT.");
+            error!("[forensics] Failed to zip output directory: {err:?}. DID NOT DELETE OUTPUT.");
             return Err(ArtemisError::Cleanup);
         }
     }
@@ -99,7 +99,7 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
         }
         Err(err) => {
             error!(
-                "[core] Failed to list files in output directory: {err:?}. DID NOT DELETE OUTPUT."
+                "[forensics] Failed to list files in output directory: {err:?}. DID NOT DELETE OUTPUT."
             );
             return Err(ArtemisError::Cleanup);
         }
@@ -109,7 +109,7 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
     match remove_status {
         Ok(_) => {}
         Err(err) => {
-            error!("[core] Failed to remove output directory: {err:?}");
+            error!("[forensics] Failed to remove output directory: {err:?}");
             return Err(ArtemisError::Cleanup);
         }
     }

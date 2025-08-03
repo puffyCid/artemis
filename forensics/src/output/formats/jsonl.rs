@@ -90,7 +90,7 @@ pub(crate) fn jsonl_format(
             let status = write_json(collection_data.as_bytes(), output, &uuid);
             if status.is_err() {
                 error!(
-                    "[core] Failed to output {output_name} data: {:?}",
+                    "[forensics] Failed to output {output_name} data: {:?}",
                     status.unwrap_err()
                 );
             }
@@ -120,7 +120,7 @@ pub(crate) fn jsonl_format(
 
         if status.is_err() {
             error!(
-                "[core] Failed to output {output_name} data: {:?}",
+                "[forensics] Failed to output {output_name} data: {:?}",
                 status.unwrap_err()
             );
         }
@@ -156,7 +156,7 @@ pub(crate) fn raw_jsonl(
         let status = write_json(collection_data.as_bytes(), output, &uuid);
         if status.is_err() {
             error!(
-                "[core] Failed to output {output_name} raw data: {:?}",
+                "[forensics] Failed to output {output_name} raw data: {:?}",
                 status.unwrap_err()
             );
         }
@@ -169,7 +169,7 @@ pub(crate) fn raw_jsonl(
 
         if status.is_err() {
             error!(
-                "[core] Failed to output {output_name} raw data: {:?}",
+                "[forensics] Failed to output {output_name} raw data: {:?}",
                 status.unwrap_err()
             );
         }
@@ -187,16 +187,16 @@ fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(),
         let compressed_data = match compressed_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[core] Failed to compress data: {err:?}");
+                error!("[forensics] Failed to compress data: {err:?}");
                 return Err(FormatError::Output);
             }
         };
 
         let output_result = final_output(&compressed_data, output, output_name);
         match output_result {
-            Ok(_) => info!("[core] {output_name} jsonl output success"),
+            Ok(_) => info!("[forensics] {output_name} jsonl output success"),
             Err(err) => {
-                error!("[core] Failed to output {output_name} jsonl: {err:?}");
+                error!("[forensics] Failed to output {output_name} jsonl: {err:?}");
                 return Err(FormatError::Output);
             }
         }
@@ -206,9 +206,9 @@ fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(),
 
     let output_result = final_output(data, output, output_name);
     match output_result {
-        Ok(_) => info!("[core] {output_name} jsonl output success"),
+        Ok(_) => info!("[forensics] {output_name} jsonl output success"),
         Err(err) => {
-            error!("[core] Failed to output {output_name} jsonl: {err:?}");
+            error!("[forensics] Failed to output {output_name} jsonl: {err:?}");
             return Err(FormatError::Output);
         }
     }
@@ -222,7 +222,7 @@ fn create_line(artifact_data: &Value) -> Result<String, FormatError> {
     let serde_collection = match serde_collection_results {
         Ok(results) => format!("{results}\n"),
         Err(err) => {
-            error!("[core] Failed to serialize jsonl output: {err:?}");
+            error!("[forensics] Failed to serialize jsonl output: {err:?}");
             return Err(FormatError::Serialize);
         }
     };

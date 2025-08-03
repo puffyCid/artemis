@@ -58,7 +58,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 
     let script_result = raw_script(&script);
     if script_result.is_err() {
-        error!("[runtime] Failed to execute js file");
+        error!("[forensics] Failed to execute js file");
         return Err(TomlError::BadJs);
     }
 
@@ -73,9 +73,9 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
 
     let result = collect(collection);
     match result {
-        Ok(_) => info!("[core] Core parsed TOML data"),
+        Ok(_) => info!("[forensics] Parsed TOML data"),
         Err(err) => {
-            error!("[core] Core failed to parse collection: {err:?}");
+            error!("[forensics] Failed to parse collection: {err:?}");
             return Err(TomlError::BadToml);
         }
     }

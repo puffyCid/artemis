@@ -1,8 +1,5 @@
 use super::error::RemoteError;
-use crate::{
-    structs::toml::Output,
-    utils::time::{time_now, unixepoch_to_iso},
-};
+use crate::structs::toml::Output;
 use log::error;
 use reqwest::{
     StatusCode,
@@ -10,14 +7,13 @@ use reqwest::{
 };
 use std::{thread::sleep, time::Duration};
 
-/// Upload data to a remote server. We use our unique endpoint ID for authentication
+/// Upload data to a remote server. For now we use our unique endpoint ID for authentication
 /// It should have been obtained from our initial enrollment when running in deamon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
     data: &[u8],
     output: &Output,
     output_name: &str,
-    complete: bool,
 ) -> Result<(), RemoteError> {
     let api_url = if let Some(url) = &output.url {
         url
@@ -40,13 +36,6 @@ pub(crate) fn api_upload(
         let mut part = multipart::Part::bytes(data.to_vec());
         part = part.file_name(output_name.to_string());
 
-        // This is the last upload associated with the collection
-        if complete {
-            builder = builder.header(
-                "x-artemis-collection-complete",
-                unixepoch_to_iso(time_now() as i64),
-            );
-        }
         if output_name.ends_with(".log") {
             // The last two uploads for collections are just plaintext log files
             part = part.mime_str("text/plain").unwrap();
@@ -61,7 +50,7 @@ pub(crate) fn api_upload(
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[core] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
+                    "[forensics] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
                 );
                 // Pause for 6 seconds between each attempt
                 sleep(Duration::from_secs(pause));
@@ -126,7 +115,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", true).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip").unwrap();
         mock_me.assert();
     }
 
@@ -146,7 +135,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip", false).unwrap();
+        api_upload(test.as_bytes(), &output, "uuid.gzip").unwrap();
         mock_me.assert();
     }
 }

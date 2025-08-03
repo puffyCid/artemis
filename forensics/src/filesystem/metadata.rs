@@ -98,7 +98,7 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystem
     let paths = match glob_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[core] Could not glob {glob_pattern}: {err:?}");
+            error!("[forensics] Could not glob {glob_pattern}: {err:?}");
             return Err(FileSystemError::BadGlob);
         }
     };

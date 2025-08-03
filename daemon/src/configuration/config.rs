@@ -13,17 +13,17 @@ pub(crate) struct ConfigResponse {
 }
 
 #[derive(Serialize, Debug)]
-pub(crate) struct ConfigRequest {
+struct ConfigRequest {
     /// Unique endpoint ID that was provided from the server upon enrollment
     endpoint_id: String,
 }
 
 pub(crate) trait ConfigEndpoint {
+    /// Send request to server for a daemon configuration
     fn config_request(&self) -> Result<ConfigResponse, ConfigError>;
 }
 
 impl ConfigEndpoint for DaemonConfig {
-    /// Send request to server for a daemon configuration
     fn config_request(&self) -> Result<ConfigResponse, ConfigError> {
         let url = format!(
             "{}:{}/v{}/{}",
@@ -54,7 +54,7 @@ impl ConfigEndpoint for DaemonConfig {
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok response");
+            error!("[daemon] Got non-Ok config response");
             return Err(ConfigError::ConfigNotOk);
         }
 

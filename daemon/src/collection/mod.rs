@@ -1,2 +1,2 @@
 pub(crate) mod collect;
-mod error;
+pub(crate) mod error;

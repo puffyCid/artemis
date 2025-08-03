@@ -71,7 +71,7 @@ impl EnrollEndpoint for DaemonConfig {
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok response");
+            error!("[daemon] Got non-Ok enrollment response");
             return Err(EnrollError::EnrollmentNotOk);
         }
 
