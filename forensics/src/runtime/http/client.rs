@@ -5,7 +5,6 @@ use crate::{
 use boa_engine::{
     Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
 };
-
 use reqwest::{ClientBuilder, RequestBuilder, redirect::Policy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

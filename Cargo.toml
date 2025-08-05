@@ -22,10 +22,10 @@ description = "A cross platform forensic parser"
 [workspace.dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
 log = "0.4.27"
-serde_json = "1.0.141"
+serde_json = "1.0.142"
 toml = "0.9.4"
 base64 = "0.22.1"
-tokio = { version = "1.47.0", features = ["full"] }
+tokio = { version = "1.47.1", features = ["full"] }
 flate2 = "1.1.2"
 glob = "0.3.2"
 reqwest = { version = "0.12.22", features = [

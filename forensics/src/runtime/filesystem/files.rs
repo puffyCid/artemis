@@ -1,10 +1,10 @@
 use super::directory::JsFileInfo;
 use crate::{
     filesystem::{
-        files::{file_extension, get_filename, hash_file, read_file, read_text_file},
+        files::{file_extension, file_lines, get_filename, hash_file, read_file, read_text_file},
         metadata::{get_metadata, get_timestamps, glob_paths},
     },
-    runtime::helper::{boolean_arg, string_arg},
+    runtime::helper::{boolean_arg, number_arg, string_arg},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 use common::files::Hashes;
@@ -138,6 +138,40 @@ pub(crate) fn js_read_text_file(
         }
     };
     Ok(JsValue::String(data.into()))
+}
+
+pub(crate) fn js_read_lines(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let path = string_arg(args, 0)?;
+    let offset = number_arg(args, 1)? as usize;
+    let limit = number_arg(args, 2)? as u64;
+
+    let reader = match file_lines(&path) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not read text {path} lines: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let mut lines = Vec::new();
+    let mut count = 0;
+    let mut start_reader = reader.skip(offset);
+    while let Some(Ok(line)) = start_reader.next() {
+        if count == limit {
+            break;
+        }
+        lines.push(line);
+        count += 1;
+    }
+
+    let data = serde_json::to_value(&lines).unwrap_or_default();
+    let value = JsValue::from_json(&data, context)?;
+
+    Ok(value)
 }
 
 /// Read a file at provided path. Currently only files smaller than 2GB can be read
@@ -310,6 +344,17 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("glob"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_read_lines() {
+        let test = "KCgpID0+IHsKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKICB2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgICBuYW1lOwogICAgbWVzc2FnZTsKICAgIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgICAgc3VwZXIoKTsKICAgICAgdGhpcy5uYW1lID0gbmFtZTsKICAgICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICAgIH0KICB9OwoKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZmlsZXN5c3RlbS9lcnJvcnMudHMKICB2YXIgRmlsZUVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2UgewogIH07CgogIC8vIC4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCiAgZnVuY3Rpb24gcmVhZExpbmVzKHBhdGgsIG9mZnNldCA9IDAsIGxpbWl0ID0gMTAwKSB7CiAgICBpZiAob2Zmc2V0IDwgMCB8fCBsaW1pdCA8IDApIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgbmVpdGhlciBvZmZzZXQgKCR7b2Zmc2V0fSkgb3IgbGltaXQgKCR7bGltaXR9KSBjYW4gYmUgbGVzcyB0aGFuIDBgKTsKICAgIH0KICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdCA9IGpzX3JlYWRfbGluZXMocGF0aCwgb2Zmc2V0LCBsaW1pdCk7CiAgICAgIHJldHVybiByZXN1bHQ7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgZmFpbGVkIHRvIHJlYWQgbGluZXMgZm9yICR7cGF0aH06ICR7ZXJyfWApOwogICAgfQogIH0KCiAgLy8gbWFpbi50cwogIGZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIi9ldGMvcmVzb2x2LmNvbmYiOwogICAgY29uc3QgbGluZXMgPSByZWFkTGluZXMocGF0aCk7CiAgICBpZiAobGluZXMgaW5zdGFuY2VvZiBGaWxlRXJyb3IpIHsKICAgICAgcmV0dXJuOwogICAgfQogICAgY29uc29sZS5sb2coYHJlYWQ6ICR7bGluZXMubGVuZ3RofWApOwogIH0KICBtYWluKCk7Cn0pKCk7Cg==";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("read_lines"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
