@@ -1,7 +1,7 @@
 use super::{
     acquire::js_acquire_file,
     directory::js_read_dir,
-    files::{js_glob, js_hash_file, js_read_file, js_read_text_file, js_stat},
+    files::{js_glob, js_hash_file, js_read_file, js_read_lines, js_read_text_file, js_stat},
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -47,6 +47,12 @@ pub(crate) fn filesystem_functions(context: &mut Context) {
         JsString::from("js_read_dir"),
         2,
         NativeFunction::from_fn_ptr(js_read_dir),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_lines"),
+        3,
+        NativeFunction::from_fn_ptr(js_read_lines),
     );
 }
 

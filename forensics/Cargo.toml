@@ -36,7 +36,7 @@ simplelog = "0.12.2"
 zip = { version = "4.3.0", default-features = false }
 jsonwebtoken = "9.3.1"
 rusty-s3 = "0.8.0"
-quick-xml = { version = "0.38.0", default-features = false }
+quick-xml = { version = "0.38.1", default-features = false }
 xml2json-rs = "1.0.1"
 evtx = { version = "0.8.5", default-features = false, features = [
     "multithreading",
