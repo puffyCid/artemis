@@ -3,8 +3,10 @@ use super::{
     encoding::base64_decode_standard,
 };
 use crate::{
-    collection::collect::CollectResponse, configuration::config::ConfigEndpoint,
-    enrollment::enroll::EnrollEndpoint, start::DaemonConfig,
+    collection::collect::{CollectResponse, CollectionStatus},
+    configuration::config::ConfigEndpoint,
+    enrollment::enroll::EnrollEndpoint,
+    start::DaemonConfig,
 };
 use log::error;
 use std::{str::from_utf8, thread::sleep, time::Duration};
@@ -46,12 +48,12 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
 }
 
 /// Process our collection request
-pub(crate) fn setup_collection(collect: &CollectResponse) {
+pub(crate) fn setup_collection(collect: &CollectResponse) -> CollectionStatus {
     let collection_bytes = match base64_decode_standard(&collect.collection) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Could not decode TOML collection {err:?}");
-            return;
+            return CollectionStatus::Error;
         }
     };
 
@@ -60,12 +62,15 @@ pub(crate) fn setup_collection(collect: &CollectResponse) {
     let clean_string = collect_string.replace(" ", "");
     if !clean_string.contains("format=\"jsonl\"") && !clean_string.contains("compressed=true") {
         error!("[daemon] Invalid collection TOML. Format should be JSONL with compression");
-        return;
+        return CollectionStatus::Error;
     }
 
     if let Err(err) = forensics::core::parse_toml_data(&collection_bytes) {
         error!("[daemon] Could not process TOML collection {err:?}");
+        return CollectionStatus::Error;
     }
+
+    CollectionStatus::Complete
 }
 
 /// Get a daemon configuration from our server. If none is provided we will generate a default config

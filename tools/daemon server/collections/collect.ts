@@ -16,6 +16,7 @@ export type CollectType = Static<typeof Collect>;
 export const CollectResponse = Type.Object({
     collection: Type.String(),
     endpoint_invalid: Type.Boolean(),
+    collection_id: Type.Number(),
 });
 
 export type CollectTypeResponse = Static<typeof CollectResponse>;
@@ -44,7 +45,7 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
         db.updateCollection(request.body.endpoint_id, script.collection_id, "Running");
 
         reply.statusCode = 200;
-        reply.send({ collection: encoded, endpoint_invalid: false });
+        reply.send({ collection: encoded, endpoint_invalid: false, collection_id: script.collection_id });
 
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -108,4 +109,41 @@ async function streamFile(part: MultipartFile, headers: IncomingHttpHeaders) {
 
     // Output files to endpoint ID and collection ID directories
     await pipeline(part.file, createWriteStream(`${collection_path}/${filename}`));
+}
+
+export const CollectStatus = Type.Object({
+    collection_status: Type.String(),
+    collection_id: Type.Number(),
+});
+
+export type CollectStatusType = Static<typeof CollectStatus>;
+
+export const CollectStatusResponse = Type.Object({
+    endpoint_invalid: Type.Boolean(),
+});
+
+export type CollectStatusTypeResponse = Static<typeof CollectStatusResponse>;
+
+/**
+ * Handle collection status requests. When artemis finishes a collection, the daemon will send a status requests signifying if the collection completed or had an error
+ * @param request Artemis request setting the status of a collection
+ * @param reply 200 OK response if we can process the collection status
+ */
+export async function collectionUploadStatusEndpoint(request: FastifyRequest<{ Body: CollectStatusType; }>, reply: FastifyReply) {
+    const db = new LocalSqlite("./build/test.db");
+    const headers = request.headers;
+
+    const endpoint_id = headers[ "x-artemis-endpoint_id" ];
+    if (typeof endpoint_id !== 'string') {
+        reply.statusCode = 400;
+        return reply.send({ message: "Missing endpoint id", endpoint_invalid: true });
+    }
+    const collection_id = request.body.collection_id;
+
+    console.log(`Collection completed at ${headers[ "x-artemis-collection-complete" ]}`);
+
+    db.updateCollection(endpoint_id, collection_id, "Complete");
+    reply.statusCode = 200;
+    return reply.send({ endpoint_invalid: false });
+
 }

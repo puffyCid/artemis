@@ -3,7 +3,7 @@ import fastifyMultipart from "@fastify/multipart";
 
 import { BadReqestType, BadRequest, Enroll, enrollEndpoint, EnrollReponseType, EnrollResponse, EnrollType } from "./enrollment/enroll";
 import { Config, configEndpoint, ConfigResponse, ConfigType, ConfigTypeResponse } from "./configuration/config";
-import { Collect, collectionEndpoint, collectionUploadEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
+import { Collect, collectionEndpoint, collectionUploadEndpoint, collectionUploadStatusEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
 import { loggingEndpoint, LogsResponse, LogsResponseType, LogsType } from "./logging/logs";
 
 export async function setupFastify(): Promise<FastifyInstance> {
@@ -103,6 +103,23 @@ export async function setupFastify(): Promise<FastifyInstance> {
             done();
         },
     }, collectionUploadEndpoint);
+
+    /** Handle collection uploads status */
+    server.post("/v1/endpoint/collections/status", {
+        schema: {
+            consumes: [ "multipart/form-data" ],
+            response: {
+                400: BadRequest,
+            }
+        },
+        preValidation: (request, reply, done) => {
+            if (request.headers[ "x-artemis-endpoint_id" ] === undefined || request.headers[ "x-artemis-endpoint_id" ] === "") {
+                reply.statusCode = 400;
+                reply.send({ message: "Bad upload request. No endpoint ID provided", endpoint_invalid: true });
+            }
+            done();
+        },
+    }, collectionUploadStatusEndpoint);
 
     return server;
 }

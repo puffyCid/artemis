@@ -4,7 +4,10 @@ use std::{
 };
 
 use crate::{
-    collection::{collect::CollectEndpoint, error::CollectError},
+    collection::{
+        collect::{CollectEndpoint, CollectionStatus},
+        error::CollectError,
+    },
     logging::logs::LoggingEndpoint,
     utils::{
         config::{ServerToml, have_config, server},
@@ -98,14 +101,14 @@ fn start(config: &mut DaemonConfig) {
             }
         };
 
+        let collection_id = collection.collection_id;
+
         if collection.endpoint_invalid {
             setup_enrollment(config);
             continue;
         }
 
-        let handle = spawn(move || {
-            setup_collection(&collection);
-        });
+        let handle = spawn(move || setup_collection(&collection));
 
         // While thread is running continue to poll the server
         while !handle.is_finished() {
@@ -134,7 +137,22 @@ fn start(config: &mut DaemonConfig) {
             sleep(Duration::from_secs(collection_poll));
         }
 
-        let _ = handle.join();
+        let status = match handle.join() {
+            Ok(status) => status,
+            Err(_err) => CollectionStatus::Error,
+        };
+
+        // Now send request to mark collection as completed or error
+        let response = match config.complete_collection(status, collection_id) {
+            Ok(result) => result,
+            Err(_err) => {
+                continue;
+            }
+        };
+        if response.endpoint_invalid {
+            setup_enrollment(config);
+        }
+
         // Upload any logs from the collection
         let log_status = match config.log_upload() {
             Ok(result) => result,
