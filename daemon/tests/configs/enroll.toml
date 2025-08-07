@@ -13,5 +13,5 @@ version = 1
 key = "my key"
 
 [daemon]
-endpoint_id = "my important key"
+endpoint_id = ""
 collection_path = "/var/artemis/collections"

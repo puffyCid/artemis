@@ -8,7 +8,6 @@ pub enum DaemonError {
     LogFile,
     BadToml,
     DaemonTomlWrite,
-    ServerTomlWrite,
     NoPath,
 }
 
@@ -23,7 +22,6 @@ impl fmt::Display for DaemonError {
             DaemonError::LogFile => write!(f, "Failed to create log file"),
             DaemonError::BadToml => write!(f, "Failed to parse TOML data"),
             DaemonError::DaemonTomlWrite => write!(f, "Could not write daemon TOML file"),
-            DaemonError::ServerTomlWrite => write!(f, "Could not write server TOML file"),
             DaemonError::NoPath => write!(f, "Could not find suitable path for configs"),
         }
     }

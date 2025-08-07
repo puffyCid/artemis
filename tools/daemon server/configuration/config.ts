@@ -27,7 +27,7 @@ export async function configEndpoint(request: FastifyRequest<{ Body: ConfigType;
         reply.send({ message: `Endpoint not found in database`, endpoint_invalid: true });
         return;
     }
-    const toml = "W2RhZW1vbl0KZW5kcG9pbnRfaWQgPSAibXkgaW1wb3J0YW50IGtleSIKY29sbGVjdGlvbl9wYXRoID0gIi92YXIvYXJ0ZW1pcy9jb2xsZWN0aW9ucyIKbG9nX2xldmVsID0gIndhcm4iCg==";
+    const toml = "bG9nX3BhdGggPSAiLi90bXAvYXJ0ZW1pcyIKbG9nX2xldmVsID0gIndhcm5pbmciCgpbc2VydmVyXQp1cmwgPSAiaHR0cDovLzEyNy4wLjAuMSIKcG9ydCA9IDgwMDAKaWdub3JlX3NzbCA9IGZhbHNlCmVucm9sbG1lbnQgPSAiZW5kcG9pbnQvZW5yb2xsIgpjb2xsZWN0aW9ucyA9ICJlbmRwb2ludC9jb2xsZWN0aW9ucyIKY29uZmlnID0gImVuZHBvaW50L2NvbmZpZyIKbG9nZ2luZyA9ICJlbmRwb2ludC9sb2dnaW5nIgp2ZXJzaW9uID0gMQprZXkgPSAibXkga2V5IgoKW2RhZW1vbl0KZW5kcG9pbnRfaWQgPSAiIgpjb2xsZWN0aW9uX3BhdGggPSAiL3Zhci9hcnRlbWlzL2NvbGxlY3Rpb25zIgoKCg==";
 
     reply.statusCode = 200;
     reply.send({ config: toml, endpoint_invalid: false });

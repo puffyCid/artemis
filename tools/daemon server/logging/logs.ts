@@ -22,7 +22,7 @@ export type LogsResponseType = Static<typeof LogsResponse>;
  */
 export async function loggingEndpoint(request: FastifyRequest<{ Body: LogsType; }>, reply: FastifyReply) {
     const value = request.body;
-    console.log(JSON.stringify(value));
+    console.log(`Got log from ${value.endpoint_id}`);
     const db = new LocalSqlite("./build/test.db");
     if (!db.validateEndpoint(request.body.endpoint_id)) {
         reply.statusCode = 500;

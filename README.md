@@ -1,4 +1,4 @@
-# Artemis
+# Artemis - A cross platform DFIR application
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![codecov](https://img.shields.io/codecov/c/github/puffyCid/artemis?style=for-the-badge)](https://codecov.io/github/puffyCid/artemis)
@@ -6,7 +6,7 @@
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/puffycid/artemis/audit.yml?label=Audit&style=for-the-badge)
 
 Artemis is a powerful command line digital forensic and incident response (DFIR)
-tool that collects forensic data from Windows, macOS, and Linux endpoints. Its
+tool that collects forensic data from Windows, macOS, Linux, and FreeBSD endpoints. Its
 primary focus is: speed, ease of use, and low resource usage.\
 Notable features _so far_:
 
@@ -14,7 +14,8 @@ Notable features _so far_:
 - Parsing support for large amount of forensic artifacts (40+)
 - Output to JSON, JSONL, or CSV file(s)
 - Can output results to local system or upload to cloud services.
-- Embedded JavaScript runtime via [Boa](https://boajs.dev)
+- An embedded JavaScript runtime via [Boa](https://boajs.dev) that allows you to script and create your own parsers and artifacts.
+- Timeline support that is compatible with [Timesketch](https://timesketch.org/)
 
 Checkout the online guide at https://puffycid.github.io/artemis-api for in-depth
 walkthrough on using artemis
@@ -41,7 +42,7 @@ Options:
   -V, --version                  Print version
 ```
 
-An example to example collect a process listing on macOS
+An example to example collect a process listing.
 
 ```
 > artemis acquire -h
@@ -103,8 +104,12 @@ Options:
 
 
 > artemis acquire processes
+[artemis] Starting artemis collection!
+[artemis] Writing output to: ./tmp
+[artemis] Finished artemis collection!
+
+./tmp/local_collector/
+8706ce06-ff87-4ea9-8685-c96b64fb2cbe.log  ef308829-a667-496b-b983-d82e7fd7a631.json  status.log
+
 ```
 
-You can also run collections using TOML files or JavaScript code!
-
-The online documentation contains in depth overview of using artemis
