@@ -47,7 +47,7 @@ impl LoggingEndpoint for DaemonConfig {
 
             if messages.len() == limit {
                 let log_request = LoggingRequest {
-                    endpoint_id: self.client.daemon.endpoint_id.clone(),
+                    endpoint_id: self.server.daemon.endpoint_id.clone(),
                     logs: messages,
                 };
 
@@ -90,7 +90,7 @@ impl LoggingEndpoint for DaemonConfig {
 
         // Send any remaining logs event if messages is empty
         let log_request = LoggingRequest {
-            endpoint_id: self.client.daemon.endpoint_id.clone(),
+            endpoint_id: self.server.daemon.endpoint_id.clone(),
             logs: messages,
         };
 
@@ -167,7 +167,7 @@ mod tests {
     use crate::{
         logging::logs::{LoggingEndpoint, clear_log, read_log},
         start::DaemonConfig,
-        utils::config::{Daemon, DaemonToml, server},
+        utils::config::server,
     };
     use httpmock::{Method::POST, MockServer};
     use log::{LevelFilter, error, warn};
@@ -196,13 +196,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
         error!("my fake error");
@@ -241,7 +234,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/logging")
-                .body_contains("uuid key");
+                .body_contains("my important key");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -250,13 +243,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -276,7 +262,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/logging")
-                .body_contains("uuid key");
+                .body_contains("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -285,13 +271,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 

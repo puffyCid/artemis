@@ -34,7 +34,7 @@ impl ConfigEndpoint for DaemonConfig {
         );
 
         let config_req = ConfigRequest {
-            endpoint_id: self.client.daemon.endpoint_id.clone(),
+            endpoint_id: self.server.daemon.endpoint_id.clone(),
         };
 
         let client = Client::new();
@@ -81,9 +81,7 @@ impl ConfigEndpoint for DaemonConfig {
 #[cfg(test)]
 mod tests {
     use crate::{
-        configuration::config::ConfigEndpoint,
-        start::DaemonConfig,
-        utils::config::{Daemon, DaemonToml, server},
+        configuration::config::ConfigEndpoint, start::DaemonConfig, utils::config::server,
     };
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;
@@ -100,7 +98,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("uuid key");
+                .body_contains("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(json!({ "config": "base64 blob", "endpoint_invalid": false }));
@@ -109,13 +107,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -138,7 +129,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("uuid key");
+                .body_contains("my important key");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -147,13 +138,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -173,7 +157,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("uuid key");
+                .body_contains("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -182,13 +166,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::from("uuid key"),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -218,13 +195,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 

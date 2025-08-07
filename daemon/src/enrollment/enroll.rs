@@ -112,11 +112,7 @@ pub(crate) fn bad_request(bytes: &[u8]) -> BadRequest {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        enrollment::enroll::EnrollEndpoint,
-        start::DaemonConfig,
-        utils::config::{Daemon, DaemonToml, server},
-    };
+    use crate::{enrollment::enroll::EnrollEndpoint, start::DaemonConfig, utils::config::server};
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;
     use std::path::PathBuf;
@@ -142,13 +138,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -181,13 +170,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -217,13 +199,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -253,13 +228,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 
@@ -288,13 +256,6 @@ mod tests {
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
         let mut config = DaemonConfig {
             server: server_config,
-            client: DaemonToml {
-                daemon: Daemon {
-                    endpoint_id: String::new(),
-                    collection_path: String::from("/var/artemis/collections"),
-                    log_level: String::from("warn"),
-                },
-            },
         };
         config.server.server.port = port;
 

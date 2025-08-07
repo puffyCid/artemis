@@ -8,17 +8,19 @@ use serde::{Deserialize, Serialize};
 use simplelog::{ConfigBuilder, WriteLogger};
 use std::{
     fs::{create_dir_all, read, write},
+    path::Path,
     str::from_utf8,
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub(crate) struct ServerToml {
     pub(crate) server: Server,
     pub(crate) log_path: String,
     pub(crate) log_level: String,
+    pub(crate) daemon: Daemon,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub(crate) struct Server {
     pub(crate) url: String,
     pub(crate) port: u16,
@@ -29,6 +31,12 @@ pub(crate) struct Server {
     pub(crate) logging: String,
     pub(crate) version: u8,
     pub(crate) key: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub(crate) struct Daemon {
+    pub(crate) endpoint_id: String,
+    pub(crate) collection_path: String,
 }
 
 /// Parse the provided `Server` TOML config file
@@ -69,22 +77,9 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, D
     Ok(config)
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub(crate) struct DaemonToml {
-    pub(crate) daemon: Daemon,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub(crate) struct Daemon {
-    pub(crate) endpoint_id: String,
-    pub(crate) collection_path: String,
-    pub(crate) log_level: String,
-}
-
-/// Create a daemon config file. If the `DaemonToml` structure is empty. `Ex: collection_path = ""`.  
-/// Then default paths will be used
+/// Create a daemon config file.  
 pub(crate) fn daemon(
-    config: &mut DaemonToml,
+    config: &mut ServerToml,
     alt_artemis_path: Option<&str>,
 ) -> Result<(), DaemonError> {
     let mut collect_path = String::from("/var/artemis/collections");
@@ -101,14 +96,9 @@ pub(crate) fn daemon(
         artemis_path = format!("{programdata}\\artemis");
     }
 
-    // Check if we are using alternative collections path
+    // Collection path can be customized. If empty, default to platform specific path
     if config.daemon.collection_path.is_empty() {
         config.daemon.collection_path = collect_path;
-    }
-
-    // Check if we are using alternative logging level
-    if config.daemon.log_level.is_empty() {
-        config.daemon.log_level = String::from("warn");
     }
 
     // Check if we are using alternative base path
@@ -116,24 +106,42 @@ pub(crate) fn daemon(
         artemis_path = alt_path.to_string();
     }
 
-    let daemon_config = match toml::to_string(&config) {
+    let _ = create_directory(&config.daemon.collection_path);
+    let config_file = match toml::to_string(&config) {
         Ok(result) => result,
         Err(err) => {
             error!("[daemon] Failed to parse daemon config: {err:?}");
             return Err(DaemonError::BadToml);
         }
     };
-
-    let _ = create_directory(&config.daemon.collection_path);
     if let Err(status) = write_file(
-        daemon_config.as_bytes(),
+        config_file.as_bytes(),
         &format!("{artemis_path}/daemon.toml"),
     ) {
         error!("[daemon] Could not write daemon TOML file at {artemis_path}: {status:?}");
         return Err(DaemonError::DaemonTomlWrite);
     }
-
     Ok(())
+}
+
+/// Check if we have an existing daemon.toml file. If we do, then we have already enrolled.
+pub(crate) fn have_config() -> Option<String> {
+    let mut config = String::from("/var/artemis/daemon.toml");
+    if get_platform_enum() == PlatformType::Windows {
+        let programdata = get_env_value("ProgramData");
+        if programdata.is_empty() {
+            error!("[daemon] Failed to find ProgramData env value for daemon.toml");
+            return None;
+        }
+
+        config = format!("{programdata}\\artemis\\daemon.toml");
+    }
+
+    if Path::new(&config).try_exists().is_ok_and(|b| b) {
+        return Some(config);
+    }
+
+    None
 }
 
 /// Read the provided file
@@ -174,7 +182,7 @@ fn write_file(bytes: &[u8], path: &str) -> Result<(), DaemonError> {
 #[cfg(test)]
 mod tests {
     use crate::utils::config::{
-        Daemon, DaemonToml, create_directory, daemon, read_file, server, write_file,
+        Daemon, Server, ServerToml, create_directory, daemon, read_file, server, write_file,
     };
     use std::path::PathBuf;
 
@@ -248,17 +256,29 @@ mod tests {
         test_location.push("./tmp/artemis");
 
         let alt_path = test_location.to_str().unwrap();
-        let mut daemon_toml = DaemonToml {
+        let mut daemon_toml = ServerToml {
             daemon: Daemon {
                 endpoint_id: String::from("test"),
                 collection_path: String::from("./tmp/artemis/collections"),
-                log_level: String::from("warn"),
             },
+            server: Server {
+                url: String::new(),
+                port: 0,
+                ignore_ssl: false,
+                enrollment: String::new(),
+                collections: String::new(),
+                config: String::new(),
+                logging: String::new(),
+                version: 1,
+                key: String::new(),
+            },
+            log_path: String::new(),
+            log_level: String::from("warn"),
         };
 
         daemon(&mut daemon_toml, Some(alt_path)).unwrap();
         assert_eq!(daemon_toml.daemon.endpoint_id, "test");
-        assert_eq!(daemon_toml.daemon.log_level, "warn");
+        assert_eq!(daemon_toml.log_level, "warn");
         assert!(
             daemon_toml
                 .daemon

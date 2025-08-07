@@ -4,53 +4,57 @@ use std::{
 };
 
 use crate::{
-    collection::{collect::CollectEndpoint, error::CollectError},
+    collection::{
+        collect::{CollectEndpoint, CollectionStatus},
+        error::CollectError,
+    },
     logging::logs::LoggingEndpoint,
     utils::{
-        config::{Daemon, DaemonToml, ServerToml, server},
-        setup::{move_server_config, setup_collection, setup_config, setup_enrollment},
+        config::{ServerToml, have_config, server},
+        setup::{setup_collection, setup_config, setup_enrollment},
     },
 };
 
 pub(crate) struct DaemonConfig {
     pub(crate) server: ServerToml,
-    pub(crate) client: DaemonToml,
 }
 
 /// Start artemis as a daemon and collect data based on remote server responses
-pub fn start_daemon(path: Option<&str>, alt_base: Option<&str>) {
+pub fn start_daemon(path: Option<String>, alt_base: Option<String>) {
     // We will enroll to a remote server based on a server.toml config
     // By default we assume server.toml is in same directory as binary
-    let mut server_path = "server.toml";
+    let mut server_path = String::from("server.toml");
 
     if let Some(config_path) = path {
         server_path = config_path;
     }
 
+    // If we have an existing config already (from prior enrollment). Reuse that
+    if let Some(existing_config) = have_config() {
+        server_path = existing_config;
+    }
+
     // Attempt to read to server TOML config file
-    let server_config = match server(server_path, alt_base) {
+    let server_config = match server(&server_path, alt_base.as_deref()) {
         Ok(result) => result,
         Err(_err) => return,
     };
 
     let mut config = DaemonConfig {
         server: server_config,
-        client: DaemonToml {
-            daemon: Daemon {
-                endpoint_id: String::new(),
-                collection_path: String::new(),
-                log_level: String::new(),
-            },
-        },
     };
 
-    // Attempt to connect to server
-    setup_enrollment(&mut config);
+    if config.server.daemon.endpoint_id.is_empty() {
+        // Attempt to connect to server
+        setup_enrollment(&mut config);
+    }
+    // If our endpoint ID is empty. We cannot communicate with the server
+    if config.server.daemon.endpoint_id.is_empty() {
+        return;
+    }
+
     setup_config(&mut config);
 
-    // We have enough info connect to our server.
-    // Can move our server.toml to our base config directory. Ex: /var/artemis/server.toml
-    move_server_config(server_path, alt_base);
     start(&mut config);
 }
 
@@ -97,14 +101,14 @@ fn start(config: &mut DaemonConfig) {
             }
         };
 
+        let collection_id = collection.collection_id;
+
         if collection.endpoint_invalid {
             setup_enrollment(config);
             continue;
         }
 
-        let handle = spawn(move || {
-            setup_collection(&collection);
-        });
+        let handle = spawn(move || setup_collection(&collection));
 
         // While thread is running continue to poll the server
         while !handle.is_finished() {
@@ -133,7 +137,22 @@ fn start(config: &mut DaemonConfig) {
             sleep(Duration::from_secs(collection_poll));
         }
 
-        let _ = handle.join();
+        let status = match handle.join() {
+            Ok(status) => status,
+            Err(_err) => CollectionStatus::Error,
+        };
+
+        // Now send request to mark collection as completed or error
+        let response = match config.complete_collection(status, collection_id) {
+            Ok(result) => result,
+            Err(_err) => {
+                continue;
+            }
+        };
+        if response.endpoint_invalid {
+            setup_enrollment(config);
+        }
+
         // Upload any logs from the collection
         let log_status = match config.log_upload() {
             Ok(result) => result,
