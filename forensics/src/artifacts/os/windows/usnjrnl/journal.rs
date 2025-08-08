@@ -211,7 +211,7 @@ impl UsnJrnlFormat {
             let file_attributes = file_attribute_flags(flags);
 
             let mut path = String::new();
-            if reader.is_some() {
+            if let Some(lookup) = reader.as_mut() {
                 path = if let Some(cache_hit) = cache.get(&format!("{parent_mft}_{parent_mft_seq}"))
                 {
                     cache_hit.clone()
@@ -222,8 +222,7 @@ impl UsnJrnlFormat {
                         size: 0,
                         tracker: HashSet::new(),
                     };
-                    // unwrap is safe because we check to for some value above
-                    let lookup = reader.as_mut().unwrap();
+
                     lookup_parent(lookup, None, &mut cache, &HashMap::new(), &mut tracker)
                         .unwrap_or_default()
                 };

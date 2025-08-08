@@ -65,11 +65,11 @@ fn csv_writer(serde_data: &Value) -> Result<Writer<Vec<u8>>, Error> {
         }
     } else if serde_data.is_array() {
         let row = serde_data.as_array().unwrap().first();
-        if let Some(value) = row {
-            if value.is_object() {
-                for key in value.as_object().unwrap().keys() {
-                    header.push(key);
-                }
+        if let Some(value) = row
+            && value.is_object()
+        {
+            for key in value.as_object().unwrap().keys() {
+                header.push(key);
             }
         }
     }

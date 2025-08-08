@@ -178,18 +178,18 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
                 continue;
             }
 
-            if let Some(value) = tree.get(&block.index_id) {
-                if value.index == block.index
-                    && value.block_offset == block.block_offset
-                    && value.block_type == block.block_type
-                    && value.index_id == block.index_id
-                    && value.size == block.size
-                    && value.total_size == block.total_size
-                    && value.reference_count == block.reference_count
-                {
-                    continue;
-                }
+            if let Some(value) = tree.get(&block.index_id)
+                && value.index == block.index
+                && value.block_offset == block.block_offset
+                && value.block_type == block.block_type
+                && value.index_id == block.index_id
+                && value.size == block.size
+                && value.total_size == block.total_size
+                && value.reference_count == block.reference_count
+            {
+                continue;
             }
+
             tree.insert(block.index_id, block);
         }
         block_tree.push(tree);

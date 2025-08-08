@@ -370,37 +370,37 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if let Some(block_data) = blocks.get(&normal.block_offset_data_id) {
                 leaf_block = *block_data;
             }
-            if normal.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&normal.block_offset_descriptor_id) {
-                    leaf_descriptor = Some(*block_data);
-                }
+            if normal.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&normal.block_offset_descriptor_id)
+            {
+                leaf_descriptor = Some(*block_data);
             }
 
             if let Some(block_data) = blocks.get(&hierarchy.block_offset_data_id) {
                 hierarchy_block = *block_data;
             }
-            if hierarchy.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&hierarchy.block_offset_descriptor_id) {
-                    hierarchy_descriptor = Some(*block_data);
-                }
+            if hierarchy.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&hierarchy.block_offset_descriptor_id)
+            {
+                hierarchy_descriptor = Some(*block_data);
             }
 
             if let Some(block_data) = blocks.get(&contents.block_offset_data_id) {
                 contents_block = *block_data;
             }
-            if contents.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&contents.block_offset_descriptor_id) {
-                    contents_descriptor = Some(*block_data);
-                }
+            if contents.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&contents.block_offset_descriptor_id)
+            {
+                contents_descriptor = Some(*block_data);
             }
 
             if let Some(block_data) = blocks.get(&fai.block_offset_data_id) {
                 fai_block = *block_data;
             }
-            if fai.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&fai.block_offset_descriptor_id) {
-                    fai_descriptor = Some(*block_data);
-                }
+            if fai.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&fai.block_offset_descriptor_id)
+            {
+                fai_descriptor = Some(*block_data);
             }
 
             if leaf_block.index != 0
@@ -529,19 +529,19 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if let Some(block_data) = blocks.get(&search.block_offset_data_id) {
                 search_block = *block_data;
             }
-            if search.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&search.block_offset_descriptor_id) {
-                    search_descriptor = Some(*block_data);
-                }
+            if search.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&search.block_offset_descriptor_id)
+            {
+                search_descriptor = Some(*block_data);
             }
 
             if let Some(block_data) = blocks.get(&criteria.block_offset_data_id) {
                 criteria_block = *block_data;
             }
-            if criteria.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&criteria.block_offset_descriptor_id) {
-                    criteria_descriptor = Some(*block_data);
-                }
+            if criteria.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&criteria.block_offset_descriptor_id)
+            {
+                criteria_descriptor = Some(*block_data);
             }
 
             if search_block.index != 0 && criteria_block.index != 0 {
@@ -618,10 +618,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if let Some(block_data) = blocks.get(&info.block_offset_data_id) {
                 info_block = *block_data;
             }
-            if info.block_offset_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&info.block_offset_descriptor_id) {
-                    info_descriptor = Some(*block_data);
-                }
+            if info.block_offset_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&info.block_offset_descriptor_id)
+            {
+                info_descriptor = Some(*block_data);
             }
         }
 
@@ -654,10 +654,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if let Some(block_data) = blocks.get(&block_data_id) {
                 table_block = *block_data;
             }
-            if block_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&block_descriptor_id) {
-                    table_descriptor = Some(*block_data);
-                }
+            if block_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&block_descriptor_id)
+            {
+                table_descriptor = Some(*block_data);
             }
         }
 
@@ -751,10 +751,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                 if let Some(block_data) = blocks.get(&mess.block_offset_data_id) {
                     mess_block = *block_data;
                 }
-                if mess.block_offset_descriptor_id != 0 {
-                    if let Some(block_data) = blocks.get(&mess.block_offset_descriptor_id) {
-                        mess_descriptor = Some(*block_data);
-                    }
+                if mess.block_offset_descriptor_id != 0
+                    && let Some(block_data) = blocks.get(&mess.block_offset_descriptor_id)
+                {
+                    mess_descriptor = Some(*block_data);
                 }
             }
 
@@ -794,10 +794,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                     if let Some(block_data) = blocks.get(&block_id) {
                         table_block = *block_data;
                     }
-                    if descriptor_id != 0 {
-                        if let Some(block_data) = blocks.get(&descriptor_id) {
-                            table_descriptor = Some(*block_data);
-                        }
+                    if descriptor_id != 0
+                        && let Some(block_data) = blocks.get(&descriptor_id)
+                    {
+                        table_descriptor = Some(*block_data);
                     }
                 }
 
@@ -813,10 +813,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                                 break;
                             }
                         }
-                        if descriptor_id != 0 {
-                            if let Some(block_data) = blocks.get(&(descriptor_id - adjust)) {
-                                table_descriptor = Some(*block_data);
-                            }
+                        if descriptor_id != 0
+                            && let Some(block_data) = blocks.get(&(descriptor_id - adjust))
+                        {
+                            table_descriptor = Some(*block_data);
                         }
                     }
                 }
@@ -875,10 +875,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
             if let Some(block_data) = blocks.get(&block_data_id) {
                 table_block = *block_data;
             }
-            if block_descriptor_id != 0 {
-                if let Some(block_data) = blocks.get(&block_descriptor_id) {
-                    table_descriptor = Some(*block_data);
-                }
+            if block_descriptor_id != 0
+                && let Some(block_data) = blocks.get(&block_descriptor_id)
+            {
+                table_descriptor = Some(*block_data);
             }
         }
 

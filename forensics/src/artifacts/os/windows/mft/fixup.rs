@@ -52,13 +52,14 @@ impl Fixup {
                 + (count * previous_bytes);
             let end = (count * (cluster_size - previous_bytes)) + cluster_size - previous_bytes
                 + (count * previous_bytes);
-            if entry[start..end].to_vec() == fixup.placeholder {
-                if let Some(fix) = fixup.original.get(count) {
-                    // Fixup values are always two bytes. We used nom to ensure we always have two bytes
-                    entry[start] = fix[0];
-                    entry[end - 1] = fix[1];
-                }
+            if entry[start..end].to_vec() == fixup.placeholder
+                && let Some(fix) = fixup.original.get(count)
+            {
+                // Fixup values are always two bytes. We used nom to ensure we always have two bytes
+                entry[start] = fix[0];
+                entry[end - 1] = fix[1];
             }
+
             count += 1;
         }
     }

@@ -158,20 +158,21 @@ impl NameKey {
             params.registry_list.push(registry_entry);
             let max_limit = 200;
             if output.is_some() && params.registry_list.len() >= max_limit {
-                if let Ok(mut serde_data) = serde_json::to_value(&params.registry_list) {
-                    if let Err(err) = output_data(
+                if let Ok(mut serde_data) = serde_json::to_value(&params.registry_list)
+                    && let Err(err) = output_data(
                         &mut serde_data,
                         "registry",
                         output.as_mut().unwrap(),
                         params.start_time,
                         params.filter,
-                    ) {
-                        error!(
-                            "[registry] Failed to output data for {}, error: {err:?}",
-                            params.registry_path
-                        );
-                    }
+                    )
+                {
+                    error!(
+                        "[registry] Failed to output data for {}, error: {err:?}",
+                        params.registry_path
+                    );
                 }
+
                 params.registry_list = Vec::new();
             }
         }

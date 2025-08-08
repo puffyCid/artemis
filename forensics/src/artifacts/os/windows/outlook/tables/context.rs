@@ -168,20 +168,20 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let (input, _) = take(tree_header_size)(input)?;
 
         let mut descriptor_data = Vec::new();
-        if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
-                let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
-                descriptor_data = match desc_result {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!("[outlook] Failed to parse descriptor data: {err:?}");
-                        return Err(nom::Err::Failure(nom::error::Error::new(
-                            &[],
-                            ErrorKind::Fail,
-                        )));
-                    }
-                };
-            }
+        if info.node.node == NodeID::LocalDescriptors
+            && let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64))
+        {
+            let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
+            descriptor_data = match desc_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[outlook] Failed to parse descriptor data: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
         }
 
         let column_size = 8;
@@ -189,37 +189,37 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         // Now skip column definitions
         let (input, _) = take(column_definition_size)(input)?;
 
-        if heap_btree.level == NodeLevel::BranchNode {
-            if let Some(branch_info) = &info.has_branch {
-                for branch in branch_info {
-                    if branch.node.block_index as usize > info.block_data.len() {
-                        warn!(
-                            "[outlook] The Branch block index {} is larger than the block data length {}. This should not happen.",
-                            branch.node.block_index,
-                            info.block_data.len()
-                        );
-                        continue;
-                    }
-
-                    // We always check to make sure block_index is less than block data length
-                    let rows_result = parse_branch_row(
-                        &info.block_data[branch.node.block_index as usize],
-                        &descriptor_data,
-                        info,
-                        branch,
+        if heap_btree.level == NodeLevel::BranchNode
+            && let Some(branch_info) = &info.has_branch
+        {
+            for branch in branch_info {
+                if branch.node.block_index as usize > info.block_data.len() {
+                    warn!(
+                        "[outlook] The Branch block index {} is larger than the block data length {}. This should not happen.",
+                        branch.node.block_index,
+                        info.block_data.len()
                     );
-                    let rows = match rows_result {
-                        Ok((_, result)) => result,
-                        Err(_err) => {
-                            error!("[outlook] Failed to parse branch rows");
-                            return Err(nom::Err::Failure(nom::error::Error::new(
-                                &[],
-                                ErrorKind::Fail,
-                            )));
-                        }
-                    };
-                    return Ok((&[], rows));
+                    continue;
                 }
+
+                // We always check to make sure block_index is less than block data length
+                let rows_result = parse_branch_row(
+                    &info.block_data[branch.node.block_index as usize],
+                    &descriptor_data,
+                    info,
+                    branch,
+                );
+                let rows = match rows_result {
+                    Ok((_, result)) => result,
+                    Err(_err) => {
+                        error!("[outlook] Failed to parse branch rows");
+                        return Err(nom::Err::Failure(nom::error::Error::new(
+                            &[],
+                            ErrorKind::Fail,
+                        )));
+                    }
+                };
+                return Ok((&[], rows));
             }
         }
 
@@ -276,20 +276,20 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     ) -> nom::IResult<&[u8], Vec<Vec<TableRows>>> {
         let mut descriptor_data = Vec::new();
 
-        if info.node.node == NodeID::LocalDescriptors {
-            if let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64)) {
-                let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
-                descriptor_data = match desc_result {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!("[outlook] Failed to parse descriptor data for branch: {err:?}");
-                        return Err(nom::Err::Failure(nom::error::Error::new(
-                            &[],
-                            ErrorKind::Fail,
-                        )));
-                    }
-                };
-            }
+        if info.node.node == NodeID::LocalDescriptors
+            && let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64))
+        {
+            let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
+            descriptor_data = match desc_result {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[outlook] Failed to parse descriptor data for branch: {err:?}");
+                    return Err(nom::Err::Failure(nom::error::Error::new(
+                        &[],
+                        ErrorKind::Fail,
+                    )));
+                }
+            };
         }
 
         if branch.node.block_index as usize > info.block_data.len() {
@@ -504,12 +504,11 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                         break;
                     }
                 }
-                if descriptor.block_descriptor_id != 0 {
-                    if let Some(block_data) =
+                if descriptor.block_descriptor_id != 0
+                    && let Some(block_data) =
                         block_tree.get(&(descriptor.block_descriptor_id - adjust))
-                    {
-                        leaf_descriptor = Some(*block_data);
-                    }
+                {
+                    leaf_descriptor = Some(*block_data);
                 }
 
                 if leaf_descriptor.is_none() && leaf_block.size != 0 {
@@ -540,11 +539,11 @@ fn extract_branch_row(data: &[u8], map_index: usize) -> nom::IResult<&[u8], Rows
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
 
-    if let Some(start) = map.allocation_table.get(map_index - 1) {
-        if let Some(end) = map.allocation_table.get(map_index) {
-            branch_row_start = *start;
-            branch_row_end = *end;
-        }
+    if let Some(start) = map.allocation_table.get(map_index - 1)
+        && let Some(end) = map.allocation_table.get(map_index)
+    {
+        branch_row_start = *start;
+        branch_row_end = *end;
     }
 
     let branch_row_size = branch_row_end - branch_row_start;
@@ -581,11 +580,11 @@ fn extract_branch_details(data: &[u8], map_index: u32) -> nom::IResult<&[u8], Ve
     let mut branch_row_end = 0;
 
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(map_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(map_index as usize) {
-            branch_row_start = *start;
-            branch_row_end = *end;
-        }
+    if let Some(start) = map.allocation_table.get(map_index as usize - adjust)
+        && let Some(end) = map.allocation_table.get(map_index as usize)
+    {
+        branch_row_start = *start;
+        branch_row_end = *end;
     }
 
     let branch_row_size = branch_row_end - branch_row_start;
@@ -628,11 +627,11 @@ fn block_row_count(data: &[u8], heap_index: u32) -> nom::IResult<&[u8], u64> {
     let mut branch_row_start = 0;
     let mut branch_row_end = 0;
     let adjust = 1;
-    if let Some(start) = map.allocation_table.get(heap_index as usize - adjust) {
-        if let Some(end) = map.allocation_table.get(heap_index as usize) {
-            branch_row_start = *start;
-            branch_row_end = *end;
-        }
+    if let Some(start) = map.allocation_table.get(heap_index as usize - adjust)
+        && let Some(end) = map.allocation_table.get(heap_index as usize)
+    {
+        branch_row_start = *start;
+        branch_row_end = *end;
     }
 
     let branch_row_size = branch_row_end - branch_row_start;

@@ -26,18 +26,17 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
 
     let console = Console::init(&mut context);
     let status = context.register_global_property(Console::NAME, console, Attribute::all());
-    if status.is_err() {
-        let err = status.unwrap_err();
+    if let Err(err) = status {
         error!("[runtime] Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
     }
+
     if !args.is_empty() {
         let serde_value = serde_json::to_value(args).unwrap_or_default();
         let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
         let status =
             context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
-        if status.is_err() {
-            let err = status.unwrap_err();
+        if let Err(err) = status {
             error!("[runtime] Could not register static args property: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
@@ -194,8 +193,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
 
     let console = Console::init(&mut context);
     let status = context.register_global_property(Console::NAME, console, Attribute::all());
-    if status.is_err() {
-        let err = status.unwrap_err();
+    if let Err(err) = status {
         error!("[runtime] Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
     }
@@ -205,8 +203,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
         let status =
             context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
-        if status.is_err() {
-            let err = status.unwrap_err();
+        if let Err(err) = status {
             error!("[runtime] Could not register static args property: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }

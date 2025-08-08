@@ -330,11 +330,13 @@ fn walk_ntfs(
             && regex_check(&params.path_regex, &file_info.full_path)
             && regex_check(&params.file_regex, &file_info.filename)
         {
-            if params.metadata && file_info.is_file {
-                if let Ok(result) = parse_pe_file(&file_info.full_path) {
-                    file_info.pe_info.push(result);
-                }
+            if params.metadata
+                && file_info.is_file
+                && let Ok(result) = parse_pe_file(&file_info.full_path)
+            {
+                file_info.pe_info.push(result);
             }
+
             params.filelist.push(file_info.clone());
 
             // Grab IDX records in slack space if we have a directory and user selected to recover them
