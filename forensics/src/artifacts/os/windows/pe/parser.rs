@@ -143,10 +143,10 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
     }
 
     let debug_result = file.debug();
-    if let Ok(result) = debug_result {
-        if let Some(pdb) = result.pdb_file_name() {
-            info.pdb = pdb.to_string();
-        }
+    if let Ok(result) = debug_result
+        && let Some(pdb) = result.pdb_file_name()
+    {
+        info.pdb = pdb.to_string();
     }
 
     let cert_result = file.security();

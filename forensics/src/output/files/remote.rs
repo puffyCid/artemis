@@ -191,15 +191,13 @@ impl GoogleUpload for AcquireFileApiRemote {
 
                 let timestamps_result = get_timestamps(&self.path);
                 let meta_result = get_metadata(&self.path);
-                // If both values are ok, add metadata to final request
-                if meta_result.is_ok() && timestamps_result.is_ok() {
-                    let timestamps = timestamps_result.unwrap();
-                    let metadata = meta_result.unwrap();
-
+                if let Ok(timestamps) = timestamps_result {
                     builder = builder.header("x-goog-meta-created", timestamps.created);
                     builder = builder.header("x-goog-meta-modified", timestamps.modified);
                     builder = builder.header("x-goog-meta-accessed", timestamps.accessed);
                     builder = builder.header("x-goog-meta-changed", timestamps.changed);
+                }
+                if let Ok(metadata) = meta_result {
                     builder = builder.header("x-goog-meta-size", metadata.len());
                 }
             }
@@ -283,15 +281,13 @@ impl AmazonUpload for AcquireFileApiRemote {
 
         let timestamps_result = get_timestamps(&self.path);
         let meta_result = get_metadata(&self.path);
-        // If both values are ok, add metadata to final request
-        if meta_result.is_ok() && timestamps_result.is_ok() {
-            let timestamps = timestamps_result.unwrap();
-            let metadata = meta_result.unwrap();
-
+        if let Ok(timestamps) = timestamps_result {
             headers.insert(String::from("x-amz-meta-created"), timestamps.created);
             headers.insert(String::from("x-amz-meta-modified"), timestamps.modified);
             headers.insert(String::from("x-amz-meta-accessed"), timestamps.accessed);
             headers.insert(String::from("x-amz-meta-changed"), timestamps.changed);
+        }
+        if let Ok(metadata) = meta_result {
             headers.insert(String::from("x-amz-meta-size"), metadata.len().to_string());
         }
 
@@ -419,11 +415,7 @@ impl MicrosoftUpload for AcquireFileApiRemote {
 
             let timestamps_result = get_timestamps(&self.path);
             let meta_result = get_metadata(&self.path);
-            // If both values are ok, add metadata to final request
-            if meta_result.is_ok() && timestamps_result.is_ok() {
-                let timestamps = timestamps_result.unwrap();
-                let metadata = meta_result.unwrap();
-
+            if let Ok(timestamps) = timestamps_result {
                 headers.insert(
                     "x-mx-meta-created",
                     timestamps
@@ -452,6 +444,9 @@ impl MicrosoftUpload for AcquireFileApiRemote {
                         .parse()
                         .unwrap_or(HeaderValue::from_static("")),
                 );
+            }
+
+            if let Ok(metadata) = meta_result {
                 headers.insert("x-mx-meta-size", metadata.len().into());
             }
         }
