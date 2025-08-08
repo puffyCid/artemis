@@ -62,19 +62,19 @@ fn detect_format<'a>(
             win81_format(data, key_path, path)
         } else {
             error!("[shimcache] Unknown Shimcache Win8 entrytype. Sig is: {entry_sig}");
-            return Err(nom::Err::Failure(nom::error::Error::new(
+            Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,
-            )));
+            )))
         }
     } else if win10_size == sig || win10_creator_size == sig {
         win10_format(data, key_path, path)
     } else {
         error!("[shimcache] Unknown Shimcache type. Sig is: {sig}");
-        return Err(nom::Err::Failure(nom::error::Error::new(
+        Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
-        )));
+        )))
     }
 }
 

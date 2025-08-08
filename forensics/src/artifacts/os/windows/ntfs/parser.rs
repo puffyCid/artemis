@@ -21,7 +21,9 @@ use super::{
     security_ids::SecurityIDs,
 };
 use crate::{
-    artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file},
+    artifacts::os::windows::{
+        artifacts::output_data, ntfs::attributes::get_reparse_type, pe::parser::parse_pe_file,
+    },
     filesystem::{
         files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
@@ -308,6 +310,21 @@ fn walk_ntfs(
             }
         }
 
+        if file_info
+            .attributes
+            .contains(&String::from("REPARSE_POINT"))
+        {
+            match get_reparse_type(entry_index.file_reference(), ntfs, fs) {
+                Ok(result) => file_info.attributes.push(format!("{result:?}")),
+                Err(err) => {
+                    error!(
+                        "[ntfs] Failed to get ReparsePoint tag for {}: {err:?}",
+                        file_info.full_path
+                    );
+                }
+            }
+        }
+
         // Add to file metadata to Vec<RawFilelist> if it matches our start path and any optional regex
         if file_info.full_path.starts_with(&params.start_path)
             && regex_check(&params.path_regex, &file_info.full_path)
@@ -332,7 +349,12 @@ fn walk_ntfs(
             }
         }
 
-        let max_list = 100000;
+        // If we are not parsing binary data and not timelining our limit is 10k, otherwise set limit to 1k
+        let max_list = if !params.metadata && !output.timeline {
+            10000
+        } else {
+            1000
+        };
         // To keep memory usage small we only keep 100,000 files in the vec at a time
         if params.filelist.len() >= max_list {
             raw_output(&params.filelist, output, params.start_time, params.filter);

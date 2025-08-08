@@ -176,7 +176,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "artemis"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -1004,7 +1004,7 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "common"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "plist",
  "serde",
@@ -1318,7 +1318,7 @@ dependencies = [
 
 [[package]]
 name = "daemon"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1867,7 +1867,7 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "forensics"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -5016,7 +5016,7 @@ dependencies = [
 
 [[package]]
 name = "timeline"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "log",
  "serde",
