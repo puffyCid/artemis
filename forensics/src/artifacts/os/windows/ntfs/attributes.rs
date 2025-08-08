@@ -3,11 +3,16 @@ use crate::{
     filesystem::{
         files::hash_file_data,
         ntfs::{
-            attributes::get_filename_attribute, compression::check_wofcompressed,
-            raw_files::raw_hash_data, sector_reader::SectorReader,
+            attributes::{get_filename_attribute, read_attribute_data},
+            compression::check_wofcompressed,
+            raw_files::raw_hash_data,
+            sector_reader::SectorReader,
         },
     },
-    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
+    utils::{
+        nom_helper::{Endian, nom_unsigned_four_bytes},
+        time::{filetime_to_unixepoch, unixepoch_to_iso},
+    },
 };
 use common::files::Hashes;
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
@@ -18,6 +23,7 @@ use ntfs::{
         NtfsAttributeList, NtfsFileName, NtfsFileNamespace, NtfsStandardInformation,
     },
 };
+use serde::Serialize;
 use std::{fs::File, io::BufReader};
 
 /// Get filename and Filename timestamps
@@ -177,6 +183,188 @@ pub(crate) fn get_attribute_name(attribute: &NtfsAttribute<'_, '_>) -> String {
     }
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+pub(crate) enum ReparseType {
+    Reserved,
+    ReservedOne,
+    ReservedTwo,
+    MountPoint,
+    HierarchicalStorageManagement,
+    DriveExtender,
+    HierarchicalStorageManagement2,
+    SingleInstanceStorage,
+    Wim,
+    ClusteredSharedVolume,
+    DistributedFileSystem,
+    FilterManager,
+    SymbolicLink,
+    IisCache,
+    DistributedFileSystemReplication,
+    Dedup,
+    Appxstrm,
+    NetworkFileSystem,
+    FilePlaceholder,
+    DynamicFilter,
+    Wof,
+    WindowsContainerIsolation,
+    WindowsContainerIsolation1,
+    GlobalReparse,
+    Cloud,
+    Cloud1,
+    Cloud2,
+    Cloud3,
+    Cloud4,
+    Cloud5,
+    Cloud6,
+    Cloud7,
+    Cloud8,
+    Cloud9,
+    CloudA,
+    CloudB,
+    CloudC,
+    CloudD,
+    CloudE,
+    CloudF,
+    AppExecLink,
+    ProjectedFileSystem,
+    LinuxSymbolicLink,
+    StorageSync,
+    StorageSyncFolder,
+    WindowsContainerTombstone,
+    Unhandled,
+    Onedrive,
+    ProjectFileSystemTombstone,
+    AfUnix,
+    LinuxFifo,
+    LinuxChar,
+    LinuxBlock,
+    LinuxLink,
+    LinuxLink1,
+    Unknown,
+}
+
+/// Get the Reparse Point type
+pub(crate) fn get_reparse_type(
+    ntfs_ref: NtfsFileReference,
+    ntfs: &Ntfs,
+    fs: &mut BufReader<SectorReader<File>>,
+) -> Result<ReparseType, NtfsError> {
+    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    let attr_raw = ntfs_file.attributes_raw();
+
+    let mut reparse_data = Vec::new();
+    // Loop through the raw attributes looking for REPARSE_POINT
+    for attrs in attr_raw {
+        let attr = attrs?;
+        if attr.ty()? != NtfsAttributeType::AttributeList
+            && attr.ty()? != NtfsAttributeType::ReparsePoint
+        {
+            continue;
+        }
+
+        /*
+         * If there are a lot of attributes or attributes take up alot of space
+         * `NTFS` will create a new MFT record and create an `AttributeList` to track all the attributes for the file
+         */
+        if attr.ty()? == NtfsAttributeType::AttributeList {
+            let list = attr.structured_value::<_, NtfsAttributeList<'_, '_>>(fs)?;
+            let mut list_iter = list.entries();
+            // Walk the attributelist
+            while let Some(entry) = list_iter.next(fs) {
+                let entry = entry?;
+                if entry.ty()? != NtfsAttributeType::ReparsePoint {
+                    continue;
+                }
+
+                let temp_file = entry.to_file(ntfs, fs)?;
+                let entry_attr = entry.to_attribute(&temp_file)?;
+                let mut value = entry_attr.value(fs)?;
+
+                reparse_data = read_attribute_data(&mut value, fs, &entry_attr)?;
+            }
+            break;
+        }
+        let mut value = attr.value(fs)?;
+        reparse_data = read_attribute_data(&mut value, fs, &attr)?;
+        break;
+    }
+
+    let min_size = 4;
+    if reparse_data.len() < min_size {
+        return Ok(ReparseType::Unknown);
+    }
+    // First four (4) bytes contain the Reparse Tag
+    // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/c8e77b37-3909-4fe6-a4ea-2b9d423b1ee4
+    let tag = match nom_unsigned_four_bytes(&reparse_data, Endian::Le) {
+        Ok((_, result)) => result,
+        Err(_err) => return Ok(ReparseType::Unknown),
+    };
+
+    Ok(reparse_type(tag))
+}
+
+/// Determine Reparse Type
+fn reparse_type(tag: u32) -> ReparseType {
+    match tag {
+        0x00000000 => ReparseType::Reserved,
+        0x00000001 => ReparseType::ReservedOne,
+        0x00000002 => ReparseType::ReservedTwo,
+        0xA0000003 => ReparseType::MountPoint,
+        0xC0000004 => ReparseType::HierarchicalStorageManagement,
+        0x80000005 => ReparseType::DriveExtender,
+        0x80000006 => ReparseType::HierarchicalStorageManagement2,
+        0x80000007 => ReparseType::SingleInstanceStorage,
+        0x80000008 => ReparseType::Wim,
+        0x80000009 => ReparseType::ClusteredSharedVolume,
+        0x8000000A => ReparseType::DistributedFileSystem,
+        0x8000000B => ReparseType::FilterManager,
+        0xA000000C => ReparseType::SymbolicLink,
+        0xA0000010 => ReparseType::IisCache,
+        0x80000012 => ReparseType::DistributedFileSystemReplication,
+        0x80000013 => ReparseType::Dedup,
+        0xC0000014 => ReparseType::Appxstrm,
+        0x80000014 => ReparseType::NetworkFileSystem,
+        0x80000015 => ReparseType::FilePlaceholder,
+        0x80000016 => ReparseType::DynamicFilter,
+        0x80000017 => ReparseType::Wof,
+        0x80000018 => ReparseType::WindowsContainerIsolation,
+        0x90001018 => ReparseType::WindowsContainerIsolation1,
+        0xA0000019 => ReparseType::GlobalReparse,
+        0x9000001A => ReparseType::Cloud,
+        0x9000101A => ReparseType::Cloud1,
+        0x9000201A => ReparseType::Cloud2,
+        0x9000301A => ReparseType::Cloud3,
+        0x9000401A => ReparseType::Cloud4,
+        0x9000501A => ReparseType::Cloud5,
+        0x9000601A => ReparseType::Cloud6,
+        0x9000701A => ReparseType::Cloud7,
+        0x9000801A => ReparseType::Cloud8,
+        0x9000901A => ReparseType::Cloud9,
+        0x9000A01A => ReparseType::CloudA,
+        0x9000B01A => ReparseType::CloudB,
+        0x9000C01A => ReparseType::CloudC,
+        0x9000D01A => ReparseType::CloudD,
+        0x9000E01A => ReparseType::CloudE,
+        0x9000F01A => ReparseType::CloudF,
+        0x8000001B => ReparseType::AppExecLink,
+        0x9000001C => ReparseType::ProjectedFileSystem,
+        0xA000001D => ReparseType::LinuxSymbolicLink,
+        0x8000001E => ReparseType::StorageSync,
+        0x90000027 => ReparseType::StorageSyncFolder,
+        0xA000001F => ReparseType::WindowsContainerTombstone,
+        0x80000020 => ReparseType::Unhandled,
+        0x80000021 => ReparseType::Onedrive,
+        0xA0000022 => ReparseType::ProjectFileSystemTombstone,
+        0x80000023 => ReparseType::AfUnix,
+        0x80000024 => ReparseType::LinuxFifo,
+        0x80000025 => ReparseType::LinuxChar,
+        0x80000026 => ReparseType::LinuxBlock,
+        0xA0000027 => ReparseType::LinuxLink,
+        0xA0001027 => ReparseType::LinuxLink1,
+        _ => ReparseType::Unknown,
+    }
+}
+
 /// Get the type of an Attribute
 pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
     let attr_type_result = attribute.ty();
@@ -258,17 +446,38 @@ pub(crate) fn get_ads_names(
 mod tests {
     use super::RawFilelist;
     use crate::{
-        artifacts::os::windows::ntfs::attributes::{
-            file_data, filename_info, get_ads_names, get_attribute_name, get_attribute_type,
-            standard_info,
+        artifacts::os::windows::ntfs::{
+            attributes::{
+                ReparseType, file_data, filename_info, get_ads_names, get_attribute_name,
+                get_attribute_type, reparse_type, standard_info,
+            },
+            parser::ntfs_filelist,
         },
         filesystem::ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
-        structs::artifacts::os::windows::RawFilesOptions,
+        structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
     };
     use common::files::Hashes;
     use common::windows::CompressionType;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
+
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("jsonl"),
+            compress,
+            timeline: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: output.to_string(),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        }
+    }
 
     #[test]
     fn test_filename_info() {
@@ -623,6 +832,47 @@ mod tests {
                 break;
             }
         }
+    }
+
+    #[test]
+    fn test_get_reparse_type() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/system/files");
+        let test_path = RawFilesOptions {
+            drive_letter: 'C',
+            start_path: String::from("C:\\Document and Settings"),
+            depth: 2,
+            recover_indx: false,
+            md5: None,
+            sha1: None,
+            sha256: None,
+            metadata: None,
+            path_regex: None,
+            filename_regex: None,
+        };
+
+        let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
+
+        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        assert_eq!(result, ());
+    }
+
+    #[test]
+    fn test_reparse_type() {
+        let test = [
+            0x00000000, 0x00000001, 0x00000002, 0xA0000003, 0xC0000004, 0x80000005, 0x80000006,
+            0x80000007, 0x80000008, 0x80000009, 0x8000000A, 0x8000000B, 0xA000000C, 0xA0000010,
+            0x80000012, 0x80000013, 0xC0000014, 0x80000014, 0x80000015, 0x80000016, 0x80000017,
+            0x80000018, 0x90001018, 0xA0000019, 0x9000001A, 0x9000101A, 0x9000201A, 0x9000301A,
+            0x9000401A, 0x9000501A, 0x9000601A, 0x9000701A, 0x9000801A, 0x9000901A, 0x9000A01A,
+            0x9000B01A, 0x9000C01A, 0x9000D01A, 0x9000E01A, 0x9000F01A, 0x8000001B, 0x9000001C,
+            0xA000001D, 0x8000001E, 0x90000027, 0xA000001F, 0x80000020, 0x80000021, 0xA0000022,
+            0x80000023, 0x80000024, 0x80000025, 0x80000026, 0xA0000027, 0xA0001027,
+        ];
+        for entry in test {
+            assert_ne!(reparse_type(entry), ReparseType::Unknown);
+        }
+        assert_eq!(reparse_type(0xff), ReparseType::Unknown);
     }
 
     #[test]

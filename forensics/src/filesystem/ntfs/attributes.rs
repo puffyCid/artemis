@@ -100,7 +100,7 @@ pub(crate) fn get_raw_file_size(
 }
 
 /// Read the attribute data. Handles both resident and non-resident data.
-fn read_attribute_data(
+pub(crate) fn read_attribute_data(
     value: &mut NtfsAttributeValue<'_, '_>,
     fs: &mut BufReader<SectorReader<File>>,
     entry_attr: &NtfsAttribute<'_, '_>,
