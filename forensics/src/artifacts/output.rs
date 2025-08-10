@@ -15,32 +15,28 @@ pub(crate) fn output_artifact(
     start_time: u64,
     filter: bool,
 ) -> Result<(), CollectionError> {
-    if filter {
-        if let Some(script) = &output.filter_script.clone() {
-            let args = vec![serde_data.to_string(), output_name.to_string()];
-            if let Some(name) = &output.filter_name.clone() {
-                let filter_result = filter_script(output, &args, name, script);
-                return match filter_result {
-                    Ok(_) => Ok(()),
-                    Err(err) => {
-                        error!(
-                            "[forensics] Could not apply filter script to windows data: {err:?}"
-                        );
-                        Err(CollectionError::FilterOutput)
-                    }
-                };
-            }
-            let filter_result = filter_script(output, &args, "UnknownFilterName", script);
+    if filter && let Some(script) = &output.filter_script.clone() {
+        let args = vec![serde_data.to_string(), output_name.to_string()];
+        if let Some(name) = &output.filter_name.clone() {
+            let filter_result = filter_script(output, &args, name, script);
             return match filter_result {
                 Ok(_) => Ok(()),
                 Err(err) => {
-                    error!(
-                        "[forensics] Could not apply unknown filter script to windows data: {err:?}"
-                    );
+                    error!("[forensics] Could not apply filter script to windows data: {err:?}");
                     Err(CollectionError::FilterOutput)
                 }
             };
         }
+        let filter_result = filter_script(output, &args, "UnknownFilterName", script);
+        return match filter_result {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                error!(
+                    "[forensics] Could not apply unknown filter script to windows data: {err:?}"
+                );
+                Err(CollectionError::FilterOutput)
+            }
+        };
     }
 
     let output_status = if output.format.to_lowercase() == "jsonl" || output.timeline {

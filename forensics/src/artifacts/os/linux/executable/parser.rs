@@ -87,16 +87,16 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseErr
 fn elf_sections(elf_data: &ElfBytes<'_, AnyEndian>) -> Result<Vec<String>, elf::parse::ParseError> {
     let (sections, string_table) = elf_data.section_headers_with_strtab()?;
     let mut sections_vec: Vec<String> = Vec::new();
-    if let Some(sects) = sections {
-        if let Some(table) = string_table {
-            for sect in sects {
-                let sect_name = table.get(sect.sh_name as usize).unwrap_or_default();
-                if sect_name.is_empty() {
-                    continue;
-                }
-
-                sections_vec.push(sect_name.to_string());
+    if let Some(sects) = sections
+        && let Some(table) = string_table
+    {
+        for sect in sects {
+            let sect_name = table.get(sect.sh_name as usize).unwrap_or_default();
+            if sect_name.is_empty() {
+                continue;
             }
+
+            sections_vec.push(sect_name.to_string());
         }
     }
 
