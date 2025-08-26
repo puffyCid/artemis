@@ -136,7 +136,7 @@ setup-macos: (_macos)
 
 # Package Artemis into RPM file
 [group('package')]
-rpm:(cli)
+rpm: (cli)
   @mkdir -p ~/rpmbuild/SOURCES
   @cp target/release/artemis ~/rpmbuild/SOURCES
   @cp README.md ~/rpmbuild/SOURCES
@@ -150,7 +150,7 @@ rpm:(cli)
 
 # Package Artemis into RPM file for CI Releases
 [group('package')]
-_ci_rpm target:(_ci_release target)
+_ci_rpm target: (_ci_release target)
   @mkdir -p ~/rpmbuild/SOURCES
   @mv "target/${TARGET}/release-action/${NAME}" ~/rpmbuild/SOURCES
   @cp README.md ~/rpmbuild/SOURCES
@@ -165,7 +165,7 @@ _ci_rpm target:(_ci_release target)
 
 # Package Artemis into DEB file
 [group('package')]
-deb version:(cli)
+deb version: (cli)
   @mkdir -p ~/artemis_{{version}}-1/DEBIAN
   @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
   @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
@@ -199,7 +199,7 @@ deb version:(cli)
 
 # Package Artemis into DEB file for CI Releases
 [group('package')]
-_ci_deb version target:(_ci_release target)
+_ci_deb version target: (_ci_release target)
   @mkdir -p ~/artemis_{{version}}-1/DEBIAN
   @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/
   @mkdir -p -m 755 ~/artemis_{{version}}-1/usr/bin
@@ -235,7 +235,7 @@ _ci_deb version target:(_ci_release target)
 
 # Package Artemis into macOS PKG installer file
 [group('package')]
-pkg team_id version profile:(cli)
+pkg team_id version profile: (cli)
   @cd target/release && codesign --timestamp -s {{team_id}} --deep -v -f -o runtime artemis
   @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
   @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.pkg
@@ -248,7 +248,7 @@ pkg team_id version profile:(cli)
 
 # Package Artemis into macOS PKG installer file for CI Releases
 [group('package')]
-_ci_pkg version profile target:(_ci_release target)
+_ci_pkg version profile target: (_ci_release target)
   @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
   @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.{{target}}.pkg
@@ -259,7 +259,7 @@ _ci_pkg version profile target:(_ci_release target)
 
 # Package Artemis into Windows MSI installer file
 [group('package')]
-msi:(cli)
+msi: (cli)
   @copy-item .\.packages\artemis.wixproj .\target\release\artemis.wixproj
   @copy-item .\.packages\artemis.wxs .\target\release\artemis.wxs
   cd target\release && dotnet build -c Release
@@ -269,7 +269,7 @@ msi:(cli)
 
 # Package Artemis into Windows MSI installer file for CI Releases
 [group('package')]
-_ci_msi target:(_ci_release target)
+_ci_msi target: (_ci_release target)
   @copy-item .\.packages\artemis.wixproj .\target\{{target}}\release-action\artemis.wixproj
   @copy-item .\.packages\artemis.wxs .\target\{{target}}\release-action\artemis.wxs
   cd target\{{target}}\release-action\ && dotnet build -c Release
@@ -277,4 +277,34 @@ _ci_msi target:(_ci_release target)
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
   @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis.msi
   cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis.msi -Algorithm SHA256).Hash" | Out-File -Encoding ASCII -NoNewline artemis.msi.sha256 
-  
+
+# Start the example daemon server in a Podman container
+[group('daemon')]
+server-podman:
+  @cd "tools/daemon server" && npm run build
+  podman network create daemonnet --ignore
+  podman build -f daemon/Dockerfile -t daemon-server --target server ./
+  podman run -p 127.0.0.1:8000:8000 --network daemonnet --name daemonserver --replace -d localhost/daemon-server
+  @echo "Server should be running. You can use Insomnia client to connect."
+  @echo "You can use podman logs to view any console output"
+
+# Start the example artemis daemon in a Podman container and connect to server Podman container
+[group('daemon')]
+daemon-podman: (server-podman)
+  podman build -f daemon/Dockerfile -t daemon-endpoint --target daemon ./
+  podman run -d --network daemonnet localhost/daemon-endpoint
+
+# Stop ALL Podman containers and remove and prune ALL container data
+[group('daemon')]
+cleanup-podman:
+  podman stop --all -t 2
+  podman system prune --all --force && podman rmi --all
+
+# Spawn three daemon containers to connect to server.
+[group('daemon')]
+daemon-preview: (server-podman)
+  podman build -f daemon/Dockerfile -t daemon-endpoint --target daemon ./
+  podman run -d --network daemonnet localhost/daemon-endpoint
+  podman run -d --network daemonnet localhost/daemon-endpoint
+  podman run -d --network daemonnet localhost/daemon-endpoint
+

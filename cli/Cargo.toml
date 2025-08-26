@@ -11,7 +11,7 @@ description = { workspace = true }
 base64 = { workspace = true }
 log = { workspace = true }
 forensics = { path = "../forensics", default-features = false }
-clap = { version = "4.5.43", features = ["std", "help", "derive"] }
+clap = { version = "4.5.45", features = ["std", "help", "derive"] }
 
 # Artemis features
 [features]

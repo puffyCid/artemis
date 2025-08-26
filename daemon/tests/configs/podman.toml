@@ -1,0 +1,17 @@
+log_path = "./tmp/artemis"
+log_level = "warning"
+
+[server]
+url = "http://daemonserver"
+port = 8000
+ignore_ssl = false
+enrollment = "endpoint/enroll"
+collections = "endpoint/collections"
+config = "endpoint/config"
+logging = "endpoint/logging"
+version = 1
+key = "my key"
+
+[daemon]
+endpoint_id = ""
+collection_path = "/var/artemis/collections"
