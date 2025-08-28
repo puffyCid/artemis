@@ -307,10 +307,6 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_path: Option<String>,
     },
-    /// macos: Collect Safari History
-    SafariHistory {},
-    /// macos: Collect Safari Downloads
-    SafariDownloads {},
     /// macos: Parse the Unified Logs
     Unifiedlogs {
         /// Log sources to parse. Can be combination of: Persist, Special, Signpost, or HighVolume

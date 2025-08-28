@@ -56,12 +56,6 @@ artifact_name = "groups-macos"
 artifact_name = "systeminfo"
 
 [[artifacts]]
-artifact_name = "safari-history"
-
-[[artifacts]]
-artifact_name = "safari-downloads"
-
-[[artifacts]]
 artifact_name = "unifiedlogs"
 [artifacts.unifiedlogs]
 sources = [

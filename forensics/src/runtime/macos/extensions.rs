@@ -8,9 +8,6 @@ use super::{
     loginitems::js_loginitems,
     macho::js_macho,
     plist::{js_plist, js_plist_data},
-    safari::{
-        js_safari_downloads, js_safari_history, js_safari_users_downloads, js_safari_users_history,
-    },
     spotlight::{js_setup_spotlight_parser, js_spotlight},
     sudo::js_sudologs_macos,
     unifiedlog::js_unified_log,
@@ -89,30 +86,6 @@ pub(crate) fn macos_functions(context: &mut Context) {
         JsString::from("js_loginitems"),
         1,
         NativeFunction::from_fn_ptr(js_loginitems),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_safari_users_history"),
-        0,
-        NativeFunction::from_fn_ptr(js_safari_users_history),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_safari_history"),
-        1,
-        NativeFunction::from_fn_ptr(js_safari_history),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_safari_users_downloads"),
-        0,
-        NativeFunction::from_fn_ptr(js_safari_users_downloads),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_safari_downloads"),
-        1,
-        NativeFunction::from_fn_ptr(js_safari_downloads),
     );
 
     let _ = context.register_global_callable(

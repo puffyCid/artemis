@@ -218,8 +218,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.loginitems = Some(options);
             collect.artifact_name = String::from("loginitems");
         }
-        CommandArgs::SafariDownloads {} => collect.artifact_name = String::from("safari-downloads"),
-        CommandArgs::SafariHistory {} => collect.artifact_name = String::from("safari-history"),
         CommandArgs::UsersMacos { alt_path } => {
             let options = MacosUsersOptions {
                 alt_path: alt_path.clone(),
@@ -514,9 +512,8 @@ mod tests {
     use crate::collector::system::CommandArgs::{
         Amcache, Bits, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos, Journals,
         Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin,
-        Registry, SafariDownloads, SafariHistory, Services, Shellbags, Shimcache, Shimdb,
-        Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos,
-        UsersWindows,
+        Registry, Services, Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux,
+        SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos, UsersWindows,
     };
     use forensics::structs::toml::Output;
     fn output() -> Output {
@@ -664,28 +661,6 @@ mod tests {
 
         let command = Commands::Acquire {
             artifact: Some(Emond { alt_path: None }),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-            timeline: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(SafariDownloads {}),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-            timeline: false,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(SafariHistory {}),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,

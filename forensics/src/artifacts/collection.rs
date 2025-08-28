@@ -1,5 +1,4 @@
 use super::{
-    applications::artifacts::{safari_downloads, safari_history},
     error::CollectionError,
     os::{
         connections::artifact::list_connections,
@@ -170,24 +169,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse unified logs: {err:?}");
-                    }
-                }
-            }
-            "safari-history" => {
-                let results = safari_history(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected Safari history"),
-                    Err(err) => {
-                        error!("[forensics] Failed to parse Safari history: {err:?}");
-                    }
-                }
-            }
-            "safari-downloads" => {
-                let results = safari_downloads(&mut collector.output, filter);
-                match results {
-                    Ok(_) => info!("Collected Safari downloads"),
-                    Err(err) => {
-                        error!("[forensics] Failed to parse Safari downloads: {err:?}");
                     }
                 }
             }

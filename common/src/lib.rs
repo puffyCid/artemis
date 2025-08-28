@@ -1,4 +1,3 @@
-pub mod applications;
 pub mod files;
 pub mod linux;
 pub mod macos;
