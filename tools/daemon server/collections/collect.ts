@@ -59,7 +59,7 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
 /**
  * Function to write collection uploads from the artemis daemon
  * @param request Artemis request uploading the results of the TOML collection. The request will contain metadata in the headers.
- * @param reply 200 OK response if the server sucessfully processes the uploading
+ * @param reply 200 OK response if the server successfully processes the uploading
  */
 export async function collectionUploadEndpoint(request: FastifyRequest, reply: FastifyReply) {
     console.log(request.headers);
@@ -140,9 +140,9 @@ export async function collectionUploadStatusEndpoint(request: FastifyRequest<{ B
     }
     const collection_id = request.body.collection_id;
 
-    console.log(`Collection completed at ${headers[ "x-artemis-collection-complete" ]}`);
+    console.log(`Collection status ${request.body.collection_status}`);
 
-    db.updateCollection(endpoint_id, collection_id, "Complete");
+    db.updateCollection(endpoint_id, collection_id, request.body.collection_status);
     reply.statusCode = 200;
     return reply.send({ endpoint_invalid: false });
 

@@ -123,7 +123,12 @@ export class LocalSqlite {
      */
     private defaultCollections(): void {
         try {
-            const bytes = readFileSync("./tests/collections/linux.toml");
+            let file = "./tests/collections/linux.toml";
+            // If we are in a container use http://daemonserver domain instead of IP
+            if (process.env.LISTEN !== undefined) {
+                file = "./tests/collections/podman.toml";
+            }
+            const bytes = readFileSync(file);
             const encoded = bytes.toString('base64');
             const insert = this.db.prepare(`INSERT INTO collection_scripts (collection_id, script) VALUES (?, ?)`);
             insert.run(1, encoded);

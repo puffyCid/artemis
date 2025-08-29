@@ -49,15 +49,6 @@ pub(crate) fn get_dictionary(plist_value: &Value) -> Result<Dictionary, PlistErr
     }
 }
 
-/// Return a `plist` value as bytes
-pub(crate) fn get_data(plist_value: &Value) -> Result<Vec<u8>, PlistError> {
-    let result = plist_value.as_data();
-    match result {
-        Some(data) => Ok(data.to_vec()),
-        None => Err(PlistError::Data),
-    }
-}
-
 /// Return a `plist` bytes as base64 string
 pub(crate) fn get_boolean(plist_value: &Value) -> Result<bool, PlistError> {
     let result = plist_value.as_boolean();
@@ -73,15 +64,6 @@ pub(crate) fn get_string(plist_value: &Value) -> Result<String, PlistError> {
     match result {
         Some(data) => Ok(data.to_string()),
         None => Err(PlistError::String),
-    }
-}
-
-/// Return a `plist` value as signed int
-pub(crate) fn get_signed_int(plist_value: &Value) -> Result<i64, PlistError> {
-    let result = plist_value.as_signed_integer();
-    match result {
-        Some(data) => Ok(data),
-        None => Err(PlistError::SignedInt),
     }
 }
 
@@ -106,12 +88,12 @@ pub(crate) fn get_float(plist_value: &Value) -> Result<f64, PlistError> {
 mod tests {
     use crate::{
         artifacts::os::macos::plist::property_list::{
-            get_array, get_boolean, get_data, get_dictionary, get_float, get_signed_int,
-            get_string, parse_plist_data, parse_plist_file,
+            get_array, get_boolean, get_dictionary, get_float, get_string, parse_plist_data,
+            parse_plist_file,
         },
         filesystem::files::read_file,
     };
-    use plist::{Integer, Value};
+    use plist::Value;
     use std::path::PathBuf;
 
     #[test]
@@ -142,14 +124,6 @@ mod tests {
         let results = get_boolean(&test).unwrap();
 
         assert_eq!(results, true);
-    }
-
-    #[test]
-    fn test_get_data() {
-        let test = Value::Data(vec![1, 0, 1]);
-        let results = get_data(&test).unwrap();
-
-        assert_eq!(results, [1, 0, 1]);
     }
 
     #[test]
@@ -186,13 +160,6 @@ mod tests {
         let test: Value = Value::String(String::from("test"));
         let results = get_string(&test).unwrap();
         assert_eq!(results, "test");
-    }
-
-    #[test]
-    fn test_get_signed_int() {
-        let test: Value = Value::Integer(Integer::from(2));
-        let results = get_signed_int(&test).unwrap();
-        assert_eq!(results, 2);
     }
 
     #[test]
