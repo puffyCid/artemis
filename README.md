@@ -84,8 +84,6 @@ Commands:
   loginitems         macos: Parse LoginItems
   launchd            macos: Parse Launch Daemons and Agents
   groups-macos       macos: Collect local groups
-  safari-history     macos: Collect Safari History
-  safari-downloads   macos: Collect Safari Downloads
   unifiedlogs        macos: Parse the Unified Logs
   sudologs-macos     macos: Parse Sudo log entries from Unified Logs
   spotlight          macos: Parse the Spotlight database
