@@ -65,6 +65,7 @@ ignore = [
     { id = "RUSTSEC-2021-0153", "reason" = "Associated with evtx crate. Waiting for upstream update" },
     { id = "RUSTSEC-2023-0071", "reason" = "Associated with yara-x crate. Vuln not applicable" },
     { id = "RUSTSEC-2024-0436", "reason" = "Associated with yara-x and boa crates. Waiting for upstream updates" },
+    { id = "RUSTSEC-2025-0052", "reason" = "Associated with httpmock dev crate. Waiting for upstream updates" },
 ] # The lint level for security vulnerabilities
 #vulnerability = "deny"
 # The lint level for unmaintained crates
