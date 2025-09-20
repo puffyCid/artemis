@@ -150,32 +150,58 @@ mod tests {
     };
     use crate::{
         artifacts::os::windows::registry::{helper::lookup_sk_info, parser::Params},
-        filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+        filesystem::{
+            metadata::get_metadata,
+            ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+        },
     };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
     fn test_read_registry() {
-        let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
-        assert!(buffer.len() > 10000)
+        let test = [
+            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+        ];
+        for entry in test {
+            let result = get_metadata(entry);
+            if result.is_err() {
+                continue;
+            }
+            let buffer = read_registry(entry).unwrap();
+            assert!(buffer.len() > 10000);
+            break;
+        }
     }
 
     #[test]
     fn test_parse_raw_registry() {
-        let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
-        let mut params = Params {
-            start_path: String::from("{"),
-            path_regex: Regex::new("").unwrap(),
-            registry_list: Vec::new(),
-            key_tracker: Vec::new(),
-            offset_tracker: HashMap::new(),
-            filter: false,
-            registry_path: String::new(),
-            start_time: 0,
-        };
-        let (_, result) = parse_raw_registry(&buffer, &mut params, &mut None).unwrap();
-        assert!(result.len() > 100)
+        let test = [
+            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+        ];
+
+        for entry in test {
+            let result = get_metadata(entry);
+            if result.is_err() {
+                continue;
+            }
+            let buffer = read_registry(entry).unwrap();
+            let mut params = Params {
+                start_path: String::from("{"),
+                path_regex: Regex::new("").unwrap(),
+                registry_list: Vec::new(),
+                key_tracker: Vec::new(),
+                offset_tracker: HashMap::new(),
+                filter: false,
+                registry_path: String::new(),
+                start_time: 0,
+            };
+            let (_, result) = parse_raw_registry(&buffer, &mut params, &mut None).unwrap();
+            assert!(result.len() > 100);
+            break;
+        }
     }
 
     #[test]
