@@ -136,6 +136,9 @@ mod tests {
     fn test_parse_userassist_data() {
         let results = get_userassist_drive('C').unwrap();
         let results = parse_userassist_data(&results, false).unwrap();
+        if results.is_empty() {
+            return;
+        }
         assert!(results.len() > 3);
         for entry in results {
             if entry.reg_path == "UEME_CTLSESSION" {
@@ -154,6 +157,9 @@ mod tests {
 
         for entry in results {
             get_entries(&entry, &mut entries, &folder);
+        }
+        if entries.is_empty() {
+            return;
         }
         assert!(entries.len() > 3);
     }

@@ -150,10 +150,7 @@ mod tests {
     };
     use crate::{
         artifacts::os::windows::registry::{helper::lookup_sk_info, parser::Params},
-        filesystem::{
-            metadata::get_metadata,
-            ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
-        },
+        filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
@@ -164,17 +161,19 @@ mod tests {
             "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
             "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
         ];
+        let mut pass = false;
         for entry in test {
-            let result = get_metadata(entry);
-            if result.is_err() {
+            let buffer = read_registry(entry);
+            if buffer.is_err() {
                 continue;
             }
-            println!("{:?}", result.unwrap());
 
-            let buffer = read_registry(entry).unwrap();
-            assert!(buffer.len() > 10000);
+            assert!(buffer.unwrap().len() > 10000);
+            pass = true;
             break;
         }
+
+        assert!(pass)
     }
 
     #[test]
@@ -184,12 +183,8 @@ mod tests {
             "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
         ];
 
+        let mut pass = false;
         for entry in test {
-            let result = get_metadata(entry);
-            if result.is_err() {
-                continue;
-            }
-            println!("{:?}", result.unwrap());
             let buffer = read_registry(entry).unwrap();
             let mut params = Params {
                 start_path: String::from("{"),
@@ -201,10 +196,16 @@ mod tests {
                 registry_path: String::new(),
                 start_time: 0,
             };
-            let (_, result) = parse_raw_registry(&buffer, &mut params, &mut None).unwrap();
-            assert!(result.len() > 100);
+            let result = parse_raw_registry(&buffer, &mut params, &mut None);
+            if result.is_err() {
+                continue;
+            }
+            assert!(result.unwrap().1.len() > 100);
+            pass = true;
+
             break;
         }
+        assert!(pass)
     }
 
     #[test]
