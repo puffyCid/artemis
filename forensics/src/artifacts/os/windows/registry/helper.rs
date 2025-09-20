@@ -163,12 +163,12 @@ mod tests {
         ];
         let mut pass = false;
         for entry in test {
-            let buffer = read_registry(entry);
-            if buffer.is_err() {
+            let buffer = read_registry(entry).unwrap_or_default();
+            if buffer.is_empty() {
                 continue;
             }
 
-            assert!(buffer.unwrap().len() > 1);
+            assert!(buffer.len() > 1);
             pass = true;
             break;
         }
