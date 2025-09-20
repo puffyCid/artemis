@@ -246,6 +246,7 @@ pub(crate) fn raw_read_by_file_ref(
     match compress_check {
         Ok((is_compressed, uncompressed_data, _compressed_size)) => {
             if is_compressed {
+                println!("compressed?");
                 return Ok(uncompressed_data);
             }
         }
