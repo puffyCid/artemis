@@ -67,6 +67,7 @@ fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
  * Parse the raw Registry file and get the entries related to file execution
  */
 fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
+    println!("{path}");
     let start_path = "";
     // Should always be valid
     let path_regex = create_regex(r"root\\(inventoryapplicationfile|file)\\.*").unwrap();
