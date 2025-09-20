@@ -187,6 +187,7 @@ mod tests {
             if result.is_err() {
                 continue;
             }
+            println!("{:?}", result.unwrap());
             let buffer = read_registry(entry).unwrap();
             let mut params = Params {
                 start_path: String::from("{"),
