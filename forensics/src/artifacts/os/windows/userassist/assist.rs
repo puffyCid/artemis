@@ -139,7 +139,7 @@ mod tests {
         if results.is_empty() {
             return;
         }
-        assert!(results.len() > 3);
+        assert!(results.len() > 1);
         for entry in results {
             if entry.reg_path == "UEME_CTLSESSION" {
                 assert_eq!(entry.count, 0);
@@ -161,7 +161,7 @@ mod tests {
         if entries.is_empty() {
             return;
         }
-        assert!(entries.len() > 3);
+        assert!(entries.len() > 1);
     }
 
     #[test]

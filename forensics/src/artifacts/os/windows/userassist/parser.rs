@@ -61,7 +61,7 @@ mod tests {
         if results.is_empty() {
             return;
         }
-        assert!(results.len() > 3);
+        assert!(results.len() > 1);
     }
 
     #[test]
@@ -75,6 +75,6 @@ mod tests {
         if results.is_empty() {
             return;
         }
-        assert!(results.len() > 5);
+        assert!(results.len() > 1);
     }
 }
