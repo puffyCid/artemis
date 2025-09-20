@@ -4,8 +4,8 @@ use std::fmt;
 pub enum CompressionError {
     GzipReadFile,
     GzipDecompress,
-    ZstdDecompresss,
-    Lz4Decompresss,
+    ZstdDecompress,
+    Lz4Decompress,
     XzDecompress,
     CompressCreate,
     GzipFinish,
@@ -22,6 +22,7 @@ pub enum CompressionError {
     HuffmanCompressionDefault,
     ZlibDecompress,
     RtfCorrupted,
+    SnappyDecompress,
 }
 
 impl std::error::Error for CompressionError {}
@@ -31,8 +32,8 @@ impl fmt::Display for CompressionError {
         match self {
             CompressionError::GzipReadFile => write!(f, "Could not read file"),
             CompressionError::GzipDecompress => write!(f, "Could not decompress gzip data"),
-            CompressionError::ZstdDecompresss => write!(f, "Could not decompress zstd data"),
-            CompressionError::Lz4Decompresss => write!(f, "Could not decompress lz4 data"),
+            CompressionError::ZstdDecompress => write!(f, "Could not decompress zstd data"),
+            CompressionError::Lz4Decompress => write!(f, "Could not decompress lz4 data"),
             CompressionError::XzDecompress => write!(f, "Could not decompress xz data"),
             CompressionError::CompressCreate => write!(f, "Could not create file for compression"),
             CompressionError::GzipFinish => write!(f, "Could not complete gzip compression"),
@@ -45,8 +46,8 @@ impl fmt::Display for CompressionError {
             CompressionError::XpressBadPrefix => write!(f, "Bad xpress prefix"),
             CompressionError::XpressNoChild => write!(f, "No xpress child"),
             CompressionError::XpressNoChildNode => write!(f, "No xpress child node"),
-            CompressionError::LzntBadFormat => write!(f, "Failed to decompess lznt"),
-            CompressionError::Lz77BadLength => write!(f, "Failed to decompess lz77"),
+            CompressionError::LzntBadFormat => write!(f, "Failed to decompress lznt"),
+            CompressionError::Lz77BadLength => write!(f, "Failed to decompress lz77"),
             CompressionError::HuffmanCompressionDefault => {
                 write!(f, "Huffman default not supported")
             }
@@ -54,7 +55,8 @@ impl fmt::Display for CompressionError {
                 write!(f, "Huffman none not supported")
             }
             CompressionError::ZlibDecompress => write!(f, "Failed to decompress zlib"),
-            CompressionError::RtfCorrupted => write!(f, "Failed to decompess RTF"),
+            CompressionError::RtfCorrupted => write!(f, "Failed to decompress RTF"),
+            CompressionError::SnappyDecompress => write!(f, "Failed to decompress snappy"),
         }
     }
 }

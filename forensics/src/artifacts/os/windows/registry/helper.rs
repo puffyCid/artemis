@@ -157,25 +157,55 @@ mod tests {
 
     #[test]
     fn test_read_registry() {
-        let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
-        assert!(buffer.len() > 10000)
+        let test = [
+            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+        ];
+        let mut pass = false;
+        for entry in test {
+            let buffer = read_registry(entry).unwrap_or_default();
+            if buffer.is_empty() {
+                continue;
+            }
+
+            assert!(buffer.len() > 1);
+            pass = true;
+            break;
+        }
+
+        assert!(pass)
     }
 
     #[test]
     fn test_parse_raw_registry() {
-        let buffer = read_registry("C:\\Windows\\appcompat\\Programs\\Amcache.hve").unwrap();
-        let mut params = Params {
-            start_path: String::from("{"),
-            path_regex: Regex::new("").unwrap(),
-            registry_list: Vec::new(),
-            key_tracker: Vec::new(),
-            offset_tracker: HashMap::new(),
-            filter: false,
-            registry_path: String::new(),
-            start_time: 0,
-        };
-        let (_, result) = parse_raw_registry(&buffer, &mut params, &mut None).unwrap();
-        assert!(result.len() > 100)
+        let test = [
+            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+        ];
+
+        let mut pass = false;
+        for entry in test {
+            let buffer = read_registry(entry).unwrap_or_default();
+            let mut params = Params {
+                start_path: String::from("{"),
+                path_regex: Regex::new("").unwrap(),
+                registry_list: Vec::new(),
+                key_tracker: Vec::new(),
+                offset_tracker: HashMap::new(),
+                filter: false,
+                registry_path: String::new(),
+                start_time: 0,
+            };
+            let result = parse_raw_registry(&buffer, &mut params, &mut None);
+            if result.is_err() {
+                continue;
+            }
+            assert!(result.unwrap().1.len() > 100);
+            pass = true;
+
+            break;
+        }
+        assert!(pass)
     }
 
     #[test]

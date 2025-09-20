@@ -1,6 +1,8 @@
 use crate::{
     runtime::helper::{bytes_arg, number_arg},
-    utils::compression::decompress::{decompress_gzip_data, decompress_zlib},
+    utils::compression::decompress::{
+        decompress_gzip_data, decompress_snappy, decompress_zlib, decompress_zstd,
+    },
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
 
@@ -36,6 +38,46 @@ pub(crate) fn js_decompress_gzip(
     let data = bytes_arg(args, 0, context)?;
 
     let decom_data = match decompress_gzip_data(&data) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get decompress data: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(decom_data, context)?;
+
+    Ok(bytes.into())
+}
+
+/// Expose decompressing snappy data to Boa
+pub(crate) fn js_decompress_snappy(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, 0, context)?;
+
+    let decom_data = match decompress_snappy(&data) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get decompress data: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(decom_data, context)?;
+
+    Ok(bytes.into())
+}
+
+/// Expose decompressing zstd data to Boa
+pub(crate) fn js_decompress_zstd(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, 0, context)?;
+
+    let decom_data = match decompress_zstd(&data) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");
@@ -89,6 +131,17 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("gzip_test"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_snappy_decompress() {
+        let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2NvbXByZXNzaW9uL2Vycm9ycy50cwp2YXIgQ29tcHJlc3Npb25FcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsKfTsKCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3Nfc25hcHB5KGRhdGEpIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19kZWNvbXByZXNzX3NuYXBweShkYXRhKTsKICAgIHJldHVybiBieXRlczsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgQ29tcHJlc3Npb25FcnJvcihgU05BUFBZYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9lcnJvcnMudHMKdmFyIEVuY29kaW5nRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19iYXNlNjRfZGVjb2RlKGI2NCk7CiAgICByZXR1cm4gYnl0ZXM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IEVuY29kaW5nRXJyb3IoYEJBU0U2NGAsIGBmYWlsZWQgdG8gZGVjb2RlICR7YjY0fTogJHtlcnJ9YCk7CiAgfQp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGRlY29kZSgidVFGSUFCUURUVVZVUVRwbWFXeGxPaTh2QWFNb0FBVUJFS0FTQUJRRU1ob0FCQzBuQlJrY3BSTHFFUUFuQkY4Tk1XUUFBV3hoYzNSU1pXTmxhWFpsWkVGMFEyOTFiblJsY2dHQ0tRVXVESlFrdEJDS0xnQUF2Z2xjSk0wMHpRd0FDUVJnQWY4SkFReWZRYnNLQVVkTUdnQUFBRFVBQUFCakFBQUFrUUFBQUFVQUFBQT0iKTsKICBjb25zdCB2YWx1ZSA9IGRlY29tcHJlc3Nfc25hcHB5KGRhdGEpOwogIGlmKHZhbHVlIGluc3RhbmNlb2YgQ29tcHJlc3Npb25FcnJvcikgewogICB0aHJvdyB2YWx1ZTsKICB9Cn0KbWFpbigpOwo=";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("snappy_test"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

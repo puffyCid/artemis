@@ -11,6 +11,7 @@ use miniz_oxide::{
     inflate::stream::{InflateState, inflate},
 };
 use ruzstd::decoding::StreamingDecoder;
+use snap::raw::Decoder;
 use std::io::Read;
 use xz2::read::XzDecoder;
 
@@ -50,13 +51,13 @@ pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, CompressionError> 
     let mut decoder = match decoder_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[compresssion] Could not decompress zstd data: {err:?}");
-            return Err(CompressionError::ZstdDecompresss);
+            error!("[compression] Could not decompress zstd data: {err:?}");
+            return Err(CompressionError::ZstdDecompress);
         }
     };
     let mut data = Vec::new();
     if decoder.read_to_end(&mut data).is_err() {
-        return Err(CompressionError::ZstdDecompresss);
+        return Err(CompressionError::ZstdDecompress);
     }
     Ok(data)
 }
@@ -72,7 +73,7 @@ pub(crate) fn decompress_lz4(
         Ok(result) => result,
         Err(err) => {
             error!("[compression] Could not decompress lz4 data: {err:?}");
-            return Err(CompressionError::Lz4Decompresss);
+            return Err(CompressionError::Lz4Decompress);
         }
     };
     Ok(decomp_data)
@@ -187,18 +188,18 @@ pub(crate) fn decompress_xpress(
 }
 
 /**
- * Decomress RTF compressed data. This is found mainly in Microsoft Outlook.
+ * Decompress RTF compressed data. This is found mainly in Microsoft Outlook.
  * Inspired by <https://github.com/delimitry/compressed_rtf/blob/master/compressed_rtf/compressed_rtf.py> (MIT license)
  */
 pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, CompressionError> {
-    let intial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
+    let initial_string = "{\\rtf1\\ansi\\mac\\deff0\\deftab720{\\fonttbl;}{\\f0\\fnil \\froman \\fswiss \\fmodern \\fscript \\fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\\colortbl\\red0\\green0\\blue0\n\r\\par \\pard\\plain\\f0\\fs20\\b\\i\\u\\tab\\tx".as_bytes();
     const MAX_LZ_REFERENCE: usize = 4096;
-    // Size of the intial string above
+    // Size of the initial string above
     const SIZE: usize = 207;
     let mut initial_buf = [0; (MAX_LZ_REFERENCE - SIZE)];
     initial_buf.fill(0);
 
-    let mut start = [intial_string, &initial_buf].concat();
+    let mut start = [initial_string, &initial_buf].concat();
 
     let mut decom_data = Vec::new();
     let mut buf_position = SIZE;
@@ -309,9 +310,23 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
     Ok(decom_data)
 }
 
+/// Decompress snappy compressed data
+pub(crate) fn decompress_snappy(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
+    let mut decode = Decoder::new();
+    let decom_data = match decode.decompress_vec(data) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[compression] Could not decompress snappy data: {err:?}");
+            return Err(CompressionError::SnappyDecompress);
+        }
+    };
+
+    Ok(decom_data)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::decompress_rtf;
+    use super::{decompress_rtf, decompress_snappy};
     use crate::{
         filesystem::files::read_file,
         utils::{
@@ -534,5 +549,32 @@ mod tests {
         let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let (input, _crc) = nom_unsigned_four_bytes(input, Endian::Le).unwrap();
         let _ = decompress_rtf(input, uncompressed_size).unwrap();
+    }
+
+    #[test]
+    fn test_decompress_snappy() {
+        let test = [
+            185, 1, 72, 0, 20, 3, 77, 69, 84, 65, 58, 102, 105, 108, 101, 58, 47, 47, 1, 163, 40,
+            0, 5, 1, 16, 160, 18, 0, 20, 4, 50, 26, 0, 4, 45, 39, 5, 25, 28, 165, 18, 234, 17, 0,
+            39, 4, 95, 13, 49, 100, 0, 1, 108, 97, 115, 116, 82, 101, 99, 101, 105, 118, 101, 100,
+            65, 116, 67, 111, 117, 110, 116, 101, 114, 1, 130, 41, 5, 46, 12, 148, 36, 180, 16,
+            138, 46, 0, 0, 190, 9, 92, 36, 205, 52, 205, 12, 0, 9, 4, 96, 1, 255, 9, 1, 12, 159,
+            65, 187, 10, 1, 71, 76, 26, 0, 0, 0, 53, 0, 0, 0, 99, 0, 0, 0, 145, 0, 0, 0, 5, 0, 0,
+            0,
+        ];
+        let result = decompress_snappy(&test).unwrap();
+        assert_eq!(result.len(), 185)
+    }
+
+    #[test]
+    #[should_panic(expected = "SnappyDecompress")]
+    fn test_decompress_snappy_bad() {
+        let test = [
+            5, 116, 82, 101, 99, 101, 105, 118, 101, 100, 65, 116, 67, 111, 117, 110, 116, 101,
+            114, 1, 130, 41, 5, 46, 12, 148, 36, 180, 16, 138, 46, 0, 0, 190, 9, 92, 36, 205, 52,
+            205, 12, 0, 9, 4, 96, 1, 255, 9, 1, 12, 159, 65, 187, 10, 1, 71, 76, 26, 0, 0, 0, 53,
+            0, 0, 0, 99, 0, 0, 0, 145, 0, 0, 0, 5, 0, 0, 0,
+        ];
+        let _ = decompress_snappy(&test).unwrap();
     }
 }

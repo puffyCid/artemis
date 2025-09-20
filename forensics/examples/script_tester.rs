@@ -1,3 +1,4 @@
+use serde_json::Value;
 use std::{env, path::Path};
 
 fn main() {
@@ -9,7 +10,9 @@ fn main() {
         let path = &args[1];
         if Path::new(path).is_file() {
             let status = forensics::core::parse_js_file(path).expect("failed script execution");
-            println!("{status:?}");
+            if status != Value::Null {
+                println!("{status:?}");
+            }
             return;
         } else {
             panic!("Not a file")
