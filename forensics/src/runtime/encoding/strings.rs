@@ -1,6 +1,6 @@
 use crate::{
     runtime::helper::bytes_arg,
-    utils::strings::{extract_utf8_string, extract_utf16_string},
+    utils::strings::{extract_utf8_string, extract_utf8_string_lossy, extract_utf16_string},
 };
 use boa_engine::{Context, JsResult, JsValue, js_string};
 
@@ -13,6 +13,17 @@ pub(crate) fn js_extract_utf8_string(
     let data = bytes_arg(args, 0, context)?;
 
     Ok(js_string!(extract_utf8_string(&data)).into())
+}
+
+/// Attempt to extract a UTF8 string from raw bytes replacing invalid UTF8 with mojibake
+pub(crate) fn js_extract_utf8_string_lossy(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, 0, context)?;
+
+    Ok(js_string!(extract_utf8_string_lossy(&data)).into())
 }
 
 /// Attempt to extract a UTF16 string from raw bytes
@@ -71,6 +82,17 @@ mod tests {
     #[test]
     fn test_js_extract_utf8_string() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdmFsdWUgPSBVaW50OEFycmF5LmZyb20oWzc5LCA4MywgODEsIDg1LCA2OSwgODIsIDg5LCA2OCwgNDYsIDY5LCA4OCwgNjksIDBdKTsKICBjb25zdCByZXN1bHQgPSBleHRyYWN0VXRmOFN0cmluZyh2YWx1ZSk7CiAgY29uc29sZS5sb2cocmVzdWx0KTsKICByZXR1cm4gcmVzdWx0Owp9Cm1haW4oKTsK";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("strings_test"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_js_extract_utf8_string_lossy() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZ0xvc3N5KGRhdGEpIHsKICBjb25zdCByZXN1bHQgPSBqc19leHRyYWN0X3V0Zjhfc3RyaW5nX2xvc3N5KGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB2YWx1ZSA9IFVpbnQ4QXJyYXkuZnJvbShbNzksIDgzLCA4MSwgODUsIDY5LCA4MiwgODksIDY4LCA0NiwgNjksIDg4LCA2OSwgMF0pOwogIGNvbnN0IHJlc3VsdCA9IGV4dHJhY3RVdGY4U3RyaW5nTG9zc3kodmFsdWUpOwogIGNvbnNvbGUubG9nKHJlc3VsdCk7CiAgcmV0dXJuIHJlc3VsdDsKfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("strings_test"),
