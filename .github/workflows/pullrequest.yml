@@ -47,11 +47,7 @@ jobs:
       - name: Install just runner
         uses: taiki-e/install-action@just
 
-      - name: Run clippy action to produce annotations on Windows
-        if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c
-      - name: Run clippy action to produce annotations non-Windows
-        if: matrix.info.os != 'windows-latest'
+      - name: Run clippy
         run: just
 
       - name: Build tests (macOS)
@@ -81,10 +77,6 @@ jobs:
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
         run: cargo test --release
-
-      - name: Build Artemis Windows ARM
-        if: matrix.info.os == 'windows-11-arm'
-        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
 
       - name: Build tests (Windows ARM)
         if: matrix.info.os == 'windows-11-arm'
