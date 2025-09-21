@@ -25,6 +25,8 @@ jobs:
               target: "x86_64-pc-windows-msvc",
               cross: false,
             }
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     steps:
       - uses: actions/checkout@v4
@@ -78,4 +80,20 @@ jobs:
         
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
+        run: cargo test --release
+
+      - name: Install LLVM on Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
+        run: winget install llvm --silent --accept-package-agreements
+
+      - name: Build Artemis Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
+        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
+
+      - name: Build tests (Windows ARM)
+        if: matrix.info.os == 'windows-11-arm'
+        run: cargo test --no-run --release
+        
+      - name: Run tests (Windows ARM)
+        if: matrix.info.os == 'windows-11-arm'
         run: cargo test --release

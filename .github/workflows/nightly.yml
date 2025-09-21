@@ -23,6 +23,8 @@ jobs:
             target: "x86_64-pc-windows-msvc"
           - os: "ubuntu-latest"
             target: "x86_64-unknown-linux-gnu"
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     steps:
       - name: Setup Stable Rust toolchain
@@ -46,6 +48,14 @@ jobs:
 
       - name: Build Artemis
         if: matrix.info.os == 'windows-latest'
+        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
+
+      - name: Install LLVM on Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
+        run: winget install llvm --silent --accept-package-agreements
+
+      - name: Build Artemis Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
         run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
 
       - name: Package Artemis
