@@ -47,10 +47,6 @@ jobs:
       - name: Install just runner
         uses: taiki-e/install-action@just
 
-      - name: Install LLVM on Windows ARM
-        if: matrix.info.os == 'windows-11-arm'
-        run: winget.exe install llvm --silent --accept-package-agreements
-
       - name: Run clippy action to produce annotations on Windows
         if: matrix.info.os == 'windows-latest'
         run: just --shell pwsh.exe --shell-arg -c

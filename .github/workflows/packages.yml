@@ -83,14 +83,6 @@ jobs:
         run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
 
       # Windows ARM Package Options
-      - name: Install LLVM on Windows ARM
-        if: matrix.info.os == 'windows-11-arm'
-        run: winget install llvm --silent --accept-package-agreements
-
-      - name: Install dotnet on Windows ARM
-        if: matrix.info.os == 'windows-11-arm'
-        run: winget install Microsoft.DotNet.SDK.9 --silent --accept-package-agreements
-
       - name: Install WiX on Windows ARM
         if: matrix.info.os == 'windows-11-arm'
         run: dotnet tool install --global wix
