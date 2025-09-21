@@ -25,6 +25,8 @@ jobs:
               target: "x86_64-pc-windows-msvc",
               cross: false,
             }
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     steps:
       - uses: actions/checkout@v4
@@ -45,11 +47,7 @@ jobs:
       - name: Install just runner
         uses: taiki-e/install-action@just
 
-      - name: Run clippy action to produce annotations on Windows
-        if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c
-      - name: Run clippy action to produce annotations non-Windows
-        if: matrix.info.os != 'windows-latest'
+      - name: Run clippy
         run: just
 
       - name: Build tests (macOS)
@@ -78,4 +76,12 @@ jobs:
         
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
+        run: cargo test --release
+
+      - name: Build tests (Windows ARM)
+        if: matrix.info.os == 'windows-11-arm'
+        run: cargo test --no-run --release
+        
+      - name: Run tests (Windows ARM)
+        if: matrix.info.os == 'windows-11-arm'
         run: cargo test --release

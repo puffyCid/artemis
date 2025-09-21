@@ -21,6 +21,8 @@ jobs:
             target: "x86_64-pc-windows-msvc"
           - os: "ubuntu-latest"
             target: "x86_64-unknown-linux-gnu"
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     steps:
       - name: Setup Stable Rust toolchain
@@ -78,6 +80,15 @@ jobs:
 
       - name: Package Artemis as MSI
         if: matrix.info.os == 'windows-latest'
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
+
+      # Windows ARM Package Options
+      - name: Install WiX on Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
+        run: dotnet tool install --global wix
+
+      - name: Package Artemis as MSI on Windows ARM
+        if: matrix.info.os == 'windows-11-arm'
         run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
 
       # Linux Package Options
