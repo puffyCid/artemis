@@ -3,7 +3,10 @@ use super::{
     bytes::js_encode_bytes,
     csv::js_read_csv,
     protobuf::js_parse_protobuf,
-    strings::{js_bytes_to_hex_string, js_extract_utf8_string, js_extract_utf16_string},
+    strings::{
+        js_bytes_to_hex_string, js_extract_utf8_string, js_extract_utf8_string_lossy,
+        js_extract_utf16_string,
+    },
     uuid::{js_format_guid_be_bytes, js_format_guid_le_bytes, js_generate_uuid},
     xml::js_read_xml,
 };
@@ -45,6 +48,12 @@ pub(crate) fn encoding_functions(context: &mut Context) {
         JsString::from("js_extract_utf16_string"),
         1,
         NativeFunction::from_fn_ptr(js_extract_utf16_string),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_extract_utf8_string_lossy"),
+        1,
+        NativeFunction::from_fn_ptr(js_extract_utf8_string_lossy),
     );
 
     let _ = context.register_global_callable(
