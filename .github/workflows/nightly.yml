@@ -1,8 +1,5 @@
 name: Nightly Release
 
-permissions:
-  contents: write
-
 on:
   push:
     branches:
@@ -10,8 +7,11 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+permissions: {}
+
 jobs:
-  upload-nightly:
+  build:
+    name: Compile Nightly Releases
     strategy:
       matrix:
         info:
@@ -26,34 +26,69 @@ jobs:
           - os: "windows-11-arm"
             target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
+    permissions:
+      contents: read
     steps:
       - name: Setup Stable Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 #v2025.09.23
         with:
           targets: ${{ matrix.info.target }}
           components: clippy, rustfmt
+          toolchain: stable
       - name: Setup Auditable
         run: cargo install cargo-auditable
 
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
+        with:
+          tool: just
 
       - name: Build Artemis
         if: matrix.info.os == 'macOS-latest'
-        run: just _ci_release ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just _ci_release $TARGET
 
       - name: Build Artemis
         if: matrix.info.os == 'ubuntu-latest'
-        run: just _ci_release ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just _ci_release $TARGET
 
       - name: Build Artemis
         if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just --shell pwsh.exe --shell-arg -c _ci_release $TARGET
 
       - name: Build Artemis Windows ARM
         if: matrix.info.os == 'windows-11-arm'
-        run: just --shell pwsh.exe --shell-arg -c _ci_release ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just --shell pwsh.exe --shell-arg -c _ci_release $TARGET
 
+  package:
+    name: Publish Nightly Artemis
+    strategy:
+      matrix:
+        info:
+          - os: "macOS-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macOS-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
+    runs-on: ${{ matrix.info.os }}
+    needs: [build]
+    permissions:
+      contents: write # Used to publish releases
+    steps:
       - name: Package Artemis
         shell: bash
         env:
@@ -62,7 +97,7 @@ jobs:
         run: .github/scripts/package.sh
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 #v2.3.3
         with:
           files: "artemis*"
           name: Nightly Version

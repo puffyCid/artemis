@@ -1,15 +1,15 @@
 name: Stable Release Packages
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
       - v[0-9]+.*
 
+permissions: {}
+
 jobs:
-  upload-release:
+  build:
+    name: Compile Package Releases
     strategy:
       matrix:
         info:
@@ -24,17 +24,24 @@ jobs:
           - os: "windows-11-arm"
             target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
+    permissions:
+      contents: read
     steps:
       - name: Setup Stable Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 #v2025.09.23
         with:
           targets: ${{ matrix.info.target }}
           components: clippy, rustfmt
+          toolchain: stable
       - name: Setup Auditable
         run: cargo install cargo-auditable
 
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
+        with:
+          tool: just
 
       # macOS Package Option
       - name: Setup runner Keychain
@@ -42,8 +49,9 @@ jobs:
         env:
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          DEVELOPER_P12: ${{ secrets.DEVELOPER_P12 }}
         run: |
-          echo ${{ secrets.DEVELOPER_P12 }} | base64 --decode > certs.p12
+          echo $DEVELOPER_P12 | base64 --decode > certs.p12
       
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -66,7 +74,8 @@ jobs:
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           TARGET: ${{ matrix.info.target }}
-        run: just _ci_pkg ${{  github.ref_name }} PuffyCid ${{ matrix.info.target }}
+          VERSION: ${{  github.ref_name }}
+        run: just _ci_pkg $VERSION PuffyCid $TARGET
 
 
       # Windows Package Options
@@ -80,7 +89,9 @@ jobs:
 
       - name: Package Artemis as MSI
         if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi $TARGET
 
       # Windows ARM Package Options
       - name: Install WiX on Windows ARM
@@ -89,7 +100,9 @@ jobs:
 
       - name: Package Artemis as MSI on Windows ARM
         if: matrix.info.os == 'windows-11-arm'
-        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${{ matrix.info.target }}
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi $TARGET
 
       # Linux Package Options
       - name: Install RPM tools
@@ -112,7 +125,7 @@ jobs:
           NAME: artemis
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
-        run: just _ci_rpm ${{ matrix.info.target }}
+        run: just _ci_rpm $TARGET
 
       - name: Package Artemis as DEB
         if: matrix.info.os == 'ubuntu-latest'
@@ -122,10 +135,30 @@ jobs:
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
           PUB: ${{ secrets.GPG_PUB }}
-        run: just _ci_deb ${{  github.ref_name }} ${{ matrix.info.target }}
+        run: just _ci_deb $VERSION $TARGET
 
+  package:
+    name: Publish Artemis Packages
+    strategy:
+      matrix:
+        info:
+          - os: "macOS-latest"
+            target: "x86_64-apple-darwin"
+          - os: "macOS-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
+    runs-on: ${{ matrix.info.os }}
+    permissions:
+      contents: write # Used to publish releases
+    needs: [build]
+    steps:
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 #v2.3.3
         with:
           files: "target/${{matrix.info.target}}/release-action/artemis*"
           name: "${{ github.ref_name }} - Released!"

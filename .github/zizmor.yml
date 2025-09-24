@@ -1,0 +1,27 @@
+rules:
+  stale-action-refs:
+    ignore:
+      - pullrequest.yml
+      - cross.yml
+      - cross-release.yml
+      - main.yml
+      - nightly.yml
+      - coverage.yml
+      - release.yml
+      - packages.yml
+    config:
+      policies:
+        dtolnay/rust-toolchain # Action is a rolling action. Only has main branch and no tags
+  forbidden-uses:
+    config:
+      allow:
+      - actions/checkout
+      - actions-rust-lang/audit
+      - dtolnay/rust-toolchain
+      - taiki-e/install-action
+      - Swatinem/rust-cache
+      - codecov/codecov-action
+      - softprops/action-gh-release
+      - EmbarkStudios/cargo-deny-action
+      - github/codeql-action/upload-sarif
+      - zizmorcore/zizmor-action
