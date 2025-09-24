@@ -1,0 +1,14 @@
+rules:
+  stale-action-refs:
+    ignore:
+      - pullrequest.yml
+      - cross.yml
+      - cross-release.yml
+      - main.yml
+      - nightly.yml
+      - coverage.yml
+      - release.yml
+      - packages.yml
+    config:
+      policies:
+        dtolnay/rust-toolchain # Action is a rolling action. Only has main branch and no tags

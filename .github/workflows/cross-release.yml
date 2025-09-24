@@ -1,36 +1,57 @@
 name: Stable Release Cross
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
       - v[0-9]+.*
 
+permissions: {}
+
 jobs:
-  upload-release-cross:
+  build:
+    name: Compile Stable Releases via Cross
     strategy:
       matrix:
         info:
           - os: "ubuntu-latest"
         target: ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-musl","x86_64-unknown-freebsd"]
     runs-on: ${{ matrix.info.os }}
+    permissions:
+      contents: read
     steps:
       - name: Setup Stable Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 #v2025.09.23
         with:
           components: clippy, rustfmt
+          toolchain: stable
       - name: Setup Cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
+        with:
+          tool: just
 
       - name: Build Artemis
         shell: bash
-        run: just --shell bash --shell-arg -uc _ci_release_cross ${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: just --shell bash --shell-arg -uc _ci_release_cross "$TARGET"
 
+  package:
+    name: Publish Stable Artemis
+    strategy:
+      matrix:
+        info:
+          - os: "ubuntu-latest"
+        target: ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-musl","x86_64-unknown-freebsd"]
+    runs-on: ${{ matrix.info.os }}
+    needs: [build]
+    permissions: 
+      contents: write # Used to publish releases
+    steps:
       - name: Package Artemis
         shell: bash
         env:
@@ -39,7 +60,7 @@ jobs:
         run: .github/scripts/package.sh
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 #v2.3.3
         with:
           files: "artemis*"
           name: "${{ vars.GITHUB_REF_NAME }} - Released!"

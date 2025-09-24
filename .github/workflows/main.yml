@@ -8,8 +8,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions: {}
+
 jobs:
   build:
+    name: Run main branch actions
     strategy:
       fail-fast: false
       matrix:
@@ -26,22 +29,27 @@ jobs:
               cross: false,
             }
     runs-on: ${{ matrix.info.os }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          submodules: recursive
+          persist-credentials: false
       - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 #v2025.09.23
         with:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
+
       - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2.7.5
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 #v2.8.1
         with:
           cache-on-failure: true
       - name: Install just runner
-        uses: taiki-e/install-action@just
+        uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
+        with:
+          tool: just
 
       - name: Fmt Check
         run: cargo fmt -- --check
