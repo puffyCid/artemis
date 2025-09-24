@@ -43,19 +43,19 @@ jobs:
         if: matrix.info.os == 'ubuntu-latest'
         env:
           TARGET: ${{ matrix.info.target }}
-        run: just _ci_release $TARGET
+        run: just _ci_release ${TARGET}
 
       - name: Build Artemis
         if: matrix.info.os == 'windows-latest'
         env:
           TARGET: ${{ matrix.info.target }}
-        run: just --shell pwsh.exe --shell-arg -c _ci_release $TARGET
+        run: just --shell pwsh.exe --shell-arg -c _ci_release ${TARGET}
 
       - name: Build Artemis Windows ARM
         if: matrix.info.os == 'windows-11-arm'
         env:
           TARGET: ${{ matrix.info.target }}
-        run: just --shell pwsh.exe --shell-arg -c _ci_release $TARGET
+        run: just --shell pwsh.exe --shell-arg -c _ci_release ${TARGET}
 
   package:
     name: Publish Stable Artemis

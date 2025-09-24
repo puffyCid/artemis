@@ -38,7 +38,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: just --shell bash --shell-arg -uc _ci_release_cross "$TARGET"
+        run: just --shell bash --shell-arg -uc _ci_release_cross "${TARGET}"
 
   package:
     name: Publish Stable Artemis

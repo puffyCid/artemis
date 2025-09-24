@@ -75,7 +75,7 @@ jobs:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
-        run: just _ci_pkg $VERSION PuffyCid $TARGET
+        run: just _ci_pkg ${VERSION} PuffyCid ${TARGET}
 
 
       # Windows Package Options
@@ -91,7 +91,7 @@ jobs:
         if: matrix.info.os == 'windows-latest'
         env:
           TARGET: ${{ matrix.info.target }}
-        run: just --shell pwsh.exe --shell-arg -c _ci_msi $TARGET
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${TARGET}
 
       # Windows ARM Package Options
       - name: Install WiX on Windows ARM
@@ -102,7 +102,7 @@ jobs:
         if: matrix.info.os == 'windows-11-arm'
         env:
           TARGET: ${{ matrix.info.target }}
-        run: just --shell pwsh.exe --shell-arg -c _ci_msi $TARGET
+        run: just --shell pwsh.exe --shell-arg -c _ci_msi ${TARGET}
 
       # Linux Package Options
       - name: Install RPM tools
@@ -125,7 +125,7 @@ jobs:
           NAME: artemis
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
-        run: just _ci_rpm $TARGET
+        run: just _ci_rpm ${TARGET}
 
       - name: Package Artemis as DEB
         if: matrix.info.os == 'ubuntu-latest'
@@ -135,7 +135,7 @@ jobs:
           TARGET: ${{ matrix.info.target }}
           VERSION: ${{  github.ref_name }}
           PUB: ${{ secrets.GPG_PUB }}
-        run: just _ci_deb $VERSION $TARGET
+        run: just _ci_deb ${VERSION} ${TARGET}
 
   package:
     name: Publish Artemis Packages
