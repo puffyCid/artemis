@@ -180,7 +180,14 @@ pub(crate) fn raw_read_file(path: &str) -> Result<Vec<u8>, FileSystemError> {
     }
 
     let min_path_len = 4;
+    // Raw file reading only supports full file paths. Like C:\Users\user\NTUSER.DAT
     if path.len() < min_path_len || !path.contains(':') {
+        // Before we return an error, try the API just incase
+        // 3GB limit
+        let max_size = 3221225472;
+        if let Ok(result) = read_file_custom(path, max_size) {
+            return Ok(result);
+        }
         return Err(FileSystemError::NotFile);
     }
 
