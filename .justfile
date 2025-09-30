@@ -276,7 +276,7 @@ _ci_msi target: (_ci_release target)
 
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
   @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis-{{target}}.msi
-  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis-{{target}}.msi -Algorithm SHA256).Hash" | Out-File -Encoding ASCII -NoNewline artemis-{{target}}.msi.sha256  | pwsh -c -
+  cd "target\{{target}}\release-action" && (Get-FileHash artemis-{{target}}.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis-{{target}}.msi.sha256
 
 # Start the example daemon server in a Podman container
 [group('daemon')]
