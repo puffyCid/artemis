@@ -37,7 +37,7 @@ rm -r "$release_name"
 # Windows environments in github actions don't have the gnu coreutils installed,
 # which includes the shasum exe, so we just use powershell instead
 if [[ "$TARGET" =~ windows ]]; then
-    echo '(Get-FileHash "${release_zip}" -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline "${release_zip}.sha256"' | pwsh -c -
+    echo "(Get-FileHash \"${release_zip}\" -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline \"${release_zip}.sha256\"" | pwsh -c -
 else
     echo -n "$(shasum -ba 256 "${release_tar}" | cut -d " " -f 1)" > "${release_tar}.sha256"
 fi

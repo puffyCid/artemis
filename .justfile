@@ -158,7 +158,7 @@ _ci_rpm target: (_ci_release target)
   @cp .packages/artemis.man ~/rpmbuild/SOURCES
 
   rpmbuild --quiet -bb .packages/artemis_ci.spec
-  @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/"
+  @mv ~/rpmbuild/RPMS/x86_64/artemis* "target/${TARGET}/release-action/artemis-${VERSION}-1.${TARGET}.rpm"
   rpmsign --define "_gpg_name PuffyCid" --addsign target/${TARGET}/release-action/artemis*.rpm
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.rpm | cut -d " " -f 1)" > artemis-${VERSION}-1.${TARGET}.rpm.sha256
 
@@ -255,7 +255,7 @@ _ci_pkg version profile target: (_ci_release target)
   @xcrun notarytool submit artemis-{{version}}.{{target}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
   @rm -r target/${TARGET}/release-action/* && mv artemis-{{version}}.{{target}}.pkg "target/${TARGET}/release-action/"
 
-  cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > artemis-{{version}}.{{target}}.pkg.sha256
+  cd "target/${TARGET}/release-action" && echo "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > artemis-{{version}}.{{target}}.pkg.sha256
 
 # Package Artemis into Windows MSI installer file
 [group('package')]
@@ -276,7 +276,7 @@ _ci_msi target: (_ci_release target)
 
   @mv target\{{target}}\release-action\bin\Release\artemis.msi "target\{{target}}\"
   @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis-{{target}}.msi
-  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis-{{target}}.msi -Algorithm SHA256).Hash" | Out-File -Encoding ASCII -NoNewline artemis-{{target}}.msi.sha256 
+  cd "target\{{target}}\release-action" && echo "(Get-FileHash artemis-{{target}}.msi -Algorithm SHA256).Hash" | Out-File -Encoding ASCII -NoNewline artemis-{{target}}.msi.sha256  | pwsh -c -
 
 # Start the example daemon server in a Podman container
 [group('daemon')]
