@@ -1,4 +1,5 @@
 use super::beef::beef0004;
+use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::{ShellItem, ShellType};
@@ -34,6 +35,30 @@ pub(crate) fn get_delegate_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellIt
         accessed: delegate_item.accessed,
         mft_entry: delegate_item.mft_entry,
         mft_sequence: delegate_item.mft_sequence,
+        stores: Vec::new(),
+    };
+
+    Ok((input, item))
+}
+
+/// Parse a `Delegate` `ShellItem` associated with drive item
+pub(crate) fn parse_delegate_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    let (input, _unknown) = take(size_of::<u8>())(data)?;
+    let (input, inner_data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (input, _inner_data) = take(inner_data_size)(input)?;
+    let (input, guid_bytes) = take(size_of::<u128>())(input)?;
+    let _delegate_id = format_guid_le_bytes(guid_bytes);
+    let (input, guid_bytes) = take(size_of::<u128>())(input)?;
+    let delegate_class = format_guid_le_bytes(guid_bytes);
+
+    let item = ShellItem {
+        value: delegate_class,
+        shell_type: ShellType::Delegate,
+        created: String::from("1970-01-01T00:00:00Z"),
+        modified: String::from("1970-01-01T00:00:00Z"),
+        accessed: String::from("1970-01-01T00:00:00Z"),
+        mft_entry: 0,
+        mft_sequence: 0,
         stores: Vec::new(),
     };
 
@@ -92,7 +117,7 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::windows::shellitems::delegate::{
-        get_delegate_shellitem, parse_delegate,
+        get_delegate_shellitem, parse_delegate, parse_delegate_drive,
     };
     use common::windows::ShellType;
 
@@ -143,5 +168,17 @@ mod tests {
         assert_eq!(result.modified, "2019-10-21T23:40:40.000Z");
         assert_eq!(result.accessed, "2019-10-21T23:40:40.000Z");
         assert_eq!(remaining, [0, 0]);
+    }
+
+    #[test]
+    fn test_parse_delegate_drive() {
+        let test = [
+            0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 116, 26, 89, 94, 150, 223, 211, 72, 141,
+            103, 23, 51, 188, 238, 40, 186, 71, 26, 3, 89, 114, 63, 167, 68, 137, 197, 85, 149,
+            254, 107, 48, 238,
+        ];
+
+        let (_, result) = parse_delegate_drive(&test).unwrap();
+        assert_eq!(result.value, "59031a47-3f72-44a7-89c5-5595fe6b30ee");
     }
 }

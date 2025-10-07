@@ -8,7 +8,7 @@
  */
 use super::{
     controlpanel::{parse_control_panel, parse_control_panel_entry},
-    delegate::get_delegate_shellitem,
+    delegate::{get_delegate_shellitem, parse_delegate_drive},
     directory::parse_directory,
     error::ShellItemError,
     game::parse_game,
@@ -122,6 +122,14 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         let drive_size = 23;
         if data.len() == drive_size || data.ends_with(&[0; 23]) {
             return parse_drive(input);
+        }
+
+        let delegate_size = 48;
+        let delegate_id = [
+            116, 26, 89, 94, 150, 223, 211, 72, 141, 103, 23, 51, 188, 238, 40, 186,
+        ];
+        if data.len() == delegate_size && data[16..32] == delegate_id {
+            return parse_delegate_drive(input);
         }
 
         if check_beef(data, &beef00) || data.len() < drive_size {

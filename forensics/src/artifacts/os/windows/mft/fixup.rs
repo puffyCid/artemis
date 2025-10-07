@@ -38,7 +38,7 @@ impl Fixup {
         let fixup_size = 2;
         // We nom'd part of the bytes away, so we need to adjust to make sure fixup values are applied correctly
         let previous_bytes = header_size + (fixup.original.len() * fixup_size) + fixup_size;
-        if (entry.len() + previous_bytes) % cluster_size != 0 {
+        if !(entry.len() + previous_bytes).is_multiple_of(cluster_size) {
             error!("[mft] MFT bytes not divisble by 512");
             return;
         }

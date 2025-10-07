@@ -7,7 +7,7 @@ use nom::bytes::complete::{take, take_while};
 
 #[derive(Debug)]
 pub(crate) struct LnkVolume {
-    _size: u32,
+    size: u32,
     pub(crate) drive_type: DriveType,
     pub(crate) drive_serial: String,
     label_offset: u32,
@@ -27,11 +27,10 @@ impl LnkVolume {
 
         let (input, drive_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, drive_serial) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
         let (input, label_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let mut volume_info = LnkVolume {
-            _size: size,
+            size,
             drive_type: LnkVolume::get_drive_type(drive_type),
             drive_serial: format!("{drive_serial:X}"),
             label_offset,
@@ -39,6 +38,12 @@ impl LnkVolume {
             volume_label: String::new(),
             unicode_volume_label: String::new(),
         };
+
+        // According to Microsoft the offset should never be greater than the size
+        // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+        if label_offset > volume_info.size {
+            return Ok((remaining_input, volume_info));
+        }
         let has_unicode_offset = 16;
         if label_offset > has_unicode_offset {
             let (_, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -50,6 +55,11 @@ impl LnkVolume {
         let (_, volume_data) = take_while(|b| b != 0)(volume_label_start)?;
         volume_info.volume_label = extract_utf8_string(volume_data);
 
+        // According to Microsoft the offset should never be greater than the size
+        // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+        if volume_info.unicode_volume_label_offset > volume_info.size {
+            return Ok((remaining_input, volume_info));
+        }
         let no_unicode = 0;
         if volume_info.unicode_volume_label_offset != no_unicode {
             let (volume_label_start, _) = take(volume_info.unicode_volume_label_offset)(data)?;
@@ -108,11 +118,22 @@ mod tests {
         let (_, result) = LnkVolume::parse_volume(&test).unwrap();
 
         assert_eq!(result.drive_serial, "D49D126F");
-        assert_eq!(result._size, 17);
+        assert_eq!(result.size, 17);
         assert_eq!(result.drive_type, DriveType::DriveFixed);
         assert_eq!(result.label_offset, 16);
         assert_eq!(result.volume_label, "");
         assert_eq!(result.unicode_volume_label_offset, 0);
         assert_eq!(result.unicode_volume_label, "");
+    }
+
+    #[test]
+    fn test_parse_bad_volume() {
+        let test = [17, 0, 0, 0, 3, 0, 0, 0, 16, 0, 0, 0, 0, 67, 58, 92, 87, 105];
+        let (_, result) = LnkVolume::parse_volume(&test).unwrap();
+        assert_eq!(result.size, 17);
+        assert_eq!(result.drive_type, DriveType::DriveFixed);
+        // Bad offset
+        assert_eq!(result.label_offset, 1547322112);
+        assert_eq!(result.volume_label, "");
     }
 }

@@ -548,7 +548,7 @@ fn extract_branch_row(data: &[u8], map_index: usize) -> nom::IResult<&[u8], Rows
 
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
-    if branch_row_size % row_size != 0 {
+    if !branch_row_size.is_multiple_of(row_size) {
         error!(
             "[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
@@ -589,7 +589,7 @@ fn extract_branch_details(data: &[u8], map_index: u32) -> nom::IResult<&[u8], Ve
 
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
-    if branch_row_size % row_size != 0 {
+    if !branch_row_size.is_multiple_of(row_size) {
         error!(
             "[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
@@ -636,7 +636,7 @@ fn block_row_count(data: &[u8], heap_index: u32) -> nom::IResult<&[u8], u64> {
 
     let branch_row_size = branch_row_end - branch_row_start;
     let row_size = 8;
-    if branch_row_size % row_size != 0 {
+    if !branch_row_size.is_multiple_of(row_size) {
         error!(
             "[outlook] Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
@@ -661,7 +661,7 @@ fn get_row_count(map: &[u16]) -> u64 {
     let rows = row_end - row_start;
 
     let row_size = 8;
-    if rows % row_size != 0 {
+    if !rows.is_multiple_of(row_size) {
         warn!(
             "[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early"
         );

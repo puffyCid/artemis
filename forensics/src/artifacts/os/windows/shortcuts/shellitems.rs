@@ -30,7 +30,7 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
             Ok((_, result)) => result,
             Err(_err) => {
                 error!("[shortcuts] Could not parse shellitem");
-                break;
+                continue;
             }
         };
         shellitems_vec.push(shellitem);

@@ -95,6 +95,15 @@ fn get_shortcut_info<'a>(
             shortcut_info.location_flags = location.flags;
             shortcut_info.path = location.local_path;
 
+            // According to Microsoft the offset should never be greater than the size
+            // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+            if location.volume_offset > location.size
+                || location.network_share_offset > location.size
+            {
+                input = remaining_input;
+                continue;
+            }
+
             if shortcut_info.location_flags == CommonNetworkRelativeLinkAndPathSuffix {
                 let (network_data, _) = take(location.network_share_offset)(input)?;
                 let (_, network_share) = LnkNetwork::parse_network(network_data)?;

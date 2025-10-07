@@ -120,7 +120,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         let (_, mut props) = take(prop_data_size)(prop_data_start)?;
         let prop_entry_size = 8;
 
-        if props.len() % prop_entry_size != 0 {
+        if !props.len().is_multiple_of(prop_entry_size) {
             error!(
                 "[outlook] Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early"
             );
