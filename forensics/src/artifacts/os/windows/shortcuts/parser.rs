@@ -43,6 +43,7 @@ pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkErr
 
 /// Parse a single `shortcut` file
 pub(crate) fn grab_lnk_file(path: &str) -> Result<ShortcutInfo, LnkError> {
+    println!("parsing: {path}");
     let result = read_file(path);
     let lnk_data = match result {
         Ok(data) => data,

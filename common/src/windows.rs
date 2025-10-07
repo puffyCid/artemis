@@ -576,7 +576,7 @@ pub enum CursorSize {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum DataFlags {
     HasTargetIdList,
     HasLinkInfo,

@@ -10,11 +10,11 @@ use nom::{
 
 #[derive(Debug)]
 pub(crate) struct LnkLocation {
-    _size: u32,
+    pub(crate) size: u32,
     _header_size: u32,
     pub(crate) flags: LocationFlag,
     pub(crate) volume_offset: u32,
-    _local_path_offset: u32,
+    local_path_offset: u32,
     pub(crate) network_share_offset: u32,
     common_path_offset: u32,
     unicode_local_path_offset: u32,
@@ -36,9 +36,7 @@ impl LnkLocation {
             return Err(nom::Err::Incomplete(Needed::Unknown));
         }
         let (remaining_input, input) = take(size - adjust_size)(input)?;
-
         let (input, header_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
         let (input, flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let netork_flag = 2;
@@ -50,17 +48,16 @@ impl LnkLocation {
         };
 
         let (input, volume_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
         let (input, local_path_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, network_share_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (mut input, common_path_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
         let mut location = LnkLocation {
-            _size: size,
+            size,
             _header_size: header_size,
             flags,
             volume_offset,
-            _local_path_offset: local_path_offset,
+            local_path_offset,
             network_share_offset,
             common_path_offset,
             unicode_local_path_offset: 0,
@@ -72,13 +69,17 @@ impl LnkLocation {
         };
 
         let no_path = 0;
-        if local_path_offset != no_path {
-            let (path_start, _) = take(local_path_offset)(data)?;
+        // According to Microsoft the offset should never be greater than the size
+        // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+        if location.local_path_offset != no_path && location.local_path_offset <= size {
+            let (path_start, _) = take(location.local_path_offset)(data)?;
             let (_, path_data) = take_while(|b| b != 0)(path_start)?;
             location.local_path = extract_utf8_string(path_data);
         }
 
-        if common_path_offset != no_path {
+        // According to Microsoft the offset should never be greater than the size
+        // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+        if location.common_path_offset != no_path && common_path_offset <= size {
             let (path_start, _) = take(common_path_offset)(data)?;
             let (_, path_data) = take_while(|b| b != 0)(path_start)?;
             location.common_path = extract_utf8_string(path_data);
@@ -89,13 +90,23 @@ impl LnkLocation {
             let (unicode_input, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
             input = unicode_input;
-            location.common_path_offset = offset;
+            location.unicode_local_path_offset = offset;
+            // According to Microsoft the offset should never be greater than the size
+            // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+            if location.unicode_local_path_offset > size {
+                return Ok((remaining_input, location));
+            }
         }
 
         let has_unicode_common_path = 32;
         if header_size > has_unicode_common_path {
             let (_, offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
             location.unicode_common_path_offset = offset;
+            // According to Microsoft the offset should never be greater than the size
+            // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+            if location.unicode_common_path_offset > size {
+                return Ok((remaining_input, location));
+            }
         }
 
         if header_size > has_unicode_local_path {
@@ -128,11 +139,11 @@ mod tests {
         ];
 
         let (_, results) = LnkLocation::parse_location(&test).unwrap();
-        assert_eq!(results._size, 101);
+        assert_eq!(results.size, 101);
         assert_eq!(results._header_size, 28);
         assert_eq!(results.flags, LocationFlag::VolumeIDAndLocalBasePath);
         assert_eq!(results.volume_offset, 28);
-        assert_eq!(results._local_path_offset, 45);
+        assert_eq!(results.local_path_offset, 45);
         assert_eq!(results.network_share_offset, 0);
         assert_eq!(results.common_path_offset, 100);
         assert_eq!(results.unicode_local_path_offset, 0);

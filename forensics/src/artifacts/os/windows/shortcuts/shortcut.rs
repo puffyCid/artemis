@@ -31,7 +31,7 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
 
     let mut shortcut_info = ShortcutInfo {
         source_path: String::new(),
-        data_flags: header.data_flags,
+        data_flags: header.data_flags.clone(),
         attribute_flags: header.attribute_flags,
         created: unixepoch_to_iso(header.created),
         modified: unixepoch_to_iso(header.modified),
@@ -94,6 +94,15 @@ fn get_shortcut_info<'a>(
             let (remaining_input, location) = LnkLocation::parse_location(input)?;
             shortcut_info.location_flags = location.flags;
             shortcut_info.path = location.local_path;
+
+            // According to Microsoft the offset should never be greater than the size
+            // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943
+            if location.volume_offset > location.size
+                || location.network_share_offset > location.size
+            {
+                input = remaining_input;
+                continue;
+            }
 
             if shortcut_info.location_flags == CommonNetworkRelativeLinkAndPathSuffix {
                 let (network_data, _) = take(location.network_share_offset)(input)?;
