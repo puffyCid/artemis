@@ -31,7 +31,7 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
 
     let mut shortcut_info = ShortcutInfo {
         source_path: String::new(),
-        data_flags: header.data_flags.clone(),
+        data_flags: header.data_flags,
         attribute_flags: header.attribute_flags,
         created: unixepoch_to_iso(header.created),
         modified: unixepoch_to_iso(header.modified),
