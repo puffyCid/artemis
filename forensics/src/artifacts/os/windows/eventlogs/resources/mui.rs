@@ -100,9 +100,6 @@ pub(crate) fn parse_mui<'a>(
         // The the original DLL will have it. Should get parsed at `parse_resource()`
         // Ex: C:\Windows\System32\wisp.dll. Has a MUI file for `MESSAGETABLE` but no `WEVT_TEMPLATE`. wisp.dll has the `WEVT_TEMPLATE`
         if !is_file(&mun_path) {
-            //error!(
-            //    "[eventlogs] No WEVT_TEMPLATE data at {real_path} and no MUN file at {mun_path}"
-            //);
             return Ok((&[], resource));
         }
 
