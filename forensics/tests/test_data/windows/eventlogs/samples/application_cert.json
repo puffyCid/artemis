@@ -1,0 +1,57 @@
+{
+    "event_record_id": 5460,
+    "timestamp": "2025-08-31T03:07:05.972124000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-CertificateServicesClient-CertEnroll",
+                        "Guid": "{54164045-7C50-4905-963F-E5BC1EEF0CCA}",
+                        "EventSourceName": "CertEnroll"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 33370
+                    },
+                    "#text": 57
+                },
+                "Version": 0,
+                "Level": 2,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2025-08-31T03:07:05.972124Z"
+                    }
+                },
+                "EventRecordID": 5460,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 3992,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "Application",
+                "Computer": "win",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "EventData": {
+                "Context": "Local system",
+                "Provider": "Microsoft Pluton Cryptographic Provider",
+                "Failure": "NCryptOpenStorageProvider",
+                "ErrorCode": "Not implemented 0x80004001 (-2147467263 E_NOTIMPL)"
+            }
+        }
+    }
+}

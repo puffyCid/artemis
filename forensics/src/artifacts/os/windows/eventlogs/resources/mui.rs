@@ -79,7 +79,7 @@ pub(crate) fn parse_mui<'a>(
     }
 
     let resource_result = read_eventlog_resource(&real_path);
-    let resource = match resource_result {
+    let mut resource = match resource_result {
         Ok(result) => result,
         Err(err) => {
             error!("[eventlogs] Could not parse MUI file at {real_path}: {err:?}");
@@ -89,6 +89,29 @@ pub(crate) fn parse_mui<'a>(
             )));
         }
     };
+
+    // If we do not have `WEVT_TEMPLATE` data. It may be in a MUN file
+    if resource.wevt_data.is_empty() && !path.is_empty() {
+        let drive = path.chars().next().unwrap_or('C');
+        let filename = get_filename(path);
+        let mun_path = format!("{drive}:\\Windows\\SystemResources\\{filename}.mun");
+
+        // If there is no MUN file and MUI file does not have the WEVT_TEMPLATE resource
+        // The the original DLL will have it. Should get parsed at `parse_resource()`
+        // Ex: C:\Windows\System32\wisp.dll. Has a MUI file for `MESSAGETABLE` but no `WEVT_TEMPLATE`. wisp.dll has the `WEVT_TEMPLATE`
+        if !is_file(&mun_path) {
+            return Ok((&[], resource));
+        }
+
+        let mun_resource = match read_eventlog_resource(&mun_path) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Could not parse MUN file at {real_path}: {err:?}");
+                return Ok((&[], resource));
+            }
+        };
+        resource.wevt_data = mun_resource.wevt_data;
+    }
 
     Ok((&[], resource))
 }

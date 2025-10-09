@@ -234,7 +234,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/logging")
-                .body_contains("my important key");
+                .body_includes("my important key");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -262,7 +262,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/logging")
-                .body_contains("my important key");
+                .body_includes("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");

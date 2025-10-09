@@ -12,7 +12,7 @@ lto = true
 codegen-units = 1
 
 [workspace.package]
-version = "0.16.0"
+version = "0.17.0"
 homepage = "https://puffycid.github.io/artemis-api"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
@@ -20,13 +20,13 @@ edition = "2024"
 description = "A cross platform forensic parser"
 
 [workspace.dependencies]
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 log = "0.4.28"
 serde_json = "1.0.145"
 toml = "0.9.7"
 base64 = "0.22.1"
 tokio = { version = "1.47.1", features = ["full"] }
-flate2 = "1.1.2"
+flate2 = "1.1.4"
 glob = "0.3.3"
 reqwest = { version = "0.12.23", features = [
     "json",
@@ -34,6 +34,6 @@ reqwest = { version = "0.12.23", features = [
     "native-tls-vendored",
     "multipart",
 ] }
-sysinfo = "0.37.0"
+sysinfo = "0.37.2"
 uuid = { version = "1.18.1", features = ["v4"] }
 rusqlite = { version = "0.37.0", features = ["bundled", "serde_json"] }

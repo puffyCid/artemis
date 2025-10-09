@@ -95,6 +95,7 @@ pub(crate) fn add_message_strings(
     message.activity_id = get_activity_id(&log.data)?;
 
     let qualifier_check = 16;
+    // If a qualifier is present we need to combine with the eventID in order to get our "real" eventID
     // https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#message-string-identifier
     let real_event_id = (event_id.qualifier << qualifier_check) | event_id.id;
 
@@ -226,15 +227,30 @@ pub(crate) fn add_message_strings(
         {
             result
         } else {
-            // try one more time
+            // Try quick adjustment
             let previous_version = 1;
-            match manifist_template.definitions.get(&format!(
+            if let Some(result) = manifist_template.definitions.get(&format!(
                 "{}_{}",
                 event_id.id,
                 (message.version - previous_version)
             )) {
-                Some(result) => result,
-                None => continue,
+                result
+            } else {
+                // Last try. If we cannot find definitions for our template from eventID and version.
+                // We may have a qualifier we can use to find our message from the messagetable
+                let table = match message_table?.get(&(real_event_id as u32)) {
+                    Some(result) => result,
+                    None => continue,
+                };
+
+                message.template_message = table.message.clone();
+                message.message = merge_strings_message_table(
+                    &log.data,
+                    table,
+                    param_regex,
+                    &param_message_table,
+                )?;
+                return Some(message);
             }
         };
 
@@ -956,6 +972,11 @@ mod tests {
             "parameter_large_log.json",
             "params_with_percent_log.json",
             "userdata_event_log.json",
+            "rdp.json",
+            "surface_firmware.json",
+            "surface.json",
+            "application_cert.json",
+            "system_missing.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -1143,6 +1164,48 @@ mod tests {
                         message.message,
                         "Send RDMA Endpoint notification failure - 6\r\n"
                     );
+                }
+                "rdp.json" => {
+                    assert_eq!(
+                        message.message,
+                        "RDP ClientActiveX is trying to connect to the server (661A05F4-9841-47C3-9429-FFAF99228DE5)\r\n"
+                    );
+                    assert_eq!(
+                        message.template_message,
+                        "RDP ClientActiveX is trying to connect to the server (%2)\r\n"
+                    )
+                }
+                "surface_firmware.json" => {
+                    // Requires Surface device
+                    if message.message.starts_with("Component Firmware") {
+                        assert_eq!(
+                            message.message,
+                            "Component Firmware Update Driver: CurrentFirmwareVersion=0x3b002389, HardwareId=HID\\VEN_MSHW&DEV_0461&REV_0001&Col04, InstanceId=, ComponentId=0x15\r\n"
+                        );
+                        assert_eq!(
+                            message.message_file,
+                            "C:\\Windows\\System32\\DriverStore\\FileRepository\\surfacecfuoverhid.inf_arm64_609569469e0aea00\\SurfaceCFUOverHid.dll"
+                        );
+                    }
+                }
+                "surface.json" => {
+                    if message.message.starts_with("Surface Firmware") {
+                        assert_eq!(
+                            message.message,
+                            "Surface Firmware Update Driver: Hardware Id HID\\VEN_MSHW&DEV_0461&REV_0001&Col04: ntStatus 3221225487 No HID Transport/Protocol Configuration Information Available!\r\n"
+                        );
+                    }
+                }
+                "application_cert.json" => {
+                    assert_eq!(
+                        message.message,
+                        "The \"Microsoft Pluton Cryptographic Provider\" provider was not loaded because initialization failed.\r\n"
+                    )
+                }
+                "system_missing.json" => {
+                    // The Eventlog provider for this message is missing on Windows 11 24H2 (ARM64)
+                    assert_eq!(message.message, "");
+                    assert_eq!(message.event_id, 318);
                 }
                 _ => panic!("should not have an unknown sample?"),
             }

@@ -348,7 +348,7 @@ mod tests {
 
         acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Gcp).unwrap();
 
-        mock_me.assert_hits(5);
+        mock_me.assert_calls(5);
     }
 
     #[test]
@@ -385,7 +385,7 @@ mod tests {
 
         acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Aws).unwrap();
 
-        mock_me.assert_hits(5);
+        mock_me.assert_calls(5);
     }
 
     #[test]
@@ -421,6 +421,6 @@ mod tests {
 
         acquire_file_remote(test_location.to_str().unwrap(), out, RemoteType::Azure).unwrap();
 
-        mock_me.assert_hits(2);
+        mock_me.assert_calls(2);
     }
 }

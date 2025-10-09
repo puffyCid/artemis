@@ -27,14 +27,14 @@ nom = "8.0.0"
 md-5 = "0.10.6"
 sha-1 = "0.10.1"
 sha2 = "0.10.9"
-regex = "1.11.2"
+regex = "1.11.3"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.11"
 chrono = "0.4.42"
 simplelog = "0.12.2"
 zip = { version = "5.1.1", default-features = false }
-jsonwebtoken = "9.3.1"
+jsonwebtoken = {version = "10", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.38.3", default-features = false }
 xml2json-rs = "1.0.1"
@@ -51,7 +51,7 @@ macos-unifiedlogs = "0.4.0"
 plist = "1.8.0"
 aes = "0.8.4"
 cbc = "0.1.2"
-yara-x = { version = "1.7.1", optional = true, default-features = false, features = [
+yara-x = { version = "1.8.1", optional = true, default-features = false, features = [
     "constant-folding",
     "exact-atoms",
     "fast-regexp",
@@ -85,7 +85,7 @@ ntapi = "0.4.1"
 
 # Dependencies for tests
 [dev-dependencies]
-httpmock = "0.7.0"
+httpmock = "0.8.1"
 criterion = "0.7.0"
 
 [build-dependencies]

@@ -135,6 +135,6 @@ mod tests {
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
         execute_script(&mut output, &script).unwrap();
-        mock_me.assert_hits(5);
+        mock_me.assert_calls(5);
     }
 }

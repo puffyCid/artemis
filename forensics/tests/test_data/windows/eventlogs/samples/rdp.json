@@ -1,0 +1,54 @@
+{
+    "event_record_id": 1,
+    "timestamp": "2025-07-10T04:27:44.132808000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-TerminalServices-ClientActiveXCore",
+                        "Guid": "28AA95BB-D444-4719-A36F-40462168127E"
+                    }
+                },
+                "EventID": 1024,
+                "Version": 0,
+                "Level": 4,
+                "Task": 101,
+                "Opcode": 10,
+                "Keywords": "0x4000000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2025-07-10T04:27:44.132808Z"
+                    }
+                },
+                "EventRecordID": 1,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "EA13AC8D-1ACC-4D44-9A5C-AE71DDC30000"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 12044,
+                        "ThreadID": 17116
+                    }
+                },
+                "Channel": "Microsoft-Windows-TerminalServices-RDPClient/Operational",
+                "Computer": "win",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-21-476446702-302789185-3387769606-1001"
+                    }
+                }
+            },
+            "EventData": {
+                "Name": "Server Name",
+                "Value": "661A05F4-9841-47C3-9429-FFAF99228DE5",
+                "CustomLevel": "Info"
+            }
+        }
+    }
+}
