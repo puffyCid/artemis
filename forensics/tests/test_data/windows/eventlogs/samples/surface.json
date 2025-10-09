@@ -1,0 +1,49 @@
+{
+    "event_record_id": 1,
+    "timestamp": "2025-05-28T01:46:31.596630000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Surface-SurfaceCFUOverHid",
+                        "Guid": "48589A65-4EC1-45EC-BDC1-5693DF02043C"
+                    }
+                },
+                "EventID": 3,
+                "Version": 0,
+                "Level": 3,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x8000000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2025-05-28T01:46:31.596630Z"
+                    }
+                },
+                "EventRecordID": 1,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 2036,
+                        "ThreadID": 1028
+                    }
+                },
+                "Channel": "Microsoft-Surface-SurfaceCFUOverHid/Operational",
+                "Computer": "WIN-926PNTE7RN4",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-19"
+                    }
+                }
+            },
+            "EventData": {
+                "HardwareID": "HID\\VEN_MSHW&DEV_0461&REV_0001&Col04",
+                "ntStatus": 3221225487
+            }
+        }
+    }
+}

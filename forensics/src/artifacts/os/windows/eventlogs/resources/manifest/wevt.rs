@@ -41,7 +41,6 @@ pub(crate) fn parse_manifest(
             let (_, sig) = nom_unsigned_four_bytes(element_start, Endian::Le)?;
 
             let sig_type = get_sig_type(sig);
-
             match sig_type {
                 SigType::Chan => {
                     let (_, channels) = parse_manifest_data(data, element_start, &sig_type)?;
@@ -136,6 +135,22 @@ mod tests {
         assert_eq!(value.definitions.len(), 16);
         assert_eq!(value.keywords.len(), 22);
         assert_eq!(value.opcodes.len(), 8);
+    }
+
+    #[test]
+    fn test_parse_manifest_winml() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/pe/resources/wevt_template_winml.raw");
+
+        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let (_, manifest) = parse_manifest(&data).unwrap();
+        let value = manifest
+            .get("c8517e09-bea2-5bb6-bef3-50b4c91c431e")
+            .unwrap();
+        assert_eq!(value.offset, 36);
+        assert_eq!(value.definitions.len(), 7);
+        assert_eq!(value.keywords.len(), 1);
+        assert_eq!(value.opcodes.len(), 2);
     }
 
     #[test]

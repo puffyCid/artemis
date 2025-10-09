@@ -432,7 +432,7 @@ mod tests {
             then.status(200).header("ETAG", "whatever");
         });
         aws_upload(test.as_bytes(), &output, name).unwrap();
-        mock_me.assert_hits(2);
+        mock_me.assert_calls(2);
         mock_me_put.assert();
     }
 
@@ -493,7 +493,7 @@ mod tests {
             then.status(200).header("ETAG", "whatever");
         });
         aws_upload(test.as_bytes(), &output, name).unwrap();
-        mock_me.assert_hits(2);
+        mock_me.assert_calls(2);
         mock_me_put.assert();
     }
 
@@ -529,7 +529,7 @@ mod tests {
         let setup = setup_upload(aws_info, url, name, &HashMap::new()).unwrap();
 
         aws_start_upload(setup, test.as_bytes()).unwrap();
-        mock_me.assert_hits(2);
+        mock_me.assert_calls(2);
         mock_me_put.assert();
     }
 

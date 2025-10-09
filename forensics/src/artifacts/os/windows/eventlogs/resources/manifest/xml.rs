@@ -48,7 +48,6 @@ pub(crate) fn parse_xml(data: &[u8], guid: String) -> nom::IResult<&[u8], Templa
     // First element is the start header/tag?
     // remaining is the remaining bytes of the template. Will get parsed by parse_template
     let (remaining, (start, mut input)) = element_start(input, false)?;
-
     let next_element = 0x41;
     let next_element2 = 0x1;
     let mut template_elements = Vec::new();
@@ -95,7 +94,7 @@ pub(crate) struct Element {
 }
 
 /// Start parsing elements
-fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Element, &[u8])> {
+fn element_start(data: &[u8], is_substitution: bool) -> nom::IResult<&[u8], (Element, &[u8])> {
     let (mut input, token_number) = nom_unsigned_one_byte(data, Endian::Le)?;
     let mut start = Element {
         token: get_token_type(token_number),
@@ -109,7 +108,7 @@ fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Elem
         substitution_id: 0,
     };
 
-    if !is_substituion {
+    if !is_substitution {
         let (remaining, depedency_id) = nom_signed_two_bytes(input, Endian::Le)?;
         input = remaining;
         start.depedency_id = depedency_id;
@@ -128,10 +127,8 @@ fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Elem
         // We are done. Just get the closing element tag (0x2) and check for substitution
         let (data_input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(data_input, Endian::Le)?;
-        let is_substitution = get_token_type(substitution_type);
-        if is_substitution != TokenType::OptionalSubstitution
-            && is_substitution != TokenType::NormalSubstitution
-        {
+        let is_sub = get_token_type(substitution_type);
+        if is_sub != TokenType::OptionalSubstitution && is_sub != TokenType::NormalSubstitution {
             return Ok((remaining, (start, data_input)));
         }
 
@@ -141,7 +138,7 @@ fn element_start(data: &[u8], is_substituion: bool) -> nom::IResult<&[u8], (Elem
         // Is this ending element tag? Seems to always be 0x4
         let (input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
 
-        start.substitution = is_substitution;
+        start.substitution = is_sub;
         start.substitution_id = substitution_id;
         start.input_type = get_input_type(input_type_data);
 
@@ -189,17 +186,14 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
     while attribute_data.len() > min_size {
         let (input, attribute_token_number) = nom_unsigned_one_byte(attribute_data, Endian::Le)?;
         let (input, name) = get_name(input)?;
-
         let (input, mut value_token_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let (input, value_token_type_number) = nom_unsigned_one_byte(input, Endian::Le)?;
         let value_token_type = get_input_type(value_token_type_number);
-
         // This should always be a Unicode type (per: https://github.com/libyal/libevtx/blob/main/documentation/Windows%20XML%20Event%20Log%20(EVTX).asciidoc#4110-value-text)
         if value_token_type != InputType::Unicode {
             break;
         }
         let (input, value_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
         let utf16 = 2;
         let (mut value_input, value_data) = take(value_size * utf16)(input)?;
         let mut value = extract_utf16_string(value_data);
@@ -255,7 +249,6 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         let (input, _end) = nom_unsigned_one_byte(value_input, Endian::Le)?;
         let (input, substitution_type) = nom_unsigned_one_byte(input, Endian::Le)?;
         let is_substitution = get_token_type(substitution_type);
-
         if is_substitution == TokenType::EndElement {
             let attribute = Attribute {
                 attribute_token: get_token_type(attribute_token_number),
@@ -294,7 +287,6 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
 
         let (input, substitution_id) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, input_type_data) = nom_unsigned_one_byte(input, Endian::Le)?;
-
         // Is this ending element tag? Seems to always be 0x4
         let (input, _end_element) = nom_unsigned_one_byte(input, Endian::Le)?;
 
@@ -311,7 +303,6 @@ fn attribute_list(data: &[u8]) -> nom::IResult<&[u8], Vec<Attribute>> {
         };
 
         attributes.push(attribute);
-
         // If the token is something other last_attribute or next_attribute. Something went wrong
         if attribute_token_number == last_attribute || attribute_token_number != next_attribute {
             break;

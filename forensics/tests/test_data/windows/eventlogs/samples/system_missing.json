@@ -1,0 +1,57 @@
+{
+    "event_record_id": 600,
+    "timestamp": "2025-05-28T01:49:37.218427000Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "EventLog"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 0
+                    },
+                    "#text": 318
+                },
+                "Version": 0,
+                "Level": 0,
+                "Task": 1,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2025-05-28T01:49:37.218427Z"
+                    }
+                },
+                "EventRecordID": 600,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 5564,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "System",
+                "Computer": "LAPTOP-O6C8H3LQ",
+                "Security": null
+            },
+            "EventData": {
+                "Data": {
+                    "#text": [
+                        "PROV++",
+                        "PackageVersion: 2025.403.1",
+                        "ImageName: aoc1-home-consumer-dsi-oembr-2024.808.9383184",
+                        "ImageProductName: oembr",
+                        "ImageVersion: 2024.808.9383184"
+                    ]
+                },
+                "Binary": null
+            }
+        }
+    }
+}

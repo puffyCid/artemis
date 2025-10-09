@@ -31,6 +31,7 @@ pub(crate) fn get_resources() -> Result<StringResource, EventLogsError> {
     for resource in resources.templates.values_mut() {
         if resource.resource_data.mui_data.is_empty()
             && resource.resource_data.message_data.is_empty()
+            && resource.resource_data.wevt_data.is_empty()
         {
             continue;
         }
@@ -54,7 +55,6 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
      * If neither MESSAGETABLE or WEVT_TEMPLATE are found, we fallback to the MUI resource and check for a localized language
      * MUI resource should then point to a file that contains the MESSAGETABLE or/and WEVT_TEMPLATE data
      */
-
     // MESSAGETABLE not empty, we parse it. Otherwise we check MUI
     if !resource.resource_data.message_data.is_empty() {
         let message = match parse_table(&resource.resource_data.message_data) {
@@ -67,19 +67,11 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
             &resource.resource_data.mui_data,
             &resource.resource_data.path,
         );
-        let mui_resource = match mui_result {
-            Ok((_, result)) => result,
-            Err(_err) => return Err(EventLogsError::NoMessageTable),
-        };
-        if mui_resource.message_data.is_empty() {
-            return Err(EventLogsError::NoMessageTable);
+        if let Ok((_, mui_resource)) = mui_result
+            && let Ok((_, message)) = parse_table(&mui_resource.message_data)
+        {
+            resource.message_table = Some(message);
         }
-
-        let message = match parse_table(&mui_resource.message_data) {
-            Ok((_, result)) => result,
-            Err(_err) => return Err(EventLogsError::NoMessageTable),
-        };
-        resource.message_table = Some(message);
     }
 
     // WEVT_TEMPLATE not empty, we parse it. Otherwise we check MUI
@@ -96,7 +88,7 @@ pub(crate) fn parse_resource(resource: &mut TemplateResource) -> Result<(), Even
         );
         let mui_resource = match mui_result {
             Ok((_, result)) => result,
-            Err(_err) => return Err(EventLogsError::NoMessageTable),
+            Err(_err) => return Err(EventLogsError::NoWevtTemplate),
         };
         if mui_resource.wevt_data.is_empty() {
             return Err(EventLogsError::NoWevtTemplate);
@@ -285,6 +277,7 @@ fn registry_paths(
                 && value.value != "ParameterMessageFile"
                 && value.value != "MessageFileName"
                 && value.value != "ParameterFileName"
+                && value.value != "ResourceFileName"
             {
                 continue;
             }
@@ -310,7 +303,10 @@ fn registry_paths(
                             }
                         }
 
-                        if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                        if value.value == "EventMessageFile"
+                            || value.value == "MessageFileName"
+                            || value.value == "ResourceFileName"
+                        {
                             provider.message_file.push(real_path);
                         } else {
                             provider.parameter_file.push(real_path);
@@ -318,7 +314,10 @@ fn registry_paths(
                         continue;
                     }
 
-                    if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                    if value.value == "EventMessageFile"
+                        || value.value == "MessageFileName"
+                        || value.value == "ResourceFileName"
+                    {
                         provider.message_file.push(entry.to_string());
                     } else {
                         provider.parameter_file.push(entry.to_string());
@@ -340,7 +339,10 @@ fn registry_paths(
                     }
                 }
 
-                if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+                if value.value == "EventMessageFile"
+                    || value.value == "MessageFileName"
+                    || value.value == "ResourceFileName"
+                {
                     provider.message_file.push(real_path);
                 } else {
                     provider.parameter_file.push(real_path);
@@ -348,7 +350,10 @@ fn registry_paths(
                 continue;
             }
 
-            if value.value == "EventMessageFile" || value.value == "MessageFileName" {
+            if value.value == "EventMessageFile"
+                || value.value == "MessageFileName"
+                || value.value == "ResourceFileName"
+            {
                 provider.message_file.push(value.data.clone());
             } else {
                 provider.parameter_file.push(value.data.clone());

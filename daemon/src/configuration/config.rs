@@ -98,7 +98,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("my important key");
+                .body_includes("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(json!({ "config": "base64 blob", "endpoint_invalid": false }));
@@ -129,7 +129,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("my important key");
+                .body_includes("my important key");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -157,7 +157,7 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("my important key");
+                .body_includes("my important key");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -185,8 +185,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/config")
-                .body_contains("my key")
-                .body_contains("endpoint_id");
+                .body_includes("my key")
+                .body_includes("endpoint_id");
             then.status(500)
                 .header("content-type", "application/json")
                 .body("bad response");

@@ -128,8 +128,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
-                .body_contains("my key")
-                .body_contains("endpoint_uuid");
+                .body_includes("my key")
+                .body_includes("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(json!({ "endpoint_id": "server uuid", "endpoint_invalid": false }));
@@ -160,8 +160,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
-                .body_contains("my key")
-                .body_contains("endpoint_uuid");
+                .body_includes("my key")
+                .body_includes("endpoint_uuid");
             then.status(400)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -189,8 +189,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
-                .body_contains("my key")
-                .body_contains("endpoint_uuid");
+                .body_includes("my key")
+                .body_includes("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -218,8 +218,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
-                .body_contains("my key")
-                .body_contains("endpoint_uuid");
+                .body_includes("my key")
+                .body_includes("endpoint_uuid");
             then.status(500)
                 .header("content-type", "application/json")
                 .body("bad response");
@@ -246,8 +246,8 @@ mod tests {
         let mock_me = mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/v1/endpoint/enroll")
-                .body_contains("my key")
-                .body_contains("endpoint_uuid");
+                .body_includes("my key")
+                .body_includes("endpoint_uuid");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(json!({ "endpoint_id": "server uuid", "endpoint_invalid": true }));
@@ -265,6 +265,6 @@ mod tests {
             let _ = config.enroll_request().unwrap();
         }
 
-        mock_me.assert_hits(2);
+        mock_me.assert_calls(2);
     }
 }

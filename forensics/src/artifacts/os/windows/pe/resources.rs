@@ -140,6 +140,16 @@ mod tests {
     }
 
     #[test]
+    fn test_read_eventlog_resource_mui_and_wevt_template() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\pe\\resources\\winml.dll");
+
+        let results = read_eventlog_resource(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(results.mui_data.len(), 232);
+        assert_eq!(results.wevt_data.len(), 2830);
+    }
+
+    #[test]
     fn test_read_dir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\pe\\resources\\eventlog_provider.dll");

@@ -39,7 +39,6 @@ pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement
 
     let guid = format_guid_le_bytes(guid_bytes);
     let _event_type = get_event_type(event_type_data);
-
     // Binary XML slightly different from EVTX files
     let (remaining, template) = parse_xml(input, guid)?;
     let (input, _padding) = take_while(|b: u8| b == 0)(remaining)?;
