@@ -144,7 +144,7 @@ pub(crate) fn add_message_strings(
     let message_files: &[String] = provider.message_file.as_ref();
     let parameter_files: &[String] = provider.parameter_file.as_ref();
 
-    let mut param_message_table: HashMap<u32, MessageTable> = HashMap::new();
+    let mut param_message_table = HashMap::new();
     // If we have parameter files. Then we extract the message from it. There should only be one?
     for file in parameter_files {
         let template = resources.templates.get(file);
