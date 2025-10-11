@@ -114,13 +114,13 @@ pub(crate) enum CatalogType {
 /// Values found at [ESE Repo](https://github.com/microsoft/Extensible-Storage-Engine/blob/main/dev/ese/src/inc/tagfld.hxx#L45)
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub(crate) enum TaggedDataFlag {
-    /// Also called "LongValue". Means this column can either be large string or large binary
+    /// Also called `LongValue`. Means this column can either be large string or large binary
     Variable,
     Compressed,
-    /// Also called "Separated"
+    /// Also called `Separated`
     LongValue,
     MultiValue,
-    /// Also called "TwoValues"
+    /// Also called `TwoValues`
     MultiValueSizeDefinition,
     Encrypted,
     Null,
@@ -582,7 +582,6 @@ impl Catalog {
         let mut full_tags: Vec<TaggedData> = Vec::new();
         let mut peek_tags = tags.iter().peekable();
         while let Some(value) = peek_tags.next() {
-            println!("{value:?}");
             // We need to subtract the current tags offset from the next tags offset to get the tag data size
             // Last tag consumes the rest of the data
 
@@ -592,7 +591,6 @@ impl Catalog {
                  * We also need to subtract 0x4000
                  */
                 if value.offset > bit_flag {
-                    let flag = value.offset ^ bit_flag;
                     let tag_size = if next_value.offset > bit_flag {
                         (next_value.offset - bit_flag) - (value.offset - bit_flag)
                     } else {
@@ -601,7 +599,7 @@ impl Catalog {
 
                     let (input, data) = take(tag_size)(tag_data_start)?;
                     tag_data_start = input;
-                    let (tag_data, _unknown_size_flag) = nom_unsigned_one_byte(data, Endian::Le)?;
+                    let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
                     let flags = Catalog::get_flags(flag);
 
                     let tag = TaggedData {
@@ -619,7 +617,7 @@ impl Catalog {
                 let (input, data) = take(tag_size)(tag_data_start)?;
                 tag_data_start = input;
                 let (tag_data, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
-                let flags = Catalog::get_flags(flag.into());
+                let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
                     column: value.column,
@@ -637,9 +635,7 @@ impl Catalog {
              * We also need to subtract 0x4000
              */
             if value.offset > bit_flag {
-                let flag = value.offset ^ bit_flag;
-                let (tag_data, _unknown_size_flag) =
-                    nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
+                let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
                 let flags = Catalog::get_flags(flag);
 
                 let tag = TaggedData {
@@ -654,7 +650,7 @@ impl Catalog {
             }
 
             let (tag_data, flag) = nom_unsigned_one_byte(tag_data_start, Endian::Le)?;
-            let flags = Catalog::get_flags(flag.into());
+            let flags = Catalog::get_flags(flag);
 
             let tag = TaggedData {
                 column: value.column,
@@ -707,11 +703,7 @@ impl Catalog {
     }
 
     /// Get flags associated with tagged columns
-    pub(crate) fn get_flags(flags: u16) -> Vec<TaggedDataFlag> {
-        if flags == 137 {
-            panic!("wrong?");
-        }
-        println!("tagged flags value: {flags}");
+    pub(crate) fn get_flags(flags: u8) -> Vec<TaggedDataFlag> {
         let variable = 1;
         let compressed = 2;
         let long_value = 4;
@@ -741,7 +733,6 @@ impl Catalog {
         if (flags & encrypted) == encrypted {
             flags_data.push(TaggedDataFlag::Encrypted);
         }
-        println!("Flags now: {flags_data:?}");
         flags_data
     }
 }
