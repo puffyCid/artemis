@@ -144,7 +144,7 @@ pub(crate) fn create_table_data(
             if let Ok((_, value)) = result {
                 dump.column_data = value;
             } else {
-                warn!(
+                panic!(
                     "[ese] Could not transform column {} data to string for table: {table_name}",
                     column.column_name
                 );
@@ -166,6 +166,9 @@ fn column_data_to_string<'a>(
     flags: &[ColumnFlags],
     tagged_flags: &[TaggedDataFlag],
 ) -> nom::IResult<&'a [u8], String> {
+    println!("data:{data:?}");
+    println!("{flags:?}");
+    println!("{tagged_flags:?}");
     // MultiValues have multiple values (obviously). So we loop through a get them all
     if tagged_flags.contains(&TaggedDataFlag::MultiValue)
         && !tagged_flags.contains(&TaggedDataFlag::LongValue)
@@ -249,8 +252,8 @@ fn extract_column_data_to_string<'a>(
         }
         ColumnType::LongBinary | ColumnType::Binary => {
             let value = if (tagged_flags.contains(&TaggedDataFlag::Compressed)
-                || flags.contains(&ColumnFlags::Compressed))
-                && !tagged_flags.contains(&TaggedDataFlag::MultiValue)
+                && !tagged_flags.contains(&TaggedDataFlag::MultiValue))
+                || flags.contains(&ColumnFlags::Compressed)
             {
                 let (_, decompressed_data) = get_decompressed_data(data)?;
                 base64_encode_standard(&decompressed_data)
@@ -261,8 +264,8 @@ fn extract_column_data_to_string<'a>(
         }
         ColumnType::LongText | ColumnType::Text => {
             let value = if (tagged_flags.contains(&TaggedDataFlag::Compressed)
-                || flags.contains(&ColumnFlags::Compressed))
-                && !tagged_flags.contains(&TaggedDataFlag::MultiValue)
+                && !tagged_flags.contains(&TaggedDataFlag::MultiValue))
+                || flags.contains(&ColumnFlags::Compressed)
             {
                 let (_, decompressed_data) = get_decompressed_data(data)?;
                 extract_ascii_utf16_string(&decompressed_data)
@@ -591,18 +594,6 @@ fn parse_tagged_data<'a>(
 
     // Nearly done, need to update columns now
     for tag in full_tags {
-        /*
-        let mut data = tag.data;
-        if tag.flags.contains(&TaggedDataFlag::MultiValue) {
-            let value_result = parse_multivalue_data(&data, &tag.flags);
-            let input = if let Ok((_, result)) = value_result {
-                result
-            } else {
-                warn!("[ese] Could not extract multivalue data");
-                data
-            };
-            data = input;
-        }*/
         for entry in column_info.iter_mut() {
             if entry.column_id == tag.column as i32 {
                 entry.column_data.clone_from(&tag.data);
@@ -630,7 +621,10 @@ pub(crate) fn parse_multivalue_data<'a>(
         // determine the number of offsets. We already got the first one
         let mut offset_count = (offset / 2) - adjust;
         if offset_count as usize > data.len() {
-            warn!("[ese] Multivalue offset count too large");
+            warn!(
+                "[ese] Multivalue offset count too large, got offset {offset_count}. Data length is: {}",
+                data.len()
+            );
             return Ok((data, multi_data));
         }
         offsets_sizes.push(offset);
@@ -813,9 +807,9 @@ mod tests {
         pages::leaf::{LeafType, PageLeaf},
         tables::{
             ColumnFlags, ColumnType, clear_column_data, column_data_to_string, create_table_data,
-            decompress_ese, get_column_flags, get_column_type, get_decompressed_data,
-            nom_fixed_column, parse_fixed_data, parse_multivalue_data, parse_row,
-            parse_tagged_data, parse_variable_data,
+            decompress_ese, extract_column_data_to_string, get_column_flags, get_column_type,
+            get_decompressed_data, nom_fixed_column, parse_fixed_data, parse_multivalue_data,
+            parse_row, parse_tagged_data, parse_variable_data,
         },
     };
     use serde_json::json;
@@ -1032,6 +1026,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get_decompressed_data_string_seven_bit() {
+        let test = [
+            19, 247, 180, 155, 94, 150, 155, 203, 108, 182, 203, 253, 150, 211, 209, 174, 121, 217,
+            94, 118, 175, 211, 238, 51, 249, 221, 158, 187, 216, 239, 113, 152, 13,
+        ];
+        let (_, results) = get_decompressed_data(&test).unwrap();
+        assert_eq!(
+            results,
+            [
+                119, 105, 110, 116, 101, 114, 102, 101, 108, 108, 46, 110, 111, 114, 116, 104, 46,
+                115, 101, 118, 101, 110, 107, 105, 110, 103, 100, 111, 109, 115, 46, 108, 111, 99,
+                97, 108
+            ]
+        );
+    }
+
+    #[test]
     fn test_get_decompressed_data_seven_bit_but_not_compressed() {
         let test = [67, 0, 121, 0, 103, 0, 119, 0, 105, 0, 110, 0];
         let (_, results) = get_decompressed_data(&test).unwrap();
@@ -1134,5 +1145,42 @@ mod tests {
         ];
         let out = decompress_ese(&mut test, 2048);
         assert_eq!(out.len(), 2048);
+    }
+
+    #[test]
+    fn test_extract_column_data_to_string_multivalue_compressed() {
+        let test = [
+            19, 247, 180, 155, 94, 150, 155, 203, 108, 182, 203, 253, 150, 211, 209, 174, 121, 217,
+            94, 118, 175, 211, 238, 51, 249, 221, 158, 187, 216, 239, 113, 152, 13,
+        ];
+        let column = ColumnType::LongText;
+        let flags = vec![ColumnFlags::Compressed];
+        let tagged_flags = vec![
+            TaggedDataFlag::Variable,
+            TaggedDataFlag::LongValue,
+            TaggedDataFlag::MultiValue,
+        ];
+        let (_, result) =
+            extract_column_data_to_string(&column, &test, &flags, &tagged_flags).unwrap();
+        assert_eq!(result, "winterfell.north.sevenkingdoms.local");
+    }
+
+    #[test]
+    fn test_extract_column_data_to_string_multivalue_tag_compressed_tag_not_compressed() {
+        let test = [
+            83, 0, 69, 0, 86, 0, 69, 0, 78, 0, 75, 0, 73, 0, 78, 0, 71, 0, 68, 0, 79, 0, 77, 0, 83,
+            0, 92, 0, 75, 0, 73, 0, 78, 0, 71, 0, 83, 0, 76, 0, 65, 0, 78, 0, 68, 0, 73, 0, 78, 0,
+            71, 0, 36, 0,
+        ];
+        let column = ColumnType::LongText;
+        let tagged_flags = vec![
+            TaggedDataFlag::Variable,
+            TaggedDataFlag::LongValue,
+            TaggedDataFlag::MultiValue,
+            TaggedDataFlag::Compressed,
+        ];
+        let (_, result) =
+            extract_column_data_to_string(&column, &test, &[], &tagged_flags).unwrap();
+        assert_eq!(result, "SEVENKINGDOMS\\KINGSLANDING$");
     }
 }
