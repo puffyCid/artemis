@@ -33,8 +33,8 @@ walkdir = "2.5.0"
 home = "0.5.11"
 chrono = "0.4.42"
 simplelog = "0.12.2"
-zip = { version = "5.1.1", default-features = false }
-jsonwebtoken = {version = "10", features = ["rust_crypto"] }
+zip = { version = "6.0.0", default-features = false }
+jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.38.3", default-features = false }
 xml2json-rs = "1.0.1"
@@ -47,7 +47,7 @@ elf = "0.8.0"
 ruzstd = "0.8.1"
 lz4_flex = "0.11.5"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
-macos-unifiedlogs = "0.4.0"
+macos-unifiedlogs = "0.4.2"
 plist = "1.8.0"
 aes = "0.8.4"
 cbc = "0.1.2"
