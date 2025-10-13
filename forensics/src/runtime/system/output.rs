@@ -1,5 +1,5 @@
 use crate::{
-    output::formats::{json::raw_json, jsonl::raw_jsonl},
+    output::formats::{csv::csv_format, json::raw_json, jsonl::raw_jsonl},
     runtime::{
         helper::{string_arg, value_arg},
         run::output_data,
@@ -69,6 +69,11 @@ pub(crate) fn js_raw_dump(
     } else if output.format == "json" {
         if raw_json(&data, &output_name, &mut output).is_err() {
             let issue = String::from("Failed could not output raw json data");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    } else if output.format == "csv" {
+        if csv_format(&data, &output_name, &mut output).is_err() {
+            let issue = String::from("Failed could not output raw csv data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     } else {
