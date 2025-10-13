@@ -168,7 +168,7 @@ pub(crate) fn windows_functions(context: &mut Context) {
 
     let _ = context.register_global_callable(
         JsString::from("js_registry"),
-        1,
+        3,
         NativeFunction::from_fn_ptr(js_registry),
     );
 
