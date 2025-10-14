@@ -21,6 +21,22 @@ export const CollectResponse = Type.Object({
 
 export type CollectTypeResponse = Static<typeof CollectResponse>;
 
+export const NewCollection = Type.Object({
+    endpoint_id: Type.String(),
+    collection_id: Type.Number(),
+    payload: Type.String(),
+});
+
+export type NewCollectionType = Static<typeof NewCollection>;
+
+export const NewCollectionResponse = Type.Object({
+    endpoint_invalid: Type.Boolean(),
+});
+
+export type NewCollectionResponseType = Static<typeof NewCollectionResponse>;
+
+
+
 /**
  * Handle requests for TOML collections the artemis daemon should execute
  * @param request Artemis request containing a endpoint_id obtained from enrollment
@@ -53,6 +69,34 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
         }
         reply.statusCode = 500;
         reply.send({ message: `Failed to read collection toml file`, endpoint_invalid: false });
+    }
+}
+
+/**
+ * Handle user base64 TOML uploads to collect data from artemis
+ * @param request User request to upload a base64 TOML collection 
+ * @param reply Upload success or and error
+ */
+export async function createNewCollection(request: FastifyRequest<{ Body: NewCollectionType; }>, reply: FastifyReply) {
+    try {
+        const db = new LocalSqlite("./build/test.db");
+        if (!db.validateEndpoint(request.body.endpoint_id)) {
+            reply.statusCode = 500;
+            reply.send({ message: `Endpoint not found in database`, endpoint_invalid: true });
+        }
+
+        db.newCollection(request.body.endpoint_id, request.body.collection_id);
+        db.newCollectionScript(request.body.payload, request.body.collection_id);
+
+        reply.statusCode = 200;
+        reply.send({ endpoint_invalid: false });
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.warn(`Could add new collection ${err}`);
+        }
+        console.log("wrong");
+        reply.statusCode = 500;
+        reply.send({ message: `Failed upload new collection`, endpoint_invalid: false });
     }
 }
 

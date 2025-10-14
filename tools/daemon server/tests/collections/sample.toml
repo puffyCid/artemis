@@ -1,0 +1,13 @@
+[output]
+name = "linux_collection"
+directory = "./tmp"
+format = "jsonl"
+compress = true
+timeline = false
+endpoint_id = "REPLACEME"
+collection_id = 2
+output = "api"
+url = "http://daemonserver:8000/v1/endpoint/collections/uploads"
+
+[[artifacts]]
+artifact_name = "connections"

@@ -3,7 +3,7 @@ import fastifyMultipart from "@fastify/multipart";
 
 import { BadReqestType, BadRequest, Enroll, enrollEndpoint, EnrollReponseType, EnrollResponse, EnrollType } from "./enrollment/enroll";
 import { Config, configEndpoint, ConfigResponse, ConfigType, ConfigTypeResponse } from "./configuration/config";
-import { Collect, collectionEndpoint, collectionUploadEndpoint, collectionUploadStatusEndpoint, CollectResponse, CollectType, CollectTypeResponse } from "./collections/collect";
+import { Collect, collectionEndpoint, collectionUploadEndpoint, collectionUploadStatusEndpoint, CollectResponse, CollectType, CollectTypeResponse, createNewCollection, NewCollection, NewCollectionResponse, NewCollectionResponseType, NewCollectionType } from "./collections/collect";
 import { loggingEndpoint, LogsResponse, LogsResponseType, LogsType } from "./logging/logs";
 
 export async function setupFastify(): Promise<FastifyInstance> {
@@ -120,6 +120,25 @@ export async function setupFastify(): Promise<FastifyInstance> {
             done();
         },
     }, collectionUploadStatusEndpoint);
+
+    server.post<{ Body: NewCollectionType, Reply: NewCollectionResponseType | BadReqestType; }>("/v1/server/collections", {
+        schema: {
+            body: NewCollection,
+            response: {
+                200: NewCollectionResponse,
+                400: BadRequest,
+                500: BadRequest,
+            }
+        },
+        preValidation: (request, reply, done) => {
+            if ((request.body as ConfigType).endpoint_id === undefined) {
+                reply.statusCode = 400;
+                reply.send({ message: "Bad collection upload", endpoint_invalid: false });
+            }
+            done();
+        },
+
+    }, createNewCollection);
 
     return server;
 }
