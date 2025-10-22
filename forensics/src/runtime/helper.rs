@@ -88,8 +88,11 @@ pub(crate) fn value_arg(args: &[JsValue], index: usize, context: &mut Context) -
     }
 
     let value = arg_value.to_json(context)?;
+    if let Some(arg) = value {
+        return Ok(arg);
+    }
 
-    Ok(value)
+    Err(JsError::from_opaque(js_string!("Got none Arg").into()))
 }
 
 /// Get the JS argument and convert to bytes

@@ -6,7 +6,9 @@ use crate::{
     },
     runtime::helper::{boolean_arg, number_arg, string_arg},
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
+use boa_engine::{
+    Context, JsError, JsResult, JsString, JsValue, js_string, object::builtins::JsUint8Array,
+};
 use common::files::Hashes;
 use serde::Serialize;
 use std::path::Path;
@@ -137,7 +139,7 @@ pub(crate) fn js_read_text_file(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    Ok(JsValue::String(data.into()))
+    Ok(JsValue::new::<JsString>(data.into()))
 }
 
 pub(crate) fn js_read_lines(

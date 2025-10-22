@@ -1,5 +1,5 @@
 use crate::artifacts::os::systeminfo::info::get_info;
-use boa_engine::{Context, JsResult, JsValue, js_string};
+use boa_engine::{Context, JsBigInt, JsResult, JsValue, js_string};
 
 /// Expose pulling systeminfo to `BoaJS`
 pub(crate) fn js_get_systeminfo(
@@ -20,7 +20,7 @@ pub(crate) fn js_uptime(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(JsValue::BigInt(sysinfo::System::uptime().into()))
+    Ok(JsValue::new::<JsBigInt>(sysinfo::System::uptime().into()))
 }
 
 /// Return hostname of the system

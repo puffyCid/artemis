@@ -5,7 +5,7 @@ use crate::{
         ole_automationtime_to_unixepoch, time_now, webkit_time_to_unixepoch,
     },
 };
-use boa_engine::{Context, JsResult, JsValue};
+use boa_engine::{Context, JsBigInt, JsResult, JsValue};
 
 /// Expose current time now in seconds or 0
 pub(crate) fn js_time_now(
@@ -13,7 +13,7 @@ pub(crate) fn js_time_now(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(JsValue::BigInt(time_now().into()))
+    Ok(JsValue::new::<JsBigInt>(time_now().into()))
 }
 
 /// Expose converting filetimes to unixepoch
@@ -24,7 +24,9 @@ pub(crate) fn js_filetime_to_unixepoch(
 ) -> JsResult<JsValue> {
     let filetime = bigint_arg(args, 0)? as u64;
 
-    Ok(JsValue::BigInt(filetime_to_unixepoch(filetime).into()))
+    Ok(JsValue::new::<JsBigInt>(
+        filetime_to_unixepoch(filetime).into(),
+    ))
 }
 
 /// Expose converting cocoatimes to unixepoch
@@ -35,7 +37,9 @@ pub(crate) fn js_cocoatime_to_unixepoch(
 ) -> JsResult<JsValue> {
     let cocoatime = bigint_arg(args, 0)?;
 
-    Ok(JsValue::BigInt(cocoatime_to_unixepoch(cocoatime).into()))
+    Ok(JsValue::new::<JsBigInt>(
+        cocoatime_to_unixepoch(cocoatime).into(),
+    ))
 }
 
 /// Expose converting HFS+ time to unixepoch
@@ -46,7 +50,7 @@ pub(crate) fn js_hfs_to_unixepoch(
 ) -> JsResult<JsValue> {
     let hfstime = bigint_arg(args, 0)? as i64;
 
-    Ok(JsValue::BigInt(hfs_to_unixepoch(hfstime).into()))
+    Ok(JsValue::new::<JsBigInt>(hfs_to_unixepoch(hfstime).into()))
 }
 
 /// Expose converting OLE time to unixepoch
@@ -57,7 +61,7 @@ pub(crate) fn js_ole_automationtime_to_unixepoch(
 ) -> JsResult<JsValue> {
     let oletime = bigint_arg(args, 0)?;
 
-    Ok(JsValue::BigInt(
+    Ok(JsValue::new::<JsBigInt>(
         ole_automationtime_to_unixepoch(oletime).into(),
     ))
 }
@@ -70,7 +74,9 @@ pub(crate) fn js_webkit_time_to_unixepoch(
 ) -> JsResult<JsValue> {
     let webkittime = bigint_arg(args, 0)? as i64;
 
-    Ok(JsValue::BigInt(webkit_time_to_unixepoch(webkittime).into()))
+    Ok(JsValue::new::<JsBigInt>(
+        webkit_time_to_unixepoch(webkittime).into(),
+    ))
 }
 
 /// Expose converting `FATTIME` time to unixepoch
@@ -80,7 +86,9 @@ pub(crate) fn js_fat_time_to_unixepoch(
     context: &mut Context,
 ) -> JsResult<JsValue> {
     let fattime = bytes_arg(args, 0, context)?;
-    Ok(JsValue::BigInt(fattime_utc_to_unixepoch(&fattime).into()))
+    Ok(JsValue::new::<JsBigInt>(
+        fattime_utc_to_unixepoch(&fattime).into(),
+    ))
 }
 
 #[cfg(test)]

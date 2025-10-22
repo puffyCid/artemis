@@ -34,7 +34,7 @@ home = "0.5.11"
 chrono = "0.4.42"
 simplelog = "0.12.2"
 zip = { version = "6.0.0", default-features = false }
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.38.3", default-features = false }
 xml2json-rs = "1.0.1"
@@ -76,8 +76,10 @@ lumination = "0.1.2"
 snap = "1.1.1"
 
 # JS API
-boa_engine = { version = "0.20.0", default-features = false }
-boa_runtime = { version = "0.20.0", default-features = false }
+boa_engine = { version = "0.21.0", default-features = false }
+boa_runtime = { version = "0.21.0", default-features = false }
+futures-concurrency = { version = "7.6.3", default-features = false }
+futures-lite = { version = "2.6.1", default-features = false }
 
 # Windows API Dependencies
 [target.'cfg(target_os = "windows")'.dependencies]

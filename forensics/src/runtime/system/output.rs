@@ -38,7 +38,7 @@ pub(crate) fn js_output_results(
         return Err(JsError::from_opaque(js_string!(issue).into()));
     }
 
-    Ok(JsValue::Boolean(sucess))
+    Ok(JsValue::new(sucess))
 }
 
 pub(crate) fn js_raw_dump(
@@ -82,7 +82,7 @@ pub(crate) fn js_raw_dump(
         ));
     }
 
-    Ok(JsValue::Boolean(sucess))
+    Ok(JsValue::new(sucess))
 }
 
 #[cfg(test)]

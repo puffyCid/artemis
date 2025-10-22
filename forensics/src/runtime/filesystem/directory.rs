@@ -47,77 +47,7 @@ pub(crate) fn js_read_dir(
     }
 
     // Create a promise to execute our async script
-    let promise = JsPromise::from_future(
-        async move {
-            let mut dir = match read_dir(&path).await {
-                Ok(result) => result,
-                Err(err) => {
-                    let issue = format!("Failed to read {path}: {err:?}");
-                    return Err(JsError::from_opaque(js_string!(issue).into()));
-                }
-            };
-
-            let mut files: Vec<JsFileInfo> = Vec::new();
-            while let Ok(Some(entry)) = dir.next_entry().await {
-                let full_path = entry.path().display().to_string();
-                let timestamps = match get_timestamps(&full_path) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        warn!("[runtime] Failed to get timestamps for {path}: {err:?}");
-                        continue;
-                    }
-                };
-                let meta = match get_metadata(&full_path) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        warn!("[runtime] Failed to get metadata for {path}: {err:?}");
-                        continue;
-                    }
-                };
-
-                let mut info = JsFileInfo {
-                    filename: get_filename(&full_path),
-                    extension: file_extension(&full_path),
-                    full_path,
-                    directory: entry
-                        .path()
-                        .parent()
-                        .unwrap_or_else(|| Path::new(""))
-                        .display()
-                        .to_string(),
-                    created: timestamps.created,
-                    modified: timestamps.modified,
-                    accessed: timestamps.accessed,
-                    changed: timestamps.changed,
-                    size: meta.len(),
-                    inode: 0,
-                    mode: 0,
-                    uid: 0,
-                    gid: 0,
-                    is_file: meta.is_file(),
-                    is_directory: meta.is_dir(),
-                    is_symlink: false,
-                };
-                info.is_symlink = meta.is_symlink();
-
-                #[cfg(target_family = "unix")]
-                {
-                    use std::os::unix::prelude::MetadataExt;
-                    info.inode = meta.ino();
-                    info.mode = meta.mode();
-                    info.uid = meta.uid();
-                    info.gid = meta.gid();
-                }
-                files.push(info);
-            }
-
-            // We have to serialize to string for now
-            let data = serde_json::to_string(&files).unwrap_or_default();
-            Ok(js_string!(data).into())
-        },
-        context,
-    )
-    .then(
+    let promise = JsPromise::from_async_fn(async |_| async_read_dir(path).await, context).then(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
                 // Get the value from the script
@@ -135,6 +65,74 @@ pub(crate) fn js_read_dir(
 
     // Return a promise and let setup.rs handle the results
     Ok(promise.into())
+}
+
+async fn async_read_dir(path: String) -> JsResult<JsValue> {
+    let mut dir = match read_dir(&path).await {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to read {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let mut files: Vec<JsFileInfo> = Vec::new();
+    while let Ok(Some(entry)) = dir.next_entry().await {
+        let full_path = entry.path().display().to_string();
+        let timestamps = match get_timestamps(&full_path) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("[runtime] Failed to get timestamps for {path}: {err:?}");
+                continue;
+            }
+        };
+        let meta = match get_metadata(&full_path) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("[runtime] Failed to get metadata for {path}: {err:?}");
+                continue;
+            }
+        };
+
+        let mut info = JsFileInfo {
+            filename: get_filename(&full_path),
+            extension: file_extension(&full_path),
+            full_path,
+            directory: entry
+                .path()
+                .parent()
+                .unwrap_or_else(|| Path::new(""))
+                .display()
+                .to_string(),
+            created: timestamps.created,
+            modified: timestamps.modified,
+            accessed: timestamps.accessed,
+            changed: timestamps.changed,
+            size: meta.len(),
+            inode: 0,
+            mode: 0,
+            uid: 0,
+            gid: 0,
+            is_file: meta.is_file(),
+            is_directory: meta.is_dir(),
+            is_symlink: false,
+        };
+        info.is_symlink = meta.is_symlink();
+
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::prelude::MetadataExt;
+            info.inode = meta.ino();
+            info.mode = meta.mode();
+            info.uid = meta.uid();
+            info.gid = meta.gid();
+        }
+        files.push(info);
+    }
+
+    // We have to serialize to string for now
+    let data = serde_json::to_string(&files).unwrap_or_default();
+    Ok(js_string!(data).into())
 }
 
 #[cfg(test)]
