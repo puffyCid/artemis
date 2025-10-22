@@ -25,10 +25,10 @@ log = "0.4.28"
 serde_json = "1.0.145"
 toml = "0.9.8"
 base64 = "0.22.1"
-tokio = { version = "1.47.1", features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
 flate2 = "1.1.4"
 glob = "0.3.3"
-reqwest = { version = "0.12.23", features = [
+reqwest = { version = "0.12.24", features = [
     "json",
     "blocking",
     "native-tls-vendored",
