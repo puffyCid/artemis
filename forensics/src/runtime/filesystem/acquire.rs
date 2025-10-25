@@ -66,7 +66,7 @@ pub(crate) fn js_acquire_file(
     }
 
     let sucess = true;
-    Ok(JsValue::Boolean(sucess))
+    Ok(JsValue::new(sucess))
 }
 
 #[cfg(test)]

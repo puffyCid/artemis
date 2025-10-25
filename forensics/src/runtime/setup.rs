@@ -8,16 +8,18 @@ use super::{
     time::extensions::time_functions, windows::extensions::windows_functions,
 };
 use boa_engine::{
-    Context, JsValue, Source,
+    Context, JsError, JsResult, JsValue, Source,
     context::ContextBuilder,
-    job::{FutureJob, JobQueue, NativeJob},
-    js_str,
+    job::{GenericJob, Job, JobExecutor, NativeAsyncJob, PromiseJob, TimeoutJob},
+    js_str, js_string,
     property::Attribute,
 };
 use boa_runtime::Console;
-use log::error;
+use futures_concurrency::future::FutureGroup;
+use futures_lite::{StreamExt, future};
+use log::{error, warn};
 use serde_json::Value;
-use std::{cell::RefCell, collections::VecDeque, future::Future, pin::Pin, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 use tokio::task;
 
 /// Execute non-async scripts
@@ -55,34 +57,37 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     if result.is_undefined() {
         return Ok(Value::Null);
     }
-    let value = match result.to_json(&mut context) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not serialize script value: {err:?}");
-            return Err(RuntimeError::ScriptResult);
-        }
-    };
-
-    Ok(value)
+    if let Ok(Some(value)) = result.to_json(&mut context) {
+        return Ok(value);
+    }
+    error!(
+        "[runtime] Could not serialize script value: {:?}",
+        result.to_json(&mut context)
+    );
+    Err(RuntimeError::ScriptResult)
 }
 
 /// Queue to handle async scripts
 struct Queue {
-    futures: RefCell<Vec<FutureJob>>,
-    jobs: RefCell<VecDeque<NativeJob>>,
+    async_jobs: RefCell<VecDeque<NativeAsyncJob>>,
+    promise_jobs: RefCell<VecDeque<PromiseJob>>,
+    timeout_jobs: RefCell<VecDeque<TimeoutJob>>,
+    generic_jobs: RefCell<VecDeque<GenericJob>>,
 }
 
-// From boa example: https://github.com/boa-dev/boa/blob/294ebd8788914cf2b807e743377aa03c58d7d534/examples/src/bin/tokio_event_loop.rs
+// https://github.com/boa-dev/boa/blob/main/examples/src/bin/module_fetch_async.rs
 impl Queue {
     fn new() -> Self {
         Self {
-            futures: RefCell::default(),
-            jobs: RefCell::default(),
+            async_jobs: RefCell::default(),
+            promise_jobs: RefCell::default(),
+            timeout_jobs: RefCell::default(),
+            generic_jobs: RefCell::default(),
         }
     }
 
     fn drain_jobs(&self, context: &mut Context) {
-        let jobs = std::mem::take(&mut *self.jobs.borrow_mut());
+        let jobs = std::mem::take(&mut *self.promise_jobs.borrow_mut());
         for job in jobs {
             if let Err(err) = job.call(context) {
                 error!("[runtime] Failed drain async jobs: {err:?}");
@@ -91,17 +96,10 @@ impl Queue {
     }
 }
 
-impl JobQueue for Queue {
-    fn enqueue_promise_job(&self, job: NativeJob, _context: &mut Context) {
-        self.jobs.borrow_mut().push_back(job);
-    }
-
-    fn enqueue_future_job(&self, future: FutureJob, _context: &mut Context) {
-        self.futures.borrow_mut().push(future);
-    }
-
+// https://github.com/boa-dev/boa/blob/main/examples/src/bin/module_fetch_async.rs
+impl JobExecutor for Queue {
     /// Run jobs will block Rust execution until script is done. However, the script may still be run as async
-    fn run_jobs(&self, context: &mut Context) {
+    fn run_jobs(self: Rc<Self>, context: &mut Context) -> JsResult<()> {
         let runtime = match tokio::runtime::Builder::new_current_thread()
             .enable_time()
             .enable_io()
@@ -110,80 +108,58 @@ impl JobQueue for Queue {
             Ok(result) => result,
             Err(err) => {
                 error!("[runtime] Failed to run job: {err:?}");
-                return;
+                let issue = format!("Failed to run job: {err:?}");
+
+                return Err(JsError::from_opaque(js_string!(issue).into()));
             }
         };
-
-        task::LocalSet::default().block_on(&runtime, self.run_jobs_async(context));
+        task::LocalSet::default().block_on(&runtime, self.run_jobs_async(&RefCell::new(context)))
     }
 
     /// Run jobs async will not block Rust execution while script runs
-    fn run_jobs_async<'a, 'ctx, 'fut>(
-        &'a self,
-        context: &'ctx mut Context,
-    ) -> Pin<Box<dyn Future<Output = ()> + 'fut>>
-    where
-        'a: 'fut,
-        'ctx: 'fut,
-    {
-        Box::pin(async move {
-            // If we have no jobs just return
-            if self.jobs.borrow().is_empty() && self.futures.borrow().is_empty() {
-                return;
+    async fn run_jobs_async(self: Rc<Self>, context: &RefCell<&mut Context>) -> JsResult<()> {
+        let mut group = FutureGroup::new();
+        loop {
+            for job in std::mem::take(&mut *self.async_jobs.borrow_mut()) {
+                group.insert(job.call(context));
             }
-            let mut join_set = task::JoinSet::new();
-            loop {
-                for future in std::mem::take(&mut *self.futures.borrow_mut()) {
-                    join_set.spawn_local(future);
-                }
 
-                if self.jobs.borrow().is_empty() {
-                    let Some(job) = join_set.join_next().await else {
-                        // Both queues are empty. We can exit.
-                        return;
-                    };
-
-                    // Important to schedule the returned `job` into the job queue, since that's
-                    // what allows updating the `Promise` seen by ECMAScript for when the future
-                    // completes.
-                    match job {
-                        Ok(job) => self.enqueue_promise_job(job, context),
-                        Err(err) => error!("[runtime] Failed to queue async job: {err:?}"),
-                    }
-
-                    continue;
-                }
-
-                // We have some jobs pending on the microtask queue. Try to poll the pending
-                // tasks once to see if any of them finished, and run the pending microtasks
-                // otherwise.
-                let Some(job) = join_set.try_join_next() else {
-                    // No completed jobs. Run the microtask queue once.
-                    self.drain_jobs(context);
-
-                    task::yield_now().await;
-                    continue;
-                };
-
-                // Important to schedule the returned `job` into the job queue, since that's
-                // what allows updating the `Promise` seen by ECMAScript for when the future
-                // completes.
-                match job {
-                    Ok(job) => self.enqueue_promise_job(job, context),
-                    Err(err) => error!("[runtime] Failed to queue next async job: {err:?}"),
-                }
-
-                // Only one macrotask can be executed before the next drain of the microtask queue.
-                self.drain_jobs(context);
+            if group.is_empty()
+                && self.promise_jobs.borrow().is_empty()
+                && self.timeout_jobs.borrow().is_empty()
+                && self.generic_jobs.borrow().is_empty()
+            {
+                // All queues are empty. We can exit.
+                return Ok(());
             }
-        })
+
+            // We have some jobs pending on the microtask queue. Try to poll the pending
+            // tasks once to see if any of them finished, and run the pending microtasks
+            // otherwise.
+            if let Some(Err(err)) = future::poll_once(group.next()).await.flatten() {
+                error!("[runtime] Failed to queue async job: {err:?}");
+            };
+
+            self.drain_jobs(&mut context.borrow_mut());
+            task::yield_now().await;
+        }
+    }
+
+    fn enqueue_job(self: Rc<Self>, job: Job, _context: &mut Context) {
+        match job {
+            Job::PromiseJob(job) => self.promise_jobs.borrow_mut().push_back(job),
+            Job::AsyncJob(job) => self.async_jobs.borrow_mut().push_back(job),
+            Job::TimeoutJob(job) => self.timeout_jobs.borrow_mut().push_back(job),
+            Job::GenericJob(job) => self.generic_jobs.borrow_mut().push_back(job),
+            _ => warn!("[runtime] Unsupported job {job:?}"),
+        }
     }
 }
 
 /// Execute async scripts
 pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
     let queue = Queue::new();
-    let mut context = match ContextBuilder::new().job_queue(Rc::new(queue)).build() {
+    let mut context = match ContextBuilder::new().job_executor(Rc::new(queue)).build() {
         Ok(result) => result,
         Err(err) => {
             error!("[runtime] Could not create async context: {err:?}");
@@ -221,7 +197,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     };
 
     // Run and wait for our script to complete
-    context.run_jobs();
+    let _ = context.run_jobs();
     if result.is_undefined() {
         return Ok(Value::Null);
     } else if result.is_promise() {
@@ -232,27 +208,26 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
                 if js_value.is_undefined() {
                     return Ok(Value::Null);
                 }
-                let value = match js_value.to_json(&mut context) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!("[runtime] Could not serialize promise value: {err:?}");
-                        return Err(RuntimeError::ScriptResult);
-                    }
-                };
-                return Ok(value);
+                if let Ok(Some(value)) = js_value.to_json(&mut context) {
+                    return Ok(value);
+                }
+                error!(
+                    "[runtime] Could not serialize async promise script value: {:?}",
+                    result.to_json(&mut context)
+                );
+                return Err(RuntimeError::ScriptResult);
             }
         }
     }
 
-    let value = match result.to_json(&mut context) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not serialize script value: {err:?}");
-            return Err(RuntimeError::ScriptResult);
-        }
-    };
-
-    Ok(value)
+    if let Ok(Some(value)) = result.to_json(&mut context) {
+        return Ok(value);
+    }
+    error!(
+        "[runtime] Could not serialize async script value: {:?}",
+        result.to_json(&mut context)
+    );
+    Err(RuntimeError::ScriptResult)
 }
 
 /// Register and create our custom JavaScript runtime

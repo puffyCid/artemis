@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub(crate) struct ClientResponse {
     url: String,
     status: u16,
@@ -101,7 +101,7 @@ pub(crate) fn js_request(
     }
 
     // Create a promise to execute our async script
-    let promise = JsPromise::from_future(send(builder), context).then(
+    let promise = JsPromise::from_async_fn(async |_| send(builder).await, context).then(
         Some(
             NativeFunction::from_fn_ptr(|_, args, ctx| {
                 // Get the value from the script
