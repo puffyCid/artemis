@@ -30,7 +30,7 @@ sha2 = "0.10.9"
 regex = "1.12.2"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
-home = "0.5.11"
+home = "0.5.12"
 chrono = "0.4.42"
 simplelog = "0.12.2"
 zip = { version = "6.0.0", default-features = false }
