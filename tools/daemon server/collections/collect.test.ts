@@ -31,7 +31,7 @@ describe('collection module', () => {
         let response = await server.inject({ method: 'POST', 'url': '/v1/endpoint/enroll', body, headers });
         expect(String(JSON.parse(response.body)[ "endpoint_id" ]).length).toBe(36);
 
-        body = `{ "endpoint_id": "${String(JSON.parse(response.body)[ "endpoint_id" ])}", "payload": "base64 encoded blob", "collection_id": 2 }`;
+        body = `{ "endpoint_id": "${String(JSON.parse(response.body)[ "endpoint_id" ])}", "payload": "base64 encoded blob", "collection_id": 2, "collection_timeout": 300 }`;
         response = await server.inject({ method: 'POST', 'url': '/v1/server/collections', body, headers });
         expect(String(JSON.parse(response.body)[ "endpoint_invalid" ])).toEqual("false");
 

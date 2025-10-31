@@ -133,7 +133,7 @@ export async function setupFastify(): Promise<FastifyInstance> {
         preValidation: (request, reply, done) => {
             if ((request.body as ConfigType).endpoint_id === undefined) {
                 reply.statusCode = 400;
-                reply.send({ message: "Bad collection upload", endpoint_invalid: false });
+                reply.send({ message: "Bad collection upload", endpoint_invalid: true });
             }
             done();
         },

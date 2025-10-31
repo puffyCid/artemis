@@ -17,6 +17,7 @@ export const CollectResponse = Type.Object({
     collection: Type.String(),
     endpoint_invalid: Type.Boolean(),
     collection_id: Type.Number(),
+    collection_timeout: Type.Number(),
 });
 
 export type CollectTypeResponse = Static<typeof CollectResponse>;
@@ -25,6 +26,7 @@ export const NewCollection = Type.Object({
     endpoint_id: Type.String(),
     collection_id: Type.Number(),
     payload: Type.String(),
+    collection_timeout: Type.Number(),
 });
 
 export type NewCollectionType = Static<typeof NewCollection>;
@@ -61,7 +63,7 @@ export async function collectionEndpoint(request: FastifyRequest<{ Body: Collect
         db.updateCollection(request.body.endpoint_id, script.collection_id, "Running");
 
         reply.statusCode = 200;
-        reply.send({ collection: encoded, endpoint_invalid: false, collection_id: script.collection_id });
+        reply.send({ collection: encoded, endpoint_invalid: false, collection_id: script.collection_id, collection_timeout: script.collection_timeout });
 
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -86,7 +88,7 @@ export async function createNewCollection(request: FastifyRequest<{ Body: NewCol
         }
 
         db.newCollection(request.body.endpoint_id, request.body.collection_id);
-        db.newCollectionScript(request.body.payload, request.body.collection_id);
+        db.newCollectionScript(request.body.payload, request.body.collection_id, request.body.collection_timeout);
 
         reply.statusCode = 200;
         reply.send({ endpoint_invalid: false });

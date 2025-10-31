@@ -1,4 +1,8 @@
 use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     thread::{sleep, spawn},
     time::Duration,
 };
@@ -117,9 +121,17 @@ fn start(config: &mut DaemonConfig) {
             continue;
         }
 
+        let allow_thread = Arc::new(AtomicBool::new(true));
+        let thread_running = Arc::clone(&allow_thread);
         // Allow the collection to run for allocated timer. Default should be 300 seconds
         let timeout = time_now() + collection.collection_timeout;
-        let handle = spawn(move || setup_collection(&collection));
+
+        let mut status = CollectionStatus::Complete;
+        let handle = spawn(move || {
+            while thread_running.load(Ordering::SeqCst) {
+                setup_collection(&collection);
+            }
+        });
 
         // While thread is running continue to poll the server
         while !handle.is_finished() {
@@ -147,12 +159,16 @@ fn start(config: &mut DaemonConfig) {
             }
             // Next poll will be in 60 seconds
             sleep(Duration::from_secs(collection_poll));
+            let now = time_now();
+            if now > timeout {
+                allow_thread.store(false, Ordering::SeqCst);
+                status = CollectionStatus::Timeout;
+            }
         }
 
-        let status = match handle.join() {
-            Ok(status) => status,
-            Err(_err) => CollectionStatus::Error,
-        };
+        if let Err(_err) = handle.join() {
+            status = CollectionStatus::Error;
+        }
 
         // The final part of a remote forensic collection
         // Sending POST request to let the server know the collection is done
