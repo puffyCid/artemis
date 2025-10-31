@@ -37,3 +37,4 @@ reqwest = { version = "0.12.24", features = [
 sysinfo = "0.37.2"
 uuid = { version = "1.18.1", features = ["v4"] }
 rusqlite = { version = "0.37.0", features = ["bundled", "serde_json"] }
+rand = { version = "0.9.2", default-features = false }

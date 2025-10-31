@@ -22,6 +22,7 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 rusqlite = { workspace = true }
 tokio = { workspace = true }
+rand = { workspace = true }
 
 nom = "8.0.0"
 md-5 = "0.10.6"
@@ -74,6 +75,7 @@ sunlight = "0.1.1"
 miniz_oxide = { version = "0.8.9", features = ["std", "with-alloc"] }
 lumination = "0.1.2"
 snap = "1.1.1"
+
 
 # JS API
 boa_engine = { version = "0.21.0", default-features = false }

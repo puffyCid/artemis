@@ -12,6 +12,8 @@ pub(crate) struct CollectResponse {
     pub(crate) endpoint_invalid: bool,
     /// ID for the collection
     pub(crate) collection_id: u64,
+    /// How long to allow collection to run before it is killed
+    pub(crate) collection_timeout: u64,
 }
 
 #[derive(Serialize, Debug)]

@@ -17,6 +17,7 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 reqwest = { workspace = true }
 base64 = { workspace = true }
+rand = { workspace = true }
 
 chrono = "0.4.42"
 simplelog = "0.12.2"
@@ -26,7 +27,7 @@ forensics = { path = "../forensics", default-features = false }
 
 # Dependencies for tests
 [dev-dependencies]
-httpmock = "0.8.1"
+httpmock = "0.8.2"
 criterion = "0.7.0"
 
 [build-dependencies]
