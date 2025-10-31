@@ -1,6 +1,7 @@
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::error;
+use rand::Rng;
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
@@ -23,10 +24,11 @@ pub(crate) fn api_upload(
 
     let client = Client::new();
 
-    let mut count = 0;
-    let max_attempts = 8;
-    let pause = 6;
-    while count < max_attempts {
+    let mut attempt = 1;
+    let max_attempts = 6;
+    let pause = 8;
+    let mut rng = rand::rng();
+    loop {
         let mut builder = client.post(api_url);
         builder = builder.header("x-artemis-endpoint_id", &output.endpoint_id);
         builder = builder.header("x-artemis-collection_id", &output.collection_id.to_string());
@@ -44,17 +46,27 @@ pub(crate) fn api_upload(
             // Should be safe to unwrap?
             part = part.mime_str("application/jsonl").unwrap();
         }
+
         let form = multipart::Form::new().part("artemis-upload", part);
         builder = builder.multipart(form);
+
+        let jitter: u16 = rng.random_range(..=10);
+        let backoff = if attempt <= max_attempts {
+            pause * attempt + jitter
+        } else {
+            // If 6 attempts fail. Then backoff for 5 mins
+            300 + jitter
+        };
         let status = match builder.send() {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[forensics] Failed to upload data to {api_url}. Attempt {count}. Error: {err:?}"
+                    "[forensics] Failed to upload data to {api_url}. Attempt {attempt}. Error: {err:?}"
                 );
-                // Pause for 6 seconds between each attempt
-                sleep(Duration::from_secs(pause));
-                count += 1;
+
+                // Pause between each attempt
+                sleep(Duration::from_secs(backoff as u64));
+                attempt += 1;
                 continue;
             }
         };
@@ -62,9 +74,9 @@ pub(crate) fn api_upload(
             break;
         }
 
-        // Pause for 6 seconds between each attempt
-        sleep(Duration::from_secs(pause));
-        count += 1;
+        // Pause between each attempt
+        sleep(Duration::from_secs(backoff as u64));
+        attempt += 1;
     }
 
     Ok(())
