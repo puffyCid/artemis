@@ -40,7 +40,7 @@ fn get_artifact(artifact: &str) -> Artifacts {
         "usnjrnl" => Artifacts::UsnJrnl,
         "wmipersist" => Artifacts::Wmi,
         "services" => Artifacts::Services,
-        "jumplist" => Artifacts::Jumplist,
+        "jumplists" => Artifacts::Jumplist,
         "eventlogs" => Artifacts::Eventlogs,
         "emond" => Artifacts::Emond,
         "launchd" => Artifacts::LaunchDaemon,
