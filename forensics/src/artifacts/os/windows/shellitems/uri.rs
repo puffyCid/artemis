@@ -2,7 +2,7 @@ use crate::utils::nom_helper::{
     Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
     nom_unsigned_two_bytes,
 };
-use crate::utils::strings::{extract_ascii_utf16_string, extract_utf16_string};
+use crate::utils::strings::{extract_utf8_string, extract_utf16_string};
 use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
 use common::windows::ShellItem;
 use common::windows::ShellType::Uri;
@@ -12,6 +12,9 @@ use std::mem::size_of;
 /// Parse a `URI` `ShellItem`. Often related to browsing FTP servers with Explorer
 pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, flag) = nom_unsigned_one_byte(data, Endian::Le)?;
+    // If flag = 0x80 (128)
+    // Values will be UTF16?
+    // Anything else should be ASCII/UTF8
     let (input, size) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
     let mut uri_item = ShellItem {
@@ -35,6 +38,7 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         return Ok((input, uri_item));
     }
 
+    // All strings should be UTF8/ASCII
     let (input, _unknown) = take(size_of::<u32>())(input)?;
     let (input, _unknown2) = take(size_of::<u32>())(input)?;
 
@@ -49,17 +53,17 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
     let (input, data_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, string_data) = take(data_size)(input)?;
-    uri_item.value = extract_ascii_utf16_string(string_data);
+    uri_item.value = extract_utf8_string(string_data);
 
     let (input, data_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, string_data) = take(data_size)(input)?;
-    let _username = extract_ascii_utf16_string(string_data);
+    let _username = extract_utf8_string(string_data);
 
     let (input, data_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, string_data) = take(data_size)(input)?;
-    let _password = extract_ascii_utf16_string(string_data);
+    let _password = extract_utf8_string(string_data);
 
     Ok((input, uri_item))
 }
@@ -98,6 +102,22 @@ mod tests {
         ];
         let (_, result) = parse_uri(&test).unwrap();
         assert_eq!(result.value, "windowsdefender://threat/");
+        assert_eq!(result.shell_type, ShellType::Uri);
+        assert_eq!(result.mft_sequence, 0);
+        assert_eq!(result.mft_entry, 0);
+    }
+
+    #[test]
+    fn test_parse_uri_ip() {
+        let test = [
+            3, 100, 0, 3, 39, 0, 0, 4, 0, 0, 0, 48, 250, 8, 137, 0, 78, 220, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 16, 0, 0, 0, 52, 52, 46, 50, 52, 49, 46, 54,
+            54, 46, 49, 55, 51, 0, 0, 0, 8, 0, 0, 0, 100, 108, 112, 117, 115, 101, 114, 0, 28, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 102, 116, 112, 0, 0, 0,
+        ];
+        let (_, result) = parse_uri(&test).unwrap();
+        assert_eq!(result.value, "44.241.66.173");
         assert_eq!(result.shell_type, ShellType::Uri);
         assert_eq!(result.mft_sequence, 0);
         assert_eq!(result.mft_entry, 0);
