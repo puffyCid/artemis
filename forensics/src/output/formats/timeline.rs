@@ -91,7 +91,7 @@ mod tests {
             "usnjrnl",
             "wmipersist",
             "services",
-            "jumplist",
+            "jumplists",
             "eventlogs",
             "emond",
             "launchd",

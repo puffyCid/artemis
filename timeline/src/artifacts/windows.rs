@@ -205,7 +205,6 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
         entry["data_type"] = Value::String(String::from("windows:jumplist:entry"));
 
         let temp = entry.clone();
-        let times = extract_shortcut_times(&temp["lnk_info"])?;
 
         entry.as_object_mut()?.remove("lnk_info");
 
@@ -223,6 +222,9 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
         for (key, value) in temp["jumplist_metadata"].as_object()? {
             if key == "path" {
                 entry["jumplist_target"] = value.clone();
+                if entry["message"] == Value::String(String::new()) {
+                    entry["message"] = value.clone();
+                }
                 continue;
             } else if key == "modified" {
                 entry["entry_modified"] = value.clone();
@@ -231,6 +233,12 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
             entry[key] = value.clone();
         }
         entry.as_object_mut()?.remove("jumplist_metadata");
+
+        if entry["message"] == Value::String(String::new()) {
+            entry["message"] = entry["path"].clone();
+        }
+
+        let times = extract_shortcut_times(&temp["lnk_info"])?;
 
         for (key, value) in times {
             entry["datetime"] = Value::String(key.into());
