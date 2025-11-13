@@ -50,6 +50,7 @@ pub struct DiskDrives {
     pub total_space: u64,
     pub available_space: u64,
     pub removable: bool,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

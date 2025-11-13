@@ -78,14 +78,16 @@ pub(crate) fn get_disks() -> Vec<DiskDrives> {
 
     let mut disk_vec = Vec::new();
     for disk in &mut disks {
-        let fs_type = disk.file_system().to_str().unwrap_or_default();
+        let fs_type = disk.file_system().display().to_string();
+        let name = disk.name().display().to_string();
         let disk_data = DiskDrives {
             disk_type: format!("{:?}", disk.kind()),
-            file_system: fs_type.to_string(),
+            file_system: fs_type,
             mount_point: disk.mount_point().display().to_string(),
             total_space: disk.total_space(),
             available_space: disk.available_space(),
             removable: disk.is_removable(),
+            name,
         };
         disk_vec.push(disk_data);
     }

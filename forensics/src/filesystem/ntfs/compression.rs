@@ -53,7 +53,7 @@ pub(crate) fn check_wofcompressed(
     let compression_unit = grab_reparsepoint(ntfs_ref, ntfs, fs)?;
     let lzx32k = 32768;
     if compression_unit == lzx32k {
-        warn!("[wofcompression] Lzx compression is not support! Returning compressed data");
+        warn!("[wofcompression] Lzx compression is not supported! Returning compressed data");
         let size = compressed_data.len();
         return Ok((true, compressed_data, size as u64));
     }
@@ -235,10 +235,10 @@ fn walk_offset_table(
 
         /*
          * If the offset is larger than total data, we have gone outside our array
-         * This is possible if we have files that can be evenly devided by the compression unit
+         * This is possible if we have files that can be evenly divided by the compression unit
          *
          * Ex: C:\Program Files\Windows Defender Advanced Threat Protection\SenseCncPS.dll is compressed with huffman8k (8192)
-         * The decompressed size is 16,384 (16,384/8192 = array lenth of two (2))
+         * The decompressed size is 16,384 (16,384/8192 = array length of two (2))
          * However the actual length is one (1)
          */
         if offset as usize > data.len() {
