@@ -15,7 +15,7 @@ pub(crate) fn js_read_raw_file(
     let data = match raw_read_file(&path) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get read file {path}: {err:?}");
+            let issue = format!("Failed to raw read file {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };

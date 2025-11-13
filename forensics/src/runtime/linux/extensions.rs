@@ -1,3 +1,7 @@
+use crate::runtime::linux::ext4::{
+    js_read_raw_dir_ext4, js_read_raw_file_ext4, js_read_raw_inode_ext4,
+};
+
 use super::{
     elf::js_get_elf, journal::js_get_journal, logons::js_get_logon, sudo::js_get_sudologs_linux,
 };
@@ -27,6 +31,24 @@ pub(crate) fn linux_functions(context: &mut Context) {
         JsString::from("js_get_sudologs_linux"),
         1,
         NativeFunction::from_fn_ptr(js_get_sudologs_linux),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_raw_file_ext4"),
+        2,
+        NativeFunction::from_fn_ptr(js_read_raw_file_ext4),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_raw_dir_ext4"),
+        3,
+        NativeFunction::from_fn_ptr(js_read_raw_dir_ext4),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_read_raw_inode_ext4"),
+        2,
+        NativeFunction::from_fn_ptr(js_read_raw_inode_ext4),
     );
 }
 

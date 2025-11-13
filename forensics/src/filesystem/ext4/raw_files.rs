@@ -1,18 +1,13 @@
 /*
- * TODO
- * 4. Create reader that returns reader to a provided file path
- * 5. Make tests for functions above
- * 6. Expose the JS API?
- *
- * TODO:
- * 1. Create ext4 artifact under linux
- * 2. Replicate similar features as ntfs artifact
- * 3. Make tests
- * 4. Add to cli
- *
- * TODO:
- * 1. Integrate with QCOW
- */
+* TODO:
+* 1. Create ext4 artifact under linux
+* 2. Replicate similar features as ntfs artifact
+* 3. Make tests
+* 4. Add to cli
+*
+* TODO:
+* 1. Integrate with QCOW
+*/
 
 use crate::{
     artifacts::os::systeminfo::info::get_disks,
@@ -28,6 +23,7 @@ use ext4_fs::{
 };
 use log::error;
 use regex::Regex;
+use serde::Serialize;
 use std::{fs::File, io::BufReader};
 
 /// Read a single file by parsing the EXT4 filesystem. This reads the entire file into memory
@@ -62,15 +58,8 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
                 return Err(FileSystemError::OpenFile);
             }
         };
-        let root = match ext_reader.root() {
-            Ok(result) => result,
-            Err(err) => {
-                error!(
-                    "[forensics] Could not read the root ext4 directory device ({dev}): {err:?}"
-                );
-                return Err(FileSystemError::RootDirectory);
-            }
-        };
+        let root = get_root(&mut ext_reader)?;
+
         ext4_options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -125,15 +114,8 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
                 return Err(FileSystemError::OpenFile);
             }
         };
-        let root = match ext_reader.root() {
-            Ok(result) => result,
-            Err(err) => {
-                error!(
-                    "[forensics] Could not read the root ext4 directory device ({dev}): {err:?}"
-                );
-                return Err(FileSystemError::RootDirectory);
-            }
-        };
+        let root = get_root(&mut ext_reader)?;
+
         ext4_options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -218,15 +200,8 @@ pub(crate) fn raw_read_dir(
                 return Err(FileSystemError::OpenFile);
             }
         };
-        let root = match ext_reader.root() {
-            Ok(result) => result,
-            Err(err) => {
-                error!(
-                    "[forensics] Could not read the root ext4 directory device ({dev}): {err:?}"
-                );
-                return Err(FileSystemError::RootDirectory);
-            }
-        };
+        let root = get_root(&mut ext_reader)?;
+
         ext4_options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -279,15 +254,7 @@ pub(crate) fn raw_read_dir(
                 return Err(FileSystemError::OpenFile);
             }
         };
-        let root = match ext_reader.root() {
-            Ok(result) => result,
-            Err(err) => {
-                error!(
-                    "[forensics] Could not read the root ext4 directory device ({dev}): {err:?}"
-                );
-                return Err(FileSystemError::RootDirectory);
-            }
-        };
+        let root = get_root(&mut ext_reader)?;
         ext4_options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -297,6 +264,39 @@ pub(crate) fn raw_read_dir(
     }
 
     Ok(files)
+}
+
+/// Returns an inode for the provided file path
+/// The inode can later be used to create a reader for the file (using `Ext4Reader.reader`) which can be used to used to stream the file
+pub(crate) fn raw_reader<T: std::io::Seek + std::io::Read>(
+    path: &str,
+    reader: &mut Ext4Reader<T>,
+) -> Result<u32, FileSystemError> {
+    let mut ext4_options = Ext4Options {
+        device: String::new(),
+        start_path: path.to_string(),
+        depth: path.split("/").count(),
+        start_path_depth: 0,
+        path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
+        file_regex: create_regex("").unwrap(), // Valid Regex, should never fail
+        filelist: Vec::new(),
+        cache: Vec::new(),
+    };
+    let root = get_root(reader)?;
+    ext4_options
+        .cache
+        .push(root.name.trim_end_matches('/').to_string());
+    iterate_ext4(&root, reader, &mut ext4_options);
+    for file in ext4_options.filelist {
+        if file.full_path != path {
+            continue;
+        }
+
+        return Ok(file.inode);
+    }
+
+    error!("[forensics] Could not find inode for file ({path}).");
+    Err(FileSystemError::ReadFile)
 }
 
 /// Setup options when reading the ext4 filesystem
@@ -318,11 +318,25 @@ pub(crate) struct Ext4Options {
     pub(crate) filelist: Vec<Ext4Entry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Ext4Entry {
     pub(crate) full_path: String,
     pub(crate) inode: u32,
     pub(crate) file_type: FileType,
+}
+
+fn get_root<T: std::io::Seek + std::io::Read>(
+    reader: &mut Ext4Reader<T>,
+) -> Result<FileInfo, FileSystemError> {
+    let root = match reader.root() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not read the root ext4 directory: {err:?}");
+            return Err(FileSystemError::RootDirectory);
+        }
+    };
+
+    Ok(root)
 }
 
 /// Iterate through the EXT4 system and return entries based on provided start path and any regexes. Can be used to search for a file(s)
@@ -374,7 +388,7 @@ fn iterate_ext4<T: std::io::Seek + std::io::Read>(
 mod tests {
     use crate::{
         filesystem::ext4::raw_files::{
-            Ext4Options, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode,
+            Ext4Options, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode, raw_reader,
         },
         utils::regex_options::create_regex,
     };
@@ -382,7 +396,11 @@ mod tests {
         extfs::{Ext4Reader, Ext4ReaderAction},
         structs::FileType,
     };
-    use std::{fs::File, io::BufReader, path::PathBuf};
+    use std::{
+        fs::File,
+        io::{BufReader, Read},
+        path::PathBuf,
+    };
 
     #[test]
     fn test_iterate_ext4() {
@@ -555,6 +573,24 @@ mod tests {
     }
 
     #[test]
+    fn test_raw_reader() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/images/ext4/test.img");
+        let reader = File::open(&test_location.to_str().unwrap()).unwrap();
+        let buf = BufReader::new(reader);
+        let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
+        let inode = raw_reader(
+            "/run/media/puffycid/d32162ac-f1a7-487a-88ef-10c9ad4e5fff/test/nest/ls",
+            &mut ext_reader,
+        )
+        .unwrap();
+        let mut file_reader = ext_reader.reader(inode).unwrap();
+        let mut buf = [0; 145312];
+        file_reader.read_exact(&mut buf).unwrap();
+        assert_ne!(buf, [0; 145312])
+    }
+
+    #[test]
     fn test_raw_read_dir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/images/ext4/test.img");
@@ -563,5 +599,22 @@ mod tests {
         let path = ".*/.*.txt";
         let files = raw_read_dir(path, start, Some(&test_location.to_str().unwrap())).unwrap();
         assert_eq!(files.len(), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "ReadFile")]
+    fn test_raw_read_inode_bad() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/images/ext4/test.img");
+        let reader = File::open(&test_location.to_str().unwrap()).unwrap();
+        let buf = BufReader::new(reader);
+        let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
+        let _ = raw_read_inode(2, &mut ext_reader).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "OpenFile")]
+    fn test_raw_read_file_gibberish() {
+        let _ = raw_read_file("dsfasdfsadf", Some("asdfasdfsdf")).unwrap();
     }
 }
