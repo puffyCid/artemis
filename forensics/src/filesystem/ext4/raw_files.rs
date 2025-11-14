@@ -633,13 +633,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "OpenFile")]
     fn test_raw_read_live_gibberish() {
         // Run test only in Github CI. Parsing the ext4 filesystem requires root
         if !get_info_metadata().kernel_version.contains("azure") {
             return;
         }
         let files = raw_read_file("sadfsadfsd", None).unwrap();
-        assert!(!files.is_empty());
+        assert!(files.is_empty());
     }
 }
