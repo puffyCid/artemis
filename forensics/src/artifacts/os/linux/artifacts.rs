@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_ext4_filelist() {
-        // Return test only in Github CI. Parsing the ext4 filesystem requires root
+        // Run test only in Github CI. Parsing the ext4 filesystem requires root
         if !get_info_metadata().kernel_version.contains("azure") {
             return;
         }

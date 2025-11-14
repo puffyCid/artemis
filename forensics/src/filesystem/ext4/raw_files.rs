@@ -1,14 +1,3 @@
-/*
-* TODO:
-* 1. Create ext4 artifact under linux
-* 2. Replicate similar features as ntfs artifact
-* 3. Make tests
-* 4. Add to cli
-*
-* TODO:
-* 1. Integrate with QCOW
-*/
-
 use crate::{
     artifacts::os::systeminfo::info::get_disks,
     filesystem::error::FileSystemError,
@@ -388,6 +377,7 @@ fn iterate_ext4<T: std::io::Seek + std::io::Read>(
 #[cfg(test)]
 mod tests {
     use crate::{
+        artifacts::os::systeminfo::info::get_info_metadata,
         filesystem::ext4::raw_files::{
             Ext4Options, get_root, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode,
             raw_reader,
@@ -629,5 +619,27 @@ mod tests {
         let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
         let root = get_root(&mut ext_reader).unwrap();
         assert_eq!(root.inode, 2);
+    }
+
+    #[test]
+    fn test_read_dir_live() {
+        // Run test only in Github CI. Parsing the ext4 filesystem requires root
+        if !get_info_metadata().kernel_version.contains("azure") {
+            return;
+        }
+        let start = "/boot";
+        let files = raw_read_dir("", start, None).unwrap();
+        assert!(!files.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "OpenFile")]
+    fn test_raw_read_live_gibberish() {
+        // Run test only in Github CI. Parsing the ext4 filesystem requires root
+        if !get_info_metadata().kernel_version.contains("azure") {
+            return;
+        }
+        let files = raw_read_file("sadfsadfsd", None).unwrap();
+        assert!(!files.is_empty());
     }
 }
