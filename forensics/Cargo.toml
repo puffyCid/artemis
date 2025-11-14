@@ -35,9 +35,9 @@ home = "0.5.12"
 chrono = "0.4.42"
 simplelog = "0.12.2"
 zip = { version = "6.0.0", default-features = false }
-jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
-quick-xml = { version = "0.38.3", default-features = false }
+quick-xml = { version = "0.38.4", default-features = false }
 xml2json-rs = "1.0.1"
 evtx = { version = "0.8.5", default-features = false, features = [
     "multithreading",
@@ -46,7 +46,7 @@ ntfs = "0.4.0"
 pelite = "0.10.0"
 elf = "0.8.0"
 ruzstd = "0.8.2"
-lz4_flex = "0.11.5"
+lz4_flex = "0.12.0"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 macos-unifiedlogs = "0.4.2"
 plist = "1.8.0"
@@ -75,6 +75,7 @@ sunlight = "0.1.1"
 miniz_oxide = { version = "0.8.9", features = ["std", "with-alloc"] }
 lumination = "0.1.2"
 snap = "1.1.1"
+ext4-fs = "0.1.2"
 
 
 # JS API

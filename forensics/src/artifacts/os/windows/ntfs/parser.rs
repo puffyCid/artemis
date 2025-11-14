@@ -77,7 +77,7 @@ pub(crate) fn ntfs_filelist(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ntfs] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(NTFSError::Parser);
         }
     };
@@ -86,7 +86,7 @@ pub(crate) fn ntfs_filelist(
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ntfs] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
             return Err(NTFSError::RootDir);
         }
     };
@@ -164,7 +164,7 @@ fn user_regex(input: &str) -> Result<Regex, NTFSError> {
     match reg_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[ntfs] Bad regex: {input}, error: {err:?}");
+            error!("[forensics] Bad regex: {input}, error: {err:?}");
             Err(NTFSError::Regex)
         }
     }
@@ -182,7 +182,7 @@ fn walk_ntfs(
     let index = match index_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ntfs] Failed to get NTFS index directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS index directory, error: {err:?}");
             return Err(NTFSError::IndexDir);
         }
     };
@@ -229,7 +229,7 @@ fn walk_ntfs(
         let entry_index = match entry_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ntfs] Failed to get NTFS entry index, error: {err:?}");
+                error!("[forensics] Failed to get NTFS entry index, error: {err:?}");
                 continue;
             }
         };
@@ -259,7 +259,7 @@ fn walk_ntfs(
         let ntfs_file = match ntfs_file_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ntfs] Failed to get NTFS file, error: {err:?}");
+                error!("[forensics] Failed to get NTFS file, error: {err:?}");
                 continue;
             }
         };
@@ -269,7 +269,7 @@ fn walk_ntfs(
         match standard_result {
             Ok(result) => standard_info(&result, &mut file_info),
             Err(err) => {
-                error!("[ntfs] Failed to get NTFS standard info, error: {err:?}");
+                error!("[forensics] Failed to get NTFS standard info, error: {err:?}");
                 continue;
             }
         }
@@ -305,7 +305,7 @@ fn walk_ntfs(
             match ads_result {
                 Ok(result) => file_info.ads_info = result,
                 Err(err) => {
-                    error!("[ntfs] Failed to grab ADS information: {err:?}");
+                    error!("[forensics] Failed to grab ADS information: {err:?}");
                 }
             }
         }
@@ -318,7 +318,7 @@ fn walk_ntfs(
                 Ok(result) => file_info.attributes.push(format!("{result:?}")),
                 Err(err) => {
                     error!(
-                        "[ntfs] Failed to get ReparsePoint tag for {}: {err:?}",
+                        "[forensics] Failed to get ReparsePoint tag for {}: {err:?}",
                         file_info.full_path
                     );
                 }
@@ -384,7 +384,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, fi
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[ntfs] Failed to serialize raw files: {err:?}");
+            error!("[forensics] Failed to serialize raw files: {err:?}");
             return;
         }
     };
@@ -393,7 +393,7 @@ fn raw_output(filelist: &[RawFilelist], output: &mut Output, start_time: u64, fi
     match output_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[ntfs] Failed to output raw files data: {err:?}");
+            error!("[forensics] Failed to output raw files data: {err:?}");
         }
     }
 }

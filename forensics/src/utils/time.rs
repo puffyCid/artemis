@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, Utc};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, TimeZone, Utc};
 use log::error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -126,6 +126,12 @@ pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
     }
+}
+
+/// Convert `UnixEpoch` nanoseconds to ISO8601 format
+pub(crate) fn unixepoch_nanoseconds_to_iso(timestamp: i64) -> String {
+    Utc.timestamp_nanos(timestamp)
+        .to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
 }
 
 /// Convert `UnixEpoch` to ISO8601 format

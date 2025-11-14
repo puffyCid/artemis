@@ -57,6 +57,7 @@ fn get_artifact(artifact: &str) -> Artifacts {
         "sudologs-linux" => Artifacts::SudoLinux,
         "users-windows" => Artifacts::UsersWindows,
         "connections" => Artifacts::Connections,
+        "ext4files" => Artifacts::Ext4Files,
         _ => Artifacts::Unknown,
     }
 }
@@ -107,6 +108,7 @@ mod tests {
             "logons",
             "sudologs-linux",
             "users-windows",
+            "ext4files",
             "connections",
         ];
 

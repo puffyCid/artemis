@@ -349,4 +349,31 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
+    /// linux: Parse the raw ext4 filesystem
+    RawfilelistingExt4 {
+        /// Start path for listing
+        #[arg(long, default_value_t = String::from("/"))]
+        start_path: String,
+        /// Device to parse. Default wil be all devices formatted with ext4
+        #[arg(long, default_value = None)]
+        device: Option<String>,
+        /// Depth for file listing. Max is 255
+        #[arg(long, default_value_t = 1)]
+        depth: u8,
+        /// MD5 hash files
+        #[arg(long)]
+        md5: bool,
+        /// SHA1 hash files
+        #[arg(long)]
+        sha1: bool,
+        /// SHA256 hash files
+        #[arg(long)]
+        sha256: bool,
+        /// Regex to only include entries that match path
+        #[arg(long, default_value = None)]
+        path_regex: Option<String>,
+        /// Regex to only include entries that match filename
+        #[arg(long, default_value = None)]
+        filename_regex: Option<String>,
+    },
 }

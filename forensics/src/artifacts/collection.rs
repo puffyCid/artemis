@@ -18,6 +18,7 @@ use super::{
     },
 };
 use crate::{
+    artifacts::os::linux::artifacts::ext4_filelist,
     runtime::run::execute_script,
     structs::toml::ArtemisToml,
     utils::{logging::upload_logs, output::compress_final_output},
@@ -253,6 +254,20 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Linux sudo log data: {err:?}");
+                    }
+                }
+            }
+            "rawfiles-ext4" => {
+                let options = match &artifacts.rawfiles_ext4 {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = ext4_filelist(&mut collector.output, filter, options);
+                match results {
+                    Ok(_) => info!("Collected Linux raw ext4 file listing"),
+                    Err(err) => {
+                        error!("[forensics] Failed to parse Linux ext4 filesystem: {err:?}");
                     }
                 }
             }

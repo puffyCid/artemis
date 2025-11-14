@@ -1,6 +1,9 @@
 use crate::artifacts::os::linux::error::LinuxArtifactError;
+use crate::artifacts::os::linux::ext4::parser::ext4_filelisting;
 use crate::artifacts::output::output_artifact;
-use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
+use crate::structs::artifacts::os::linux::{
+    Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
+};
 use crate::structs::toml::Output;
 use crate::utils::time;
 use log::{error, warn};
@@ -79,6 +82,22 @@ pub(crate) fn sudo_logs_linux(
     output_data(&mut serde_data, output_name, output, start_time, filter)
 }
 
+/// Parse the ext4 filesystem
+pub(crate) fn ext4_filelist(
+    output: &mut Output,
+    filter: bool,
+    options: &Ext4Options,
+) -> Result<(), LinuxArtifactError> {
+    let artifact_result = ext4_filelisting(options, output, filter);
+    match artifact_result {
+        Ok(result) => Ok(result),
+        Err(err) => {
+            error!("[forensics] Failed to get ext4 filelisting: {err:?}");
+            Err(LinuxArtifactError::Ext4)
+        }
+    }
+}
+
 /// Output Linux artifacts
 pub(crate) fn output_data(
     serde_data: &mut Value,
@@ -101,12 +120,16 @@ pub(crate) fn output_data(
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use serde_json::json;
-
-    use crate::artifacts::os::linux::artifacts::{journals, logons, output_data, sudo_logs_linux};
-    use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
+    use crate::artifacts::os::linux::artifacts::{
+        ext4_filelist, journals, logons, output_data, sudo_logs_linux,
+    };
+    use crate::artifacts::os::systeminfo::info::get_info_metadata;
+    use crate::structs::artifacts::os::linux::{
+        Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
+    };
     use crate::structs::toml::Output;
     use crate::utils::time;
+    use serde_json::json;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -180,5 +203,29 @@ mod tests {
         )
         .unwrap();
         assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_ext4_filelist() {
+        // Run test only in Github CI. Parsing the ext4 filesystem requires root
+        if !get_info_metadata().kernel_version.contains("azure") {
+            return;
+        }
+        let mut output = output_options("ext4", "local", "./tmp", false);
+        ext4_filelist(
+            &mut output,
+            false,
+            &Ext4Options {
+                start_path: String::from("/"),
+                depth: 99,
+                device: None,
+                md5: None,
+                sha1: None,
+                sha256: None,
+                path_regex: None,
+                filename_regex: None,
+            },
+        )
+        .unwrap();
     }
 }

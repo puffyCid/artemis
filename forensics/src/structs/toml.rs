@@ -4,6 +4,7 @@ use super::artifacts::os::macos::{
     MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
+use crate::structs::artifacts::os::linux::Ext4Options;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
@@ -61,6 +62,7 @@ pub struct Artifacts {
     pub journals: Option<JournalOptions>,
     pub sudologs_linux: Option<LinuxSudoOptions>,
     pub logons: Option<LogonOptions>,
+    pub rawfiles_ext4: Option<Ext4Options>,
     pub eventlogs: Option<EventLogsOptions>,
     pub prefetch: Option<PrefetchOptions>,
     pub rawfiles: Option<RawFilesOptions>,
