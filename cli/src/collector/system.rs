@@ -5,7 +5,7 @@ use forensics::{
     structs::{
         artifacts::os::{
             files::FileOptions,
-            linux::{JournalOptions, LinuxSudoOptions, LogonOptions},
+            linux::{Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions},
             macos::{
                 EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
                 LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
@@ -135,6 +135,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         outlook: None,
         mft: None,
         connections: None,
+        rawfiles_ext4: None,
     };
     match artifact {
         CommandArgs::Processes {
@@ -274,6 +275,29 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             };
             collect.sudologs_linux = Some(options);
             collect.artifact_name = String::from("sudologs-linux");
+        }
+        CommandArgs::RawfilelistingExt4 {
+            start_path,
+            device,
+            depth,
+            md5,
+            sha1,
+            sha256,
+            path_regex,
+            filename_regex,
+        } => {
+            let options = Ext4Options {
+                start_path: start_path.clone(),
+                depth: *depth,
+                device: device.clone(),
+                md5: Some(*md5),
+                sha1: Some(*sha1),
+                sha256: Some(*sha256),
+                path_regex: path_regex.clone(),
+                filename_regex: filename_regex.clone(),
+            };
+            collect.rawfiles_ext4 = Some(options);
+            collect.artifact_name = String::from("rawfiles-ext4");
         }
         CommandArgs::Amcache { alt_file } => {
             let options = AmcacheOptions {

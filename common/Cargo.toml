@@ -12,3 +12,4 @@ repository = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 plist = "1.8.0"
+ext4-fs = "0.1.2"

@@ -1,6 +1,6 @@
 use crate::artifacts::{
     files::files,
-    linux::{journal, logons, sudo_linux},
+    linux::{ext4_filelisting, journal, logons, sudo_linux},
     macos::{
         emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
         unifiedlogs, users_macos,
@@ -24,6 +24,7 @@ pub enum Artifacts {
     Journal,
     Logons,
     SudoLinux,
+    Ext4Files,
     // Windows
     UsersWindows,
     Amcache,
@@ -70,6 +71,7 @@ pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
         Artifacts::Journal => journal(data),
         Artifacts::Logons => logons(data),
         Artifacts::SudoLinux => sudo_linux(data),
+        Artifacts::Ext4Files => ext4_filelisting(data),
         Artifacts::Amcache => amcache(data),
         Artifacts::Bits => bits(data),
         Artifacts::Eventlogs => eventlogs(data),

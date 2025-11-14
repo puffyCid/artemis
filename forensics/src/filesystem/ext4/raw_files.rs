@@ -325,6 +325,7 @@ pub(crate) struct Ext4Entry {
     pub(crate) file_type: FileType,
 }
 
+/// Get the root directory for the ext4 filesystem
 fn get_root<T: std::io::Seek + std::io::Read>(
     reader: &mut Ext4Reader<T>,
 ) -> Result<FileInfo, FileSystemError> {
@@ -388,7 +389,8 @@ fn iterate_ext4<T: std::io::Seek + std::io::Read>(
 mod tests {
     use crate::{
         filesystem::ext4::raw_files::{
-            Ext4Options, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode, raw_reader,
+            Ext4Options, get_root, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode,
+            raw_reader,
         },
         utils::regex_options::create_regex,
     };
@@ -616,5 +618,16 @@ mod tests {
     #[should_panic(expected = "OpenFile")]
     fn test_raw_read_file_gibberish() {
         let _ = raw_read_file("dsfasdfsadf", Some("asdfasdfsdf")).unwrap();
+    }
+
+    #[test]
+    fn test_get_root() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/images/ext4/test.img");
+        let reader = File::open(&test_location.to_str().unwrap()).unwrap();
+        let buf = BufReader::new(reader);
+        let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
+        let root = get_root(&mut ext_reader).unwrap();
+        assert_eq!(root.inode, 2);
     }
 }
