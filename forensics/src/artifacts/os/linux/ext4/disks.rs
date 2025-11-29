@@ -20,7 +20,7 @@ pub(crate) fn qcow_ext4(
     output: &mut Output,
     start_time: u64,
 ) -> Result<(), Ext4Error> {
-    let mut reader = match qcow_reader(&options.device.replace("qcow:", "")) {
+    let mut reader = match qcow_reader(&options.device.replace("qcow://", "")) {
         Ok(result) => result,
         Err(_err) => {
             return Err(Ext4Error::QcowDevice);

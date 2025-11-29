@@ -66,7 +66,7 @@ pub(crate) fn ext4_filelisting(
             start_time,
             filter,
         };
-        if options.device.starts_with("qcow:") {
+        if options.device.starts_with("qcow://") {
             return qcow_ext4(&mut options, output, start_time);
         }
         let reader = match File::open(&options.device) {
