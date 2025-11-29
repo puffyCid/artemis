@@ -12,7 +12,10 @@
  */
 use crate::{
     artifacts::os::{
-        linux::{artifacts::output_data, ext4::error::Ext4Error},
+        linux::{
+            artifacts::output_data,
+            ext4::{disks::qcow_ext4, error::Ext4Error},
+        },
         systeminfo::info::get_disks,
     },
     filesystem::files::file_extension,
@@ -63,6 +66,9 @@ pub(crate) fn ext4_filelisting(
             start_time,
             filter,
         };
+        if options.device.starts_with("qcow:") {
+            return qcow_ext4(&mut options, output, start_time);
+        }
         let reader = match File::open(&options.device) {
             Ok(result) => result,
             Err(err) => {
@@ -157,7 +163,7 @@ fn filesystem_regex(regex_string: &str) -> Result<Regex, Ext4Error> {
 }
 
 /// Get the root directory for the ext4 filesystem
-fn get_root<T: std::io::Seek + std::io::Read>(
+pub(crate) fn get_root<T: std::io::Seek + std::io::Read>(
     reader: &mut Ext4Reader<T>,
 ) -> Result<FileInfo, Ext4Error> {
     let root = match reader.root() {
@@ -172,29 +178,29 @@ fn get_root<T: std::io::Seek + std::io::Read>(
 }
 
 /// Setup options when reading the ext4 filesystem
-struct Ext4Params {
+pub(crate) struct Ext4Params {
     /// We need a device path. Ex: /dev/sda1. If none is provided, we attempt to get a list using `get_disk`.
     /// We then attempt to iterate through all ext4 disks
-    device: String,
+    pub(crate) device: String,
     /// Start path may get updated if an ext4 image was mounted.  
     /// If a /home partition is mounted to /run/media and then unmounted.  
     /// The `start_path` would become /run/media because the ext4 header last mount path was updated.  
     /// Not applicable for live systems
-    start_path: String,
-    start_path_depth: usize,
-    depth: usize,
-    path_regex: Regex,
-    file_regex: Regex,
+    pub(crate) start_path: String,
+    pub(crate) start_path_depth: usize,
+    pub(crate) depth: usize,
+    pub(crate) path_regex: Regex,
+    pub(crate) file_regex: Regex,
     /// Cache the directories we are iterating through
-    cache: Vec<String>,
-    filelist: Vec<Ext4Filelist>,
-    hashing: Ext4Hash,
-    start_time: u64,
-    filter: bool,
+    pub(crate) cache: Vec<String>,
+    pub(crate) filelist: Vec<Ext4Filelist>,
+    pub(crate) hashing: Ext4Hash,
+    pub(crate) start_time: u64,
+    pub(crate) filter: bool,
 }
 
 /// Walk the entire ext4 filesystem
-fn walk_ext4<T: std::io::Seek + std::io::Read>(
+pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
     info: &FileInfo,
     reader: &mut Ext4Reader<T>,
     params: &mut Ext4Params,
@@ -284,7 +290,12 @@ fn walk_ext4<T: std::io::Seek + std::io::Read>(
 }
 
 /// Every 10k files we output the results
-fn ext4_output(filelist: &[Ext4Filelist], output: &mut Output, start_time: u64, filter: bool) {
+pub(crate) fn ext4_output(
+    filelist: &[Ext4Filelist],
+    output: &mut Output,
+    start_time: u64,
+    filter: bool,
+) {
     let serde_data_result = serde_json::to_value(filelist);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
