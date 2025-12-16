@@ -61,10 +61,9 @@ impl AcquireActionLocal for AcquireFileApi {
         let output_path = format!("{}/{}", &self.output.directory, &self.output.name);
 
         let result = create_dir_all(&output_path);
-        if result.is_err() {
+        if let Err(status) = result {
             error!(
-                "[forensics] Failed to create output directory for {output_path}. Error: {:?}",
-                result.unwrap_err()
+                "[forensics] Failed to create output directory for {output_path}. Error: {status:?}"
             );
             return Err(AcquireError::CreateDirectory);
         }
@@ -126,11 +125,8 @@ impl AcquireActionLocal for AcquireFileApi {
             "json",
         );
 
-        if result.is_err() {
-            error!(
-                "[forensics] Failed to serialize metadata: {:?}",
-                result.unwrap_err()
-            );
+        if let Err(status) = result {
+            error!("[forensics] Failed to serialize metadata: {status:?}");
             return Err(AcquireError::Metadata);
         }
 
@@ -138,40 +134,28 @@ impl AcquireActionLocal for AcquireFileApi {
         let zip_name = format!("{}/{}", &self.output.directory, &generate_uuid());
 
         let zip_out = compress_output_zip(&directory, &zip_name);
-        if zip_out.is_err() {
-            error!(
-                "[forensics] Failed to complete acquisition: {:?}",
-                zip_out.unwrap_err()
-            );
+        if let Err(status) = zip_out {
+            error!("[forensics] Failed to complete acquisition: {status:?}");
             return Err(AcquireError::ZipOutput);
         }
 
         let acq_file = format!("{directory}/{}.gz", &self.filename);
         let status = remove_file(acq_file);
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to remove acquired file: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to remove acquired file: {result:?}");
             return Err(AcquireError::Cleanup);
         }
 
         let acq_file_json = format!("{directory}/{}-metadata.json", &self.filename);
         let status = remove_file(acq_file_json);
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to remove acquired file metadata: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to remove acquired file metadata: {result:?}");
             return Err(AcquireError::Cleanup);
         }
 
         let status = remove_dir(directory);
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to remove output directory name: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to remove output directory name: {result:?}");
             return Err(AcquireError::Cleanup);
         }
 

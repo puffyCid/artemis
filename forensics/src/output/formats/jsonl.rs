@@ -88,11 +88,8 @@ pub(crate) fn jsonl_format(
 
             let collection_data = json_lines.join("");
             let status = write_json(collection_data.as_bytes(), output, &uuid);
-            if status.is_err() {
-                error!(
-                    "[forensics] Failed to output {output_name} data: {:?}",
-                    status.unwrap_err()
-                );
+            if let Err(result) = status {
+                error!("[forensics] Failed to output {output_name} data: {result:?}");
             }
         }
     } else {
@@ -118,11 +115,8 @@ pub(crate) fn jsonl_format(
             &uuid,
         );
 
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to output {output_name} data: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to output {output_name} data: {result:?}");
         }
     }
 
@@ -154,11 +148,8 @@ pub(crate) fn raw_jsonl(
 
         let collection_data = json_lines.join("");
         let status = write_json(collection_data.as_bytes(), output, &uuid);
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to output {output_name} raw data: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to output {output_name} raw data: {result:?}");
         }
     } else {
         let status = write_json(
@@ -167,11 +158,8 @@ pub(crate) fn raw_jsonl(
             &uuid,
         );
 
-        if status.is_err() {
-            error!(
-                "[forensics] Failed to output {output_name} raw data: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[forensics] Failed to output {output_name} raw data: {result:?}");
         }
     }
 

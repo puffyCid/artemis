@@ -603,11 +603,8 @@ pub(crate) fn output_data(
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     let status = output_artifact(serde_data, output_name, output, start_time, filter);
-    if status.is_err() {
-        error!(
-            "[forensics] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+    if let Err(result) = status {
+        error!("[forensics] Could not output data: {result:?}");
         return Err(WinArtifactError::Output);
     }
     Ok(())

@@ -1,5 +1,5 @@
 use super::commands::CommandArgs;
-use clap::{Subcommand, arg};
+use clap::Subcommand;
 use forensics::{
     core::artemis_collection,
     structs::{

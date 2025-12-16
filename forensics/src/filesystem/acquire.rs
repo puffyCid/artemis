@@ -39,11 +39,8 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
 
     loop {
         let bytes_read = reader.read(&mut buf);
-        if bytes_read.is_err() {
-            error!(
-                "[forensics] Failed to read all bytes from file {path}: {:?}",
-                bytes_read.unwrap_err()
-            );
+        if let Err(status) = bytes_read {
+            error!("[forensics] Failed to read all bytes from file {path}: {status:?}");
             return Err(FileSystemError::ReadFile);
         }
 
@@ -59,32 +56,23 @@ pub(crate) fn acquire_file(path: &str, output: Output) -> Result<(), FileSystemE
         let _ = copy(&mut buf.as_slice(), &mut md5);
 
         let bytes_written = compressor.write_all(&buf);
-        if bytes_written.is_err() {
-            error!(
-                "[forensics] Failed to compress all bytes from file {path}: {:?}",
-                bytes_written.unwrap_err()
-            );
+        if let Err(status) = bytes_written {
+            error!("[forensics] Failed to compress all bytes from file {path}: {status:?}");
             return Err(FileSystemError::CompressFile);
         }
     }
 
     let compress_file = compressor.finish();
-    if compress_file.is_err() {
-        error!(
-            "[forensics] Could not finish compression: {:?}",
-            compress_file.unwrap_err()
-        );
+    if let Err(status) = compress_file {
+        error!("[forensics] Could not finish compression: {status:?}");
         return Err(FileSystemError::CompressedBytes);
     }
     let hash = md5.finalize();
     acquire.md5 = format!("{hash:x}");
 
     let status = acquire.finish();
-    if status.is_err() {
-        error!(
-            "[forensics] Could not finish file acquisition: {:?}",
-            status.unwrap_err()
-        );
+    if let Err(result) = status {
+        error!("[forensics] Could not finish file acquisition: {result:?}");
         return Err(FileSystemError::AcquireFile);
     }
 
@@ -147,11 +135,8 @@ pub(crate) fn acquire_file_remote(
         let mut buf = vec![0; bytes_limit];
 
         let bytes_read = reader.read(&mut buf);
-        if bytes_read.is_err() {
-            error!(
-                "[forensics] Failed to read all bytes from file {path}: {:?}",
-                bytes_read.unwrap_err()
-            );
+        if let Err(status) = bytes_read {
+            error!("[forensics] Failed to read all bytes from file {path}: {status:?}");
             return Err(FileSystemError::ReadFile);
         }
 
@@ -169,11 +154,8 @@ pub(crate) fn acquire_file_remote(
         let mut compressor = acquire.compressor();
 
         let bytes_written = compressor.write_all(&buf);
-        if bytes_written.is_err() {
-            error!(
-                "[forensics] Failed to compress all bytes from file {path}: {:?}",
-                bytes_written.unwrap_err()
-            );
+        if let Err(status) = bytes_written {
+            error!("[forensics] Failed to compress all bytes from file {path}: {status:?}");
             return Err(FileSystemError::CompressFile);
         }
         let compress_data_result = compressor.finish();

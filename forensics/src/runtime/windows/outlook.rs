@@ -47,8 +47,8 @@ pub(crate) fn js_root_folder(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.root_folder(Some(&ntfs_file))
@@ -72,8 +72,8 @@ pub(crate) fn js_root_folder(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.root_folder(None)
@@ -128,8 +128,8 @@ pub(crate) fn js_message_store(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.message_store(Some(&ntfs_file))
@@ -153,8 +153,8 @@ pub(crate) fn js_message_store(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.message_store(None)
@@ -209,8 +209,8 @@ pub(crate) fn js_name_map(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.name_id_map(Some(&ntfs_file))
@@ -234,8 +234,8 @@ pub(crate) fn js_name_map(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.name_id_map(None)
@@ -291,8 +291,8 @@ pub(crate) fn js_read_folder(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.read_folder(Some(&ntfs_file), folder_id)
@@ -316,8 +316,8 @@ pub(crate) fn js_read_folder(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.read_folder(None, folder_id)
@@ -381,8 +381,8 @@ pub(crate) fn js_read_messages(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         // This is difficult
@@ -437,8 +437,8 @@ pub(crate) fn js_read_messages(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         if message_table.has_branch.is_some() {
@@ -521,8 +521,8 @@ pub(crate) fn js_read_attachment(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.read_attachment(Some(&ntfs_file), block_id, descriptor_id)
@@ -546,8 +546,8 @@ pub(crate) fn js_read_attachment(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.read_attachment(None, block_id, descriptor_id)
@@ -603,8 +603,8 @@ pub(crate) fn js_folder_meta(
         };
 
         let err = reader.setup(Some(&ntfs_file));
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.folder_metadata(Some(&ntfs_file), folder_id)
@@ -628,8 +628,8 @@ pub(crate) fn js_folder_meta(
         };
 
         let err = reader.setup(None);
-        if err.is_err() {
-            let issue = format!("Failed to setup outlook reader: {:?}", err.unwrap_err());
+        if let Err(result) = err {
+            let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         reader.folder_metadata(None, folder_id)

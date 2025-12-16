@@ -66,11 +66,10 @@ pub(crate) fn grab_outlook(
 
     for path in paths {
         let status = grab_outlook_file(&path.full_path, options, filter, output);
-        if status.is_err() {
+        if let Err(result) = status {
             error!(
-                "[outlook] Could not extract messages from {}: {:?}",
-                path.full_path,
-                status.unwrap_err()
+                "[outlook] Could not extract messages from {}: {result:?}",
+                path.full_path
             );
         }
     }

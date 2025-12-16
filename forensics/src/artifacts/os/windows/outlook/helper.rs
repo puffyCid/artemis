@@ -689,11 +689,10 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
         // First we parse the table that points to our messages
         // The number of messages is dependent on many the caller wants to get
-        let table_meta = if branch.is_none() {
-            self.get_rows(info, ntfs_file)?
+        let table_meta = if let Some(value) = branch {
+            self.get_branch_rows(ntfs_file, info, value)?
         } else {
-            // Unwrap is ok here since we check above if it is none
-            self.get_branch_rows(ntfs_file, info, branch.unwrap())?
+            self.get_rows(info, ntfs_file)?
         };
 
         let table_info = table_message_preview(&table_meta);

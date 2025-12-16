@@ -15,12 +15,9 @@ pub(crate) fn processes(
         sha256: options.sha256,
     };
 
-    let results = proc_list(&hashes, options.metadata, filter, output);
-    if results.is_err() {
-        warn!(
-            "[forensics] Failed to get process list: {:?}",
-            results.unwrap_err()
-        );
+    let status = proc_list(&hashes, options.metadata, filter, output);
+    if let Err(result) = status {
+        warn!("[forensics] Failed to get process list: {result:?}");
         return Err(ProcessError::ProcessList);
     }
 

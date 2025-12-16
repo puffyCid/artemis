@@ -23,11 +23,8 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
     let output_name = "systeminfo";
     let status = output_data(&mut serde_data, output_name, output, start_time, filter);
 
-    if status.is_err() {
-        error!(
-            "[forensics] Could not output process data: {:?}",
-            status.unwrap_err()
-        );
+    if let Err(result) = status {
+        error!("[forensics] Could not output sysinfo data: {result:?}");
     }
 
     Ok(())
