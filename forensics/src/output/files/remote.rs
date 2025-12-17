@@ -228,11 +228,8 @@ impl GoogleUpload for AcquireFileApiRemote {
 
             // Check to make sure GCP received our upload
             let status_result = gcp_get_upload_status(&self.session, "*");
-            if status_result.is_err() {
-                error!(
-                    "[forensics] Could not check status of upload: {:?}",
-                    status_result.unwrap_err()
-                );
+            if let Err(status) = status_result {
+                error!("[forensics] Could not check status of upload: {status:?}");
                 return Err(AcquireError::GcpStatus);
             }
 

@@ -29,33 +29,33 @@ pub(crate) fn js_acquire_file(
 
     if output.output == "local" {
         let status = acquire_file(&path, output);
-        if status.is_err() {
+        if let Err(result) = status {
             error!("[runtime] Failed to acquire file {path}");
-            let err = format!("Local acquire failed for {path}: {:?}", status.unwrap_err());
+            let err = format!("Local acquire failed for {path}: {result:?}");
             let err = js_string!(err).into();
             return Err(JsError::from_opaque(err));
         }
     } else if output.output == "gcp" {
         let status = acquire_file_remote(&path, output, RemoteType::Gcp);
-        if status.is_err() {
+        if let Err(result) = status {
             error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("GCP upload failed for {path}: {:?}", status.unwrap_err());
+            let err = format!("GCP upload failed for {path}: {result:?}");
             let err = js_string!(err).into();
             return Err(JsError::from_opaque(err));
         }
     } else if output.output == "aws" {
         let status = acquire_file_remote(&path, output, RemoteType::Aws);
-        if status.is_err() {
+        if let Err(result) = status {
             error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("AWS upload failed for {path}: {:?}", status.unwrap_err());
+            let err = format!("AWS upload failed for {path}: {result:?}");
             let err = js_string!(err).into();
             return Err(JsError::from_opaque(err));
         }
     } else if output.output == "azure" {
         let status = acquire_file_remote(&path, output, RemoteType::Azure);
-        if status.is_err() {
+        if let Err(result) = status {
             error!("[runtime] Failed to acquire file for upload {path}");
-            let err = format!("Azure upload failed for {path}: {:?}", status.unwrap_err());
+            let err = format!("Azure upload failed for {path}: {result:?}");
             let err = js_string!(err).into();
             return Err(JsError::from_opaque(err));
         }

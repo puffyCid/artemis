@@ -78,9 +78,8 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
     if carve {
         let is_legacy = false;
         let read_result = raw_read_file(bits_path);
-        if read_result.is_ok() {
-            let (_carved_bits, mut carved_jobs, mut carved_files) =
-                parse_carve(&read_result.unwrap_or_default(), is_legacy);
+        if let Ok(result) = read_result {
+            let (_carved_bits, mut carved_jobs, mut carved_files) = parse_carve(&result, is_legacy);
             windows_bits.carved_jobs.append(&mut carved_jobs);
             windows_bits.carved_files.append(&mut carved_files);
         } else {

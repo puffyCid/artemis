@@ -82,11 +82,8 @@ fn iterate_logs(
     let mut buf = Vec::new();
 
     let err = reader.read_to_end(&mut buf);
-    if err.is_err() {
-        error!(
-            "[runtime] Could not read unifiedlogs: {:?}",
-            err.unwrap_err()
-        );
+    if let Err(status) = err {
+        error!("[runtime] Could not read unifiedlogs: {status:?}");
         return Err(RuntimeError::ExecuteScript);
     }
 

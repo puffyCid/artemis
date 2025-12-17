@@ -637,11 +637,8 @@ fn merge_strings(
         }
 
         let num_result = param.get(1..)?.parse();
-        if num_result.is_err() {
-            error!(
-                "[eventlogs] Could not get parameter for log message: {:?}",
-                num_result.unwrap_err()
-            );
+        if let Err(status) = num_result {
+            error!("[eventlogs] Could not get parameter for log message: {status:?}");
             continue;
         }
         let param_num = num_result.unwrap_or(0);
@@ -723,11 +720,8 @@ fn add_event_string(
         }
 
         let num_result = value.as_str()?.get(2..)?.parse();
-        if num_result.is_err() {
-            warn!(
-                "[eventlogs] Could not get parameter message id for log message: {:?}",
-                num_result.unwrap_err()
-            );
+        if let Err(status) = num_result {
+            warn!("[eventlogs] Could not get parameter message id for log message: {status:?}");
             return Some(message);
         }
 
@@ -847,11 +841,8 @@ fn merge_strings_message_table(
         }
 
         let num_result = param.get(1..)?.parse();
-        if num_result.is_err() {
-            error!(
-                "[eventlogs] Could not get parameter for log message: {:?}",
-                num_result.unwrap_err()
-            );
+        if let Err(status) = num_result {
+            error!("[eventlogs] Could not get parameter for log message: {status:?}");
             continue;
         }
 

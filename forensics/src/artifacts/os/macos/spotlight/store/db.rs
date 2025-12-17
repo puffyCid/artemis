@@ -84,11 +84,8 @@ pub(crate) fn parse_store(
                 }
             };
             let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
-            if result.is_err() {
-                error!(
-                    "[spotlight] Could not output spotlight data: {:?}",
-                    result.unwrap_err()
-                );
+            if let Err(status) = result {
+                error!("[spotlight] Could not output spotlight data: {status:?}");
             }
 
             entries = Vec::new();
@@ -105,11 +102,8 @@ pub(crate) fn parse_store(
             }
         };
         let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
-        if result.is_err() {
-            error!(
-                "[spotlight] Could not output last spotlight data: {:?}",
-                result.unwrap_err()
-            );
+        if let Err(status) = result {
+            error!("[spotlight] Could not output last spotlight data: {status:?}");
         }
     }
 

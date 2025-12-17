@@ -435,11 +435,8 @@ fn output_logs(
     // Skip adding metadata to the output if we are just dumping templates
     if raw {
         let status = raw_json(serde_data, name, output);
-        if status.is_err() {
-            error!(
-                "[eventlogs] Could not output raw json results: {:?}",
-                status.unwrap_err()
-            );
+        if let Err(result) = status {
+            error!("[eventlogs] Could not output raw json results: {result:?}");
         }
         return Ok(());
     }

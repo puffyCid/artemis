@@ -324,11 +324,8 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filt
     };
 
     let status = output_artifact(&mut serde_data, "files", output, start_time, filter);
-    if status.is_err() {
-        error!(
-            "[forensics] Could not output data: {:?}",
-            status.unwrap_err()
-        );
+    if let Err(result) = status {
+        error!("[forensics] Could not output data: {result:?}");
     }
 }
 

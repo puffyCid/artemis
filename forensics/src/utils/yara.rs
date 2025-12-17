@@ -98,11 +98,8 @@ fn compile_rule(rule: &str) -> Result<Compiler<'_>, ArtemisError> {
     let mut compile = Compiler::new();
     compile.error_on_slow_pattern(true);
     let status = compile.add_source(rule);
-    if status.is_err() {
-        error!(
-            "[forensics] Failed to add yara rule: {:?}",
-            status.unwrap_err()
-        );
+    if let Err(result) = status {
+        error!("[forensics] Failed to add yara rule: {result:?}");
         return Err(ArtemisError::YaraRule);
     }
 

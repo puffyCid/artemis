@@ -34,11 +34,8 @@ pub(crate) fn decompress_gzip_data(buffer: &[u8]) -> Result<Vec<u8>, Compression
 
     let mut decompress_data = Vec::new();
     let result = data.read_to_end(&mut decompress_data);
-    if result.is_err() {
-        error!(
-            "[compression] Could not decompress data: {:?}",
-            result.unwrap_err()
-        );
+    if let Err(status) = result {
+        error!("[compression] Could not decompress data: {status:?}");
         return Err(CompressionError::GzipDecompress);
     }
 
@@ -107,11 +104,8 @@ pub(crate) fn decompress_zlib(
     let mut decompress_data = Vec::new();
 
     let result = buffer.read_to_end(&mut decompress_data);
-    if result.is_err() {
-        error!(
-            "[compression] Could not decompress zlib data: {:?}",
-            result.unwrap_err()
-        );
+    if let Err(status) = result {
+        error!("[compression] Could not decompress zlib data: {status:?}");
         return Err(CompressionError::ZlibDecompress);
     }
 
