@@ -483,19 +483,52 @@ fn lzvn_opcodes() -> Vec<LzvnOpcodes> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::compression::lzvn::decompress_lzvn;
+    use crate::{filesystem::files::read_file, utils::compression::lzvn::decompress_lzvn};
+    use std::path::PathBuf;
 
     #[test]
     fn test_decompress_lzvn() {
-        let test = [];
-        let decom = decompress_lzvn(&test).unwrap();
-        //println!("{decom:?}");
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/lzvn/small.out");
+        let bytes = read_file(&test_location.display().to_string()).unwrap();
+        let decom = decompress_lzvn(&bytes).unwrap();
+        assert_eq!(
+            decom,
+            [
+                72, 101, 108, 108, 111, 32, 114, 117, 115, 116, 33, 32, 73, 32, 97, 100, 100, 101,
+                100, 32, 100, 101, 99, 111, 109, 112, 114, 101, 115, 115, 105, 111, 110, 32, 115,
+                117, 112, 112, 111, 114, 116, 32, 102, 111, 114, 32, 108, 122, 118, 110, 33, 32,
+                87, 105, 116, 104, 32, 104, 101, 108, 112, 32, 102, 114, 111, 109, 32, 107, 101,
+                114, 97, 109, 105, 99, 115, 32, 40, 104, 116, 116, 112, 115, 58, 47, 47, 103, 105,
+                116, 104, 117, 98, 46, 99, 111, 109, 47, 107, 101, 114, 97, 109, 105, 99, 115, 47,
+                107, 101, 114, 97, 109, 105, 99, 115, 41, 32, 97, 110, 100, 32, 100, 105, 115, 115,
+                101, 99, 116, 32, 40, 104, 116, 116, 112, 115, 58, 47, 47, 103, 105, 116, 104, 117,
+                98, 46, 99, 111, 109, 47, 102, 111, 120, 45, 105, 116, 47, 100, 105, 115, 115, 101,
+                99, 116, 46, 117, 116, 105, 108, 41, 10, 10, 67, 111, 109, 112, 114, 101, 115, 115,
+                105, 111, 110, 32, 97, 108, 103, 111, 114, 105, 116, 104, 109, 115, 32, 97, 114,
+                101, 32, 100, 105, 102, 102, 105, 99, 117, 108, 116, 33, 32, 88, 68, 32, 79, 46,
+                111
+            ]
+        );
     }
 
     #[test]
-    fn test_decompress_lzvn_simple() {
-        let test = [];
-        let decom = decompress_lzvn(&test).unwrap();
+    fn test_decompress_lzvn_duplicate() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/lzvn/test.out");
+        let bytes = read_file(&test_location.display().to_string()).unwrap();
+        let decom = decompress_lzvn(&bytes).unwrap();
         println!("{decom:?}");
+        assert_eq!(decom.len(), 13421);
+    }
+
+    #[test]
+    fn test_decompress_lzvn_large() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/lzvn/rust.out");
+        let bytes = read_file(&test_location.display().to_string()).unwrap();
+        let decom = decompress_lzvn(&bytes).unwrap();
+        println!("{decom:?}");
+        assert_eq!(decom.len(), 24191);
     }
 }
