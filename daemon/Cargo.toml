@@ -28,7 +28,7 @@ forensics = { path = "../forensics", default-features = false }
 # Dependencies for tests
 [dev-dependencies]
 httpmock = "0.8.2"
-criterion = "0.7.0"
+criterion = "0.8.1"
 
 [build-dependencies]
 vergen = { version = "9.0.6", features = ["build", "rustc"] }
