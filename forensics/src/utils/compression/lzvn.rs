@@ -518,7 +518,6 @@ mod tests {
         test_location.push("tests/test_data/macos/lzvn/test.out");
         let bytes = read_file(&test_location.display().to_string()).unwrap();
         let decom = decompress_lzvn(&bytes).unwrap();
-        println!("{decom:?}");
         assert_eq!(decom.len(), 13421);
     }
 
@@ -528,7 +527,7 @@ mod tests {
         test_location.push("tests/test_data/macos/lzvn/rust.out");
         let bytes = read_file(&test_location.display().to_string()).unwrap();
         let decom = decompress_lzvn(&bytes).unwrap();
-        println!("{decom:?}");
+        //println!("{decom:?}");
         assert_eq!(decom.len(), 24191);
     }
 }
