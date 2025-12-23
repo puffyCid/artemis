@@ -1,7 +1,8 @@
 use crate::{
     runtime::helper::{bytes_arg, number_arg},
-    utils::compression::decompress::{
-        decompress_gzip_data, decompress_snappy, decompress_zlib, decompress_zstd,
+    utils::compression::{
+        decompress::{decompress_gzip_data, decompress_snappy, decompress_zlib, decompress_zstd},
+        lzvn::decompress_lzvn,
     },
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string, object::builtins::JsUint8Array};
@@ -78,6 +79,26 @@ pub(crate) fn js_decompress_zstd(
     let data = bytes_arg(args, 0, context)?;
 
     let decom_data = match decompress_zstd(&data) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get decompress data: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(decom_data, context)?;
+
+    Ok(bytes.into())
+}
+
+/// Expose decompressing lzvn data to Boa
+pub(crate) fn js_decompress_lzvn(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, 0, context)?;
+
+    let decom_data = match decompress_lzvn(&data) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");

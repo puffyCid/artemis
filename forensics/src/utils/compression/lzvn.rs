@@ -1,38 +1,30 @@
+// Heavily based on https://github.com/keramics/keramics/blob/main/keramics-compression/src/lzvn.rs
+// References:
+//  - https://github.com/keramics/keramics/blob/main/keramics-compression/src/lzvn.rs
+//  - https://github.com/fox-it/dissect.util/blob/main/dissect/util/compression/lzvn.py
+//  - https://github.com/lzfse/lzfse/blob/master/src/lzvn_decode_base.c
 use crate::utils::compression::error::CompressionError;
 
-/**
- * Kind of working
- * TODO:
- * 1. Create simple test
- * 2. Create complex test
- * 3. Review
- */
-
 /// Decompress LZVN data. Primarily seen on Apple platforms
-pub(crate) fn decompress_lzvn(
-    data: &[u8],
-    //decompress_size: u32,
-) -> Result<Vec<u8>, CompressionError> {
+pub(crate) fn decompress_lzvn(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     let codes = lzvn_opcodes();
     let mut offset = 0;
     let mut decom_offset = 0;
     let size = data.len();
-    //let mut decom_buf: Vec<u8> = Vec::with_capacity(decompress_size as usize);
     let mut decom_buf = Vec::new();
     let mut distance: u32 = 0;
 
     while offset <= size {
         let op = data[offset];
         offset += 1;
-        // Safe because we have array of u8. And our codes are length 255
+        // Safe because we have array of u8. And our codes array length is 256
         if codes[op as usize] == LzvnOpcodes::EndOfStream {
             break;
         } else if codes[op as usize] == LzvnOpcodes::Nop {
             continue;
         }
 
-        let (literal, match_size) =
-            decom_operation(op, &mut offset, size, data, &codes, &mut distance)?;
+        let (literal, match_size) = decom_operation(op, &mut offset, data, &codes, &mut distance)?;
         if literal > 0 {
             let end_offset = offset + literal as usize;
             let decom_end_offset = decom_offset + literal as usize;
@@ -44,9 +36,6 @@ pub(crate) fn decompress_lzvn(
 
         if match_size > 0 {
             let mut match_offset = decom_offset - distance as usize;
-            println!(
-                "match offset: {match_offset}- match size: {match_size}. distance: {distance}. decom offset: {decom_offset}"
-            );
 
             for _value in 0..match_size {
                 if decom_offset >= decom_buf.len() {
@@ -58,128 +47,56 @@ pub(crate) fn decompress_lzvn(
                 decom_offset += 1;
             }
         }
-
-        /*
-        let mut literal = 0;
-        let mut match_size = 0;
-
-        match &codes[op as usize] {
-            LzvnOpcodes::SmallDistance => {
-                literal = (op & 0xc0) >> 6;
-                match_size = ((op & 0x38) >> 3) + 3;
-                distance = ((op & 0x7) << 8) | op;
-
-                offset += 1;
-            }
-            LzvnOpcodes::LargeDistance => {
-                let min_size = 2;
-                if size - offset < min_size {
-                    panic!("what LargeDistance!!!!");
-                }
-                offset += 1;
-
-                literal = (op & 0xc0) >> 6;
-                match_size = ((op & 0x38) >> 3) + 3;
-                distance = (data[offset] << 8) | op;
-
-                offset += 1;
-            }
-            LzvnOpcodes::EndOfStream => break,
-            LzvnOpcodes::Nop => {}
-            LzvnOpcodes::Undefined => panic!("undefined!"),
-            LzvnOpcodes::PreviousDistance => {
-                literal = (op & 0xc0) >> 6;
-                match_size = ((op & 0x38) >> 3) + 3;
-            }
-            LzvnOpcodes::MediumDistance => {
-                let min_size = 2;
-                if size - offset < min_size {
-                    panic!("what MediumDistance!!!!");
-                }
-                offset += 1;
-
-                literal = (op & 0x18) >> 3;
-                match_size = (((op & 0x7) << 2) | (op & 0x3)) + 3;
-                distance = ((data[offset] << 6) | (op & 0xfc) >> 2);
-
-                offset += 1;
-            }
-            LzvnOpcodes::SmallLiteral => {
-                let small = 0xf;
-                literal = op & small;
-            }
-            LzvnOpcodes::LargeLiteral => {
-                let large = 16;
-                literal = op + large;
-                offset += 1;
-            }
-            LzvnOpcodes::SmallMatch => {
-                let small = 0xf;
-                match_size = op & small;
-            }
-            LzvnOpcodes::LargeMatch => {
-                let large = 16;
-                match_size = op + large;
-            }
-        }
-        */
     }
     Ok(decom_buf)
 }
 
+/// Start decompressing bytes
 fn decom_operation(
     op: u8,
     offset: &mut usize,
-    size: usize,
     data: &[u8],
     codes: &[LzvnOpcodes],
     distance: &mut u32,
 ) -> Result<(u8, u32), CompressionError> {
     let mut literal = 0;
     let mut match_size: u32 = 0;
-    println!("{:?}", codes[op as usize]);
+    let byte_width = 8;
+    let large_width: u8 = 16;
     match &codes[op as usize] {
         LzvnOpcodes::SmallDistance => {
-            literal = (op & 0xc0) >> 6;
-            match_size = (((op & 0x38) >> 3) + 3) as u32;
-            *distance = ((op as u32 & 0x7) << 8) | data[*offset] as u32;
-
+            literal = extract(op, byte_width, 6, 2);
+            match_size = extract(op, byte_width, 3, 3) as u32 + 3;
+            *distance = (extract(op, byte_width, 0, 3) as u32) << 8 | op_byte(data, offset)? as u32;
             *offset += 1;
         }
         LzvnOpcodes::LargeDistance => {
-            let min_size = 2;
-            if size - *offset < min_size {
-                panic!("what LargeDistance!!!!");
-            }
-            let op_value = data[*offset];
+            let op_value = op_byte(data, offset)?;
 
             *offset += 1;
 
-            literal = (op & 0xc0) >> 6;
-            match_size = (((op & 0x38) >> 3) + 3) as u32;
-            *distance = ((data[*offset] as u32) << 8) | op_value as u32;
+            literal = extract(op, byte_width, 6, 2);
+            match_size = extract(op, byte_width, 3, 3) as u32 + 3;
+            *distance = ((op_byte(data, offset)? as u32) << 8) | op_value as u32;
 
             *offset += 1;
         }
-        LzvnOpcodes::EndOfStream => {}
-        LzvnOpcodes::Nop => {}
-        LzvnOpcodes::Undefined => panic!("undefined!"),
+        LzvnOpcodes::EndOfStream | LzvnOpcodes::Nop => {}
+        LzvnOpcodes::Undefined => return Err(CompressionError::LzvnUndefined),
         LzvnOpcodes::PreviousDistance => {
-            literal = (op & 0xc0) >> 6;
-            match_size = (((op & 0x38) >> 3) + 3) as u32;
+            literal = extract(op, byte_width, 6, 2);
+            match_size = extract(op, byte_width, 3, 3) as u32 + 3;
         }
         LzvnOpcodes::MediumDistance => {
-            let min_size = 2;
-            if size - *offset < min_size {
-                panic!("what MediumDistance!!!!");
-            }
-            let op_value = data[*offset];
+            let op_value = op_byte(data, offset)?;
             *offset += 1;
 
-            literal = (op & 0x18) >> 3;
-            match_size = ((((op & 0x7) << 2) | (op_value & 0x3)) + 3) as u32;
-            *distance = (((data[*offset] as u32) << 6) | (op_value as u32 & 0xfc) >> 2);
-
+            //literal = (op & 0x18) >> 3;
+            literal = extract(op, byte_width, 3, 2);
+            //match_size = ((((op & 0x7) << 2) | (op_value & 0x3)) + 3) as u32;
+            match_size = ((extract(op, byte_width, 0, 3) as u32) << 2)
+                | (((extract(op_value, large_width, 0, 2)) as u32) + 3);
+            *distance = ((op_byte(data, offset)? as u32) << 6) | (op_value as u32 & 0xfc) >> 2;
             *offset += 1;
         }
         LzvnOpcodes::SmallLiteral => {
@@ -188,18 +105,17 @@ fn decom_operation(
         }
         LzvnOpcodes::LargeLiteral => {
             let large = 16;
-            literal = data[*offset] + large;
+            literal = op_byte(data, offset)? + large;
             *offset += 1;
         }
         LzvnOpcodes::SmallMatch => {
-            let small = 0xf;
-            match_size = (op & small) as u32;
+            match_size = extract(op, byte_width, 0, 4) as u32;
         }
         LzvnOpcodes::LargeMatch => {
             let large = 16;
-            let value = data[*offset];
+            let value = op_byte(data, offset)?;
             match_size = value as u32 + large;
-            *offset += 1
+            *offset += 1;
         }
     }
     Ok((literal, match_size))
@@ -220,6 +136,7 @@ enum LzvnOpcodes {
     LargeMatch,
 }
 
+/// Array of LZVN opcodes. Used to determine byte operation to perform
 fn lzvn_opcodes() -> Vec<LzvnOpcodes> {
     // https://github.com/lzfse/lzfse/blob/master/src/lzvn_decode_base.c#L50
     // https://github.com/keramics/keramics/blob/main/keramics-compression/src/lzvn.rs#L38
@@ -483,14 +400,32 @@ fn lzvn_opcodes() -> Vec<LzvnOpcodes> {
     ]
 }
 
+/// Get the compressed byte
+fn op_byte(data: &[u8], offset: &mut usize) -> Result<u8, CompressionError> {
+    if let Some(value) = data.get(*offset) {
+        return Ok(*value);
+    }
+
+    Err(CompressionError::LzvnBadOffset)
+}
+
+/// Perform the bitwise operations against compressed byte
+fn extract(op: u8, value_width: u8, lsb: u8, width: u8) -> u8 {
+    if value_width == width {
+        return op;
+    }
+    (op >> lsb) & ((1 << width) - 1)
+}
+
 #[cfg(test)]
 mod tests {
-    use common::files::Hashes;
-
     use crate::{
         filesystem::files::{hash_file_data, read_file},
-        utils::compression::lzvn::decompress_lzvn,
+        utils::compression::lzvn::{
+            decom_operation, decompress_lzvn, extract, lzvn_opcodes, op_byte,
+        },
     };
+    use common::files::Hashes;
     use std::path::PathBuf;
 
     #[test]
@@ -546,5 +481,37 @@ mod tests {
         );
 
         assert_eq!(md5, "54fa00d7a6fc158f00292a27d0c5baa0");
+    }
+
+    #[test]
+    fn test_lzvn_opcodes() {
+        assert_eq!(lzvn_opcodes().len(), 256);
+    }
+
+    #[test]
+    #[should_panic(expected = "LzvnUndefined")]
+    fn test_undefined_decom_operation() {
+        let mut offset = 0;
+        let mut distance = 10;
+        let _ = decom_operation(114, &mut offset, &[0], &lzvn_opcodes(), &mut distance).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "LzvnBadOffset")]
+    fn test_bad_decom_operation() {
+        let mut offset = 10;
+        let mut distance = 10;
+        let _ = decom_operation(87, &mut offset, &[0], &lzvn_opcodes(), &mut distance).unwrap();
+    }
+
+    #[test]
+    fn test_op_byte() {
+        let mut offset = 0;
+        assert_eq!(op_byte(&[0], &mut offset).unwrap(), 0)
+    }
+
+    #[test]
+    fn test_extract() {
+        assert_eq!(extract(33, 8, 2, 2), 0);
     }
 }
