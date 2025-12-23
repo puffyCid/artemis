@@ -151,11 +151,13 @@ fn decom_operation(
             if size - *offset < min_size {
                 panic!("what LargeDistance!!!!");
             }
+            let op_value = data[*offset];
+
             *offset += 1;
 
             literal = (op & 0xc0) >> 6;
             match_size = (((op & 0x38) >> 3) + 3) as u32;
-            *distance = ((data[*offset] as u32) << 8) | op as u32;
+            *distance = ((data[*offset] as u32) << 8) | op_value as u32;
 
             *offset += 1;
         }
@@ -176,7 +178,7 @@ fn decom_operation(
 
             literal = (op & 0x18) >> 3;
             match_size = ((((op & 0x7) << 2) | (op_value & 0x3)) + 3) as u32;
-            *distance = (((data[*offset] as u32) << 6) | (op as u32 & 0xfc) >> 2);
+            *distance = (((data[*offset] as u32) << 6) | (op_value as u32 & 0xfc) >> 2);
 
             *offset += 1;
         }
@@ -483,7 +485,12 @@ fn lzvn_opcodes() -> Vec<LzvnOpcodes> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{filesystem::files::read_file, utils::compression::lzvn::decompress_lzvn};
+    use common::files::Hashes;
+
+    use crate::{
+        filesystem::files::{hash_file_data, read_file},
+        utils::compression::lzvn::decompress_lzvn,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -527,7 +534,17 @@ mod tests {
         test_location.push("tests/test_data/macos/lzvn/rust.out");
         let bytes = read_file(&test_location.display().to_string()).unwrap();
         let decom = decompress_lzvn(&bytes).unwrap();
-        //println!("{decom:?}");
         assert_eq!(decom.len(), 24191);
+
+        let (md5, _, _) = hash_file_data(
+            &Hashes {
+                md5: true,
+                sha1: false,
+                sha256: false,
+            },
+            &decom,
+        );
+
+        assert_eq!(md5, "54fa00d7a6fc158f00292a27d0c5baa0");
     }
 }
