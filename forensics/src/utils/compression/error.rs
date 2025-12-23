@@ -23,6 +23,8 @@ pub enum CompressionError {
     ZlibDecompress,
     RtfCorrupted,
     SnappyDecompress,
+    LzvnUndefined,
+    LzvnBadOffset,
 }
 
 impl std::error::Error for CompressionError {}
@@ -57,6 +59,10 @@ impl fmt::Display for CompressionError {
             CompressionError::ZlibDecompress => write!(f, "Failed to decompress zlib"),
             CompressionError::RtfCorrupted => write!(f, "Failed to decompress RTF"),
             CompressionError::SnappyDecompress => write!(f, "Failed to decompress snappy"),
+            CompressionError::LzvnUndefined => write!(f, "Got undefined lzvn code"),
+            CompressionError::LzvnBadOffset => {
+                write!(f, "Bad offset provided to compressed lzvn data")
+            }
         }
     }
 }

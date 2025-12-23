@@ -34,7 +34,7 @@ walkdir = "2.5.0"
 home = "0.5.12"
 chrono = "0.4.42"
 simplelog = "0.12.2"
-zip = { version = "6.0.0", default-features = false }
+zip = { version = "7.0.0", default-features = false }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.38.4", default-features = false }
@@ -71,7 +71,7 @@ csv = "1.4.0"
 url = "2.5.7"
 common = { path = "../common" }
 timeline = { path = "../timeline" }
-sunlight = "0.1.1"
+sunlight = "0.1.4"
 miniz_oxide = { version = "0.8.9", features = ["std", "with-alloc"] }
 lumination = "0.1.2"
 snap = "1.1.1"
