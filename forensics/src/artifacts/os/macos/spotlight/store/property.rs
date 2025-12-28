@@ -202,7 +202,7 @@ fn parse_record<'a>(
         };
 
         let mut spot_value = SpotlightValue {
-            attribute: props.attribute.clone(),
+            attribute: props.attribute,
             value: Value::Null,
         };
 

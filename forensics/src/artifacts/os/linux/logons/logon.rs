@@ -48,7 +48,7 @@ pub(crate) enum LogonType {
     Accounting,
 }
 
-#[derive(Debug, Serialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, PartialEq, Clone, Copy)]
 pub(crate) enum Status {
     Success,
     Failed,
@@ -56,7 +56,7 @@ pub(crate) enum Status {
 
 impl Logon {
     /// Stream the logon info
-    pub(crate) fn logon_reader(reader: &mut File, status: &Status) -> Vec<Logon> {
+    pub(crate) fn logon_reader(reader: &mut File, status: Status) -> Vec<Logon> {
         let mut logon_buff = [0; 384];
         let mut logon_size = logon_buff.len();
         let mut logons = Vec::new();
@@ -89,7 +89,7 @@ impl Logon {
     /// Parse utmp, wtmp, or btmp files and pull `Logon` info
     fn parse_logon<'a>(
         data: &'a [u8],
-        status: &Status,
+        status: Status,
         logons: &mut Vec<Logon>,
     ) -> nom::IResult<&'a [u8], ()> {
         let (remaining, logon_type) = nom_unsigned_four_bytes(data, Endian::Le)?;
@@ -157,7 +157,7 @@ impl Logon {
             timestamp: unixepoch_to_iso(timestamp as i64),
             microseconds,
             ip,
-            status: status.clone(),
+            status,
         };
 
         logons.push(logon);
@@ -197,12 +197,13 @@ mod tests {
         test_location.push("tests/test_data/linux/logons/ubuntu18.04/wtmp");
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
-        let results = Logon::logon_reader(&mut reader, &Status::Success);
+        let results = Logon::logon_reader(&mut reader, Status::Success);
         assert_eq!(results.len(), 13);
 
         assert_eq!(results[4].hostname, "5.4.0-84-generic");
         assert_eq!(results[4].timestamp, "2023-07-04T06:13:44.000Z");
         assert_eq!(results[0].terminal, "~");
+        assert_eq!(results[0].status, Status::Success);
     }
 
     #[test]
@@ -212,7 +213,7 @@ mod tests {
 
         let data = read_file(&test_location.display().to_string()).unwrap();
         let mut results = Vec::new();
-        let (_, _) = Logon::parse_logon(&data, &Status::Success, &mut results).unwrap();
+        let (_, _) = Logon::parse_logon(&data, Status::Success, &mut results).unwrap();
         assert_eq!(results.len(), 1);
     }
 

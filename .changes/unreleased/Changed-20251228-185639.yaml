@@ -1,0 +1,3 @@
+kind: Changed
+body: Reduced memory usage when parsing macOS Spotlight database
+time: 2025-12-28T18:56:39.95016-05:00

@@ -33,8 +33,8 @@ pub(crate) fn parse_store(
     let offset_size = 0x1000;
     let mut entries = Vec::new();
 
-    // Spotlight contains a massive amount of metadata. To limit memory usage we dump our entries array once we hit 10,0000
-    let limit = 10000;
+    // Spotlight contains a massive amount of metadata. To limit memory usage we dump our entries array once we hit 1,0000
+    let limit = 1000;
 
     let prop_header_size = 20;
     for block in blocks {
