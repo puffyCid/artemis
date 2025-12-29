@@ -214,4 +214,17 @@ mod tests {
         assert_eq!(value.path, "/Applications/Syncthing.app");
         assert_eq!(value.source_path, "test");
     }
+
+    #[test]
+    fn test_get_array_values_loginitem_bundle() {
+        let value = get_array_values(
+            vec![Value::String(String::from(
+                "Contents/Library/LoginItems/test.app",
+            ))],
+            "test",
+        )
+        .unwrap();
+
+        assert_eq!(value[0].path, "Contents/Library/LoginItems/test.app");
+    }
 }
