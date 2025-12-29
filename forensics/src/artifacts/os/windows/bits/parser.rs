@@ -30,25 +30,23 @@ use log::error;
  * The associated `BITS` file(s) is locked if the `BITS` service is running so we read the raw file to bypass the lock
  */
 pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError> {
-    let path = if let Some(alt) = &options.alt_file {
-        alt.clone()
-    } else {
-        let systemdrive_result = get_systemdrive();
-        let systemdrive = match systemdrive_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[bits] Could not get systemdrive: {err:?}");
-                return Err(BitsError::Systemdrive);
-            }
-        };
-        let bits_path =
-            format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db");
-        // If qmbgr.db is not found this may be an older system that uses the older BITS format
-        if !is_file(&bits_path) {
-            return parse_legacy_bits(systemdrive, options.carve);
+    if let Some(alt) = &options.alt_file {
+        return grab_bits_path(alt, options.carve);
+    }
+    let systemdrive_result = get_systemdrive();
+    let systemdrive = match systemdrive_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[bits] Could not get systemdrive: {err:?}");
+            return Err(BitsError::Systemdrive);
         }
-        bits_path
     };
+    let path = format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db");
+    // If qmbgr.db is not found this may be an older system that uses the older BITS format
+    if !is_file(&path) {
+        return parse_legacy_bits(systemdrive, options.carve);
+    }
+
     grab_bits_path(&path, options.carve)
 }
 

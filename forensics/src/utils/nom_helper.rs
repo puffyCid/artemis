@@ -13,7 +13,6 @@ use nom::{
         le_u8, le_u16, le_u32, le_u64, le_u128,
     },
 };
-use std::mem::size_of;
 
 pub(crate) enum Endian {
     /**Little Endian */
@@ -27,11 +26,9 @@ pub(crate) enum Endian {
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_four_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u32> {
-    let (input, value_data) = take(size_of::<u32>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_u32(value_data)?,
-        Endian::Be => be_u32(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_u32(data)?,
+        Endian::Be => be_u32(data)?,
     };
 
     Ok((input, value))
@@ -42,11 +39,9 @@ pub(crate) fn nom_unsigned_four_bytes(data: &[u8], endian: Endian) -> nom::IResu
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_eight_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u64> {
-    let (input, value_data) = take(size_of::<u64>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_u64(value_data)?,
-        Endian::Be => be_u64(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_u64(data)?,
+        Endian::Be => be_u64(data)?,
     };
     Ok((input, value))
 }
@@ -56,11 +51,9 @@ pub(crate) fn nom_unsigned_eight_bytes(data: &[u8], endian: Endian) -> nom::IRes
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_two_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u16> {
-    let (input, value_data) = take(size_of::<u16>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_u16(value_data)?,
-        Endian::Be => be_u16(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_u16(data)?,
+        Endian::Be => be_u16(data)?,
     };
     Ok((input, value))
 }
@@ -70,11 +63,9 @@ pub(crate) fn nom_unsigned_two_bytes(data: &[u8], endian: Endian) -> nom::IResul
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_one_byte(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u8> {
-    let (input, value_data) = take(size_of::<u8>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_u8(value_data)?,
-        Endian::Be => be_u8(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_u8(data)?,
+        Endian::Be => be_u8(data)?,
     };
     Ok((input, value))
 }
@@ -84,11 +75,9 @@ pub(crate) fn nom_unsigned_one_byte(data: &[u8], endian: Endian) -> nom::IResult
  * Need to specify Endianess
  */
 pub(crate) fn nom_unsigned_sixteen_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], u128> {
-    let (input, value_data) = take(size_of::<u128>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_u128(value_data)?,
-        Endian::Be => be_u128(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_u128(data)?,
+        Endian::Be => be_u128(data)?,
     };
     Ok((input, value))
 }
@@ -98,11 +87,9 @@ pub(crate) fn nom_unsigned_sixteen_bytes(data: &[u8], endian: Endian) -> nom::IR
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_four_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i32> {
-    let (input, value_data) = take(size_of::<u32>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_i32(value_data)?,
-        Endian::Be => be_i32(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_i32(data)?,
+        Endian::Be => be_i32(data)?,
     };
 
     Ok((input, value))
@@ -113,11 +100,9 @@ pub(crate) fn nom_signed_four_bytes(data: &[u8], endian: Endian) -> nom::IResult
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_eight_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i64> {
-    let (input, value_data) = take(size_of::<u64>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_i64(value_data)?,
-        Endian::Be => be_i64(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_i64(data)?,
+        Endian::Be => be_i64(data)?,
     };
     Ok((input, value))
 }
@@ -127,11 +112,9 @@ pub(crate) fn nom_signed_eight_bytes(data: &[u8], endian: Endian) -> nom::IResul
  * Need to specify Endianess
  */
 pub(crate) fn nom_signed_two_bytes(data: &[u8], endian: Endian) -> nom::IResult<&[u8], i16> {
-    let (input, value_data) = take(size_of::<u16>())(data)?;
-
-    let (_, value) = match endian {
-        Endian::Le => le_i16(value_data)?,
-        Endian::Be => be_i16(value_data)?,
+    let (input, value) = match endian {
+        Endian::Le => le_i16(data)?,
+        Endian::Be => be_i16(data)?,
     };
     Ok((input, value))
 }

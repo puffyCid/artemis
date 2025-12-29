@@ -17,17 +17,17 @@ use log::{error, warn};
 
 /// Grab all logon data from default paths
 pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
-    let paths = if let Some(alt_file) = &options.alt_file {
-        vec![alt_file.clone()]
-    } else {
-        vec![
-            String::from("/var/run/utmp"),
-            String::from("/var/log/wtmp"),
-            String::from("/var/log/btmp"),
-        ]
-    };
-
     let mut logons = Vec::new();
+
+    if let Some(alt_file) = &options.alt_file {
+        grab_logon_file(alt_file, &mut logons);
+        return logons;
+    }
+    let paths = vec![
+        String::from("/var/run/utmp"),
+        String::from("/var/log/wtmp"),
+        String::from("/var/log/btmp"),
+    ];
 
     for path in paths {
         grab_logon_file(&path, &mut logons);
@@ -58,7 +58,7 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
         Status::Success
     };
 
-    let mut logon = Logon::logon_reader(&mut reader, &status);
+    let mut logon = Logon::logon_reader(&mut reader, status);
 
     logons.append(&mut logon);
 }

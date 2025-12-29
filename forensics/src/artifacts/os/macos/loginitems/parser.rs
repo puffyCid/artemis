@@ -38,6 +38,8 @@ pub(crate) fn grab_loginitems(
         Ok(result) => result,
         Err(_) => return Err(LoginItemError::Path),
     };
+
+    // Grab all the user BTM files. Should only be one per user
     for dir in user_paths {
         let path = format!("{dir}{loginitems_path}");
         let full_path = Path::new(&path);

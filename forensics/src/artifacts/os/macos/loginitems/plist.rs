@@ -1,33 +1,40 @@
-use crate::artifacts::os::macos::plist::{
-    error::PlistError,
-    property_list::{get_dictionary, parse_plist_file_dict},
+use crate::artifacts::os::macos::{
+    bookmarks::parser::parse_bookmark,
+    plist::{
+        error::PlistError,
+        property_list::{get_dictionary, parse_plist_file_dict},
+    },
 };
+use common::macos::LoginItemsData;
 use plist::Value;
 
 /// Parse PLIST file and get Vec of bookmark data
-pub(crate) fn get_bookmarks(path: &str) -> Result<Vec<Vec<u8>>, PlistError> {
+pub(crate) fn get_bookmarks(path: &str) -> Result<Vec<LoginItemsData>, PlistError> {
     let login_items = parse_plist_file_dict(path)?;
     for (key, value) in login_items {
         if key != "$objects" {
             continue;
         }
         if let Value::Array(value_array) = value {
-            let results = get_array_values(value_array)?;
+            let results = get_array_values(value_array, path)?;
             return Ok(results);
         }
     }
-    let empty_bookmark: Vec<Vec<u8>> = Vec::new();
-    Ok(empty_bookmark)
+    Ok(Vec::new())
 }
 
-/// Loop through Array values and identify bookmark data (should be at least 48 bytes in size (header is 48 bytes))
-fn get_array_values(data_results: Vec<Value>) -> Result<Vec<Vec<u8>>, PlistError> {
-    let mut bookmark_data: Vec<Vec<u8>> = Vec::new();
+/// Loop through Array values and identify bookmark data (should be at least 48 bytes in size and have signature `book`
+fn get_array_values(
+    data_results: Vec<Value>,
+    source: &str,
+) -> Result<Vec<LoginItemsData>, PlistError> {
+    let mut loginitems = Vec::new();
     for data in data_results {
         match data {
-            Value::Data(value) => {
-                collect_bookmarks(&value, &mut bookmark_data);
-            }
+            Value::Data(value) => match collect_bookmarks(&value, source) {
+                Ok(value) => loginitems.push(value),
+                Err(_err) => {}
+            },
             Value::Dictionary(_) => {
                 let dict_result = get_dictionary(&data);
                 let dict = match dict_result {
@@ -39,24 +46,95 @@ fn get_array_values(data_results: Vec<Value>) -> Result<Vec<Vec<u8>>, PlistError
 
                 for (_dict_key, dict_data) in dict {
                     if let Value::Data(value) = dict_data {
-                        collect_bookmarks(&value, &mut bookmark_data);
+                        match collect_bookmarks(&value, source) {
+                            Ok(value) => loginitems.push(value),
+                            Err(_err) => {}
+                        }
                     }
                 }
+            }
+            Value::String(value) => {
+                if !value.contains("Contents/Library/LoginItems") {
+                    continue;
+                }
+                let item = LoginItemsData {
+                    path: value,
+                    cnid_path: String::new(),
+                    created: String::new(),
+                    volume_path: String::new(),
+                    volume_url: String::new(),
+                    volume_name: String::new(),
+                    volume_uuid: String::new(),
+                    volume_size: 0,
+                    volume_created: String::new(),
+                    volume_flags: Vec::new(),
+                    volume_root: false,
+                    localized_name: String::new(),
+                    security_extension_rw: String::new(),
+                    security_extension_ro: String::new(),
+                    target_flags: Vec::new(),
+                    username: String::new(),
+                    folder_index: 0,
+                    uid: 0,
+                    creation_options: Vec::new(),
+                    is_bundled: true,
+                    app_id: String::new(),
+                    app_binary: String::new(),
+                    is_executable: false,
+                    file_ref_flag: false,
+                    source_path: source.to_string(),
+                };
+                loginitems.push(item);
             }
             _ => (),
         }
     }
 
-    Ok(bookmark_data)
+    Ok(loginitems)
 }
 
-/// Grab all data that meets the minimum bookmark size
-fn collect_bookmarks(value: &[u8], bookmark_data: &mut Vec<Vec<u8>>) {
+/// Grab all data that meets the minimum bookmark size and starts with signature (`book`)
+fn collect_bookmarks(value: &[u8], source: &str) -> Result<LoginItemsData, PlistError> {
     let min_bookmark_size = 48;
-    if value.len() < min_bookmark_size {
-        return;
+    if !value.starts_with(&[98, 111, 111, 107]) && value.len() < min_bookmark_size {
+        return Err(PlistError::Array);
     }
-    bookmark_data.push(value.to_vec());
+
+    let bookmark = match parse_bookmark(value) {
+        Ok(result) => result,
+        Err(_err) => {
+            return Err(PlistError::Array);
+        }
+    };
+    let loginitem_data = LoginItemsData {
+        path: bookmark.path,
+        cnid_path: bookmark.cnid_path,
+        created: bookmark.created,
+        volume_path: bookmark.volume_path,
+        volume_url: bookmark.volume_url,
+        volume_name: bookmark.volume_name,
+        volume_uuid: bookmark.volume_uuid,
+        volume_size: bookmark.volume_size,
+        volume_created: bookmark.volume_created,
+        volume_flags: bookmark.volume_flags,
+        volume_root: bookmark.volume_root,
+        localized_name: bookmark.localized_name,
+        security_extension_rw: bookmark.security_extension_rw,
+        security_extension_ro: bookmark.security_extension_ro,
+        target_flags: bookmark.target_flags,
+        username: bookmark.username,
+        folder_index: bookmark.folder_index,
+        uid: bookmark.uid,
+        creation_options: bookmark.creation_options,
+        file_ref_flag: bookmark.file_ref_flag,
+        is_bundled: false,
+        app_id: String::new(),
+        app_binary: String::new(),
+        is_executable: bookmark.is_executable,
+        source_path: source.to_string(),
+    };
+
+    Ok(loginitem_data)
 }
 
 #[cfg(test)]
@@ -82,14 +160,14 @@ mod tests {
 
         let login_items = parse_plist_file_dict(&test_location.display().to_string()).unwrap();
 
-        let mut results: Vec<Vec<u8>> = Vec::new();
+        let mut results = Vec::new();
         for (key, value) in login_items {
             if key.as_str() != "$objects" {
                 continue;
             }
 
             if let Value::Array(value_array) = value {
-                results = get_array_values(value_array).unwrap();
+                results = get_array_values(value_array, "test").unwrap();
             }
         }
         assert_eq!(results.len(), 1);
@@ -132,8 +210,21 @@ mod tests {
             0, 88, 1, 0, 0, 0, 0, 0, 0,
         ];
 
-        let mut test_bookmarks = Vec::new();
-        collect_bookmarks(&test_value, &mut test_bookmarks);
-        assert_eq!(test_bookmarks.len(), 1);
+        let value = collect_bookmarks(&test_value, "test").unwrap();
+        assert_eq!(value.path, "/Applications/Syncthing.app");
+        assert_eq!(value.source_path, "test");
+    }
+
+    #[test]
+    fn test_get_array_values_loginitem_bundle() {
+        let value = get_array_values(
+            vec![Value::String(String::from(
+                "Contents/Library/LoginItems/test.app",
+            ))],
+            "test",
+        )
+        .unwrap();
+
+        assert_eq!(value[0].path, "Contents/Library/LoginItems/test.app");
     }
 }

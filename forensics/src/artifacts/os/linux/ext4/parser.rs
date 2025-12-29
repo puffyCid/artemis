@@ -41,8 +41,14 @@ pub(crate) fn ext4_filelisting(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), Ext4Error> {
-    let user_path_regex = params.path_regex.clone().unwrap_or_default();
-    let user_file_regex = params.filename_regex.clone().unwrap_or_default();
+    let user_path_regex = params
+        .path_regex
+        .as_ref()
+        .map_or("", |path_regex| path_regex);
+    let user_file_regex = params
+        .filename_regex
+        .as_ref()
+        .map_or("", |file_regex| file_regex);
 
     let start_time = time_now();
     if let Some(device) = &params.device {
@@ -51,8 +57,8 @@ pub(crate) fn ext4_filelisting(
             sha1: params.sha1.unwrap_or_default(),
             sha256: params.sha256.unwrap_or_default(),
         };
-        let path_regex = filesystem_regex(&user_path_regex)?;
-        let file_regex = filesystem_regex(&user_file_regex)?;
+        let path_regex = filesystem_regex(user_path_regex)?;
+        let file_regex = filesystem_regex(user_file_regex)?;
         let mut options = Ext4Params {
             device: device.clone(),
             start_path: params.start_path.clone(),
@@ -104,8 +110,8 @@ pub(crate) fn ext4_filelisting(
                 sha256: params.sha256.unwrap_or_default(),
             };
             let device = entry.name;
-            let path_regex = filesystem_regex(&user_path_regex)?;
-            let file_regex = filesystem_regex(&user_file_regex)?;
+            let path_regex = filesystem_regex(user_path_regex)?;
+            let file_regex = filesystem_regex(user_file_regex)?;
             let mut options = Ext4Params {
                 device: device.clone(),
                 start_path: params.start_path.clone(),
