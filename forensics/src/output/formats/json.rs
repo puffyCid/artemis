@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 /// Output to `json` format with some metadata
 pub(crate) fn json_format(
     serde_data: &mut Value,
-    output_name: &str,
+    artifact_name: &str,
     output: &mut Output,
     start_time: u64,
 ) -> Result<(), FormatError> {
@@ -32,7 +32,7 @@ pub(crate) fn json_format(
                         "endpoint_id": output.endpoint_id,
                         "uuid": uuid,
                         "id": output.collection_id,
-                        "artifact_name": output_name,
+                        "artifact_name": artifact_name,
                         "complete_time": complete,
                         "start_time": unixepoch_to_iso(start_time as i64),
                         "hostname": info.hostname,
@@ -52,7 +52,7 @@ pub(crate) fn json_format(
                 "endpoint_id": output.endpoint_id,
                 "uuid": uuid,
                 "id": output.collection_id,
-                "artifact_name": output_name,
+                "artifact_name": artifact_name,
                 "complete_time": complete,
                 "start_time": unixepoch_to_iso(start_time as i64),
                 "hostname": info.hostname,
@@ -67,13 +67,13 @@ pub(crate) fn json_format(
         }];
     }
 
-    raw_json(serde_data, output_name, output)
+    raw_json(serde_data, artifact_name, output)
 }
 
 /// Output to `json` format
 pub(crate) fn raw_json(
     serde_data: &Value,
-    output_name: &str,
+    artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
     let mut collection_data = Vec::new();
@@ -92,15 +92,16 @@ pub(crate) fn raw_json(
     }
 
     let uuid = generate_uuid();
-    let output_result = final_output(&collection_data, output, &uuid);
+    let filename = format!("{artifact_name}_{uuid}");
+    let output_result = final_output(&collection_data, output, &filename);
     match output_result {
-        Ok(_) => info!("[forensics] {output_name} json output success"),
+        Ok(_) => info!("[forensics] {artifact_name} json output success"),
         Err(err) => {
-            error!("[forensics] Failed to output {output_name} json: {err:?}");
+            error!("[forensics] Failed to output {artifact_name} json: {err:?}");
             return Err(FormatError::Output);
         }
     }
-    let _ = collection_status(output_name, output, &uuid);
+    let _ = collection_status(artifact_name, output, &filename);
 
     Ok(())
 }
@@ -122,7 +123,7 @@ mod tests {
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
-            output: String::from("json"),
+            output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
             logging: Some(String::new()),
@@ -146,7 +147,7 @@ mod tests {
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
             collection_id: 0,
-            output: String::from("json"),
+            output: String::from("local"),
             filter_name: Some(String::new()),
             filter_script: Some(String::new()),
             logging: Some(String::new()),

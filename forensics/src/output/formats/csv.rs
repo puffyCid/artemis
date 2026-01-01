@@ -14,7 +14,7 @@ use std::io::{Error, ErrorKind};
 /// Output data as csv
 pub(crate) fn csv_format(
     serde_data: &Value,
-    output_name: &str,
+    artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
     let writer_result = csv_writer(serde_data);
@@ -27,6 +27,7 @@ pub(crate) fn csv_format(
     };
 
     let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
 
     let bytes = if output.compress {
         match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
@@ -40,16 +41,16 @@ pub(crate) fn csv_format(
         writer.into_inner().unwrap_or_default()
     };
 
-    let output_result: Result<_, _> = final_output(&bytes, output, &uuid);
+    let output_result: Result<_, _> = final_output(&bytes, output, &filename);
     match output_result {
-        Ok(_) => info!("[forensics] {output_name} csv output success"),
+        Ok(_) => info!("[forensics] {artifact_name} csv output success"),
         Err(err) => {
-            error!("[forensics] Failed to output {output_name} csv: {err:?}");
+            error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
             return Err(FormatError::Output);
         }
     }
 
-    let _ = collection_status(output_name, output, &uuid);
+    let _ = collection_status(artifact_name, output, &filename);
 
     Ok(())
 }

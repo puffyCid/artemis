@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 /// Output to `jsonl` files
 pub(crate) fn jsonl_format(
     serde_data: &mut Value,
-    output_name: &str,
+    artifact_name: &str,
     output: &mut Output,
     start_time: u64,
 ) -> Result<(), FormatError> {
@@ -24,6 +24,8 @@ pub(crate) fn jsonl_format(
     let info = get_info_metadata();
 
     let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
+
     let complete = unixepoch_to_iso(time_now() as i64);
 
     // If our data is an array loop through each element and output as a separate line
@@ -31,7 +33,7 @@ pub(crate) fn jsonl_format(
         let mut empty_vec = Vec::new();
         // If we are timelining data. Timeline now before appending collection metadata
         if output.timeline {
-            timeline_data(serde_data, output_name);
+            timeline_data(serde_data, artifact_name);
         }
 
         let entries = serde_data.as_array_mut().unwrap_or(&mut empty_vec);
@@ -41,7 +43,7 @@ pub(crate) fn jsonl_format(
                     "endpoint_id": output.endpoint_id,
                     "id": output.collection_id,
                     "uuid": uuid,
-                    "artifact_name": output_name,
+                    "artifact_name": artifact_name,
                     "complete_time": unixepoch_to_iso(time_now() as i64),
                     "start_time": unixepoch_to_iso(start_time as i64),
                     "hostname": info.hostname,
@@ -57,7 +59,7 @@ pub(crate) fn jsonl_format(
             write_json(
                 &serde_json::to_vec(&collection_output).unwrap_or_default(),
                 output,
-                &uuid,
+                &filename,
             )?;
         } else {
             let mut json_lines = Vec::new();
@@ -67,7 +69,7 @@ pub(crate) fn jsonl_format(
                             "endpoint_id": output.endpoint_id,
                             "uuid": uuid,
                             "id": output.collection_id,
-                            "artifact_name": output_name,
+                            "artifact_name": artifact_name,
                             "complete_time": complete,
                             "start_time": unixepoch_to_iso(start_time as i64),
                             "hostname": info.hostname,
@@ -87,9 +89,9 @@ pub(crate) fn jsonl_format(
             }
 
             let collection_data = json_lines.join("");
-            let status = write_json(collection_data.as_bytes(), output, &uuid);
+            let status = write_json(collection_data.as_bytes(), output, &filename);
             if let Err(result) = status {
-                error!("[forensics] Failed to output {output_name} data: {result:?}");
+                error!("[forensics] Failed to output {artifact_name} data: {result:?}");
             }
         }
     } else {
@@ -98,7 +100,7 @@ pub(crate) fn jsonl_format(
                     "endpoint_id": output.endpoint_id,
                     "uuid": uuid,
                     "id": output.collection_id,
-                    "artifact_name": output_name,
+                    "artifact_name": artifact_name,
                     "complete_time": complete,
                     "start_time": unixepoch_to_iso(start_time as i64),
                     "hostname": info.hostname,
@@ -112,15 +114,15 @@ pub(crate) fn jsonl_format(
         let status = write_json(
             &serde_json::to_vec(serde_data).unwrap_or_default(),
             output,
-            &uuid,
+            &filename,
         );
 
         if let Err(result) = status {
-            error!("[forensics] Failed to output {output_name} data: {result:?}");
+            error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
     }
 
-    let _ = collection_status(output_name, output, &uuid);
+    let _ = collection_status(artifact_name, output, &filename);
 
     Ok(())
 }
@@ -128,10 +130,11 @@ pub(crate) fn jsonl_format(
 /// Output to `jsonl` files without metadata
 pub(crate) fn raw_jsonl(
     serde_data: &Value,
-    output_name: &str,
+    artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
     let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
     // If our data is an array loop through each element and output as a separate line
     if serde_data.is_array() {
         let empty_vec = Vec::new();
@@ -147,23 +150,23 @@ pub(crate) fn raw_jsonl(
         }
 
         let collection_data = json_lines.join("");
-        let status = write_json(collection_data.as_bytes(), output, &uuid);
+        let status = write_json(collection_data.as_bytes(), output, &filename);
         if let Err(result) = status {
-            error!("[forensics] Failed to output {output_name} raw data: {result:?}");
+            error!("[forensics] Failed to output {artifact_name} raw data: {result:?}");
         }
     } else {
         let status = write_json(
             &serde_json::to_vec(serde_data).unwrap_or_default(),
             output,
-            &uuid,
+            &filename,
         );
 
         if let Err(result) = status {
-            error!("[forensics] Failed to output {output_name} raw data: {result:?}");
+            error!("[forensics] Failed to output {artifact_name} raw data: {result:?}");
         }
     }
 
-    let _ = collection_status(output_name, output, &uuid);
+    let _ = collection_status(artifact_name, output, &filename);
 
     Ok(())
 }
@@ -295,7 +298,7 @@ mod tests {
 
         let uuid = generate_uuid();
         let json_line = create_line(&serde_json::Value::String(String::from("test"))).unwrap();
-        write_json(json_line.as_bytes(), &mut output, &uuid).unwrap();
+        write_json(json_line.as_bytes(), &mut output, &format!("jsonl_{uuid}")).unwrap();
     }
 
     #[test]
