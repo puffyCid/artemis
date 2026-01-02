@@ -1,5 +1,6 @@
 use super::error::FormatError;
 use crate::{
+    artifacts::os::systeminfo::info::hostname,
     structs::toml::Output,
     utils::{
         compression::compress::compress_gzip_bytes, logging::collection_status,
@@ -50,7 +51,7 @@ pub(crate) fn csv_format(
         }
     }
 
-    let _ = collection_status(artifact_name, output, &filename);
+    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }

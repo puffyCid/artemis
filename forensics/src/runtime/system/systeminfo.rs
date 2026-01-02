@@ -1,4 +1,4 @@
-use crate::artifacts::os::systeminfo::info::get_info;
+use crate::artifacts::os::systeminfo::info::{get_info, hostname};
 use boa_engine::{Context, JsBigInt, JsResult, JsValue, js_string};
 
 /// Expose pulling systeminfo to `BoaJS`
@@ -29,12 +29,7 @@ pub(crate) fn js_hostname(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(
-        js_string!(
-            sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname"))
-        )
-        .into(),
-    )
+    Ok(js_string!(hostname()).into())
 }
 
 /// Return OS version of the system

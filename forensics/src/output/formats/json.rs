@@ -1,6 +1,6 @@
 use super::error::FormatError;
 use crate::{
-    artifacts::os::systeminfo::info::get_info_metadata,
+    artifacts::os::systeminfo::info::{get_info_metadata, hostname},
     structs::toml::Output,
     utils::{
         compression::compress::compress_gzip_bytes,
@@ -101,7 +101,7 @@ pub(crate) fn raw_json(
             return Err(FormatError::Output);
         }
     }
-    let _ = collection_status(artifact_name, output, &filename);
+    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 use super::{error::FormatError, timeline::timeline_data};
 use crate::{
-    artifacts::os::systeminfo::info::get_info_metadata,
+    artifacts::os::systeminfo::info::{get_info_metadata, hostname},
     structs::toml::Output,
     utils::{
         compression::compress::compress_gzip_bytes,
@@ -122,7 +122,7 @@ pub(crate) fn jsonl_format(
         }
     }
 
-    let _ = collection_status(artifact_name, output, &filename);
+    let _ = collection_status(&info.hostname, output, &filename);
 
     Ok(())
 }
@@ -166,7 +166,7 @@ pub(crate) fn raw_jsonl(
         }
     }
 
-    let _ = collection_status(artifact_name, output, &filename);
+    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }
