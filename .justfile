@@ -71,10 +71,6 @@ macos: (_test "artifacts::os::macos")
 [group('os')]
 linux: (_test "artifacts::os::linux")
 
-# Test all the Unix artifacts
-[group('os')]
-unix: (_test "artifacts::os::unix")
-
 # Build the entire artemis project.
 build:
   cargo build --release
