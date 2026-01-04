@@ -12,7 +12,7 @@ lto = true
 codegen-units = 1
 
 [workspace.package]
-version = "0.17.0"
+version = "0.18.0"
 homepage = "https://puffycid.github.io/artemis-api"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
