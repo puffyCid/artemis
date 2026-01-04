@@ -61,11 +61,11 @@ impl PageHeader {
         // Could also be the value is now 12 bits (instead of 16 bits/2 bytes)?
         // https://github.com/fox-it/dissect.esedb/pull/46
         let tag_size = 4;
-        if first_available_page_tag as usize > data.len()
-            || (first_available_page_tag * tag_size) as usize > data.len()
-        {
-            first_available_page_tag &= 0xfff;
-        }
+        // if first_available_page_tag as usize > data.len()
+        //    || (first_available_page_tag * tag_size) as usize > data.len()
+        //{
+        first_available_page_tag &= 0xfff;
+        //}
 
         let (mut page_data, page_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -271,5 +271,17 @@ mod tests {
 
         assert_eq!(results.first_available_page_tag, 87);
         assert_eq!(results.page_tags.len(), 87);
+    }
+
+    #[test]
+    fn test_page_edge_win11_24h2() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/ese/win11/edge_catalog_24h2.raw");
+        let test = read_file(test_location.to_str().unwrap()).unwrap();
+
+        let (_, results) = PageHeader::parse_header(&test).unwrap();
+
+        assert_eq!(results.first_available_page_tag, 3);
+        assert_eq!(results.page_tags.len(), 3);
     }
 }
