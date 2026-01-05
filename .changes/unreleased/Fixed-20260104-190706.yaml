@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis sometimes would fail to parse Windows 11 24H2 ESE files
+time: 2026-01-04T19:07:06.449099134-05:00
