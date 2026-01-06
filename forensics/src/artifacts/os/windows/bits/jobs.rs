@@ -19,7 +19,11 @@ use common::windows::{
     AccessItem, BitsInfo, JobFlags, JobInfo, JobPriority, JobState, JobType, TableDump,
 };
 use log::error;
-use nom::bytes::complete::{take, take_until};
+use nom::{
+    Parser,
+    bytes::complete::{take, take_until},
+    combinator::peek,
+};
 use std::mem::size_of;
 
 /// Loop through table rows and parse out all of the active BITS jobs
@@ -28,7 +32,6 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
     for rows in column_rows {
         let mut job = JobInfo {
             job_id: String::new(),
-            file_id: String::new(),
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -42,7 +45,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
             priority: JobPriority::Unknown,
-            flags: JobFlags::Unknown,
+            flags: Vec::new(),
             http_method: String::new(),
             acls: Vec::new(),
             additional_sids: Vec::new(),
@@ -50,6 +53,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
             retry_delay: 0,
             timeout: 0,
             target_path: String::new(),
+            file_ids: Vec::new(),
         };
         // Only two (2) columns in BITS table (as of Win11)
         for column in rows {
@@ -117,7 +121,6 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
     while job_count < number_jobs {
         let mut job = JobInfo {
             job_id: String::new(),
-            file_id: String::new(),
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -131,7 +134,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
             priority: JobPriority::Unknown,
-            flags: JobFlags::Unknown,
+            flags: Vec::new(),
             http_method: String::new(),
             acls: Vec::new(),
             additional_sids: Vec::new(),
@@ -139,6 +142,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
             retry_delay: 0,
             timeout: 0,
             target_path: String::new(),
+            file_ids: Vec::new(),
         };
         let is_legacy = true;
         let carve = false;
@@ -219,17 +223,28 @@ pub(crate) fn parse_job<'a>(
     job_info: &mut JobInfo,
     carve: bool,
 ) -> nom::IResult<&'a [u8], ()> {
+    // Header structure: https://github.com/fox-it/dissect.target/pull/1476/files#diff-7c7835d948c6aaa085de822297739823bb32c11f7a866dcd36538ea706717233
     let (input, _header_data) = take(size_of::<u128>())(data)?;
-    let (input, job_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (mut input, check_padding) = peek(take(size_of::<u32>())).parse(input)?;
+
+    // Some BITS jobs have two GUIDs in the header
+    if check_padding != [0, 0, 0, 0] {
+        let (remaining, _header_data) = take(size_of::<u128>())(input)?;
+        input = remaining;
+    }
+    let (input, _padding) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
     let (input, job_priority) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, job_state) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (input, job_type) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    //let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let (input, job_id_data) = take(size_of::<u128>())(input)?;
     if job_info.job_id.is_empty() {
         job_info.job_id = format_guid_le_bytes(job_id_data);
     }
+
     let (input, name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
     let wide_char_adjust = 2;
@@ -313,17 +328,27 @@ pub(crate) fn job_details<'a>(
     let (mut input, _delimilter_data) = nom_unsigned_sixteen_bytes(input, Endian::Le)?;
 
     if !is_legacy {
-        let (remaining_input, _count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-        let (remaining_input, file_id_data) = take(size_of::<u128>())(remaining_input)?;
+        let (mut job_data, file_id_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+        let mut count = 0;
+        while count < file_id_count {
+            let (remaining_input, file_id_data) = take(size_of::<u128>())(job_data)?;
+            job_info.file_ids.push(format_guid_le_bytes(file_id_data));
+
+            count += 1;
+            job_data = remaining_input;
+        }
         // Delimiter repeats again
-        let (remaining_input, _delimiter_data) =
-            nom_unsigned_sixteen_bytes(remaining_input, Endian::Le)?;
+        let (remaining_input, _delimiter_data) = nom_unsigned_sixteen_bytes(job_data, Endian::Le)?;
         input = remaining_input;
-        job_info.file_id = format_guid_le_bytes(file_id_data);
     }
 
     let (input, error_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, transient_error_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let (mut input, transient_error_count) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    if error_count != 0 {
+        let error_size: u8 = 21;
+        let (remaining, _error_data) = take(error_size)(input)?;
+        input = remaining;
+    }
     let (input, retry_delay) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, timeout) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -365,7 +390,6 @@ pub(crate) fn job_details<'a>(
 
     // Remaining data seems to only exist on newer versions of BITS (Win10+)
     let (input, target_path_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
     let wide_char_adjust = 2;
     // When carving return early if size is larger than remaining input
     if target_path_size as usize > input.len()
@@ -432,20 +456,25 @@ pub(crate) fn get_state(job_state: u32) -> JobState {
     }
 }
 
-/// Determine flag associated with job
-pub(crate) fn get_flag(job_flag: u32) -> JobFlags {
-    match job_flag {
-        1 => JobFlags::Transferred,
-        2 => JobFlags::Error,
-        3 => JobFlags::TransferredBackgroundError,
-        4 => JobFlags::Disable,
-        5 => JobFlags::TransferredBackgroundDisable,
-        6 => JobFlags::ErrorBackgroundDisable,
-        7 => JobFlags::TransferredBackgroundErrorDisable,
-        8 => JobFlags::Modification,
-        16 => JobFlags::FileTransferred,
-        _ => JobFlags::Unknown,
+/// Determine notification flags associated with job
+/// <https://learn.microsoft.com/en-us/windows/win32/api/bits/nf-bits-ibackgroundcopyjob-setnotifyflags>
+pub(crate) fn get_flag(job_flag: u32) -> Vec<JobFlags> {
+    let mut flags = Vec::new();
+    if (job_flag & 0x1) != 0 {
+        flags.push(JobFlags::Transferred);
+    } else if (job_flag & 0x2) != 0 {
+        flags.push(JobFlags::Error);
+    } else if (job_flag & 0x4) != 0 {
+        flags.push(JobFlags::Disable);
+    } else if (job_flag & 0x8) != 0 {
+        flags.push(JobFlags::JobModification);
+    } else if (job_flag & 0x16) != 0 {
+        flags.push(JobFlags::FileTransferred);
+    } else if (job_flag & 0x32) != 0 {
+        flags.push(JobFlags::FileRangesTransferred);
     }
+
+    flags
 }
 
 #[cfg(test)]
@@ -457,35 +486,39 @@ mod tests {
         },
         filesystem::files::read_file,
     };
-    use common::windows::{JobFlags, JobInfo, JobPriority, JobState, JobType};
+    use common::windows::{JobInfo, JobPriority, JobState, JobType};
     use std::path::PathBuf;
 
     #[test]
     fn test_get_flag() {
-        let test = 1;
-        let results = get_flag(test);
-        assert_eq!(results, JobFlags::Transferred);
+        let tests = vec![1, 2, 4, 8, 16, 32];
+        for entry in tests {
+            assert!(!get_flag(entry).is_empty());
+        }
     }
 
     #[test]
     fn test_get_state() {
-        let test = 0;
-        let results = get_state(test);
-        assert_eq!(results, JobState::Queued);
+        let test = vec![0, 1, 2, 3, 4, 5, 6, 7, 8];
+        for entry in test {
+            assert_ne!(get_state(entry), JobState::Unknown);
+        }
     }
 
     #[test]
     fn test_get_priority() {
-        let test = 0;
-        let results = get_priority(test);
-        assert_eq!(results, JobPriority::Foreground);
+        let test = vec![0, 1, 2, 3];
+        for entry in test {
+            assert_ne!(get_priority(entry), JobPriority::Unknown);
+        }
     }
 
     #[test]
     fn test_get_type() {
-        let test = 0;
-        let results = get_type(test);
-        assert_eq!(results, JobType::Download);
+        let test = vec![0, 1, 2];
+        for entry in test {
+            assert_ne!(get_type(entry), JobType::Unknown);
+        }
     }
 
     #[test]
@@ -495,7 +528,6 @@ mod tests {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let mut job = JobInfo {
             job_id: String::new(),
-            file_id: String::new(),
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -509,7 +541,7 @@ mod tests {
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
             priority: JobPriority::Unknown,
-            flags: JobFlags::Unknown,
+            flags: Vec::new(),
             http_method: String::new(),
             acls: Vec::new(),
             additional_sids: Vec::new(),
@@ -517,6 +549,7 @@ mod tests {
             retry_delay: 0,
             timeout: 0,
             target_path: String::new(),
+            file_ids: Vec::new(),
         };
 
         let _ = parse_job(&data, &mut job, false).unwrap();
@@ -539,7 +572,6 @@ mod tests {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let mut job = JobInfo {
             job_id: String::new(),
-            file_id: String::new(),
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -553,7 +585,7 @@ mod tests {
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
             priority: JobPriority::Unknown,
-            flags: JobFlags::Unknown,
+            flags: Vec::new(),
             http_method: String::new(),
             acls: Vec::new(),
             additional_sids: Vec::new(),
@@ -561,6 +593,7 @@ mod tests {
             retry_delay: 0,
             timeout: 0,
             target_path: String::new(),
+            file_ids: Vec::new(),
         };
 
         let (input, _) = parse_job(&data, &mut job, false).unwrap();
@@ -576,7 +609,10 @@ mod tests {
         );
 
         let _ = job_details(&input, &mut job, false).unwrap();
-        assert_eq!(job.file_id, "95d6889c-b2d3-4748-8eb1-9da0650cb892");
+        assert!(
+            job.file_ids
+                .contains(&String::from("95d6889c-b2d3-4748-8eb1-9da0650cb892"))
+        );
 
         assert_eq!(job.http_method, "GET");
         assert_eq!(job.timeout, 86400);

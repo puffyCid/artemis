@@ -119,7 +119,7 @@ pub struct BitsInfo {
     pub job_type: JobType,
     pub job_state: JobState,
     pub priority: JobPriority,
-    pub flags: JobFlags,
+    pub flags: Vec<JobFlags>,
     pub http_method: String,
     pub full_path: String,
     pub filename: String,
@@ -152,7 +152,6 @@ pub struct FileInfo {
 #[derive(Debug, Serialize)]
 pub struct JobInfo {
     pub job_id: String,
-    pub file_id: String,
     pub owner_sid: String,
     pub created: String,
     pub modified: String,
@@ -167,13 +166,14 @@ pub struct JobInfo {
     pub job_type: JobType,
     pub job_state: JobState,
     pub priority: JobPriority,
-    pub flags: JobFlags,
+    pub flags: Vec<JobFlags>,
     pub http_method: String,
     pub acls: Vec<AccessControlEntry>,
     pub additional_sids: Vec<String>,
     pub timeout: u32,
     pub retry_delay: u32,
     pub target_path: String,
+    pub file_ids: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -211,14 +211,10 @@ pub enum JobType {
 pub enum JobFlags {
     Transferred,
     Error,
-    TransferredBackgroundError,
     Disable,
-    TransferredBackgroundDisable,
-    ErrorBackgroundDisable,
-    TransferredBackgroundErrorDisable,
-    Modification,
+    JobModification,
     FileTransferred,
-    Unknown,
+    FileRangesTransferred,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

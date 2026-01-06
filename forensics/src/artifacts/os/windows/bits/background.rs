@@ -29,10 +29,10 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<WindowsBits
 
     for job in &jobs {
         for file in &files_info {
-            if job.file_id == file.file_id {
+            if job.file_ids.contains(&file.file_id) {
                 let bit_info = BitsInfo {
                     job_id: job.job_id.clone(),
-                    file_id: job.file_id.clone(),
+                    file_id: file.file_id.clone(),
                     owner_sid: job.owner_sid.clone(),
                     created: job.created.clone(),
                     modified: job.modified.clone(),
@@ -250,7 +250,7 @@ mod tests {
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, jobs, files) = parse_carve(&data, false);
-        assert_eq!(jobs.len(), 86);
+        assert_eq!(jobs.len(), 106);
         assert_eq!(files.len(), 41);
     }
 }
