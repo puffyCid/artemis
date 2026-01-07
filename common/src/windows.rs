@@ -116,7 +116,7 @@ pub struct BitsInfo {
     pub full_path: String,
     pub filename: String,
     pub target_path: String,
-    pub tmp_file: String,
+    pub tmp_fullpath: String,
     pub volume: String,
     pub url: String,
     pub carved: bool,
@@ -126,7 +126,6 @@ pub struct BitsInfo {
     pub retry_delay: u32,
     pub additional_sids: Vec<String>,
     pub drive: String,
-    pub tmp_fullpath: String,
 }
 
 #[derive(Debug, Serialize)]

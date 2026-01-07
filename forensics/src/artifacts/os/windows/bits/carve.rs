@@ -174,7 +174,6 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         full_path: file.full_path.clone(),
         filename: file.filename.clone(),
         target_path: job.target_path.clone(),
-        tmp_file: file.tmp_fullpath.clone(),
         volume: file.volume.clone(),
         url: file.url.clone(),
         carved,
