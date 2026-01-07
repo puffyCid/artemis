@@ -93,13 +93,6 @@ pub struct Amcache {
 }
 
 #[derive(Debug, Serialize)]
-pub struct WindowsBits {
-    pub bits: Vec<BitsInfo>,
-    pub carved_jobs: Vec<JobInfo>,
-    pub carved_files: Vec<FileInfo>,
-}
-
-#[derive(Debug, Serialize)]
 pub struct BitsInfo {
     pub job_id: String,
     pub file_id: String,
@@ -108,7 +101,6 @@ pub struct BitsInfo {
     pub modified: String,
     pub completed: String,
     pub expiration: String,
-    pub files_total: u32,
     pub bytes_downloaded: u64,
     pub bytes_transferred: u64,
     pub job_name: String,
@@ -133,6 +125,8 @@ pub struct BitsInfo {
     pub timeout: u32,
     pub retry_delay: u32,
     pub additional_sids: Vec<String>,
+    pub drive: String,
+    pub tmp_fullpath: String,
 }
 
 #[derive(Debug, Serialize)]

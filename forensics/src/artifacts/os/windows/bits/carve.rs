@@ -159,7 +159,6 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         created: job.created.clone(),
         modified: job.modified.clone(),
         completed: job.completed.clone(),
-        files_total: file.files_transferred,
         bytes_downloaded: file.download_bytes_size,
         bytes_transferred: file.transfer_bytes_size,
         job_name: job.job_name.clone(),
@@ -185,6 +184,8 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         timeout: job.timeout,
         retry_delay: job.retry_delay,
         additional_sids: job.additional_sids.clone(),
+        drive: file.drive.clone(),
+        tmp_fullpath: file.tmp_fullpath.clone(),
     }
 }
 
