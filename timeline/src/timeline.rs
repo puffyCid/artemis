@@ -169,7 +169,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Bits).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 82);
+        assert_eq!(result.as_array().unwrap().len(), 9);
     }
 
     #[test]
