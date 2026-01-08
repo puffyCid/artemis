@@ -22,14 +22,14 @@ use crate::{
     structs::artifacts::os::windows::BitsOptions,
     utils::environment::get_systemdrive,
 };
-use common::windows::WindowsBits;
+use common::windows::BitsInfo;
 use log::error;
 
 /**
  * Grab the `BITS` data from the default path(s) or an alternative path  
  * The associated `BITS` file(s) is locked if the `BITS` service is running so we read the raw file to bypass the lock
  */
-pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError> {
+pub(crate) fn grab_bits(options: &BitsOptions) -> Result<Vec<BitsInfo>, BitsError> {
     if let Some(alt) = &options.alt_file {
         return grab_bits_path(alt, options.carve);
     }
@@ -53,7 +53,7 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<WindowsBits, BitsError>
 /**
  * Grab the BITS data from file path
  */
-fn grab_bits_path(path: &str, carve: bool) -> Result<WindowsBits, BitsError> {
+fn grab_bits_path(path: &str, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
     if file_extension(path) == "db" {
         return parse_ese_bits(path, carve);
     }
@@ -83,6 +83,6 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\bits\\win81\\qmgr0.dat");
         let results = grab_bits_path(&test_location.to_str().unwrap(), false).unwrap();
-        assert_eq!(results.bits.len(), 1);
+        assert_eq!(results.len(), 1);
     }
 }

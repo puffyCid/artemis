@@ -46,81 +46,24 @@ pub(crate) fn bits(data: &mut Value) -> Option<()> {
     let mut entries = Vec::new();
 
     for values in data.as_array_mut()? {
-        let mut temp = Value::Null;
-        let bits = if let Some(value) = values.get_mut("data").unwrap_or(&mut temp).get_mut("bits")
-        {
+        let entry = if let Some(value) = values.get_mut("data") {
             value
         } else {
-            values.get_mut("bits")?
+            values
         };
-        // First get full BITS jobs
-        for entry in bits.as_array_mut()? {
-            entry["message"] = Value::String(format!(
-                "Job: {} - Target Path: {}",
-                entry["job_name"].as_str()?,
-                entry["target_path"].as_str()?
-            ));
-            entry["artifact"] = Value::String(String::from("BITS"));
-            entry["data_type"] = Value::String(String::from("windows:ese:bits:entry"));
+        entry["message"] = Value::String(format!(
+            "Job: {} - Target Path: {}",
+            entry["job_name"].as_str()?,
+            entry["target_path"].as_str()?
+        ));
+        entry["artifact"] = Value::String(String::from("BITS"));
+        entry["data_type"] = Value::String(String::from("windows:ese:bits:entry"));
 
-            let temp = entry.clone();
-            let times = extract_bits_times(&temp)?;
-            for (key, value) in times {
-                entry["datetime"] = Value::String(key.into());
-                entry["timestamp_desc"] = Value::String(value);
-                entries.push(entry.clone());
-            }
-        }
-
-        // Now get carved jobs
-        let mut jobs = if let Some(value) = values
-            .get_mut("data")
-            .unwrap_or(&mut temp)
-            .get_mut("carved_jobs")
-        {
-            value.clone()
-        } else {
-            values.get_mut("carved_jobs")?.clone()
-        };
-        // Get carved Jobs
-        for entry in jobs.as_array_mut()? {
-            entry["message"] = Value::String(format!(
-                "Job: {} - Target Path: {}",
-                entry["job_name"].as_str()?,
-                entry["target_path"].as_str()?
-            ));
-            entry["artifact"] = Value::String(String::from("BITS Carved Job"));
-            entry["data_type"] = Value::String(String::from("windows:ese:bits:carve:job"));
-
-            let temp = entry.clone();
-            let times = extract_bits_times(&temp)?;
-            for (key, value) in times {
-                entry["datetime"] = Value::String(key.into());
-                entry["timestamp_desc"] = Value::String(format!("Carved {value}"));
-                entries.push(entry.clone());
-            }
-        }
-
-        // Now get carved files
-        let mut files = if let Some(value) = values
-            .get_mut("data")
-            .unwrap_or(&mut temp)
-            .get_mut("carved_files")
-        {
-            value.clone()
-        } else {
-            values.get_mut("carved_files")?.clone()
-        };
-        for entry in files.as_array_mut()? {
-            entry["message"] = Value::String(format!(
-                "File: {} - URL: {}",
-                entry["target_path"].as_str()?,
-                entry["url"].as_str()?
-            ));
-            entry["artifact"] = Value::String(String::from("Carved BITS File"));
-            entry["data_type"] = Value::String(String::from("windows:ese:bits:carve:file"));
-            entry["datetime"] = Value::String(String::from("1601-01-01T00:00:00.000Z"));
-            entry["timestamp_desc"] = Value::String(String::from("BITS Carved File"));
+        let temp = entry.clone();
+        let times = extract_bits_times(&temp)?;
+        for (key, value) in times {
+            entry["datetime"] = Value::String(key.into());
+            entry["timestamp_desc"] = Value::String(value);
             entries.push(entry.clone());
         }
     }
@@ -800,17 +743,12 @@ mod tests {
     #[test]
     fn test_bits() {
         let mut test = json!([{
-            "bits": [{
-                "modified": "2024-01-01T00:00:00.000Z",
-                "created": "2024-01-01T00:00:00.000Z",
-                "expiration": "2024-01-01T00:00:00.000Z",
-                "completed": "2024-01-01T00:00:00.000Z",
-                "target_path":"C:\\Windows\\cmd.exe",
-                "job_name": "test"
-            }],
-            "carved_files": [],
-            "carved_jobs": [],
-
+            "modified": "2024-01-01T00:00:00.000Z",
+            "created": "2024-01-01T00:00:00.000Z",
+            "expiration": "2024-01-01T00:00:00.000Z",
+            "completed": "2024-01-01T00:00:00.000Z",
+            "target_path":"C:\\Windows\\cmd.exe",
+            "job_name": "test"
         }]);
 
         bits(&mut test).unwrap();

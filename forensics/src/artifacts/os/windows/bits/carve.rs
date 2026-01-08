@@ -1,5 +1,5 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes};
-use common::windows::{BitsInfo, FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
+use common::windows::{BitsInfo, FileInfo, JobInfo, JobPriority, JobState, JobType};
 use nom::bytes::complete::take_until;
 
 use super::{
@@ -71,7 +71,6 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
             let mut job = JobInfo {
                 job_id: String::new(),
-                file_id: String::new(),
                 owner_sid: String::new(),
                 created: String::new(),
                 modified: String::new(),
@@ -85,7 +84,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 job_type: JobType::Unknown,
                 job_state: JobState::Unknown,
                 priority: JobPriority::Unknown,
-                flags: JobFlags::Unknown,
+                flags: Vec::new(),
                 http_method: String::new(),
                 acls: Vec::new(),
                 additional_sids: Vec::new(),
@@ -93,6 +92,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
                 retry_delay: 0,
                 timeout: 0,
                 target_path: String::new(),
+                file_ids: Vec::new(),
             };
             let (input, _) = parse_job(hit_data, &mut job, carve)?;
 
@@ -154,12 +154,11 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool) -> BitsInfo {
     BitsInfo {
         job_id: job.job_id.clone(),
-        file_id: job.file_id.clone(),
+        file_id: file.file_id.clone(),
         owner_sid: job.owner_sid.clone(),
         created: job.created.clone(),
         modified: job.modified.clone(),
         completed: job.completed.clone(),
-        files_total: file.files_transferred,
         bytes_downloaded: file.download_bytes_size,
         bytes_transferred: file.transfer_bytes_size,
         job_name: job.job_name.clone(),
@@ -175,7 +174,6 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         full_path: file.full_path.clone(),
         filename: file.filename.clone(),
         target_path: job.target_path.clone(),
-        tmp_file: file.tmp_fullpath.clone(),
         volume: file.volume.clone(),
         url: file.url.clone(),
         carved,
@@ -185,6 +183,8 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         timeout: job.timeout,
         retry_delay: job.retry_delay,
         additional_sids: job.additional_sids.clone(),
+        drive: file.drive.clone(),
+        tmp_fullpath: file.tmp_fullpath.clone(),
     }
 }
 
@@ -198,7 +198,7 @@ pub(crate) fn scan_delimiter<'a>(data: &'a [u8], delimiter: &[u8]) -> nom::IResu
 mod tests {
     use super::{carve_bits, combine_file_and_job, scan_delimiter};
     use crate::filesystem::files::read_file;
-    use common::windows::{FileInfo, JobFlags, JobInfo, JobPriority, JobState, JobType};
+    use common::windows::{FileInfo, JobInfo, JobPriority, JobState, JobType};
     use std::path::PathBuf;
 
     #[test]
@@ -221,7 +221,7 @@ mod tests {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
         let (_, (_, jobs, files)) = carve_bits(&data, false).unwrap();
-        assert_eq!(jobs.len(), 86);
+        assert_eq!(jobs.len(), 106);
         assert_eq!(files.len(), 41);
 
         assert_eq!(jobs[1].job_name, "PreSignInSettingsConfigJSON");
@@ -246,7 +246,6 @@ mod tests {
     fn test_combine_file_and_job() {
         let job = JobInfo {
             job_id: String::new(),
-            file_id: String::new(),
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -260,7 +259,7 @@ mod tests {
             job_type: JobType::Unknown,
             job_state: JobState::Unknown,
             priority: JobPriority::Unknown,
-            flags: JobFlags::Unknown,
+            flags: Vec::new(),
             http_method: String::new(),
             acls: Vec::new(),
             additional_sids: Vec::new(),
@@ -268,6 +267,7 @@ mod tests {
             retry_delay: 0,
             timeout: 0,
             target_path: String::new(),
+            file_ids: Vec::new(),
         };
 
         let file = FileInfo {
