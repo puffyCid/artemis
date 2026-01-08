@@ -17,11 +17,17 @@ pub(crate) fn azure_upload(
         return Err(RemoteError::RemoteUrl);
     };
 
+    // Log files are not compressed
     let azure_filename = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
+        let mut compression_extension = "";
+        if output.compress {
+            compression_extension = ".gz";
+        }
+
         format!(
-            "{}%2F{}%2F{filename}.{}",
+            "{}%2F{}%2F{filename}.{}{compression_extension}",
             output.directory, output.name, output.format
         )
     };

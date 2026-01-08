@@ -28,11 +28,17 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
         return Err(RemoteError::RemoteApiKey);
     };
 
+    // Log files are not compressed
     let aws_filename = if filename.ends_with(".log") {
         format!("{}/{}/{filename}", output.directory, output.name)
     } else {
+        let mut compression_extension = "";
+        if output.compress {
+            compression_extension = ".gz";
+        }
+
         format!(
-            "{}/{}/{filename}.{}",
+            "{}/{}/{filename}.{}{compression_extension}",
             output.directory, output.name, output.format
         )
     };
@@ -268,7 +274,6 @@ pub(crate) fn aws_multipart_upload(
 
     let part_upload = UploadPart::new(bucket, Some(creds), aws_filename, id, upload_id);
 
-    //let client = Client::new();
     let client = Client::builder()
         .timeout(Duration::from_secs(300))
         .build()
