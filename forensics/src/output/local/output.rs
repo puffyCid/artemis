@@ -26,16 +26,14 @@ pub(crate) fn local_output(
         }
     }
 
-    let file_extension = if output.compress {
-        format!("{extension}.gz")
-    } else {
-        extension.to_string()
-    };
+    let mut compression_extension = "";
+    if output.compress {
+        compression_extension = ".gz";
+    }
 
-    let json_file_result = OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(format!("{output_path}/{output_name}.{file_extension}"));
+    let json_file_result = OpenOptions::new().append(true).create(true).open(format!(
+        "{output_path}/{output_name}.{extension}{compression_extension}"
+    ));
 
     let mut json_file = match json_file_result {
         Ok(results) => results,
