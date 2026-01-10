@@ -21,7 +21,6 @@ use crate::{
     structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
     utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
 };
-use chrono::SecondsFormat;
 use common::windows::{EventLogRecord, EventMessage};
 use evtx::EvtxParser;
 use log::{error, warn};
@@ -89,7 +88,7 @@ pub(crate) fn parse_eventlogs(
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.to_rfc3339_opts(SecondsFormat::Nanos, true),
+                    timestamp: data.timestamp.to_string(),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);
@@ -303,7 +302,7 @@ fn read_eventlogs(
             Ok(data) => {
                 let event_record = EventLogRecord {
                     event_record_id: data.event_record_id,
-                    timestamp: data.timestamp.to_rfc3339_opts(SecondsFormat::Nanos, true),
+                    timestamp: data.timestamp.to_string(),
                     data: data.data,
                 };
                 eventlog_records.push(event_record);

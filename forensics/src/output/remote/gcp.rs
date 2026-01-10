@@ -96,11 +96,17 @@ pub(crate) fn setup_gcp_upload(output: &Output, filename: &str) -> Result<GcpSet
         return Err(RemoteError::RemoteApiKey);
     };
 
+    // Log files are not compressed
     let gcp_output = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
+        let mut compression_extension = "";
+        if output.compress {
+            compression_extension = ".gz";
+        }
+
         format!(
-            "{}%2F{}%2F{filename}.{}",
+            "{}%2F{}%2F{filename}.{}{compression_extension}",
             output.directory, output.name, output.format
         )
     };
@@ -531,7 +537,7 @@ mod tests {
         let server = MockServer::start();
         let port = server.port();
 
-        let output = output_options("gcp_upload_test", "gcp", "tmp", false, port);
+        let output = output_options("gcp_upload_test", "gcp", "tmp", true, port);
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);

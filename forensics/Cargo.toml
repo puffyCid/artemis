@@ -39,7 +39,7 @@ jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.38.4", default-features = false }
 xml2json-rs = "1.0.1"
-evtx = { version = "0.8.5", default-features = false, features = [
+evtx = { version = "0.11.0", default-features = false, features = [
     "multithreading",
 ] }
 ntfs = "0.4.0"
@@ -68,7 +68,7 @@ yara-x = { version = "1.10.0", optional = true, default-features = false, featur
     "time-module",
 ] }
 csv = "1.4.0"
-url = "2.5.7"
+url = "2.5.8"
 common = { path = "../common" }
 timeline = { path = "../timeline" }
 sunlight = "0.1.4"
