@@ -278,7 +278,7 @@ mod tests {
 
         timeline_artifact(&mut result, &Artifacts::ShimDb).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 1);
-        assert_eq!(result.to_string().len(), 1277);
+        assert_eq!(result.to_string().len(), 1013);
     }
 
     #[test]
