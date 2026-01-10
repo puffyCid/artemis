@@ -255,6 +255,12 @@ pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
         let mut times = extract_times(&temp)?;
         extract_filename_times(&temp, &mut times)?;
         for (key, value) in times {
+            // If $INDX recovery is enabled. Standard Info timestamps will be empty
+            // We will only have FileName timestamps
+            // Skip emtpy Standard Info timestamps
+            if key.is_empty() {
+                continue;
+            }
             entry["datetime"] = Value::String(key.into());
             entry["timestamp_desc"] = Value::String(value);
             entries.push(entry.clone());
@@ -866,6 +872,24 @@ mod tests {
         assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
         assert_eq!(test[0]["artifact"], "RawFiles");
         assert_eq!(test[0]["message"], "/usr/bin/ls");
+    }
+
+    #[test]
+    fn test_raw_files_empty() {
+        let mut test = json!([{
+            "created": "",
+            "full_path": "/usr/bin/ls",
+            "modified": "",
+            "changed": "",
+            "accessed": "",
+            "filename_changed": "2024-01-01T03:00:00.001Z",
+            "filename_created": "2024-01-01T03:00:00.002Z",
+            "filename_modified": "2024-01-01T03:00:00.030Z",
+            "filename_accessed": "2024-01-01T03:00:00.040Z",
+        }]);
+
+        raw_files(&mut test).unwrap();
+        assert_eq!(test.as_array().unwrap().len(), 4);
     }
 
     #[test]
