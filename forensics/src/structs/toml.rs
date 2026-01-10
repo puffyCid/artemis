@@ -15,12 +15,13 @@ use crate::structs::artifacts::{
     os::{files::FileOptions, processes::ProcessOptions},
     runtime::script::JSScript,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct ArtemisToml {
     pub output: Output,
     pub artifacts: Vec<Artifacts>,
+    pub marker: Option<Marker>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,7 +41,7 @@ pub struct Output {
     pub logging: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,
@@ -49,7 +50,6 @@ pub struct Artifacts {
     pub processes: Option<ProcessOptions>,
     pub files: Option<FileOptions>,
     pub unifiedlogs: Option<UnifiedLogsOptions>,
-    pub script: Option<JSScript>,
     pub users_macos: Option<MacosUsersOptions>,
     pub groups_macos: Option<MacosGroupsOptions>,
     pub emond: Option<EmondOptions>,
@@ -86,4 +86,17 @@ pub struct Artifacts {
     pub outlook: Option<OutlookOptions>,
     pub mft: Option<MftOptions>,
     pub connections: Option<()>,
+
+    // Scripts to run in BoaJS
+    pub script: Option<JSScript>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Marker {
+    /**Path to save marker file in */
+    pub path: String,
+    /**Name of the marker file */
+    pub name: String,
+    /**Age in minutes */
+    pub age: u64,
 }
