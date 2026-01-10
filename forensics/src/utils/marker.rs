@@ -145,7 +145,11 @@ pub(crate) fn update_marker(marker: &Marker, artifact: &Artifacts) {
         );
     }
 
-    let mut fs = match OpenOptions::new().write(true).create(true).open(&full_path) {
+    let mut fs = match OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(&full_path)
+    {
         Ok(result) => result,
         Err(err) => {
             error!(
@@ -178,10 +182,12 @@ pub(crate) fn update_marker(marker: &Marker, artifact: &Artifacts) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        filesystem::files::read_file, structs::{
+        filesystem::files::read_file,
+        structs::{
             artifacts::os::{processes::ProcessOptions, windows::AmcacheOptions},
             toml::{Artifacts, Marker},
-        }, utils::marker::{ArtifactRuns, skip_artifact, update_marker}
+        },
+        utils::marker::{ArtifactRuns, skip_artifact, update_marker},
     };
     use std::path::PathBuf;
 
@@ -421,8 +427,8 @@ mod tests {
         update_marker(&mark, &art);
 
         let bytes = read_file("./tmp/marker.json").unwrap();
-        let runs:Vec<ArtifactRuns> = serde_json::from_slice(&bytes).unwrap();
-        
+        let runs: Vec<ArtifactRuns> = serde_json::from_slice(&bytes).unwrap();
+
         assert_eq!(runs.len(), 2);
     }
 }

@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 pub struct ArtemisToml {
     pub output: Output,
     pub artifacts: Vec<Artifacts>,
+    pub marker: Option<Marker>,
 }
 
 #[derive(Debug, Deserialize)]

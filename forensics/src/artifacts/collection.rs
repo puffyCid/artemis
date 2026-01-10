@@ -21,7 +21,11 @@ use crate::{
     artifacts::os::linux::artifacts::ext4_filelist,
     runtime::run::execute_script,
     structs::toml::ArtemisToml,
-    utils::{logging::upload_logs, output::compress_final_output},
+    utils::{
+        logging::upload_logs,
+        marker::{skip_artifact, update_marker},
+        output::compress_final_output,
+    },
 };
 use log::{error, info, warn};
 
@@ -29,6 +33,12 @@ use log::{error, info, warn};
 pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
     // Loop through all supported artifacts
     for artifacts in &collector.artifacts {
+        // If marker file is enabled, check if we should skip this artifact
+        if collector.marker.is_some() {
+            if skip_artifact(&collector.marker.as_ref().unwrap(), artifacts) {
+                continue;
+            }
+        }
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
             "loginitems" => {
@@ -572,6 +582,11 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 artifacts.artifact_name
             ),
         }
+
+        // If marker file is enabled, write and update a marker file to track most recent artifact runs
+        if collector.marker.is_some() {
+            update_marker(collector.marker.as_ref().unwrap(), &artifacts);
+        }
     }
 
     if collector.output.output != "local" {
@@ -615,6 +630,16 @@ mod tests {
     fn test_linux_collect() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/quick.toml");
+
+        let buffer = read_file(&test_location.display().to_string()).unwrap();
+        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(&mut collector).unwrap();
+    }
+
+    #[test]
+    fn test_marker_collect() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/marker.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();

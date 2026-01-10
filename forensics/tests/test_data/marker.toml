@@ -1,0 +1,48 @@
+
+[output]
+name = "marker_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "abdc"
+collection_id = 1
+output = "local"
+
+[marker]
+path = "./tmp/marker_collection/marker_tracker"
+name = "marker.json"
+age = 900
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = false
+
+# Should run
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = false
+sha1 = false
+sha256 = false
+metadata = false
+
+# Should be skipped
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = false
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+# Should be skipped
+[[artifacts]]
+artifact_name = "systeminfo"
