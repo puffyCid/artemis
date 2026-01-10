@@ -147,6 +147,30 @@ mod tests {
     }
 
     #[test]
+    fn test_no_output() {
+        let output = Output {
+            name: String::from("no_output"),
+            directory: String::from("./tmp"),
+            format: String::from("json"),
+            compress: false,
+            timeline: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("none"),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        };
+
+        let test = "A rust program";
+        let name = "output";
+        let result = final_output(test.as_bytes(), &output, name).unwrap();
+        assert_eq!(result, ());
+    }
+
+    #[test]
     fn test_compress_final_output() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system");

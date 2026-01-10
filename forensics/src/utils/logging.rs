@@ -49,7 +49,7 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
 
 /// Create and update a simple `status.log` file to track our output data
 pub(crate) fn collection_status(
-    artifact_name: &str,
+    hostname: &str,
     output: &Output,
     output_name: &str,
 ) -> Result<(), ArtemisError> {
@@ -65,7 +65,7 @@ pub(crate) fn collection_status(
         }
     }
 
-    let status_log = format!("{path}/status.log");
+    let status_log = format!("{path}/status_{hostname}.log");
     let status_result = OpenOptions::new()
         .append(true)
         .create(true)
@@ -74,7 +74,9 @@ pub(crate) fn collection_status(
     let mut status = match status_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to open or create status.log at  {path}. Error: {err:?}");
+            error!(
+                "[forensics] Failed to open or create status_{hostname}.log at  {path}. Error: {err:?}"
+            );
             return Err(ArtemisError::LogFile);
         }
     };
@@ -84,12 +86,12 @@ pub(crate) fn collection_status(
      * Ex: amcache:c639679b-40ec-4aca-9ed1-dc740c38731c.json
      * The JSON file also contains the artifact name, but this provides a single file to quickly check where each artifact was saved to
      */
-    let status_message = format!("{artifact_name}:{output_name}.{}\n", output.format);
+    let status_message = format!("{output_name}.{}\n", output.format);
     let write_result = status.write_all(status_message.as_bytes());
     match write_result {
         Ok(_) => {}
         Err(err) => {
-            error!("[forensics] Failed to update status.log at  {path}. Error: {err:?}");
+            error!("[forensics] Failed to update status_{hostname}.log at  {path}. Error: {err:?}");
         }
     }
     Ok(())

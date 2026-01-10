@@ -10,7 +10,7 @@ pub(crate) fn get_info() -> SystemInfo {
     let mut system = System::new();
     SystemInfo {
         boot_time: unixepoch_to_iso(sysinfo::System::boot_time() as i64),
-        hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
+        hostname: hostname(),
         os_version: sysinfo::System::os_version()
             .unwrap_or_else(|| String::from("Unknown OS version")),
         uptime: sysinfo::System::uptime(),
@@ -31,7 +31,7 @@ pub(crate) fn get_info() -> SystemInfo {
 /// Get some system info
 pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
     SystemInfoMetadata {
-        hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
+        hostname: hostname(),
         os_version: sysinfo::System::os_version()
             .unwrap_or_else(|| String::from("Unknown OS Version")),
         platform: sysinfo::System::name().unwrap_or_else(|| String::from("Unknown platform")),
@@ -156,11 +156,15 @@ pub(crate) fn get_network_interfaces() -> Vec<NetworkInterface> {
     interfaces
 }
 
+pub(crate) fn hostname() -> String {
+    sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname"))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::artifacts::os::systeminfo::info::{
         get_cpu, get_disks, get_info, get_info_metadata, get_memory, get_network_interfaces,
-        get_performance, get_platform,
+        get_performance, get_platform, hostname,
     };
     use sysinfo::System;
 
@@ -248,5 +252,10 @@ mod tests {
     fn test_get_platform() {
         let plat = get_platform();
         assert_ne!(plat, "Unknown system name")
+    }
+
+    #[test]
+    fn test_hostname() {
+        assert!(!hostname().is_empty())
     }
 }
