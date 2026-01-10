@@ -131,7 +131,9 @@ fn parse_sublist<'a>(
         list_data = tag_data;
     }
 
-    sublist_entries.push(list_entries);
+    if !list_entries.is_empty() {
+        sublist_entries.push(list_entries);
+    }
 
     Ok((input, sublist_entries))
 }

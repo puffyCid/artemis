@@ -281,6 +281,13 @@ pub(crate) fn generate_tags() -> HashMap<u16, String> {
     tags.insert(0x6033, String::from("TAG_APP_STORE_PRODUCT_ID"));
     tags.insert(0x6034, String::from("TAG_MORE_INFO_URL"));
 
+    // Seen in sysmain.sdb on Windows 11 ARM
+    // Values: TH1, RS1, RS2, RS4, RS5.
+    // Per Copilot these are likely Windows release codenames for Windows 10
+    // TH1 = Threshold 1, RS1 = Redstone 1
+    // https://en.wikipedia.org/wiki/List_of_Microsoft_codenames
+    tags.insert(0x6036, String::from("TAG_OS_CODENAME"));
+
     // List tags -- 4 bytes that contain the size of list. List contains child tags
     tags.insert(0x7001, String::from("TAG_DATABASE"));
     tags.insert(0x7002, String::from("TAG_LIBRARY"));
@@ -379,7 +386,7 @@ mod tests {
     #[test]
     fn test_generate_tags() {
         let result = generate_tags();
-        assert_eq!(result.len(), 260)
+        assert_eq!(result.len(), 261)
     }
 
     #[test]

@@ -478,24 +478,59 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
 
         let temp = entry.clone();
         entry.as_object_mut()?.remove("db_data");
+        entry["message"] = Value::String(format!("{} | Shim: None", temp["sdb_path"].as_str()?,));
 
         // Flatten db_data
         for (key, value) in temp["db_data"].as_object()? {
             if key == "list_data" {
-                // If we parsed the sysmain.sdb file. This will be a lot of data
+                // If we parsed the sysmain.sdb file. This will be a ton of data
                 for tag in value.as_array().unwrap_or(&Vec::new()) {
-                    entry["message"] = Value::String(format!(
-                        "{} | Shim Tag Name: {}",
-                        temp["sdb_path"].as_str()?,
-                        tag["data"].as_object()?["TAG_NAME"].as_str().unwrap_or("")
-                    ));
-                    entry["list_data"] = tag.clone();
+                    let mut shim = entry.clone();
+                    if let Some(value) = tag["data"].as_object() {
+                        for (data_key, data_value) in value {
+                            shim[data_key.clone()] = data_value.clone();
+                            if data_key == "TAG_NAME" || data_key == "TAG_MODULE" {
+                                shim["message"] = Value::String(format!(
+                                    "{} | Shim {data_key}: {}",
+                                    temp["sdb_path"].as_str()?,
+                                    data_value.as_str()?,
+                                ));
+                            }
+                        }
+                    }
+
+                    if let Some(value) = tag["list_data"].as_array() {
+                        for list_entry in value {
+                            if let Some(list_value) = list_entry.as_object() {
+                                for (list_key, list_data) in list_value {
+                                    if let Some(existing_data) =
+                                        shim.get_mut(format!("list_{list_key}"))
+                                    {
+                                        if existing_data.is_string() {
+                                            shim[format!("list_{list_key}")] = Value::Array(vec![
+                                                existing_data.clone(),
+                                                list_data.clone(),
+                                            ]);
+                                            continue;
+                                        }
+                                        let _ = existing_data.is_array().then(|| {
+                                            existing_data
+                                                .as_array_mut()
+                                                .unwrap_or(&mut Vec::new())
+                                                .push(list_data.clone());
+                                        });
+
+                                        continue;
+                                    }
+                                    shim[format!("list_{list_key}")] = list_data.clone();
+                                }
+                            }
+                        }
+                    }
+                    entries.push(shim.clone());
                 }
-                continue;
             }
-            entry[key] = value.clone();
         }
-        entries.push(entry.clone());
     }
 
     check_meta(data, &mut entries)
