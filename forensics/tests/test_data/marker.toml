@@ -17,21 +17,21 @@ age = 900
 [[artifacts]]
 artifact_name = "processes"
 [artifacts.processes]
-md5 = true
-sha1 = false
-sha256 = false
-metadata = false
-
-# Should run
-[[artifacts]]
-artifact_name = "processes"
-[artifacts.processes]
 md5 = false
 sha1 = false
 sha256 = false
 metadata = false
 
-# Should be skipped
+# Should run since hash is enabled
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = false
+
+# Should be skipped since hashing is enabled again
 [[artifacts]]
 artifact_name = "processes"
 [artifacts.processes]

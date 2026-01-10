@@ -75,7 +75,7 @@ pub(crate) fn skip_artifact(marker: &Marker, artifact: &Artifacts) -> bool {
         // The current time is greater than previous run plus the age
         // Example: Collected processes on 2026-01-01. Age is 3 days (in minutes). Next process collection would be 2026-01-04.
         //   Any attempt before that date will be skipped if marker file is checked
-        if (run.unixepoch + next_run) < now {
+        if (run.unixepoch + next_run) > now {
             return true;
         }
         break;
@@ -147,15 +147,13 @@ pub(crate) fn update_marker(marker: &Marker, artifact: &Artifacts) {
 
     let mut fs = match OpenOptions::new()
         .write(true)
+        .create(true)
         .truncate(true)
         .open(&full_path)
     {
         Ok(result) => result,
         Err(err) => {
-            error!(
-                "[forensics] Could not open provided marker file {}: {err:?}",
-                marker.path
-            );
+            error!("[forensics] Could not open provided marker file {full_path}: {err:?}",);
             return;
         }
     };
@@ -192,7 +190,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_skip_artifact() {
+    fn test_skip_artifact_no() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/marker");
 
@@ -248,11 +246,11 @@ mod tests {
             script: None,
         };
 
-        assert!(skip_artifact(&marker, &art));
+        assert!(!skip_artifact(&marker, &art));
     }
 
     #[test]
-    fn test_skip_artifact_no() {
+    fn test_skip_artifact() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/marker");
 
@@ -311,7 +309,7 @@ mod tests {
             script: None,
         };
 
-        assert!(!skip_artifact(&marker, &art));
+        assert!(skip_artifact(&marker, &art));
     }
 
     #[test]
