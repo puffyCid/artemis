@@ -43,15 +43,15 @@ def parseTKape(kape, quiet, output=None):
     with open(kape, 'r') as file:
         data = yaml.load(file, Loader=yaml.SafeLoader)
     meta = {
-        'Description': data.get('Description'),
-        'Author': data.get('Author'),
-        'Version': data.get('Version'),
-        'Id': data.get('Id'),
-        'RecreateDirectories': data.get('RecreateDirectories')
+        'description': data.get('Description'),
+        'author': data.get('Author'),
+        'version': data.get('Version'),
+        'id': data.get('Id'),
+        'recreate_directories': data.get('RecreateDirectories')
     }
 
     targets = data.get('Targets')
-    meta['Targets'] = parseTargets(targets, kape, quiet)
+    meta['targets'] = parseTargets(targets, kape, quiet)
 
     if output == None:
         return meta
@@ -72,31 +72,32 @@ def parseTargets(targets, path, quiet):
         for key, value in entry.items():
             if '%user%' in str(value):
                 value = value.replace('%user%', '*')
-            target_value[key] = value
+            snake_case = "".join("_" + c.lower() if c.isupper() else c for c in list(key))
+            target_value[snake_case.strip("_")] = value
             if str(value).endswith(".tkape"):
                 if not quiet:
                     print("Found compound target: {}. Category is '{}'. Going to bundle all the tkape files in '{}' into one TOML file".format(value, entry.get('Category'), value))
 
                 find_taget = findKapeFile(Path(path.parts[0]), value)
                 bundle = parseTKape(find_taget, quiet)
-                values = values + bundle["Targets"]
+                values = values + bundle["targets"]
         # If the FileMask is not set. Default is *
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
-        if target_value.get('FileMask') == None:
-            target_value['FileMask'] = "*"
+        if target_value.get('file_mask') == None:
+            target_value['file_mask'] = "*"
 
         # If the Recursive is not set. Default is False
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
-        if target_value.get('Recursive') == None:
-            target_value['Recursive'] = False
+        if target_value.get('recursive') == None:
+            target_value['recursive'] = False
 
         # If the AlwaysAddToQueue is not set. Default is False
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
-        if target_value.get('AlwaysAddToQueue') == None:
-            target_value['AlwaysAddToQueue'] = False
+        if target_value.get('always_add_to_queue') == None:
+            target_value['always_add_to_queue'] = False
         
         # We do not add .tkape files to our toml output. Unless we want acquire a literal tkape file
         # The tkape targets below are not added
@@ -156,7 +157,7 @@ def parseTargets(targets, path, quiet):
         AlwaysAddToQueue = false
         .....
         '''
-        if ".tkape" in target_value.get("Path") and len(Path(target_value.get("Path")).parts) == 1:
+        if ".tkape" in target_value.get("path") and len(Path(target_value.get("path")).parts) == 1:
             continue
         values.append(target_value)
 

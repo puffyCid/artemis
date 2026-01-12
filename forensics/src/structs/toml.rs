@@ -23,7 +23,7 @@ pub struct ArtemisToml {
     pub artifacts: Vec<Artifacts>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Output {
     pub name: String,
     pub endpoint_id: String,

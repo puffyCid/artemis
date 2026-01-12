@@ -3,7 +3,7 @@
 
 Description = "Name of application/artifact here" # Required
 Author = "Your name"                              # Required
-Version = "1.0"                                   # Required
+Version = 1.0                                     # Required
 Id = "GUID"                                       # Required
 RecreateDirectories = true                        # Required
 
