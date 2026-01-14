@@ -22,7 +22,9 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::{
-        artifacts::output_data, ntfs::attributes::get_reparse_type, pe::parser::parse_pe_file,
+        artifacts::output_data,
+        ntfs::attributes::{filename_infov2, get_reparse_type},
+        pe::parser::parse_pe_file,
     },
     filesystem::{
         files::file_extension,
@@ -38,7 +40,7 @@ use crate::{
 use common::files::Hashes;
 use common::windows::{CompressionType, RawFilelist};
 use log::error;
-use ntfs::{Ntfs, NtfsFile};
+use ntfs::{Ntfs, NtfsFile, NtfsReadSeek};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
@@ -234,6 +236,7 @@ fn walk_ntfs(
             }
         };
 
+        /*
         let filename_result = entry_index.key();
         // Get $FILENAME attribute data. (4 timestamps and name)
         let filename = match filename_result {
@@ -249,11 +252,7 @@ fn walk_ntfs(
                 }
                 return Err(err);
             }
-        }
-        // Skip root directory loopback
-        if file_info.filename == "." {
-            continue;
-        }
+        }*/
 
         let ntfs_file_result = entry_index.file_reference().to_file(ntfs, fs);
         let ntfs_file = match ntfs_file_result {
@@ -263,6 +262,14 @@ fn walk_ntfs(
                 continue;
             }
         };
+        if let Err(err) = filename_infov2(fs, &ntfs_file, &mut file_info) {
+            panic!("{err:?}");
+        }
+
+        // Skip root directory loopback
+        if file_info.filename == "." {
+            continue;
+        }
 
         // Get $STANDARD_INFORMATION attribute data. (4 timestamps, size, sid, owner, usn, attributes)
         let standard_result = ntfs_file.info();
@@ -280,6 +287,39 @@ fn walk_ntfs(
         file_info.is_directory = ntfs_file.is_directory();
         file_info.inode = ntfs_file.file_record_number();
         file_info.sequence_number = ntfs_file.sequence_number();
+
+        /*
+        if file_info.full_path.contains("Desktop\\test.txt") {
+            let mut attr = ntfs_file.attributes();
+            while let Some(value) = attr.next(fs) {
+                let tst = value.unwrap();
+                println!(
+                    "{:?}",
+                    tst.to_attribute().unwrap().ty().unwrap().to_string()
+                );
+                let name = tst.to_attribute().unwrap().ty().unwrap().to_string();
+                if name == "FileName" {
+                    let temp_buff_size = 65536;
+                    let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
+                    let mut value = tst.to_attribute().unwrap().value(fs).unwrap();
+                    // Read and get the raw INDX data
+                    loop {
+                        let bytes = value.read(fs, &mut temp_buff).unwrap();
+
+                        if bytes == 0 {
+                            break;
+                        }
+
+                        // Make sure our temp buff does not any have extra zeros from the intialization
+                        if bytes < temp_buff_size {
+                            temp_buff = temp_buff[0..bytes].to_vec();
+                        }
+                    }
+                    println!("{temp_buff:?}");
+                }
+            }
+            panic!("{:?}", ntfs_file.attributes());
+        }*/
 
         // Lookup traditional SID information (S-1-5-XXXXX) via the NTFS sid value
         (file_info.user_sid, file_info.group_sid) =
@@ -357,7 +397,7 @@ fn walk_ntfs(
         } else {
             1000
         };
-        // To keep memory usage small we only keep 100,000 files in the vec at a time
+        // To keep memory usage small we only keep 10,000 files in the vec at a time
         if params.filelist.len() >= max_list {
             raw_output(&params.filelist, output, params.start_time, params.filter);
             params.filelist = Vec::new();

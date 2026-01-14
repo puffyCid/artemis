@@ -224,14 +224,14 @@ fn parse_indx_slack<'a>(
                 directory: directory.to_string(),
                 filename,
                 extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: unixepoch_to_iso(filetime_to_unixepoch(created)),
-                filename_modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
-                filename_changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
-                filename_accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
+                created: unixepoch_to_iso(filetime_to_unixepoch(created)),
+                modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
+                changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
+                accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
+                filename_created: String::new(),
+                filename_modified: String::new(),
+                filename_changed: String::new(),
+                filename_accessed: String::new(),
                 size,
                 inode,
                 sequence_number: 0,
@@ -374,15 +374,15 @@ mod tests {
         assert_eq!(result[0].filename, "test.aut");
         assert_eq!(result[0].extension, "aut");
 
-        assert_eq!(result[0].created, "");
-        assert_eq!(result[0].accessed, "");
-        assert_eq!(result[0].changed, "");
-        assert_eq!(result[0].modified, "");
+        assert_eq!(result[0].filename_created, "");
+        assert_eq!(result[0].filename_accessed, "");
+        assert_eq!(result[0].filename_changed, "");
+        assert_eq!(result[0].filename_modified, "");
 
-        assert_eq!(result[0].filename_created, "2022-11-09T04:43:46.000Z");
-        assert_eq!(result[0].filename_modified, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].filename_accessed, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].filename_changed, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].created, "2022-11-09T04:43:46.000Z");
+        assert_eq!(result[0].modified, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].accessed, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].changed, "2022-11-09T04:43:56.000Z");
 
         assert_eq!(result[0].size, 699);
         assert_eq!(result[0].inode, 8589934608);

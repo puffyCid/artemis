@@ -1,5 +1,6 @@
 use super::error::NTFSError;
 use crate::{
+    artifacts::os::windows::mft::attributes::filename::Filename,
     filesystem::{
         files::hash_file_data,
         ntfs::{
@@ -14,11 +15,11 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use common::files::Hashes;
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
+use common::{files::Hashes, windows::Namespace};
 use log::error;
 use ntfs::{
-    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference,
+    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
     structured_values::{
         NtfsAttributeList, NtfsFileName, NtfsFileNamespace, NtfsStandardInformation,
     },
@@ -55,6 +56,62 @@ pub(crate) fn filename_info(
     ));
     file_info.filename_accessed =
         unixepoch_to_iso(filetime_to_unixepoch(filename.access_time().nt_timestamp()));
+    Ok(())
+}
+
+pub(crate) fn filename_infov2(
+    fs: &mut BufReader<SectorReader<File>>,
+    ntfs_file: &NtfsFile<'_>,
+    file_info: &mut RawFilelist,
+) -> Result<(), NtfsError> {
+    let mut attr = ntfs_file.attributes();
+    while let Some(Ok(value)) = attr.next(fs) {
+        let attr_data = value.to_attribute()?;
+        let name = attr_data.ty()?.to_string();
+
+        if name != "FileName" {
+            continue;
+        }
+        let temp_buff_size = 65536;
+        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
+        let mut data = attr_data.value(fs)?;
+        // Read and get the raw FILENAME data. Its usually ~100 bytes
+        loop {
+            let bytes = match data.read(fs, &mut temp_buff) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ntfs] Failed to read the FILENAME attribute! Error: {err:?}");
+                    continue;
+                }
+            };
+
+            if bytes == 0 {
+                break;
+            }
+
+            // Make sure our temp buff does not any have extra zeros from the intialization
+            if bytes < temp_buff_size {
+                temp_buff = temp_buff[0..bytes].to_vec();
+            }
+        }
+        let filename = match Filename::parse_filename(&temp_buff) {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!("[ntfs] Failed to parse FILENAME attribute: {err:?}");
+                continue;
+            }
+        };
+        if filename.namespace == Namespace::Dos {
+            continue;
+        }
+
+        file_info.filename = filename.name;
+        file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(filename.created));
+        file_info.filename_accessed = unixepoch_to_iso(filetime_to_unixepoch(filename.accessed));
+        file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(filename.modified));
+        file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(filename.changed));
+        break;
+    }
     Ok(())
 }
 
