@@ -46,7 +46,7 @@ pub(crate) fn filename_info(
                 Ok(result) => result,
                 Err(err) => {
                     error!("[ntfs] Failed to read the FILENAME attribute! Error: {err:?}");
-                    continue;
+                    break;
                 }
             };
 
