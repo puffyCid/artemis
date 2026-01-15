@@ -15,17 +15,13 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use super::{
-    attributes::{file_data, filename_info, get_ads_names, standard_info},
+    attributes::{file_data, filename_info, get_ads_names, get_reparse_type, standard_info},
     error::NTFSError,
     indx_slack::get_indx,
     security_ids::SecurityIDs,
 };
 use crate::{
-    artifacts::os::windows::{
-        artifacts::output_data,
-        ntfs::attributes::{filename_infov2, get_reparse_type},
-        pe::parser::parse_pe_file,
-    },
+    artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file},
     filesystem::{
         files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
@@ -38,9 +34,9 @@ use crate::{
     },
 };
 use common::files::Hashes;
-use common::windows::{CompressionType, RawFilelist};
+use common::windows::RawFilelist;
 use log::error;
-use ntfs::{Ntfs, NtfsFile, NtfsReadSeek};
+use ntfs::{Ntfs, NtfsFile};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
@@ -191,40 +187,9 @@ fn walk_ntfs(
     let mut iter = index.entries();
     while let Some(entry) = iter.next(fs) {
         let mut file_info = RawFilelist {
-            full_path: String::new(),
-            directory: String::new(),
-            filename: String::new(),
-            extension: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            changed: String::new(),
-            accessed: String::new(),
-            filename_created: String::new(),
-            filename_modified: String::new(),
-            filename_changed: String::new(),
-            filename_accessed: String::new(),
-            size: 0,
-            compressed_size: 0,
-            compression_type: CompressionType::None,
-            inode: 0,
-            sequence_number: 0,
-            parent_mft_reference: 0,
-            owner: 0,
-            attributes: Vec::new(),
-            md5: String::new(),
-            sha1: String::new(),
-            sha256: String::new(),
-            is_file: false,
-            is_directory: false,
-            is_indx: false,
             depth: params.directory_tracker.len(),
-            usn: 0,
-            sid: 0,
-            user_sid: String::new(),
-            group_sid: String::new(),
             drive: params.directory_tracker[0].clone(),
-            ads_info: Vec::new(),
-            pe_info: Vec::new(),
+            ..Default::default()
         };
 
         let entry_result = entry;
@@ -236,24 +201,6 @@ fn walk_ntfs(
             }
         };
 
-        /*
-        let filename_result = entry_index.key();
-        // Get $FILENAME attribute data. (4 timestamps and name)
-        let filename = match filename_result {
-            Some(result) => filename_info(&result, &mut file_info),
-            None => Ok(()),
-        };
-        match filename {
-            Ok(()) => {}
-            Err(err) => {
-                if err == NTFSError::Dos {
-                    // Skip DOS entries, they point to the same info as non-DOS name entries
-                    continue;
-                }
-                return Err(err);
-            }
-        }*/
-
         let ntfs_file_result = entry_index.file_reference().to_file(ntfs, fs);
         let ntfs_file = match ntfs_file_result {
             Ok(result) => result,
@@ -262,8 +209,12 @@ fn walk_ntfs(
                 continue;
             }
         };
-        if let Err(err) = filename_infov2(fs, &ntfs_file, &mut file_info) {
-            panic!("{err:?}");
+        if let Err(err) = filename_info(fs, &ntfs_file, &mut file_info) {
+            error!(
+                "[forensics] Failed to get NTFS FILENAME attribute for record {}: {err:?}",
+                ntfs_file.file_record_number()
+            );
+            continue;
         }
 
         // Skip root directory loopback
@@ -287,39 +238,6 @@ fn walk_ntfs(
         file_info.is_directory = ntfs_file.is_directory();
         file_info.inode = ntfs_file.file_record_number();
         file_info.sequence_number = ntfs_file.sequence_number();
-
-        /*
-        if file_info.full_path.contains("Desktop\\test.txt") {
-            let mut attr = ntfs_file.attributes();
-            while let Some(value) = attr.next(fs) {
-                let tst = value.unwrap();
-                println!(
-                    "{:?}",
-                    tst.to_attribute().unwrap().ty().unwrap().to_string()
-                );
-                let name = tst.to_attribute().unwrap().ty().unwrap().to_string();
-                if name == "FileName" {
-                    let temp_buff_size = 65536;
-                    let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
-                    let mut value = tst.to_attribute().unwrap().value(fs).unwrap();
-                    // Read and get the raw INDX data
-                    loop {
-                        let bytes = value.read(fs, &mut temp_buff).unwrap();
-
-                        if bytes == 0 {
-                            break;
-                        }
-
-                        // Make sure our temp buff does not any have extra zeros from the intialization
-                        if bytes < temp_buff_size {
-                            temp_buff = temp_buff[0..bytes].to_vec();
-                        }
-                    }
-                    println!("{temp_buff:?}");
-                }
-            }
-            panic!("{:?}", ntfs_file.attributes());
-        }*/
 
         // Lookup traditional SID information (S-1-5-XXXXX) via the NTFS sid value
         (file_info.user_sid, file_info.group_sid) =

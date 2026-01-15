@@ -7,7 +7,7 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use common::windows::{CompressionType, RawFilelist};
+use common::windows::RawFilelist;
 use log::{error, info};
 use nom::{
     bytes::complete::{take, take_until},
@@ -220,41 +220,23 @@ fn parse_indx_slack<'a>(
                 .collect();
 
             let mut slack_file = RawFilelist {
-                full_path: format!("{directory}\\{filename}"),
-                directory: directory.to_string(),
-                filename,
-                extension: String::new(),
                 created: unixepoch_to_iso(filetime_to_unixepoch(created)),
                 modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
-                changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
                 accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size,
-                inode,
-                sequence_number: 0,
-                parent_mft_reference,
-                owner: 0,
-                attributes,
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
+                changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
                 is_indx: true,
-                depth: depth.to_owned(),
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
                 drive: directory[0..2].to_string(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
+                full_path: format!("{directory}\\{filename}"),
+                parent_mft_reference,
+                depth,
+                attributes,
+                inode,
+                filename,
+                size,
+                directory: directory.to_string(),
+                ..Default::default()
             };
+
             let extension = Path::new(&slack_file.filename)
                 .extension()
                 .unwrap_or_else(|| OsStr::new(""));

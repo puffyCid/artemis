@@ -4,10 +4,8 @@ use crate::{
     filesystem::{
         files::hash_file_data,
         ntfs::{
-            attributes::{get_filename_attribute, read_attribute_data},
-            compression::check_wofcompressed,
-            raw_files::raw_hash_data,
-            sector_reader::SectorReader,
+            attributes::read_attribute_data, compression::check_wofcompressed,
+            raw_files::raw_hash_data, sector_reader::SectorReader,
         },
     },
     utils::{
@@ -20,46 +18,13 @@ use common::{files::Hashes, windows::Namespace};
 use log::error;
 use ntfs::{
     Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
-    structured_values::{
-        NtfsAttributeList, NtfsFileName, NtfsFileNamespace, NtfsStandardInformation,
-    },
+    structured_values::{NtfsAttributeList, NtfsStandardInformation},
 };
 use serde::Serialize;
 use std::{fs::File, io::BufReader};
 
 /// Get filename and Filename timestamps
 pub(crate) fn filename_info(
-    filename_result: &Result<NtfsFileName, NtfsError>,
-    file_info: &mut RawFilelist,
-) -> Result<(), NTFSError> {
-    let filename_result = get_filename_attribute(filename_result);
-    let filename = match filename_result {
-        Ok(result) => result,
-        Err(_err) => return Err(NTFSError::FilenameInfo),
-    };
-
-    if filename.namespace() == NtfsFileNamespace::Dos {
-        return Err(NTFSError::Dos);
-    }
-
-    filename.parent_directory_reference().file_record_number();
-
-    file_info.filename = filename.name().to_string().unwrap_or_default();
-    file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.creation_time().nt_timestamp(),
-    ));
-    file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.modification_time().nt_timestamp(),
-    ));
-    file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.mft_record_modification_time().nt_timestamp(),
-    ));
-    file_info.filename_accessed =
-        unixepoch_to_iso(filetime_to_unixepoch(filename.access_time().nt_timestamp()));
-    Ok(())
-}
-
-pub(crate) fn filename_infov2(
     fs: &mut BufReader<SectorReader<File>>,
     ntfs_file: &NtfsFile<'_>,
     file_info: &mut RawFilelist,
@@ -514,7 +479,6 @@ mod tests {
         structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
     };
     use common::files::Hashes;
-    use common::windows::CompressionType;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
 
@@ -565,50 +529,17 @@ mod tests {
         let mut iter = index.entries();
         let root_index = 1;
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                inode: 0,
-                sequence_number: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                owner: 0,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Subtract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
-            let filename_result = entry_index.key().unwrap();
-
-            let result = filename_info(&filename_result, &mut file_info).unwrap();
+            let ntfs_file = entry_index.to_file(&ntfs, &mut fs).unwrap();
+            let result = filename_info(&mut fs, &ntfs_file, &mut file_info).unwrap();
             assert_eq!(result, ());
 
-            assert!(file_info.filename.is_empty() == false);
+            assert!(!file_info.filename.is_empty());
+            assert!(!file_info.filename_created.is_empty());
             break;
         }
     }
@@ -642,42 +573,9 @@ mod tests {
         let mut iter = index.entries();
         let root_index = 1;
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                inode: 0,
-                sequence_number: 0,
-                owner: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Subtract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
 
@@ -732,42 +630,9 @@ mod tests {
             sha256: false,
         };
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                inode: 0,
-                sequence_number: 0,
-                owner: 0,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Substract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
 
