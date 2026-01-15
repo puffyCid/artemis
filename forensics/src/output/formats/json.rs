@@ -28,9 +28,11 @@ pub(crate) fn json_format(
     if serde_data.is_array() {
         for values in serde_data.as_array_mut().unwrap_or(&mut Vec::new()) {
             if values.is_object() {
+                let uuid_record = generate_uuid();
                 values["collection_metadata"] = json![{
                         "endpoint_id": output.endpoint_id,
                         "uuid": uuid,
+                        "uuid_record": uuid_record,
                         "id": output.collection_id,
                         "artifact_name": artifact_name,
                         "complete_time": complete,
@@ -48,9 +50,11 @@ pub(crate) fn json_format(
             }
         }
     } else if serde_data.is_object() {
+        let uuid_record = generate_uuid();
         serde_data["collection_metadata"] = json![{
                 "endpoint_id": output.endpoint_id,
                 "uuid": uuid,
+                "uuid_record": uuid_record,
                 "id": output.collection_id,
                 "artifact_name": artifact_name,
                 "complete_time": complete,
@@ -108,6 +112,8 @@ pub(crate) fn raw_json(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+    
     use super::raw_json;
     use crate::{output::formats::json::json_format, structs::toml::Output, utils::time::time_now};
 
@@ -156,5 +162,66 @@ mod tests {
         let name = "test";
         let data = serde_json::Value::String(String::from("test123"));
         raw_json(&data, name, &mut output).unwrap();
+    }
+
+    #[test]
+    fn test_json_format_uuid_record() {
+        let mut output = Output {
+            name: String::from("format_test_uuid"),
+            directory: String::from("./tmp"),
+            format: String::from("json"),
+            compress: false,
+            timeline: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: String::from("local"),
+            filter_name: Some(String::new()),
+            filter_script: Some(String::new()),
+            logging: Some(String::new()),
+        };
+        let start_time = time_now();
+
+        let name = "test";
+        // Create an array with multiple records
+        let mut data = serde_json::json!([
+            {"test": "value1"},
+            {"test": "value2"},
+            {"test": "value3"}
+        ]);
+        
+        json_format(&mut data, name, &mut output, start_time).unwrap();
+        
+        // Verify that each record has collection_metadata with uuid_record
+        let entries = data.as_array().unwrap();
+        let mut uuid_records = std::collections::HashSet::new();
+        let mut file_uuid: Option<String> = None;
+        
+        for entry in entries {
+            if let Some(metadata) = entry.get("collection_metadata") {
+                // Verify uuid_record exists
+                let uuid_record = metadata.get("uuid_record")
+                    .and_then(|v| v.as_str())
+                    .expect("uuid_record should be present");
+                
+                // Verify uuid (per-file) exists and is consistent
+                let uuid = metadata.get("uuid")
+                    .and_then(|v| v.as_str())
+                    .expect("uuid should be present");
+                
+                if let Some(ref existing_uuid) = file_uuid {
+                    assert_eq!(existing_uuid, uuid, "uuid (per-file) should be the same for all records");
+                } else {
+                    file_uuid = Some(uuid.to_string());
+                }
+                
+                // Verify uuid_record is unique
+                assert!(uuid_records.insert(uuid_record.to_string()), 
+                    "uuid_record should be unique for each record");
+            }
+        }
+        
+        assert_eq!(uuid_records.len(), 3, "Should have 3 unique uuid_records");
     }
 }
