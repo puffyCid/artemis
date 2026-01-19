@@ -680,6 +680,7 @@ pub struct RawFilelist {
     pub parent_mft_reference: u64,
     pub owner: u32,
     pub attributes: Vec<String>,
+    pub namespace: Namespace,
     pub md5: String,
     pub sha1: String,
     pub sha256: String,
@@ -694,6 +695,48 @@ pub struct RawFilelist {
     pub drive: String,
     pub ads_info: Vec<ADSInfo>,
     pub pe_info: Vec<PeInfo>,
+}
+
+impl Default for RawFilelist {
+    fn default() -> Self {
+        RawFilelist {
+            full_path: String::new(),
+            directory: String::new(),
+            filename: String::new(),
+            extension: String::new(),
+            created: String::new(),
+            modified: String::new(),
+            changed: String::new(),
+            accessed: String::new(),
+            filename_created: String::new(),
+            filename_modified: String::new(),
+            filename_changed: String::new(),
+            filename_accessed: String::new(),
+            size: 0,
+            compressed_size: 0,
+            compression_type: CompressionType::None,
+            inode: 0,
+            sequence_number: 0,
+            parent_mft_reference: 0,
+            owner: 0,
+            attributes: Vec::new(),
+            namespace: Namespace::Unknown,
+            md5: String::new(),
+            sha1: String::new(),
+            sha256: String::new(),
+            is_file: false,
+            is_directory: false,
+            is_indx: false,
+            depth: 0,
+            usn: 0,
+            sid: 0,
+            user_sid: String::new(),
+            group_sid: String::new(),
+            drive: String::new(),
+            ads_info: Vec::new(),
+            pe_info: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]

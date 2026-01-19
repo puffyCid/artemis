@@ -249,7 +249,15 @@ pub(crate) fn raw_read_by_file_ref(
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<u8>, FileSystemError> {
-    let compress_check = check_wofcompressed(ntfs_ref, ntfs, fs);
+    let ntfs_file = match ntfs_ref.to_file(ntfs, fs) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Failed to get NTFS file, error: {err:?}");
+            return Err(FileSystemError::NotFile);
+        }
+    };
+
+    let compress_check = check_wofcompressed(&ntfs_file, ntfs, fs);
     match compress_check {
         Ok((is_compressed, uncompressed_data, _compressed_size)) => {
             if is_compressed {
@@ -263,14 +271,6 @@ pub(crate) fn raw_read_by_file_ref(
         }
     }
 
-    let ntfs_file_result = ntfs_ref.to_file(ntfs, fs);
-    let ntfs_file = match ntfs_file_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Failed to get NTFS file, error: {err:?}");
-            return Err(FileSystemError::NotFile);
-        }
-    };
     let data_name = "";
     let ntfs_data_option = ntfs_file.data(fs, data_name);
     let ntfs_data_result = match ntfs_data_option {
@@ -328,7 +328,7 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
+            error!("[forensics] Failed to get NTFS root directory: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -356,8 +356,18 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
             continue;
         }
 
+        let ntfs_file = match filelist
+            .file
+            .to_file(&ntfs_parser.ntfs, &mut ntfs_parser.fs)
+        {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[forensics] Failed to get NTFS file: {err:?}");
+                return Err(FileSystemError::RootDirectory);
+            }
+        };
         let data_result = get_attribute_data(
-            filelist.file,
+            &ntfs_file,
             &ntfs_parser.ntfs,
             &mut ntfs_parser.fs,
             attribute,

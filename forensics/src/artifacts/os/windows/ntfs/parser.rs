@@ -15,15 +15,13 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use super::{
-    attributes::{file_data, filename_info, get_ads_names, standard_info},
+    attributes::{file_data, filename_info, get_ads_names, get_reparse_type, standard_info},
     error::NTFSError,
     indx_slack::get_indx,
     security_ids::SecurityIDs,
 };
 use crate::{
-    artifacts::os::windows::{
-        artifacts::output_data, ntfs::attributes::get_reparse_type, pe::parser::parse_pe_file,
-    },
+    artifacts::os::windows::{artifacts::output_data, pe::parser::parse_pe_file},
     filesystem::{
         files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
@@ -36,9 +34,9 @@ use crate::{
     },
 };
 use common::files::Hashes;
-use common::windows::{CompressionType, RawFilelist};
+use common::windows::RawFilelist;
 use log::error;
-use ntfs::{Ntfs, NtfsFile};
+use ntfs::{Ntfs, NtfsError, NtfsFile, structured_values::NtfsFileNamespace};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
@@ -177,102 +175,38 @@ fn walk_ntfs(
     ntfs: &Ntfs,
     params: &mut Params,
     output: &mut Output,
-) -> Result<(), NTFSError> {
-    let index_result = root_dir.directory_index(fs);
-    let index = match index_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Failed to get NTFS index directory, error: {err:?}");
-            return Err(NTFSError::IndexDir);
-        }
-    };
+) -> Result<(), NtfsError> {
+    let index = root_dir.directory_index(fs)?;
     let mut iter = index.entries();
-    while let Some(entry) = iter.next(fs) {
+    while let Some(Ok(entry_index)) = iter.next(fs) {
         let mut file_info = RawFilelist {
-            full_path: String::new(),
-            directory: String::new(),
-            filename: String::new(),
-            extension: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            changed: String::new(),
-            accessed: String::new(),
-            filename_created: String::new(),
-            filename_modified: String::new(),
-            filename_changed: String::new(),
-            filename_accessed: String::new(),
-            size: 0,
-            compressed_size: 0,
-            compression_type: CompressionType::None,
-            inode: 0,
-            sequence_number: 0,
-            parent_mft_reference: 0,
-            owner: 0,
-            attributes: Vec::new(),
-            md5: String::new(),
-            sha1: String::new(),
-            sha256: String::new(),
-            is_file: false,
-            is_directory: false,
-            is_indx: false,
             depth: params.directory_tracker.len(),
-            usn: 0,
-            sid: 0,
-            user_sid: String::new(),
-            group_sid: String::new(),
             drive: params.directory_tracker[0].clone(),
-            ads_info: Vec::new(),
-            pe_info: Vec::new(),
+            inode: root_dir.file_record_number(),
+            sequence_number: root_dir.sequence_number(),
+            is_file: !root_dir.is_directory(),
+            is_directory: root_dir.is_directory(),
+            directory: params.directory_tracker.join("\\"),
+            ..Default::default()
         };
 
-        let entry_result = entry;
-        let entry_index = match entry_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS entry index, error: {err:?}");
-                continue;
-            }
-        };
-
-        let filename_result = entry_index.key();
-        // Get $FILENAME attribute data. (4 timestamps and name)
-        let filename = match filename_result {
-            Some(result) => filename_info(&result, &mut file_info),
-            None => Ok(()),
-        };
-        match filename {
-            Ok(()) => {}
-            Err(err) => {
-                if err == NTFSError::Dos {
-                    // Skip DOS entries, they point to the same info as non-DOS name entries
-                    continue;
-                }
-                return Err(err);
-            }
+        if let Some(Ok(value)) = entry_index.key()
+            && value.namespace() == NtfsFileNamespace::Dos
+        {
+            continue;
         }
+
+        let ntfs_file = entry_index.file_reference().to_file(ntfs, fs)?;
+        filename_info(fs, &ntfs_file, &mut file_info)?;
+
         // Skip root directory loopback
         if file_info.filename == "." {
             continue;
         }
 
-        let ntfs_file_result = entry_index.file_reference().to_file(ntfs, fs);
-        let ntfs_file = match ntfs_file_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS file, error: {err:?}");
-                continue;
-            }
-        };
-
         // Get $STANDARD_INFORMATION attribute data. (4 timestamps, size, sid, owner, usn, attributes)
-        let standard_result = ntfs_file.info();
-        match standard_result {
-            Ok(result) => standard_info(&result, &mut file_info),
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS standard info, error: {err:?}");
-                continue;
-            }
-        }
+        let standard_result = ntfs_file.info()?;
+        standard_info(&standard_result, &mut file_info);
 
         file_info.directory = params.directory_tracker.join("\\");
         file_info.full_path = format!("{}\\{}", file_info.directory, file_info.filename);
@@ -291,38 +225,18 @@ fn walk_ntfs(
             file_info.extension = file_extension(&file_info.filename);
 
             // Grab file data for hashing
-            let _attribute_result = file_data(
-                &ntfs_file,
-                entry_index.file_reference(),
-                &mut file_info,
-                fs,
-                ntfs,
-                &params.hash,
-            );
+            let _attribute_result = file_data(&ntfs_file, &mut file_info, fs, ntfs, &params.hash);
 
             // Grab any alternative data streams (ADS)
-            let ads_result = get_ads_names(entry_index.file_reference(), ntfs, fs);
-            match ads_result {
-                Ok(result) => file_info.ads_info = result,
-                Err(err) => {
-                    error!("[forensics] Failed to grab ADS information: {err:?}");
-                }
-            }
+            file_info.ads_info = get_ads_names(&ntfs_file, ntfs, fs)?;
         }
 
         if file_info
             .attributes
             .contains(&String::from("REPARSE_POINT"))
         {
-            match get_reparse_type(entry_index.file_reference(), ntfs, fs) {
-                Ok(result) => file_info.attributes.push(format!("{result:?}")),
-                Err(err) => {
-                    error!(
-                        "[forensics] Failed to get ReparsePoint tag for {}: {err:?}",
-                        file_info.full_path
-                    );
-                }
-            }
+            let result = get_reparse_type(&ntfs_file, ntfs, fs)?;
+            file_info.attributes.push(format!("{result:?}"));
         }
 
         // Add to file metadata to Vec<RawFilelist> if it matches our start path and any optional regex
@@ -357,7 +271,7 @@ fn walk_ntfs(
         } else {
             1000
         };
-        // To keep memory usage small we only keep 100,000 files in the vec at a time
+        // To keep memory usage small we only keep 10,000 files in the vec at a time
         if params.filelist.len() >= max_list {
             raw_output(&params.filelist, output, params.start_time, params.filter);
             params.filelist = Vec::new();
@@ -375,6 +289,7 @@ fn walk_ntfs(
     }
     // At end of recursion remove directories we are done with
     params.directory_tracker.pop();
+
     Ok(())
 }
 
@@ -668,7 +583,7 @@ mod tests {
             metadata: false,
             filter: false,
         };
-        let result = walk_ntfs(
+        walk_ntfs(
             root_dir,
             &mut ntfs_parser.fs,
             &ntfs_parser.ntfs,
@@ -677,7 +592,6 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(result, ());
         raw_output(&params.filelist, &mut output, start_time, false)
     }
 

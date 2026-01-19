@@ -7,7 +7,7 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use common::windows::{CompressionType, RawFilelist};
+use common::windows::RawFilelist;
 use log::{error, info};
 use nom::{
     bytes::complete::{take, take_until},
@@ -220,41 +220,23 @@ fn parse_indx_slack<'a>(
                 .collect();
 
             let mut slack_file = RawFilelist {
-                full_path: format!("{directory}\\{filename}"),
-                directory: directory.to_string(),
-                filename,
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: unixepoch_to_iso(filetime_to_unixepoch(created)),
-                filename_modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
-                filename_changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
-                filename_accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
-                size,
-                inode,
-                sequence_number: 0,
-                parent_mft_reference,
-                owner: 0,
-                attributes,
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
+                created: unixepoch_to_iso(filetime_to_unixepoch(created)),
+                modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
+                accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
+                changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
                 is_indx: true,
-                depth: depth.to_owned(),
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
                 drive: directory[0..2].to_string(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
+                full_path: format!("{directory}\\{filename}"),
+                parent_mft_reference,
+                depth,
+                attributes,
+                inode,
+                filename,
+                size,
+                directory: directory.to_string(),
+                ..Default::default()
             };
+
             let extension = Path::new(&slack_file.filename)
                 .extension()
                 .unwrap_or_else(|| OsStr::new(""));
@@ -374,15 +356,15 @@ mod tests {
         assert_eq!(result[0].filename, "test.aut");
         assert_eq!(result[0].extension, "aut");
 
-        assert_eq!(result[0].created, "");
-        assert_eq!(result[0].accessed, "");
-        assert_eq!(result[0].changed, "");
-        assert_eq!(result[0].modified, "");
+        assert_eq!(result[0].filename_created, "");
+        assert_eq!(result[0].filename_accessed, "");
+        assert_eq!(result[0].filename_changed, "");
+        assert_eq!(result[0].filename_modified, "");
 
-        assert_eq!(result[0].filename_created, "2022-11-09T04:43:46.000Z");
-        assert_eq!(result[0].filename_modified, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].filename_accessed, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].filename_changed, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].created, "2022-11-09T04:43:46.000Z");
+        assert_eq!(result[0].modified, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].accessed, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].changed, "2022-11-09T04:43:56.000Z");
 
         assert_eq!(result[0].size, 699);
         assert_eq!(result[0].inode, 8589934608);

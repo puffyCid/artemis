@@ -1,4 +1,4 @@
-mod attributes;
+pub(crate) mod attributes;
 mod error;
 mod fixup;
 mod header;

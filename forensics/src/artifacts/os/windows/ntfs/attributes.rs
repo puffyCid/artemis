@@ -1,12 +1,11 @@
 use super::error::NTFSError;
 use crate::{
+    artifacts::os::windows::mft::attributes::filename::Filename,
     filesystem::{
         files::hash_file_data,
         ntfs::{
-            attributes::{get_filename_attribute, read_attribute_data},
-            compression::check_wofcompressed,
-            raw_files::raw_hash_data,
-            sector_reader::SectorReader,
+            attributes::read_attribute_data, compression::check_wofcompressed,
+            raw_files::raw_hash_data, sector_reader::SectorReader,
         },
     },
     utils::{
@@ -14,47 +13,73 @@ use crate::{
         time::{filetime_to_unixepoch, unixepoch_to_iso},
     },
 };
-use common::files::Hashes;
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
+use common::{files::Hashes, windows::Namespace};
 use log::error;
 use ntfs::{
-    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference,
-    structured_values::{
-        NtfsAttributeList, NtfsFileName, NtfsFileNamespace, NtfsStandardInformation,
-    },
+    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsReadSeek,
+    structured_values::{NtfsAttributeList, NtfsStandardInformation},
 };
 use serde::Serialize;
 use std::{fs::File, io::BufReader};
 
 /// Get filename and Filename timestamps
 pub(crate) fn filename_info(
-    filename_result: &Result<NtfsFileName, NtfsError>,
+    fs: &mut BufReader<SectorReader<File>>,
+    ntfs_file: &NtfsFile<'_>,
     file_info: &mut RawFilelist,
-) -> Result<(), NTFSError> {
-    let filename_result = get_filename_attribute(filename_result);
-    let filename = match filename_result {
-        Ok(result) => result,
-        Err(_err) => return Err(NTFSError::FilenameInfo),
-    };
+) -> Result<(), NtfsError> {
+    let mut attr = ntfs_file.attributes();
+    while let Some(Ok(value)) = attr.next(fs) {
+        let attr_data = value.to_attribute()?;
+        let name = attr_data.ty()?.to_string();
 
-    if filename.namespace() == NtfsFileNamespace::Dos {
-        return Err(NTFSError::Dos);
+        if name != "FileName" {
+            continue;
+        }
+        let temp_buff_size = 65536;
+        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
+        let mut data = attr_data.value(fs)?;
+        // Read and get the raw FILENAME data. Its usually ~100 bytes
+        loop {
+            let bytes = match data.read(fs, &mut temp_buff) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[ntfs] Failed to read the FILENAME attribute! Error: {err:?}");
+                    break;
+                }
+            };
+
+            if bytes == 0 {
+                break;
+            }
+
+            // Make sure our temp buff does not any have extra zeros from the intialization
+            if bytes < temp_buff_size {
+                temp_buff = temp_buff[0..bytes].to_vec();
+            }
+        }
+        let filename = match Filename::parse_filename(&temp_buff) {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!("[ntfs] Failed to parse FILENAME attribute: {err:?}");
+                continue;
+            }
+        };
+
+        if filename.namespace == Namespace::Dos {
+            continue;
+        }
+
+        file_info.filename = filename.name;
+        file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(filename.created));
+        file_info.filename_accessed = unixepoch_to_iso(filetime_to_unixepoch(filename.accessed));
+        file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(filename.modified));
+        file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(filename.changed));
+        file_info.namespace = filename.namespace;
+        file_info.parent_mft_reference = filename.parent_mft as u64;
+        break;
     }
-
-    filename.parent_directory_reference().file_record_number();
-
-    file_info.filename = filename.name().to_string().unwrap_or_default();
-    file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.creation_time().nt_timestamp(),
-    ));
-    file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.modification_time().nt_timestamp(),
-    ));
-    file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(
-        filename.mft_record_modification_time().nt_timestamp(),
-    ));
-    file_info.filename_accessed =
-        unixepoch_to_iso(filetime_to_unixepoch(filename.access_time().nt_timestamp()));
     Ok(())
 }
 
@@ -75,31 +100,18 @@ pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);
     file_info.owner = standard.owner_id().unwrap_or(0);
-
-    file_info.sid = standard.security_id().unwrap_or(0);
-
-    let attributes: Vec<String> = standard
-        .file_attributes()
-        .iter_names()
-        .map(|(s, _)| s.to_string())
-        .collect();
-    file_info.attributes = attributes;
-
-    if file_info.attributes.contains(&String::from("COMPRESSED")) {
-        file_info.compression_type = CompressionType::NTFSCompressed;
-    }
 }
 
 /// Get $DATA attribute data size and hash the data (if enabled)
 pub(crate) fn file_data(
     ntfs_file: &NtfsFile<'_>,
-    ntfs_ref: NtfsFileReference,
+    //ntfs_ref: NtfsFileReference,
     file_info: &mut RawFilelist,
     fs: &mut BufReader<SectorReader<File>>,
     ntfs: &Ntfs,
     hashes: &Hashes,
 ) -> Result<(), NTFSError> {
-    let check_results = check_wofcompressed(ntfs_ref, ntfs, fs);
+    let check_results = check_wofcompressed(ntfs_file, ntfs, fs);
     let (is_compressed, uncompressed_data, compressed_size) = match check_results {
         Ok(result) => result,
         Err(err) => {
@@ -245,11 +257,12 @@ pub(crate) enum ReparseType {
 
 /// Get the Reparse Point type
 pub(crate) fn get_reparse_type(
-    ntfs_ref: NtfsFileReference,
+    //ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<ReparseType, NtfsError> {
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    // let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let attr_raw = ntfs_file.attributes_raw();
 
     let mut reparse_data = Vec::new();
@@ -380,11 +393,12 @@ pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
 
 /// Get all alternative data streams (ADS) for a file
 pub(crate) fn get_ads_names(
-    ntfs_ref: NtfsFileReference,
+    // ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<ADSInfo>, NtfsError> {
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    //let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let attr_raw = ntfs_file.attributes_raw();
 
     let mut ads = Vec::new();
@@ -457,7 +471,6 @@ mod tests {
         structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
     };
     use common::files::Hashes;
-    use common::windows::CompressionType;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
 
@@ -508,50 +521,17 @@ mod tests {
         let mut iter = index.entries();
         let root_index = 1;
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                inode: 0,
-                sequence_number: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                owner: 0,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Subtract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
-            let filename_result = entry_index.key().unwrap();
-
-            let result = filename_info(&filename_result, &mut file_info).unwrap();
+            let ntfs_file = entry_index.to_file(&ntfs, &mut fs).unwrap();
+            let result = filename_info(&mut fs, &ntfs_file, &mut file_info).unwrap();
             assert_eq!(result, ());
 
-            assert!(file_info.filename.is_empty() == false);
+            assert!(!file_info.filename.is_empty());
+            assert!(!file_info.filename_created.is_empty());
             break;
         }
     }
@@ -585,42 +565,9 @@ mod tests {
         let mut iter = index.entries();
         let root_index = 1;
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                inode: 0,
-                sequence_number: 0,
-                owner: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Subtract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
 
@@ -675,42 +622,9 @@ mod tests {
             sha256: false,
         };
         while let Some(entry) = iter.next(&mut fs) {
-            let mut file_info = RawFilelist {
-                full_path: String::new(),
-                directory: String::new(),
-                filename: String::new(),
-                extension: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                changed: String::new(),
-                accessed: String::new(),
-                filename_created: String::new(),
-                filename_modified: String::new(),
-                filename_changed: String::new(),
-                filename_accessed: String::new(),
-                size: 0,
-                parent_mft_reference: 0,
-                is_indx: false,
-                inode: 0,
-                sequence_number: 0,
-                owner: 0,
-                attributes: Vec::new(),
-                md5: String::new(),
-                sha1: String::new(),
-                sha256: String::new(),
-                is_file: false,
-                is_directory: false,
-                depth: directory_tracker.len() - root_index, // Substract root index (C:\)
-                usn: 0,
-                sid: 0,
-                user_sid: String::new(),
-                group_sid: String::new(),
-                drive: directory_tracker[0].to_owned(),
-                compressed_size: 0,
-                compression_type: CompressionType::None,
-                ads_info: Vec::new(),
-                pe_info: Vec::new(),
-            };
+            let mut file_info = RawFilelist::default();
+            file_info.depth = directory_tracker.len() - root_index; // Subtract root index (C:\)
+            file_info.drive = directory_tracker[0].to_owned();
 
             let entry_index = entry.unwrap();
 
@@ -721,7 +635,6 @@ mod tests {
             if !ntfs_file.is_directory() {
                 let result = file_data(
                     &ntfs_file,
-                    entry_index.file_reference(),
                     &mut file_info,
                     &mut ntfs_parser.fs,
                     &ntfs_parser.ntfs,
@@ -772,12 +685,8 @@ mod tests {
                 .to_file(&ntfs, &mut fs)
                 .unwrap();
             if !ntfs_file.is_directory() && filename == "$UsnJrnl" {
-                let result = get_ads_names(
-                    entry_index.file_reference(),
-                    &ntfs_parser.ntfs,
-                    &mut ntfs_parser.fs,
-                )
-                .unwrap();
+                let result =
+                    get_ads_names(&ntfs_file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
                 assert_eq!(result.len(), 2);
                 assert_eq!(result[0].name, "$J");
                 assert_eq!(result[0].name, "$MAX");
