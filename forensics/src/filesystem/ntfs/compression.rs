@@ -10,9 +10,8 @@ use crate::{
 };
 use log::{error, warn};
 use nom::bytes::complete::take;
-use ntfs::{
-    Ntfs, NtfsAttributeType, NtfsError, NtfsFileReference, structured_values::NtfsAttributeList,
-};
+use ntfs::NtfsFile;
+use ntfs::{Ntfs, NtfsAttributeType, NtfsError, structured_values::NtfsAttributeList};
 use std::{fs::File, io::BufReader};
 
 #[cfg(target_os = "windows")]
@@ -25,12 +24,12 @@ use crate::utils::compression::xpress::api::decompress_huffman_api;
  * We need to decompress the data in order to get the actual file contents
  */
 pub(crate) fn check_wofcompressed(
-    ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<(bool, Vec<u8>, u64), NtfsError> {
     let ads = "WofCompressedData";
-    let compressed_data = get_attribute_data(ntfs_ref, ntfs, fs, ads)?;
+    let compressed_data = get_attribute_data(ntfs_file, ntfs, fs, ads)?;
 
     // Skipping files that have compressed data larger than 2GB
     let max_size = 2147483648;
@@ -50,7 +49,7 @@ pub(crate) fn check_wofcompressed(
      * We now have the compressed data, however before we can decompress it we need to figure out the compression method used.
      * We can find out by parsing the `ReparsePoint` attribute  type from the file. This binary data will contain the compression algorithm (unit)
      */
-    let compression_unit = grab_reparsepoint(ntfs_ref, ntfs, fs)?;
+    let compression_unit = grab_reparsepoint(ntfs_file, ntfs, fs)?;
     let lzx32k = 32768;
     if compression_unit == lzx32k {
         warn!("[wofcompression] Lzx compression is not supported! Returning compressed data");
@@ -58,7 +57,7 @@ pub(crate) fn check_wofcompressed(
         return Ok((true, compressed_data, size as u64));
     }
 
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    //let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let data = "";
     if let Some(attr) = ntfs_file.data(fs, data) {
         let item = attr?;
@@ -101,11 +100,11 @@ pub(crate) fn check_wofcompressed(
 
 /// Get the compressed data and determine compression unit
 fn grab_reparsepoint(
-    ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<u32, NtfsError> {
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    //let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
 
     let attr_raw = ntfs_file.attributes_raw();
     let mut reparse_data: Vec<u8> = Vec::new();
@@ -595,9 +594,15 @@ mod tests {
         assert!(result.len() >= 3);
         let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for entry in result {
-            let (is_compressed, uncompressed, compressed_size) =
-                check_wofcompressed(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
-                    .unwrap();
+            let (is_compressed, uncompressed, compressed_size) = check_wofcompressed(
+                &entry
+                    .reg_reference
+                    .to_file(&ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                    .unwrap(),
+                &ntfs_parser.ntfs,
+                &mut ntfs_parser.fs,
+            )
+            .unwrap();
             assert_eq!(is_compressed, false);
             assert_eq!(uncompressed.is_empty(), true);
             assert_eq!(compressed_size, 0);
@@ -639,8 +644,15 @@ mod tests {
                 continue;
             }
 
-            let unit =
-                grab_reparsepoint(filelist.file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
+            let unit = grab_reparsepoint(
+                &filelist
+                    .file
+                    .to_file(&ntfs_parser.ntfs, &mut ntfs_parser.fs)
+                    .unwrap(),
+                &ntfs_parser.ntfs,
+                &mut ntfs_parser.fs,
+            )
+            .unwrap();
             let mut is_unit = false;
             if unit == 4096 || unit == 8192 || unit == 32768 || unit == 16384 {
                 is_unit = true;

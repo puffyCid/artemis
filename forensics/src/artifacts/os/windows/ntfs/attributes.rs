@@ -17,7 +17,7 @@ use common::windows::{ADSInfo, CompressionType, RawFilelist};
 use common::{files::Hashes, windows::Namespace};
 use log::error;
 use ntfs::{
-    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek,
+    Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsReadSeek,
     structured_values::{NtfsAttributeList, NtfsStandardInformation},
 };
 use serde::Serialize;
@@ -66,6 +66,7 @@ pub(crate) fn filename_info(
                 continue;
             }
         };
+
         if filename.namespace == Namespace::Dos {
             continue;
         }
@@ -75,6 +76,8 @@ pub(crate) fn filename_info(
         file_info.filename_accessed = unixepoch_to_iso(filetime_to_unixepoch(filename.accessed));
         file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(filename.modified));
         file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(filename.changed));
+        file_info.namespace = filename.namespace;
+        file_info.parent_mft_reference = filename.parent_mft as u64;
         break;
     }
     Ok(())
@@ -97,31 +100,18 @@ pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);
     file_info.owner = standard.owner_id().unwrap_or(0);
-
-    file_info.sid = standard.security_id().unwrap_or(0);
-
-    let attributes: Vec<String> = standard
-        .file_attributes()
-        .iter_names()
-        .map(|(s, _)| s.to_string())
-        .collect();
-    file_info.attributes = attributes;
-
-    if file_info.attributes.contains(&String::from("COMPRESSED")) {
-        file_info.compression_type = CompressionType::NTFSCompressed;
-    }
 }
 
 /// Get $DATA attribute data size and hash the data (if enabled)
 pub(crate) fn file_data(
     ntfs_file: &NtfsFile<'_>,
-    ntfs_ref: NtfsFileReference,
+    //ntfs_ref: NtfsFileReference,
     file_info: &mut RawFilelist,
     fs: &mut BufReader<SectorReader<File>>,
     ntfs: &Ntfs,
     hashes: &Hashes,
 ) -> Result<(), NTFSError> {
-    let check_results = check_wofcompressed(ntfs_ref, ntfs, fs);
+    let check_results = check_wofcompressed(ntfs_file, ntfs, fs);
     let (is_compressed, uncompressed_data, compressed_size) = match check_results {
         Ok(result) => result,
         Err(err) => {
@@ -267,11 +257,12 @@ pub(crate) enum ReparseType {
 
 /// Get the Reparse Point type
 pub(crate) fn get_reparse_type(
-    ntfs_ref: NtfsFileReference,
+    //ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<ReparseType, NtfsError> {
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    // let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let attr_raw = ntfs_file.attributes_raw();
 
     let mut reparse_data = Vec::new();
@@ -402,11 +393,12 @@ pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
 
 /// Get all alternative data streams (ADS) for a file
 pub(crate) fn get_ads_names(
-    ntfs_ref: NtfsFileReference,
+    // ntfs_ref: NtfsFileReference,
+    ntfs_file: &NtfsFile<'_>,
     ntfs: &Ntfs,
     fs: &mut BufReader<SectorReader<File>>,
 ) -> Result<Vec<ADSInfo>, NtfsError> {
-    let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
+    //let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let attr_raw = ntfs_file.attributes_raw();
 
     let mut ads = Vec::new();
@@ -643,7 +635,6 @@ mod tests {
             if !ntfs_file.is_directory() {
                 let result = file_data(
                     &ntfs_file,
-                    entry_index.file_reference(),
                     &mut file_info,
                     &mut ntfs_parser.fs,
                     &ntfs_parser.ntfs,
@@ -694,12 +685,8 @@ mod tests {
                 .to_file(&ntfs, &mut fs)
                 .unwrap();
             if !ntfs_file.is_directory() && filename == "$UsnJrnl" {
-                let result = get_ads_names(
-                    entry_index.file_reference(),
-                    &ntfs_parser.ntfs,
-                    &mut ntfs_parser.fs,
-                )
-                .unwrap();
+                let result =
+                    get_ads_names(&ntfs_file, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
                 assert_eq!(result.len(), 2);
                 assert_eq!(result[0].name, "$J");
                 assert_eq!(result[0].name, "$MAX");

@@ -36,7 +36,7 @@ use crate::{
 use common::files::Hashes;
 use common::windows::RawFilelist;
 use log::error;
-use ntfs::{Ntfs, NtfsFile};
+use ntfs::{Ntfs, NtfsError, NtfsFile, structured_values::NtfsFileNamespace};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
@@ -175,47 +175,29 @@ fn walk_ntfs(
     ntfs: &Ntfs,
     params: &mut Params,
     output: &mut Output,
-) -> Result<(), NTFSError> {
-    let index_result = root_dir.directory_index(fs);
-    let index = match index_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Failed to get NTFS index directory, error: {err:?}");
-            return Err(NTFSError::IndexDir);
-        }
-    };
+) -> Result<(), NtfsError> {
+    let index = root_dir.directory_index(fs)?;
     let mut iter = index.entries();
-    while let Some(entry) = iter.next(fs) {
+    while let Some(Ok(entry_index)) = iter.next(fs) {
         let mut file_info = RawFilelist {
             depth: params.directory_tracker.len(),
             drive: params.directory_tracker[0].clone(),
+            inode: root_dir.file_record_number(),
+            sequence_number: root_dir.sequence_number(),
+            is_file: !root_dir.is_directory(),
+            is_directory: root_dir.is_directory(),
+            directory: params.directory_tracker.join("\\"),
             ..Default::default()
         };
 
-        let entry_result = entry;
-        let entry_index = match entry_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS entry index, error: {err:?}");
-                continue;
-            }
-        };
-
-        let ntfs_file_result = entry_index.file_reference().to_file(ntfs, fs);
-        let ntfs_file = match ntfs_file_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS file, error: {err:?}");
-                continue;
-            }
-        };
-        if let Err(err) = filename_info(fs, &ntfs_file, &mut file_info) {
-            error!(
-                "[forensics] Failed to get NTFS FILENAME attribute for record {}: {err:?}",
-                ntfs_file.file_record_number()
-            );
+        if let Some(Ok(value)) = entry_index.key()
+            && value.namespace() == NtfsFileNamespace::Dos
+        {
             continue;
         }
+
+        let ntfs_file = entry_index.file_reference().to_file(ntfs, fs)?;
+        filename_info(fs, &ntfs_file, &mut file_info)?;
 
         // Skip root directory loopback
         if file_info.filename == "." {
@@ -223,14 +205,8 @@ fn walk_ntfs(
         }
 
         // Get $STANDARD_INFORMATION attribute data. (4 timestamps, size, sid, owner, usn, attributes)
-        let standard_result = ntfs_file.info();
-        match standard_result {
-            Ok(result) => standard_info(&result, &mut file_info),
-            Err(err) => {
-                error!("[forensics] Failed to get NTFS standard info, error: {err:?}");
-                continue;
-            }
-        }
+        let standard_result = ntfs_file.info()?;
+        standard_info(&standard_result, &mut file_info);
 
         file_info.directory = params.directory_tracker.join("\\");
         file_info.full_path = format!("{}\\{}", file_info.directory, file_info.filename);
@@ -249,38 +225,18 @@ fn walk_ntfs(
             file_info.extension = file_extension(&file_info.filename);
 
             // Grab file data for hashing
-            let _attribute_result = file_data(
-                &ntfs_file,
-                entry_index.file_reference(),
-                &mut file_info,
-                fs,
-                ntfs,
-                &params.hash,
-            );
+            let _attribute_result = file_data(&ntfs_file, &mut file_info, fs, ntfs, &params.hash);
 
             // Grab any alternative data streams (ADS)
-            let ads_result = get_ads_names(entry_index.file_reference(), ntfs, fs);
-            match ads_result {
-                Ok(result) => file_info.ads_info = result,
-                Err(err) => {
-                    error!("[forensics] Failed to grab ADS information: {err:?}");
-                }
-            }
+            file_info.ads_info = get_ads_names(&ntfs_file, ntfs, fs)?;
         }
 
         if file_info
             .attributes
             .contains(&String::from("REPARSE_POINT"))
         {
-            match get_reparse_type(entry_index.file_reference(), ntfs, fs) {
-                Ok(result) => file_info.attributes.push(format!("{result:?}")),
-                Err(err) => {
-                    error!(
-                        "[forensics] Failed to get ReparsePoint tag for {}: {err:?}",
-                        file_info.full_path
-                    );
-                }
-            }
+            let result = get_reparse_type(&ntfs_file, ntfs, fs)?;
+            file_info.attributes.push(format!("{result:?}"));
         }
 
         // Add to file metadata to Vec<RawFilelist> if it matches our start path and any optional regex
@@ -333,6 +289,7 @@ fn walk_ntfs(
     }
     // At end of recursion remove directories we are done with
     params.directory_tracker.pop();
+
     Ok(())
 }
 
@@ -626,7 +583,7 @@ mod tests {
             metadata: false,
             filter: false,
         };
-        let result = walk_ntfs(
+        walk_ntfs(
             root_dir,
             &mut ntfs_parser.fs,
             &ntfs_parser.ntfs,
@@ -635,7 +592,6 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(result, ());
         raw_output(&params.filelist, &mut output, start_time, false)
     }
 

@@ -82,7 +82,7 @@ calf = "0.1.0"
 # JS API
 boa_engine = { version = "0.21.0", default-features = false }
 boa_runtime = { version = "0.21.0", default-features = false }
-futures-concurrency = { version = "7.7.0", default-features = false }
+futures-concurrency = { version = "7.7.1", default-features = false }
 futures-lite = { version = "2.6.1", default-features = false }
 
 # Windows API Dependencies
@@ -95,7 +95,7 @@ httpmock = "0.8.2"
 criterion = "0.8.1"
 
 [build-dependencies]
-vergen = { version = "9.0.6", features = ["build", "rustc"] }
+vergen = { version = "9.1.0", features = ["build", "rustc"] }
 
 # Artemis features
 [features]

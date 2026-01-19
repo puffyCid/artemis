@@ -31,4 +31,4 @@ httpmock = "0.8.2"
 criterion = "0.8.1"
 
 [build-dependencies]
-vergen = { version = "9.0.6", features = ["build", "rustc"] }
+vergen = { version = "9.1.0", features = ["build", "rustc"] }
