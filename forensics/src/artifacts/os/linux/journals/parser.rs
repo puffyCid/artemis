@@ -21,17 +21,18 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    structs::{artifacts::os::linux::JournalOptions, toml::Output},
+    structs::{artifacts::os::linux::JournalOptions, toml::Output}, utils::time,
 };
 use common::linux::Journal;
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
 pub(crate) fn grab_journal(
     output: &mut Output,
-    start_time: u64,
     filter: bool,
     options: &JournalOptions,
 ) -> Result<(), JournalError> {
+    let start_time = time::time_now();
+
     let paths = if let Some(alt_path) = &options.alt_path {
         vec![alt_path.clone()]
     } else {
@@ -108,7 +109,7 @@ mod tests {
     #[test]
     fn test_grab_journal() {
         let mut output = output_options("grab_journal", "local", "./tmp", false);
-        grab_journal(&mut output, 0, false, &JournalOptions { alt_path: None }).unwrap();
+        grab_journal(&mut output, false, &JournalOptions { alt_path: None }).unwrap();
     }
 
     #[test]

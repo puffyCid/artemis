@@ -15,32 +15,46 @@
  */
 use super::{error::TaskError, job::parse_job, xml::parse_xml};
 use crate::{
+    artifacts::os::windows::artifacts::output_data,
     filesystem::{files::list_files, metadata::glob_paths},
-    structs::artifacts::os::windows::TasksOptions,
-    utils::environment::get_systemdrive,
+    structs::{artifacts::os::windows::TasksOptions, toml::Output},
+    utils::{environment::get_systemdrive, time},
 };
-use common::windows::{TaskData, TaskJob, TaskXml};
+use common::windows::{TaskJob, TaskXml};
 use log::{error, warn};
+use serde_json::Value;
 
 /// Grab Schedule Tasks based on `TaskOptions`
-pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> {
+pub(crate) fn grab_tasks(
+    options: &TasksOptions,
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), TaskError> {
+    let start_time = time::time_now();
     if let Some(file) = &options.alt_file {
         if file.ends_with(".job") {
             let result = grab_task_job(file)?;
-            let task = TaskData {
-                jobs: vec![result],
-                tasks: Vec::new(),
+            let mut serde_data = match serde_json::to_value(&result) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[tasks] Failed to serialize job: {err:?}");
+                    return Err(TaskError::Serialize);
+                }
             };
-
-            return Ok(task);
+            output_tasks(&mut serde_data, output, filter, start_time);
+            return Ok(())
         }
         let result = grab_task_xml(file)?;
-        let task = TaskData {
-            jobs: Vec::new(),
-            tasks: vec![result],
+        let mut serde_data = match serde_json::to_value(&result) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[tasks] Failed to serialize task: {err:?}");
+                return Err(TaskError::Serialize);
+            }
         };
+        output_tasks(&mut serde_data, output, filter, start_time);
 
-        return Ok(task);
+        return Ok(());
     }
 
     let drive_result = get_systemdrive();
@@ -52,7 +66,7 @@ pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<TaskData, TaskError> 
         }
     };
 
-    drive_tasks(drive)
+    drive_tasks(drive, output, filter, start_time)
 }
 
 /// Grab and parse single Task Job File at provided path
@@ -61,12 +75,17 @@ fn grab_task_job(path: &str) -> Result<TaskJob, TaskError> {
 }
 
 /// Grab and parse single Task XML File at provided path
-fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
+pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
     parse_xml(path)
 }
 
 /// Parse Tasks at provided drive
-fn drive_tasks(letter: char) -> Result<TaskData, TaskError> {
+fn drive_tasks(
+    letter: char,
+    output: &mut Output,
+    filter: bool,
+    start_time: u64,
+) -> Result<(), TaskError> {
     let path = format!("{letter}:\\Windows\\System32\\Tasks");
     // Tasks may be under nested directories. Glob everything at path
     let paths_result = glob_paths(&format!("{path}\\**\\*"));
@@ -78,28 +97,36 @@ fn drive_tasks(letter: char) -> Result<TaskData, TaskError> {
         }
     };
 
-    let mut tasks_data = TaskData {
-        tasks: Vec::new(),
-        jobs: Vec::new(),
-    };
+    let mut xml_tasks = Vec::new();
 
     for path in xml_paths {
         if !path.is_file {
             continue;
         }
 
-        let xml_result = parse_xml(&path.full_path);
-        match xml_result {
-            Ok(result) => tasks_data.tasks.push(result),
+        let task_data = match parse_xml(&path.full_path) {
+            Ok(result) => result,
             Err(err) => {
                 warn!(
                     "[tasks] Could not parse Task File at {}: {err:?}",
                     path.full_path
                 );
+                continue;
             }
-        }
+        };
+        xml_tasks.push(task_data);
     }
 
+    let mut serde_data = match serde_json::to_value(&xml_tasks) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[tasks] Failed to serialize tasks: {err:?}");
+            return Err(TaskError::Serialize);
+        }
+    };
+    output_tasks(&mut serde_data, output, filter, start_time);
+
+    // Legacy Task path associated with Job files
     let job_path = format!("{letter}:\\Windows\\Tasks");
     let job_result = list_files(&job_path);
     let jobs = match job_result {
@@ -110,21 +137,41 @@ fn drive_tasks(letter: char) -> Result<TaskData, TaskError> {
         }
     };
 
+    let mut job_tasks = Vec::new();
+
     for job in jobs {
         if !job.ends_with("job") {
             continue;
         }
 
-        let job_result = parse_job(&job);
-        match job_result {
-            Ok(result) => tasks_data.jobs.push(result),
+        let job_result = match parse_job(&job) {
+            Ok(result) => result,
             Err(err) => {
                 warn!("[tasks] Could not parse Task Job {job}: {err:?}");
+                continue;
             }
-        }
+        };
+
+        job_tasks.push(job_result);
     }
 
-    Ok(tasks_data)
+    let mut serde_data = match serde_json::to_value(&job_tasks) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[tasks] Failed to serialize jobs: {err:?}");
+            return Err(TaskError::Serialize);
+        }
+    };
+    output_tasks(&mut serde_data, output, filter, start_time);
+
+    Ok(())
+}
+
+/// Output Schedule tasks artifacts
+fn output_tasks(result: &mut Value, output: &mut Output, filter: bool, start_time: u64) {
+    if let Err(err) = output_data(result, "tasks", output, start_time, filter) {
+        error!("[tasks] Could not output Schedule Tasks data: {err:?}");
+    }
 }
 
 #[cfg(test)]

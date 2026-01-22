@@ -1,8 +1,5 @@
-use crate::{
-    artifacts::os::windows::tasks::parser::grab_tasks, runtime::helper::string_arg,
-    structs::artifacts::os::windows::TasksOptions,
-};
-use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
+use crate::{artifacts::os::windows::tasks::parser::grab_task_xml, runtime::helper::string_arg};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Schedule Tasks to `BoaJS`
 pub(crate) fn js_tasks(
@@ -10,13 +7,8 @@ pub(crate) fn js_tasks(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = if args.get_or_undefined(0).is_undefined() {
-        None
-    } else {
-        Some(string_arg(args, 0)?)
-    };
-    let options = TasksOptions { alt_file: path };
-    let task = match grab_tasks(&options) {
+    let path = string_arg(args, 0)?;
+    let task = match grab_task_xml(&path) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get tasks: {err:?}");
