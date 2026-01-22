@@ -1,11 +1,11 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PrefetchOptions {
     pub alt_dir: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct EventLogsOptions {
     pub alt_file: Option<String>,
     pub alt_dir: Option<String>,
@@ -15,7 +15,7 @@ pub struct EventLogsOptions {
     pub only_templates: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RawFilesOptions {
     pub drive_letter: char,
     pub start_path: String,
@@ -30,12 +30,12 @@ pub struct RawFilesOptions {
     pub filename_regex: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ShimdbOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RegistryOptions {
     pub user_hives: bool,
     pub system_hives: bool,
@@ -43,63 +43,63 @@ pub struct RegistryOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UserAssistOptions {
     pub resolve_descriptions: Option<bool>,
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ShimcacheOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ShellbagsOptions {
     pub resolve_guids: bool,
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AmcacheOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ShortcutOptions {
     /**Path to directory containing `Shortcut (lnk)` files */
     pub path: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UsnJrnlOptions {
     pub alt_drive: Option<char>,
     pub alt_path: Option<String>,
     pub alt_mft: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BitsOptions {
     pub alt_file: Option<String>,
     pub carve: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SrumOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WindowsUserOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SearchOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct OutlookOptions {
     pub alt_file: Option<String>,
     pub include_attachments: bool,
@@ -109,32 +109,32 @@ pub struct OutlookOptions {
     pub yara_rule_attachment: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TasksOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServicesOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct JumplistsOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RecycleBinOptions {
     pub alt_file: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WmiPersistOptions {
     pub alt_dir: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MftOptions {
     pub alt_file: Option<String>,
     pub alt_drive: Option<char>,

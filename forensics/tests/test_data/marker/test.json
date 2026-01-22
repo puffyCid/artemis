@@ -1,0 +1,14 @@
+[
+    {
+        "name": "amcache",
+        "hash": "11a20f5ffe49c1d7e76f0f812cf253a6",
+        "last_run": "2026-01-01T00:00:00.000Z",
+        "unixepoch": 123456
+    },
+    {
+        "name": "processes",
+        "hash": "0bbf67efb22492c6a648d299f26bc3a9",
+        "last_run": "9099-01-01T00:00:00.000Z",
+        "unixepoch": 224969529600
+    }
+]

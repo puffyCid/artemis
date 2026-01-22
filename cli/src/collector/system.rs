@@ -49,6 +49,7 @@ pub(crate) enum Commands {
 pub(crate) fn run_collector(command: &Commands, output: Output) {
     let mut collector = ArtemisToml {
         output,
+        marker: None,
         artifacts: Vec::new(),
     };
     match command {

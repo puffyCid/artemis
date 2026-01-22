@@ -5,6 +5,7 @@ pub(crate) mod encoding;
 pub(crate) mod environment;
 mod error;
 pub(crate) mod logging;
+pub(crate) mod marker;
 pub(crate) mod nom_helper;
 pub(crate) mod output;
 pub(crate) mod regex_options;
