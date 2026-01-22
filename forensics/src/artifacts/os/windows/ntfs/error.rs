@@ -8,7 +8,6 @@ pub enum NTFSError {
     FilenameInfo,
     FileData,
     AttributeValue,
-    Dos,
     BadStart,
     Regex,
     NoAttribute,
@@ -25,7 +24,6 @@ impl fmt::Display for NTFSError {
             NTFSError::FilenameInfo => write!(f, "Failed to get filename info"),
             NTFSError::FileData => write!(f, "Failed to get filedata"),
             NTFSError::AttributeValue => write!(f, "Failed to get attribute value data"),
-            NTFSError::Dos => write!(f, "Not parsing DoS entries"),
             NTFSError::BadStart => write!(
                 f,
                 "Improper start path, need full start path. Ex: C:\\ or C:\\Users\\"

@@ -174,6 +174,7 @@ mod tests {
                 filter_script: Some(String::new()),
                 logging: Some(String::new()),
             },
+            marker: None,
             artifacts: Vec::new(),
         };
         artemis_collection(&mut collection).unwrap();

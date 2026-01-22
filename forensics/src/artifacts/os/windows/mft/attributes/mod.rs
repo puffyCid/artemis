@@ -1,7 +1,7 @@
 pub(crate) mod attribute;
 mod data;
 mod extended;
-mod filename;
+pub(crate) mod filename;
 mod header;
 mod index;
 mod list;
