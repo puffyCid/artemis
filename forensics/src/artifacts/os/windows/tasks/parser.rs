@@ -42,7 +42,7 @@ pub(crate) fn grab_tasks(
                 }
             };
             output_tasks(&mut serde_data, output, filter, start_time);
-            return Ok(())
+            return Ok(());
         }
         let result = grab_task_xml(file)?;
         let mut serde_data = match serde_json::to_value(&result) {
@@ -179,24 +179,44 @@ fn output_tasks(result: &mut Value, output: &mut Output, filter: bool, start_tim
 mod tests {
     use super::grab_tasks;
     use crate::artifacts::os::windows::tasks::parser::{grab_task_job, grab_task_xml};
+    use crate::structs::toml::Output;
     use crate::{
         artifacts::os::windows::tasks::parser::drive_tasks,
         structs::artifacts::os::windows::TasksOptions,
     };
     use std::path::PathBuf;
 
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("jsonl"),
+            compress,
+            timeline: false,
+            url: Some(String::new()),
+            api_key: Some(String::new()),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            output: output.to_string(),
+            filter_name: None,
+            filter_script: None,
+            logging: None,
+        }
+    }
+
     #[test]
     fn test_grab_tasks() {
         let options = TasksOptions { alt_file: None };
+        let mut output = output_options("tasks_temp", "local", "./tmp", false);
 
-        let result = grab_tasks(&options).unwrap();
-        assert!(result.tasks.len() > 10);
+        grab_tasks(&options, &mut output, false).unwrap();
     }
 
     #[test]
     fn test_drive_tasks() {
-        let result = drive_tasks('C').unwrap();
-        assert!(result.tasks.len() > 10);
+        let mut output = output_options("tasks_temp", "local", "./tmp", false);
+
+        drive_tasks('C', &mut output, false, 0).unwrap();
     }
 
     #[test]
@@ -204,7 +224,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/At1.job");
 
-        let _ = grab_task_job(&test_location.display().to_string()).unwrap();
+        let result = grab_task_job(&test_location.display().to_string()).unwrap();
+        assert_eq!(result.parameters, "");
     }
 
     #[test]
@@ -212,6 +233,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let _ = grab_task_xml(&test_location.display().to_string()).unwrap();
+        let result = grab_task_xml(&test_location.display().to_string()).unwrap();
+        assert_eq!(result.actions.exec.len(), 1);
     }
 }

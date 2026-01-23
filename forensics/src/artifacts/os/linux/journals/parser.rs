@@ -21,7 +21,8 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    structs::{artifacts::os::linux::JournalOptions, toml::Output}, utils::time,
+    structs::{artifacts::os::linux::JournalOptions, toml::Output},
+    utils::time,
 };
 use common::linux::Journal;
 
