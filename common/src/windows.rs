@@ -1056,11 +1056,6 @@ pub struct NotificationInfo {
     pub network_type: i32,
 }
 
-#[derive(Serialize)]
-pub struct TaskData {
-    pub tasks: Vec<TaskXml>,
-    pub jobs: Vec<TaskJob>,
-}
 /**
  * Structure of a XML format Schedule Task
  * Schema at: [Task XML](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsch/0d6383e4-de92-43e7-b0bb-a60cfa36379f)

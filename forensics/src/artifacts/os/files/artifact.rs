@@ -28,14 +28,12 @@ pub(crate) fn filelisting(
             .unwrap_or(&String::new())
             .clone(),
     };
-    let artifact_result = get_filelist(&args, &hashes, output, filter);
-    match artifact_result {
-        Ok(results) => Ok(results),
-        Err(err) => {
-            error!("[forensics] Failed to get file listing: {err:?}");
-            Err(FileError::Filelisting)
-        }
+    if let Err(err) = get_filelist(&args, &hashes, output, filter) {
+        error!("[forensics] Failed to get file listing: {err:?}");
+        return Err(FileError::Filelisting);
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
