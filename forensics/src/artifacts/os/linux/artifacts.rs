@@ -18,16 +18,12 @@ pub(crate) fn journals(
     filter: bool,
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
-    let start_time = time::time_now();
-
-    let artifact_result = grab_journal(output, start_time, filter, options);
-    match artifact_result {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            error!("[forensics] Failed to get journals: {err:?}");
-            Err(LinuxArtifactError::Journal)
-        }
+    if let Err(err) = grab_journal(output, filter, options) {
+        error!("[forensics] Failed to get journals: {err:?}");
+        return Err(LinuxArtifactError::Journal);
     }
+
+    Ok(())
 }
 
 /// Get Linux `Logon` info
@@ -88,14 +84,12 @@ pub(crate) fn ext4_filelist(
     filter: bool,
     options: &Ext4Options,
 ) -> Result<(), LinuxArtifactError> {
-    let artifact_result = ext4_filelisting(options, output, filter);
-    match artifact_result {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            error!("[forensics] Failed to get ext4 filelisting: {err:?}");
-            Err(LinuxArtifactError::Ext4)
-        }
+    if let Err(err) = ext4_filelisting(options, output, filter) {
+        error!("[forensics] Failed to get ext4 filelisting: {err:?}");
+        return Err(LinuxArtifactError::Ext4);
     }
+
+    Ok(())
 }
 
 /// Output Linux artifacts

@@ -65,14 +65,11 @@ pub(crate) fn eventlogs(
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    let result = grab_eventlogs(options, output, filter);
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse EventLogs: {err:?}");
-            return Err(WinArtifactError::EventLogs);
-        }
-    };
+    if let Err(err) = grab_eventlogs(options, output, filter) {
+        error!("[forensics] Artemis failed to parse EventLogs: {err:?}");
+        return Err(WinArtifactError::EventLogs);
+    }
+
     Ok(())
 }
 
@@ -83,14 +80,11 @@ pub(crate) fn registry(
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    let result = parse_registry(options, output, filter);
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[forensics] Failed to parse Registry: {err:?}");
-            return Err(WinArtifactError::Registry);
-        }
+    if let Err(err) = parse_registry(options, output, filter) {
+        error!("[forensics] Failed to parse Registry: {err:?}");
+        return Err(WinArtifactError::Registry);
     }
+
     Ok(())
 }
 
@@ -101,14 +95,11 @@ pub(crate) fn raw_filelist(
     filter: bool,
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
-    let result = ntfs_filelist(options, output, filter);
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[forensics] Failed to parse NTFS: {err:?}");
-            return Err(WinArtifactError::Ntfs);
-        }
+    if let Err(err) = ntfs_filelist(options, output, filter) {
+        error!("[forensics] Failed to parse NTFS: {err:?}");
+        return Err(WinArtifactError::Ntfs);
     }
+
     Ok(())
 }
 
@@ -352,14 +343,11 @@ pub(crate) fn srum(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let artifact_result = grab_srum(options, output, filter);
-    match artifact_result {
-        Ok(_) => (),
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse SRUM data: {err:?}");
-            return Err(WinArtifactError::Srum);
-        }
-    };
+    if let Err(err) = grab_srum(options, output, filter) {
+        error!("[forensics] Artemis failed to parse SRUM data: {err:?}");
+        return Err(WinArtifactError::Srum);
+    }
+
     Ok(())
 }
 
@@ -369,14 +357,11 @@ pub(crate) fn search(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let artifact_result = grab_search(options, output, filter);
-    match artifact_result {
-        Ok(_) => (),
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse Search data: {err:?}");
-            return Err(WinArtifactError::Search);
-        }
-    };
+    if let Err(err) = grab_search(options, output, filter) {
+        error!("[forensics] Artemis failed to parse Search data: {err:?}");
+        return Err(WinArtifactError::Search);
+    }
+
     Ok(())
 }
 
@@ -414,28 +399,12 @@ pub(crate) fn tasks(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
+    if let Err(err) = grab_tasks(options, output, filter) {
+        error!("[forensics] Artemis failed to parse Tasks: {err:?}");
+        return Err(WinArtifactError::Tasks);
+    }
 
-    let task_results = grab_tasks(options);
-    let task_data = match task_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse Tasks: {err:?}");
-            return Err(WinArtifactError::Tasks);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(task_data);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[forensics] Failed to serialize tasks: {err:?}");
-            return Err(WinArtifactError::Serialize);
-        }
-    };
-
-    let output_name = "tasks";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    Ok(())
 }
 
 /// Parse the Windows `Services` artifact
@@ -564,14 +533,10 @@ pub(crate) fn outlook(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let outlook_result = grab_outlook(options, output, filter);
-    match outlook_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse Outlook: {err:?}");
-            return Err(WinArtifactError::Outlook);
-        }
-    };
+    if let Err(err) = grab_outlook(options, output, filter) {
+        error!("[forensics] Artemis failed to parse Outlook: {err:?}");
+        return Err(WinArtifactError::Outlook);
+    }
 
     Ok(())
 }
@@ -582,14 +547,10 @@ pub(crate) fn mft(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let mft_results = grab_mft(options, output, filter);
-    match mft_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse MFT: {err:?}");
-            return Err(WinArtifactError::Mft);
-        }
-    };
+    if let Err(err) = grab_mft(options, output, filter) {
+        error!("[forensics] Artemis failed to parse MFT: {err:?}");
+        return Err(WinArtifactError::Mft);
+    }
 
     Ok(())
 }

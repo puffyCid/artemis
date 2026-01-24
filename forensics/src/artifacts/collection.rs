@@ -34,10 +34,10 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
     // Loop through all supported artifacts
     for artifacts in &collector.artifacts {
         // If marker file is enabled, check if we should skip this artifact
-        if collector.marker.is_some() {
-            if skip_artifact(&collector.marker.as_ref().unwrap(), artifacts) {
-                continue;
-            }
+        if collector.marker.is_some()
+            && skip_artifact(collector.marker.as_ref().unwrap(), artifacts)
+        {
+            continue;
         }
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
@@ -585,7 +585,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
 
         // If marker file is enabled, write and update a marker file to track most recent artifact runs
         if collector.marker.is_some() {
-            update_marker(collector.marker.as_ref().unwrap(), &artifacts);
+            update_marker(collector.marker.as_ref().unwrap(), artifacts);
         }
     }
 
