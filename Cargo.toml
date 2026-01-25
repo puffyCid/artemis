@@ -28,13 +28,14 @@ base64 = "0.22.1"
 tokio = { version = "1.49.0", features = ["full"] }
 flate2 = "1.1.8"
 glob = "0.3.3"
-reqwest = { version = "0.12.28", features = [
+reqwest = { version = "0.13.1", features = [
     "json",
     "blocking",
-    "native-tls-vendored",
+   # "native-tls-vendored",
     "multipart",
+    "form"
 ] }
-sysinfo = "0.37.2"
-uuid = { version = "1.19.0", features = ["v4"] }
+sysinfo = "0.38.0"
+uuid = { version = "1.20.0", features = ["v4"] }
 rusqlite = { version = "0.38.0", features = ["bundled", "serde_json"] }
 rand = { version = "0.9.2", default-features = false }
