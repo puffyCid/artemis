@@ -1,10 +1,10 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info,
     filesystem::files::hash_file_data,
+    output::formats::json::raw_json,
     structs::toml::{Artifacts, Output},
     utils::{
         error::ArtemisError,
-        output::final_output,
         time::{time_now, unixepoch_to_iso},
     },
 };
@@ -54,15 +54,10 @@ pub(crate) fn generate_report(
     };
     value["artifact_runs"] = value_runs;
 
-    let bytes = match serde_json::to_vec(&value) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Could not serialize report to bytes: {err:?}");
-            return;
-        }
-    };
+    // The report is always json
+    output.format = String::from("json");
 
-    if let Err(err) = final_output(&bytes, output, "report") {
+    if let Err(err) = raw_json(&value, "report", output) {
         error!("[forensics] Could not output report: {err:?}");
     }
 }
