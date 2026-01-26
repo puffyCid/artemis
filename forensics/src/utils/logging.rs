@@ -11,7 +11,7 @@ use std::{
 };
 
 /// Create log output file and logging level based on TOML `Output` configuration
-pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), ArtemisError> {
+pub(crate) fn create_log_file(output: &mut Output) -> Result<(File, LevelFilter), ArtemisError> {
     let path = format!("{}/{}", output.directory, output.name);
     let result = create_dir_all(&path);
     match result {
@@ -23,8 +23,8 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
             return Err(ArtemisError::CreateDirectory);
         }
     }
-
-    let output_result = File::create(format!("{path}/{}.log", generate_uuid()));
+    let log_filename = format!("{path}/{}.log", generate_uuid());
+    let output_result = File::create(&log_filename);
     let log_file = match output_result {
         Ok(result) => result,
         Err(err) => {
@@ -32,6 +32,7 @@ pub(crate) fn create_log_file(output: &Output) -> Result<(File, LevelFilter), Ar
             return Err(ArtemisError::LogFile);
         }
     };
+    output.log_file = log_filename;
 
     let level = if let Some(log_level) = &output.logging {
         match log_level.to_lowercase().as_str() {
@@ -98,7 +99,7 @@ pub(crate) fn collection_status(
 }
 
 /// Upload artemis logs
-pub(crate) fn upload_logs(output_dir: &str, output: &Output) -> Result<(), ArtemisError> {
+pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), ArtemisError> {
     let files_res = list_files(output_dir);
     let log_files = match files_res {
         Ok(results) => results,
@@ -161,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_create_log_file() {
-        let test = Output {
+        let mut test = Output {
             name: String::from("logging"),
             directory: String::from("tmp"),
             format: String::from("json"),
@@ -170,7 +171,7 @@ mod tests {
             ..Default::default()
         };
 
-        let (result, level) = create_log_file(&test).unwrap();
+        let (result, level) = create_log_file(&mut test).unwrap();
         let _ = WriteLogger::init(log::LevelFilter::Warn, Config::default(), result);
         warn!("A simple fancy logger!");
         assert_eq!(level, LevelFilter::Warn);
@@ -204,7 +205,7 @@ mod tests {
         .unwrap();
         test_log.write_all(b"testing!").unwrap();
 
-        let output = Output {
+        let mut output = Output {
             name: String::from("files"),
             directory: test_location.display().to_string(),
             format: String::from("json"),
@@ -235,7 +236,7 @@ mod tests {
 
         let output_dir = format!("{}/{}", output.directory, output.name);
 
-        let _ = upload_logs(&output_dir, &output);
+        let _ = upload_logs(&output_dir, &mut output);
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -254,7 +255,7 @@ mod tests {
         .unwrap();
         test_log.write_all(b"testing!").unwrap();
 
-        let output = Output {
+        let mut output = Output {
             name: String::from("files"),
             directory: test_location.display().to_string(),
             format: String::from("json"),
@@ -274,7 +275,7 @@ mod tests {
 
         let output_dir = format!("{}/{}", output.directory, output.name);
 
-        let _ = upload_logs(&output_dir, &output);
+        let _ = upload_logs(&output_dir, &mut output);
         mock_me.assert();
     }
 }

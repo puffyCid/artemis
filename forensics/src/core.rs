@@ -67,7 +67,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 
 /// Based on target system collect data based on TOML config
 pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
-    if let Ok((log_file, level)) = create_log_file(&collection.output) {
+    if let Ok((log_file, level)) = create_log_file(&mut collection.output) {
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 

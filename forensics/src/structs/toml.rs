@@ -54,13 +54,13 @@ pub struct Output {
     pub logging: Option<String>,
     #[serde(default)]
     /**Files containing the output */
-    pub output_files: Vec<String>,
+    pub output_count: u64,
     #[serde(default)]
     /**Path to the log file associated with the output */
     pub log_file: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,

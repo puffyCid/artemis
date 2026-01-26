@@ -17,7 +17,11 @@ struct UploadResponse {
 }
 
 /// Upload data to Google Cloud Storage Bucket using signed JWT tokens
-pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result<(), RemoteError> {
+pub(crate) fn gcp_upload(
+    data: &[u8],
+    output: &mut Output,
+    filename: &str,
+) -> Result<(), RemoteError> {
     let setup = setup_gcp_upload(output, filename)?;
     // Full URL to target bucket and make upload resumable
     let session = &format!("{}/o?uploadType=resumable&name={}", setup.url, setup.output);
@@ -72,6 +76,8 @@ pub(crate) fn gcp_upload(data: &[u8], output: &Output, filename: &str) -> Result
         }
     }
 
+    // Track output files
+    output.output_count += 1;
     Ok(())
 }
 
@@ -384,7 +390,7 @@ mod tests {
     fn test_upload_gcp() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("gcp_upload_test", "gcp", "tmp", false, port);
+        let mut output = output_options("gcp_upload_test", "gcp", "tmp", false, port);
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
@@ -402,7 +408,7 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(test.as_bytes(), &output, name).unwrap();
+        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -534,7 +540,7 @@ mod tests {
         let server = MockServer::start();
         let port = server.port();
 
-        let output = output_options("gcp_upload_test", "gcp", "tmp", true, port);
+        let mut output = output_options("gcp_upload_test", "gcp", "tmp", true, port);
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
@@ -552,7 +558,7 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(test.as_bytes(), &output, name).unwrap();
+        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -560,7 +566,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "RemoteUpload")]
     fn test_bad_upload_gcp() {
-        let output = Output {
+        let mut output = Output {
             name: String::from("test_output"),
             directory: String::from("upload"),
             format: String::from("gcp"),
@@ -577,14 +583,14 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        gcp_upload(test.as_bytes(), &output, name).unwrap();
+        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
     }
 
     #[test]
     #[should_panic(expected = "BadResponse")]
     fn test_upload_gcp_non_ok() {
         let server = MockServer::start();
-        let output = output_options("gcp_upload_test", "gcp", "tmp", false, server.port());
+        let mut output = output_options("gcp_upload_test", "gcp", "tmp", false, server.port());
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
@@ -594,7 +600,7 @@ mod tests {
         });
         let test = "A rust program";
         let name = "output";
-        gcp_upload(test.as_bytes(), &output, name).unwrap();
+        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
     }
 }

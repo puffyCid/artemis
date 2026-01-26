@@ -13,7 +13,7 @@ use std::{thread::sleep, time::Duration};
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
     data: &[u8],
-    output: &Output,
+    output: &mut Output,
     output_name: &str,
 ) -> Result<(), RemoteError> {
     let api_url = if let Some(url) = &output.url {
@@ -79,6 +79,8 @@ pub(crate) fn api_upload(
         attempt += 1;
     }
 
+    // Track output files
+    output.output_count += 1;
     Ok(())
 }
 
@@ -114,7 +116,7 @@ mod tests {
     fn test_api_upload() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("api_upload_test", "api", "tmp", false, port);
+        let mut output = output_options("api_upload_test", "api", "tmp", false, port);
 
         let mock_me = server.mock(|when, then| {
             when.method(POST).header("x-artemis-endpoint_id", "abcd");
@@ -124,7 +126,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip").unwrap();
+        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
         mock_me.assert();
     }
 
@@ -144,7 +146,7 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &output, "uuid.gzip").unwrap();
+        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
         mock_me.assert();
     }
 }

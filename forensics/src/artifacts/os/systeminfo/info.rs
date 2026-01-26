@@ -3,7 +3,7 @@ use common::system::{
     Cpus, DiskDrives, LoadPerformance, Memory, NetworkInterface, SystemInfo, SystemInfoMetadata,
 };
 use std::env;
-use sysinfo::{Disks, Networks, System};
+use sysinfo::{Disks, Networks, Product, System};
 
 /// Get Disk, CPU, Memory, and Performance info from system
 pub(crate) fn get_info() -> SystemInfo {
@@ -25,6 +25,12 @@ pub(crate) fn get_info() -> SystemInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),
         build_date: env!("VERGEN_BUILD_DATE").to_string(),
+        product_name: Product::name().unwrap_or_default(),
+        product_family: Product::family().unwrap_or_default(),
+        product_serial: Product::serial_number().unwrap_or_default(),
+        product_uuid: Product::uuid().unwrap_or_default(),
+        product_version: Product::version().unwrap_or_default(),
+        vendor: Product::vendor_name().unwrap_or_default(),
     }
 }
 
