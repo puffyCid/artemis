@@ -1,0 +1,20 @@
+# Documentation: https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
+# Guide: https://github.com/EricZimmerman/KapeFiles/blob/master/Targets/TargetGuide.guide
+
+Description = "Name of application/artifact here" # Required
+Author = "Your name"                              # Required
+Version = 1.0                                     # Required
+Id = "GUID"                                       # Required
+RecreateDirectories = true                        # Required
+
+[[Targets]]
+Name = "Artifact Name again? lol"
+Category = "Category. May point to another kape file" # Required
+Path = "C:\\Users\\bob\\Downloads"                    # Required. %user% means KAPE should search all users. * is wildcard. This should never point to a file? C:\\Users\\bob\\Downloads\\*.pf = WRONG. BUT C:\\Users\\bob\\Downloads\\* == OK?
+Recursive = true                                      # Optional. Recurse the path until the end. Default is false
+FileMask = "*.pf"                                     # Optional. Files to target. Often is a glob. HOWEVER it can also be regex. Must be prepended with "regex:". Ex: "regex:*.+\\.(db|db-wal|db-shm)"
+SaveAsFileName = "output.csv"                         # Optional. Save the file under different name?
+AlwaysAddToQueue = false                              # Optional, this setting it mostly used for files that are actively in use by the system at the time of acquisition, i.e. MFT, etc. true means it'll defer grabbing the file until the other Targets run. In most cases, do not use this. Please read the KapeDocs documentation prior to using this.
+MinSize = 10                                          # Optional minimum size of file in bytes
+MaxSize = 1000                                        # Optional. Max file size in bytes
+Comment = "This a comment"                            # Optional. Provides brief overview of what is grabbed

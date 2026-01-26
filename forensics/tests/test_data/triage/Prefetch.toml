@@ -1,0 +1,22 @@
+# Converted from KapeFiles using kape2toml.py
+description = "Prefetch files"
+author = "Eric Zimmerman"
+version = 1.0
+id = "f6715d3f-b8ca-4cc2-9e5e-4ed18e88abbe"
+recreate_directories = true
+
+[[targets]]
+name = "Prefetch"
+category = "Prefetch"
+path = "C:\\Windows\\prefetch\\"
+file_mask = "*.pf"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Prefetch"
+category = "Prefetch"
+path = "C:\\Windows.old\\Windows\\prefetch\\"
+file_mask = "*.pf"
+recursive = false
+always_add_to_queue = false

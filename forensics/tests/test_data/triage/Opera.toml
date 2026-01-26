@@ -1,0 +1,23 @@
+description = "Opera"
+author = "Andrew Rathbun"
+version = 1.0
+id = "29e3154b-7d33-4f74-8d0c-c4b8980cf989"
+recreate_directories = true
+
+[[targets]]
+name = "Opera - Local Folder"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Opera Software\\Opera Stable"
+recursive = true
+comment = "Grabs entire contents of the Opera AppData\\Local folder"
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Opera - Roaming Folder"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Roaming\\Opera Software\\Opera Stable"
+recursive = true
+comment = "Grabs entire contents of the Opera AppData\\Roaming folder"
+file_mask = "*"
+always_add_to_queue = false

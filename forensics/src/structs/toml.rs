@@ -24,7 +24,7 @@ pub struct ArtemisToml {
     pub marker: Option<Marker>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Output {
     /**Name for output folder */
     pub name: String,

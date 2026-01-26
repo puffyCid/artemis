@@ -35,8 +35,11 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             return Err(CompressionError::CompressCreate);
         }
     };
+
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let mut zip_writer = ZipWriter::new(zip_file);
+
+    // Walk through all our results and add to the zip file
     for entries in output_files {
         let entry = match entries {
             Ok(result) => result,
@@ -49,15 +52,8 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             continue;
         }
 
-        let name_result = entry.file_name().to_str();
-        let name = if let Some(result) = name_result {
-            result
-        } else {
-            warn!("[compression] Failed to get target filename");
-            continue;
-        };
-
-        let start_result = zip_writer.start_file(name, options);
+        // Preserve the full path to the compressed data
+        let start_result = zip_writer.start_file_from_path(entry.path(), options);
         match start_result {
             Ok(_) => {}
             Err(err) => {
