@@ -366,7 +366,7 @@ pub struct EventLogRecord {
 #[derive(Debug, Serialize)]
 pub struct JumplistEntry {
     pub lnk_info: ShortcutInfo,
-    pub path: String,
+    pub source: String,
     pub jumplist_type: ListType,
     pub app_id: String,
     /**Only applicable for Automatic Jumplists */
