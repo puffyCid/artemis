@@ -107,7 +107,7 @@ Options:
 [artemis] Finished artemis collection!
 
 ./tmp/local_collector/
-8706ce06-ff87-4ea9-8685-c96b64fb2cbe.log  ef308829-a667-496b-b983-d82e7fd7a631.json  status.log
+8706ce06-ff87-4ea9-8685-c96b64fb2cbe.log  processes_ef308829-a667-496b-b983-d82e7fd7a631.json  status_fedora.log
 
 ```
 
