@@ -405,11 +405,8 @@ mod tests {
                 "ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9",
             )),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

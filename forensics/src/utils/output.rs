@@ -128,16 +128,9 @@ mod tests {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
@@ -152,16 +145,9 @@ mod tests {
             name: String::from("no_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("none"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
@@ -179,16 +165,9 @@ mod tests {
             name: String::from("files"),
             directory: test_location.display().to_string(),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let _ = compress_final_output(&output);

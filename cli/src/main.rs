@@ -81,17 +81,10 @@ fn parse_args(args: &Args) {
         let out = Output {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
-            collection_id: 0,
-            timeline: false,
             directory: String::from("./tmp"),
             output: String::from("local"),
             format: String::from("json"),
-            compress: false,
-            filter_name: None,
-            filter_script: None,
-            url: None,
-            api_key: None,
-            logging: None,
+            ..Default::default()
         };
         run_collector(command, out)
     } else {

@@ -105,11 +105,8 @@ mod tests {
             url: Some(format!("http://127.0.0.1:{port}")),
             api_key: None,
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         }
     }
 
