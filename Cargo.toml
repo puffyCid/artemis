@@ -31,9 +31,8 @@ glob = "0.3.3"
 reqwest = { version = "0.13.1", features = [
     "json",
     "blocking",
-   # "native-tls-vendored",
     "multipart",
-    "form"
+    "form",
 ] }
 sysinfo = "0.38.0"
 uuid = { version = "1.20.0", features = ["v4"] }
