@@ -30,6 +30,7 @@ pub(crate) fn generate_report(
     artifacts: &[String],
     start: u64,
     runs: &[ReportRuns],
+    total_count: u64,
 ) {
     let info = get_info();
 
@@ -44,6 +45,7 @@ pub(crate) fn generate_report(
     value["endpoint_id"] = output.endpoint_id.clone().into();
     value["start_time"] = unixepoch_to_iso(start as i64).into();
     value["end_time"] = unixepoch_to_iso(time_now() as i64).into();
+    value["total_output_files"] = total_count.into();
     value["artifacts"] = json!(artifacts);
     let value_runs = match serde_json::to_value(runs) {
         Ok(result) => result,
@@ -54,10 +56,8 @@ pub(crate) fn generate_report(
     };
     value["artifact_runs"] = value_runs;
 
-    // The report is always json
+    // The report will always be json
     output.format = String::from("json");
-    // Never compress the report.json file
-    output.compress = false;
 
     if let Err(err) = raw_json(&value, "report", output) {
         error!("[forensics] Could not output report: {err:?}");
@@ -160,6 +160,12 @@ mod tests {
         };
 
         let report = generate_artifact_report(&art, &out, "completed").unwrap();
-        generate_report(&mut out, &vec![String::from("processes")], 0, &vec![report]);
+        generate_report(
+            &mut out,
+            &vec![String::from("processes")],
+            0,
+            &vec![report],
+            1,
+        );
     }
 }

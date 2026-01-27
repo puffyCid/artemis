@@ -44,6 +44,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
     let mut artifact_runs = Vec::new();
     // How long it takes to complete the entire collection
     let start = time_now();
+    let mut total_count = 0;
 
     // Loop through all supported artifacts
     for artifacts in &collector.artifacts {
@@ -648,6 +649,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         // Generate artifact report
         if let Ok(report) = generate_artifact_report(artifacts, &collector.output, &status) {
             artifact_runs.push(report);
+            total_count += collector.output.output_count;
             // Clear to the output files tracker
             collector.output.output_count = 0;
         }
@@ -659,6 +661,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         &artifact_tracker,
         start,
         &artifact_runs,
+        total_count,
     );
 
     if collector.output.output != "local" {
