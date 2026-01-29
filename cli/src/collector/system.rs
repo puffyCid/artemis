@@ -94,50 +94,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
 
 /// Setup any artifact options
 fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
-    let mut collect = Artifacts {
-        artifact_name: String::new(),
-        filter: None,
-        processes: None,
-        files: None,
-        unifiedlogs: None,
-        script: None,
-        emond: None,
-        execpolicy: None,
-        loginitems: None,
-        launchd: None,
-        fseventsd: None,
-        users_macos: None,
-        groups_macos: None,
-        sudologs_macos: None,
-        spotlight: None,
-        journals: None,
-        sudologs_linux: None,
-        logons: None,
-        eventlogs: None,
-        prefetch: None,
-        rawfiles: None,
-        shimdb: None,
-        registry: None,
-        userassist: None,
-        shimcache: None,
-        shellbags: None,
-        amcache: None,
-        shortcuts: None,
-        usnjrnl: None,
-        bits: None,
-        srum: None,
-        users_windows: None,
-        search: None,
-        tasks: None,
-        services: None,
-        jumplists: None,
-        recyclebin: None,
-        wmipersist: None,
-        outlook: None,
-        mft: None,
-        connections: None,
-        rawfiles_ext4: None,
-    };
+    let mut collect = Artifacts::default();
     match artifact {
         CommandArgs::Processes {
             md5,
@@ -545,17 +502,10 @@ mod tests {
         let out = Output {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
-            collection_id: 0,
-            timeline: false,
             directory: String::from("./tmp"),
             output: String::from("local"),
             format: String::from("json"),
-            compress: false,
-            filter_name: None,
-            filter_script: None,
-            url: None,
-            api_key: None,
-            logging: None,
+            ..Default::default()
         };
 
         out

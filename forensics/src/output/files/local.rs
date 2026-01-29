@@ -35,7 +35,7 @@ struct AcquireMetadata {
 pub(crate) trait AcquireActionLocal {
     fn reader(&self) -> Result<File, AcquireError>;
     fn compressor(&self) -> Result<GzEncoder<File>, AcquireError>;
-    fn finish(&self) -> Result<(), AcquireError>;
+    fn finish(&mut self) -> Result<(), AcquireError>;
 }
 
 impl AcquireActionLocal for AcquireFileApi {
@@ -87,7 +87,7 @@ impl AcquireActionLocal for AcquireFileApi {
     }
 
     /// Finish the file acquision by grabbing file metadata and compressing everything
-    fn finish(&self) -> Result<(), AcquireError> {
+    fn finish(&mut self) -> Result<(), AcquireError> {
         let timestamps_result = get_timestamps(&self.path);
         let timestamps = match timestamps_result {
             Ok(result) => result,
@@ -120,9 +120,8 @@ impl AcquireActionLocal for AcquireFileApi {
         let meta_bytes = serde_json::to_vec(&acq_meta).unwrap_or_default();
         let result = local_output(
             &meta_bytes,
-            &self.output,
+            &mut self.output,
             &format!("{}-metadata", &self.filename),
-            "json",
         );
 
         if let Err(status) = result {

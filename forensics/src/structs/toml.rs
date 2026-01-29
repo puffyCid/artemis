@@ -24,7 +24,7 @@ pub struct ArtemisToml {
     pub marker: Option<Marker>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Output {
     /**Name for output folder */
     pub name: String,
@@ -52,9 +52,15 @@ pub struct Output {
     pub api_key: Option<String>,
     /**Set logging setting. Default is warn. Options include: error, warn, info, debug */
     pub logging: Option<String>,
+    #[serde(default)]
+    /**Files containing the output */
+    pub output_count: u64,
+    #[serde(default)]
+    /**Path to the log file associated with the output */
+    pub log_file: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,

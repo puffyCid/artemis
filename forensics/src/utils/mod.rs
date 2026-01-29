@@ -9,6 +9,7 @@ pub(crate) mod marker;
 pub(crate) mod nom_helper;
 pub(crate) mod output;
 pub(crate) mod regex_options;
+pub(crate) mod report;
 pub(crate) mod strings;
 pub(crate) mod time;
 pub(crate) mod uuid;

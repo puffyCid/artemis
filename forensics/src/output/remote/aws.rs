@@ -14,7 +14,11 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 /// Upload data to AWS S3 Bucket using a signed URL signature
-pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result<(), RemoteError> {
+pub(crate) fn aws_upload(
+    data: &[u8],
+    output: &mut Output,
+    filename: &str,
+) -> Result<(), RemoteError> {
     let aws_url = if let Some(url) = &output.url {
         url
     } else {
@@ -56,7 +60,11 @@ pub(crate) fn aws_upload(data: &[u8], output: &Output, filename: &str) -> Result
 
     let setup = setup_upload(aws_info, aws_endpoint_url, &aws_filename, &HashMap::new())?;
 
-    aws_start_upload(setup, data)
+    aws_start_upload(setup, data)?;
+    // Track output files
+    output.output_count += 1;
+
+    Ok(())
 }
 
 pub(crate) struct AwsSetup {
@@ -405,11 +413,8 @@ mod tests {
                 "ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9",
             )),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 
@@ -417,7 +422,7 @@ mod tests {
     fn test_aws_upload() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("aws_upload_test", "aws", "tmp", false, port);
+        let mut output = output_options("aws_upload_test", "aws", "tmp", false, port);
 
         let test = "A rust program";
         let name = "output";
@@ -436,7 +441,7 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(test.as_bytes(), &output, name).unwrap();
+        aws_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }
@@ -478,7 +483,7 @@ mod tests {
     fn test_aws_upload_compress() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options("aws_upload_test", "aws", "tmp", true, port);
+        let mut output = output_options("aws_upload_test", "aws", "tmp", true, port);
 
         let test = "A rust program";
         let name = "output";
@@ -497,7 +502,7 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(test.as_bytes(), &output, name).unwrap();
+        aws_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }

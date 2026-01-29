@@ -9,9 +9,8 @@ use std::{
 /// Output to local directory provided by TOML input
 pub(crate) fn local_output(
     data: &[u8],
-    output: &Output,
+    output: &mut Output,
     output_name: &str,
-    extension: &str,
 ) -> Result<(), LocalError> {
     let output_path = format!("{}/{}", output.directory, output.name);
 
@@ -30,10 +29,13 @@ pub(crate) fn local_output(
     if output.compress {
         compression_extension = ".gz";
     }
+    let extension = &output.format;
+    let output_file = format!("{output_path}/{output_name}.{extension}{compression_extension}");
 
-    let json_file_result = OpenOptions::new().append(true).create(true).open(format!(
-        "{output_path}/{output_name}.{extension}{compression_extension}"
-    ));
+    let json_file_result = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&output_file);
 
     let mut json_file = match json_file_result {
         Ok(results) => results,
@@ -55,6 +57,8 @@ pub(crate) fn local_output(
             return Err(LocalError::WriteJson);
         }
     }
+    // Track output files
+    output.output_count += 1;
     Ok(())
 }
 
@@ -64,30 +68,24 @@ mod tests {
 
     #[test]
     fn test_output_json() {
-        let output = Output {
+        let mut output = Output {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
         let name = "output";
-        local_output(test.as_bytes(), &output, name, &output.format).unwrap();
+        local_output(test.as_bytes(), &mut output, name).unwrap();
     }
 
     #[test]
     fn test_output_json_compress() {
-        let output = Output {
+        let mut output = Output {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
@@ -96,15 +94,12 @@ mod tests {
             timeline: false,
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
         let name = "output";
-        local_output(test.as_bytes(), &output, name, &output.format).unwrap();
+        local_output(test.as_bytes(), &mut output, name).unwrap();
     }
 }
