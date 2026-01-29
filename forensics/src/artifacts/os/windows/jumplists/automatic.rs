@@ -56,17 +56,18 @@ pub(crate) fn parse_automatic<'a>(
             }
 
             let lnk_result = get_shortcut_data(&entry.data);
-            let lnk_info = match lnk_result {
+            let mut lnk_info = match lnk_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
                     error!("[jumplist] Could not parse Shortcut info in Automatic Jumplist!");
                     continue;
                 }
             };
+            lnk_info.source_path = path.to_string();
 
             let jump = JumplistEntry {
                 lnk_info,
-                path: path.to_string(),
+                source: path.to_string(),
                 jumplist_type: ListType::Automatic,
                 app_id: get_filename(path)
                     .split('.')

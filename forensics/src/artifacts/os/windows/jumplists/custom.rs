@@ -56,11 +56,12 @@ pub(crate) fn parse_custom<'a>(
         // Now take the header size and lnk_data size and nom them together
         let (_, lnk_data) = take(header.len() + lnk_data.len())(input)?;
 
-        let (_, lnk_info) = get_shortcut_data(lnk_data)?;
+        let (_, mut lnk_info) = get_shortcut_data(lnk_data)?;
+        lnk_info.source_path = path.to_string();
 
         let list = JumplistEntry {
             lnk_info,
-            path: path.to_string(),
+            source: path.to_string(),
             jumplist_type: ListType::Custom,
             app_id: get_filename(path)
                 .split('.')

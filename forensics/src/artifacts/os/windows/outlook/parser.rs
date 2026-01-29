@@ -500,15 +500,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()
@@ -534,15 +528,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()
@@ -565,15 +553,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()

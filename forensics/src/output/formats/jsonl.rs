@@ -242,15 +242,9 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
         let start_time = time_now();
 
@@ -266,15 +260,9 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let name = "test";
@@ -289,15 +277,9 @@ mod tests {
             directory: String::from("./tmp"),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let uuid = generate_uuid();

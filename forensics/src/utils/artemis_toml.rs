@@ -1,12 +1,11 @@
 use super::error::ArtemisError;
 use crate::structs::toml::ArtemisToml;
 use log::error;
-use std::str::from_utf8;
 
 impl ArtemisToml {
     // Parse the Artemis TOML collector file
     pub(crate) fn parse_artemis_toml(toml_data: &[u8]) -> Result<ArtemisToml, ArtemisError> {
-        let toml_results = toml::from_str(from_utf8(toml_data).unwrap_or_default());
+        let toml_results = toml::from_slice(toml_data);
         let mut artemis_collector: ArtemisToml = match toml_results {
             Ok(results) => results,
             Err(err) => {

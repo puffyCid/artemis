@@ -67,7 +67,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 
 /// Based on target system collect data based on TOML config
 pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
-    if let Ok((log_file, level)) = create_log_file(&collection.output) {
+    if let Ok((log_file, level)) = create_log_file(&mut collection.output) {
         let _ = WriteLogger::init(level, Config::default(), log_file);
     }
 
@@ -163,16 +163,9 @@ mod tests {
                 name: String::from("core"),
                 directory: String::from("tmp"),
                 format: String::from("json"),
-                compress: false,
-                timeline: false,
-                url: Some(String::new()),
-                api_key: Some(String::new()),
                 endpoint_id: String::from("abcd"),
-                collection_id: 0,
                 output: String::from("local"),
-                filter_name: Some(String::new()),
-                filter_script: Some(String::new()),
-                logging: Some(String::new()),
+                ..Default::default()
             },
             marker: None,
             artifacts: Vec::new(),

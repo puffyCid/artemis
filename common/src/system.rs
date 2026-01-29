@@ -17,6 +17,12 @@ pub struct SystemInfo {
     pub version: String,
     pub rust_version: String,
     pub build_date: String,
+    pub product_name: String,
+    pub product_family: String,
+    pub product_serial: String,
+    pub product_uuid: String,
+    pub product_version: String,
+    pub vendor: String,
 }
 
 #[derive(Debug, Serialize)]

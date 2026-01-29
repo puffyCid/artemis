@@ -24,24 +24,43 @@ pub struct ArtemisToml {
     pub marker: Option<Marker>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Output {
+    /**Name for output folder */
     pub name: String,
+    /**Unique endpoint ID */
     pub endpoint_id: String,
+    /**ID for the collection */
     pub collection_id: u64,
+    /**Folder to store the output data. The `name` folder will be created here */
     pub directory: String,
+    /**Output type: local, aws, gcp, or azure */
     pub output: String,
+    /**Output format: json, jsonl, or csv */
     pub format: String,
+    /**Whether to compress the results with gzip */
     pub compress: bool,
+    /**Timeline supported artifacts */
     pub timeline: bool,
+    /**Apply a filter script before outputting data */
     pub filter_name: Option<String>,
+    /**Run parsed data through provided filter script */
     pub filter_script: Option<String>,
+    /**URL for remote uploads */
     pub url: Option<String>,
+    /**API used for remote uploads */
     pub api_key: Option<String>,
+    /**Set logging setting. Default is warn. Options include: error, warn, info, debug */
     pub logging: Option<String>,
+    #[serde(default)]
+    /**Files containing the output */
+    pub output_count: u64,
+    #[serde(default)]
+    /**Path to the log file associated with the output */
+    pub log_file: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Artifacts {
     /**Based on artifact parse one of the artifact types */
     pub artifact_name: String,
