@@ -13,7 +13,9 @@ use url::Url;
 
 /// Parse a TOML file at provided path
 pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
-    if let Ok(url) = Url::parse(path) {
+    if let Ok(url) = Url::parse(path)
+        && path.starts_with("http")
+    {
         let mut collection = match ArtemisToml::remote_artemis_toml(url.as_str()) {
             Ok(result) => result,
             Err(_err) => return Err(TomlError::RemoteToml),
