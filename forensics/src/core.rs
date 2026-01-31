@@ -9,9 +9,20 @@ use crate::{
 use log::{LevelFilter, error, info};
 use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
+use url::Url;
 
 /// Parse a TOML file at provided path
 pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
+    if let Ok(url) = Url::parse(path)
+        && path.starts_with("http")
+    {
+        let mut collection = match ArtemisToml::remote_artemis_toml(url.as_str()) {
+            Ok(result) => result,
+            Err(_err) => return Err(TomlError::RemoteToml),
+        };
+        return artemis_collection(&mut collection);
+    }
+
     let buffer_results = read_file(path);
     let buffer = match buffer_results {
         Ok(results) => results,
@@ -28,8 +39,7 @@ pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
         }
     };
 
-    artemis_collection(&mut collection)?;
-    Ok(())
+    artemis_collection(&mut collection)
 }
 
 /// Parse an already read TOML file
@@ -41,8 +51,7 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
             return Err(TomlError::BadToml);
         }
     };
-    artemis_collection(&mut collection)?;
-    Ok(())
+    artemis_collection(&mut collection)
 }
 
 /// Execute a JavaScript file at provided path

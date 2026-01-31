@@ -155,6 +155,11 @@ fn drive_tasks(
         job_tasks.push(job_result);
     }
 
+    // Job schedule tasks are legacy format. May not exist
+    if job_tasks.is_empty() {
+        return Ok(());
+    }
+
     let mut serde_data = match serde_json::to_value(&job_tasks) {
         Ok(result) => result,
         Err(err) => {
