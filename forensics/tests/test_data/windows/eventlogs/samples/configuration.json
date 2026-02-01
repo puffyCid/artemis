@@ -1,0 +1,121 @@
+{
+    "event_record_id": 63451,
+    "timestamp": "2026-01-14T04:41:03.4338496Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Configuration-Change-Monitor",
+                        "Guid": "A148CF02-BE6D-5F08-94E3-B68DE60D8422"
+                    }
+                },
+                "EventID": 1,
+                "Version": 0,
+                "Level": 4,
+                "Task": 0,
+                "Opcode": 0,
+                "Keywords": "0x8000000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2026-01-14T04:41:03.433849Z"
+                    }
+                },
+                "EventRecordID": 63451,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 1228,
+                        "ThreadID": 1992
+                    }
+                },
+                "Channel": "System",
+                "Computer": "win",
+                "Security": {
+                    "#attributes": {
+                        "UserID": "S-1-5-18"
+                    }
+                }
+            },
+            "EventData": {
+                "Sid": "S-1-5-18",
+                "Command line": "\"netsh\" advfirewall firewall delete rule name=\"CodeMeter Runtime Server\"",
+                "Parent Process 1": "C:\\Windows\\SysWOW64\\netsh.exe",
+                "Parent Process 2": "C:\\Windows\\SysWOW64\\msiexec.exe",
+                "Parent Process 3": "C:\\Windows\\System32\\msiexec.exe",
+                "Parent Process 4": "C:\\Windows\\System32\\services.exe",
+                "Parent Process 5": "C:\\Windows\\System32\\wininit.exe",
+                "Parent Process 6": "",
+                "Parent Process 7": "",
+                "Parent Process 8": "",
+                "Parent Process 9": "",
+                "Parent Process 10": ""
+            }
+        }
+    },
+    "collection_metadata": {
+        "endpoint_id": "local",
+        "uuid": "0069534f-287e-436e-99eb-31e7c940e9b9",
+        "id": 0,
+        "artifact_name": "eventlogs",
+        "complete_time": "2026-01-31T22:20:34.000Z",
+        "start_time": "2026-01-31T22:20:33.000Z",
+        "hostname": "win",
+        "os_version": "11 (26200)",
+        "platform": "Windows",
+        "kernel_version": "26200",
+        "load_performance": {
+            "avg_one_min": 0.0,
+            "avg_five_min": 0.0,
+            "avg_fifteen_min": 0.0
+        },
+        "version": "0.18.0",
+        "rust_version": "1.91.1",
+        "build_date": "2026-01-31",
+        "interfaces": [
+            {
+                "ip": "192.168.1.132",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "fda9:dfeb:d274:0:dd51:80a7:e405:e829",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "2601:140:827f:9159:ce20:5154:ce87:2453",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "fe80::d7f6:bb31:479c:903a",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "fda9:dfeb:d274:0:6e17:aaf3:2f1b:9291",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "2601:140:827f:9159::ced",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "fda9:dfeb:d274::ced",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            },
+            {
+                "ip": "2601:140:827f:9159:dd51:80a7:e405:e829",
+                "mac": "e8:a7:2f:7b:3d:b1",
+                "name": "Wi-Fi"
+            }
+        ]
+    }
+}
