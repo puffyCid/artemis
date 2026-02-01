@@ -148,7 +148,7 @@ pub(crate) fn add_message_strings(
     // If we have parameter files. Then we extract the message from it. There should only be one?
     for file in parameter_files {
         let template = resources.templates.get(file);
-        if template.is_none() {
+        if template.is_none() || template?.message_table.is_none() {
             continue;
         }
 
@@ -209,7 +209,6 @@ pub(crate) fn add_message_strings(
             };
 
             message.template_message = table.message.clone();
-
             message.message =
                 merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
             return Some(message);
@@ -242,7 +241,6 @@ pub(crate) fn add_message_strings(
                     Some(result) => result,
                     None => continue,
                 };
-
                 message.template_message = table.message.clone();
                 message.message = merge_strings_message_table(
                     &log.data,
@@ -260,6 +258,10 @@ pub(crate) fn add_message_strings(
             id = event_id.id as u32;
         }
 
+        if message_table.is_none() {
+            message.message = merge_strings_no_manifest(&log.data)?;
+            return Some(message);
+        }
         let table_opt = message_table?.get(&id);
         let table = if let Some(result) = table_opt {
             result
@@ -293,6 +295,13 @@ pub(crate) fn add_message_strings(
         break;
     }
 
+    // If the message is empty. Just combine the raw strings
+    // Message may be empty due to:
+    //  - EventLog provider strings missing
+    //  - EventLog data is null
+    if message.message.is_empty() {
+        message.message = merge_strings_no_manifest(&log.data)?;
+    }
     Some(message)
 }
 
@@ -968,6 +977,7 @@ mod tests {
             "surface.json",
             "application_cert.json",
             "system_missing.json",
+            "configuration.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -1127,7 +1137,7 @@ mod tests {
                     );
                 }
                 "null_no_provider_log.json" => {
-                    assert!(message.message.is_empty());
+                    assert_eq!(message.message, "null");
                 }
                 "too_many_params_log.json" => {
                     // Outlook may not be installed on system
@@ -1195,8 +1205,19 @@ mod tests {
                 }
                 "system_missing.json" => {
                     // The Eventlog provider for this message is missing on Windows 11 24H2 (ARM64)
-                    assert_eq!(message.message, "");
+                    assert_eq!(
+                        message.message,
+                        "Data:\n #text: [\"PROV++\",\"PackageVersion: 2025.403.1\",\"ImageName: aoc1-home-consumer-dsi-oembr-2024.808.9383184\",\"ImageProductName: oembr\",\"ImageVersion: 2024.808.9383184\"]\nBinary: null\n"
+                    );
                     assert_eq!(message.event_id, 318);
+                }
+                "configuration.json" => {
+                    // The Eventlog provider for this message is missing on Windows 11 24H2 (ARM64)
+                    assert_eq!(
+                        message.message,
+                        "Sid: S-1-5-18\nCommand line: \"netsh\" advfirewall firewall delete rule name=\"CodeMeter Runtime Server\"\nParent Process 1: C:\\Windows\\SysWOW64\\netsh.exe\nParent Process 2: C:\\Windows\\SysWOW64\\msiexec.exe\nParent Process 3: C:\\Windows\\System32\\msiexec.exe\nParent Process 4: C:\\Windows\\System32\\services.exe\nParent Process 5: C:\\Windows\\System32\\wininit.exe\nParent Process 6: \nParent Process 7: \nParent Process 8: \nParent Process 9: \nParent Process 10: \n"
+                    );
+                    assert_eq!(message.event_id, 1);
                 }
                 _ => panic!("should not have an unknown sample?"),
             }
