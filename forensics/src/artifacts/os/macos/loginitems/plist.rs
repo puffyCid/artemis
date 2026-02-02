@@ -60,7 +60,7 @@ fn get_array_values(
                 let item = LoginItemsData {
                     path: value,
                     cnid_path: String::new(),
-                    created: String::new(),
+                    created: String::from("1970-01-01T00:00:00.000Z"),
                     volume_path: String::new(),
                     volume_url: String::new(),
                     volume_name: String::new(),

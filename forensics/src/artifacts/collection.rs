@@ -642,8 +642,8 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
 
         artifact_tracker.push(artifacts.artifact_name.clone());
         // If marker file is enabled, write and update a marker file to track most recent artifact runs
-        if collector.marker.is_some() {
-            update_marker(collector.marker.as_ref().unwrap(), artifacts);
+        if let Some(marker) = &collector.marker {
+            update_marker(marker, artifacts);
         }
 
         // Generate artifact report

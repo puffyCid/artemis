@@ -386,11 +386,11 @@ pub(crate) fn js_read_messages(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
         // This is difficult
-        if message_table.has_branch.is_some() {
+        if let Some(has_branch) = &message_table.has_branch {
             let mut main_count = 0;
             let mut chunks = Vec::new();
             // Each branch has a collection of messages. Ex: Messages 0-20
-            for branch in message_table.has_branch.as_ref().unwrap() {
+            for branch in has_branch {
                 // If the offset is greater than the current branch message count.
                 // Go to next branch. Ex: Branch 1 has messages 0-20. Branch 2 has messages 21-40, etc
                 if offset > branch.rows_info.count + main_count {
@@ -441,11 +441,11 @@ pub(crate) fn js_read_messages(
             let issue = format!("Failed to setup outlook reader: {result:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
-        if message_table.has_branch.is_some() {
+        if let Some(has_branch) = &message_table.has_branch {
             let mut main_count = 0;
             let mut chunks = Vec::new();
             // Each branch has a collection of messages. Ex: Messages 0-20
-            for branch in message_table.has_branch.as_ref().unwrap() {
+            for branch in has_branch {
                 // If the offset is greater than the current branch message count.
                 // Go to next branch. Ex: Branch 1 has messages 0-20. Branch 2 has messages 21-40, etc
                 if offset > branch.rows_info.count + main_count {

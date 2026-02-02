@@ -1795,7 +1795,7 @@ dependencies = [
  "jsonwebtoken",
  "log",
  "lumination",
- "lz4_flex 0.12.0",
+ "lz4_flex",
  "macos-unifiedlogs",
  "md-5",
  "miniz_oxide 0.9.0",
@@ -2869,15 +2869,6 @@ dependencies = [
 
 [[package]]
 name = "lz4_flex"
-version = "0.11.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08ab2867e3eeeca90e844d1940eab391c9dc5228783db2ed999acbc0a9ed375a"
-dependencies = [
- "twox-hash",
-]
-
-[[package]]
-name = "lz4_flex"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab6473172471198271ff72e9379150e9dfd70d8e533e0752a27e515b48dd375e"
@@ -2907,15 +2898,15 @@ dependencies = [
 
 [[package]]
 name = "macos-unifiedlogs"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b78d74c2b9ddfaded7e53fc13fc1b870b0b6ec52aab4307e8b8d33db195c3dab"
+checksum = "e432d89a7f06d295f375ca88bbdcc988a18085441962b6633b5178250c4c50be"
 dependencies = [
  "base64",
  "byteorder",
  "chrono",
  "log",
- "lz4_flex 0.11.5",
+ "lz4_flex",
  "nom 8.0.0",
  "plist",
  "regex",
@@ -6597,6 +6588,6 @@ dependencies = [
 
 [[package]]
 name = "zmij"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1966f8ac2c1f76987d69a74d0e0f929241c10e78136434e3be70ff7f58f64214"
+checksum = "3ff05f8caa9038894637571ae6b9e29466c1f4f829d26c9b28f869a29cbe3445"
