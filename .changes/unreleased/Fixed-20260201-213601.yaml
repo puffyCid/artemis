@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug where artemis would not correctly timeline loginitems in app bundles
+time: 2026-02-01T21:36:01.268187-05:00
