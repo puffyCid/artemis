@@ -137,8 +137,8 @@ fn default_eventlogs(
     filter: bool,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
-    let path = if options.alt_dir.is_some() {
-        options.alt_dir.as_ref().unwrap()
+    let path = if let Some(alt_dir) = &options.alt_dir {
+        alt_dir
     } else {
         let drive_result = get_systemdrive();
         let drive = match drive_result {

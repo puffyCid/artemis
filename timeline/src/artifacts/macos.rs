@@ -151,6 +151,10 @@ pub(crate) fn loginitems(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("LoginItems"));
         entry["data_type"] = Value::String(String::from("macos:plist:loginitems:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Target Created"));
+
+        if entry["message"].as_str()?.is_empty() {
+            entry["message"] = entry["app_id"].as_str()?.into();
+        }
     }
 
     Some(())
@@ -330,6 +334,17 @@ mod tests {
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "LoginItems");
         assert_eq!(test[0]["message"], "/Applications/Docker.app");
+
+        let mut missing_path = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "path": "",
+            "app_id": "docker"
+        }]);
+
+        loginitems(&mut missing_path).unwrap();
+        assert_eq!(missing_path[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(missing_path[0]["artifact"], "LoginItems");
+        assert_eq!(missing_path[0]["message"], "docker");
     }
 
     #[test]

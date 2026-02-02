@@ -45,7 +45,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                     let mut loginitems_data = LoginItemsData {
                         path: String::new(),
                         cnid_path: String::new(),
-                        created: String::new(),
+                        created: String::from("1970-01-01T00:00:00.000Z"),
                         volume_path: String::new(),
                         volume_url: String::new(),
                         volume_name: String::new(),
