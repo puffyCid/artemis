@@ -28,13 +28,13 @@ nom = "8.0.0"
 md-5 = "0.10.6"
 sha-1 = "0.10.1"
 sha2 = "0.10.9"
-regex = "1.12.2"
+regex = "1.12.3"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.12"
 chrono = "0.4.43"
 simplelog = "0.12.2"
-zip = { version = "7.2.0", default-features = false }
+zip = { version = "7.3.0", default-features = false }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 rusty-s3 = "0.8.1"
 quick-xml = { version = "0.39.0", default-features = false }
@@ -91,8 +91,8 @@ ntapi = "0.4.2"
 
 # Dependencies for tests
 [dev-dependencies]
-httpmock = "0.8.2"
-criterion = "0.8.1"
+httpmock = "0.8.3"
+criterion = "0.8.2"
 
 [build-dependencies]
 vergen = { version = "9.1.0", features = ["build", "rustc"] }
