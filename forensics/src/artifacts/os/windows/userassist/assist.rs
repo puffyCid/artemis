@@ -66,7 +66,7 @@ fn get_entries(
             };
             userassist.rot_path.clone_from(&value.value);
             userassist.path = rot_decode(&value.value);
-            userassist.reg_path.clone_from(&reg_entries.reg_file);
+            userassist.evidence.clone_from(&reg_entries.reg_file);
 
             // Check if we can translate the CLSID values to the folder name
             for (key, value) in folder_descriptions {
@@ -83,14 +83,14 @@ fn get_entries(
 }
 
 /// Parse out the `UserAssist` data: Execution count and last execution time
-fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
+fn get_userassist_data<'a>(data: &'a [u8]) -> nom::IResult<&'a [u8], UserAssistEntry> {
     let mut userassist = UserAssistEntry {
         path: String::new(),
         last_execution: String::new(),
         count: 0,
-        reg_path: String::new(),
         rot_path: String::new(),
         folder_path: String::new(),
+        evidence: String::new(),
     };
     let entry_size = 72;
     if data.len() != entry_size {
@@ -141,7 +141,7 @@ mod tests {
         }
         assert!(results.len() > 1);
         for entry in results {
-            if entry.reg_path == "UEME_CTLSESSION" {
+            if entry.path == "UEME_CTLSESSION" {
                 assert_eq!(entry.count, 0);
                 assert_eq!(entry.last_execution, "");
                 assert_eq!(entry.rot_path, "HRZR_PGYFRFFVBA");

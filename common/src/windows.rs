@@ -752,7 +752,7 @@ pub struct RegistryData {
     pub last_modified: String,
     pub depth: usize,
     pub security_offset: i32,
-    pub registry_path: String,
+    pub evidence: String,
     pub registry_file: String,
 }
 
@@ -781,6 +781,7 @@ pub struct ServicesData {
     pub required_privileges: Vec<String>,
     pub error_control: ServiceError,
     pub reg_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -846,14 +847,14 @@ pub struct ShimcacheEntry {
     pub path: String,
     pub last_modified: String,
     pub key_path: String,
-    pub source_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ShimData {
     pub indexes: Vec<TagData>,
     pub db_data: DatabaseData,
-    pub sdb_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -895,6 +896,7 @@ pub struct ApplicationInfo {
     pub background_num_read_operations: i32,
     pub background_num_write_operations: i32,
     pub background_number_of_flushes: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -943,6 +945,7 @@ pub struct AppTimelineInfo {
     pub keyboard_input_timeline: i64,
     pub keyboard_input_s: i32,
     pub mouse_input_s: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -955,6 +958,7 @@ pub struct AppVfu {
     pub start_time: String,
     pub end_time: String,
     pub usage: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -964,6 +968,7 @@ pub struct EnergyInfo {
     pub app_id: String,
     pub user_id: String,
     pub binary_data: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -979,6 +984,7 @@ pub struct EnergyUsage {
     pub charge_level: i32,
     pub cycle_count: i32,
     pub configuration_hash: i64,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -992,6 +998,7 @@ pub struct NetworkInfo {
     pub l2_profile_flags: i32,
     pub bytes_sent: i64,
     pub bytes_recvd: i64,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1005,6 +1012,7 @@ pub struct NetworkConnectivityInfo {
     pub connected_time: i32,
     pub connect_start_time: String,
     pub l2_profile_flags: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1016,6 +1024,7 @@ pub struct NotificationInfo {
     pub notification_type: i32,
     pub payload_size: i32,
     pub network_type: i32,
+    pub evidence: String,
 }
 
 /**
@@ -1031,7 +1040,7 @@ pub struct TaskXml {
     pub data: Option<String>,
     pub principals: Option<Vec<Principals>>,
     pub actions: Actions,
-    pub path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -1294,7 +1303,7 @@ pub struct TaskJob {
     pub user_data: String,
     pub start_error: u32,
     pub triggers: Vec<VarTriggers>,
-    pub path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -1376,9 +1385,9 @@ pub struct UserAssistEntry {
     pub path: String,
     pub last_execution: String,
     pub count: u32,
-    pub reg_path: String,
     pub rot_path: String,
     pub folder_path: String,
+    pub evidence: String,
 }
 
 #[derive(Serialize)]
@@ -1397,6 +1406,7 @@ pub struct UsnJrnlEntry {
     pub extension: String,
     pub full_path: String,
     pub drive: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

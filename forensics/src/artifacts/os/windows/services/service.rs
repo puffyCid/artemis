@@ -30,7 +30,7 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
         }
 
         // Collected all keys associated with Service. Now parse what we have
-        let service = collect_service(&service_group, &current_service);
+        let service = collect_service(&service_group, &current_service, path);
         services.push(service);
         service_group.clear();
 
@@ -40,14 +40,18 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
     }
 
     // Get last service
-    let last_service = collect_service(&service_group, &current_service);
+    let last_service = collect_service(&service_group, &current_service, path);
     services.push(last_service);
 
     Ok(services)
 }
 
 /// Collect data associated with Service
-fn collect_service(service_data: &Vec<RegistryData>, service_name: &str) -> ServicesData {
+fn collect_service(
+    service_data: &Vec<RegistryData>,
+    service_name: &str,
+    evidence: &str,
+) -> ServicesData {
     let name = service_name.to_string();
 
     let mut service = ServicesData {
@@ -66,6 +70,7 @@ fn collect_service(service_data: &Vec<RegistryData>, service_name: &str) -> Serv
         failure_actions: Vec::new(),
         required_privileges: Vec::new(),
         error_control: ServiceError::Unknown,
+        evidence: evidence.to_string(),
         reg_path: String::new(),
     };
 
@@ -161,7 +166,7 @@ mod tests {
                 continue;
             }
 
-            let service = collect_service(&service_group, &current_service);
+            let service = collect_service(&service_group, &current_service, &path);
             services.push(service);
             service_group.clear();
 
@@ -170,6 +175,7 @@ mod tests {
         }
 
         assert!(services.len() > 10);
+        assert!(services[2].evidence.ends_with("SYSTEM"));
     }
 
     #[test]
@@ -197,6 +203,7 @@ mod tests {
             required_privileges: Vec::new(),
             error_control: ServiceError::Unknown,
             reg_path: String::new(),
+            evidence: String::new(),
         };
 
         metadata(&test, &mut service);

@@ -61,7 +61,7 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
         user_data: variable_value.user_data,
         start_error: variable_value.start_error,
         triggers: variable_value.triggers,
-        path: path.to_string(),
+        evidence: path.to_string(),
     };
 
     Ok(job)
