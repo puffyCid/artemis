@@ -14,6 +14,7 @@ pub(crate) fn add_message_strings(
     log: &EventLogRecord,
     resources: &StringResource,
     param_regex: &Regex,
+    evidence: &str,
 ) -> Option<EventMessage> {
     let mut message = EventMessage {
         message: String::new(),
@@ -44,6 +45,7 @@ pub(crate) fn add_message_strings(
         registry_file: String::new(),
         registry_path: String::new(),
         rendering_info: None,
+        evidence: evidence.to_string(),
     };
     let meta = log
         .data
@@ -990,7 +992,7 @@ mod tests {
 
             test_location.pop();
 
-            let message = add_message_strings(&log, &resources, &params).unwrap();
+            let message = add_message_strings(&log, &resources, &params, "test").unwrap();
 
             assert!(!message.message.contains("%%"));
             assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));

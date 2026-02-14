@@ -50,5 +50,6 @@
                 "CustomLevel": "Info"
             }
         }
-    }
+    },
+    "evidence": "test"
 }

@@ -101,7 +101,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
             size: String::new(),
             sha1: String::new(),
             reg_path: entry.path.clone(),
-            source_path: entry.registry_path.clone(),
+            evidence: entry.registry_path.clone(),
         };
 
         let old_path_depth = 5;
@@ -316,7 +316,7 @@ mod tests {
                 size: String::new(),
                 sha1: String::new(),
                 reg_path: entry.path.clone(),
-                source_path: entry.registry_path.clone(),
+                evidence: entry.registry_path.clone(),
             };
 
             let old_path_depth = 5;
@@ -366,7 +366,7 @@ mod tests {
                 size: String::new(),
                 sha1: String::new(),
                 reg_path: entry.path.clone(),
-                source_path: entry.registry_path.clone(),
+                evidence: entry.registry_path.clone(),
             };
 
             if entry.path.contains("InventoryApplicationFile") {
@@ -377,5 +377,6 @@ mod tests {
             amcache_vec.push(amcache_entry);
         }
         assert_eq!(amcache_vec.len(), 2);
+        assert!(amcache_vec[0].evidence.ends_with("Amcache.hve"))
     }
 }

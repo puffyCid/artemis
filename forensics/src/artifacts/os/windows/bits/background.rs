@@ -63,6 +63,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
                     carved: false,
                     drive: file.drive.clone(),
                     tmp_fullpath: file.tmp_fullpath.clone(),
+                    evidence: bits_path.to_string(),
                 };
                 bits_info.push(bit_info);
             }
@@ -74,8 +75,9 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
         let is_legacy = false;
         let read_result = raw_read_file(bits_path);
         if let Ok(result) = read_result {
-            let (_carved_bits, carved_jobs, carved_files) = parse_carve(&result, is_legacy);
-            add_carved_bits(&mut bits_info, &carved_jobs, &carved_files);
+            let (_carved_bits, carved_jobs, carved_files) =
+                parse_carve(&result, is_legacy, bits_path);
+            add_carved_bits(&mut bits_info, &carved_jobs, &carved_files, bits_path);
         } else {
             error!(
                 "[bits] Could not read {bits_path} for carving: {:?}",
@@ -154,12 +156,12 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<Vec<BitsInfo>, Bits
             return Err(BitsError::ReadFile);
         }
     };
-    let mut bits = get_legacy_jobs(&bits_data)?;
+    let mut bits = get_legacy_jobs(&bits_data, path)?;
 
     if carve {
         let is_legacy = false;
-        let (_carved_bits, carved_jobs, carved_files) = parse_carve(&bits_data, is_legacy);
-        add_carved_bits(&mut bits, &carved_jobs, &carved_files);
+        let (_carved_bits, carved_jobs, carved_files) = parse_carve(&bits_data, is_legacy, path);
+        add_carved_bits(&mut bits, &carved_jobs, &carved_files, path);
     }
     Ok(bits)
 }
@@ -171,8 +173,8 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<Vec<BitsInfo>, Bits
  * For BITS in ESE format (Win10+) BITS jobs and files are separate tables but since we are scanning the whole ESE db  
  * we do not merge the jobs and file info since we cannot determine what links the tables
  */
-fn parse_carve(data: &[u8], is_legacy: bool) -> WinBits {
-    let results = carve_bits(data, is_legacy);
+fn parse_carve(data: &[u8], is_legacy: bool, evidence: &str) -> WinBits {
+    let results = carve_bits(data, is_legacy, evidence);
     match results {
         Ok((_, bits)) => bits,
         Err(_err) => {
@@ -182,7 +184,12 @@ fn parse_carve(data: &[u8], is_legacy: bool) -> WinBits {
     }
 }
 
-fn add_carved_bits(bits: &mut Vec<BitsInfo>, jobs: &Vec<JobInfo>, files: &Vec<FileInfo>) {
+fn add_carved_bits(
+    bits: &mut Vec<BitsInfo>,
+    jobs: &Vec<JobInfo>,
+    files: &Vec<FileInfo>,
+    evidence: &str,
+) {
     for job in jobs {
         let bit = BitsInfo {
             job_id: job.job_id.clone(),
@@ -217,6 +224,7 @@ fn add_carved_bits(bits: &mut Vec<BitsInfo>, jobs: &Vec<JobInfo>, files: &Vec<Fi
             carved: true,
             drive: String::new(),
             tmp_fullpath: String::new(),
+            evidence: evidence.to_string(),
         };
         bits.push(bit);
     }
@@ -255,6 +263,7 @@ fn add_carved_bits(bits: &mut Vec<BitsInfo>, jobs: &Vec<JobInfo>, files: &Vec<Fi
             carved: true,
             drive: String::new(),
             tmp_fullpath: String::new(),
+            evidence: evidence.to_string(),
         };
         bits.push(bit);
     }
@@ -307,7 +316,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let (_, jobs, files) = parse_carve(&data, false);
+        let (_, jobs, files) = parse_carve(&data, false, test_location.to_str().unwrap());
         assert_eq!(jobs.len(), 106);
         assert_eq!(files.len(), 41);
     }
