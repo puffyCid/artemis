@@ -369,7 +369,7 @@ pub struct EventLogRecord {
 #[derive(Debug, Serialize)]
 pub struct JumplistEntry {
     pub lnk_info: ShortcutInfo,
-    pub source: String,
+    pub evidence: String,
     pub jumplist_type: ListType,
     pub app_id: String,
     /**Only applicable for Automatic Jumplists */
@@ -404,7 +404,7 @@ pub enum ListType {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct ShortcutInfo {
-    pub source_path: String,
+    pub evidence: String,
     pub data_flags: Vec<DataFlags>,
     pub attribute_flags: Vec<AttributeFlags>,
     pub created: String,
@@ -661,7 +661,7 @@ pub enum ShellType {
     _Optical, // No optical drives available to test on.
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct RawFilelist {
     pub full_path: String,
     pub directory: String,
@@ -700,64 +700,23 @@ pub struct RawFilelist {
     pub pe_info: Vec<PeInfo>,
 }
 
-impl Default for RawFilelist {
-    fn default() -> Self {
-        RawFilelist {
-            full_path: String::new(),
-            directory: String::new(),
-            filename: String::new(),
-            extension: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            changed: String::new(),
-            accessed: String::new(),
-            filename_created: String::new(),
-            filename_modified: String::new(),
-            filename_changed: String::new(),
-            filename_accessed: String::new(),
-            size: 0,
-            compressed_size: 0,
-            compression_type: CompressionType::None,
-            inode: 0,
-            sequence_number: 0,
-            parent_mft_reference: 0,
-            owner: 0,
-            attributes: Vec::new(),
-            namespace: Namespace::Unknown,
-            md5: String::new(),
-            sha1: String::new(),
-            sha256: String::new(),
-            is_file: false,
-            is_directory: false,
-            is_indx: false,
-            depth: 0,
-            usn: 0,
-            sid: 0,
-            user_sid: String::new(),
-            group_sid: String::new(),
-            drive: String::new(),
-            ads_info: Vec::new(),
-            pe_info: Vec::new(),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Clone)]
 pub struct ADSInfo {
     pub name: String,
     pub size: u64,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub enum CompressionType {
     NTFSCompressed,
     WofCompressed,
+    #[default]
     None,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Prefetch {
-    pub path: String,
+    pub evidence: String,
     pub filename: String,
     pub hash: String,
     pub last_run_time: String,
@@ -781,7 +740,7 @@ pub struct RecycleBin {
     pub full_path: String,
     pub directory: String,
     pub sid: String,
-    pub recycle_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -1628,11 +1587,12 @@ pub struct MftEntry {
     pub deleted: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub enum Namespace {
     Posix,
     Windows,
     Dos,
     WindowsDos,
+    #[default]
     Unknown,
 }

@@ -113,7 +113,7 @@ mod tests {
 
         assert_eq!(
             results[124]
-                .path
+                .evidence
                 .contains("SHELLEXPERIENCEHOST.EXE-C83BCA53.pf"),
             true
         );
@@ -132,7 +132,7 @@ mod tests {
 
         assert_eq!(
             results[124]
-                .path
+                .evidence
                 .contains("SHELLEXPERIENCEHOST.EXE-C83BCA53.pf"),
             true
         );
@@ -150,7 +150,9 @@ mod tests {
         assert_eq!(results.len(), 133);
 
         assert_eq!(
-            results[124].path.contains("WINSDKSETUP.EXE-637164D5.pf"),
+            results[124]
+                .evidence
+                .contains("WINSDKSETUP.EXE-637164D5.pf"),
             true
         );
         assert_eq!(results[124].filename, "WINSDKSETUP.EXE");
@@ -166,7 +168,10 @@ mod tests {
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 23);
 
-        assert_eq!(results[1].path.contains("DLLHOST.EXE-5E46FA0D.pf"), true);
+        assert_eq!(
+            results[1].evidence.contains("DLLHOST.EXE-5E46FA0D.pf"),
+            true
+        );
         assert_eq!(results[1].filename, "DLLHOST.EXE");
         assert_eq!(results[1].hash, "5E46FA0D");
         assert_eq!(results[1].last_run_time, "2022-10-31T02:39:50.000Z");
@@ -180,14 +185,14 @@ mod tests {
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 257);
 
-        assert_eq!(results[1].path.contains("7ZFM.EXE-44040917.pf"), true);
+        assert_eq!(results[1].evidence.contains("7ZFM.EXE-44040917.pf"), true);
         assert_eq!(results[1].filename, "7ZFM.EXE");
         assert_eq!(results[1].hash, "44040917");
         assert_eq!(results[1].last_run_time, "2022-10-08T00:38:51.000Z");
 
         for result in results {
-            if result.path.contains("SVCHOST.EXE-576FFE64.pf") {
-                assert_eq!(result.path.contains("SVCHOST.EXE-576FFE64.pf"), true);
+            if result.evidence.contains("SVCHOST.EXE-576FFE64.pf") {
+                assert_eq!(result.evidence.contains("SVCHOST.EXE-576FFE64.pf"), true);
                 assert_eq!(result.filename, "SVCHOST.EXE");
                 assert_eq!(result.hash, "576FFE64");
                 assert_eq!(result.last_run_time, "2022-10-21T01:52:22.000Z");
@@ -230,7 +235,7 @@ mod tests {
 
         let results = read_prefetch(&test_location.display().to_string()).unwrap();
 
-        assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
+        assert_eq!(results.evidence.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
         assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");

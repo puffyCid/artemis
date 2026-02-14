@@ -40,7 +40,7 @@ pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> 
         directory: String::new(),
         full_path,
         sid: String::new(),
-        recycle_path: String::new(),
+        evidence: String::new(),
     };
 
     recycle.directory = get_parent_directory(&recycle.full_path);

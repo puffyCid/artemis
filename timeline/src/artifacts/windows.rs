@@ -304,7 +304,7 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
 
         entry["artifact"] = Value::String(String::from("Prefetch"));
         entry["data_type"] = Value::String(String::from("windows:prefetch:file"));
-        entry["message"] = Value::String(entry["path"].as_str()?.into());
+        entry["message"] = Value::String(entry["evidence"].as_str()?.into());
         entry["datetime"] = entry["last_run_time"].as_str()?.into();
         entry["timestamp_desc"] = Value::String(String::from("Prefetch Last Execution"));
         entries.push(entry.clone());
@@ -553,7 +553,7 @@ pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
         };
         entry["artifact"] = Value::String(String::from("Shortcut"));
         entry["data_type"] = Value::String(String::from("windows:shortcut:lnk"));
-        entry["message"] = entry["source_path"].clone();
+        entry["message"] = entry["evidence"].clone();
 
         let temp = entry.clone();
         let times = extract_shortcut_times(&temp)?;
@@ -930,7 +930,7 @@ mod tests {
     fn test_prefetch() {
         let mut test = json!([{
             "last_run_time": "2024-01-01T00:00:00.000Z",
-            "path": "test.pf",
+            "evidence": "test.pf",
             "all_run_times": [],
         }]);
 
