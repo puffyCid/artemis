@@ -32,6 +32,7 @@ pub(crate) struct Logon {
     microseconds: i32,
     ip: String,
     status: Status,
+    evidence: String,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -56,7 +57,7 @@ pub(crate) enum Status {
 
 impl Logon {
     /// Stream the logon info
-    pub(crate) fn logon_reader(reader: &mut File, status: Status) -> Vec<Logon> {
+    pub(crate) fn logon_reader(reader: &mut File, status: Status, evidence: &str) -> Vec<Logon> {
         let mut logon_buff = [0; 384];
         let mut logon_size = logon_buff.len();
         let mut logons = Vec::new();
@@ -77,7 +78,7 @@ impl Logon {
                 break;
             }
 
-            let result = Logon::parse_logon(&logon_buff, status, &mut logons);
+            let result = Logon::parse_logon(&logon_buff, status, &mut logons, evidence);
             if result.is_err() {
                 error!("[logons] Could not parse logon file");
             }
@@ -91,6 +92,7 @@ impl Logon {
         data: &'a [u8],
         status: Status,
         logons: &mut Vec<Logon>,
+        evidence: &str,
     ) -> nom::IResult<&'a [u8], ()> {
         let (remaining, logon_type) = nom_unsigned_four_bytes(data, Endian::Le)?;
         let (remaining, pid) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
@@ -158,6 +160,7 @@ impl Logon {
             microseconds,
             ip,
             status,
+            evidence: evidence.to_string(),
         };
 
         logons.push(logon);
@@ -197,7 +200,11 @@ mod tests {
         test_location.push("tests/test_data/linux/logons/ubuntu18.04/wtmp");
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
-        let results = Logon::logon_reader(&mut reader, Status::Success);
+        let results = Logon::logon_reader(
+            &mut reader,
+            Status::Success,
+            test_location.to_str().unwrap(),
+        );
         assert_eq!(results.len(), 13);
 
         assert_eq!(results[4].hostname, "5.4.0-84-generic");
@@ -213,7 +220,13 @@ mod tests {
 
         let data = read_file(&test_location.display().to_string()).unwrap();
         let mut results = Vec::new();
-        let (_, _) = Logon::parse_logon(&data, Status::Success, &mut results).unwrap();
+        let (_, _) = Logon::parse_logon(
+            &data,
+            Status::Success,
+            &mut results,
+            test_location.to_str().unwrap(),
+        )
+        .unwrap();
         assert_eq!(results.len(), 1);
     }
 
