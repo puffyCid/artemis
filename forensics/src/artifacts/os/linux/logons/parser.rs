@@ -58,7 +58,7 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
         Status::Success
     };
 
-    let mut logon = Logon::logon_reader(&mut reader, status);
+    let mut logon = Logon::logon_reader(&mut reader, status, path);
 
     logons.append(&mut logon);
 }

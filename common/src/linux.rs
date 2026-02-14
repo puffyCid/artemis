@@ -9,7 +9,7 @@ pub struct ElfInfo {
     pub machine_type: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct Journal {
     pub uid: u32,
     pub gid: u32,
@@ -48,10 +48,11 @@ pub struct Journal {
     pub user_unit: String,
     pub custom: HashMap<String, String>,
     pub seqnum: u64,
+    pub evidence: String,
 }
 
 // https://wiki.archlinux.org/title/Systemd/Journal
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Default)]
 pub enum Priority {
     Emergency,
     Alert,
@@ -61,11 +62,12 @@ pub enum Priority {
     Notice,
     Informational,
     Debug,
+    #[default]
     None,
 }
 
 // https://wiki.archlinux.org/title/Systemd/Journal
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Default)]
 pub enum Facility {
     Kernel,
     User,
@@ -91,6 +93,7 @@ pub enum Facility {
     Local5,
     Local6,
     Local7,
+    #[default]
     None,
 }
 
@@ -117,4 +120,5 @@ pub struct Ext4Filelist {
     pub md5: String,
     pub sha1: String,
     pub sha256: String,
+    pub evidence: String,
 }

@@ -55,5 +55,6 @@
                 "HypervisorDebug": "%%1843"
             }
         }
-    }
+    },
+    "evidence": "test"
 }

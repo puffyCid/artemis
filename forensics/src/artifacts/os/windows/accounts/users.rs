@@ -80,7 +80,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
                 }
             };
 
-            let info_result = parse_user_data(&user_data);
+            let info_result = parse_user_data(&user_data, path);
             let (_, mut info) = match info_result {
                 Ok(result) => result,
                 Err(_err) => {
@@ -118,7 +118,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
 }
 
 /// Parse the account data
-fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
+fn parse_user_data<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8], UserInfo> {
     let (input, _major_version) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (input, _minor_version) = nom_unsigned_two_bytes(input, Endian::Le)?;
     let (input, _extended_flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -153,6 +153,7 @@ fn parse_user_data(data: &[u8]) -> nom::IResult<&[u8], UserInfo> {
         number_logons,
         username: String::new(),
         sid: String::new(),
+        evidence: evidence.to_string(),
     };
 
     Ok((input, user))
@@ -276,6 +277,7 @@ mod tests {
         let test_path = "C:\\Windows\\System32\\config\\SAM";
         let results = parse_user_info(&test_path).unwrap();
         assert!(results.len() > 2);
+        assert_eq!(results[0].evidence, test_path)
     }
 
     #[test]
@@ -303,7 +305,7 @@ mod tests {
             248, 1, 0, 0, 1, 2, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let (_, results) = parse_user_data(&test).unwrap();
+        let (_, results) = parse_user_data(&test, "test").unwrap();
         assert_eq!(results.account_expires, "+30828-09-14T02:48:05.000Z");
         assert_eq!(results.last_logon, "1601-01-01T00:00:00.000Z");
         assert_eq!(results.password_last_set, "2019-10-21T02:00:00.000Z");

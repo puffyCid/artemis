@@ -90,6 +90,7 @@ pub(crate) fn parse_eventlogs(
                     event_record_id: data.event_record_id,
                     timestamp: data.timestamp.to_string(),
                     data: data.data,
+                    evidence: path.to_string(),
                 };
                 eventlog_records.push(event_record);
             }
@@ -108,7 +109,7 @@ pub(crate) fn parse_eventlogs(
         let mut raw_messages = Vec::new();
         for record in eventlog_records {
             let mut message = if let Some(result) =
-                add_message_strings(&record, resource, &param_regex)
+                add_message_strings(&record, resource, &param_regex, path)
             {
                 result
             } else {
@@ -304,6 +305,7 @@ fn read_eventlogs(
                     event_record_id: data.event_record_id,
                     timestamp: data.timestamp.to_string(),
                     data: data.data,
+                    evidence: path.to_string(),
                 };
                 eventlog_records.push(event_record);
             }
@@ -319,7 +321,7 @@ fn read_eventlogs(
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
                     let mut message = if let Some(result) =
-                        add_message_strings(&record, resource, &param_regex)
+                        add_message_strings(&record, resource, &param_regex, path)
                     {
                         result
                     } else {
@@ -370,7 +372,7 @@ fn read_eventlogs(
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
                 let mut message = if let Some(result) =
-                    add_message_strings(&record, resource, &param_regex)
+                    add_message_strings(&record, resource, &param_regex, path)
                 {
                     result
                 } else {

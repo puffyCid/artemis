@@ -2,7 +2,7 @@ Name: artemis
 Release: 1
 Summary: A cross platform forensic parser
 License: MIT
-Version: 0.18.0
+Version: 0.19.0
 Group: Application/Security
 URL: https://puffycid.github.io/artemis-api
 BugURL: https://github.com/puffyCid/artemis

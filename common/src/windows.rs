@@ -19,6 +19,7 @@ pub struct UserInfo {
     pub number_logons: u16,
     pub username: String,
     pub sid: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -89,7 +90,7 @@ pub struct Amcache {
     pub usn: String,
     pub sha1: String, // Only first ~31MBs
     pub reg_path: String,
-    pub source_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -126,6 +127,7 @@ pub struct BitsInfo {
     pub retry_delay: u32,
     pub additional_sids: Vec<String>,
     pub drive: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -361,6 +363,7 @@ pub struct EventLogRecord {
     pub event_record_id: u64,
     pub timestamp: String,
     pub data: Value,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1586,6 +1589,7 @@ pub struct EventMessage {
     pub registry_file: String,
     pub registry_path: String,
     pub rendering_info: Option<Value>,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

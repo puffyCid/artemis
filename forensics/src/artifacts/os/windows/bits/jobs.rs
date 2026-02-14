@@ -89,8 +89,8 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
 }
 
 /// Get BITS jobs in older format
-pub(crate) fn get_legacy_jobs(data: &[u8]) -> Result<Vec<BitsInfo>, BitsError> {
-    let job_results = parse_legacy_job(data);
+pub(crate) fn get_legacy_jobs(data: &[u8], evidence: &str) -> Result<Vec<BitsInfo>, BitsError> {
+    let job_results = parse_legacy_job(data, evidence);
     let jobs = if let Ok((_, results)) = job_results {
         results
     } else {
@@ -101,7 +101,7 @@ pub(crate) fn get_legacy_jobs(data: &[u8]) -> Result<Vec<BitsInfo>, BitsError> {
 }
 
 /// Parse older BITS format
-fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
+fn parse_legacy_job<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8], Vec<BitsInfo>> {
     let (_, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let win10 = 40;
     let win10_size = 24;
@@ -152,7 +152,7 @@ fn parse_legacy_job(data: &[u8]) -> nom::IResult<&[u8], Vec<BitsInfo>> {
         let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
         let carved = false;
 
-        jobs.push(combine_file_and_job(&job, &file, carved));
+        jobs.push(combine_file_and_job(&job, &file, carved, evidence));
         job_count += 1;
         if job_count == number_jobs {
             break;
@@ -644,11 +644,12 @@ mod tests {
         test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let results = get_legacy_jobs(&data).unwrap();
+        let results = get_legacy_jobs(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
         assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
+        assert!(results[0].evidence.ends_with("qmgr0.dat"));
     }
 
     #[test]
@@ -657,7 +658,7 @@ mod tests {
         test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, results) = parse_legacy_job(&data).unwrap();
+        let (_, results) = parse_legacy_job(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
         assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
         assert_eq!(results[0].job_type, JobType::Download);

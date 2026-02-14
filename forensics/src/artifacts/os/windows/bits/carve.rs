@@ -10,7 +10,11 @@ use super::{
 pub(crate) type WinBits = (Vec<BitsInfo>, Vec<JobInfo>, Vec<FileInfo>);
 
 /// Attempt to carve out BITS data by looking for known job and file delimiters
-pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], WinBits> {
+pub(crate) fn carve_bits<'a>(
+    data: &'a [u8],
+    is_legacy: bool,
+    evidence: &str,
+) -> nom::IResult<&'a [u8], WinBits> {
     let job_delimiters = vec![
         [
             147, 54, 32, 53, 160, 12, 16, 74, 132, 243, 177, 126, 123, 73, 156, 215,
@@ -102,7 +106,7 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 
                 job_data = remaining_input;
                 let carved = true;
-                bits.push(combine_file_and_job(&job, &file, carved));
+                bits.push(combine_file_and_job(&job, &file, carved, evidence));
                 continue;
             }
             let remaining_input_result = job_details(input, &mut job, is_legacy);
@@ -151,7 +155,12 @@ pub(crate) fn carve_bits(data: &[u8], is_legacy: bool) -> nom::IResult<&[u8], Wi
 }
 
 /// The legacy BITS format has both job and file info in same structure, we combine them both here into one structure
-pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool) -> BitsInfo {
+pub(crate) fn combine_file_and_job(
+    job: &JobInfo,
+    file: &FileInfo,
+    carved: bool,
+    evidence: &str,
+) -> BitsInfo {
     BitsInfo {
         job_id: job.job_id.clone(),
         file_id: file.file_id.clone(),
@@ -185,6 +194,7 @@ pub(crate) fn combine_file_and_job(job: &JobInfo, file: &FileInfo, carved: bool)
         additional_sids: job.additional_sids.clone(),
         drive: file.drive.clone(),
         tmp_fullpath: file.tmp_fullpath.clone(),
+        evidence: evidence.to_string(),
     }
 }
 
@@ -207,11 +217,13 @@ mod tests {
         test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, (results, _, _)) = carve_bits(&data, true).unwrap();
+        let (_, (results, _, _)) =
+            carve_bits(&data, true, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results.len(), 20);
         assert_eq!(results[1].job_name, "WU Client Download");
         assert_eq!(results[3].bytes_downloaded, 0);
         assert_eq!(results[18].job_id, "38efd4fb-5c6a-4c7c-b58e-4ef7fa7a349b");
+        assert!(results[3].evidence.ends_with("qmgr0.dat"))
     }
 
     #[test]
@@ -220,7 +232,8 @@ mod tests {
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
 
-        let (_, (_, jobs, files)) = carve_bits(&data, false).unwrap();
+        let (_, (_, jobs, files)) =
+            carve_bits(&data, false, test_location.to_str().unwrap()).unwrap();
         assert_eq!(jobs.len(), 106);
         assert_eq!(files.len(), 41);
 
@@ -283,8 +296,9 @@ mod tests {
             files_transferred: 0,
         };
 
-        let bit_info = combine_file_and_job(&job, &file, true);
+        let bit_info = combine_file_and_job(&job, &file, true, "test");
         assert_eq!(bit_info.carved, true);
+        assert_eq!(bit_info.evidence, "test");
     }
 
     #[test]
