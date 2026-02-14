@@ -373,7 +373,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         attachments: Vec::new(),
         properties: message.props,
         folder_path: format!("{folder_path}/{folder}"),
-        source_file: options.source.clone(),
+        evidence: options.source.clone(),
         yara_hits: Vec::new(),
     };
 

@@ -1452,6 +1452,7 @@ pub struct WmiPersist {
     pub filter: String,
     pub consumer: String,
     pub consumer_name: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -1465,7 +1466,7 @@ pub struct OutlookMessage {
     pub attachments: Vec<OutlookAttachment>,
     pub properties: Vec<PropertyContext>,
     pub folder_path: String,
-    pub source_file: String,
+    pub evidence: String,
     pub yara_hits: Vec<String>,
 }
 
@@ -1595,6 +1596,7 @@ pub struct MftEntry {
     pub parent_inode: u32,
     pub attribute_list: Vec<Value>,
     pub deleted: bool,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]

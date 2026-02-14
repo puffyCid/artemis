@@ -17,7 +17,7 @@ use super::{
     windows_management::{get_wmi_persist, parse_wmi_repo},
 };
 use crate::{
-    artifacts::os::systeminfo::info::get_platform,
+    artifacts::os::systeminfo::info::get_platform, filesystem::directory::get_parent_directory,
     structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
 };
 use common::windows::WmiPersist;
@@ -74,7 +74,7 @@ fn parse_wmi_persist(
 ) -> Result<Vec<WmiPersist>, WmiError> {
     let wmi_data = parse_wmi_repo(map_paths, objects_path, index_path)?;
 
-    get_wmi_persist(&wmi_data)
+    get_wmi_persist(&wmi_data, &get_parent_directory(map_paths))
 }
 
 #[cfg(test)]

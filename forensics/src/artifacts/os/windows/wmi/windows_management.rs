@@ -64,7 +64,10 @@ pub(crate) fn parse_wmi_repo(
 /*
  * After parsing WMI repo, extract persistence data
  */
-pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiPersist>, WmiError> {
+pub(crate) fn get_wmi_persist(
+    namespace_data: &[ClassValues],
+    evidence: &str,
+) -> Result<Vec<WmiPersist>, WmiError> {
     let mut persist_vec = Vec::new();
     // Small tracker when looping through the data
     let mut hits = HashSet::new();
@@ -89,6 +92,7 @@ pub(crate) fn get_wmi_persist(namespace_data: &[ClassValues]) -> Result<Vec<WmiP
                     filter: String::new(),
                     consumer: String::new(),
                     consumer_name: String::new(),
+                    evidence: evidence.to_string(),
                 };
                 assemble_wmi_persist(event_consumer, filter_consumer, event_filter, &mut persist);
                 let mut md5 = Md5::new();
@@ -263,7 +267,7 @@ mod tests {
         let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
         let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
 
-        let _ = get_wmi_persist(&results).unwrap();
+        let _ = get_wmi_persist(&results, "repo").unwrap();
     }
 
     #[test]
@@ -297,6 +301,7 @@ mod tests {
                         filter: String::new(),
                         consumer: String::new(),
                         consumer_name: String::new(),
+                        evidence: String::new(),
                     };
                     assemble_wmi_persist(
                         event_consumer,
