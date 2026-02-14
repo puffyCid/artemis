@@ -369,7 +369,7 @@ pub struct EventLogRecord {
 #[derive(Debug, Serialize)]
 pub struct JumplistEntry {
     pub lnk_info: ShortcutInfo,
-    pub source: String,
+    pub evidence: String,
     pub jumplist_type: ListType,
     pub app_id: String,
     /**Only applicable for Automatic Jumplists */
@@ -404,7 +404,7 @@ pub enum ListType {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct ShortcutInfo {
-    pub source_path: String,
+    pub evidence: String,
     pub data_flags: Vec<DataFlags>,
     pub attribute_flags: Vec<AttributeFlags>,
     pub created: String,
@@ -661,7 +661,7 @@ pub enum ShellType {
     _Optical, // No optical drives available to test on.
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct RawFilelist {
     pub full_path: String,
     pub directory: String,
@@ -700,64 +700,23 @@ pub struct RawFilelist {
     pub pe_info: Vec<PeInfo>,
 }
 
-impl Default for RawFilelist {
-    fn default() -> Self {
-        RawFilelist {
-            full_path: String::new(),
-            directory: String::new(),
-            filename: String::new(),
-            extension: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            changed: String::new(),
-            accessed: String::new(),
-            filename_created: String::new(),
-            filename_modified: String::new(),
-            filename_changed: String::new(),
-            filename_accessed: String::new(),
-            size: 0,
-            compressed_size: 0,
-            compression_type: CompressionType::None,
-            inode: 0,
-            sequence_number: 0,
-            parent_mft_reference: 0,
-            owner: 0,
-            attributes: Vec::new(),
-            namespace: Namespace::Unknown,
-            md5: String::new(),
-            sha1: String::new(),
-            sha256: String::new(),
-            is_file: false,
-            is_directory: false,
-            is_indx: false,
-            depth: 0,
-            usn: 0,
-            sid: 0,
-            user_sid: String::new(),
-            group_sid: String::new(),
-            drive: String::new(),
-            ads_info: Vec::new(),
-            pe_info: Vec::new(),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Clone)]
 pub struct ADSInfo {
     pub name: String,
     pub size: u64,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub enum CompressionType {
     NTFSCompressed,
     WofCompressed,
+    #[default]
     None,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Prefetch {
-    pub path: String,
+    pub evidence: String,
     pub filename: String,
     pub hash: String,
     pub last_run_time: String,
@@ -781,7 +740,7 @@ pub struct RecycleBin {
     pub full_path: String,
     pub directory: String,
     pub sid: String,
-    pub recycle_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -793,7 +752,7 @@ pub struct RegistryData {
     pub last_modified: String,
     pub depth: usize,
     pub security_offset: i32,
-    pub registry_path: String,
+    pub evidence: String,
     pub registry_file: String,
 }
 
@@ -822,6 +781,7 @@ pub struct ServicesData {
     pub required_privileges: Vec<String>,
     pub error_control: ServiceError,
     pub reg_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -887,14 +847,14 @@ pub struct ShimcacheEntry {
     pub path: String,
     pub last_modified: String,
     pub key_path: String,
-    pub source_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ShimData {
     pub indexes: Vec<TagData>,
     pub db_data: DatabaseData,
-    pub sdb_path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -936,6 +896,7 @@ pub struct ApplicationInfo {
     pub background_num_read_operations: i32,
     pub background_num_write_operations: i32,
     pub background_number_of_flushes: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -984,6 +945,7 @@ pub struct AppTimelineInfo {
     pub keyboard_input_timeline: i64,
     pub keyboard_input_s: i32,
     pub mouse_input_s: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -996,6 +958,7 @@ pub struct AppVfu {
     pub start_time: String,
     pub end_time: String,
     pub usage: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1005,6 +968,7 @@ pub struct EnergyInfo {
     pub app_id: String,
     pub user_id: String,
     pub binary_data: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1020,6 +984,7 @@ pub struct EnergyUsage {
     pub charge_level: i32,
     pub cycle_count: i32,
     pub configuration_hash: i64,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1033,6 +998,7 @@ pub struct NetworkInfo {
     pub l2_profile_flags: i32,
     pub bytes_sent: i64,
     pub bytes_recvd: i64,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1046,6 +1012,7 @@ pub struct NetworkConnectivityInfo {
     pub connected_time: i32,
     pub connect_start_time: String,
     pub l2_profile_flags: i32,
+    pub evidence: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1057,6 +1024,7 @@ pub struct NotificationInfo {
     pub notification_type: i32,
     pub payload_size: i32,
     pub network_type: i32,
+    pub evidence: String,
 }
 
 /**
@@ -1072,7 +1040,7 @@ pub struct TaskXml {
     pub data: Option<String>,
     pub principals: Option<Vec<Principals>>,
     pub actions: Actions,
-    pub path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -1335,7 +1303,7 @@ pub struct TaskJob {
     pub user_data: String,
     pub start_error: u32,
     pub triggers: Vec<VarTriggers>,
-    pub path: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -1417,9 +1385,9 @@ pub struct UserAssistEntry {
     pub path: String,
     pub last_execution: String,
     pub count: u32,
-    pub reg_path: String,
     pub rot_path: String,
     pub folder_path: String,
+    pub evidence: String,
 }
 
 #[derive(Serialize)]
@@ -1438,6 +1406,7 @@ pub struct UsnJrnlEntry {
     pub extension: String,
     pub full_path: String,
     pub drive: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -1483,6 +1452,7 @@ pub struct WmiPersist {
     pub filter: String,
     pub consumer: String,
     pub consumer_name: String,
+    pub evidence: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -1496,7 +1466,7 @@ pub struct OutlookMessage {
     pub attachments: Vec<OutlookAttachment>,
     pub properties: Vec<PropertyContext>,
     pub folder_path: String,
-    pub source_file: String,
+    pub evidence: String,
     pub yara_hits: Vec<String>,
 }
 
@@ -1626,13 +1596,15 @@ pub struct MftEntry {
     pub parent_inode: u32,
     pub attribute_list: Vec<Value>,
     pub deleted: bool,
+    pub evidence: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub enum Namespace {
     Posix,
     Windows,
     Dos,
     WindowsDos,
+    #[default]
     Unknown,
 }

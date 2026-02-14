@@ -102,7 +102,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     };
 
     let mut prefetch = Prefetch {
-        path: path.to_string(),
+        evidence: path.to_string(),
         filename: header.filename,
         hash: header.pf_hash,
         last_run_time: version
@@ -188,7 +188,7 @@ mod tests {
         let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
         let results = parse_prefetch(&buffer, test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(results.path.contains("_IU14D2N.TMP-136252D4.pf"), true);
+        assert_eq!(results.evidence.contains("_IU14D2N.TMP-136252D4.pf"), true);
         assert_eq!(results.filename, "_IU14D2N.TMP");
         assert_eq!(results.hash, "136252D4");
         assert_eq!(results.last_run_time, "2022-06-17T23:19:24.000Z");
@@ -251,7 +251,7 @@ mod tests {
         let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
         let results = get_prefetch_data(&buffer, test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(results.path.contains("CMD.EXE-AC113AA8.pf"), true);
+        assert_eq!(results.evidence.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
         assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");

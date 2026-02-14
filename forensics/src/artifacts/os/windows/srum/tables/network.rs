@@ -11,6 +11,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_network(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
+    evidence: &str,
 ) -> Result<Value, SrumError> {
     let mut network_vec: Vec<NetworkInfo> = Vec::new();
     for rows in column_rows {
@@ -24,6 +25,7 @@ pub(crate) fn parse_network(
             l2_profile_flags: 0,
             bytes_sent: 0,
             bytes_recvd: 0,
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -87,6 +89,7 @@ pub(crate) fn parse_network(
 pub(crate) fn parse_network_connectivity(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
+    evidence: &str,
 ) -> Result<Value, SrumError> {
     let mut network_vec: Vec<NetworkConnectivityInfo> = Vec::new();
     for rows in column_rows {
@@ -100,6 +103,7 @@ pub(crate) fn parse_network_connectivity(
             l2_profile_flags: 0,
             connected_time: 0,
             connect_start_time: String::new(),
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -177,7 +181,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{973F5D5C-1D90-4944-BE8E-24B94231A174}").unwrap();
 
-        parse_network(&srum_data, &lookups).unwrap();
+        parse_network(&srum_data, &lookups, test_path).unwrap();
     }
 
     #[test]
@@ -188,6 +192,6 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{DD6636C4-8929-4683-974E-22C046A43763}").unwrap();
 
-        parse_network_connectivity(&srum_data, &lookups).unwrap();
+        parse_network_connectivity(&srum_data, &lookups, test_path).unwrap();
     }
 }

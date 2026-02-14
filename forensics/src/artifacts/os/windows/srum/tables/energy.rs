@@ -11,6 +11,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_energy(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
+    evidence: &str,
 ) -> Result<Value, SrumError> {
     let mut energy_vec: Vec<EnergyInfo> = Vec::new();
     for rows in column_rows {
@@ -20,6 +21,7 @@ pub(crate) fn parse_energy(
             app_id: String::new(),
             user_id: String::new(),
             binary_data: String::new(),
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -67,6 +69,7 @@ pub(crate) fn parse_energy(
 pub(crate) fn parse_energy_usage(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
+    evidence: &str,
 ) -> Result<Value, SrumError> {
     let mut energy_vec: Vec<EnergyUsage> = Vec::new();
     for rows in column_rows {
@@ -82,6 +85,7 @@ pub(crate) fn parse_energy_usage(
             charge_level: 0,
             cycle_count: 0,
             configuration_hash: 0,
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -161,7 +165,7 @@ mod tests {
             return;
         }
 
-        parse_energy(&energy_check.unwrap(), &lookups).unwrap();
+        parse_energy(&energy_check.unwrap(), &lookups, test_path).unwrap();
     }
 
     #[test]
@@ -172,7 +176,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}").unwrap();
 
-        parse_energy_usage(&srum_data, &lookups).unwrap();
+        parse_energy_usage(&srum_data, &lookups, test_path).unwrap();
     }
 
     #[test]
@@ -184,6 +188,6 @@ mod tests {
         let srum_data =
             get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT").unwrap();
 
-        parse_energy_usage(&srum_data, &lookups).unwrap();
+        parse_energy_usage(&srum_data, &lookups, test_path).unwrap();
     }
 }

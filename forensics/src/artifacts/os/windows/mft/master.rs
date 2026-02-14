@@ -40,7 +40,15 @@ pub(crate) fn parse_mft(
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(&mut buf_reader, None, output, start_time, filter, size);
+        return read_mft(
+            &mut buf_reader,
+            None,
+            output,
+            start_time,
+            filter,
+            size,
+            path,
+        );
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -69,6 +77,7 @@ pub(crate) fn parse_mft(
         start_time,
         filter,
         size,
+        path,
     )
 }
 
@@ -80,6 +89,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     start_time: u64,
     filter: bool,
     size: u64,
+    evidence: &str,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
     // Keep a directory cache limit of 1000 entries
@@ -227,6 +237,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         parent_inode: 0,
                         attribute_list: Vec::new(),
                         deleted: !mft_header.entry_flags.contains(&EntryFlags::InUse),
+                        evidence: evidence.to_string(),
                     };
 
                     if let Some(standard) = entry.standard.first() {
@@ -680,6 +691,7 @@ mod tests {
             0,
             false,
             size,
+            "MFT",
         )
         .unwrap();
     }

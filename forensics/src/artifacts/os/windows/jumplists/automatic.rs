@@ -63,11 +63,11 @@ pub(crate) fn parse_automatic<'a>(
                     continue;
                 }
             };
-            lnk_info.source_path = path.to_string();
+            lnk_info.evidence = path.to_string();
 
             let jump = JumplistEntry {
                 lnk_info,
-                source: path.to_string(),
+                evidence: path.to_string(),
                 jumplist_type: ListType::Automatic,
                 app_id: get_filename(path)
                     .split('.')

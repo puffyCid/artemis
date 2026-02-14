@@ -26,7 +26,7 @@ pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
             additional_metadata: HashMap::new(),
             list_data: Vec::new(),
         },
-        sdb_path: String::new(),
+        evidence: String::new(),
     };
 
     let tag_values = generate_tags();

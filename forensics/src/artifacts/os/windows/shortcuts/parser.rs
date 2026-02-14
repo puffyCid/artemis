@@ -52,7 +52,7 @@ pub(crate) fn grab_lnk_file(path: &str) -> Result<ShortcutInfo, LnkError> {
         }
     };
     let mut shortcut_info = parse_lnk_data(&lnk_data)?;
-    shortcut_info.source_path = path.to_string();
+    shortcut_info.evidence = path.to_string();
     Ok(shortcut_info)
 }
 
@@ -107,7 +107,7 @@ mod tests {
                     continue;
                 }
                 let result = grab_lnk_file(&file).unwrap();
-                assert_eq!(result.source_path.ends_with("lnk"), true);
+                assert_eq!(result.evidence.ends_with("lnk"), true);
             }
         }
     }
