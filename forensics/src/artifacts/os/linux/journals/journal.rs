@@ -54,6 +54,7 @@ pub(crate) fn parse_journal(
         output,
         filter,
         start_time,
+        path,
     )?;
 
     Ok(())
@@ -131,7 +132,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         }
     }
 
-    let messages = EntryArray::parse_messages(&entries.entries);
+    let messages = EntryArray::parse_messages(&entries.entries, path);
 
     Ok(messages)
 }
@@ -144,6 +145,7 @@ fn get_entries(
     output: &mut Output,
     filter: bool,
     start_time: u64,
+    evidence: &str,
 ) -> Result<(), JournalError> {
     let mut offset = array_offset;
     let last_entry = 0;
@@ -169,6 +171,7 @@ fn get_entries(
             output,
             filter,
             start_time,
+            evidence,
         );
         let next_offset = match entry_result {
             Ok((_, result)) => result,
@@ -226,7 +229,16 @@ mod tests {
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let mut output = output_options("journal_test", "local", "./tmp", false);
-        get_entries(&mut reader, 3738992, true, &mut output, false, 0).unwrap();
+        get_entries(
+            &mut reader,
+            3738992,
+            true,
+            &mut output,
+            false,
+            0,
+            test_location.to_str().unwrap(),
+        )
+        .unwrap();
     }
 
     #[test]
