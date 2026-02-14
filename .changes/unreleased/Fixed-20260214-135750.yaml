@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis did not fully timeline usnjrnl
+time: 2026-02-14T13:57:50.8549108-05:00

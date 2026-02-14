@@ -686,10 +686,10 @@ pub(crate) fn usnjrnl(data: &mut Value) -> Option<()> {
 
         entry["message"] = entry["full_path"].as_str()?.into();
         entry["datetime"] = entry["update_time"].as_str()?.into();
-        entry["artifact"] = Value::String(String::from("Userassist"));
+        entry["artifact"] = Value::String(String::from("UsnJrnl"));
         entry["data_type"] = Value::String(String::from("windows:ntfs:usnjrnl:entry"));
         entry["timestamp_desc"] =
-            Value::String(format!("UsnJrnl {}", entry["update_reason"].as_str()?));
+            Value::String(format!("UsnJrnl {:?}", entry["update_reason"].as_array()?));
     }
     Some(())
 }
