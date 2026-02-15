@@ -2904,9 +2904,9 @@ dependencies = [
 
 [[package]]
 name = "macos-unifiedlogs"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e432d89a7f06d295f375ca88bbdcc988a18085441962b6633b5178250c4c50be"
+checksum = "9dc5708cbcff0d861a8539a81c0f9817a6b5a8f9f034eb5a77a2da24d14a831c"
 dependencies = [
  "base64",
  "byteorder",
