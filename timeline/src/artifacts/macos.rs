@@ -98,7 +98,7 @@ pub(crate) fn fsevents(data: &mut Value) -> Option<()> {
         } else {
             values
         };
-        entry["datetime"] = entry["source_created"].as_str()?.into();
+        entry["datetime"] = entry["evidence_created"].as_str()?.into();
         entry["message"] = entry["path"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("FsEvents"));
         entry["data_type"] = Value::String(String::from("macos:fsevents:entry"));
@@ -117,7 +117,7 @@ pub(crate) fn launchd(data: &mut Value) -> Option<()> {
         } else {
             values
         };
-        entry["message"] = entry["plist_path"].as_str()?.into();
+        entry["message"] = entry["evidence"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("Launch Daemon"));
         entry["data_type"] = Value::String(String::from("macos:plist:launchd:entry"));
 
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn test_fsevents() {
         let mut test = json!([{
-            "source_created": "2024-01-01T00:00:00.000Z",
+            "evidence_created": "2024-01-01T00:00:00.000Z",
             "path": "git",
         }]);
 
@@ -312,7 +312,7 @@ mod tests {
             "modified": "2024-02-01T00:00:00.000Z",
             "changed": "2024-03-01T00:00:00.000Z",
             "accessed": "2024-04-01T00:00:00.000Z",
-            "plist_path": "/Library/LaunchDaemons/com.googlecode.munki.logouthelper.plist",
+            "evidence": "/Library/LaunchDaemons/com.googlecode.munki.logouthelper.plist",
         }]);
 
         launchd(&mut test).unwrap();
