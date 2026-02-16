@@ -86,6 +86,7 @@ pub(crate) fn grab_execpolicy(
             ),
             scan_version: row.get("scan_version").unwrap_or_default(),
             top_policy_match: row.get("top_policy_match").unwrap_or_default(),
+            evidence: path.to_string(),
         })
     });
 

@@ -35,7 +35,14 @@ fn parse_trace_file(
         if !source.source_path().contains("Persist") {
             continue;
         }
-        let _ = iterate_logs(source.reader(), timesync_data, &mut sudo_logs, provider);
+        let path = source.source_path().to_string();
+        let _ = iterate_logs(
+            source.reader(),
+            timesync_data,
+            &mut sudo_logs,
+            provider,
+            &path,
+        );
     }
 
     Ok(sudo_logs)
@@ -46,6 +53,7 @@ fn iterate_logs(
     timesync_data: &HashMap<String, TimesyncBoot>,
     sudo_logs: &mut Vec<LogData>,
     provider: &mut dyn FileProvider,
+    evidence: &str,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
 
@@ -57,6 +65,7 @@ fn iterate_logs(
     let log_iterator = UnifiedLogIterator {
         data: buf,
         header: Vec::new(),
+        evidence: evidence.to_string(),
     };
 
     let exclude_missing = false;

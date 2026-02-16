@@ -90,20 +90,20 @@ fn get_fsevent_data<'a>(data: &'a [u8], sig: u32, path: &str) -> nom::IResult<&'
         path: String::new(),
         node: 0,
         event_id: 0,
-        source: path.to_string(),
-        source_created: String::from("1601-01-01T00:00:00Z"),
-        source_modified: String::from("1601-01-01T00:00:00Z"),
-        source_changed: String::from("1601-01-01T00:00:00Z"),
-        source_accessed: String::from("1601-01-01T00:00:00Z"),
+        evidence: path.to_string(),
+        evidence_created: String::from("1601-01-01T00:00:00Z"),
+        evidence_modified: String::from("1601-01-01T00:00:00Z"),
+        evidence_changed: String::from("1601-01-01T00:00:00Z"),
+        evidence_accessed: String::from("1601-01-01T00:00:00Z"),
     };
 
     let meta_result = get_timestamps(path);
     match meta_result {
         Ok(result) => {
-            fsevent_data.source_accessed = result.accessed;
-            fsevent_data.source_changed = result.changed;
-            fsevent_data.source_created = result.created;
-            fsevent_data.source_modified = result.modified;
+            fsevent_data.evidence_accessed = result.accessed;
+            fsevent_data.evidence_changed = result.changed;
+            fsevent_data.evidence_created = result.created;
+            fsevent_data.evidence_modified = result.modified;
         }
         Err(err) => warn!("[fsvents] Could not get timestamps {err:?}"),
     }

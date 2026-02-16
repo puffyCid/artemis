@@ -27,6 +27,7 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
         unlock_options: Vec::new(),
         home_path: Vec::new(),
         uuid: Vec::new(),
+        evidence: path.to_string(),
     };
     for (key, value) in plist_data {
         match key.as_str() {
@@ -232,6 +233,7 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
         uuid: Vec::new(),
         users: Vec::new(),
         groupmembers: Vec::new(),
+        evidence: path.to_string(),
     };
     for (key, value) in plist_data {
         match key.as_str() {
@@ -367,6 +369,7 @@ mod tests {
             unlock_options: Vec::new(),
             home_path: Vec::new(),
             uuid: Vec::new(),
+            evidence: String::new(),
         };
 
         for (key, value) in users {

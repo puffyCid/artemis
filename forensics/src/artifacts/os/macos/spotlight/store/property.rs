@@ -309,7 +309,7 @@ fn parse_record<'a>(
         store_id,
         last_updated: unixepoch_to_iso(last_updated as i64),
         values,
-        directory: dir.to_string(),
+        evidence: dir.to_string(),
     };
 
     Ok((data, entry))

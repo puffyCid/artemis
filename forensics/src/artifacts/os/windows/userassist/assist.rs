@@ -83,7 +83,7 @@ fn get_entries(
 }
 
 /// Parse out the `UserAssist` data: Execution count and last execution time
-fn get_userassist_data<'a>(data: &'a [u8]) -> nom::IResult<&'a [u8], UserAssistEntry> {
+fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let mut userassist = UserAssistEntry {
         path: String::new(),
         last_execution: String::new(),
