@@ -135,11 +135,11 @@ pub(crate) fn fseventsd(
     filter: bool,
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
-    let results = grab_fseventsd(options, filter, output);
-    if let Err(status) = results {
-        warn!("[forensics] Failed to parse fseventsd: {status:?}");
+    if let Err(err) = grab_fseventsd(options, filter, output) {
+        warn!("[forensics] Failed to parse fseventsd: {err:?}");
         return Err(MacArtifactError::FsEventsd);
     }
+
     Ok(())
 }
 
@@ -247,14 +247,12 @@ pub(crate) fn spotlight(
     filter: bool,
     options: &SpotlightOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_spotlight(options, output, filter);
-    match artifact_result {
-        Ok(results) => Ok(results),
-        Err(err) => {
-            warn!("[forensics] Failed to get spotlight data: {err:?}");
-            Err(MacArtifactError::Spotlight)
-        }
+    if let Err(err) = grab_spotlight(options, output, filter) {
+        warn!("[forensics] Failed to get spotlight data: {err:?}");
+        return Err(MacArtifactError::Spotlight);
     }
+
+    Ok(())
 }
 
 /// Output macOS artifacts
@@ -299,15 +297,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

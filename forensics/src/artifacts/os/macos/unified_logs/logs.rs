@@ -28,6 +28,7 @@ pub(crate) fn grab_logs(
             header: Vec::new(),
             catalog_data: Vec::new(),
             oversize: Vec::new(),
+            evidence: String::new(),
         },
         // Track missing entries. We may be able to parse them once we have all oversize strings
         missing: Vec::new(),
@@ -61,18 +62,33 @@ fn parse_trace_file(
     output: &mut Output,
 ) -> Result<(), MacArtifactError> {
     for mut source in provider.tracev3_files() {
+        let path = source.source_path().to_string();
         // Only go through provided log sources
         if !options.sources.is_empty() {
             for entry in &options.sources.clone() {
                 if !source.source_path().contains(entry) {
                     continue;
                 }
-                let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
+                let _ = iterate_logs(
+                    source.reader(),
+                    timesync_data,
+                    options,
+                    output,
+                    provider,
+                    &path,
+                );
             }
             continue;
         }
 
-        let _ = iterate_logs(source.reader(), timesync_data, options, output, provider);
+        let _ = iterate_logs(
+            source.reader(),
+            timesync_data,
+            options,
+            output,
+            provider,
+            &path,
+        );
     }
 
     let include_missing = false;
@@ -114,6 +130,7 @@ fn iterate_logs(
     options: &mut ParseOptions,
     output: &mut Output,
     provider: &mut dyn FileProvider,
+    evidence: &str,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
 
@@ -125,6 +142,7 @@ fn iterate_logs(
     let log_iterator = UnifiedLogIterator {
         data: buf,
         header: Vec::new(),
+        evidence: evidence.to_string(),
     };
 
     // Exclude missing data from returned output. Keep separate until we parse all oversize entries.
@@ -177,15 +195,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("csv"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

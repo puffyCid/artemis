@@ -28,14 +28,12 @@ pub(crate) fn filelisting(
             .unwrap_or(&String::new())
             .clone(),
     };
-    let artifact_result = get_filelist(&args, &hashes, output, filter);
-    match artifact_result {
-        Ok(results) => Ok(results),
-        Err(err) => {
-            error!("[forensics] Failed to get file listing: {err:?}");
-            Err(FileError::Filelisting)
-        }
+    if let Err(err) = get_filelist(&args, &hashes, output, filter) {
+        error!("[forensics] Failed to get file listing: {err:?}");
+        return Err(FileError::Filelisting);
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -51,15 +49,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

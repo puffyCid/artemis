@@ -32,7 +32,7 @@ pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>
 
         let mut launchd_data = LaunchdPlist {
             launchd_data: plist_data,
-            plist_path: alt_file.to_owned(),
+            evidence: alt_file.to_owned(),
             created: String::from("1601-01-01T00:00:00Z"),
             modified: String::from("1601-01-01T00:00:00Z"),
             accessed: String::from("1601-01-01T00:00:00Z"),
@@ -91,7 +91,7 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
             Ok(launchd_data_dictionary) => {
                 let launchd_data = LaunchdPlist {
                     launchd_data: launchd_data_dictionary,
-                    plist_path: data,
+                    evidence: data,
                     created: meta.created,
                     modified: meta.modified,
                     accessed: meta.accessed,
@@ -140,7 +140,7 @@ pub(crate) fn grab_launchd_agents() -> Result<Vec<LaunchdPlist>, LaunchdError> {
             Ok(launchd_data_dictionary) => {
                 let launchd_data = LaunchdPlist {
                     launchd_data: launchd_data_dictionary,
-                    plist_path: data,
+                    evidence: data,
                     created: meta.created,
                     modified: meta.modified,
                     accessed: meta.accessed,

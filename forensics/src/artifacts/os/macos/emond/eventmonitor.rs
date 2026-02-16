@@ -72,7 +72,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
             allow_partial_criterion_match: false,
             start_time: String::from("1970-01-01T00:00:00.000Z"),
             emond_clients_enabled: false,
-            source_file: path.to_string(),
+            evidence: path.to_string(),
             plist_created: String::from("1970-01-01T00:00:00.000Z"),
             plist_accessed: String::from("1970-01-01T00:00:00.000Z"),
             plist_changed: String::from("1970-01-01T00:00:00.000Z"),

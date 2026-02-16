@@ -30,7 +30,7 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
     let (input, header) = LnkHeader::parse_header(data)?;
 
     let mut shortcut_info = ShortcutInfo {
-        source_path: String::new(),
+        evidence: String::new(),
         data_flags: header.data_flags,
         attribute_flags: header.attribute_flags,
         created: unixepoch_to_iso(header.created),
@@ -413,7 +413,7 @@ mod tests {
         let (input, header) = LnkHeader::parse_header(&test).unwrap();
 
         let mut shortcut_info = ShortcutInfo {
-            source_path: String::new(),
+            evidence: String::new(),
             data_flags: header.data_flags,
             attribute_flags: header.attribute_flags,
             created: unixepoch_to_iso(header.created),

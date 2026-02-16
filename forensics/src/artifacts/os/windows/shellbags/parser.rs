@@ -37,7 +37,7 @@ pub(crate) struct Shellbag {
     pub(crate) reg_modified: String,
     pub(crate) reg_file: String,
     pub(crate) reg_path: String,
-    pub(crate) reg_file_path: String,
+    pub(crate) evidence: String,
     pub(crate) stores: Vec<HashMap<String, Value>>,
 }
 
@@ -281,7 +281,7 @@ fn update_shellbags(
             resolve_path,
             reg_modified: reg_info.last_modified.clone(),
             reg_file: reg_info.reg_file.clone(),
-            reg_file_path: reg_info.reg_file_path.clone(),
+            evidence: reg_info.reg_file_path.clone(),
             reg_path: reg_info.reg_path.clone(),
             stores: shell.stores.clone(),
         };
@@ -318,7 +318,7 @@ fn update_shellbags(
         resolve_path: resolve_path.to_string(),
         reg_modified: reg_info.last_modified.clone(),
         reg_file: reg_info.reg_file.clone(),
-        reg_file_path: reg_info.reg_file_path.clone(),
+        evidence: reg_info.reg_file_path.clone(),
         reg_path: reg_info.reg_path.clone(),
         stores: shell.stores.clone(),
     };
@@ -435,7 +435,7 @@ mod tests {
             reg_modified: String::new(),
             reg_file: String::from("shellbags are complex"),
             reg_path: String::from("shellbags are complex"),
-            reg_file_path: String::from("shellbags are complex"),
+            evidence: String::from("shellbags are complex"),
             stores: Vec::new(),
         };
         let mut shell_map = HashMap::new();

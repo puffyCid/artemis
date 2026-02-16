@@ -120,7 +120,7 @@ impl NameKey {
             depth: params.key_tracker.len(),
             security_offset: key_security_offset,
             registry_file: get_filename(&params.registry_path),
-            registry_path: params.registry_path.clone(),
+            evidence: params.registry_path.clone(),
         };
 
         params.key_tracker.push(name_key.key_name);

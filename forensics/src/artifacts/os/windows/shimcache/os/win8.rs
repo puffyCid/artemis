@@ -44,7 +44,7 @@ pub(crate) fn win8_format<'a>(
                 path: String::new(),
                 last_modified: String::new(),
                 key_path: key_path.to_string(),
-                source_path: path.to_string(),
+                evidence: path.to_string(),
             };
             entry += 1;
             shim_vec.push(shim_entry);
@@ -65,7 +65,7 @@ pub(crate) fn win8_format<'a>(
             path: extract_utf16_string(path_data),
             last_modified: unixepoch_to_iso(filetime_to_unixepoch(last_modified)),
             key_path: key_path.to_string(),
-            source_path: path.to_string(),
+            evidence: path.to_string(),
         };
         entry += 1;
         shim_vec.push(shim_entry);

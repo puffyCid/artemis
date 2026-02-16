@@ -264,7 +264,7 @@ fn registry_paths(
 ) {
     for path in reg_paths {
         let mut provider = ProviderInfo {
-            registry_file_path: path.registry_path.clone(),
+            registry_file_path: path.evidence.clone(),
             registry_path: path.path.clone(),
             name: path.name.clone(),
             message_file: Vec::new(),

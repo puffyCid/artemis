@@ -60,7 +60,7 @@ fn get_array_values(
                 let item = LoginItemsData {
                     path: value,
                     cnid_path: String::new(),
-                    created: String::new(),
+                    created: String::from("1970-01-01T00:00:00.000Z"),
                     volume_path: String::new(),
                     volume_url: String::new(),
                     volume_name: String::new(),
@@ -82,7 +82,7 @@ fn get_array_values(
                     app_binary: String::new(),
                     is_executable: false,
                     file_ref_flag: false,
-                    source_path: source.to_string(),
+                    evidence: source.to_string(),
                 };
                 loginitems.push(item);
             }
@@ -131,7 +131,7 @@ fn collect_bookmarks(value: &[u8], source: &str) -> Result<LoginItemsData, Plist
         app_id: String::new(),
         app_binary: String::new(),
         is_executable: bookmark.is_executable,
-        source_path: source.to_string(),
+        evidence: source.to_string(),
     };
 
     Ok(loginitem_data)
@@ -212,7 +212,7 @@ mod tests {
 
         let value = collect_bookmarks(&test_value, "test").unwrap();
         assert_eq!(value.path, "/Applications/Syncthing.app");
-        assert_eq!(value.source_path, "test");
+        assert_eq!(value.evidence, "test");
     }
 
     #[test]

@@ -62,6 +62,7 @@ pub(crate) fn parse_search_sqlite(
                 entry: String::new(),
                 last_modified: String::from("1970-01-01T00:00:00.000Z"),
                 properties: HashMap::new(),
+                evidence: path.to_string(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property value.
             // Once the doucment_id is different we have arrived at the next entry
@@ -185,6 +186,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
                 entry: String::new(),
                 last_modified: String::new(),
                 properties: HashMap::new(),
+                evidence: path.to_string(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property.
             // Once the doucment_id is different we have arrived at the next entry
@@ -233,15 +235,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         }
     }
 

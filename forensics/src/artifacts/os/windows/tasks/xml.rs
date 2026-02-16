@@ -43,7 +43,7 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
             send_email: Vec::new(),
             show_message: Vec::new(),
         },
-        path: path.to_string(),
+        evidence: path.to_string(),
     };
 
     // Track Principals
@@ -109,7 +109,7 @@ mod tests {
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.path, test_location.display().to_string())
+        assert_eq!(result.evidence, test_location.display().to_string())
     }
 
     #[test]
@@ -122,6 +122,6 @@ mod tests {
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.path, test_location.display().to_string())
+        assert_eq!(result.evidence, test_location.display().to_string())
     }
 }

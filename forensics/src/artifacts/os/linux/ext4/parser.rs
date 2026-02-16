@@ -253,6 +253,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
                 md5: String::new(),
                 sha1: String::new(),
                 sha256: String::new(),
+                evidence: params.device.clone(),
             };
             if (params.hashing.md5 || params.hashing.sha256 || params.hashing.sha1)
                 && entry.file_type == FileType::File
@@ -341,15 +342,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         }
     }
 
@@ -408,11 +403,13 @@ mod tests {
         for entry in params.filelist {
             if entry.file_type == FileType::File {
                 assert!(!entry.md5.is_empty())
-            } else if entry.inode == 16 {
+            }
+            if entry.inode == 16 {
                 assert!(
                     format!("{:?}", entry.extended_attributes)
                         .contains("unconfined_u:object_r:unlabeled_t:s0")
-                )
+                );
+                assert!(entry.evidence.ends_with("test.img"));
             }
         }
     }

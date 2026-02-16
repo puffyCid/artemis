@@ -84,8 +84,8 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
         }
     };
 
-    bin.recycle_path = path.to_string();
-    bin.sid = get_filename(&get_parent_directory(&bin.recycle_path));
+    bin.evidence = path.to_string();
+    bin.sid = get_filename(&get_parent_directory(&bin.evidence));
 
     Ok(bin)
 }

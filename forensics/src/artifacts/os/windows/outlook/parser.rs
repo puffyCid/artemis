@@ -373,7 +373,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         attachments: Vec::new(),
         properties: message.props,
         folder_path: format!("{folder_path}/{folder}"),
-        source_file: options.source.clone(),
+        evidence: options.source.clone(),
         yara_hits: Vec::new(),
     };
 
@@ -500,15 +500,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()
@@ -534,15 +528,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()
@@ -565,15 +553,9 @@ mod tests {
             directory: "./tmp".to_string(),
             format: String::from("jsonl"),
             compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: "local".to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         };
 
         grab_outlook(&options, &mut out, false).unwrap()

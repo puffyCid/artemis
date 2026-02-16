@@ -67,7 +67,7 @@ fn parse_trace_file(
             continue;
         }
 
-        return iterate_logs(source.reader(), timesync_data, provider);
+        return iterate_logs(source.reader(), timesync_data, provider, path);
     }
 
     warn!("[runtime] Failed to iterate through logs");
@@ -78,6 +78,7 @@ fn iterate_logs(
     mut reader: impl Read,
     timesync_data: &HashMap<String, TimesyncBoot>,
     provider: &mut dyn FileProvider,
+    evidence: &str,
 ) -> Result<Vec<LogData>, RuntimeError> {
     let mut buf = Vec::new();
 
@@ -90,6 +91,7 @@ fn iterate_logs(
     let log_iterator = UnifiedLogIterator {
         data: buf,
         header: Vec::new(),
+        evidence: evidence.to_string(),
     };
 
     let exclude_missing = false;
@@ -115,15 +117,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("json"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

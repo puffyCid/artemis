@@ -304,7 +304,7 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
 
         entry["artifact"] = Value::String(String::from("Prefetch"));
         entry["data_type"] = Value::String(String::from("windows:prefetch:file"));
-        entry["message"] = Value::String(entry["path"].as_str()?.into());
+        entry["message"] = Value::String(entry["evidence"].as_str()?.into());
         entry["datetime"] = entry["last_run_time"].as_str()?.into();
         entry["timestamp_desc"] = Value::String(String::from("Prefetch Last Execution"));
         entries.push(entry.clone());
@@ -484,7 +484,7 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
 
         let temp = entry.clone();
         entry.as_object_mut()?.remove("db_data");
-        entry["message"] = Value::String(format!("{} | Shim: None", temp["sdb_path"].as_str()?,));
+        entry["message"] = Value::String(format!("{} | Shim: None", temp["evidence"].as_str()?,));
 
         // Flatten db_data
         for (key, value) in temp["db_data"].as_object()? {
@@ -498,7 +498,7 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
                             if data_key == "TAG_NAME" || data_key == "TAG_MODULE" {
                                 shim["message"] = Value::String(format!(
                                     "{} | Shim {data_key}: {}",
-                                    temp["sdb_path"].as_str()?,
+                                    temp["evidence"].as_str()?,
                                     data_value.as_str()?,
                                 ));
                             }
@@ -553,7 +553,7 @@ pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
         };
         entry["artifact"] = Value::String(String::from("Shortcut"));
         entry["data_type"] = Value::String(String::from("windows:shortcut:lnk"));
-        entry["message"] = entry["source_path"].clone();
+        entry["message"] = entry["evidence"].clone();
 
         let temp = entry.clone();
         let times = extract_shortcut_times(&temp)?;
@@ -630,7 +630,7 @@ pub(crate) fn tasks(data: &mut Value) -> Option<()> {
         };
         // First get full modern tasks
         for entry in bits.as_array_mut()? {
-            entry["message"] = entry["path"].as_str().into();
+            entry["message"] = entry["evidence"].as_str().into();
             entry["artifact"] = Value::String(String::from("Schedule Task"));
             entry["data_type"] = Value::String(String::from("windows:tasks:xml:entry"));
             entry["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
@@ -647,7 +647,7 @@ pub(crate) fn tasks(data: &mut Value) -> Option<()> {
             };
         // Get legacy Jobs
         for entry in jobs.as_array_mut()? {
-            entry["message"] = entry["path"].as_str().into();
+            entry["message"] = entry["evidence"].as_str().into();
             entry["artifact"] = Value::String(String::from("Schedule Task"));
             entry["data_type"] = Value::String(String::from("windows:tasks:jobs:entry"));
             entry["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
@@ -686,10 +686,10 @@ pub(crate) fn usnjrnl(data: &mut Value) -> Option<()> {
 
         entry["message"] = entry["full_path"].as_str()?.into();
         entry["datetime"] = entry["update_time"].as_str()?.into();
-        entry["artifact"] = Value::String(String::from("Userassist"));
+        entry["artifact"] = Value::String(String::from("UsnJrnl"));
         entry["data_type"] = Value::String(String::from("windows:ntfs:usnjrnl:entry"));
         entry["timestamp_desc"] =
-            Value::String(format!("UsnJrnl {}", entry["update_reason"].as_str()?));
+            Value::String(format!("UsnJrnl {:?}", entry["update_reason"].as_array()?));
     }
     Some(())
 }
@@ -930,7 +930,7 @@ mod tests {
     fn test_prefetch() {
         let mut test = json!([{
             "last_run_time": "2024-01-01T00:00:00.000Z",
-            "path": "test.pf",
+            "evidence": "test.pf",
             "all_run_times": [],
         }]);
 

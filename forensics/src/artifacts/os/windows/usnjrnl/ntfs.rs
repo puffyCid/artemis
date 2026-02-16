@@ -72,6 +72,7 @@ pub(crate) fn parse_usnjrnl_data(
                     full_path: jrnl_entry.full_path,
                     filename: jrnl_entry.name,
                     drive: drive.to_string(),
+                    evidence: format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
                 };
                 usnjrnl_entries.push(entry);
             }
@@ -136,6 +137,7 @@ pub(crate) fn get_usnjrnl_path(
             full_path: jrnl_entry.full_path,
             filename: jrnl_entry.name,
             drive: String::new(),
+            evidence: path.to_string(),
         };
         usnjrnl_entries.push(entry);
     }

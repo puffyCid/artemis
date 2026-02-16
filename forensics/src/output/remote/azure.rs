@@ -1,14 +1,13 @@
-use std::time::Duration;
-
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client, header::HeaderMap};
+use std::time::Duration;
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
 pub(crate) fn azure_upload(
     data: &[u8],
-    output: &Output,
+    output: &mut Output,
     filename: &str,
 ) -> Result<(), RemoteError> {
     let azure_url = if let Some(url) = &output.url {
@@ -17,11 +16,17 @@ pub(crate) fn azure_upload(
         return Err(RemoteError::RemoteUrl);
     };
 
+    // Log files are not compressed
     let azure_filename = if filename.ends_with(".log") {
         format!("{}%2F{}%2F{filename}", output.directory, output.name)
     } else {
+        let mut compression_extension = "";
+        if output.compress {
+            compression_extension = ".gz";
+        }
+
         format!(
-            "{}%2F{}%2F{filename}.{}",
+            "{}%2F{}%2F{filename}.{}{compression_extension}",
             output.directory, output.name, output.format
         )
     };
@@ -35,6 +40,8 @@ pub(crate) fn azure_upload(
         data.len()
     );
 
+    // Track output files
+    output.output_count += 1;
     Ok(())
 }
 
@@ -130,11 +137,8 @@ mod tests {
             url: Some(full_url.to_string()),
             api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 
@@ -142,7 +146,7 @@ mod tests {
     fn test_azure_upload() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options(
+        let mut output = output_options(
             "azure_upload_test",
             "azure",
             "tmp",
@@ -160,7 +164,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
     }
 
@@ -179,7 +183,7 @@ mod tests {
     fn test_azure_upload_compress() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options(
+        let mut output = output_options(
             "azure_upload_test",
             "azure",
             "tmp",
@@ -197,7 +201,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
     }
 
@@ -206,7 +210,7 @@ mod tests {
     fn test_azure_upload_bad_url() {
         let server = MockServer::start();
         let port = server.port();
-        let output = output_options(
+        let mut output = output_options(
             "azure_upload_test",
             "azure",
             "tmp",
@@ -224,7 +228,7 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &output, name).unwrap();
+        azure_upload(test.as_bytes(), &mut output, name).unwrap();
         mock_me.assert();
     }
 }

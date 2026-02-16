@@ -6,6 +6,7 @@ pub enum TomlError {
     FailedToReadFile,
     BadToml,
     BadJs,
+    RemoteToml,
 }
 
 impl std::error::Error for TomlError {}
@@ -17,6 +18,7 @@ impl fmt::Display for TomlError {
             TomlError::FailedToReadFile => write!(f, "Failed to read TOML data"),
             TomlError::BadToml => write!(f, "Failed to parse TOML data"),
             TomlError::BadJs => write!(f, "Failed run JavaScript code"),
+            TomlError::RemoteToml => write!(f, "Failed to read remote TOML data"),
         }
     }
 }

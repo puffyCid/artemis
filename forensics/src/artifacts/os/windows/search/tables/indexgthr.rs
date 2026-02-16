@@ -21,6 +21,7 @@ pub(crate) fn parse_index_gthr(
     output: &mut Output,
     start_time: u64,
     filter: bool,
+    evidence: &str,
 ) -> Result<(), SearchError> {
     let mut entries = Vec::new();
     let limit = 100000;
@@ -31,6 +32,7 @@ pub(crate) fn parse_index_gthr(
             entry: String::new(),
             last_modified: String::from("1970-01-01T00:00:00.000Z"),
             properties: HashMap::new(),
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -119,6 +121,7 @@ pub(crate) fn parse_index_gthr_path(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, HashMap<String, String>>,
     entries: &mut Vec<SearchEntry>,
+    evidence: &str,
 ) -> Result<(), SearchError> {
     for rows in column_rows {
         let mut entry = SearchEntry {
@@ -126,6 +129,7 @@ pub(crate) fn parse_index_gthr_path(
             entry: String::new(),
             last_modified: String::new(),
             properties: HashMap::new(),
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -185,15 +189,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         }
     }
 
@@ -239,6 +237,7 @@ mod tests {
                 &mut output,
                 0,
                 false,
+                test_path,
             )
             .unwrap();
             break;
@@ -286,6 +285,7 @@ mod tests {
                 &gather_rows.get("SystemIndex_Gthr").unwrap(),
                 &HashMap::new(),
                 &mut entries,
+                test_path,
             )
             .unwrap();
             assert!(entries.len() > 20);

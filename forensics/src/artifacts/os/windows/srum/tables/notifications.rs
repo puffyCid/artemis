@@ -8,6 +8,7 @@ use std::collections::HashMap;
 pub(crate) fn parse_notification(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
+    evidence: &str,
 ) -> Result<Value, SrumError> {
     let mut notif_vec: Vec<NotificationInfo> = Vec::new();
     for rows in column_rows {
@@ -19,6 +20,7 @@ pub(crate) fn parse_notification(
             notification_type: 0,
             payload_size: 0,
             network_type: 0,
+            evidence: evidence.to_string(),
         };
 
         for column in rows {
@@ -87,6 +89,6 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}").unwrap();
 
-        parse_notification(&srum_data, &lookups).unwrap();
+        parse_notification(&srum_data, &lookups, test_path).unwrap();
     }
 }

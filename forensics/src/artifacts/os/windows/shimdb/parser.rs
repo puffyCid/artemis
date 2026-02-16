@@ -104,7 +104,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
             return Err(ShimdbError::ParseSdb);
         }
     };
-    shim_results.sdb_path = path.to_string();
+    shim_results.evidence = path.to_string();
     Ok(shim_results)
 }
 

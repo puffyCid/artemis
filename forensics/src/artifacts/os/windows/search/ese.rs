@@ -23,6 +23,7 @@ pub(crate) struct SearchEntry {
     pub(crate) entry: String,
     pub(crate) last_modified: String,
     pub(crate) properties: HashMap<String, String>,
+    pub(crate) evidence: String,
 }
 
 /// Parse the Windows `Search` ESE database
@@ -69,7 +70,14 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
+        let _ = process_search(
+            &property_rows,
+            &gather_rows,
+            output,
+            start_time,
+            filter,
+            path,
+        );
         gather_chunk = Vec::new();
     }
 
@@ -90,7 +98,14 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, output, start_time, filter);
+        let _ = process_search(
+            &property_rows,
+            &gather_rows,
+            output,
+            start_time,
+            filter,
+            path,
+        );
     }
 
     Ok(())
@@ -209,6 +224,7 @@ fn process_search(
     output: &mut Output,
     start_time: u64,
     filter: bool,
+    evidence: &str,
 ) -> Result<(), SearchError> {
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
         values
@@ -228,7 +244,7 @@ fn process_search(
         );
         return Err(SearchError::ParseEse);
     };
-    let _ = parse_index_gthr(entries, &props, output, start_time, filter);
+    let _ = parse_index_gthr(entries, &props, output, start_time, filter, evidence);
 
     Ok(())
 }
@@ -324,7 +340,7 @@ pub(crate) fn parse_search_path(
             return Err(SearchError::ParseEse);
         };
 
-        let _ = parse_index_gthr_path(entries, &props, &mut search_entries);
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, path);
     }
 
     if !gather_chunk.is_empty() {
@@ -363,7 +379,7 @@ pub(crate) fn parse_search_path(
             return Err(SearchError::ParseEse);
         };
 
-        let _ = parse_index_gthr_path(entries, &props, &mut search_entries);
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, path);
     }
 
     Ok(search_entries)
@@ -387,15 +403,9 @@ mod tests {
             directory: directory.to_string(),
             format: String::from("jsonl"),
             compress,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: None,
-            filter_script: None,
-            logging: None,
+            ..Default::default()
         }
     }
 
@@ -572,7 +582,8 @@ mod tests {
             let property_rows =
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ = process_search(&property_rows, &gather_rows, &mut output, 0, false).unwrap();
+            let _ =
+                process_search(&property_rows, &gather_rows, &mut output, 0, false, path).unwrap();
             break;
         }
     }

@@ -15,12 +15,12 @@ use std::fs::{remove_dir, remove_file};
 /// Output artifact data based on output type
 pub(crate) fn final_output(
     artifact_data: &[u8],
-    output: &Output,
+    output: &mut Output,
     output_name: &str,
 ) -> Result<(), ArtemisError> {
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
-        "local" => match local_output(artifact_data, output, output_name, &output.format) {
+        "local" => match local_output(artifact_data, output, output_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to output to local system: {err:?}");
@@ -124,49 +124,35 @@ mod tests {
 
     #[test]
     fn test_final_output() {
-        let output = Output {
+        let mut output = Output {
             name: String::from("test_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
         let name = "output";
-        let result = final_output(test.as_bytes(), &output, name).unwrap();
+        let result = final_output(test.as_bytes(), &mut output, name).unwrap();
         assert_eq!(result, ());
     }
 
     #[test]
     fn test_no_output() {
-        let output = Output {
+        let mut output = Output {
             name: String::from("no_output"),
             directory: String::from("./tmp"),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("none"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let test = "A rust program";
         let name = "output";
-        let result = final_output(test.as_bytes(), &output, name).unwrap();
+        let result = final_output(test.as_bytes(), &mut output, name).unwrap();
         assert_eq!(result, ());
     }
 
@@ -179,16 +165,9 @@ mod tests {
             name: String::from("files"),
             directory: test_location.display().to_string(),
             format: String::from("json"),
-            compress: false,
-            timeline: false,
-            url: Some(String::new()),
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: String::from("local"),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         };
 
         let _ = compress_final_output(&output);

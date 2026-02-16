@@ -98,7 +98,7 @@ pub(crate) fn fsevents(data: &mut Value) -> Option<()> {
         } else {
             values
         };
-        entry["datetime"] = entry["source_created"].as_str()?.into();
+        entry["datetime"] = entry["evidence_created"].as_str()?.into();
         entry["message"] = entry["path"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("FsEvents"));
         entry["data_type"] = Value::String(String::from("macos:fsevents:entry"));
@@ -117,7 +117,7 @@ pub(crate) fn launchd(data: &mut Value) -> Option<()> {
         } else {
             values
         };
-        entry["message"] = entry["plist_path"].as_str()?.into();
+        entry["message"] = entry["evidence"].as_str()?.into();
         entry["artifact"] = Value::String(String::from("Launch Daemon"));
         entry["data_type"] = Value::String(String::from("macos:plist:launchd:entry"));
 
@@ -151,6 +151,10 @@ pub(crate) fn loginitems(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("LoginItems"));
         entry["data_type"] = Value::String(String::from("macos:plist:loginitems:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Target Created"));
+
+        if entry["message"].as_str()?.is_empty() {
+            entry["message"] = entry["app_id"].as_str()?.into();
+        }
     }
 
     Some(())
@@ -291,7 +295,7 @@ mod tests {
     #[test]
     fn test_fsevents() {
         let mut test = json!([{
-            "source_created": "2024-01-01T00:00:00.000Z",
+            "evidence_created": "2024-01-01T00:00:00.000Z",
             "path": "git",
         }]);
 
@@ -308,7 +312,7 @@ mod tests {
             "modified": "2024-02-01T00:00:00.000Z",
             "changed": "2024-03-01T00:00:00.000Z",
             "accessed": "2024-04-01T00:00:00.000Z",
-            "plist_path": "/Library/LaunchDaemons/com.googlecode.munki.logouthelper.plist",
+            "evidence": "/Library/LaunchDaemons/com.googlecode.munki.logouthelper.plist",
         }]);
 
         launchd(&mut test).unwrap();
@@ -330,6 +334,17 @@ mod tests {
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "LoginItems");
         assert_eq!(test[0]["message"], "/Applications/Docker.app");
+
+        let mut missing_path = json!([{
+            "created": "2024-01-01T00:00:00.000Z",
+            "path": "",
+            "app_id": "docker"
+        }]);
+
+        loginitems(&mut missing_path).unwrap();
+        assert_eq!(missing_path[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(missing_path[0]["artifact"], "LoginItems");
+        assert_eq!(missing_path[0]["message"], "docker");
     }
 
     #[test]

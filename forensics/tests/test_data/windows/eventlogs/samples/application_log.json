@@ -48,5 +48,6 @@
                 "param3": "Software\\Microsoft\\COM3\\Eventlog"
             }
         }
-    }
+    },
+    "evidence": "test"
 }

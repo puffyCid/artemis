@@ -255,19 +255,15 @@ mod tests {
         Output {
             name: name.to_string(),
             directory: directory.to_string(),
-            format: String::from("jsonl"),
+            format: String::from("json"),
             compress,
-            timeline: false,
             url: Some(format!(
                 "http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
             )),
             api_key: Some(key),
             endpoint_id: String::from("abcd"),
-            collection_id: 0,
             output: output.to_string(),
-            filter_name: Some(String::new()),
-            filter_script: Some(String::new()),
-            logging: Some(String::new()),
+            ..Default::default()
         }
     }
 

@@ -44,5 +44,6 @@
                 "Description": "Component Firmware Update Driver: CurrentFirmwareVersion=0x3b002389, HardwareId=HID\\VEN_MSHW&DEV_0461&REV_0001&Col04, InstanceId=, ComponentId=0x15"
             }
         }
-    }
+    },
+    "evidence": "test"
 }
