@@ -11,6 +11,7 @@ use crate::structs::artifacts::os::windows::{
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
     UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
 };
+use crate::structs::artifacts::triage::TriageOptions;
 use crate::structs::artifacts::{
     os::{files::FileOptions, processes::ProcessOptions},
     runtime::script::JSScript,
@@ -105,6 +106,7 @@ pub struct Artifacts {
     pub outlook: Option<OutlookOptions>,
     pub mft: Option<MftOptions>,
     pub connections: Option<()>,
+    pub triage: Option<TriageOptions>,
 
     // Scripts to run in BoaJS
     pub script: Option<JSScript>,

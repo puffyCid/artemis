@@ -1,0 +1,20 @@
+[output]
+name = "triage_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "triage"
+[artifacts.triage]
+triage = "ZGVzY3JpcHRpb24gPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmF1dGhvciA9ICJSb24gUmFkZXIiCnZlcnNpb24gPSAxLjAKaWQgPSAiZTc4ZDI2NTItZGY0Ny00ZWRjLWEwZWEtNDgzNWMzMjJhZDQ4IgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmNhdGVnb3J5ID0gIkxvZ3MiCnBhdGggPSAiQzpcXFByb2dyYW1EYXRhXFxEV0FnZW50KlxcIgpmaWxlX21hc2sgPSAiKi5sb2cqIgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK"
+
+
+[[artifacts]]
+artifact_name = "triage"
+[artifacts.triage]
+triage = "ZGVzY3JpcHRpb24gPSAiQmFzaCBIaXN0b3J5IgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBiYXNoIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJTaGVsbCIKcGF0aCA9ICIvaG9tZS8qLyIKZmlsZV9tYXNrID0gIiouYmFzaF9oaXN0b3J5IgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK"

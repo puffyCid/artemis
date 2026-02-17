@@ -1,0 +1,385 @@
+description = "Chrome"
+author = "Eric Zimmerman, Andrew Rathbun, Hernan Filannino, Reece394"
+version = 1.4
+id = "a56d0a8f-3229-489e-aea7-353d1f6f9639"
+recreate_directories = true
+
+[[targets]]
+name = "Chrome Bookmarks XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Bookmarks*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Cookies XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Cookies*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Current Session XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Current Session"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Current Tabs XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Current Tabs"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Favicons XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Favicons*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome History XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "History*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Last Session XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Last Session"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Last Tabs XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Last Tabs"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Login Data XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Login Data"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Preferences XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Preferences"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Shortcuts XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Shortcuts*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Top Sites XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Top Sites*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Visited Links XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Visited Links"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Web Data XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Web Data*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Bookmarks"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Bookmarks*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Cookies"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+recursive = true
+file_mask = "Cookies*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Current Session"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Current Session"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Current Tabs"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Current Tabs"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Download Metadata"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "DownloadMetadata"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Extension Cookies"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Extension Cookies*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Favicons"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Favicons*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome History"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "History*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Last Session"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Last Session"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Last Tabs"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Last Tabs"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Sessions Folder"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Sessions\\"
+recursive = false
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Login Data"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Login Data*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Media History"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Media History*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Network Action Predictor"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Network Action Predictor*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Network Persistent State"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Network Persistent State"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Network Persistent State"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Network\\"
+file_mask = "Network Persistent State"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Preferences"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Preferences"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Quota Manager"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "QuotaManager*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Quota Manager"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\WebStorage\\"
+file_mask = "QuotaManager*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Reporting and NEL"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Reporting and NEL*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Reporting and NEL"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Network\\"
+file_mask = "Reporting and NEL*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Shortcuts"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Shortcuts*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Top Sites"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Top Sites*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Trust Tokens"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Trust Tokens*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Trust Tokens"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Network\\"
+file_mask = "Trust Tokens*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome SyncData Database"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Sync Data\\"
+file_mask = "SyncData.sqlite3"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Visited Links"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Visited Links"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Web Data"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Web Data*"
+recursive = false
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome IndexedDB"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\IndexedDB\\"
+recursive = true
+comment = "Collects IndexedDB (LevelDB) databases used by modern web applications to store data."
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Local Storage"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Local Storage\\leveldb\\"
+recursive = true
+comment = "Collects Local Storage (LevelDB) databases, another form of persistent client-side storage."
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Windows Protect Folder"
+category = "FileSystem"
+path = "C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Protect\\*\\"
+recursive = true
+comment = "Required for offline decryption"
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "Chrome Snapshots Folder"
+category = "Communications"
+path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Snapshots\\*\\"
+recursive = true
+comment = "Grabs folder that appears to have snapshots of Chrome SQLite DBs organized by version #."
+file_mask = "*"
+always_add_to_queue = false
+
+[[targets]]
+name = "SYSTEM Chrome History"
+category = "Communications"
+path = "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
+file_mask = "History*"
+recursive = false
+always_add_to_queue = false
