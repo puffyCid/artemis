@@ -20,7 +20,7 @@ pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(),
 
     for target in triage.targets {
         if !target.recursive && !target.file_mask.starts_with("regex") {
-            glob_files(&target, output)?;
+            glob_files(&target, output, triage.recreate_directories)?;
             continue;
         }
     }
@@ -59,7 +59,11 @@ struct TriageReport {
     size: u64,
 }
 
-fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> {
+fn glob_files(
+    target: &Targets,
+    output: &mut Output,
+    create_paths: bool,
+) -> Result<(), TriageError> {
     let glob_string = format!("{}{}", target.path, target.file_mask);
     let paths = glob_paths(&glob_string).unwrap_or_default();
     let zip_output = format!("{}/{}", output.directory, output.name);
@@ -102,6 +106,7 @@ fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> 
             full_path: path.full_path.clone(),
             ..Default::default()
         };
+
         if let Ok(meta) = get_metadata(&path.full_path)
             && let Ok(time) = get_timestamps(&path.full_path)
         {
@@ -114,6 +119,11 @@ fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> 
 
         acq.fs = Some(buf);
         acq.path = path.full_path;
+
+        // If the user does not want to preserve full paths just save the filename
+        if !create_paths {
+            acq.path = path.filename;
+        }
         let hash = acq.acquire_file()?;
         file_report.md5 = hash;
         report.push(file_report);
@@ -125,6 +135,20 @@ fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> 
     if let Err(err) = acq.zip.finish() {
         warn!("[triage] Failed to finish zipping file: {err:?}");
     }
+
+    Ok(())
+}
+
+fn walk_filesystem(
+    target: &Targets,
+    output: &mut Output,
+    recursive: bool,
+) -> Result<(), TriageError> {
+    // 1. Evaluate globs for path
+    // 2. Start walkdir for each path
+    // 3. If recursive is false. Set max_depth to 0
+    // 4. Apply regex to filenames otherwise apply glob
+    // 5. Acquire each file
 
     Ok(())
 }

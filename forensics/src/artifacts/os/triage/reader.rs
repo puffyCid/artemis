@@ -77,7 +77,7 @@ mod tests {
     };
     use std::{
         fs::{File, create_dir_all},
-        io::{BufReader, Write},
+        io::BufReader,
         path::PathBuf,
     };
     use zip::ZipWriter;
