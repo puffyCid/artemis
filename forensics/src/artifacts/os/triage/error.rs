@@ -9,6 +9,7 @@ pub(crate) enum TriageError {
     StartZip,
     NoReader,
     Output,
+    WriteReport,
 }
 
 impl std::error::Error for TriageError {}
@@ -23,6 +24,7 @@ impl fmt::Display for TriageError {
             TriageError::StartZip => write!(f, "Could not start writing to zip"),
             TriageError::NoReader => write!(f, "No reader provided"),
             TriageError::Output => write!(f, "Could not write output"),
+            TriageError::WriteReport => write!(f, "Could not write report to zip"),
         }
     }
 }

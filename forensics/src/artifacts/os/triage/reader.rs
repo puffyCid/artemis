@@ -1,7 +1,7 @@
 use crate::artifacts::os::triage::error::TriageError;
 use log::error;
 use md5::{Digest, Md5};
-use std::io::{BufReader, Read, copy};
+use std::io::{BufReader, Read, Write, copy};
 use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
 pub(crate) struct TriageReader<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write>
@@ -29,6 +29,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         }
 
         loop {
+            // Unwrap is safe since we check to make it is set above
             let bytes = match self.fs.as_mut().unwrap().read(&mut buf) {
                 Ok(result) => result,
                 Err(err) => {
@@ -48,6 +49,23 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         }
         let hash = format!("{:x}", md5.finalize());
         Ok(hash)
+    }
+
+    /// Write the triage JSON report to the triage zip file
+    pub(crate) fn write_report(&mut self, report: &mut [u8]) -> Result<(), TriageError> {
+        let method = CompressionMethod::Stored;
+        let options = SimpleFileOptions::default().compression_method(method);
+        let filename = "acquisition_report.json";
+        if let Err(err) = self.zip.start_file_from_path(filename, options) {
+            println!("[triage] Failed to start report into zip: {err:?}");
+            return Err(TriageError::StartZip);
+        }
+        if let Err(err) = self.zip.write_all(report) {
+            println!("[triage] Failed to write report into zip: {err:?}");
+            return Err(TriageError::WriteReport);
+        };
+
+        Ok(())
     }
 }
 

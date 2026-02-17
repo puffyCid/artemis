@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::triage::{error::TriageError, reader::TriageReader},
-    filesystem::metadata::glob_paths,
+    filesystem::metadata::{get_metadata, get_timestamps, glob_paths},
     structs::{
         artifacts::triage::{ArtemisTriage, Targets, TriageOptions},
         toml::{ArtemisToml, Output},
@@ -8,6 +8,7 @@ use crate::{
     utils::encoding::base64_decode_standard,
 };
 use log::{error, warn};
+use serde::Serialize;
 use std::{
     fs::{File, create_dir_all},
     io::BufReader,
@@ -46,6 +47,18 @@ fn decode_triage(encoded: &str) -> Result<ArtemisTriage, TriageError> {
     Ok(triage)
 }
 
+#[derive(Serialize, Default)]
+struct TriageReport {
+    created: String,
+    modified: String,
+    accessed: String,
+    changed: String,
+    full_path: String,
+    filename: String,
+    md5: String,
+    size: u64,
+}
+
 fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> {
     let glob_string = format!("{}{}", target.path, target.file_mask);
     let paths = glob_paths(&glob_string).unwrap_or_default();
@@ -68,6 +81,8 @@ fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> 
         zip,
         path: String::new(),
     };
+
+    let mut report = Vec::new();
     for path in paths {
         if !path.is_file {
             continue;
@@ -82,10 +97,31 @@ fn glob_files(target: &Targets, output: &mut Output) -> Result<(), TriageError> 
             }
         };
         let buf = BufReader::new(reader);
+        let mut file_report = TriageReport {
+            filename: path.filename.clone(),
+            full_path: path.full_path.clone(),
+            ..Default::default()
+        };
+        if let Ok(meta) = get_metadata(&path.full_path)
+            && let Ok(time) = get_timestamps(&path.full_path)
+        {
+            file_report.size = meta.len();
+            file_report.created = time.created;
+            file_report.accessed = time.accessed;
+            file_report.changed = time.changed;
+            file_report.modified = time.modified;
+        }
+
         acq.fs = Some(buf);
         acq.path = path.full_path;
         let hash = acq.acquire_file()?;
+        file_report.md5 = hash;
+        report.push(file_report);
     }
+
+    let mut bytes = serde_json::to_vec(&report).unwrap_or_default();
+    acq.write_report(&mut bytes)?;
+
     if let Err(err) = acq.zip.finish() {
         warn!("[triage] Failed to finish zipping file: {err:?}");
     }
