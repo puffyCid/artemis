@@ -1,0 +1,13 @@
+description = "systemd journal files"
+author = "PuffyCid"
+version = 1.0
+id = "1017d24b-c7b1-4d4d-b416-1b23a44dc631"
+recreate_directories = true
+
+[[targets]]
+name = "Default journal location"
+category = "Logs"
+path = "/var/log/journal/"
+file_mask = "*"
+recursive = true
+always_add_to_queue = false

@@ -3,13 +3,14 @@ use super::{
     os::{
         connections::artifact::list_connections,
         files::artifact::filelisting,
-        linux::artifacts::{journals, logons, sudo_logs_linux},
+        linux::artifacts::{ext4_filelist, journals, logons, sudo_logs_linux},
         macos::artifacts::{
             emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
             sudo_logs_macos, unifiedlogs, users_macos,
         },
         processes::artifact::processes,
         systeminfo::artifact::systeminfo,
+        triage::artifact::triage,
         windows::artifacts::{
             amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_filelist, recycle_bin,
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
@@ -18,7 +19,6 @@ use super::{
     },
 };
 use crate::{
-    artifacts::os::linux::artifacts::ext4_filelist,
     runtime::run::execute_script,
     structs::toml::ArtemisToml,
     utils::{
@@ -630,6 +630,20 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[forensics] Failed to parse MFT: {err:?}");
+                        status = String::from("failed");
+                    }
+                }
+            }
+            "triage" => {
+                let artifact = match &artifacts.triage {
+                    Some(result) => result,
+                    None => continue,
+                };
+                let results = triage(&mut collector.output, artifact);
+                match results {
+                    Ok(_) => info!("Collected connections"),
+                    Err(err) => {
+                        error!("[forensics] Failed to collect triage: {err:?}");
                         status = String::from("failed");
                     }
                 }

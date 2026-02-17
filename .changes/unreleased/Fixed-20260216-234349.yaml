@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug where artemis may not parse all journal log files
+time: 2026-02-16T23:43:49.594867329-05:00

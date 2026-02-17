@@ -1,28 +1,37 @@
 use crate::{
     artifacts::os::triage::{error::TriageError, reader::TriageReader},
-    filesystem::metadata::{get_metadata, get_timestamps, glob_paths},
+    filesystem::metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
     structs::{
         artifacts::triage::{ArtemisTriage, Targets, TriageOptions},
         toml::{ArtemisToml, Output},
     },
-    utils::encoding::base64_decode_standard,
+    utils::{
+        encoding::base64_decode_standard,
+        regex_options::{create_regex, regex_check},
+    },
 };
 use log::{error, warn};
+use regex::Regex;
 use serde::Serialize;
 use std::{
     fs::{File, create_dir_all},
     io::BufReader,
 };
+use walkdir::WalkDir;
 use zip::ZipWriter;
 
 pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(), TriageError> {
+    // Triages are always compressed
+    //output.compress = true;
     let triage = decode_triage(&options.triage)?;
 
     for target in triage.targets {
-        if !target.recursive && !target.file_mask.starts_with("regex") {
-            glob_files(&target, output, triage.recreate_directories)?;
-            continue;
-        }
+        acquire_files(
+            &target,
+            output,
+            triage.recreate_directories,
+            target.recursive,
+        )?;
     }
     Ok(())
 }
@@ -59,19 +68,33 @@ struct TriageReport {
     size: u64,
 }
 
-fn glob_files(
+fn acquire_files(
     target: &Targets,
     output: &mut Output,
     create_paths: bool,
+    recursive: bool,
 ) -> Result<(), TriageError> {
-    let glob_string = format!("{}{}", target.path, target.file_mask);
+    let mut glob_string = format!("{}{}", target.path, target.file_mask);
+    let mut file_pattern = None;
+    // Check if file mask is using regex instead a glob
+    if target.file_mask.starts_with("regex:") {
+        glob_string = target.path.clone();
+        let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[triage] Could not create regex: {err:?}");
+                return Err(TriageError::Regex);
+            }
+        };
+        file_pattern = Some(pattern);
+    }
     let paths = glob_paths(&glob_string).unwrap_or_default();
     let zip_output = format!("{}/{}", output.directory, output.name);
     if let Err(err) = create_dir_all(&zip_output) {
         error!("[triage] Could not create output directory: {err:?}");
         return Err(TriageError::Output);
     }
-    let zip_file = match File::create(format!("{zip_output}.zip")) {
+    let zip_file = match File::create(format!("{zip_output}/files.zip")) {
         Ok(result) => result,
         Err(err) => {
             error!("[triage] Could not create zip file: {err:?}");
@@ -88,10 +111,29 @@ fn glob_files(
 
     let mut report = Vec::new();
     for path in paths {
+        println!("{}", path.full_path);
+        if recursive {
+            walk_filesystem(
+                &path,
+                file_pattern.as_ref(),
+                &mut acq,
+                &mut report,
+                create_paths,
+            )?;
+            continue;
+        }
+
         if !path.is_file {
             continue;
         }
-        println!("{}", path.full_path);
+
+        // If regex is being used. Then check if our filename matches
+        if file_pattern
+            .as_ref()
+            .is_some_and(|pat| !regex_check(&pat, &path.filename))
+        {
+            continue;
+        }
 
         let reader = match File::open(&path.full_path) {
             Ok(result) => result,
@@ -140,15 +182,68 @@ fn glob_files(
 }
 
 fn walk_filesystem(
-    target: &Targets,
-    output: &mut Output,
-    recursive: bool,
+    glob_path: &GlobInfo,
+    pattern: Option<&Regex>,
+    acq: &mut TriageReader<File, File>,
+    report: &mut Vec<TriageReport>,
+    create_paths: bool,
 ) -> Result<(), TriageError> {
-    // 1. Evaluate globs for path
-    // 2. Start walkdir for each path
-    // 3. If recursive is false. Set max_depth to 0
-    // 4. Apply regex to filenames otherwise apply glob
-    // 5. Acquire each file
+    let start_walk = WalkDir::new(&glob_path.full_path).same_file_system(false);
+    for entries in start_walk {
+        let entry = match entries {
+            Ok(result) => result,
+            Err(err) => {
+                println!("[triage] Failed to walk directory: {err:?}");
+                continue;
+            }
+        };
+        if !entry.path().is_file() {
+            continue;
+        }
+
+        // If regex is being used. Then check if our filename matches
+        if pattern
+            .is_some_and(|pat| !regex_check(&pat, &entry.file_name().to_str().unwrap_or_default()))
+        {
+            continue;
+        }
+        let path = entry.path().to_str().unwrap_or_default();
+        println!("{path}");
+        let reader = match File::open(&path) {
+            Ok(result) => result,
+            Err(err) => {
+                println!("[triage] Could not read file {path}: {err:?}",);
+                continue;
+            }
+        };
+        let buf = BufReader::new(reader);
+        let mut file_report = TriageReport {
+            filename: entry.file_name().to_str().unwrap_or_default().to_string(),
+            full_path: path.to_string(),
+            ..Default::default()
+        };
+
+        if let Ok(meta) = get_metadata(&path)
+            && let Ok(time) = get_timestamps(&path)
+        {
+            file_report.size = meta.len();
+            file_report.created = time.created;
+            file_report.accessed = time.accessed;
+            file_report.changed = time.changed;
+            file_report.modified = time.modified;
+        }
+
+        acq.fs = Some(buf);
+        acq.path = path.to_string();
+
+        // If the user does not want to preserve full paths just save the filename
+        if !create_paths {
+            acq.path = glob_path.filename.clone();
+        }
+        let hash = acq.acquire_file()?;
+        file_report.md5 = hash;
+        report.push(file_report);
+    }
 
     Ok(())
 }
@@ -190,6 +285,18 @@ mod tests {
         let options = TriageOptions {
             triage: String::from(
                 "ZGVzY3JpcHRpb24gPSAiQmFzaCBIaXN0b3J5IgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBiYXNoIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJTaGVsbCIKcGF0aCA9ICIvaG9tZS8qLyIKZmlsZV9tYXNrID0gIiouYmFzaF9oaXN0b3J5IgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK",
+            ),
+        };
+
+        triage(&mut output, &options).unwrap();
+    }
+
+    #[test]
+    fn test_triage_linux_recursive() {
+        let mut output = output_options("triage_test_recursive", "local", "./tmp", false);
+        let options = TriageOptions {
+            triage: String::from(
+                "ZGVzY3JpcHRpb24gPSAic3lzdGVtZCBqb3VybmFsIGZpbGVzIgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBqb3VybmFsIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJMb2dzIgpwYXRoID0gIi92YXIvbG9nL2pvdXJuYWwvIgpmaWxlX21hc2sgPSAiKiIKcmVjdXJzaXZlID0gdHJ1ZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK",
             ),
         };
 

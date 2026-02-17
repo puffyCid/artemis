@@ -33,7 +33,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let bytes = match self.fs.as_mut().unwrap().read(&mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[triage] Failed to read all bytes from file: {err:?}");
+                    println!("[triage] Failed to read all bytes from file: {err:?}");
                     return Err(TriageError::ReadFile);
                 }
             };
@@ -57,11 +57,11 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let options = SimpleFileOptions::default().compression_method(method);
         let filename = "acquisition_report.json";
         if let Err(err) = self.zip.start_file_from_path(filename, options) {
-            println!("[triage] Failed to start report into zip: {err:?}");
+            error!("[triage] Failed to start report into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
         if let Err(err) = self.zip.write_all(report) {
-            println!("[triage] Failed to write report into zip: {err:?}");
+            error!("[triage] Failed to write report into zip: {err:?}");
             return Err(TriageError::WriteReport);
         };
 
