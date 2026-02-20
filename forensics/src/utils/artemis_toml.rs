@@ -49,7 +49,7 @@ impl ArtemisToml {
         let triage: ArtemisTriage = match toml_results {
             Ok(results) => results,
             Err(err) => {
-                println!("[forensics] Artemis failed to parse TOML triage data. Error: {err:?}");
+                error!("[forensics] Artemis failed to parse TOML triage data. Error: {err:?}");
                 return Err(ArtemisError::BadToml);
             }
         };

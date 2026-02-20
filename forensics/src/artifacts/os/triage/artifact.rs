@@ -1,6 +1,9 @@
 use crate::{
     artifacts::os::triage::{error::TriageError, reader::TriageReader},
-    filesystem::metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
+    filesystem::{
+        files::get_filename,
+        metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
+    },
     structs::{
         artifacts::triage::{ArtemisTriage, Targets, TriageOptions},
         toml::{ArtemisToml, Output},
@@ -119,6 +122,7 @@ fn acquire_files(
                 &mut acq,
                 &mut report,
                 create_paths,
+                &target.file_mask,
             )?;
             continue;
         }
@@ -134,40 +138,7 @@ fn acquire_files(
         {
             continue;
         }
-
-        let reader = match File::open(&path.full_path) {
-            Ok(result) => result,
-            Err(err) => {
-                warn!("[triage] Could not read file {}: {err:?}", path.full_path);
-                continue;
-            }
-        };
-        let buf = BufReader::new(reader);
-        let mut file_report = TriageReport {
-            filename: path.filename.clone(),
-            full_path: path.full_path.clone(),
-            ..Default::default()
-        };
-
-        if let Ok(meta) = get_metadata(&path.full_path)
-            && let Ok(time) = get_timestamps(&path.full_path)
-        {
-            file_report.size = meta.len();
-            file_report.created = time.created;
-            file_report.accessed = time.accessed;
-            file_report.changed = time.changed;
-            file_report.modified = time.modified;
-        }
-
-        acq.fs = Some(buf);
-        acq.path = path.full_path;
-
-        // If the user does not want to preserve full paths just save the filename
-        if !create_paths {
-            acq.path = path.filename;
-        }
-        let hash = acq.acquire_file()?;
-        file_report.md5 = hash;
+        let file_report = read_file(&path.full_path, &mut acq, create_paths)?;
         report.push(file_report);
     }
 
@@ -187,16 +158,48 @@ fn walk_filesystem(
     acq: &mut TriageReader<File, File>,
     report: &mut Vec<TriageReport>,
     create_paths: bool,
+    file_mask: &str,
 ) -> Result<(), TriageError> {
     let start_walk = WalkDir::new(&glob_path.full_path).same_file_system(false);
     for entries in start_walk {
         let entry = match entries {
             Ok(result) => result,
             Err(err) => {
-                println!("[triage] Failed to walk directory: {err:?}");
+                error!("[triage] Failed to walk directory: {err:?}");
                 continue;
             }
         };
+
+        // No regex was provided. Using file mask to determine if a file should be read
+        if pattern.is_none() && entry.path().is_dir() {
+            println!("{:?}", entry.path());
+            let file_mask_path = entry.path().join(file_mask);
+            println!("{file_mask_path:?}");
+            let glob_paths = match glob_paths(&file_mask_path.to_str().unwrap_or_default()) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[triage] Failed to glob walk directory: {err:?}");
+                    continue;
+                }
+            };
+
+            for glob_path in glob_paths {
+                if !glob_path.is_file {
+                    continue;
+                }
+
+                let file_report = read_file(&glob_path.full_path, acq, create_paths)?;
+                report.push(file_report);
+            }
+            continue;
+        }
+
+        // If we are not using regex then only acquire files that match the file mask (the glob above)
+        if pattern.is_none() && entry.path().is_file() {
+            continue;
+        }
+
+        // Applying Regex patterns. First make sure we are at a file
         if !entry.path().is_file() {
             continue;
         }
@@ -208,44 +211,54 @@ fn walk_filesystem(
             continue;
         }
         let path = entry.path().to_str().unwrap_or_default();
-        println!("{path}");
-        let reader = match File::open(&path) {
-            Ok(result) => result,
-            Err(err) => {
-                println!("[triage] Could not read file {path}: {err:?}",);
-                continue;
-            }
-        };
-        let buf = BufReader::new(reader);
-        let mut file_report = TriageReport {
-            filename: entry.file_name().to_str().unwrap_or_default().to_string(),
-            full_path: path.to_string(),
-            ..Default::default()
-        };
-
-        if let Ok(meta) = get_metadata(&path)
-            && let Ok(time) = get_timestamps(&path)
-        {
-            file_report.size = meta.len();
-            file_report.created = time.created;
-            file_report.accessed = time.accessed;
-            file_report.changed = time.changed;
-            file_report.modified = time.modified;
-        }
-
-        acq.fs = Some(buf);
-        acq.path = path.to_string();
-
-        // If the user does not want to preserve full paths just save the filename
-        if !create_paths {
-            acq.path = glob_path.filename.clone();
-        }
-        let hash = acq.acquire_file()?;
-        file_report.md5 = hash;
+        let file_report = read_file(path, acq, create_paths)?;
         report.push(file_report);
     }
 
     Ok(())
+}
+
+fn read_file(
+    path: &str,
+    acq: &mut TriageReader<File, File>,
+    create_paths: bool,
+) -> Result<TriageReport, TriageError> {
+    println!("{path}");
+    let reader = match File::open(&path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[triage] Could not read file {path}: {err:?}",);
+            return Err(TriageError::ReadFile);
+        }
+    };
+    let buf = BufReader::new(reader);
+    let mut file_report = TriageReport {
+        filename: get_filename(path),
+        full_path: path.to_string(),
+        ..Default::default()
+    };
+
+    if let Ok(meta) = get_metadata(&path)
+        && let Ok(time) = get_timestamps(&path)
+    {
+        file_report.size = meta.len();
+        file_report.created = time.created;
+        file_report.accessed = time.accessed;
+        file_report.changed = time.changed;
+        file_report.modified = time.modified;
+    }
+
+    acq.fs = Some(buf);
+    acq.path = path.to_string();
+
+    // If the user does not want to preserve full paths just save the filename
+    if !create_paths {
+        acq.path = get_filename(path);
+    }
+    let hash = acq.acquire_file()?;
+    file_report.md5 = hash;
+
+    Ok(file_report)
 }
 
 #[cfg(test)]

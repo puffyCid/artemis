@@ -8,6 +8,6 @@ recreate_directories = true
 name = "Default journal location"
 category = "Logs"
 path = "/var/log/journal/"
-file_mask = "*"
+file_mask = "*user*"
 recursive = true
 always_add_to_queue = false
