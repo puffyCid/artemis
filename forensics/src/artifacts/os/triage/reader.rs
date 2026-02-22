@@ -54,6 +54,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         Ok(hash)
     }
 
+    /// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
     pub(crate) fn acquire_file_ntfs(
         &mut self,
         ntfs: &NtfsFile<'_>,

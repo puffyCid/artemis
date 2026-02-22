@@ -27,6 +27,7 @@ use std::{
 use walkdir::WalkDir;
 use zip::ZipWriter;
 
+/// Triage a system by acquiring files
 pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(), TriageError> {
     // Triages are always compressed
     //output.compress = true;
@@ -43,6 +44,7 @@ pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(),
     Ok(())
 }
 
+/// Base64 decode the KAPE TOML triage collection
 fn decode_triage(encoded: &str) -> Result<ArtemisTriage, TriageError> {
     let bytes = match base64_decode_standard(encoded) {
         Ok(result) => result,
@@ -75,6 +77,7 @@ struct TriageReport {
     size: u64,
 }
 
+/// Copy the targetted files
 fn acquire_files(
     target: &Targets,
     output: &mut Output,
@@ -155,6 +158,7 @@ fn acquire_files(
     Ok(())
 }
 
+/// Transverse the filesystem and acquire all files that match the provided glob or regex
 fn walk_filesystem(
     glob_path: &GlobInfo,
     pattern: Option<&Regex>,
@@ -219,6 +223,7 @@ fn walk_filesystem(
     Ok(())
 }
 
+/// Read the target file that matched the glob or regex
 fn read_file(
     path: &str,
     acq: &mut TriageReader<File, File>,
@@ -265,6 +270,7 @@ fn read_file(
     Ok(file_report)
 }
 
+/// Read the target file that matched the glob or regex by parsing the NTFS
 fn read_file_ntfs(
     path: &str,
     acq: &mut TriageReader<File, File>,
