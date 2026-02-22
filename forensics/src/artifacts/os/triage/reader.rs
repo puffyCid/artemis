@@ -231,7 +231,7 @@ mod tests {
         use crate::filesystem::ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser};
 
         let path = "C:\\Windows\\System32\\config\\SOFTWARE";
-        let output = output_options("triage_test_multiple_files", "local", "./tmp", false);
+        let output = output_options("triage_ntfs_acquire_file", "local", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
         let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
 
