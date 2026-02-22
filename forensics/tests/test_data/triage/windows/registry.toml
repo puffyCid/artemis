@@ -1,0 +1,13 @@
+description = "SAM Hive"
+author = "PuffyCid"
+version = 1.0
+id = "aaaa-bbbb-cccc"
+recreate_directories = true
+
+[[targets]]
+name = "SAM Registry file"
+category = "Registry"
+path = "C:\\Windows\\System32\\config\\"
+file_mask = "SAM"
+recursive = false
+always_add_to_queue = false

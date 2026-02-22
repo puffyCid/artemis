@@ -1,8 +1,12 @@
 use crate::{
-    artifacts::os::triage::{error::TriageError, reader::TriageReader},
+    artifacts::os::{
+        systeminfo::info::{PlatformType, get_platform_enum},
+        triage::{error::TriageError, reader::TriageReader},
+    },
     filesystem::{
         files::get_filename,
         metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
+        ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
     },
     structs::{
         artifacts::triage::{ArtemisTriage, Targets, TriageOptions},
@@ -114,7 +118,6 @@ fn acquire_files(
 
     let mut report = Vec::new();
     for path in paths {
-        println!("{}", path.full_path);
         if recursive {
             walk_filesystem(
                 &path,
@@ -134,7 +137,7 @@ fn acquire_files(
         // If regex is being used. Then check if our filename matches
         if file_pattern
             .as_ref()
-            .is_some_and(|pat| !regex_check(&pat, &path.filename))
+            .is_some_and(|pat| !regex_check(pat, &path.filename))
         {
             continue;
         }
@@ -172,10 +175,8 @@ fn walk_filesystem(
 
         // No regex was provided. Using file mask to determine if a file should be read
         if pattern.is_none() && entry.path().is_dir() {
-            println!("{:?}", entry.path());
             let file_mask_path = entry.path().join(file_mask);
-            println!("{file_mask_path:?}");
-            let glob_paths = match glob_paths(&file_mask_path.to_str().unwrap_or_default()) {
+            let glob_paths = match glob_paths(file_mask_path.to_str().unwrap_or_default()) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[triage] Failed to glob walk directory: {err:?}");
@@ -206,7 +207,7 @@ fn walk_filesystem(
 
         // If regex is being used. Then check if our filename matches
         if pattern
-            .is_some_and(|pat| !regex_check(&pat, &entry.file_name().to_str().unwrap_or_default()))
+            .is_some_and(|pat| !regex_check(pat, entry.file_name().to_str().unwrap_or_default()))
         {
             continue;
         }
@@ -223,11 +224,14 @@ fn read_file(
     acq: &mut TriageReader<File, File>,
     create_paths: bool,
 ) -> Result<TriageReport, TriageError> {
-    println!("{path}");
-    let reader = match File::open(&path) {
+    let reader = match File::open(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not read file {path}: {err:?}",);
+            if get_platform_enum() == PlatformType::Windows {
+                return read_file_ntfs(path, acq, create_paths);
+            }
+
+            error!("[triage] Could not read file {path}: {err:?}");
             return Err(TriageError::ReadFile);
         }
     };
@@ -238,8 +242,8 @@ fn read_file(
         ..Default::default()
     };
 
-    if let Ok(meta) = get_metadata(&path)
-        && let Ok(time) = get_timestamps(&path)
+    if let Ok(meta) = get_metadata(path)
+        && let Ok(time) = get_timestamps(path)
     {
         file_report.size = meta.len();
         file_report.created = time.created;
@@ -257,6 +261,64 @@ fn read_file(
     }
     let hash = acq.acquire_file()?;
     file_report.md5 = hash;
+
+    Ok(file_report)
+}
+
+fn read_file_ntfs(
+    path: &str,
+    acq: &mut TriageReader<File, File>,
+    create_paths: bool,
+) -> Result<TriageReport, TriageError> {
+    // On Windows use a NTFS reader
+    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
+    let mut ntfs_parser = match ntfs_parser_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[triage] Could not setup NTFS parser: {err:?}");
+            return Err(TriageError::ReadFile);
+        }
+    };
+
+    let reader_result = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
+    let ntfs_file = match reader_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[triage] Could not setup reader: {err:?}");
+            return Err(TriageError::ReadFile);
+        }
+    };
+    acq.path = path.to_string();
+
+    let hash = match acq.acquire_file_ntfs(&ntfs_file, &mut ntfs_parser.fs) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[triage] Could not acquire raw file: {err:?}");
+            return Err(TriageError::ReadFile);
+        }
+    };
+
+    let mut file_report = TriageReport {
+        filename: get_filename(path),
+        full_path: path.to_string(),
+        md5: hash,
+        ..Default::default()
+    };
+
+    if let Ok(meta) = get_metadata(path)
+        && let Ok(time) = get_timestamps(path)
+    {
+        file_report.size = meta.len();
+        file_report.created = time.created;
+        file_report.accessed = time.accessed;
+        file_report.changed = time.changed;
+        file_report.modified = time.modified;
+    }
+
+    // If the user does not want to preserve full paths just save the filename
+    if !create_paths {
+        acq.path = get_filename(path);
+    }
 
     Ok(file_report)
 }

@@ -1,0 +1,14 @@
+[output]
+name = "triage_windows_collection"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "triage"
+[artifacts.triage]
+triage = "ZGVzY3JpcHRpb24gPSAiU0FNIEhpdmUiDQphdXRob3IgPSAiUHVmZnlDaWQiDQp2ZXJzaW9uID0gMS4wDQppZCA9ICJhYWFhLWJiYmItY2NjYyINCnJlY3JlYXRlX2RpcmVjdG9yaWVzID0gdHJ1ZQ0KDQpbW3RhcmdldHNdXQ0KbmFtZSA9ICJTQU0gUmVnaXN0cnkgZmlsZSINCmNhdGVnb3J5ID0gIlJlZ2lzdHJ5Ig0KcGF0aCA9ICJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcIg0KZmlsZV9tYXNrID0gIlNBTSINCnJlY3Vyc2l2ZSA9IGZhbHNlDQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2U="

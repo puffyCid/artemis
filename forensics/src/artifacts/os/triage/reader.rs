@@ -1,7 +1,10 @@
-use crate::artifacts::os::triage::error::TriageError;
+use crate::{
+    artifacts::os::triage::error::TriageError, filesystem::ntfs::sector_reader::SectorReader,
+};
 use log::error;
 use md5::{Digest, Md5};
-use std::io::{BufReader, Read, Write, copy};
+use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
+use std::io::{BufReader, Error, ErrorKind, Read, Write, copy};
 use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
 pub(crate) struct TriageReader<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write>
@@ -35,6 +38,62 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
                 Err(err) => {
                     println!("[triage] Failed to read all bytes from file: {err:?}");
                     return Err(TriageError::ReadFile);
+                }
+            };
+            if bytes == 0 {
+                break;
+            }
+
+            if bytes < bytes_limit {
+                buf = buf[0..bytes].to_vec();
+            }
+            let _ = copy(&mut buf.as_slice(), &mut md5);
+            let _ = copy(&mut buf.as_slice(), &mut self.zip);
+        }
+        let hash = format!("{:x}", md5.finalize());
+        Ok(hash)
+    }
+
+    pub(crate) fn acquire_file_ntfs(
+        &mut self,
+        ntfs: &NtfsFile<'_>,
+        fs: &mut BufReader<SectorReader<std::fs::File>>,
+    ) -> Result<String, NtfsError> {
+        let data_name = "";
+        let ntfs_data_option = ntfs.data(fs, data_name);
+        let ntfs_data_result = match ntfs_data_option {
+            Some(result) => result,
+            None => return Err(NtfsError::Io(Error::new(ErrorKind::InvalidData, "No data"))),
+        };
+
+        let ntfs_data = ntfs_data_result?;
+        let ntfs_attribute = ntfs_data.to_attribute()?;
+
+        let mut data_reader = ntfs_attribute.value(fs)?;
+        // Read 64MB of data at a time
+        let bytes_limit = 1024 * 1024 * 64;
+        let mut buf = vec![0; bytes_limit];
+        let mut md5 = Md5::new();
+        let method = CompressionMethod::Stored;
+        let options = SimpleFileOptions::default().compression_method(method);
+        if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
+            println!("[triage] Failed to start file read into zip: {err:?}");
+            return Err(NtfsError::Io(Error::new(
+                ErrorKind::InvalidData,
+                "Failed to start zip writer",
+            )));
+        }
+
+        loop {
+            // Unwrap is safe since we check to make it is set above
+            let bytes = match data_reader.read(fs, &mut buf) {
+                Ok(result) => result,
+                Err(err) => {
+                    println!("[triage] Failed to read all bytes from file: {err:?}");
+                    return Err(NtfsError::Io(Error::new(
+                        ErrorKind::InvalidData,
+                        "Failed to read all data",
+                    )));
                 }
             };
             if bytes == 0 {
