@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_parse_triage_toml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/triage/windows/Chrome.toml");
+        test_location.push("tests/test_data/triage/windows/chrome.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
 
