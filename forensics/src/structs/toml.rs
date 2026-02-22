@@ -79,7 +79,7 @@ pub struct Artifacts {
     pub fseventsd: Option<FseventsOptions>,
     pub sudologs_macos: Option<MacosSudoOptions>,
     pub spotlight: Option<SpotlightOptions>,
-    pub journals: Option<JournalOptions>,
+    pub journal: Option<JournalOptions>,
     pub sudologs_linux: Option<LinuxSudoOptions>,
     pub logons: Option<LogonOptions>,
     pub rawfiles_ext4: Option<Ext4Options>,

@@ -47,7 +47,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
     let mut total_count = 0;
 
     // Loop through all supported artifacts
-    for artifacts in &collector.artifacts {
+    for artifacts in &mut collector.artifacts {
         // If marker file is enabled, check if we should skip this artifact
         if collector.marker.is_some()
             && skip_artifact(collector.marker.as_ref().unwrap(), artifacts)
@@ -245,6 +245,8 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result) => result,
                     _ => continue,
                 };
+                // Use the more descriptive script name as our artifact name
+                artifacts.artifact_name = script.name.clone();
                 let results = execute_script(&mut collector.output, script);
                 match results {
                     Ok(_) => info!("Executed JavaScript "),
@@ -256,7 +258,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
             }
             // Linux
             "journal" => {
-                let options = match &artifacts.journals {
+                let options = match &artifacts.journal {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
