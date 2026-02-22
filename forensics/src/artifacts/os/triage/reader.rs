@@ -224,4 +224,28 @@ mod tests {
         assert_eq!(hash, "a6d4d85e832a17e230842de55e4f0ccc");
         acq.zip.finish().unwrap();
     }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_acquire_file_ntfs() {
+        use crate::filesystem::ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser};
+
+        let path = "C:\\Windows\\System32\\config\\SOFTWARE";
+        let output = output_options("triage_test_multiple_files", "local", "./tmp", false);
+        create_dir_all(&output.directory).unwrap();
+        let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
+
+        let zip = ZipWriter::new(file);
+        let mut acq: TriageReader<File, File> = TriageReader {
+            fs: None,
+            zip,
+            path: path.to_string(),
+        };
+        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
+        let ntfs_file = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
+        let hash = acq
+            .acquire_file_ntfs(&ntfs_file, &mut ntfs_parser.fs)
+            .unwrap();
+        assert!(!hash.is_empty());
+    }
 }

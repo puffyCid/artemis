@@ -1,13 +1,13 @@
-description = "SAM Hive"
+description = "SOFTWARE Hive"
 author = "PuffyCid"
 version = 1.0
 id = "aaaa-bbbb-cccc"
 recreate_directories = true
 
 [[targets]]
-name = "SAM Registry file"
+name = "SOFTWARE Registry file"
 category = "Registry"
 path = "C:\\Windows\\System32\\config\\"
-file_mask = "SAM"
+file_mask = "SOFTWARE"
 recursive = false
 always_add_to_queue = false
