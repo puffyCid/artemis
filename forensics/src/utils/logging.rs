@@ -84,7 +84,7 @@ pub(crate) fn collection_status(
 
     /*
      * This is a simple log file that maps artifact names to the uuid filename
-     * Ex: amcache:c639679b-40ec-4aca-9ed1-dc740c38731c.json
+     * Ex: amcache_c639679b-40ec-4aca-9ed1-dc740c38731c.json
      * The JSON file also contains the artifact name, but this provides a single file to quickly check where each artifact was saved to
      */
     let status_message = format!("{output_name}.{}\n", output.format);

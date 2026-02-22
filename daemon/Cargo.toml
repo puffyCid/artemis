@@ -17,7 +17,7 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 reqwest = { workspace = true }
 base64 = { workspace = true }
-rand = { workspace = true }
+fastrand = { workspace = true }
 
 chrono = "0.4.43"
 simplelog = "0.12.2"

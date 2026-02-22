@@ -171,8 +171,7 @@ def parseTargets(targets, path, quiet):
     return values
 
 '''
-No AI was used to make this script XD
-But probably it could have made it better XD
+Convert KAPE files to TOML
 '''
 def main():
     parser = argparse.ArgumentParser(

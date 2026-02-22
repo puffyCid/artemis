@@ -24,10 +24,10 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let bytes_limit = 1024 * 1024 * 64;
         let mut buf = vec![0; bytes_limit];
         let mut md5 = Md5::new();
-        let method = CompressionMethod::Stored;
+        let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            println!("[triage] Failed to start file read into zip: {err:?}");
+            error!("[triage] Failed to start file read into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
 
@@ -36,7 +36,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let bytes = match self.fs.as_mut().unwrap().read(&mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    println!("[triage] Failed to read all bytes from file: {err:?}");
+                    error!("[triage] Failed to read all bytes from file: {err:?}");
                     return Err(TriageError::ReadFile);
                 }
             };
@@ -75,10 +75,10 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let bytes_limit = 1024 * 1024 * 64;
         let mut buf = vec![0; bytes_limit];
         let mut md5 = Md5::new();
-        let method = CompressionMethod::Stored;
+        let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            println!("[triage] Failed to start file read into zip: {err:?}");
+            error!("[triage] Failed to start file read into zip: {err:?}");
             return Err(NtfsError::Io(Error::new(
                 ErrorKind::InvalidData,
                 "Failed to start zip writer",
@@ -90,7 +90,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let bytes = match data_reader.read(fs, &mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    println!("[triage] Failed to read all bytes from file: {err:?}");
+                    error!("[triage] Failed to read all bytes from file: {err:?}");
                     return Err(NtfsError::Io(Error::new(
                         ErrorKind::InvalidData,
                         "Failed to read all data",

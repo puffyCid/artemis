@@ -77,7 +77,7 @@ struct TriageReport {
     size: u64,
 }
 
-/// Copy the targetted files
+/// Copy the targeted files
 fn acquire_files(
     target: &Targets,
     output: &mut Output,
@@ -148,6 +148,7 @@ fn acquire_files(
         report.push(file_report);
     }
 
+    output.output_count += report.len() as u64;
     let mut bytes = serde_json::to_vec(&report).unwrap_or_default();
     acq.write_report(&mut bytes)?;
 
@@ -332,9 +333,22 @@ fn read_file_ntfs(
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::triage::artifact::{decode_triage, triage},
-        structs::{artifacts::triage::TriageOptions, toml::Output},
+        artifacts::os::triage::{
+            artifact::{acquire_files, decode_triage, read_file, triage, walk_filesystem},
+            reader::TriageReader,
+        },
+        filesystem::metadata::GlobInfo,
+        structs::{
+            artifacts::triage::{Targets, TriageOptions},
+            toml::Output,
+        },
+        utils::regex_options::create_regex,
     };
+    use std::{
+        fs::{File, create_dir_all},
+        path::PathBuf,
+    };
+    use zip::ZipWriter;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -390,5 +404,106 @@ mod tests {
         let triage = decode_triage(encoding).unwrap();
         assert_eq!(triage.author, "Ron Rader");
         assert_eq!(triage.targets[0].path, "C:\\ProgramData\\DWAgent*\\")
+    }
+
+    #[test]
+    fn test_acquire_files() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/");
+
+        let target = Targets {
+            name: String::from("test"),
+            category: String::from("test"),
+            recursive: false,
+            file_mask: String::from("*.toml"),
+            path: test_location.display().to_string(),
+        };
+
+        let mut out = output_options("acquire_files", "local", "./tmp", false);
+        acquire_files(&target, &mut out, true, false).unwrap();
+    }
+
+    #[test]
+    fn test_walk_filesystem() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/");
+        let glob_path = GlobInfo {
+            full_path: test_location.display().to_string(),
+            filename: String::new(),
+            is_file: true,
+            is_directory: false,
+            is_symlink: false,
+        };
+        let out = output_options("walk_filesystem", "local", "./tmp", false);
+
+        let zip_output = format!("{}/{}", out.directory, out.name);
+        create_dir_all(&zip_output).unwrap();
+        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+
+        let zip = ZipWriter::new(zip_file);
+        let mut acq = TriageReader {
+            fs: None,
+            zip,
+            path: String::new(),
+        };
+        let mut report = Vec::new();
+
+        walk_filesystem(&glob_path, None, &mut acq, &mut report, true, "quick.toml").unwrap();
+        assert_eq!(report.len(), 1);
+        assert_eq!(report[0].md5, "a6d4d85e832a17e230842de55e4f0ccc");
+    }
+
+    #[test]
+    fn test_walk_filesystem_regex() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/macos/");
+        let glob_path = GlobInfo {
+            full_path: test_location.display().to_string(),
+            filename: String::new(),
+            is_file: true,
+            is_directory: false,
+            is_symlink: false,
+        };
+        let out = output_options("walk_filesystem", "local", "./tmp", false);
+
+        let zip_output = format!("{}/{}", out.directory, out.name);
+        create_dir_all(&zip_output).unwrap();
+        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+
+        let zip = ZipWriter::new(zip_file);
+        let mut acq = TriageReader {
+            fs: None,
+            zip,
+            path: String::new(),
+        };
+        let mut report = Vec::new();
+        let patter = create_regex("quick.*").unwrap();
+
+        walk_filesystem(&glob_path, Some(&patter), &mut acq, &mut report, true, "").unwrap();
+        assert_eq!(report.len(), 1);
+        assert_eq!(report[0].md5, "a6d4d85e832a17e230842de55e4f0ccc");
+    }
+
+    #[test]
+    fn test_read_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/linux/files.toml");
+
+        let out = output_options("read_file", "local", "./tmp", false);
+
+        let zip_output = format!("{}/{}", out.directory, out.name);
+        create_dir_all(&zip_output).unwrap();
+        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+
+        let zip = ZipWriter::new(zip_file);
+        let mut acq = TriageReader {
+            fs: None,
+            zip,
+            path: String::new(),
+        };
+
+        let report = read_file(test_location.to_str().unwrap(), &mut acq, true).unwrap();
+        assert_eq!(report.md5, "cbed8a94f6a32edc5266206f83985386");
+        assert_eq!(report.size, 606);
     }
 }

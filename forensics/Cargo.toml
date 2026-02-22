@@ -22,7 +22,7 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 rusqlite = { workspace = true }
 tokio = { workspace = true }
-rand = { workspace = true }
+fastrand = { workspace = true }
 
 nom = "8.0.0"
 md-5 = "0.10.6"
@@ -34,10 +34,10 @@ walkdir = "2.5.0"
 home = "0.5.12"
 chrono = "0.4.43"
 simplelog = "0.12.2"
-zip = { version = "7.4.0", default-features = false }
+zip = { version = "8.1.0", default-features = false, features = ["deflate"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 rusty-s3 = "0.8.1"
-quick-xml = { version = "0.39.0", default-features = false }
+quick-xml = { version = "0.39.2", default-features = false }
 xml2json-rs = "1.0.1"
 evtx = { version = "0.11.1", default-features = false, features = [
     "multithreading",
