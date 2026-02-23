@@ -105,7 +105,80 @@ pub(crate) fn parse_usnjrnl_data(
 }
 
 /// Parse the `UsnJrnl` file at provided path and return all entriess
-pub(crate) fn get_usnjrnl_path(
+pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+    let data = get_data(drive)?;
+    let ntfs_parser_result = setup_ntfs_parser(drive);
+    let mut ntfs_parser = match ntfs_parser_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[usnjrnl] Cannot setup NTFS parser: {err:?}");
+            return Err(UsnJrnlError::Parser);
+        }
+    };
+
+    let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[usnjrnl] Cannot read the MFT file: {err:?}");
+            return Err(UsnJrnlError::ReadFile);
+        }
+    };
+
+    let mut usnjrnl_entries = Vec::new();
+    let mut journal_cache = HashMap::new();
+    // UsnJrnl is composed of multiple data runs
+    // Each data run we grabbed contain bytes that contain UsnJrnl entries
+    // We do not need to concat the data in order to parse the UsnJrnl format, we can just loop through each data run
+    let usnjrnl_result = UsnJrnlFormat::parse_usnjrnl(
+        &data,
+        &mut ntfs_parser.fs,
+        Some(&ntfs_file),
+        &mut journal_cache,
+    );
+    match usnjrnl_result {
+        Ok((_, result)) => {
+            for mut jrnl_entry in result {
+                // Try the cached usnjrnl paths before we give up
+                if jrnl_entry.full_path.starts_with("$OrphanFiles\\") {
+                    let mut tracker = HashSet::new();
+                    let path = lookup_journal_cache(&journal_cache, &jrnl_entry, &mut tracker);
+                    if !path.is_empty() {
+                        jrnl_entry.full_path = path;
+                    }
+                }
+                let entry = UsnJrnlEntry {
+                    mft_entry: jrnl_entry.mft_entry,
+                    mft_sequence: jrnl_entry.mft_sequence,
+                    parent_mft_entry: jrnl_entry.parent_mft_entry,
+                    parent_mft_sequence: jrnl_entry.parent_mft_sequence,
+                    update_sequence_number: jrnl_entry.update_sequence_number,
+                    update_time: jrnl_entry.update_time,
+                    update_reason: jrnl_entry.update_reason,
+                    update_source_flags: jrnl_entry.update_source_flags,
+                    security_descriptor_id: jrnl_entry.security_descriptor_id,
+                    file_attributes: jrnl_entry.file_attributes,
+                    extension: file_extension(&jrnl_entry.name),
+                    full_path: jrnl_entry.full_path,
+                    filename: jrnl_entry.name,
+                    drive: drive.to_string(),
+                    evidence: format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
+                };
+                usnjrnl_entries.push(entry);
+            }
+        }
+        Err(_err) => {
+            // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl
+            error!(
+                "[usnjrnl] Encountered issue when parsing whole UsnJrnl. Returning current entries if any."
+            );
+
+            return Ok(usnjrnl_entries);
+        }
+    };
+    Ok(usnjrnl_entries)
+}
+
+pub(crate) fn get_usnjrnl_alt_path(
     path: &str,
     mft_path: &Option<String>,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
@@ -300,9 +373,10 @@ fn output_usnjnl(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use crate::structs::toml::Output;
-
-    use super::{get_data, get_usnjrnl_path, parse_usnjrnl_data};
+    use super::{get_data, parse_usnjrnl_data};
+    use crate::{
+        artifacts::os::windows::usnjrnl::ntfs::get_usnjrnl_alt_path, structs::toml::Output,
+    };
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -331,11 +405,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_usnjrnl_path() {
+    fn test_get_usnjrnl_alt_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
 
-        let results = get_usnjrnl_path(test_location.to_str().unwrap(), &None).unwrap();
+        let results = get_usnjrnl_alt_path(test_location.to_str().unwrap(), &None).unwrap();
         assert_eq!(results.len(), 1);
     }
 }

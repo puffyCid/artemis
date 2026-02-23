@@ -16,7 +16,7 @@ use super::{
     ntfs::{get_usnjrnl_path, parse_usnjrnl_data},
 };
 use crate::{
-    artifacts::os::windows::usnjrnl::ntfs::get_usnjrnl_path_stream,
+    artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
     structs::{artifacts::os::windows::UsnJrnlOptions, toml::Output},
     utils::{environment::get_systemdrive, time::time_now},
 };
@@ -57,10 +57,23 @@ pub(crate) fn grab_usnjrnl(
 
 /// Get `UsnJrnl` data at provided path
 pub(crate) fn grab_usnjrnl_path(
-    path: &str,
-    mft_path: &Option<String>,
+    options: &UsnJrnlOptions,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
-    get_usnjrnl_path(path, mft_path)
+    if let Some(alt) = options.alt_drive {
+        return get_usnjrnl_path(alt, &format!("{alt}:\\$MFT"));
+    }
+    if let Some(path) = &options.alt_path {
+        return get_usnjrnl_alt_path(path, &options.alt_mft);
+    }
+    let systemdrive_result = get_systemdrive();
+    let systemdrive = match systemdrive_result {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[usnjrnl] Could not get systemdrive: {err:?}");
+            return Err(UsnJrnlError::SystemDrive);
+        }
+    };
+    get_usnjrnl_path(systemdrive, &format!("{systemdrive}:\\$MFT"))
 }
 
 #[cfg(test)]
@@ -98,8 +111,12 @@ mod tests {
     fn test_grab_usnjrnl_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
-
-        let results = grab_usnjrnl_path(test_location.to_str().unwrap(), &None).unwrap();
+        let params = UsnJrnlOptions {
+            alt_drive: None,
+            alt_path: Some(test_location.display().to_string()),
+            alt_mft: None,
+        };
+        let results = grab_usnjrnl_path(&params).unwrap();
         assert_eq!(results.len(), 1);
     }
 }

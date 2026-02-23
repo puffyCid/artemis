@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl,
+    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl_path,
     runtime::helper::{char_arg, string_arg},
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
@@ -27,7 +27,23 @@ pub(crate) fn js_usnjrnl(
         Some(string_arg(args, 2)?)
     };
 
-    Ok(JsValue::null())
+    let options = UsnJrnlOptions {
+        alt_drive: drive,
+        alt_path: path,
+        alt_mft: mft_path,
+    };
+    let jrnl = match grab_usnjrnl_path(&options) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to get usnjrnl: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let results = serde_json::to_value(&jrnl).unwrap_or_default();
+    let value = JsValue::from_json(&results, context)?;
+
+    Ok(value)
 }
 
 #[cfg(test)]
