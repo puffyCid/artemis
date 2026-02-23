@@ -277,6 +277,37 @@ fn read_file_ntfs(
     acq: &mut TriageReader<File, File>,
     create_paths: bool,
 ) -> Result<TriageReport, TriageError> {
+    // Check if we want to acquire an ADS attribute. Those are easier to read
+    if path.contains(":$") {
+        let ads_path: Vec<&str> = path.split(":").collect();
+        acq.path = ads_path[0].to_string();
+        let attribute = ads_path[1];
+        let hash = acq.acquire_file_ntfs_ads(attribute)?;
+
+        let mut file_report = TriageReport {
+            filename: get_filename(path),
+            full_path: path.to_string(),
+            md5: hash,
+            ..Default::default()
+        };
+
+        if let Ok(meta) = get_metadata(path)
+            && let Ok(time) = get_timestamps(path)
+        {
+            file_report.size = meta.len();
+            file_report.created = time.created;
+            file_report.accessed = time.accessed;
+            file_report.changed = time.changed;
+            file_report.modified = time.modified;
+        }
+
+        // If the user does not want to preserve full paths just save the filename
+        if !create_paths {
+            acq.path = get_filename(path);
+        }
+
+        return Ok(file_report);
+    }
     // On Windows use a NTFS reader
     let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
     let mut ntfs_parser = match ntfs_parser_result {
