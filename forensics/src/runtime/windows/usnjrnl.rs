@@ -27,23 +27,7 @@ pub(crate) fn js_usnjrnl(
         Some(string_arg(args, 2)?)
     };
 
-    let options = UsnJrnlOptions {
-        alt_drive: drive,
-        alt_path: path,
-        alt_mft: mft_path,
-    };
-    let jrnl = match grab_usnjrnl(&options) {
-        Ok(result) => result,
-        Err(err) => {
-            let issue = format!("Failed to get usnjrnl: {err:?}");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    };
-
-    let results = serde_json::to_value(&jrnl).unwrap_or_default();
-    let value = JsValue::from_json(&results, context)?;
-
-    Ok(value)
+    Ok(JsValue::null())
 }
 
 #[cfg(test)]

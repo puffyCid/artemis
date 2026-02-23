@@ -29,8 +29,6 @@ use zip::ZipWriter;
 
 /// Triage a system by acquiring files
 pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(), TriageError> {
-    // Triages are always compressed
-    //output.compress = true;
     let triage = decode_triage(&options.triage)?;
 
     for target in triage.targets {
@@ -279,13 +277,13 @@ fn read_file_ntfs(
 ) -> Result<TriageReport, TriageError> {
     // Check if we want to acquire an ADS attribute. Those are easier to read
     if path.contains(":$") {
-        let ads_path: Vec<&str> = path.split(":").collect();
+        let ads_path: Vec<&str> = path.split(":$").collect();
         acq.path = ads_path[0].to_string();
-        let attribute = ads_path[1];
-        let hash = acq.acquire_file_ntfs_ads(attribute)?;
+        let attribute = format!("${}", ads_path[1]);
+        let hash = acq.acquire_file_ntfs_ads(&attribute)?;
 
         let mut file_report = TriageReport {
-            filename: get_filename(path),
+            filename: attribute,
             full_path: path.to_string(),
             md5: hash,
             ..Default::default()
@@ -536,5 +534,51 @@ mod tests {
         let report = read_file(test_location.to_str().unwrap(), &mut acq, true).unwrap();
         assert_eq!(report.md5, "cbed8a94f6a32edc5266206f83985386");
         assert_eq!(report.size, 606);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_file_ntfs() {
+        use crate::artifacts::os::triage::artifact::read_file_ntfs;
+
+        let out = output_options("read_file_ntfs", "local", "./tmp", false);
+        let path = "C:\\Windows\\System32\\config\\SOFTWARE";
+
+        let zip_output = format!("{}/{}", out.directory, out.name);
+        create_dir_all(&zip_output).unwrap();
+        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip = ZipWriter::new(zip_file);
+
+        let mut acq = TriageReader {
+            fs: None,
+            zip,
+            path: String::new(),
+        };
+
+        let report = read_file_ntfs(path, &mut acq, true).unwrap();
+        assert!(!report.md5.is_empty())
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_file_ntfs_ads() {
+        use crate::artifacts::os::triage::artifact::read_file_ntfs;
+
+        let out = output_options("read_file_ntfs_ads", "local", "./tmp", false);
+        let path = "C:\\$Secure:$SDS";
+
+        let zip_output = format!("{}/{}", out.directory, out.name);
+        create_dir_all(&zip_output).unwrap();
+        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip = ZipWriter::new(zip_file);
+
+        let mut acq = TriageReader {
+            fs: None,
+            zip,
+            path: String::new(),
+        };
+
+        let report = read_file_ntfs(path, &mut acq, true).unwrap();
+        assert!(!report.md5.is_empty());
     }
 }

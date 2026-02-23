@@ -15,17 +15,27 @@ use super::{
     error::UsnJrnlError,
     ntfs::{get_usnjrnl_path, parse_usnjrnl_data},
 };
-use crate::{structs::artifacts::os::windows::UsnJrnlOptions, utils::environment::get_systemdrive};
+use crate::{
+    artifacts::os::windows::usnjrnl::ntfs::get_usnjrnl_path_stream,
+    structs::{artifacts::os::windows::UsnJrnlOptions, toml::Output},
+    utils::{environment::get_systemdrive, time::time_now},
+};
 use common::windows::UsnJrnlEntry;
 use log::error;
 
 /// Parse `UsnJrnl` data and return list of entries
-pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
+pub(crate) fn grab_usnjrnl(
+    options: &UsnJrnlOptions,
+    output: &mut Output,
+    filter: bool,
+) -> Result<(), UsnJrnlError> {
+    let start_time = time_now();
+
     if let Some(alt) = options.alt_drive {
-        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"));
+        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"), output, filter, start_time);
     }
     if let Some(path) = &options.alt_path {
-        return grab_usnjrnl_path(path, &options.alt_mft);
+        return get_usnjrnl_path_stream(path, &options.alt_mft, output, filter, start_time);
     }
     let systemdrive_result = get_systemdrive();
     let systemdrive = match systemdrive_result {
@@ -36,11 +46,17 @@ pub(crate) fn grab_usnjrnl(options: &UsnJrnlOptions) -> Result<Vec<UsnJrnlEntry>
         }
     };
 
-    parse_usnjrnl_data(systemdrive, &format!("{systemdrive}:\\$MFT"))
+    parse_usnjrnl_data(
+        systemdrive,
+        &format!("{systemdrive}:\\$MFT"),
+        output,
+        filter,
+        start_time,
+    )
 }
 
 /// Get `UsnJrnl` data at provided path
-fn grab_usnjrnl_path(
+pub(crate) fn grab_usnjrnl_path(
     path: &str,
     mft_path: &Option<String>,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
@@ -51,8 +67,20 @@ fn grab_usnjrnl_path(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_usnjrnl, grab_usnjrnl_path};
-    use crate::structs::artifacts::os::windows::UsnJrnlOptions;
+    use crate::structs::{artifacts::os::windows::UsnJrnlOptions, toml::Output};
     use std::path::PathBuf;
+
+    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
+        Output {
+            name: name.to_string(),
+            directory: directory.to_string(),
+            format: String::from("jsonl"),
+            compress,
+            endpoint_id: String::from("abcd"),
+            output: output.to_string(),
+            ..Default::default()
+        }
+    }
 
     #[test]
     fn test_grab_usnjrnl() {
@@ -61,8 +89,9 @@ mod tests {
             alt_path: None,
             alt_mft: None,
         };
-        let results = grab_usnjrnl(&params).unwrap();
-        assert!(results.len() > 10);
+        let mut output = output_options("usnjrnl_temp", "local", "./tmp", false);
+
+        grab_usnjrnl(&params, &mut output, false).unwrap();
     }
 
     #[test]
