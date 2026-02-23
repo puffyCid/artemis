@@ -49,6 +49,9 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             }
             let _ = copy(&mut buf.as_slice(), &mut md5);
             let _ = copy(&mut buf.as_slice(), &mut self.zip);
+            if bytes < bytes_limit {
+                break;
+            }
         }
         let hash = format!("{:x}", md5.finalize());
         Ok(hash)
