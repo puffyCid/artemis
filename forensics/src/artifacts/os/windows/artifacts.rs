@@ -285,27 +285,12 @@ pub(crate) fn usnjrnl(
     output: &mut Output,
     filter: bool,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
+    if let Err(err) = grab_usnjrnl(options, output, filter) {
+        error!("[forensics] Artemis failed to parse UsnJrnl data: {err:?}");
+        return Err(WinArtifactError::UsnJrnl);
+    }
 
-    let artifact_result = grab_usnjrnl(options);
-    let entries = match artifact_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Artemis failed to parse UsnJrnl data: {err:?}");
-            return Err(WinArtifactError::UsnJrnl);
-        }
-    };
-
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[forensics] Failed to serialize usnjrnl: {err:?}");
-            return Err(WinArtifactError::Serialize);
-        }
-    };
-    let output_name = "usnjrnl";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    Ok(())
 }
 
 /// Get Windows `Bits` data

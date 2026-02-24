@@ -1,5 +1,5 @@
 use crate::{
-    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl,
+    artifacts::os::windows::usnjrnl::parser::grab_usnjrnl_path,
     runtime::helper::{char_arg, string_arg},
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
@@ -32,7 +32,7 @@ pub(crate) fn js_usnjrnl(
         alt_path: path,
         alt_mft: mft_path,
     };
-    let jrnl = match grab_usnjrnl(&options) {
+    let jrnl = match grab_usnjrnl_path(&options) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get usnjrnl: {err:?}");

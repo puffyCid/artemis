@@ -119,7 +119,10 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let mut md5 = Md5::new();
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
-        if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
+        if let Err(err) = self
+            .zip
+            .start_file_from_path(format!("{}_{attribute}", self.path), options)
+        {
             error!("[triage] Failed to start ads read into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
