@@ -455,7 +455,7 @@ mod tests {
     #[test]
     fn test_walk_filesystem() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/macos/");
+        test_location.push("tests/test_data/triage/malformed");
         let glob_path = GlobInfo {
             full_path: test_location.display().to_string(),
             filename: String::new(),
@@ -477,15 +477,15 @@ mod tests {
         };
         let mut report = Vec::new();
 
-        walk_filesystem(&glob_path, None, &mut acq, &mut report, true, "quick.toml").unwrap();
+        walk_filesystem(&glob_path, None, &mut acq, &mut report, true, "bad.toml").unwrap();
         assert_eq!(report.len(), 1);
-        assert_eq!(report[0].md5, "a6d4d85e832a17e230842de55e4f0ccc");
+        assert_eq!(report[0].md5, "695aacf9c82357da7564cb875604fd62");
     }
 
     #[test]
     fn test_walk_filesystem_regex() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/macos/");
+        test_location.push("tests/test_data/triage/malformed");
         let glob_path = GlobInfo {
             full_path: test_location.display().to_string(),
             filename: String::new(),
@@ -506,11 +506,11 @@ mod tests {
             path: String::new(),
         };
         let mut report = Vec::new();
-        let patter = create_regex("quick.*").unwrap();
+        let patter = create_regex("bad.*").unwrap();
 
         walk_filesystem(&glob_path, Some(&patter), &mut acq, &mut report, true, "").unwrap();
         assert_eq!(report.len(), 1);
-        assert_eq!(report[0].md5, "a6d4d85e832a17e230842de55e4f0ccc");
+        assert_eq!(report[0].md5, "695aacf9c82357da7564cb875604fd62");
     }
 
     #[test]
