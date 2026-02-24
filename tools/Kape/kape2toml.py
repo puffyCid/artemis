@@ -42,16 +42,26 @@ A Kape file is just a YAML file
 def parseTKape(kape, quiet, output=None):
     with open(kape, 'r') as file:
         data = yaml.load(file, Loader=yaml.SafeLoader)
-    meta = {
-        'description': data.get('Description'),
-        'author': data.get('Author'),
-        'version': data.get('Version'),
-        'id': data.get('Id'),
-        'recreate_directories': data.get('RecreateDirectories')
+    meta = {}
+    meta['output'] = {
+        'name': data.get('Description'),
+        'directory': './tmp',
+        'format': 'json',
+        'compress': False,
+        'timeline': False,
+        'endpoint_id': data.get('Id'),
+        'collection_id': 1,
+        'output': 'local'
     }
 
+    recreate = data.get('RecreateDirectories')
+
     targets = data.get('Targets')
-    meta['targets'] = parseTargets(targets, kape, quiet)
+    meta['artifacts'] = {
+        'artifact_name': 'triage',
+        'targets': [],
+    }
+    meta['artifacts']['targets'] = parseTargets(targets, kape, recreate, quiet)
 
     if output == None:
         return meta
@@ -65,7 +75,7 @@ Parse the Targets associated with the Kape file
 Points to files to acquire or to other tkape files
 If it points to another tkape file, we bundle them into one TOML file
 '''
-def parseTargets(targets, path, quiet):
+def parseTargets(targets, path, recreate, quiet):
     values = []
     for entry in targets:
         target_value = {}
@@ -78,14 +88,16 @@ def parseTargets(targets, path, quiet):
                 if not quiet:
                     print("Found compound target: {}. Category is '{}'. Going to bundle all the tkape files in '{}' into one TOML file".format(value, entry.get('Category'), value))
 
-                find_taget = findKapeFile(Path(path.parts[0]), value)
-                bundle = parseTKape(find_taget, quiet)
-                values = values + bundle["targets"]
+                find_target = findKapeFile(Path(path.parts[0]), value)
+                bundle = parseTKape(find_target, quiet)
+                values = values + bundle['artifacts']["targets"]
         # If the FileMask is not set. Default is *
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
         if target_value.get('file_mask') == None:
             target_value['file_mask'] = "*"
+
+        target_value['recreate_directories'] = recreate
 
         # If the Recursive is not set. Default is False
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
@@ -93,11 +105,6 @@ def parseTargets(targets, path, quiet):
         if target_value.get('recursive') == None:
             target_value['recursive'] = False
 
-        # If the AlwaysAddToQueue is not set. Default is False
-        # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
-        # Lets make that explicit
-        if target_value.get('always_add_to_queue') == None:
-            target_value['always_add_to_queue'] = False
         
         # Ensure all paths end with forward or backward slash
         if target_value.get('path') != None:
@@ -166,7 +173,9 @@ def parseTargets(targets, path, quiet):
         '''
         if ".tkape" in target_value.get("path") and len(Path(target_value.get("path")).parts) == 1:
             continue
-        values.append(target_value)
+        triage = {}
+        triage['triage'] = target_value
+        values.append(triage)
 
     return values
 
