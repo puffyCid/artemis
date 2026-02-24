@@ -1,8 +1,0 @@
-
-
-[[targets]]
-name = "Default journal location"
-path = "/var/log/journal/"
-file_mask = "*user*"
-recursive = true
-recreate_directories = true

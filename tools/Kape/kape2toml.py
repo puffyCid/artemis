@@ -93,6 +93,7 @@ def parseTargets(targets, path, recreate, quiet):
                 find_target = findKapeFile(Path(path.parts[0]), value)
                 bundle = parseTKape(find_target, quiet)
                 values = values + bundle['artifacts']["triage"]
+        
         # If the FileMask is not set. Default is *
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
