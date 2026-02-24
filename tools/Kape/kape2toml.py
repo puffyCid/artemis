@@ -80,6 +80,8 @@ def parseTargets(targets, path, recreate, quiet):
     for entry in targets:
         target_value = {}
         for key, value in entry.items():
+            if key == 'Category' or key == 'Comment':
+                continue
             if '%user%' in str(value):
                 value = value.replace('%user%', '*')
             snake_case = "".join("_" + c.lower() if c.isupper() else c for c in list(key))
