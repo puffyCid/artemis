@@ -59,9 +59,9 @@ def parseTKape(kape, quiet, output=None):
     targets = data.get('Targets')
     meta['artifacts'] = {
         'artifact_name': 'triage',
-        'targets': [],
+        'triage': [],
     }
-    meta['artifacts']['targets'] = parseTargets(targets, kape, recreate, quiet)
+    meta['artifacts']['triage'] = parseTargets(targets, kape, recreate, quiet)
 
     if output == None:
         return meta
@@ -92,7 +92,7 @@ def parseTargets(targets, path, recreate, quiet):
 
                 find_target = findKapeFile(Path(path.parts[0]), value)
                 bundle = parseTKape(find_target, quiet)
-                values = values + bundle['artifacts']["targets"]
+                values = values + bundle['artifacts']["triage"]
         # If the FileMask is not set. Default is *
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
         # Lets make that explicit
@@ -176,7 +176,7 @@ def parseTargets(targets, path, recreate, quiet):
         if ".tkape" in target_value.get("path") and len(Path(target_value.get("path")).parts) == 1:
             continue
         triage = {}
-        triage['triage'] = target_value
+        triage['target'] = target_value
         values.append(triage)
 
     return values

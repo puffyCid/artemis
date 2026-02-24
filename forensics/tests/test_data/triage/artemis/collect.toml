@@ -10,5 +10,10 @@ output = "local"
 
 [[artifacts]]
 artifact_name = "triage"
-[artifacts.triage]
-triage = "ZGVzY3JpcHRpb24gPSAic3lzdGVtZCBqb3VybmFsIGZpbGVzIgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBqb3VybmFsIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJMb2dzIgpwYXRoID0gIi92YXIvbG9nL2pvdXJuYWwvIgpmaWxlX21hc2sgPSAiKiIKcmVjdXJzaXZlID0gdHJ1ZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK"
+[[artifacts.triage]]
+[artifacts.triage.target]
+name = "Default journal location"
+path = "/var/log/journal/"
+file_mask = "*user*"
+recursive = true
+recreate_directories = true

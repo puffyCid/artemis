@@ -9,13 +9,10 @@ use crate::{
         ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
     },
     structs::{
-        artifacts::triage::{ArtemisTriage, Targets, TriageOptions},
-        toml::{ArtemisToml, Output},
+        artifacts::triage::{TriageOptions, TriageTargets},
+        toml::Output,
     },
-    utils::{
-        encoding::base64_decode_standard,
-        regex_options::{create_regex, regex_check},
-    },
+    utils::regex_options::{create_regex, regex_check},
 };
 use log::{error, warn};
 use regex::Regex;
@@ -29,38 +26,10 @@ use zip::ZipWriter;
 
 /// Triage a system by acquiring files
 pub(crate) fn triage(output: &mut Output, options: &TriageOptions) -> Result<(), TriageError> {
-    let triage = decode_triage(&options.triage)?;
-
-    for target in triage.targets {
-        acquire_files(
-            &target,
-            output,
-            triage.recreate_directories,
-            target.recursive,
-        )?;
+    for target in &options.triage {
+        acquire_files(target, output)?;
     }
     Ok(())
-}
-
-/// Base64 decode the KAPE TOML triage collection
-fn decode_triage(encoded: &str) -> Result<ArtemisTriage, TriageError> {
-    let bytes = match base64_decode_standard(encoded) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[triage] Failed to base64 decode: {err:?}");
-            return Err(TriageError::Decode);
-        }
-    };
-
-    let triage = match ArtemisToml::parse_triage_toml(&bytes) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[triage] Failed to parse triage toml: {err:?}");
-            return Err(TriageError::Toml);
-        }
-    };
-
-    Ok(triage)
 }
 
 #[derive(Serialize, Default)]
@@ -76,13 +45,13 @@ struct TriageReport {
 }
 
 /// Copy the targeted files
-fn acquire_files(
-    target: &Targets,
-    output: &mut Output,
-    create_paths: bool,
-    recursive: bool,
-) -> Result<(), TriageError> {
+fn acquire_files(target: &TriageTargets, output: &mut Output) -> Result<(), TriageError> {
+    // Combine path with file mask. Most often file mask is a simple glob
     let mut glob_string = format!("{}{}", target.path, target.file_mask);
+    // If we are traversing the file system. Then apply the file mask as we traverse
+    if target.recursive {
+        glob_string = target.path.clone();
+    }
     let mut file_pattern = None;
     // Check if file mask is using regex instead a glob
     if target.file_mask.starts_with("regex:") {
@@ -96,6 +65,7 @@ fn acquire_files(
         };
         file_pattern = Some(pattern);
     }
+
     let paths = glob_paths(&glob_string).unwrap_or_default();
     let zip_output = format!("{}/{}", output.directory, output.name);
     if let Err(err) = create_dir_all(&zip_output) {
@@ -119,13 +89,13 @@ fn acquire_files(
 
     let mut report = Vec::new();
     for path in paths {
-        if recursive {
+        if target.recursive {
             walk_filesystem(
                 &path,
                 file_pattern.as_ref(),
                 &mut acq,
                 &mut report,
-                create_paths,
+                target.recreate_directories,
                 &target.file_mask,
             )?;
             continue;
@@ -142,7 +112,7 @@ fn acquire_files(
         {
             continue;
         }
-        let file_report = read_file(&path.full_path, &mut acq, create_paths)?;
+        let file_report = read_file(&path.full_path, &mut acq, target.recreate_directories)?;
         report.push(file_report);
     }
 
@@ -363,12 +333,12 @@ fn read_file_ntfs(
 mod tests {
     use crate::{
         artifacts::os::triage::{
-            artifact::{acquire_files, decode_triage, read_file, triage, walk_filesystem},
+            artifact::{acquire_files, read_file, triage, walk_filesystem},
             reader::TriageReader,
         },
         filesystem::metadata::GlobInfo,
         structs::{
-            artifacts::triage::{Targets, TriageOptions},
+            artifacts::triage::{TriageOptions, TriageTargets},
             toml::Output,
         },
         utils::regex_options::create_regex,
@@ -395,9 +365,13 @@ mod tests {
     fn test_triage() {
         let mut output = output_options("triage_test", "local", "./tmp", false);
         let options = TriageOptions {
-            triage: String::from(
-                "ZGVzY3JpcHRpb24gPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmF1dGhvciA9ICJSb24gUmFkZXIiCnZlcnNpb24gPSAxLjAKaWQgPSAiZTc4ZDI2NTItZGY0Ny00ZWRjLWEwZWEtNDgzNWMzMjJhZDQ4IgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmNhdGVnb3J5ID0gIkxvZ3MiCnBhdGggPSAiQzpcXFByb2dyYW1EYXRhXFxEV0FnZW50KlxcIgpmaWxlX21hc2sgPSAiKi5sb2cqIgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK",
-            ),
+            triage: vec![TriageTargets {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: true,
+                recreate_directories: true,
+            }],
         };
 
         triage(&mut output, &options).unwrap();
@@ -407,9 +381,13 @@ mod tests {
     fn test_triage_linux() {
         let mut output = output_options("triage_test", "local", "./tmp", false);
         let options = TriageOptions {
-            triage: String::from(
-                "ZGVzY3JpcHRpb24gPSAiQmFzaCBIaXN0b3J5IgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBiYXNoIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJTaGVsbCIKcGF0aCA9ICIvaG9tZS8qLyIKZmlsZV9tYXNrID0gIiouYmFzaF9oaXN0b3J5IgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK",
-            ),
+            triage: vec![TriageTargets {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: false,
+                recreate_directories: true,
+            }],
         };
 
         triage(&mut output, &options).unwrap();
@@ -419,20 +397,16 @@ mod tests {
     fn test_triage_linux_recursive() {
         let mut output = output_options("triage_test_recursive", "local", "./tmp", false);
         let options = TriageOptions {
-            triage: String::from(
-                "ZGVzY3JpcHRpb24gPSAic3lzdGVtZCBqb3VybmFsIGZpbGVzIgphdXRob3IgPSAiUHVmZnlDaWQiCnZlcnNpb24gPSAxLjAKaWQgPSAiMTAxN2QyNGItYzdiMS00ZDRkLWI0MTYtMWIyM2E0NGRjNjMxIgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRGVmYXVsdCBqb3VybmFsIGxvY2F0aW9uIgpjYXRlZ29yeSA9ICJMb2dzIgpwYXRoID0gIi92YXIvbG9nL2pvdXJuYWwvIgpmaWxlX21hc2sgPSAiKiIKcmVjdXJzaXZlID0gdHJ1ZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK",
-            ),
+            triage: vec![TriageTargets {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: true,
+                recreate_directories: false,
+            }],
         };
 
         triage(&mut output, &options).unwrap();
-    }
-
-    #[test]
-    fn test_decode_triage() {
-        let encoding = "ZGVzY3JpcHRpb24gPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmF1dGhvciA9ICJSb24gUmFkZXIiCnZlcnNpb24gPSAxLjAKaWQgPSAiZTc4ZDI2NTItZGY0Ny00ZWRjLWEwZWEtNDgzNWMzMjJhZDQ4IgpyZWNyZWF0ZV9kaXJlY3RvcmllcyA9IHRydWUKCltbdGFyZ2V0c11dCm5hbWUgPSAiRFdBZ2VudCBMb2cgRmlsZXMiCmNhdGVnb3J5ID0gIkxvZ3MiCnBhdGggPSAiQzpcXFByb2dyYW1EYXRhXFxEV0FnZW50KlxcIgpmaWxlX21hc2sgPSAiKi5sb2cqIgpyZWN1cnNpdmUgPSBmYWxzZQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2UK";
-        let triage = decode_triage(encoding).unwrap();
-        assert_eq!(triage.author, "Ron Rader");
-        assert_eq!(triage.targets[0].path, "C:\\ProgramData\\DWAgent*\\")
     }
 
     #[test]
@@ -440,16 +414,16 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/");
 
-        let target = Targets {
+        let target = TriageTargets {
             name: String::from("test"),
-            category: String::from("test"),
             recursive: false,
             file_mask: String::from("*.toml"),
             path: test_location.display().to_string(),
+            recreate_directories: false,
         };
 
         let mut out = output_options("acquire_files", "local", "./tmp", false);
-        acquire_files(&target, &mut out, true, false).unwrap();
+        acquire_files(&target, &mut out).unwrap();
     }
 
     #[test]

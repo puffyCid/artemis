@@ -1,14 +1,48 @@
 [output]
-name = "triage_windows_collection"
+name = "Amcache.hve"
 directory = "./tmp"
 format = "json"
 compress = false
 timeline = false
-endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+endpoint_id = "13ba1e33-4899-4843-adf1-c7e6b20d759a"
 collection_id = 1
 output = "local"
 
-[[artifacts]]
+[artifacts]
 artifact_name = "triage"
-[artifacts.triage]
-triage = "ZGVzY3JpcHRpb24gPSAiU09GVFdBUkUgSGl2ZSINCmF1dGhvciA9ICJQdWZmeUNpZCINCnZlcnNpb24gPSAxLjANCmlkID0gImFhYWEtYmJiYi1jY2NjIg0KcmVjcmVhdGVfZGlyZWN0b3JpZXMgPSB0cnVlDQoNCltbdGFyZ2V0c11dDQpuYW1lID0gIlNPRlRXQVJFIFJlZ2lzdHJ5IGZpbGUiDQpjYXRlZ29yeSA9ICJSZWdpc3RyeSINCnBhdGggPSAiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxjb25maWdcXCINCmZpbGVfbWFzayA9ICJTT0ZUV0FSRSINCnJlY3Vyc2l2ZSA9IGZhbHNlDQphbHdheXNfYWRkX3RvX3F1ZXVlID0gZmFsc2U="
+
+[[artifacts.triage]]
+
+[artifacts.triage.target]
+name = "Amcache"
+path = "C:\\Windows\\AppCompat\\Programs\\"
+file_mask = "Amcache.hve"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+
+[artifacts.triage.target]
+name = "Amcache"
+path = "C:\\Windows.old\\Windows\\AppCompat\\Programs\\"
+file_mask = "Amcache.hve"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+
+[artifacts.triage.target]
+name = "Amcache transaction files"
+path = "C:\\Windows\\AppCompat\\Programs\\"
+file_mask = "Amcache.hve.LOG*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+
+[artifacts.triage.target]
+name = "Amcache transaction files"
+path = "C:\\Windows.old\\Windows\\AppCompat\\Programs\\"
+file_mask = "Amcache.hve.LOG*"
+recreate_directories = true
+recursive = false
