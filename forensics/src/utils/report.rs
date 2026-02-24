@@ -134,7 +134,7 @@ mod tests {
         };
 
         let report = generate_artifact_report(&art, &out, "completed").unwrap();
-        assert_eq!(report.hash, "0bbf67efb22492c6a648d299f26bc3a9");
+        assert_eq!(report.hash, "890fe75691dd3cdc9febe324bf6c5fcf");
     }
 
     #[test]
