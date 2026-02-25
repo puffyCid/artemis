@@ -332,7 +332,7 @@ mod tests {
                 "$Max",
             )
             .unwrap();
-            assert_eq!(data.len(), 32);
+            assert_eq!(data.len(), 64);
             break;
         }
     }
