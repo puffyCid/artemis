@@ -1,0 +1,243 @@
+[output]
+name = "Edge"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "2844dba2-fb47-466c-8d57-dab2bc02294f"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "triage"
+
+[[artifacts.triage]]
+name = "Edge Collections"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Collections\\"
+file_mask = "collectionsSQLite*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Bookmarks"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Bookmarks*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Cookies"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Network\\"
+file_mask = "Cookies*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Current Session"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Current Session"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Current Tabs"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Current Tabs"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Extension Cookies"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Extension Cookies*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Favicons"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Favicons*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge History"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "History*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Last Session"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Last Session"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Last Tabs"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Last Tabs"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Sessions Folder"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Sessions\\"
+recursive = false
+file_mask = "*"
+recreate_directories = true
+
+[[artifacts.triage]]
+name = "Edge Login Data"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Login Data*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Media History"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Media History*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Network Action Predictor"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Network Action Predictor*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Network Persistent State"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Network Persistent State"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Network Persistent State"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Network\\"
+file_mask = "Network Persistent State"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Preferences"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Preferences"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Quota Manager"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "QuotaManager*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Quota Manager"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\WebStorage\\"
+file_mask = "QuotaManager*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Reporting and NEL"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Reporting and NEL*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Reporting and NEL"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Network\\"
+file_mask = "Reporting and NEL*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Shortcuts"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Shortcuts*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Top Sites"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Top Sites*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Trust Tokens"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Trust Tokens*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Trust Tokens"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Network\\"
+file_mask = "Trust Tokens*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge SyncData Database"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Sync Data\\"
+file_mask = "SyncData.sqlite3"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Visited Links"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Visited Links"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge Web Data"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "Web Data*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Edge IndexedDB"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\IndexedDB\\"
+recursive = true
+file_mask = "*"
+recreate_directories = true
+
+[[artifacts.triage]]
+name = "Edge Local Storage"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Local Storage\\leveldb\\"
+recursive = true
+file_mask = "*"
+recreate_directories = true
+
+[[artifacts.triage]]
+name = "Edge WebAssistDatabase"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\"
+file_mask = "WebAssistDatabase*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Windows Protect Folder"
+path = "C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Protect\\*\\"
+recursive = true
+file_mask = "*"
+recreate_directories = true
+
+[[artifacts.triage]]
+name = "Edge Snapshots Folder"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\Snapshots\\*\\"
+recursive = true
+file_mask = "*"
+recreate_directories = true

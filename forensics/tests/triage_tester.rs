@@ -10,7 +10,7 @@ fn test_triage_collection_windows() {
 
     parse_toml_file(&test_location.display().to_string()).unwrap();
 
-    let assert_glob = "./tmp/Amcache.hve/*";
+    let assert_glob = "./tmp/SOFTWARE Registry/*";
     let results = glob(&assert_glob).unwrap();
     let mut have_zip = false;
     for result in results {
@@ -23,7 +23,7 @@ fn test_triage_collection_windows() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if !text.contains("\"output_count\":1,") {
-                panic!("missing amcache??");
+                panic!("missing SOFTWARE registry??");
             }
         }
     }

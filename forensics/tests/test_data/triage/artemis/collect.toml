@@ -2,7 +2,7 @@
 name = "triage_collection"
 directory = "./tmp"
 format = "json"
-compress = true
+compress = false
 timeline = false
 endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
 collection_id = 1
@@ -13,6 +13,6 @@ artifact_name = "triage"
 [[artifacts.triage]]
 name = "Default journal location"
 path = "/var/log/journal/"
-file_mask = "*user*"
+file_mask = "*.journal"
 recursive = true
 recreate_directories = true
