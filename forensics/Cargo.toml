@@ -32,7 +32,7 @@ regex = "1.12.3"
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.12"
-chrono = "0.4.43"
+chrono = "0.4.44"
 simplelog = "0.12.2"
 zip = { version = "8.1.0", default-features = false, features = ["deflate"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
