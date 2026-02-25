@@ -11,7 +11,6 @@ output = "local"
 [[artifacts]]
 artifact_name = "triage"
 [[artifacts.triage]]
-[artifacts.triage.target]
 name = "Default journal location"
 path = "/var/log/journal/"
 file_mask = "*user*"

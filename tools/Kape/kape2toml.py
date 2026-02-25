@@ -57,14 +57,15 @@ def parseTKape(kape, quiet, output=None):
     recreate = data.get('RecreateDirectories')
 
     targets = data.get('Targets')
-    meta['artifacts'] = {
+    meta['artifacts'] = []
+    options = {
         'artifact_name': 'triage',
         'triage': [],
     }
-    meta['artifacts']['triage'] = parseTargets(targets, kape, recreate, quiet)
-
+    options['triage'] = parseTargets(targets, kape, recreate, quiet)
+    meta['artifacts'].append(options)
     if output == None:
-        return meta
+        return options
     out_path = Path("{}/{}".format(output, kape.parent))
     out_path.mkdir(parents=True, exist_ok=True)
     with open("{}/{}/{}.toml".format(output, kape.parent, kape.stem), 'wb') as file:
@@ -80,7 +81,7 @@ def parseTargets(targets, path, recreate, quiet):
     for entry in targets:
         target_value = {}
         for key, value in entry.items():
-            if key == 'Category' or key == 'Comment':
+            if key == 'Category' or key == 'Comment' or key == 'AlwaysAddToQueue':
                 continue
             if '%user%' in str(value):
                 value = value.replace('%user%', '*')
@@ -92,7 +93,7 @@ def parseTargets(targets, path, recreate, quiet):
 
                 find_target = findKapeFile(Path(path.parts[0]), value)
                 bundle = parseTKape(find_target, quiet)
-                values = values + bundle['artifacts']["triage"]
+                values = values + bundle["triage"]
         
         # If the FileMask is not set. Default is *
         # https://ericzimmerman.github.io/KapeDocs/#!Pages%5C2.1-Targets.md
@@ -176,8 +177,7 @@ def parseTargets(targets, path, recreate, quiet):
         '''
         if ".tkape" in target_value.get("path") and len(Path(target_value.get("path")).parts) == 1:
             continue
-        triage = {}
-        triage['target'] = target_value
+        triage = target_value
         values.append(triage)
 
     return values

@@ -8,12 +8,9 @@ endpoint_id = "13ba1e33-4899-4843-adf1-c7e6b20d759a"
 collection_id = 1
 output = "local"
 
-[artifacts]
+[[artifacts]]
 artifact_name = "triage"
-
 [[artifacts.triage]]
-
-[artifacts.triage.target]
 name = "Amcache"
 path = "C:\\Windows\\AppCompat\\Programs\\"
 file_mask = "Amcache.hve"
@@ -22,7 +19,6 @@ recursive = false
 
 [[artifacts.triage]]
 
-[artifacts.triage.target]
 name = "Amcache"
 path = "C:\\Windows.old\\Windows\\AppCompat\\Programs\\"
 file_mask = "Amcache.hve"
@@ -31,7 +27,6 @@ recursive = false
 
 [[artifacts.triage]]
 
-[artifacts.triage.target]
 name = "Amcache transaction files"
 path = "C:\\Windows\\AppCompat\\Programs\\"
 file_mask = "Amcache.hve.LOG*"
@@ -40,9 +35,15 @@ recursive = false
 
 [[artifacts.triage]]
 
-[artifacts.triage.target]
 name = "Amcache transaction files"
 path = "C:\\Windows.old\\Windows\\AppCompat\\Programs\\"
 file_mask = "Amcache.hve.LOG*"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "Amcache"
+path = "C:\\Windows\\appcompat\\Programs\\"
+file_mask = "Amcache.hve"
 recreate_directories = true
 recursive = false
