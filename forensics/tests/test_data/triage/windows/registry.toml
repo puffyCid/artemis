@@ -1,0 +1,21 @@
+[output]
+name = "System level/related Registry hives"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "2b7f40fd-cd02-47da-87da-9966fa5d8159"
+collection_id = 1
+output = "local"
+
+[artifacts]
+artifact_name = "triage"
+
+[[artifacts.triage]]
+
+[artifacts.triage.target]
+name = "SOFTWARE registry hive"
+path = "C:\\Windows\\System32\\config\\"
+file_mask = "SOFTWARE"
+recreate_directories = true
+recursive = false

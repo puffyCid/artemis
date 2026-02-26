@@ -1,8 +1,11 @@
 use super::error::CompressionError;
-use crate::filesystem::files::read_file;
+use crate::filesystem::files::file_reader;
 use flate2::{Compression, write::GzEncoder};
 use log::{error, warn};
-use std::{fs::File, io::Write};
+use std::{
+    fs::File,
+    io::{Read, Write, copy},
+};
 use walkdir::WalkDir;
 use zip::{ZipWriter, write::SimpleFileOptions};
 
@@ -57,13 +60,9 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             continue;
         };
 
-        let start_result = zip_writer.start_file(name, options);
-        match start_result {
-            Ok(_) => {}
-            Err(err) => {
-                warn!("[compression] Could not start file to zip: {err:?}");
-                continue;
-            }
+        if let Err(err) = zip_writer.start_file(name, options) {
+            warn!("[compression] Could not start file to zip: {err:?}");
+            continue;
         }
 
         let path_result = entry.path().to_str();
@@ -74,19 +73,34 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             continue;
         };
 
-        let bytes_result = read_file(path);
-        let bytes = match bytes_result {
+        // Read 64MB of data at a time
+        let bytes_limit = 1024 * 1024 * 64;
+        let mut buf = vec![0; bytes_limit];
+        let mut reader = match file_reader(path) {
             Ok(result) => result,
             Err(err) => {
                 warn!("[compression] Could not read file {path}: {err:?}");
                 continue;
             }
         };
-        let write_result = zip_writer.write_all(&bytes);
-        match write_result {
-            Ok(_) => {}
-            Err(err) => {
-                warn!("[compression] Could not write all file {path} to zip: {err:?}");
+
+        loop {
+            let bytes = match reader.read(&mut buf) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[compression] Failed to read all bytes from file: {err:?}");
+                    break;
+                }
+            };
+            if bytes == 0 {
+                break;
+            }
+            if bytes < bytes_limit {
+                buf = buf[0..bytes].to_vec();
+            }
+            let _ = copy(&mut buf.as_slice(), &mut zip_writer);
+            if bytes < bytes_limit {
+                break;
             }
         }
     }

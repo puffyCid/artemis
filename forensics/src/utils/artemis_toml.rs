@@ -27,7 +27,7 @@ impl ArtemisToml {
         ArtemisToml::parse_artemis_toml(&response.bytes().unwrap_or_default())
     }
 
-    // Parse the Artemis TOML collector file
+    /// Parse the Artemis TOML collector file
     pub(crate) fn parse_artemis_toml(toml_data: &[u8]) -> Result<ArtemisToml, ArtemisError> {
         let toml_results = toml::from_slice(toml_data);
         let mut artemis_collector: ArtemisToml = match toml_results {

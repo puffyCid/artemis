@@ -1,0 +1,13 @@
+description = "Chrome"
+author = 123
+version = 1.4
+id = "a56d0a8f-3229-489e-aea7-353d1f6f9639"
+recreate_directories = true
+
+[[targets]]
+name = "Chrome Bookmarks XP"
+category = "Communications"
+path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
+file_mask = "Bookmarks*"
+recursive = false
+always_add_to_queue = false

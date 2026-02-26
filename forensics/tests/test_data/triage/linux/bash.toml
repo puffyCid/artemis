@@ -1,0 +1,21 @@
+[output]
+name = "bash_history.hve"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "13ba1e33-4899-4843-adf1-c7e6b20d759a"
+collection_id = 1
+output = "local"
+
+[[artifacts]]
+artifact_name = "triage"
+[artifacts.triage]
+[[artifacts.triage]]
+[artifacts.triage.target]
+name = "Default bash location"
+category = "Shell"
+path = "/home/*/"
+file_mask = "*.bash_history"
+recursive = false
+recreate_directories = true

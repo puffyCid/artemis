@@ -47,7 +47,7 @@ pub(crate) fn grab_journal(
     };
 
     for path in paths {
-        if is_file(&path) && !path.ends_with("journal") {
+        if is_file(&path) && !path.contains(".journal") {
             continue;
         }
         if is_file(&path) {
@@ -55,10 +55,11 @@ pub(crate) fn grab_journal(
             continue;
         }
 
+        // Journal files may be stored in a namespace folder. Check one more directory
         if is_directory(&path) {
             let log_files = list_files(&path).unwrap_or_default();
             for log in log_files {
-                if is_file(&log) && !log.ends_with("journal") {
+                if is_file(&log) && !log.contains(".journal") {
                     continue;
                 }
                 if is_file(&log) {
@@ -73,7 +74,7 @@ pub(crate) fn grab_journal(
 
 /// Parse a `Journal` file and return its entries
 pub(crate) fn grab_journal_file(path: &str) -> Result<Vec<Journal>, JournalError> {
-    if !is_file(path) || !path.ends_with("journal") {
+    if !is_file(path) || !path.contains(".journal") {
         return Err(JournalError::NotJournal);
     }
 

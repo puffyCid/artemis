@@ -213,11 +213,11 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.spotlight = Some(options);
             collect.artifact_name = String::from("spotlight");
         }
-        CommandArgs::Journals { alt_path } => {
+        CommandArgs::Journal { alt_path } => {
             let options = JournalOptions {
                 alt_path: alt_path.clone(),
             };
-            collect.journals = Some(options);
+            collect.journal = Some(options);
             collect.artifact_name = String::from("journal");
         }
         CommandArgs::Logons { alt_file } => {
@@ -492,7 +492,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 mod tests {
     use super::{Commands, run_collector, setup_artifact};
     use crate::collector::system::CommandArgs::{
-        Amcache, Bits, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos, Journals,
+        Amcache, Bits, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos, Journal,
         Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin,
         Registry, Services, Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux,
         SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos, UsersWindows,
@@ -700,7 +700,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Journals {
+            artifact: Some(Journal {
                 alt_path: Some(String::from(".")),
             }),
             format: String::from("json"),

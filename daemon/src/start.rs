@@ -7,8 +7,6 @@ use std::{
     time::Duration,
 };
 
-use rand::Rng;
-
 use crate::{
     collection::{
         collect::{CollectEndpoint, CollectionStatus},
@@ -72,10 +70,9 @@ fn start(config: &mut DaemonConfig) {
     let pause = 8;
     let collection_poll = 60;
     let mut attempt = 1;
-    let mut rng = rand::rng();
 
     loop {
-        let jitter: u16 = rng.random_range(..=10);
+        let jitter = fastrand::usize(..10);
         let backoff = if attempt <= max_attempts {
             pause * attempt + jitter
         } else {
@@ -135,7 +132,7 @@ fn start(config: &mut DaemonConfig) {
 
         // While thread is running continue to poll the server
         while !handle.is_finished() {
-            let jitter: u16 = rng.random_range(..=10);
+            let jitter = fastrand::usize(..10);
             let backoff = if attempt <= max_attempts {
                 pause * attempt + jitter
             } else {
@@ -173,7 +170,7 @@ fn start(config: &mut DaemonConfig) {
         // The final part of a remote forensic collection
         // Sending POST request to let the server know the collection is done
         loop {
-            let jitter: u16 = rng.random_range(..=10);
+            let jitter = fastrand::usize(..10);
             let backoff = if attempt <= max_attempts {
                 pause * attempt + jitter
             } else {

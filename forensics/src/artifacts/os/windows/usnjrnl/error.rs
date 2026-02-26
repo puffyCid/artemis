@@ -6,6 +6,8 @@ pub(crate) enum UsnJrnlError {
     SystemDrive,
     Parser,
     ReadFile,
+    Serialize,
+    OutputData,
 }
 
 impl std::error::Error for UsnJrnlError {}
@@ -17,6 +19,8 @@ impl fmt::Display for UsnJrnlError {
             UsnJrnlError::SystemDrive => write!(f, "Failed to systemdrive env variable value"),
             UsnJrnlError::Parser => write!(f, "Failed to parse usnrjnl"),
             UsnJrnlError::ReadFile => write!(f, "Failed to read usnrjnl"),
+            UsnJrnlError::Serialize => write!(f, "Failed to serialize usnrjnl data"),
+            UsnJrnlError::OutputData => write!(f, "Failed to output usnrjnl data"),
         }
     }
 }

@@ -338,7 +338,7 @@ pub(crate) enum CommandArgs {
         alt_path: Option<String>,
     },
     /// linux: Parse systemd Journal files
-    Journals {
+    Journal {
         /// Alternative Journal log directory to use
         #[arg(long, default_value = None)]
         alt_path: Option<String>,

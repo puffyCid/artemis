@@ -628,7 +628,7 @@ fn output_mft(
     match result {
         Ok(_result) => {}
         Err(err) => {
-            error!("[mft] Could not output MFT messages: {err:?}");
+            error!("[mft] Could not output MFT entries: {err:?}");
             return Err(MftError::OutputData);
         }
     }

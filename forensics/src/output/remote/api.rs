@@ -1,7 +1,6 @@
 use super::error::RemoteError;
 use crate::structs::toml::Output;
 use log::error;
-use rand::Rng;
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
@@ -27,7 +26,7 @@ pub(crate) fn api_upload(
     let mut attempt = 1;
     let max_attempts = 6;
     let pause = 8;
-    let mut rng = rand::rng();
+
     loop {
         let mut builder = client.post(api_url);
         builder = builder.header("x-artemis-endpoint_id", &output.endpoint_id);
@@ -50,7 +49,8 @@ pub(crate) fn api_upload(
         let form = multipart::Form::new().part("artemis-upload", part);
         builder = builder.multipart(form);
 
-        let jitter: u16 = rng.random_range(..=10);
+        let jitter = fastrand::usize(..10);
+
         let backoff = if attempt <= max_attempts {
             pause * attempt + jitter
         } else {

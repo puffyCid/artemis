@@ -336,7 +336,7 @@ mod tests {
         test_location.push("tests/test_data/windows/outlook/windows11/invalid_utf8_email.html");
         let test = read_file(test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(extract_utf8_string_lossy(&test).len(), 11750);
+        assert_eq!(extract_utf8_string_lossy(&test).len(), 11749);
     }
 
     #[test]

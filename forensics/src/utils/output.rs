@@ -90,6 +90,7 @@ pub(crate) fn compress_final_output(output: &Output) -> Result<(), ArtemisError>
                     && !entry.ends_with(".gz")
                     && !entry.ends_with(".csv")
                     && !entry.ends_with(".jsonl")
+                    && !entry.ends_with(".zip")
                 {
                     continue;
                 }

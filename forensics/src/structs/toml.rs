@@ -11,6 +11,7 @@ use crate::structs::artifacts::os::windows::{
     ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
     UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
 };
+use crate::structs::artifacts::triage::TriageOptions;
 use crate::structs::artifacts::{
     os::{files::FileOptions, processes::ProcessOptions},
     runtime::script::JSScript,
@@ -78,7 +79,7 @@ pub struct Artifacts {
     pub fseventsd: Option<FseventsOptions>,
     pub sudologs_macos: Option<MacosSudoOptions>,
     pub spotlight: Option<SpotlightOptions>,
-    pub journals: Option<JournalOptions>,
+    pub journal: Option<JournalOptions>,
     pub sudologs_linux: Option<LinuxSudoOptions>,
     pub logons: Option<LogonOptions>,
     pub rawfiles_ext4: Option<Ext4Options>,
@@ -105,6 +106,7 @@ pub struct Artifacts {
     pub outlook: Option<OutlookOptions>,
     pub mft: Option<MftOptions>,
     pub connections: Option<()>,
+    pub triage: Option<Vec<TriageOptions>>,
 
     // Scripts to run in BoaJS
     pub script: Option<JSScript>,
