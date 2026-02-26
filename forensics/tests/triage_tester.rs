@@ -35,11 +35,11 @@ fn test_triage_collection_windows() {
 #[cfg(target_os = "windows")]
 fn test_triage_collection_firefox_windows() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    test_location.push("tests/test_data/triage/artemis/firefox.toml");
+    test_location.push("tests/test_data/triage/artemis/edge.toml");
 
     parse_toml_file(&test_location.display().to_string()).unwrap();
 
-    let assert_glob = "./tmp/Firefox/*";
+    let assert_glob = "./tmp/Edge/*";
     let results = glob(&assert_glob).unwrap();
     let mut have_zip = false;
     for result in results {
@@ -52,7 +52,7 @@ fn test_triage_collection_firefox_windows() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if text.contains("\"output_count\":0,") {
-                panic!("missing firefox??");
+                panic!("missing edge??");
             }
         }
     }
