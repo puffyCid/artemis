@@ -30,7 +30,7 @@ pub struct OpendirectoryGroups {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct BookmarkData {
     /**Path to file to run */
     pub path: String,
@@ -74,6 +74,8 @@ pub struct BookmarkData {
     pub is_executable: bool,
     /**Does target file have file reference flag */
     pub file_ref_flag: bool,
+    pub url_string: String,
+    pub volume_depth: i32,
 }
 
 #[derive(Debug, Serialize, PartialEq)]

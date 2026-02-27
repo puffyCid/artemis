@@ -1,6 +1,7 @@
 use crate::utils::{
     nom_helper::{
-        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
+        Endian, nom_data, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
+        nom_unsigned_two_bytes,
     },
     time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
@@ -28,12 +29,6 @@ pub(crate) struct BookmarkHeader {
      * Followed by 32 bytes of reserved space
      */
     pub(crate) bookmark_data_offset: u32,
-}
-
-#[derive(Debug)]
-struct TableOfContentsOffset {
-    /**Offset to the start of Table of Contents (TOC) */
-    table_of_contents_offset: u32,
 }
 
 #[derive(Debug)]
@@ -85,8 +80,10 @@ pub(crate) fn parse_bookmark_header(data: &[u8]) -> nom::IResult<&[u8], Bookmark
     let (input, _version) = nom_unsigned_four_bytes(input, Endian::Be)?;
     let (input, bookmark_data_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
+    // If the data offset is 64 then this filler actually contains data (not empty values)
+    // Unsure the data. Might be UUIDs?
     let filler_size: u32 = 32;
-    let (input, _) = take(filler_size)(input)?;
+    let (mut input, _) = take(filler_size)(input)?;
 
     let bookmark_header = BookmarkHeader {
         signature,
@@ -94,18 +91,23 @@ pub(crate) fn parse_bookmark_header(data: &[u8]) -> nom::IResult<&[u8], Bookmark
         _version,
         bookmark_data_offset,
     };
+
+    // Seen in SFL files
+    let shared_file_list_offset = 64;
+    if bookmark_data_offset == shared_file_list_offset {
+        let padding = 16;
+        let (remaining, _empty) = nom_data(input, padding)?;
+        input = remaining;
+    }
     Ok((input, bookmark_header))
 }
 
 /// Parse the core bookmark data
 pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkData> {
     let (input, table_of_contents_offset) = nom_unsigned_four_bytes(data, Endian::Le)?;
-    let book_data = TableOfContentsOffset {
-        table_of_contents_offset,
-    };
 
     let toc_offset_size: u32 = 4;
-    let (input, core_data) = take(book_data.table_of_contents_offset - toc_offset_size)(input)?;
+    let (input, core_data) = take(table_of_contents_offset - toc_offset_size)(input)?;
     let (input, toc_header) = table_of_contents_header(input)?;
 
     let (toc_record_data, toc_content_data) =
@@ -114,29 +116,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
     let (_, toc_content_data_record) =
         table_of_contents_record(toc_record_data, toc_content_data.number_of_records)?;
 
-    let mut bookmark_data = BookmarkData {
-        path: String::new(),
-        cnid_path: String::new(),
-        target_flags: Vec::new(),
-        created: String::new(),
-        volume_path: String::new(),
-        volume_url: String::new(),
-        volume_name: String::new(),
-        volume_uuid: String::new(),
-        volume_size: 0,
-        volume_created: String::new(),
-        volume_flags: Vec::new(),
-        volume_root: false,
-        localized_name: String::new(),
-        security_extension_rw: String::new(),
-        username: String::new(),
-        uid: 0,
-        creation_options: Vec::new(),
-        folder_index: 0,
-        is_executable: false,
-        security_extension_ro: String::new(),
-        file_ref_flag: false,
-    };
+    let mut bookmark_data = BookmarkData::default();
 
     // Data types
     let string_type = 0x0101;
@@ -157,11 +137,11 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
     let _url_relative = 0x0902;
 
     // Table of Contents Key types
-    let _unknown = 0x1003;
+    let unknown = 0x1003;
     let target_path = 0x1004;
     let target_cnid_path = 0x1005;
     let target_flags = 0x1010;
-    let _target_filename = 0x1020;
+    let target_filename = 0x1020;
     let target_creation_date = 0x1040;
     let _unknown2 = 0x1054;
     let _unknown3 = 0x1055;
@@ -176,7 +156,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
     let volume_uuid = 0x2011;
     let volume_size = 0x2012;
     let volume_creation = 0x2013;
-    let _volume_bookmark = 0x2040;
+    let volume_bookmark = 0x2040;
     let volume_flags = 0x2020;
     let volume_root = 0x2030;
     let _volume_mount_point = 0x2050;
@@ -386,6 +366,54 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                         warn!("[bookmarks] Failed to parse bookmark Creator UID: {err:?}");
                     }
                 }
+            } else if standard_data.record_type == unknown
+                && standard_data.data_type == number_four_byte
+            {
+                let value = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, options)) => options,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse bookmark 4 byte options: {err:?}");
+                        continue;
+                    }
+                };
+                println!("{data:?}");
+                panic!("{value}");
+            } else if standard_data.record_type == unknown && standard_data.data_type == string_type
+            {
+                let value = match bookmark_data_type_string(&record_data) {
+                    Ok(username) => username,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse bookmark string: {err:?}");
+                        continue;
+                    }
+                };
+                bookmark_data.url_string = value;
+            } else if standard_data.record_type == volume_bookmark
+                && standard_data.data_type == number_four_byte
+            {
+                let value = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, options)) => options,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse volume bookmark: {err:?}");
+                        continue;
+                    }
+                };
+                bookmark_data.volume_depth = value;
+            } else if standard_data.record_type == target_path
+                && standard_data.data_type == array_type
+            {
+                println!("array type target path: {record_data:?}");
+            } else if standard_data.record_type == target_filename
+                && standard_data.data_type == string_type
+            {
+                let value = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, options)) => options,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse filename: {err:?}");
+                        continue;
+                    }
+                };
+                println!("{value:?}");
             } else if standard_data.record_type == creation_options
                 && standard_data.data_type == number_four_byte
             {
