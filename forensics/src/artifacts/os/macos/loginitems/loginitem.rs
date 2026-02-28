@@ -44,6 +44,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                 for (key, value) in data {
                     let mut loginitems_data = LoginItemsData {
                         created: String::from("1970-01-01T00:00:00.000Z"),
+                        is_bundled: true,
                         ..Default::default()
                     };
 
