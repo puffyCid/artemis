@@ -763,9 +763,9 @@ pub struct KeyValue {
     pub data_type: String, // REG_WORD, REG_DWORD
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct ServicesData {
-    pub state: ServiceState,
+    pub sid_type: SidType,
     pub name: String,
     pub display_name: String,
     pub description: String,
@@ -784,17 +784,18 @@ pub struct ServicesData {
     pub evidence: String,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Default)]
 pub enum StartMode {
     Automatic,
     Boot,
     Disabled,
     Manual,
     System,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Default)]
 pub enum ServiceState {
     Stopped,
     StartPending,
@@ -803,15 +804,25 @@ pub enum ServiceState {
     ContinuePending,
     PausePending,
     Paused,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Default)]
+pub enum SidType {
+    Restricted,
+    Unrestricted,
+    #[default]
+    None,
+}
+
+#[derive(Debug, PartialEq, Serialize, Default)]
 pub enum ServiceError {
     Ignore,
     Normal,
     Severe,
     Critical,
+    #[default]
     Unknown,
 }
 

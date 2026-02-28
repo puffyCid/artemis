@@ -1,11 +1,9 @@
 use super::{
     error::ServicesError,
-    options::name::{error_control, failure_actions, service_state, service_type, start_mode},
+    options::name::{error_control, failure_actions, service_type, sid_type, start_mode},
     registry::get_services_data,
 };
-use common::windows::{
-    KeyValue, RegistryData, ServiceError, ServiceState, ServicesData, StartMode,
-};
+use common::windows::{KeyValue, RegistryData, ServicesData};
 
 /// Parse Services data from provided Registry file
 pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesError> {
@@ -55,23 +53,9 @@ fn collect_service(
     let name = service_name.to_string();
 
     let mut service = ServicesData {
-        state: ServiceState::Unknown,
         name,
-        display_name: String::new(),
-        description: String::new(),
-        start_mode: StartMode::Unknown,
-        path: String::new(),
-        service_type: Vec::new(),
-        account: String::new(),
-        modified: String::new(),
-        service_dll: String::new(),
-        failure_command: String::new(),
-        reset_period: 0,
-        failure_actions: Vec::new(),
-        required_privileges: Vec::new(),
-        error_control: ServiceError::Unknown,
         evidence: evidence.to_string(),
-        reg_path: String::new(),
+        ..Default::default()
     };
 
     for info in service_data {
@@ -112,7 +96,7 @@ fn metadata(value: &KeyValue, service: &mut ServicesData) {
         }
         "ImagePath" => service.path.clone_from(&value.data),
         "ObjectName" => service.account.clone_from(&value.data),
-        "ServiceSidType" => service.state = service_state(&value.data),
+        "ServiceSidType" => service.sid_type = sid_type(&value.data),
         "Start" => service.start_mode = start_mode(&value.data),
         "Type" => service.service_type = service_type(&value.data),
         "FailureCommand" => service.failure_command.clone_from(&value.data),
@@ -133,7 +117,7 @@ mod tests {
         },
         utils::environment::get_systemdrive,
     };
-    use common::windows::{KeyValue, ServiceError, ServiceState, StartMode};
+    use common::windows::KeyValue;
 
     #[test]
     fn test_parse_services() {
@@ -186,25 +170,7 @@ mod tests {
             data_type: "REG_EXPAND_SZ".to_owned(),
         };
 
-        let mut service = ServicesData {
-            state: ServiceState::Unknown,
-            name: String::new(),
-            display_name: String::new(),
-            description: String::new(),
-            start_mode: StartMode::Unknown,
-            path: String::new(),
-            service_type: Vec::new(),
-            account: String::new(),
-            modified: String::new(),
-            service_dll: String::new(),
-            failure_command: String::new(),
-            reset_period: 0,
-            failure_actions: Vec::new(),
-            required_privileges: Vec::new(),
-            error_control: ServiceError::Unknown,
-            reg_path: String::new(),
-            evidence: String::new(),
-        };
+        let mut service = ServicesData::default();
 
         metadata(&test, &mut service);
         assert_eq!(
