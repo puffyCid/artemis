@@ -76,6 +76,7 @@ pub struct BookmarkData {
     pub file_ref_flag: bool,
     pub url_string: String,
     pub volume_depth: i32,
+    pub target_filename: String,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
