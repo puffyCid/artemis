@@ -1,19 +1,15 @@
 use crate::utils::{
     nom_helper::{
-        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
+        Endian, nom_data, nom_signed_eight_bytes, nom_signed_four_bytes, nom_unsigned_eight_bytes,
+        nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
+    strings::extract_utf8_string,
     time::{cocoatime_to_unixepoch, unixepoch_to_iso},
 };
 use common::macos::{BookmarkData, CreationFlags, TargetFlags, VolumeFlags};
 use log::warn;
-use nom::{
-    bytes::complete::take,
-    number::complete::{be_f64, le_i32, le_i64},
-};
-use std::{
-    fmt::Debug,
-    str::{Utf8Error, from_utf8},
-};
+use nom::{bytes::complete::take, number::complete::be_f64};
+use std::fmt::Debug;
 
 #[derive(Debug)]
 pub(crate) struct BookmarkHeader {
@@ -28,12 +24,6 @@ pub(crate) struct BookmarkHeader {
      * Followed by 32 bytes of reserved space
      */
     pub(crate) bookmark_data_offset: u32,
-}
-
-#[derive(Debug)]
-struct TableOfContentsOffset {
-    /**Offset to the start of Table of Contents (TOC) */
-    table_of_contents_offset: u32,
 }
 
 #[derive(Debug)]
@@ -85,8 +75,10 @@ pub(crate) fn parse_bookmark_header(data: &[u8]) -> nom::IResult<&[u8], Bookmark
     let (input, _version) = nom_unsigned_four_bytes(input, Endian::Be)?;
     let (input, bookmark_data_offset) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
+    // If the data offset is 64 then this filler actually contains data (not empty values)
+    // Unsure the data. Might be UUIDs?
     let filler_size: u32 = 32;
-    let (input, _) = take(filler_size)(input)?;
+    let (mut input, _) = take(filler_size)(input)?;
 
     let bookmark_header = BookmarkHeader {
         signature,
@@ -94,18 +86,23 @@ pub(crate) fn parse_bookmark_header(data: &[u8]) -> nom::IResult<&[u8], Bookmark
         _version,
         bookmark_data_offset,
     };
+
+    // Seen in SFL files
+    let shared_file_list_offset = 64;
+    if bookmark_data_offset == shared_file_list_offset {
+        let padding = 16;
+        let (remaining, _empty) = nom_data(input, padding)?;
+        input = remaining;
+    }
     Ok((input, bookmark_header))
 }
 
 /// Parse the core bookmark data
 pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkData> {
     let (input, table_of_contents_offset) = nom_unsigned_four_bytes(data, Endian::Le)?;
-    let book_data = TableOfContentsOffset {
-        table_of_contents_offset,
-    };
 
     let toc_offset_size: u32 = 4;
-    let (input, core_data) = take(book_data.table_of_contents_offset - toc_offset_size)(input)?;
+    let (input, core_data) = take(table_of_contents_offset - toc_offset_size)(input)?;
     let (input, toc_header) = table_of_contents_header(input)?;
 
     let (toc_record_data, toc_content_data) =
@@ -114,81 +111,59 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
     let (_, toc_content_data_record) =
         table_of_contents_record(toc_record_data, toc_content_data.number_of_records)?;
 
-    let mut bookmark_data = BookmarkData {
-        path: String::new(),
-        cnid_path: String::new(),
-        target_flags: Vec::new(),
-        created: String::new(),
-        volume_path: String::new(),
-        volume_url: String::new(),
-        volume_name: String::new(),
-        volume_uuid: String::new(),
-        volume_size: 0,
-        volume_created: String::new(),
-        volume_flags: Vec::new(),
-        volume_root: false,
-        localized_name: String::new(),
-        security_extension_rw: String::new(),
-        username: String::new(),
-        uid: 0,
-        creation_options: Vec::new(),
-        folder_index: 0,
-        is_executable: false,
-        security_extension_ro: String::new(),
-        file_ref_flag: false,
-    };
+    let mut bookmark_data = BookmarkData::default();
 
     // Data types
-    let string_type = 0x0101;
+    // let string_type = 0x0101;
     let data_type = 0x0201;
-    let _number_one_byte = 0x0301;
-    let _number_two_byte = 0x0302;
-    let number_four_byte = 0x0303;
-    let number_eight_byte = 0x0304;
-    let _number_float = 0x0305;
-    let _number_float64 = 0x0306;
-    let date = 0x0400;
+    // let _one_byte = 0x0301;
+    // let _two_byte = 0x0302;
+    let four_byte = 0x0303;
+    let eight_byte = 0x0304;
+    // let _float_byte = 0x0305;
+    // let _float64_byte = 0x0306;
+    // let date = 0x0400;
     let bool_false = 0x0500;
     let bool_true = 0x0501;
     let array_type = 0x0601;
-    let _dictionary = 0x0701;
-    let _uuid = 0x0801;
-    let url = 0x0901;
+    // let _dictionary = 0x0701;
+    // let _uuid = 0x0801;
+    // let url = 0x0901;
     let _url_relative = 0x0902;
 
     // Table of Contents Key types
-    let _unknown = 0x1003;
+    let url_string = 0x1003;
     let target_path = 0x1004;
-    let target_cnid_path = 0x1005;
+    // let target_cnid_path = 0x1005;
     let target_flags = 0x1010;
-    let _target_filename = 0x1020;
+    let target_filename = 0x1020;
     let target_creation_date = 0x1040;
-    let _unknown2 = 0x1054;
-    let _unknown3 = 0x1055;
-    let _unknown4 = 0x1056;
-    let _unknown5 = 0x1057;
-    let _unknown6 = 0x1101;
-    let _unknown7 = 0x1102;
-    let _toc_path = 0x2000;
+    // let _unknown2 = 0x1054;
+    // let _unknown3 = 0x1055;
+    // let _unknown4 = 0x1056;
+    // let _unknown5 = 0x1057;
+    // let _unknown6 = 0x1101;
+    // let _unknown7 = 0x1102;
+    // let _toc_path = 0x2000;
     let volume_path = 0x2002;
     let volume_url = 0x2005;
     let volume_name = 0x2010;
     let volume_uuid = 0x2011;
     let volume_size = 0x2012;
     let volume_creation = 0x2013;
-    let _volume_bookmark = 0x2040;
+    let volume_bookmark = 0x2040;
     let volume_flags = 0x2020;
     let volume_root = 0x2030;
-    let _volume_mount_point = 0x2050;
-    let _unknown8 = 0x2070;
+    // let _volume_mount_point = 0x2050;
+    // let _unknown8 = 0x2070;
     let contain_folder_index = 0xc001;
     let creator_username = 0xc011;
     let creator_uid = 0xc012;
     let file_ref_flag = 0xd001;
     let creation_options = 0xd010;
-    let _url_length_array = 0xe003;
+    // let _url_length_array = 0xe003;
     let localized_name = 0xf017;
-    let _unknown9 = 0xf022;
+    // let _unknown9 = 0xf022;
     let security_extension_rw = 0xf080;
     let security_extension_ro = 0xf081;
     let is_executable = 0xf000f;
@@ -229,72 +204,41 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                     }
                     Err(err) => warn!("[bookmarks] Failed to parse Target Flags: {err:?}"),
                 }
-            } else if standard_data.record_type == target_creation_date
-                && standard_data.data_type == date
-            {
-                let creation_data = bookmark_data_type_date(&record_data);
-                match creation_data {
-                    Ok((_, creation)) => {
-                        bookmark_data.created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
-                    }
+            } else if standard_data.record_type == target_creation_date {
+                let creation = match bookmark_data_type_date(&record_data) {
+                    Ok((_, result)) => result,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Target File created timestamp: {err:?}");
+                        continue;
                     }
-                }
-            } else if standard_data.record_type == volume_path
-                && standard_data.data_type == string_type
-            {
-                let volume_root = bookmark_data_type_string(&record_data);
-                match volume_root {
-                    Ok(volume_root_data) => bookmark_data.volume_path = volume_root_data,
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume Path: {err:?}"),
-                }
-            } else if standard_data.record_type == volume_url && standard_data.data_type == url {
-                let volume_url_data = bookmark_data_type_string(&record_data);
-                match volume_url_data {
-                    Ok(volume_url) => bookmark_data.volume_url = volume_url,
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume URL data: {err:?}"),
-                }
-            } else if standard_data.record_type == volume_name
-                && standard_data.data_type == string_type
-            {
-                let volume_name_data = bookmark_data_type_string(&record_data);
-                match volume_name_data {
-                    Ok(volume_name) => bookmark_data.volume_name = volume_name,
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume Name data: {err:?}"),
-                }
-            } else if standard_data.record_type == volume_uuid
-                && standard_data.data_type == string_type
-            {
-                let volume_uuid_data = bookmark_data_type_string(&record_data);
-                match volume_uuid_data {
-                    Ok(volume_uuid) => bookmark_data.volume_uuid = volume_uuid,
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume UUID: {err:?}"),
-                }
-            } else if standard_data.record_type == volume_size
-                && standard_data.data_type == number_eight_byte
-            {
-                let test = bookmark_data_type_number_eight(&record_data);
-                match test {
-                    Ok((_, size)) => bookmark_data.volume_size = size,
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume size: {err:?}"),
-                }
-            } else if standard_data.record_type == volume_creation
-                && standard_data.data_type == date
-            {
-                let creation_data = bookmark_data_type_date(&record_data);
-                match creation_data {
-                    Ok((_, creation)) => {
-                        bookmark_data.volume_created =
-                            unixepoch_to_iso(cocoatime_to_unixepoch(creation));
+                };
+                bookmark_data.created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
+            } else if standard_data.record_type == volume_path {
+                bookmark_data.volume_path = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == volume_url {
+                bookmark_data.volume_url = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == volume_name {
+                bookmark_data.volume_name = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == volume_uuid {
+                bookmark_data.volume_uuid = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == volume_size {
+                bookmark_data.volume_size = match nom_signed_eight_bytes(&record_data, Endian::Le) {
+                    Ok((_, result)) => result,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse Volume size: {err:?}");
+                        continue;
                     }
+                };
+            } else if standard_data.record_type == volume_creation {
+                let creation = match bookmark_data_type_date(&record_data) {
+                    Ok((_, result)) => result,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse Volume Creation timestamp: {err:?}");
+                        continue;
                     }
-                }
-            } else if standard_data.record_type == volume_flags
-                && standard_data.data_type == data_type
-            {
+                };
+                bookmark_data.volume_created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
+            } else if standard_data.record_type == volume_flags {
                 let flags_data = bookmark_target_flags(&record_data);
                 match flags_data {
                     Ok((_, flags)) => bookmark_data.volume_flags = get_volume_flags(&flags),
@@ -320,84 +264,70 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 && standard_data.data_type == bool_false
             {
                 bookmark_data.is_executable = false;
-            } else if standard_data.record_type == localized_name
-                && standard_data.data_type == string_type
-            {
-                let local_name_data = bookmark_data_type_string(&record_data);
-                match local_name_data {
-                    Ok(local_name) => bookmark_data.localized_name = local_name,
-                    Err(err) => warn!("[bookmarks] Failed to parse Localized Name: {err:?}"),
-                }
-            } else if standard_data.record_type == security_extension_rw
-                && standard_data.data_type == data_type
-            {
-                let extension_data = bookmark_data_type_string(&record_data);
-                match extension_data {
-                    Ok(extension) => bookmark_data.security_extension_rw = extension,
-                    Err(err) => {
-                        warn!("[bookmarks] Failed to parse Security Extension RW: {err:?}");
-                    }
-                }
-            } else if standard_data.record_type == security_extension_ro
-                && standard_data.data_type == data_type
-            {
-                let extension_data = bookmark_data_type_string(&record_data);
-                match extension_data {
-                    Ok(extension) => bookmark_data.security_extension_ro = extension,
-                    Err(err) => {
-                        warn!("[bookmarks] Failed to parse Security Extension RO: {err:?}");
-                    }
-                }
-            } else if standard_data.record_type == creator_username
-                && standard_data.data_type == string_type
-            {
-                let username_data = bookmark_data_type_string(&record_data);
-                match username_data {
-                    Ok(username) => bookmark_data.username = username,
-                    Err(err) => warn!("[bookmarks] Failed to parse bookmark username: {err:?}"),
-                }
+            } else if standard_data.record_type == localized_name {
+                bookmark_data.localized_name = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == security_extension_rw {
+                bookmark_data.security_extension_rw = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == security_extension_ro {
+                bookmark_data.security_extension_ro = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == creator_username {
+                bookmark_data.username = extract_utf8_string(&record_data);
             } else if standard_data.record_type == contain_folder_index
-                && standard_data.data_type == number_four_byte
+                && standard_data.data_type == four_byte
             {
-                let index_data = bookmark_data_type_number_four(&record_data);
-                match index_data {
-                    Ok((_, index)) => bookmark_data.folder_index = index as i64,
+                bookmark_data.folder_index = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, result)) => result as i64,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark folder index: {err:?}");
+                        continue;
                     }
-                }
+                };
             } else if standard_data.record_type == contain_folder_index
-                && standard_data.data_type == number_eight_byte
+                && standard_data.data_type == eight_byte
             {
-                let index_data = bookmark_data_type_number_eight(&record_data);
-                match index_data {
-                    Ok((_, index)) => bookmark_data.folder_index = index,
+                bookmark_data.folder_index = match nom_signed_eight_bytes(&record_data, Endian::Le)
+                {
+                    Ok((_, result)) => result,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark folder index: {err:?}");
+                        continue;
                     }
-                }
-            } else if standard_data.record_type == creator_uid
-                && standard_data.data_type == number_four_byte
-            {
-                let uid_data = bookmark_data_type_number_four(&record_data);
-                match uid_data {
-                    Ok((_, uid)) => bookmark_data.uid = uid,
+                };
+            } else if standard_data.record_type == creator_uid {
+                bookmark_data.uid = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, result)) => result,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark Creator UID: {err:?}");
+                        continue;
                     }
-                }
-            } else if standard_data.record_type == creation_options
-                && standard_data.data_type == number_four_byte
+                };
+            } else if standard_data.record_type == url_string {
+                bookmark_data.url_string = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == volume_bookmark {
+                let value = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, options)) => options,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse volume bookmark: {err:?}");
+                        continue;
+                    }
+                };
+                bookmark_data.volume_depth = value;
+            } else if standard_data.record_type == target_path
+                && standard_data.data_type == array_type
             {
-                let creation_options_data = bookmark_data_type_number_four(&record_data);
-                match creation_options_data {
-                    Ok((_, options)) => {
-                        bookmark_data.creation_options = get_creation_flags(options);
-                    }
+                // Only seen empty data
+                continue;
+            } else if standard_data.record_type == target_filename {
+                bookmark_data.target_filename = extract_utf8_string(&record_data);
+            } else if standard_data.record_type == creation_options {
+                let options = match nom_signed_four_bytes(&record_data, Endian::Le) {
+                    Ok((_, result)) => result,
                     Err(err) => {
                         warn!("[bookmarks] Failed to parse bookmark Creation options: {err:?}");
+                        continue;
                     }
-                }
+                };
+                bookmark_data.creation_options = get_creation_flags(options);
             } else {
                 warn!(
                     "[bookmarks] Unknown Record Type: {} and Data type: {}",
@@ -409,22 +339,18 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
 
         // Get bookmark array data based on data and record types
         for standard_data in standard_data_vec {
-            if standard_data.data_type == string_type && standard_data.record_type == target_path {
-                let path_data = bookmark_data_type_string(&standard_data.record_data);
-                match path_data {
-                    Ok(path) => bookmark_data.path = format!("{}/{path}", bookmark_data.path),
-                    Err(_err) => (),
-                }
-            } else if standard_data.data_type == number_eight_byte
-                && standard_data.record_type == target_cnid_path
-            {
-                let cnid_data = bookmark_cnid(&standard_data.record_data);
-                match cnid_data {
-                    Ok((_, cnid)) => {
-                        bookmark_data.cnid_path = format!("{}/{cnid}", bookmark_data.cnid_path);
+            if standard_data.record_type == target_path {
+                let path = extract_utf8_string(&standard_data.record_data);
+                bookmark_data.path = format!("{}/{path}", bookmark_data.path);
+            } else if standard_data.data_type == eight_byte {
+                let cnid = match nom_signed_eight_bytes(&standard_data.record_data, Endian::Le) {
+                    Ok((_, cnid)) => cnid,
+                    Err(err) => {
+                        warn!("[bookmarks] Failed to parse cnid data: {err:?}");
+                        continue;
                     }
-                    Err(_err) => (),
-                }
+                };
+                bookmark_data.cnid_path = format!("{}/{cnid}", bookmark_data.cnid_path);
             }
         }
     }
@@ -571,18 +497,6 @@ fn bookmark_array(standard_data: &[u8]) -> nom::IResult<&[u8], Vec<u32>> {
     Ok((input, array_offsets))
 }
 
-/// Get the path/strings related to bookmark
-fn bookmark_data_type_string(standard_data: &[u8]) -> Result<String, Utf8Error> {
-    let path = from_utf8(standard_data)?;
-    Ok(path.to_string())
-}
-
-/// Get the CNID path for the target
-fn bookmark_cnid(standard_data: &[u8]) -> nom::IResult<&[u8], i64> {
-    let (data, cnid) = le_i64(standard_data)?;
-    Ok((data, cnid))
-}
-
 /// Get bookmark target flags
 fn bookmark_target_flags(standard_data: &[u8]) -> nom::IResult<&[u8], Vec<u64>> {
     let mut input = standard_data;
@@ -599,18 +513,6 @@ fn bookmark_target_flags(standard_data: &[u8]) -> nom::IResult<&[u8], Vec<u64>> 
         }
     }
     Ok((input, array_flags))
-}
-
-/// Get bookmark volume size
-fn bookmark_data_type_number_eight(standard_data: &[u8]) -> nom::IResult<&[u8], i64> {
-    let (data, size) = le_i64(standard_data)?;
-    Ok((data, size))
-}
-
-/// Get bookmark folder index
-fn bookmark_data_type_number_four(standard_data: &[u8]) -> nom::IResult<&[u8], i32> {
-    let (data, index) = le_i32(standard_data)?;
-    Ok((data, index))
 }
 
 /// Get bookmark creation timestamps
@@ -904,11 +806,10 @@ fn get_creation_flags(flags: i32) -> Vec<CreationFlags> {
 
 #[cfg(test)]
 mod tests {
-    use super::{TableOfContentsDataRecord, get_target_flags};
+    use super::TableOfContentsDataRecord;
     use crate::artifacts::os::macos::bookmarks::bookmark::{
-        bookmark_array, bookmark_array_data, bookmark_cnid, bookmark_data_type_date,
-        bookmark_data_type_number_eight, bookmark_data_type_number_four, bookmark_data_type_string,
-        bookmark_standard_data, bookmark_target_flags, get_creation_flags, get_volume_flags,
+        bookmark_array, bookmark_array_data, bookmark_data_type_date, bookmark_standard_data,
+        bookmark_target_flags, get_creation_flags, get_target_flags, get_volume_flags,
         parse_bookmark_data, parse_bookmark_header, table_of_contents_data,
         table_of_contents_header, table_of_contents_record,
     };
@@ -930,20 +831,73 @@ mod tests {
 
     #[test]
     fn test_get_target_flags() {
-        let results = get_target_flags(&[1]);
-        assert_eq!(results[0], TargetFlags::RegularFile);
+        let test = [
+            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000,
+            0x4000, 0x8000, 0x10000,
+        ];
+        for entry in test {
+            assert!(!get_target_flags(&[entry]).is_empty());
+        }
     }
 
     #[test]
     fn test_get_volume_flags() {
-        let results = get_volume_flags(&[1]);
-        assert_eq!(results[0], VolumeFlags::Local);
+        let test = [
+            0x1,
+            0x2,
+            0x4,
+            0x8,
+            0x10,
+            0x20,
+            0x40,
+            0x80,
+            0x100,
+            0x200,
+            0x400,
+            0x800,
+            0x1000,
+            0x2000,
+            0x4000,
+            0x8000,
+            0x10000,
+            0x20000,
+            0x40000,
+            0x80000,
+            0x100000,
+            0x200000,
+            0x100000000,
+            0x200000000,
+            0x400000000,
+            0x1000000000,
+            0x2000000000,
+            0x4000000000,
+            0x8000000000,
+            0x10000000000,
+            0x20000000000,
+            0x40000000000,
+            0x80000000000,
+            0x1000000000000,
+            0x2000000000000,
+            0x4000000000000,
+            0x8000000000000,
+            0x100000000000000,
+            0x200000000000000,
+            0x400000000000000,
+            0x800000000000000,
+            0x1000000000000000,
+            0xffffffffffffffff,
+        ];
+        for entry in test {
+            assert!(!get_volume_flags(&[entry]).is_empty());
+        }
     }
 
     #[test]
     fn test_get_creation_flags() {
-        let results = get_creation_flags(0x100);
-        assert_eq!(results[0], CreationFlags::PreferFileIDResolutionMask);
+        let test = [0x100, 0x20000000, 0x1000, 0x800, 0x200, 0x400];
+        for entry in test {
+            assert!(!get_creation_flags(entry).is_empty());
+        }
     }
 
     #[test]
@@ -1138,22 +1092,6 @@ mod tests {
     }
 
     #[test]
-    fn test_bookmark_data_type_string() {
-        let test_path = [83, 121, 110, 99, 116, 104, 105, 110, 103];
-
-        let book_path = bookmark_data_type_string(&test_path).unwrap();
-        assert_eq!(book_path, "Syncthing");
-    }
-
-    #[test]
-    fn test_bookmark_cnid() {
-        let test_cnid = [42, 198, 10, 0, 0, 0, 0, 0];
-
-        let (_, book_cnid) = bookmark_cnid(&test_cnid).unwrap();
-        assert_eq!(book_cnid, 706090);
-    }
-
-    #[test]
     fn test_bookmark_target_flags() {
         let test_flags = [
             129, 0, 0, 0, 1, 0, 0, 0, 239, 19, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1168,29 +1106,12 @@ mod tests {
     }
 
     #[test]
-    fn test_bookmark_data_type_number_eight() {
-        let test_volume_size = [0, 96, 127, 115, 37, 0, 0, 0];
-
-        let (_, book_size) = bookmark_data_type_number_eight(&test_volume_size).unwrap();
-
-        assert_eq!(book_size, 160851517440);
-    }
-
-    #[test]
     fn test_bookmark_data_type_date() {
         let test_creation = [65, 172, 190, 215, 104, 0, 0, 0];
 
         let (_, book_creation) = bookmark_data_type_date(&test_creation).unwrap();
 
         assert_eq!(book_creation, 241134516.0);
-    }
-
-    #[test]
-    fn test_bookmark_data_type_number_four() {
-        let test_creation = [0, 0, 0, 32];
-
-        let (_, creation_options) = bookmark_data_type_number_four(&test_creation).unwrap();
-        assert_eq!(creation_options, 536870912);
     }
 
     #[test]
@@ -1235,7 +1156,6 @@ mod tests {
         assert_eq!(header._version, 1040);
 
         let (_, bookmark) = parse_bookmark_data(bookmark_data).unwrap();
-
         assert_eq!(bookmark.created, "2022-06-20T03:21:40.000Z");
         assert_eq!(bookmark.volume_created, "2022-02-26T07:05:07.000Z");
 

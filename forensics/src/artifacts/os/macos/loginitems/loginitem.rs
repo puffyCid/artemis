@@ -43,31 +43,9 @@ pub(crate) fn loginitems_bundled_apps_path(
             Ok(data) => {
                 for (key, value) in data {
                     let mut loginitems_data = LoginItemsData {
-                        path: String::new(),
-                        cnid_path: String::new(),
                         created: String::from("1970-01-01T00:00:00.000Z"),
-                        volume_path: String::new(),
-                        volume_url: String::new(),
-                        volume_name: String::new(),
-                        volume_uuid: String::new(),
-                        volume_size: 0,
-                        volume_created: String::new(),
-                        volume_flags: Vec::new(),
-                        volume_root: false,
-                        localized_name: String::new(),
-                        security_extension_rw: String::new(),
-                        security_extension_ro: String::new(),
-                        target_flags: Vec::new(),
-                        username: String::new(),
-                        folder_index: 0,
-                        uid: 0,
-                        creation_options: Vec::new(),
                         is_bundled: true,
-                        app_id: String::new(),
-                        app_binary: String::new(),
-                        is_executable: false,
-                        file_ref_flag: false,
-                        evidence: String::new(),
+                        ..Default::default()
                     };
 
                     if key.starts_with("version") {
@@ -160,7 +138,7 @@ mod tests {
         assert_eq!(data[0].localized_name, "Syncthing");
         assert_eq!(
             data[0].security_extension_rw,
-            "64cb7eaa9a1bbccc4e1397c9f2a411ebe539cd29;00000000;00000000;0000000000000020;com.apple.app-sandbox.read-write;01;01000004;00000000000ac62a;/applications/syncthing.app\0"
+            "64cb7eaa9a1bbccc4e1397c9f2a411ebe539cd29;00000000;00000000;0000000000000020;com.apple.app-sandbox.read-write;01;01000004;00000000000ac62a;/applications/syncthing.app"
         );
         assert_eq!(data[0].security_extension_ro, "");
         assert_eq!(data[0].target_flags, vec![TargetFlags::Directory]);
