@@ -295,7 +295,7 @@ pub struct LaunchdPlist {
     pub changed: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct LoginItemsData {
     /**Path to file to run */
     pub path: String,
