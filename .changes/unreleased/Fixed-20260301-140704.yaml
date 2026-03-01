@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where windows service state was not correct
+time: 2026-03-01T14:07:04.8074523-05:00

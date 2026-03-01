@@ -5,9 +5,7 @@ use crate::{
         nom_helper::{Endian, nom_unsigned_four_bytes},
     },
 };
-use common::windows::{
-    Action, FailureActions, ServiceError, ServiceState, ServiceType, SidType, StartMode,
-};
+use common::windows::{Action, FailureActions, ServiceError, ServiceType, SidType, StartMode};
 use log::error;
 
 /// Get Error Control type for Service
@@ -18,20 +16,6 @@ pub(crate) fn error_control(value: &str) -> ServiceError {
         "2" => ServiceError::Severe,
         "3" => ServiceError::Critical,
         _ => ServiceError::Unknown,
-    }
-}
-
-/// Get Service State type for Service
-pub(crate) fn service_state(value: &str) -> ServiceState {
-    match value {
-        "1" => ServiceState::Stopped,
-        "2" => ServiceState::StartPending,
-        "3" => ServiceState::StopPending,
-        "4" => ServiceState::Running,
-        "5" => ServiceState::ContinuePending,
-        "6" => ServiceState::PausePending,
-        "7" => ServiceState::Paused,
-        _ => ServiceState::Unknown,
     }
 }
 
@@ -156,8 +140,8 @@ fn parse_failure_actions(data: &[u8]) -> nom::IResult<&[u8], (Vec<FailureActions
 mod tests {
     use super::{error_control, failure_actions};
     use crate::artifacts::os::windows::services::options::name::{
-        ServiceError, ServiceState, ServiceType, SidType, StartMode, parse_failure_actions,
-        service_state, service_type, sid_type, start_mode,
+        ServiceError, ServiceType, SidType, StartMode, parse_failure_actions, service_type,
+        sid_type, start_mode,
     };
 
     #[test]
@@ -200,13 +184,6 @@ mod tests {
         let test = "1";
         let result = start_mode(test);
         assert_eq!(result, StartMode::System);
-    }
-
-    #[test]
-    fn test_service_state() {
-        let test = "1";
-        let result = service_state(test);
-        assert_eq!(result, ServiceState::Stopped);
     }
 
     #[test]

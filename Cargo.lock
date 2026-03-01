@@ -1828,6 +1828,7 @@ dependencies = [
  "uuid",
  "vergen",
  "walkdir",
+ "windows-sys 0.61.2",
  "xml2json-rs",
  "xz2",
  "yara-x",

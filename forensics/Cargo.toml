@@ -88,6 +88,7 @@ futures-lite = { version = "2.6.1", default-features = false }
 # Windows API Dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
 ntapi = "0.4.3"
+windows-sys = { version = "0.61.2", default-features = false, features = ["Win32_System_Services"] }
 
 # Dependencies for tests
 [dev-dependencies]
