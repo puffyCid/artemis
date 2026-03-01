@@ -3,6 +3,8 @@ use super::{
     options::name::{error_control, failure_actions, service_type, sid_type, start_mode},
     registry::get_services_data,
 };
+#[cfg(target_os = "windows")]
+use crate::artifacts::os::windows::services::state::service_state;
 use common::windows::{KeyValue, RegistryData, ServicesData};
 
 /// Parse Services data from provided Registry file
@@ -37,9 +39,13 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
         service_group.push(entry);
     }
 
-    // Get last service
+    // Get last service collection
     let last_service = collect_service(&service_group, &current_service, path);
     services.push(last_service);
+
+    // If we are on Windows platform. We can check for the service state
+    #[cfg(target_os = "windows")]
+    service_state(&mut services);
 
     Ok(services)
 }

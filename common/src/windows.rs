@@ -782,6 +782,7 @@ pub struct ServicesData {
     pub error_control: ServiceError,
     pub reg_path: String,
     pub evidence: String,
+    pub state: ServiceState,
 }
 
 #[derive(Debug, PartialEq, Serialize, Default)]
