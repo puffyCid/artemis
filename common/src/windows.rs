@@ -1039,6 +1039,49 @@ pub struct NotificationInfo {
     pub evidence: String,
 }
 
+#[derive(Debug, Serialize, Default)]
+pub struct TaskInfo {
+    pub path: String,
+    pub description: String,
+    pub enabled: bool,
+    pub hidden: bool,
+    pub name: String,
+    pub action: String,
+    pub format: TaskFormat,
+    pub details: Value,
+    pub registry_task_path: String,
+    pub registry_tree_path: String,
+    pub registry_file: String,
+    pub id: String,
+    pub created: String,
+    pub last_run: String,
+    pub last_successful_run: String,
+    pub last_error_code: i32,
+    pub security_descriptor: String,
+    pub evidence: String,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub enum TaskFormat {
+    Xml,
+    Job,
+    #[default]
+    Unkonwn,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TaskCache {
+    pub registry_task_path: String,
+    pub registry_tree_path: String,
+    pub registry_file: String,
+    pub id: String,
+    pub created: String,
+    pub last_run: String,
+    pub last_successful_run: String,
+    pub last_error_code: i32,
+    pub security_description: String,
+}
+
 /**
  * Structure of a XML format Schedule Task
  * Schema at: [Task XML](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsch/0d6383e4-de92-43e7-b0bb-a60cfa36379f)

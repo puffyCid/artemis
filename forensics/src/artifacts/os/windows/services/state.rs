@@ -12,6 +12,7 @@ use windows_sys::Win32::System::Services::{
     SERVICE_STATUS_PROCESS,
 };
 
+/// Get the state of earch Windows Service. Requires Windows API calls
 pub(crate) fn service_state(services: &mut [ServicesData]) {
     #[allow(unsafe_code)]
     let service_manager =
@@ -65,6 +66,7 @@ pub(crate) fn service_state(services: &mut [ServicesData]) {
     close_handle(service_manager);
 }
 
+/// Make sure to close each handle we open
 fn close_handle(handle: *mut c_void) -> i32 {
     #[allow(unsafe_code)]
     unsafe {

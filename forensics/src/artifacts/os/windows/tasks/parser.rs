@@ -15,12 +15,15 @@
  */
 use super::{error::TaskError, job::parse_job, xml::parse_xml};
 use crate::{
-    artifacts::os::windows::artifacts::output_data,
-    filesystem::{files::list_files, metadata::glob_paths},
+    artifacts::os::windows::{artifacts::output_data, tasks::registry::cache_info},
+    filesystem::{
+        files::{get_filename, list_files},
+        metadata::glob_paths,
+    },
     structs::{artifacts::os::windows::TasksOptions, toml::Output},
     utils::{environment::get_systemdrive, time},
 };
-use common::windows::{TaskJob, TaskXml};
+use common::windows::{TaskFormat, TaskInfo, TaskJob, TaskXml};
 use log::{error, warn};
 use serde_json::Value;
 
@@ -98,6 +101,7 @@ fn drive_tasks(
     };
 
     let mut xml_tasks = Vec::new();
+    let cache = cache_info(letter)?;
 
     for path in xml_paths {
         if !path.is_file {
@@ -114,7 +118,25 @@ fn drive_tasks(
                 continue;
             }
         };
-        xml_tasks.push(task_data);
+
+        let mut info = task_info(&task_data);
+        info.evidence = path.full_path;
+        if let Ok(result) = serde_json::to_value(&task_data) {
+            info.details = result;
+        }
+        if let Some(value) = cache.get(&info.path.to_lowercase()) {
+            info.id = value.id.clone();
+            info.last_error_code = value.last_error_code;
+            info.last_run = value.last_run.clone();
+            info.created = value.created.clone();
+            info.last_successful_run = value.last_successful_run.clone();
+            info.registry_file = value.registry_file.clone();
+            info.registry_task_path = value.registry_task_path.clone();
+            info.registry_tree_path = value.registry_tree_path.clone();
+            info.security_descriptor = value.security_description.clone();
+        }
+
+        xml_tasks.push(info);
     }
 
     let mut serde_data = match serde_json::to_value(&xml_tasks) {
@@ -177,6 +199,31 @@ fn output_tasks(result: &mut Value, output: &mut Output, filter: bool, start_tim
     if let Err(err) = output_data(result, "tasks", output, start_time, filter) {
         error!("[tasks] Could not output Schedule Tasks data: {err:?}");
     }
+}
+
+fn task_info(xml: &TaskXml) -> TaskInfo {
+    let mut info = TaskInfo::default();
+    if let Some(value) = &xml.registration_info {
+        info.path = value.uri.as_ref().unwrap_or(&String::new()).clone();
+        if !info.path.starts_with("\\") {
+            info.path = format!("\\{}", info.path);
+        }
+        info.description = value.description.as_ref().unwrap_or(&String::new()).clone();
+        info.name = get_filename(&info.path);
+    }
+
+    if let Some(value) = xml.actions.exec.first() {
+        let args = value.arguments.as_ref().unwrap_or(&String::new()).clone();
+        info.action = format!("{} {args}", value.command.replace('"', ""),);
+    }
+    if let Some(value) = &xml.settings {
+        info.hidden = value.hidden.unwrap_or_default();
+        info.enabled = value.enabled.unwrap_or_default();
+    }
+
+    info.format = TaskFormat::Xml;
+
+    info
 }
 
 #[cfg(test)]
