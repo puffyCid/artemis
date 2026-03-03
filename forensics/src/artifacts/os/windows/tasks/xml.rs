@@ -128,11 +128,7 @@ mod tests {
         );
         assert_eq!(result.actions.com_handler.len(), 1);
         assert_eq!(result.evidence, test_location.display().to_string());
-        assert!(
-            result.triggers.unwrap().event[0]
-                .subscription[0]
-                .contains("<QueryList>")
-        );
+        assert!(result.triggers.unwrap().event[0].subscription[0].contains("<QueryList>"));
     }
 
     #[test]
