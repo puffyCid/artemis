@@ -79,7 +79,7 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
     exec
 }
 
-/// Parse `COMHander` Task Action
+/// Parse `COMHandler` Task Action
 fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
     let mut com = ComHandlerType {
         class_id: String::new(),
@@ -247,7 +247,7 @@ mod tests {
         let xml = r#"
         <Exec>
         <Command>C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXAutoUpdate.exe</Command>
-      </Exec>
+        </Exec>
              "#;
 
         let mut reader = Reader::from_str(xml);
@@ -256,6 +256,20 @@ mod tests {
         assert_eq!(
             result.exec[0].command,
             "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe"
+        );
+    }
+
+    #[test]
+    fn test_parse_actions_com() {
+        let xml = r#"    <ComHandler>
+        <ClassId>{C463A0FC-794F-4FDF-9201-01938CEACAFA}</ClassId>
+        </ComHandler>"#;
+        let mut reader = Reader::from_str(xml);
+        reader.config_mut().trim_text(true);
+        let result = parse_actions(&mut reader);
+        assert_eq!(
+            result.com_handler[0].class_id,
+            "{C463A0FC-794F-4FDF-9201-01938CEACAFA}"
         );
     }
 

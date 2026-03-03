@@ -11,7 +11,7 @@ use crate::{
 };
 use common::windows::{Actions, TaskXml};
 use log::error;
-use quick_xml::{Reader, events::Event};
+use quick_xml::{Reader, escape::unescape, events::Event};
 
 /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
 pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
@@ -29,7 +29,8 @@ pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
 
 /// Parse the different parts the XML schema format
 fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
-    let mut reader = Reader::from_str(xml);
+    let clean_xml = unescape(xml).unwrap_or(std::borrow::Cow::Borrowed(xml));
+    let mut reader = Reader::from_str(&clean_xml);
     reader.config_mut().trim_text(true);
     let mut task_xml = TaskXml {
         registration_info: None,
@@ -110,6 +111,28 @@ mod tests {
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
         assert_eq!(result.evidence, test_location.display().to_string())
+    }
+
+    #[test]
+    fn test_parse_xml_com() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/tasks/win11/MobilityManager");
+
+        let result = parse_xml(&test_location.display().to_string()).unwrap();
+        assert_eq!(
+            result.principals.as_ref().unwrap()[0]
+                .user_id
+                .as_ref()
+                .unwrap(),
+            "S-1-5-19"
+        );
+        assert_eq!(result.actions.com_handler.len(), 1);
+        assert_eq!(result.evidence, test_location.display().to_string());
+        assert!(
+            result.triggers.unwrap().event[0]
+                .subscription[0]
+                .contains("<QueryList>")
+        );
     }
 
     #[test]

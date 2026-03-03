@@ -1,0 +1,3 @@
+kind: Fixed
+body: Bug where artemis would not properly parse Schedule Tasks with HTML entities
+time: 2026-03-02T21:28:48.744111-05:00
