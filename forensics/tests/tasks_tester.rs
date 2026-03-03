@@ -45,6 +45,7 @@ fn validate_output(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: TaskInfo = serde_json::from_str(&value).unwrap();
+        println!("{value}");
         assert!(!info.name.is_empty());
         assert!(!info.registry_tree_path.is_empty());
         assert!(!info.id.is_empty());
