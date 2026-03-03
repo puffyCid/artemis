@@ -763,7 +763,7 @@ pub struct KeyValue {
     pub data_type: String, // REG_WORD, REG_DWORD
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ServicesData {
     pub sid_type: SidType,
     pub name: String,
@@ -785,7 +785,7 @@ pub struct ServicesData {
     pub state: ServiceState,
 }
 
-#[derive(Debug, PartialEq, Serialize, Default)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum StartMode {
     Automatic,
     Boot,
@@ -796,7 +796,7 @@ pub enum StartMode {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize, Default)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum ServiceState {
     Stopped,
     StartPending,
@@ -809,7 +809,7 @@ pub enum ServiceState {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize, Default)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum SidType {
     Restricted,
     Unrestricted,
@@ -817,7 +817,7 @@ pub enum SidType {
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize, Default)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
 pub enum ServiceError {
     Ignore,
     Normal,
@@ -827,7 +827,7 @@ pub enum ServiceError {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub enum ServiceType {
     Adapter,
     FileSystemDriver,
@@ -838,13 +838,13 @@ pub enum ServiceType {
     Win32SharedProcess,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct FailureActions {
     pub action: Action,
     pub delay: u32,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub enum Action {
     None,
     Reboot,
@@ -1039,7 +1039,7 @@ pub struct NotificationInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct TaskInfo {
     pub path: String,
     pub description: String,
@@ -1061,7 +1061,7 @@ pub struct TaskInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub enum TaskFormat {
     Xml,
     Job,

@@ -20,6 +20,7 @@ struct TaskTree {
     registry_path: String,
 }
 
+/// Parse the Schedule Task cache data in the SOFTWARE Registry file
 pub(crate) fn cache_info(drive: char) -> Result<HashMap<String, TaskCache>, TaskError> {
     let patter =
         create_regex(r"microsoft\\windows nt\\currentversion\\schedule\\taskcache\\(tree|tasks)")
@@ -32,11 +33,6 @@ pub(crate) fn cache_info(drive: char) -> Result<HashMap<String, TaskCache>, Task
             return Err(TaskError::Registry);
         }
     };
-
-    /*
-     * TODO:
-     * 10. create hashmap that uses the tree uri path as key and taskcache as value
-     */
 
     let tree_key = "ROOT\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tree";
     let cache = "ROOT\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tasks";
@@ -99,6 +95,9 @@ struct DynamicInfo {
     last_successful_run: String,
     last_error_code: i32,
 }
+
+/// Base64 decode and parse the `DynamicInfo` struct in the Registry
+/// Contains timestamps
 fn extract_dynamic_info(value: &str) -> Result<DynamicInfo, TaskError> {
     let bytes = match base64_decode_standard(value) {
         Ok(result) => result,
@@ -119,6 +118,7 @@ fn extract_dynamic_info(value: &str) -> Result<DynamicInfo, TaskError> {
     Ok(info)
 }
 
+/// Parse the `DynamicInfo` bytes
 fn parse_dynamic_info(data: &[u8]) -> nom::IResult<&[u8], DynamicInfo> {
     // https://cyber.wtf/2022/06/01/windows-registry-analysis-todays-episode-tasks
     let (input, _version) = nom_unsigned_four_bytes(data, Endian::Le)?;
@@ -142,12 +142,38 @@ fn parse_dynamic_info(data: &[u8]) -> nom::IResult<&[u8], DynamicInfo> {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "windows")]
 mod tests {
-    use crate::artifacts::os::windows::tasks::registry::cache_info;
+    use crate::artifacts::os::windows::tasks::registry::{
+        cache_info, extract_dynamic_info, parse_dynamic_info,
+    };
 
     #[test]
     fn test_cache_info() {
         let result = cache_info('C').unwrap();
-        panic!("stop!");
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_extract_dynamic_info() {
+        let test = "AwAAAFcVjIlVK9sBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        let result = extract_dynamic_info(test).unwrap();
+        assert_eq!(result.created, "2024-10-31T05:27:11.000Z");
+        assert_eq!(result.last_error_code, 0);
+        assert_eq!(result.last_successful_run, "1601-01-01T00:00:00.000Z");
+        assert_eq!(result.last_run, "1601-01-01T00:00:00.000Z");
+    }
+
+    #[test]
+    fn test_parse_dynamic_info() {
+        let test = [
+            3, 0, 0, 0, 32, 127, 71, 138, 85, 43, 219, 1, 38, 59, 239, 193, 252, 25, 220, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 73, 70, 171, 194, 252, 25, 220, 1,
+        ];
+        let (_, result) = parse_dynamic_info(&test).unwrap();
+        assert_eq!(result.created, "2024-10-31T05:27:12.000Z");
+        assert_eq!(result.last_error_code, 0);
+        assert_eq!(result.last_successful_run, "2025-08-30T22:23:50.000Z");
+        assert_eq!(result.last_run, "2025-08-30T22:23:49.000Z");
     }
 }

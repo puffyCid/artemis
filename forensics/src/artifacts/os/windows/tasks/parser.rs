@@ -18,12 +18,12 @@ use crate::{
     artifacts::os::windows::{artifacts::output_data, tasks::registry::cache_info},
     filesystem::{
         files::{get_filename, list_files},
-        metadata::glob_paths,
+        metadata::{get_timestamps, glob_paths},
     },
     structs::{artifacts::os::windows::TasksOptions, toml::Output},
     utils::{environment::get_systemdrive, time},
 };
-use common::windows::{TaskFormat, TaskInfo, TaskJob, TaskXml};
+use common::windows::{Flags, TaskFormat, TaskInfo, TaskJob, TaskXml};
 use log::{error, warn};
 use serde_json::Value;
 
@@ -37,7 +37,7 @@ pub(crate) fn grab_tasks(
     if let Some(file) = &options.alt_file {
         if file.ends_with(".job") {
             let result = grab_task_job(file)?;
-            let mut serde_data = match serde_json::to_value(&result) {
+            let mut serde_data = match serde_json::to_value(vec![result]) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[tasks] Failed to serialize job: {err:?}");
@@ -48,7 +48,7 @@ pub(crate) fn grab_tasks(
             return Ok(());
         }
         let result = grab_task_xml(file)?;
-        let mut serde_data = match serde_json::to_value(&result) {
+        let mut serde_data = match serde_json::to_value(vec![result]) {
             Ok(result) => result,
             Err(err) => {
                 error!("[tasks] Failed to serialize task: {err:?}");
@@ -73,13 +73,15 @@ pub(crate) fn grab_tasks(
 }
 
 /// Grab and parse single Task Job File at provided path
-fn grab_task_job(path: &str) -> Result<TaskJob, TaskError> {
-    parse_job(path)
+fn grab_task_job(path: &str) -> Result<TaskInfo, TaskError> {
+    let job = parse_job(path)?;
+    Ok(job_info(&job))
 }
 
 /// Grab and parse single Task XML File at provided path
-pub(crate) fn grab_task_xml(path: &str) -> Result<TaskXml, TaskError> {
-    parse_xml(path)
+pub(crate) fn grab_task_xml(path: &str) -> Result<TaskInfo, TaskError> {
+    let xml = parse_xml(path)?;
+    Ok(xml_info(&xml))
 }
 
 /// Parse Tasks at provided drive
@@ -119,11 +121,8 @@ fn drive_tasks(
             }
         };
 
-        let mut info = task_info(&task_data);
-        info.evidence = path.full_path;
-        if let Ok(result) = serde_json::to_value(&task_data) {
-            info.details = result;
-        }
+        let mut info = xml_info(&task_data);
+
         if let Some(value) = cache.get(&info.path.to_lowercase()) {
             info.id = value.id.clone();
             info.last_error_code = value.last_error_code;
@@ -174,7 +173,8 @@ fn drive_tasks(
             }
         };
 
-        job_tasks.push(job_result);
+        let info = job_info(&job_result);
+        job_tasks.push(info);
     }
 
     // Job schedule tasks are legacy format. May not exist
@@ -201,8 +201,13 @@ fn output_tasks(result: &mut Value, output: &mut Output, filter: bool, start_tim
     }
 }
 
-fn task_info(xml: &TaskXml) -> TaskInfo {
-    let mut info = TaskInfo::default();
+/// Convert `TaskXml` to `TaskInfo`
+fn xml_info(xml: &TaskXml) -> TaskInfo {
+    let mut info = TaskInfo {
+        format: TaskFormat::Xml,
+        evidence: xml.evidence.clone(),
+        ..Default::default()
+    };
     if let Some(value) = &xml.registration_info {
         info.path = value.uri.as_ref().unwrap_or(&String::new()).clone();
         if !info.path.starts_with("\\") {
@@ -214,14 +219,51 @@ fn task_info(xml: &TaskXml) -> TaskInfo {
 
     if let Some(value) = xml.actions.exec.first() {
         let args = value.arguments.as_ref().unwrap_or(&String::new()).clone();
-        info.action = format!("{} {args}", value.command.replace('"', ""),);
+        info.action = format!("{} {args}", value.command.replace('"', ""))
+            .trim()
+            .to_string();
     }
     if let Some(value) = &xml.settings {
         info.hidden = value.hidden.unwrap_or_default();
         info.enabled = value.enabled.unwrap_or_default();
     }
 
-    info.format = TaskFormat::Xml;
+    if let Ok(result) = serde_json::to_value(xml) {
+        info.details = result;
+    }
+
+    info
+}
+
+/// Convert `TaskJob` to `TaskInfo`
+fn job_info(job: &TaskJob) -> TaskInfo {
+    let command = format!("{} {}", job.application_name, job.parameters)
+        .trim()
+        .to_string();
+    let mut info = TaskInfo {
+        format: TaskFormat::Job,
+        id: job.job_id.clone(),
+        action: command,
+        enabled: job.flags.contains(&Flags::Disabled),
+        hidden: job.flags.contains(&Flags::Hidden),
+        description: job.comments.clone(),
+        name: get_filename(&job.evidence),
+        // Job file format does not have a URI path
+        // But for consistency we will use the path to the Job file
+        path: job.evidence.clone(),
+        evidence: job.evidence.clone(),
+        ..Default::default()
+    };
+
+    // Disadvantage of this is that if we parse an Job file that was copied to another system
+    // The timestamp will be not helpful
+    // But there are many scenarios where a user will be parsing a Job file on the original system
+    if let Ok(value) = get_timestamps(&job.evidence) {
+        info.created = value.created;
+    }
+    if let Ok(value) = serde_json::to_value(job) {
+        info.details = value;
+    }
 
     info
 }
@@ -230,12 +272,15 @@ fn task_info(xml: &TaskXml) -> TaskInfo {
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_tasks;
-    use crate::artifacts::os::windows::tasks::parser::{grab_task_job, grab_task_xml};
+    use crate::artifacts::os::windows::tasks::parser::{
+        grab_task_job, grab_task_xml, job_info, xml_info,
+    };
     use crate::structs::toml::Output;
     use crate::{
         artifacts::os::windows::tasks::parser::drive_tasks,
         structs::artifacts::os::windows::TasksOptions,
     };
+    use common::windows::{Actions, Priority, Status, TaskJob, TaskXml};
     use std::path::PathBuf;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -271,7 +316,7 @@ mod tests {
         test_location.push("tests/test_data/windows/tasks/win10/At1.job");
 
         let result = grab_task_job(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.parameters, "");
+        assert_eq!(result.action, "");
     }
 
     #[test]
@@ -280,6 +325,55 @@ mod tests {
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
         let result = grab_task_xml(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.actions.exec.len(), 1);
+        assert_eq!(result.action, "");
+    }
+
+    #[test]
+    fn test_xml_info() {
+        let xml = TaskXml {
+            registration_info: None,
+            triggers: None,
+            settings: None,
+            data: None,
+            principals: None,
+            actions: Actions {
+                exec: Vec::new(),
+                com_handler: Vec::new(),
+                send_email: Vec::new(),
+                show_message: Vec::new(),
+            },
+            evidence: String::from("none"),
+        };
+        let info = xml_info(&xml);
+        assert_eq!(info.evidence, "none");
+    }
+
+    #[test]
+    fn test_job_info() {
+        let job = TaskJob {
+            evidence: String::from("none"),
+            job_id: String::new(),
+            error_retry_count: 0,
+            error_retry_interval: 0,
+            idle_deadline: 0,
+            idle_wait: 0,
+            priority: Priority::Unknown,
+            max_run_time: 0,
+            exit_code: 0,
+            status: Status::Unknown,
+            flags: Vec::new(),
+            system_time: String::new(),
+            running_instance_count: 0,
+            application_name: String::new(),
+            parameters: String::new(),
+            working_directory: String::new(),
+            author: String::new(),
+            comments: String::new(),
+            user_data: String::new(),
+            start_error: 0,
+            triggers: Vec::new(),
+        };
+        let info = job_info(&job);
+        assert_eq!(info.evidence, "none");
     }
 }
