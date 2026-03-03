@@ -222,6 +222,16 @@ fn xml_info(xml: &TaskXml) -> TaskInfo {
         info.action = format!("{} {args}", value.command.replace('"', ""))
             .trim()
             .to_string();
+        info.action_count = xml.actions.exec.len() as u8;
+    }
+    if info.action.is_empty()
+        && let Some(value) = xml.actions.com_handler.first()
+    {
+        let data = value.data.as_ref().unwrap_or(&String::new()).clone();
+        info.action = format!("{} {data}", value.class_id.replace('"', ""))
+            .trim()
+            .to_string();
+        info.action_count = xml.actions.com_handler.len() as u8;
     }
     if let Some(value) = &xml.settings {
         info.hidden = value.hidden.unwrap_or_default();
@@ -316,7 +326,7 @@ mod tests {
         test_location.push("tests/test_data/windows/tasks/win10/At1.job");
 
         let result = grab_task_job(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.action, "");
+        assert_eq!(result.action, "cmd.exe");
     }
 
     #[test]
@@ -325,7 +335,10 @@ mod tests {
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
         let result = grab_task_xml(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.action, "");
+        assert_eq!(
+            result.action,
+            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe"
+        );
     }
 
     #[test]

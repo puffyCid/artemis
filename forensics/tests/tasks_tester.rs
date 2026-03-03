@@ -49,6 +49,8 @@ fn validate_output(output: &PathBuf) {
         assert!(!info.registry_tree_path.is_empty());
         assert!(!info.id.is_empty());
         assert!(!info.action.ends_with(" "));
+        assert!(!info.action.is_empty());
+        assert_ne!(info.action_count, 0);
 
         assert!(info.path.starts_with("\\"));
         assert_ne!(info.created, "1970-01-01T00:00:00Z");

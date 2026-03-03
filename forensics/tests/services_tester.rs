@@ -45,7 +45,6 @@ fn validate_output(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: ServicesData = serde_json::from_str(&value).unwrap();
-        println!("{info:?}");
         assert!(!info.name.is_empty());
         assert!(!info.reg_path.is_empty());
         assert_ne!(info.modified, "1970-01-01T00:00:00Z");

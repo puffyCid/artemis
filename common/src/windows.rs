@@ -1058,6 +1058,7 @@ pub struct TaskInfo {
     pub last_successful_run: String,
     pub last_error_code: i32,
     pub security_descriptor: String,
+    pub action_count: u8,
     pub evidence: String,
 }
 
