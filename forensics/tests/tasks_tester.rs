@@ -65,4 +65,6 @@ fn validate_output(output: &PathBuf) {
             )
         }
     }
+
+    panic!("stop!");
 }
