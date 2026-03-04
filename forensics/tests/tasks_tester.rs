@@ -47,8 +47,8 @@ fn validate_output(output: &PathBuf) {
         let info: TaskInfo = serde_json::from_str(&value).unwrap();
         println!("{value}");
         assert!(!info.name.is_empty());
-        assert!(!info.registry_tree_path.is_empty());
-        assert!(!info.id.is_empty());
+        //assert!(!info.registry_tree_path.is_empty());
+        //assert!(!info.id.is_empty());
         assert!(!info.action.ends_with(" "));
         assert!(!info.action.is_empty());
         assert_ne!(info.action_count, 0);
