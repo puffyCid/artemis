@@ -1,8 +1,9 @@
 use common::windows::TaskInfo;
+use std::fs::read;
+use std::path::PathBuf;
 use std::{
     fs::File,
     io::{BufRead, BufReader},
-    path::PathBuf,
 };
 
 #[test]
@@ -10,8 +11,6 @@ use std::{
 fn test_tasks_parser() {
     use forensics::core::parse_toml_file;
     use glob::glob;
-    use std::fs::read;
-    use std::path::PathBuf;
 
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/tasks.toml");
@@ -45,10 +44,11 @@ fn validate_output(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: TaskInfo = serde_json::from_str(&value).unwrap();
-        println!("{value}");
         assert!(!info.name.is_empty());
-        //assert!(!info.registry_tree_path.is_empty());
-        //assert!(!info.id.is_empty());
+        if !info.action.contains("VSIXConfigurationUpdater") {
+            assert!(!info.registry_tree_path.is_empty());
+            assert!(!info.id.is_empty());
+        }
         assert!(!info.action.ends_with(" "));
         assert!(!info.action.is_empty());
         assert_ne!(info.action_count, 0);
@@ -65,6 +65,17 @@ fn validate_output(output: &PathBuf) {
             )
         }
     }
+}
 
-    panic!("stop!");
+#[test]
+fn read_ci_output() {
+    let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    test_location.push("tests/test_data/github_ci/windows/tasks.jsonl");
+
+    let file = File::open(&test_location).unwrap();
+    let reader = BufReader::new(file);
+    for (_, line) in reader.lines().enumerate() {
+        let value = line.unwrap();
+        let _info: TaskInfo = serde_json::from_str(&value).unwrap();
+    }
 }
