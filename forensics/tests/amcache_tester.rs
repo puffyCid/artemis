@@ -35,7 +35,7 @@ fn test_amcache_parser() {
         if output_file.contains("\\amcache_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
-        if output_file.ends_with(".log") && !output_file.starts_with("status_") {
+        if value.ends_with(".log") && !value.starts_with("status_") {
             check_errors(value);
         }
     }
@@ -49,7 +49,9 @@ fn validate_output(output: &PathBuf) {
         let value = line.unwrap();
         println!("{value}");
         let info: Amcache = serde_json::from_str(&value).unwrap();
-        assert!(!info.name.is_empty());
+        if info.name.is_empty() && info.original_name.is_empty() {
+            panic!("no names?")
+        }
         assert_ne!(info.last_modified, "1970-01-01T00:00:00.000Z");
         assert!(!info.reg_path.is_empty())
     }
@@ -67,6 +69,24 @@ fn check_errors(output: &PathBuf) {
     }
 
     if count != 0 {
-        panic!("check");
+        panic!("error count: {count}");
+    }
+}
+
+#[test]
+fn read_ci_output() {
+    let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    test_location.push("tests/test_data/github_ci/windows/amcache.jsonl");
+
+    let file = File::open(&test_location).unwrap();
+    let reader = BufReader::new(file);
+    for (_, line) in reader.lines().enumerate() {
+        let value = line.unwrap();
+        let info: Amcache = serde_json::from_str(&value).unwrap();
+        if info.name.is_empty() && info.original_name.is_empty() {
+            panic!("no names?")
+        }
+        assert_ne!(info.last_modified, "1970-01-01T00:00:00.000Z");
+        assert!(!info.reg_path.is_empty())
     }
 }

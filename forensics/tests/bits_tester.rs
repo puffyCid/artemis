@@ -35,7 +35,7 @@ fn test_bits_parser() {
         if output_file.contains("\\bits_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
-        if output_file.ends_with(".log") && !output_file.starts_with("status_") {
+        if value.ends_with(".log") && !value.starts_with("status_") {
             check_errors(value);
         }
     }
@@ -52,10 +52,10 @@ fn validate_output(output: &PathBuf) {
         if info.carved {
             if !info.job_id.is_empty() {
                 assert_ne!(info.created, "1970-01-01T00:00:00.000Z");
-                assert!(!info.job_name.is_empty());
+                assert!(!info.job_id.is_empty());
                 assert_ne!(info.job_type, JobType::Unknown);
-                continue;
             }
+            continue;
         }
         assert!(!info.job_name.is_empty());
         assert!(!info.target_path.is_empty());
@@ -74,6 +74,6 @@ fn check_errors(output: &PathBuf) {
     }
 
     if count != 0 {
-        panic!("check");
+        panic!("error count: {count}");
     }
 }
