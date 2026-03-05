@@ -1,5 +1,4 @@
 use common::windows::TaskInfo;
-use std::fs::read;
 use std::path::PathBuf;
 use std::{
     fs::File,
@@ -11,6 +10,7 @@ use std::{
 fn test_tasks_parser() {
     use forensics::core::parse_toml_file;
     use glob::glob;
+    use std::fs::read;
 
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/tasks.toml");
@@ -48,6 +48,7 @@ fn validate_output(output: &PathBuf) {
         if !info.action.contains("VSIXConfigurationUpdater")
             && !info.action.contains("OneDrive Reporting Task-S-1-5-21")
         {
+            println!("{info:?}");
             assert!(!info.registry_tree_path.is_empty());
             assert!(!info.id.is_empty());
         }
