@@ -103,6 +103,8 @@ end2end:
   cargo test --release --test tasks_tester
   cargo test --release --test triage_tester
   cargo test --release --test services_tester
+  cargo test --release --test eventlog_tester
+
 
 # Just build the artemis binary
 [group('workspace')]

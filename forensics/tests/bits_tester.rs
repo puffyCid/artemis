@@ -35,7 +35,7 @@ fn test_bits_parser() {
         if output_file.contains("\\bits_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
-        if value.ends_with(".log") && !value.starts_with("status_") {
+        if value.extension().unwrap() == "log" && !value.to_str().unwrap().contains("status_") {
             check_errors(value);
         }
     }
