@@ -45,9 +45,7 @@ fn validate_output(output: &PathBuf) {
         let value = line.unwrap();
         let info: TaskInfo = serde_json::from_str(&value).unwrap();
         assert!(!info.name.is_empty());
-        if !info.action.contains("VSIXConfigurationUpdater")
-            && !info.action.contains("OneDrive Reporting Task-S-1-5-21")
-        {
+        if !info.action.contains("VSIXConfigurationUpdater") && !info.path.contains("S-1-5-21-") {
             println!("{info:?}");
             assert!(!info.registry_tree_path.is_empty());
             assert!(!info.id.is_empty());
