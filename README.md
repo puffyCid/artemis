@@ -88,7 +88,7 @@ Commands:
   sudologs-macos     macos: Parse Sudo log entries from Unified Logs
   spotlight          macos: Parse the Spotlight database
   sudologs-linux     linux: Grab Sudo logs
-  journals           linux: Parse systemd Journal files
+  journal            linux: Parse systemd Journal files
   logons             linux: Parse Logon files
   help               Print this message or the help of the given subcommand(s)
 

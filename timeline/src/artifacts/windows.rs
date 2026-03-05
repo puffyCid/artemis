@@ -618,45 +618,21 @@ pub(crate) fn srum(data: &mut Value) -> Option<()> {
 }
 
 pub(crate) fn tasks(data: &mut Value) -> Option<()> {
-    let mut entries = Vec::new();
-
     for values in data.as_array_mut()? {
-        let mut temp = Value::Null;
-        let bits = if let Some(value) = values.get_mut("data").unwrap_or(&mut temp).get_mut("tasks")
-        {
+        let task = if let Some(value) = values.get_mut("data") {
             value
         } else {
-            values.get_mut("tasks")?
+            values
         };
-        // First get full modern tasks
-        for entry in bits.as_array_mut()? {
-            entry["message"] = entry["evidence"].as_str().into();
-            entry["artifact"] = Value::String(String::from("Schedule Task"));
-            entry["data_type"] = Value::String(String::from("windows:tasks:xml:entry"));
-            entry["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
-            entry["timestamp_desc"] = Value::String(String::from("N/A"));
-            entries.push(entry.clone());
-        }
 
-        // Now get legacy jobs
-        let mut jobs =
-            if let Some(value) = values.get_mut("data").unwrap_or(&mut temp).get_mut("jobs") {
-                value.clone()
-            } else {
-                values.get_mut("jobs")?.clone()
-            };
-        // Get legacy Jobs
-        for entry in jobs.as_array_mut()? {
-            entry["message"] = entry["evidence"].as_str().into();
-            entry["artifact"] = Value::String(String::from("Schedule Task"));
-            entry["data_type"] = Value::String(String::from("windows:tasks:jobs:entry"));
-            entry["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
-            entry["timestamp_desc"] = Value::String(String::from("N/A"));
-            entries.push(entry.clone());
-        }
+        task["message"] = task["evidence"].as_str().into();
+        task["artifact"] = Value::String(String::from("Schedule Task"));
+        task["data_type"] = Value::String(String::from("windows:tasks:xml:entry"));
+        task["datetime"] = task["created"].as_str().into();
+        task["timestamp_desc"] = Value::String(String::from("Task Created"));
     }
 
-    check_meta(data, &mut entries)
+    Some(())
 }
 
 pub(crate) fn userassist(data: &mut Value) -> Option<()> {

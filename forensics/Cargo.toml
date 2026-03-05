@@ -37,7 +37,7 @@ simplelog = "0.12.2"
 zip = { version = "8.1.0", default-features = false, features = ["deflate"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 rusty-s3 = "0.8.1"
-quick-xml = { version = "0.39.2", default-features = false }
+quick-xml = { version = "0.39.2", default-features = false, features = ["escape-html"]}
 xml2json-rs = "1.0.1"
 evtx = { version = "0.11.1", default-features = false, features = [
     "multithreading",

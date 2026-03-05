@@ -281,7 +281,7 @@ fn process_event(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
                 _ => process_common(&mut common, &tag.name(), reader),
             },
             Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"TimeTrigger" {
+                if tag.name().as_ref() == b"EventTrigger" {
                     break;
                 }
             }
