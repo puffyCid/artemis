@@ -9,6 +9,7 @@ rules:
       - coverage.yml
       - release.yml
       - packages.yml
+      - end2end.yml
     config:
       policies:
         dtolnay/rust-toolchain # Action is a rolling action. Only has main branch and no tags

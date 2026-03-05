@@ -95,6 +95,15 @@ test:
 nextest:
   cargo nextest run --release
 
+# Run End to End tests
+end2end:
+  cargo test --no-run --release
+  cargo test --release --test amcache_tester
+  cargo test --release --test bits_tester
+  cargo test --release --test tasks_tester
+  cargo test --release --test triage_tester
+  cargo test --release --test services_tester
+
 # Just build the artemis binary
 [group('workspace')]
 cli:
