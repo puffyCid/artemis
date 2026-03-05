@@ -79,6 +79,25 @@ fn read_ci_output() {
     let reader = BufReader::new(file);
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        let _info: TaskInfo = serde_json::from_str(&value).unwrap();
+        let info: TaskInfo = serde_json::from_str(&value).unwrap();
+        if !info.action.contains("VSIXConfigurationUpdater") && !info.path.contains("S-1-5-21-") {
+            assert!(!info.registry_tree_path.is_empty());
+            assert!(!info.id.is_empty());
+        }
+        assert!(!info.action.ends_with(" "));
+        assert!(!info.action.is_empty());
+        assert_ne!(info.action_count, 0);
+
+        assert!(info.path.starts_with("\\"));
+        assert_ne!(info.created, "1970-01-01T00:00:00Z");
+        if info.name.contains("OneDrive") {
+            assert!(info.action.contains("\\OneDrive"))
+        }
+        if info.name.contains("OneDrive Reporting") {
+            assert!(
+                info.action
+                    .contains("OneDriveStandaloneUpdater.exe /reporting")
+            )
+        }
     }
 }
