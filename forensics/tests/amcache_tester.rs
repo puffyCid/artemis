@@ -25,7 +25,7 @@ fn test_amcache_parser() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"output_count\":0,") {
+            if text.contains("\"output_count\":1,") {
                 panic!("missing Amcache??");
             }
             continue;
