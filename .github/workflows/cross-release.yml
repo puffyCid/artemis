@@ -7,6 +7,10 @@ on:
 
 permissions: {}
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Release Stable Artemis via Cross
@@ -27,7 +31,7 @@ jobs:
       - name: Setup Cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #6.0.2
         with:
           persist-credentials: false
       - uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4

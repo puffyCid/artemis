@@ -52,7 +52,7 @@ fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
         if !path.is_file {
             continue;
         }
-        println!("{}", path.full_path);
+        println!("path: {}", path.full_path);
         let results = parse_amcache(&path.full_path);
         let mut amcache = match results {
             Ok(result) => result,
