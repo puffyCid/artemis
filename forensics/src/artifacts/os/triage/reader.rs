@@ -164,12 +164,13 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::triage::reader::TriageReader, filesystem::metadata::glob_paths,
+        artifacts::os::triage::{error::TriageError, reader::TriageReader},
+        filesystem::metadata::glob_paths,
         structs::toml::Output,
     };
     use std::{
         fs::{File, create_dir_all},
-        io::BufReader,
+        io::{BufReader, Cursor},
         path::PathBuf,
     };
     use zip::ZipWriter;
@@ -256,6 +257,20 @@ mod tests {
         let hash = acq.acquire_file().unwrap();
         assert_eq!(hash, "a6d4d85e832a17e230842de55e4f0ccc");
         acq.zip.finish().unwrap();
+    }
+
+    #[test]
+    fn test_acquire_file_ntfs_ads_read_error() {
+        let zip = ZipWriter::new(Cursor::new(Vec::new()));
+        let mut acq: TriageReader<File, Cursor<Vec<u8>>> = TriageReader {
+            fs: None,
+            zip,
+            path: String::from("missing"),
+        };
+
+        let result = acq.acquire_file_ntfs_ads("missing_$SDS", "$SDS");
+
+        assert!(matches!(result, Err(TriageError::ReadFile)));
     }
 
     #[test]
