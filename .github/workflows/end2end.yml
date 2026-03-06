@@ -55,9 +55,6 @@ jobs:
         with:
           tool: just
 
-      - name: Run clippy
-        run: just
-
       - name: Windows Environment
         if: matrix.info.os == 'windows-latest'
         run: "Get-ChildItem Env:"
@@ -67,6 +64,9 @@ jobs:
         if: matrix.info.os == 'windows-11-arm'
         run: "Get-ChildItem Env:"
         shell: pwsh
+
+      - name: Run clippy
+        run: just
 
       - name: Run tests (macOS)
         if: matrix.info.os == 'macOS-latest'

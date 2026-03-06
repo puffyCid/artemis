@@ -732,7 +732,9 @@ fn add_event_string(
 
         let num_result = value.as_str()?.get(2..)?.parse();
         if let Err(status) = num_result {
-            warn!("[eventlogs] Could not get parameter message id for log message: {status:?}");
+            warn!(
+                "[eventlogs] Could not get parameter message id for log message: {status:?}. Value: {value:?}"
+            );
             return Some(message);
         }
 
