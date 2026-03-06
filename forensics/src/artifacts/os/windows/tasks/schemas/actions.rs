@@ -1,3 +1,4 @@
+use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::{Actions, ComHandlerType, ExecType, Message, SendEmail};
 use log::error;
 use quick_xml::{Reader, events::Event};
@@ -55,15 +56,13 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Command" => {
-                    exec.command = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    exec.command = read_text_unescaped(reader, tag.name());
                 }
                 b"Arguments" => {
-                    exec.arguments =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    exec.arguments = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"WorkingDirectory" => {
-                    exec.working_directory =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    exec.working_directory = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
@@ -95,10 +94,10 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"ClassId" => {
-                    com.class_id = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    com.class_id = read_text_unescaped(reader, tag.name());
                 }
                 b"Data" => {
-                    com.data = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    com.data = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
@@ -142,37 +141,34 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Server" => {
-                    email.server =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.server = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Subject" => {
-                    email.subject =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.subject = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"To" => {
-                    email.to = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.to = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Cc" => {
-                    email.cc = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.cc = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Bcc" => {
-                    email.bcc = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.bcc = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"ReplyTo" => {
-                    email.reply_to =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    email.reply_to = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"From" => {
-                    email.from = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    email.from = read_text_unescaped(reader, tag.name());
                 }
                 b"Name" => {
-                    header_key = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    header_key = read_text_unescaped(reader, tag.name());
                 }
                 b"Value" => {
-                    header_value = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    header_value = read_text_unescaped(reader, tag.name());
                 }
                 b"File" => {
-                    attachments.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    attachments.push(read_text_unescaped(reader, tag.name()));
                 }
                 _ => (),
             },
@@ -215,11 +211,10 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Body" => {
-                    message.body = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    message.body = read_text_unescaped(reader, tag.name());
                 }
                 b"Title" => {
-                    message.title =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    message.title = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },

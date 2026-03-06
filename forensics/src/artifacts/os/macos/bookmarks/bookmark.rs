@@ -134,7 +134,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
     // Table of Contents Key types
     let url_string = 0x1003;
     let target_path = 0x1004;
-    // let target_cnid_path = 0x1005;
+    let target_cnid_path = 0x1005;
     let target_flags = 0x1010;
     let target_filename = 0x1020;
     let target_creation_date = 0x1040;
@@ -342,7 +342,9 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
             if standard_data.record_type == target_path {
                 let path = extract_utf8_string(&standard_data.record_data);
                 bookmark_data.path = format!("{}/{path}", bookmark_data.path);
-            } else if standard_data.data_type == eight_byte {
+            } else if standard_data.record_type == target_cnid_path
+                && standard_data.data_type == eight_byte
+            {
                 let cnid = match nom_signed_eight_bytes(&standard_data.record_data, Endian::Le) {
                     Ok((_, cnid)) => cnid,
                     Err(err) => {

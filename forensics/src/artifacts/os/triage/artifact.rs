@@ -258,7 +258,8 @@ fn read_file_ntfs(
         let ads_path: Vec<&str> = path.split(":$").collect();
         acq.path = ads_path[0].to_string();
         let attribute = format!("${}", ads_path[1]);
-        let hash = acq.acquire_file_ntfs_ads(&attribute)?;
+        let zip_entry_path = get_ntfs_ads_zip_path(ads_path[0], &attribute, create_paths);
+        let hash = acq.acquire_file_ntfs_ads(&zip_entry_path, &attribute)?;
 
         let mut file_report = TriageReport {
             filename: attribute,
@@ -275,11 +276,6 @@ fn read_file_ntfs(
             file_report.accessed = time.accessed;
             file_report.changed = time.changed;
             file_report.modified = time.modified;
-        }
-
-        // If the user does not want to preserve full paths just save the filename
-        if !create_paths {
-            acq.path = get_filename(path);
         }
 
         return Ok(file_report);
@@ -337,11 +333,20 @@ fn read_file_ntfs(
     Ok(file_report)
 }
 
+fn get_ntfs_ads_zip_path(path: &str, attribute: &str, create_paths: bool) -> String {
+    let base_path = if create_paths {
+        path.to_string()
+    } else {
+        get_filename(path)
+    };
+    format!("{base_path}_{attribute}")
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         artifacts::os::triage::{
-            artifact::{acquire_files, read_file, triage, walk_filesystem},
+            artifact::{acquire_files, get_ntfs_ads_zip_path, read_file, triage, walk_filesystem},
             reader::TriageReader,
         },
         filesystem::metadata::GlobInfo,
@@ -518,6 +523,18 @@ mod tests {
         let report = read_file(test_location.to_str().unwrap(), &mut acq, true).unwrap();
         assert_eq!(report.md5, "cbed8a94f6a32edc5266206f83985386");
         assert_eq!(report.size, 606);
+    }
+
+    #[test]
+    fn test_get_ntfs_ads_zip_path() {
+        assert_eq!(
+            get_ntfs_ads_zip_path("C:\\Windows\\System32\\config\\SOFTWARE", "$SDS", true),
+            "C:\\Windows\\System32\\config\\SOFTWARE_$SDS"
+        );
+        assert_eq!(
+            get_ntfs_ads_zip_path("C:\\Windows\\System32\\config\\SOFTWARE", "$SDS", false),
+            "SOFTWARE_$SDS"
+        );
     }
 
     #[test]

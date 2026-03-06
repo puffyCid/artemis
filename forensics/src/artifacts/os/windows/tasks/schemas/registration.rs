@@ -1,3 +1,4 @@
+use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::RegistrationInfo;
 use log::error;
 use quick_xml::{Reader, events::Event};
@@ -24,33 +25,28 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"URI" => {
-                    info.uri = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.uri = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"SecurityDescriptor" => {
-                    info.sid = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.sid = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Source" => {
-                    info.source =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.source = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Date" => {
-                    info.date = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.date = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Author" => {
-                    info.author =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.author = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Version" => {
-                    info.version =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.version = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Description" => {
-                    info.description =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.description = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Documentation" => {
-                    info.documentation =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.documentation = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
