@@ -47,12 +47,10 @@ fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
     let mut entries = Vec::new();
     let pattern = format!("{drive}:\\Windows\\*\\Programs\\Amcache.hve");
     let paths = glob_paths(&pattern).unwrap_or_default();
-    println!("{paths:?}");
     for path in paths {
         if !path.is_file {
             continue;
         }
-        println!("path: {}", path.full_path);
         let results = parse_amcache(&path.full_path);
         let mut amcache = match results {
             Ok(result) => result,

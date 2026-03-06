@@ -7,14 +7,18 @@ use std::env::vars_os;
 
 /// Get the `SystemDrive` for Windows
 pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
-    let sys_drive = get_env_value("SystemDrive");
-
-    if sys_drive.is_empty() {
-        error!("[forensics] Empty systemdrive value");
-        return Err(ArtemisError::Env);
+    let envs = get_env();
+    let mut update_env = HashMap::new();
+    // ENV keys are insensitive so we lower case all env keys. Ex: %systemroot% == %SystemRoot%
+    for (key, value) in envs {
+        update_env.insert(key.to_lowercase(), value);
     }
-    // unwrap should be safe since we check for at least one value in string
-    Ok(sys_drive.chars().next().unwrap())
+
+    if let Some(value) = update_env.get("systemdrive") {
+        return Ok(value.chars().next().unwrap());
+    }
+    error!("[forensics] Empty systemdrive value");
+    Err(ArtemisError::Env)
 }
 
 /// Get Folder descriptions that map CLSIDs to a directory name
@@ -89,7 +93,7 @@ pub(crate) fn get_env() -> HashMap<String, String> {
     let mut environment = HashMap::new();
     for (key, value) in envs {
         environment.insert(
-            key.into_string().unwrap_or_default().to_lowercase(),
+            key.into_string().unwrap_or_default(),
             value.into_string().unwrap_or_default(),
         );
     }

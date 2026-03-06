@@ -58,6 +58,11 @@ fn validate_output(output: &PathBuf) {
             println!("{value}");
             assert!(!info.message.is_empty())
         }
+        if info.template_message
+            == "%%1537\r\n\t\t\t\t%%1538\r\n\t\t\t\t%%1539\r\n\t\t\t\t%%1540\r\n\t\t\t\t%%1541\r\n\t\t\t\t%%4448\r\n\t\t\t\t"
+        {
+            println!("{info:?}");
+        }
     }
 }
 

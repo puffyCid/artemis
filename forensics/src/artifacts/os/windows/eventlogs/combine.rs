@@ -688,6 +688,8 @@ fn merge_strings(
              * Creator Process ID:	%8
              * Creator Process Name:	%14!S!
              * Process Command Line:	%9!S!
+             *
+             * May trigger warnings
              */
             let value = event_data
                 .get(&element_attributes.element_name)
@@ -724,7 +726,10 @@ fn add_event_string(
     param: &str,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
-    if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+    if value
+        .as_str()
+        .is_some_and(|s| s.starts_with("%%") && !s.contains("\r\n"))
+    {
         if parameter_message.is_empty() {
             warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
             return Some(message);
@@ -732,9 +737,7 @@ fn add_event_string(
 
         let num_result = value.as_str()?.get(2..)?.parse();
         if let Err(status) = num_result {
-            warn!(
-                "[eventlogs] Could not get parameter message id for log message: {status:?}. Value: {value:?}"
-            );
+            warn!("[eventlogs] Could not get parameter message id: {status:?}. Value: {value:?}");
             return Some(message);
         }
 
