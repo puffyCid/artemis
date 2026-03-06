@@ -60,12 +60,12 @@ jobs:
 
       - name: Windows Environment
         if: matrix.info.os == 'windows-latest'
-        run: Get-ChildItem Env:
+        run: "Get-ChildItem Env:"
         shell: pwsh
 
       - name: Windows ARM Environment
         if: matrix.info.os == 'windows-11-arm'
-        run: Get-ChildItem Env:
+        run: "Get-ChildItem Env:"
         shell: pwsh
 
       - name: Run tests (macOS)
