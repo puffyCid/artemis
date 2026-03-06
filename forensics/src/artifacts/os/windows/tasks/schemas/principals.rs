@@ -1,3 +1,4 @@
+use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::Principals;
 use log::error;
 use quick_xml::{Reader, events::Event};
@@ -25,35 +26,28 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"UserId" => {
-                    info.user_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"LogonType" => {
-                    info.logon_type =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.logon_type = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"GroupId" => {
-                    info.group_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.group_id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"DisplayName" => {
-                    info.display_name =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.display_name = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"RunLevel" => {
-                    info.run_level =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.run_level = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"ProcessTokenSidType" => {
-                    info.process_token_sid_type =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.process_token_sid_type = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Privilege" => {
-                    privs.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    privs.push(read_text_unescaped(reader, tag.name()));
                 }
                 b"id" => {
-                    info.id_attribute =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.id_attribute = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => (),
             },

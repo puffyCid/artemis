@@ -1,3 +1,4 @@
+use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use crate::utils::strings::extract_utf8_string;
 use common::windows::{
     BaseTriggers, BootTrigger, ByDay, ByMonth, ByMonthDayWeek, ByWeek, CalendarTrigger,
@@ -76,7 +77,7 @@ fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: bool) 
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Delay" => {
-                    boot.delay = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    boot.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
@@ -123,17 +124,16 @@ fn process_notification(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Delay" => {
-                    wnf.delay = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    wnf.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"StateName" => {
-                    wnf.state_name = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    wnf.state_name = read_text_unescaped(reader, tag.name());
                 }
                 b"Data" => {
-                    wnf.data = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    wnf.data = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"DataOffset" => {
-                    wnf.data_offset =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    wnf.data_offset = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
@@ -208,8 +208,7 @@ fn process_time(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"RandomDelay" => {
-                    time.random_delay =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    time.random_delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
@@ -257,23 +256,21 @@ fn process_event(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
                 b"Subscription" => {
                     event
                         .subscription
-                        .push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                        .push(read_text_unescaped(reader, tag.name()));
                 }
                 b"Delay" => {
-                    event.delay =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    event.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"MatchingElement" => {
-                    event.matching_element =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    event.matching_element = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"PeriodOfOccurrence" => {
-                    event.period_of_occurrence =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    event.period_of_occurrence = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"NumberOfOccurrences" => {
                     event.number_of_occurrences = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or_default(),
                     );
                 }
@@ -318,12 +315,10 @@ fn process_logon(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"UserId" => {
-                    logon.user_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    logon.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Delay" => {
-                    logon.delay =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    logon.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
@@ -366,16 +361,13 @@ fn process_session(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Delay" => {
-                    session.delay =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    session.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"StateChange" => {
-                    session.state_change =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    session.state_change = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"UserId" => {
-                    session.user_id =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    session.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
@@ -420,8 +412,7 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"RandomDelay" => {
-                    cal.random_delay =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    cal.random_delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"ScheduleByDay" => cal.schedule_by_day = Some(process_cal_day(reader)),
                 b"ScheduleByWeek" => cal.schedule_by_week = Some(process_cal_week(reader)),
@@ -448,21 +439,23 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
 fn process_common(common: &mut BaseTriggers, name: &QName<'_>, reader: &mut Reader<&[u8]>) {
     match name.as_ref() {
         b"id" => {
-            common.id = Some(reader.read_text(*name).unwrap_or_default().to_string());
+            common.id = Some(read_text_unescaped(reader, *name));
         }
         b"StartBoundary" => {
-            common.start_boundary = Some(reader.read_text(*name).unwrap_or_default().to_string());
+            common.start_boundary = Some(read_text_unescaped(reader, *name));
         }
         b"EndBoundary" => {
-            common.end_boundary = Some(reader.read_text(*name).unwrap_or_default().to_string());
+            common.end_boundary = Some(read_text_unescaped(reader, *name));
         }
         b"ExecutionTimeLimit" => {
-            common.execution_time_limit =
-                Some(reader.read_text(*name).unwrap_or_default().to_string());
+            common.execution_time_limit = Some(read_text_unescaped(reader, *name));
         }
         b"Enabled" => {
-            common.enabled =
-                Some(str::parse(&reader.read_text(*name).unwrap_or_default()).unwrap_or_default());
+            common.enabled = Some(
+                read_text_unescaped(reader, *name)
+                    .parse()
+                    .unwrap_or_default(),
+            );
         }
         b"Repetition" => {
             process_repetition(common, reader);
@@ -488,16 +481,15 @@ fn process_repetition(common: &mut BaseTriggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Interval" => {
-                    repetition.interval =
-                        reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    repetition.interval = read_text_unescaped(reader, tag.name());
                 }
                 b"Duration" => {
-                    repetition.duration =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    repetition.duration = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"StopAtDurationEnd" => {
                     repetition.stop_at_duration_end = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or_default(),
                     );
                 }
@@ -526,7 +518,7 @@ fn process_event_values(reader: &mut Reader<&[u8]>) -> Vec<String> {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Value" => {
-                    values.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    values.push(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
@@ -556,7 +548,8 @@ fn process_cal_day(reader: &mut Reader<&[u8]>) -> ByDay {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"DaysInterval" => {
                     day.days_interval = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or_default(),
                     );
                 }
@@ -590,7 +583,8 @@ fn process_cal_week(reader: &mut Reader<&[u8]>) -> ByWeek {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"WeeksInterval" => {
                     week.weeks_interval = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or_default(),
                     );
                 }
@@ -628,7 +622,7 @@ fn process_cal_month(reader: &mut Reader<&[u8]>) -> ByMonth {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Months" => (),
                 b"DaysOfMonth" => {
-                    days.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    days.push(read_text_unescaped(reader, tag.name()));
                 }
                 // Push Months. Ex: July, Auguest, etc
                 _ => months.push(extract_utf8_string(tag.name().0)),
@@ -674,7 +668,7 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
                     if value == "months" {
                         months.push(extract_utf8_string(tag.name().0));
                     } else if value == "weeks" {
-                        weeks.push(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                        weeks.push(read_text_unescaped(reader, tag.name()));
                     } else if value == "days" {
                         days.push(extract_utf8_string(tag.name().0));
                     }
