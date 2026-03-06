@@ -1,6 +1,7 @@
 use super::{
     error::TaskError,
     schemas::{actions::parse_actions, registration::parse_registration, triggers::parse_trigger},
+    text::read_text_unescaped,
 };
 use crate::utils::encoding::read_xml;
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 };
 use common::windows::{Actions, TaskXml};
 use log::error;
-use quick_xml::{Reader, escape::unescape, events::Event};
+use quick_xml::{Reader, events::Event};
 
 /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
 pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
@@ -29,8 +30,7 @@ pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
 
 /// Parse the different parts the XML schema format
 fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
-    let clean_xml = unescape(xml).unwrap_or(std::borrow::Cow::Borrowed(xml));
-    let mut reader = Reader::from_str(&clean_xml);
+    let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
     let mut task_xml = TaskXml {
         registration_info: None,
@@ -80,7 +80,7 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
                 }
                 b"Data" => {
                     task_xml.data = Some(base64_encode_standard(
-                        reader.read_text(tag.name()).unwrap_or_default().as_bytes(),
+                        read_text_unescaped(&mut reader, tag.name()).as_bytes(),
                     ));
                 }
                 _ => (),
@@ -142,5 +142,29 @@ mod tests {
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
         assert_eq!(result.evidence, test_location.display().to_string())
+    }
+
+    #[test]
+    fn test_process_xml_unescapes_field_values() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<Task>
+  <RegistrationInfo>
+    <URI>\Test</URI>
+    <Description>Install &amp; Configure</Description>
+  </RegistrationInfo>
+  <Actions>
+    <Exec>
+      <Command>cmd.exe /c echo A &amp; B</Command>
+    </Exec>
+  </Actions>
+</Task>"#;
+
+        let result = process_xml(xml, "C:\\Windows\\System32\\Tasks\\Test").unwrap();
+
+        assert_eq!(
+            result.registration_info.unwrap().description.unwrap(),
+            "Install & Configure"
+        );
+        assert_eq!(result.actions.exec[0].command, "cmd.exe /c echo A & B");
     }
 }

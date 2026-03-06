@@ -49,7 +49,7 @@ pub(crate) fn api_upload(
         let form = multipart::Form::new().part("artemis-upload", part);
         builder = builder.multipart(form);
 
-        let jitter = fastrand::usize(..10);
+        let jitter = fastrand::usize(..11);
 
         let backoff = if attempt <= max_attempts {
             pause * attempt + jitter

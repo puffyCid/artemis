@@ -1,3 +1,4 @@
+use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::{IdleSettings, MaintenanceSettings, NetworkSettings, RestartType, Settings};
 use log::error;
 use quick_xml::{Reader, events::Event};
@@ -44,102 +45,110 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"AllowStartOnDemand" => {
                     info.allow_start_on_demand = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"DisallowStartIfOnBatteries" => {
                     info.disallow_start_if_on_batteries = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"StopIfGoingOnBatteries" => {
                     info.stop_if_going_on_batteries = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"AllowHardTerminate" => {
                     info.allow_hard_terminate = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"StartWhenAvailable" => {
                     info.start_when_available = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"RunOnlyIfNetworkAvailable" => {
                     info.run_only_if_network_available = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"WakeToRun" => {
                     info.wake_to_run = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"Enabled" => {
                     info.enabled = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"Hidden" => {
                     info.hidden = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"RunOnlyIfIdle" => {
                     info.run_only_if_idle = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"UseUnifiedSchedulingEngine" => {
                     info.use_unified_scheduling_engine = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"DisallowStartOnRemoteAppSession" => {
                     info.disallow_start_on_remote_app_session = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"Volatile" => {
                     info.volatile = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
                 b"NetworkProfileName" => {
-                    info.network_profile_name =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.network_profile_name = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"DeleteExpiredTaskAfter" => {
-                    info.delete_expired_tasks_after =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.delete_expired_tasks_after = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"ExecutionTimeLimit" => {
-                    info.execution_time_limit =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.execution_time_limit = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Priority" => {
-                    info.priority = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default()).unwrap_or(7),
-                    );
+                    info.priority =
+                        Some(read_text_unescaped(reader, tag.name()).parse().unwrap_or(7));
                 }
                 b"MultipleInstancesPolicy" => {
-                    info.multiple_instances_policy =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    info.multiple_instances_policy = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"RestartOnFailure" => process_restart(&mut info, reader),
                 b"IdleSettings" => process_idle(&mut info, reader),
@@ -169,10 +178,11 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Interval" => {
-                    restart.interval = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    restart.interval = read_text_unescaped(reader, tag.name());
                 }
                 b"Count" => {
-                    restart.count = str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                    restart.count = read_text_unescaped(reader, tag.name())
+                        .parse()
                         .unwrap_or_default();
                 }
                 _ => break,
@@ -205,22 +215,22 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Duration" => {
-                    idle.duration =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    idle.duration = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"WaitTimeout" => {
-                    idle.wait_timeout =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    idle.wait_timeout = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"StopOnIdleEnd" => {
                     idle.stop_on_idle_end = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(true),
                     );
                 }
                 b"RestartOnIdle" => {
                     idle.restart_on_idle = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or(false),
                     );
                 }
@@ -252,10 +262,10 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Name" => {
-                    net.name = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    net.name = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Id" => {
-                    net.id = Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    net.id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
@@ -291,15 +301,15 @@ fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Period" => {
-                    main.period = reader.read_text(tag.name()).unwrap_or_default().to_string();
+                    main.period = read_text_unescaped(reader, tag.name());
                 }
                 b"Deadline" => {
-                    main.deadline =
-                        Some(reader.read_text(tag.name()).unwrap_or_default().to_string());
+                    main.deadline = Some(read_text_unescaped(reader, tag.name()));
                 }
                 b"Exclusive" => {
                     main.exclusive = Some(
-                        str::parse(&reader.read_text(tag.name()).unwrap_or_default())
+                        read_text_unescaped(reader, tag.name())
+                            .parse()
                             .unwrap_or_default(),
                     );
                 }
