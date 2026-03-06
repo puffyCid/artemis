@@ -97,6 +97,7 @@ fn check_errors(output: &PathBuf) {
     }
 }
 
+#[test]
 fn read_ci_output() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/github_ci/windows/eventlogs.jsonl");
