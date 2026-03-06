@@ -77,7 +77,7 @@ pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
 /// Get a specific environment variable value
 pub(crate) fn get_env_value(value: &str) -> String {
     let envs = get_env();
-    if let Some(env) = envs.get(value) {
+    if let Some(env) = envs.get(&value.to_lowercase()) {
         return env.clone();
     }
     String::new()
@@ -89,7 +89,7 @@ pub(crate) fn get_env() -> HashMap<String, String> {
     let mut environment = HashMap::new();
     for (key, value) in envs {
         environment.insert(
-            key.into_string().unwrap_or_default(),
+            key.into_string().unwrap_or_default().to_lowercase(),
             value.into_string().unwrap_or_default(),
         );
     }
