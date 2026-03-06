@@ -58,11 +58,6 @@ fn validate_output(output: &PathBuf) {
             println!("{value}");
             assert!(!info.message.is_empty())
         }
-        if info.template_message
-            == "%%1537\r\n\t\t\t\t%%1538\r\n\t\t\t\t%%1539\r\n\t\t\t\t%%1540\r\n\t\t\t\t%%1541\r\n\t\t\t\t%%4448\r\n\t\t\t\t"
-        {
-            println!("{info:?}");
-        }
     }
 }
 
@@ -77,6 +72,10 @@ fn check_errors(output: &PathBuf) {
 
         // Warnings from the evtx library
         if value.contains("[WARN] invalid boolean value") {
+            continue;
+        }
+        // Strings may be either UTF8 or UTF16. We check for both
+        if value.contains("[strings] Failed to get UTF8 string") {
             continue;
         }
         println!("{value}");

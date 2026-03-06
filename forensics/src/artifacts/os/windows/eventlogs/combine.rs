@@ -688,8 +688,6 @@ fn merge_strings(
              * Creator Process ID:	%8
              * Creator Process Name:	%14!S!
              * Process Command Line:	%9!S!
-             *
-             * May trigger warnings
              */
             let value = event_data
                 .get(&element_attributes.element_name)
