@@ -724,7 +724,7 @@ fn add_event_string(
     param: &str,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
-    // Sometimes EventLog parameter values are a string instead of a number
+    // Sometimes EventLog data values are a string of raw IDs (ex: "%%1538\r\n%%1539")
     // Below is an example EventLog message rendered by artemis (from Github CI runner)
     /*Ex:
         An operation was attempted on a privileged object.
@@ -746,7 +746,7 @@ fn add_event_string(
             Process Name:	C:\Windows\System32\Sysprep\sysprep.exe
 
         Requested Operation:
-            Desired Access:	%%1537 <-- String of multiple Parameter IDs
+            Desired Access:	%%1537 <-- String of multiple raw Event data
                         %%1538
                         %%1539
                         %%1540
