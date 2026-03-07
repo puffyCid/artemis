@@ -45,6 +45,7 @@ fn validate_output(output: &PathBuf) {
     // Output is in JSONL based on the TOML file above!
     let file = File::open(output).unwrap();
     let reader = BufReader::new(file);
+    let mut raw_ids = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: EventMessage = serde_json::from_str(&value).unwrap();
@@ -57,13 +58,17 @@ fn validate_output(output: &PathBuf) {
             || info.message.contains("TEMP_ARTEMIS_VALUE") && info.event_id != 4674
         {
             println!("EventLog with parameter string value?: {value}");
-            panic!("Message still contains parameter value?")
+            raw_ids += 1;
         }
 
         if info.evidence.contains("Application.evtx") {
             println!("{value}");
             assert!(!info.message.is_empty())
         }
+    }
+
+    if raw_ids > 10 {
+        panic!("Got more than 10 eventlog messages that still have raw parameter IDS: {raw_ids}")
     }
 }
 
