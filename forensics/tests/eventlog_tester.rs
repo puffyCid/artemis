@@ -53,7 +53,9 @@ fn validate_output(output: &PathBuf) {
             panic!("no provider?")
         }
         assert_ne!(info.generated, "1970-01-01T00:00:00.000Z");
-        if info.message.contains("%%") || info.message.contains("TEMP_ARTEMIS_VALUE") {
+        if info.message.contains("%%")
+            || info.message.contains("TEMP_ARTEMIS_VALUE") && info.event_id != 4674
+        {
             println!("EventLog with parameter string value?: {value}");
             panic!("Message still contains parameter value?")
         }

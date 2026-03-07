@@ -724,6 +724,41 @@ fn add_event_string(
     param: &str,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
+    // Sometimes EventLog parameter values are a string instead of a number
+    // Below is an example EventLog message rendered by artemis (from Github CI runner)
+    /*Ex:
+        An operation was attempted on a privileged object.
+
+        Subject:
+            Security ID:		S-1-5-21-2533572477-1596584739-2037617746-500
+            Account Name:		packer
+            Account Domain:		pkrvm7mpva0bvys
+            Logon ID:		0x604c7
+
+        Object:
+            Object Server:	Security
+            Object Type:	Key
+            Object Name:	\REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\MUI\Settings
+            Object Handle:	0x580
+
+        Process Information:
+            Process ID:	0x1b90
+            Process Name:	C:\Windows\System32\Sysprep\sysprep.exe
+
+        Requested Operation:
+            Desired Access:	%%1537 <-- String of multiple Parameter IDs
+                        %%1538
+                        %%1539
+                        %%1540
+                        %%4432
+                        %%4433
+                        %%4434
+                        %%4435
+                        %%4436
+                        %%4437
+
+            Privileges:		SeTakeOwnershipPrivilege
+    */
     if value
         .as_str()
         .is_some_and(|s| s.starts_with("%%") && !s.contains("\r\n"))
