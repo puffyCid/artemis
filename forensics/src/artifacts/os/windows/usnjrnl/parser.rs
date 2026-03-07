@@ -119,4 +119,20 @@ mod tests {
         let results = grab_usnjrnl_path(&params).unwrap();
         assert_eq!(results.len(), 1);
     }
+
+    #[test]
+    fn test_grab_usnjrnl_path_dfir() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\dfir\\windows\\usnjrnl\\win11\\$J");
+        let params = UsnJrnlOptions {
+            alt_drive: None,
+            alt_path: Some(test_location.display().to_string()),
+            alt_mft: None,
+        };
+        let results = grab_usnjrnl_path(&params).unwrap();
+        assert_eq!(results.len(), 133099);
+        for entry in results {
+            assert!(!entry.filename.is_empty());
+        }
+    }
 }
