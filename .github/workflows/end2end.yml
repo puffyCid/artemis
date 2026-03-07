@@ -1,12 +1,9 @@
-name: Code Coverage
+name: Artemis End to End tests
 
 on:
   pull_request:
     branches:
       - "main"
-  push:
-    branches:
-      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  coverage:
-    name: Check Code Coverage
+  build-pr:
+    name: Build and Test
     strategy:
       fail-fast: false
       matrix:
@@ -35,51 +32,61 @@ jobs:
               target: "x86_64-pc-windows-msvc",
               cross: false,
             }
+          - os: "windows-11-arm"
+            target: "aarch64-pc-windows-msvc"
     runs-on: ${{ matrix.info.os }}
     permissions: 
       contents: read
-      pull-requests: write # publish code coverage reports
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #6.0.2
         with:
           persist-credentials: false
-      - name: Setup Rust toolchain
+      - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 #v2025.09.23
         with:
           toolchain: stable
           components: rustfmt, clippy
           targets: ${{ matrix.info.target }}
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
-        with: 
-          tool: cargo-llvm-cov
-
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 #v2.8.1
+        with:
+          save-if: false
+      - name: Fmt Check
+        run: cargo fmt -- --check
       - name: Install just runner
         uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
         with:
           tool: just
 
-      - name: Enable Rust cache
-        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 #v2.8.1
-        with:
-          save-if: false
-      - name: Generate code coverage (macOS)
+      - name: Windows Environment
+        if: matrix.info.os == 'windows-latest'
+        run: "Get-ChildItem Env:"
+        shell: pwsh
+
+      - name: Windows ARM Environment
+        if: matrix.info.os == 'windows-11-arm'
+        run: "Get-ChildItem Env:"
+        shell: pwsh
+
+      - name: Run clippy
+        run: just
+
+      - name: Run tests (macOS)
         if: matrix.info.os == 'macos-latest'
-        run: sudo just _coverage
+        run: sudo just end2end
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
-      - name: Generate code coverage (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" just _coverage
 
-      - name: Generate code coverage (Windows)
+      - name: Run tests (Linux)
+        if: matrix.info.os == 'ubuntu-latest'
+        run: sudo env "PATH=$PATH" just end2end
+        
+      - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just --shell pwsh.exe --shell-arg -c _coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 #v5.5.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: lcov.info
-          fail_ci_if_error: true
+        run: just end2end
+        
+      - name: Run tests (Windows ARM)
+        if: matrix.info.os == 'windows-11-arm'
+        run: just end2end

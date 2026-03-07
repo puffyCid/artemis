@@ -70,7 +70,7 @@ pub struct PeInfo {
  * `Amcache` is just a Registry file with plaintext entries. No additional parsing is needed
  * Each entry contains PE metadata such as size, version, original filename, SHA1 (First ~31MB), publisher
  */
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Amcache {
     pub last_modified: String,
     pub path: String,
@@ -93,7 +93,7 @@ pub struct Amcache {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BitsInfo {
     pub job_id: String,
     pub file_id: String,
@@ -171,7 +171,7 @@ pub struct JobInfo {
     pub file_ids: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JobState {
     Queued,
     Connecting,
@@ -185,7 +185,7 @@ pub enum JobState {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JobPriority {
     Foreground,
     High,
@@ -194,7 +194,7 @@ pub enum JobPriority {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JobType {
     Download,
     Upload,
@@ -202,7 +202,7 @@ pub enum JobType {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JobFlags {
     Transferred,
     Error,
@@ -212,7 +212,7 @@ pub enum JobFlags {
     FileRangesTransferred,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub struct AccessControlEntry {
     pub ace_type: AceTypes,
     pub flags: Vec<AceFlags>,
@@ -226,7 +226,7 @@ pub struct AccessControlEntry {
     pub inherited_object_type_guid: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum AceTypes {
     AccessAllowedAceType,
     AccessDeniedAceType,
@@ -251,14 +251,14 @@ pub enum AceTypes {
     Object,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum ObjectFlag {
     ObjectType,
     InheritedObjectType,
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum AceFlags {
     ObjectInherit,
     ContainerInherit,
@@ -276,7 +276,7 @@ pub enum AccessItem {
     Registry,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum AccessMask {
     Delete,
     ReadControl,

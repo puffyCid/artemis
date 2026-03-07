@@ -7,15 +7,19 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Compile Package Releases
     strategy:
       matrix:
         info:
-          - os: "macOS-latest"
+          - os: "macos-latest"
             target: "x86_64-apple-darwin"
-          - os: "macOS-latest"
+          - os: "macos-latest"
             target: "aarch64-apple-darwin"
           - os: "windows-latest"
             target: "x86_64-pc-windows-msvc"
@@ -36,7 +40,7 @@ jobs:
       - name: Setup Auditable
         run: cargo install cargo-auditable
 
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #6.0.2
         with:
           persist-credentials: false
       - uses: taiki-e/install-action@5597bc27da443ba8bf9a3bc4e5459ea59177de42 #v2.62.4
@@ -45,7 +49,7 @@ jobs:
 
       # macOS Package Option
       - name: Setup runner Keychain
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         env:
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
@@ -62,7 +66,7 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Create Keychain Profile
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_PASS: ${{ secrets.APP_PASS }}
@@ -70,7 +74,7 @@ jobs:
         run: xcrun notarytool store-credentials "PuffyCid" --apple-id "$APPLE_ID" --password "$APP_PASS" --team-id "$TEAM_ID" --keychain $RUNNER_TEMP/app-signing.keychain-db
 
       - name: Create PKG, sign, and notarize
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         env:
           TEAM_ID: ${{ secrets.TEAM_ID }}
           TARGET: ${{ matrix.info.target }}

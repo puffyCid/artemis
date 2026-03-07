@@ -13,6 +13,7 @@
 use super::error::AmcacheError;
 use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys,
+    filesystem::metadata::glob_paths,
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
@@ -44,13 +45,13 @@ fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
 /// Based on Windows version get the path to `Amcache` file
 fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
     let mut entries = Vec::new();
-    let paths = vec![
-        format!("{drive}:\\Windows\\appcompat\\Programs\\Amcache.hve"),
-        format!("{drive}:\\Windows\\AppCompat\\Programs\\Amcache.hve"),
-    ];
-
+    let pattern = format!("{drive}:\\Windows\\*\\Programs\\Amcache.hve");
+    let paths = glob_paths(&pattern).unwrap_or_default();
     for path in paths {
-        let results = parse_amcache(&path);
+        if !path.is_file {
+            continue;
+        }
+        let results = parse_amcache(&path.full_path);
         let mut amcache = match results {
             Ok(result) => result,
             Err(_err) => continue,

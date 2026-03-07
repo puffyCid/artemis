@@ -724,7 +724,45 @@ fn add_event_string(
     param: &str,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
-    if value.as_str().is_some_and(|s| s.starts_with("%%")) {
+    // Sometimes EventLog data values are a string of raw IDs (ex: "%%1538\r\n%%1539")
+    // Below is an example EventLog message rendered by artemis (from Github CI runner)
+    /*Ex:
+        An operation was attempted on a privileged object.
+
+        Subject:
+            Security ID:		S-1-5-21-2533572477-1596584739-2037617746-500
+            Account Name:		packer
+            Account Domain:		pkrvm7mpva0bvys
+            Logon ID:		0x604c7
+
+        Object:
+            Object Server:	Security
+            Object Type:	Key
+            Object Name:	\REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\MUI\Settings
+            Object Handle:	0x580
+
+        Process Information:
+            Process ID:	0x1b90
+            Process Name:	C:\Windows\System32\Sysprep\sysprep.exe
+
+        Requested Operation:
+            Desired Access:	%%1537 <-- String of multiple raw Event data
+                        %%1538
+                        %%1539
+                        %%1540
+                        %%4432
+                        %%4433
+                        %%4434
+                        %%4435
+                        %%4436
+                        %%4437
+
+            Privileges:		SeTakeOwnershipPrivilege
+    */
+    if value
+        .as_str()
+        .is_some_and(|s| s.starts_with("%%") && !s.contains("\r\n"))
+    {
         if parameter_message.is_empty() {
             warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
             return Some(message);
@@ -732,7 +770,7 @@ fn add_event_string(
 
         let num_result = value.as_str()?.get(2..)?.parse();
         if let Err(status) = num_result {
-            warn!("[eventlogs] Could not get parameter message id for log message: {status:?}");
+            warn!("[eventlogs] Could not get parameter message id: {status:?}. Value: {value:?}");
             return Some(message);
         }
 

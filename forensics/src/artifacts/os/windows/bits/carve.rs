@@ -98,7 +98,10 @@ pub(crate) fn carve_bits<'a>(
                 target_path: String::new(),
                 file_ids: Vec::new(),
             };
-            let (input, _) = parse_job(hit_data, &mut job, carve)?;
+            let input = match parse_job(hit_data, &mut job, carve) {
+                Ok((result, _)) => result,
+                Err(_err) => break,
+            };
 
             if is_legacy {
                 let (remaining_input, file) = get_legacy_files(input, is_legacy, carve)?;

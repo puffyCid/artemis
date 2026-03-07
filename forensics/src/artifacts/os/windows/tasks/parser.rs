@@ -254,7 +254,7 @@ fn job_info(job: &TaskJob) -> TaskInfo {
         format: TaskFormat::Job,
         id: job.job_id.clone(),
         action: command,
-        enabled: job.flags.contains(&Flags::Disabled),
+        enabled: !job.flags.contains(&Flags::Disabled),
         hidden: job.flags.contains(&Flags::Hidden),
         description: job.comments.clone(),
         name: get_filename(&job.evidence),
@@ -327,6 +327,8 @@ mod tests {
 
         let result = grab_task_job(&test_location.display().to_string()).unwrap();
         assert_eq!(result.action, "cmd.exe");
+        assert!(result.enabled);
+        assert!(!result.details.to_string().contains(&"Disabled"))
     }
 
     #[test]
