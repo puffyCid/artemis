@@ -39,7 +39,6 @@ pub(crate) fn add_message_strings(
         sid: String::new(),
         channel: String::new(),
         computer: String::new(),
-        source_file: String::new(),
         message_file: String::new(),
         parameter_file: String::new(),
         registry_file: String::new(),
@@ -1140,7 +1139,7 @@ mod tests {
                         message.registry_path,
                         "ROOT\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\{9988748e-c2e8-4054-85f6-0c3e1cad2470}"
                     );
-                    assert_eq!(message.source_file, "");
+                    assert_eq!(message.evidence, "");
                     assert_eq!(message.source_name, "");
                     assert_eq!(message.computer, "DESKTOP-9FSUKAJ");
                     assert_eq!(message.generated, "2024-08-03T06:50:04.072688000Z");

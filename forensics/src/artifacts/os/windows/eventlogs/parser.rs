@@ -108,7 +108,7 @@ pub(crate) fn parse_eventlogs(
         let mut all_messages = Vec::new();
         let mut raw_messages = Vec::new();
         for record in eventlog_records {
-            let mut message = if let Some(result) =
+            let message = if let Some(result) =
                 add_message_strings(&record, resource, &param_regex, path)
             {
                 result
@@ -121,7 +121,6 @@ pub(crate) fn parse_eventlogs(
                 continue;
             };
 
-            message.source_file = path.to_string();
             all_messages.push(message);
         }
         (all_messages, raw_messages)
@@ -320,7 +319,7 @@ fn read_eventlogs(
                 let mut all_messages = Vec::new();
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
-                    let mut message = if let Some(result) =
+                    let message = if let Some(result) =
                         add_message_strings(&record, resource, &param_regex, path)
                     {
                         result
@@ -333,7 +332,6 @@ fn read_eventlogs(
                         continue;
                     };
 
-                    message.source_file = path.to_string();
                     all_messages.push(message);
                 }
                 (serde_json::to_value(&all_messages), raw_messages)
@@ -371,7 +369,7 @@ fn read_eventlogs(
             let mut all_messages = Vec::new();
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
-                let mut message = if let Some(result) =
+                let message = if let Some(result) =
                     add_message_strings(&record, resource, &param_regex, path)
                 {
                     result
@@ -383,7 +381,6 @@ fn read_eventlogs(
                     raw_messages.push(record);
                     continue;
                 };
-                message.source_file = path.to_string();
                 all_messages.push(message);
             }
             (serde_json::to_value(&all_messages), raw_messages)

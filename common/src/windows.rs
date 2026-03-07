@@ -1609,7 +1609,6 @@ pub struct EventMessage {
     pub sid: String,
     pub channel: String,
     pub computer: String,
-    pub source_file: String,
     pub message_file: String,
     pub parameter_file: String,
     pub registry_file: String,
