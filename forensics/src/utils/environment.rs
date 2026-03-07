@@ -14,8 +14,10 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
         update_env.insert(key.to_lowercase(), value);
     }
 
-    if let Some(value) = update_env.get("systemdrive") {
-        return Ok(value.chars().next().unwrap());
+    if let Some(value) = update_env.get("systemdrive")
+        && let Some(drive) = value.chars().next()
+    {
+        return Ok(drive);
     }
     error!("[forensics] Empty systemdrive value");
     Err(ArtemisError::Env)
