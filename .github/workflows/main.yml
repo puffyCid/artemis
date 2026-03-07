@@ -62,10 +62,10 @@ jobs:
         run: just
 
       - name: Build tests (macOS)
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         run: sudo cargo test --no-run --release
       - name: Run tests (macOS)
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         run: sudo cargo test --release
 
       - name: Setup Rust for root (Linux)

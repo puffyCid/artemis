@@ -64,7 +64,7 @@ jobs:
         with:
           save-if: false
       - name: Generate code coverage (macOS)
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         run: sudo just _coverage
 
       - name: Setup Rust for root (Linux)

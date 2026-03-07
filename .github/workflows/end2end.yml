@@ -72,16 +72,12 @@ jobs:
         run: just
 
       - name: Run tests (macOS)
-        if: matrix.info.os == 'macOS-latest'
+        if: matrix.info.os == 'macos-latest'
         run: sudo just end2end
 
       - name: Setup Rust for root (Linux)
         if: matrix.info.os == 'ubuntu-latest'
         run: sudo env "PATH=$PATH" rustup default stable
-      
-      - name: Build tests (Linux)
-        if: matrix.info.os == 'ubuntu-latest'
-        run: sudo env "PATH=$PATH" cargo test --no-run --release
 
       - name: Run tests (Linux)
         if: matrix.info.os == 'ubuntu-latest'
@@ -89,10 +85,6 @@ jobs:
         
       - name: Run tests (Windows)
         if: matrix.info.os == 'windows-latest'
-        run: just end2end
-
-      - name: Build tests (Windows ARM)
-        if: matrix.info.os == 'windows-11-arm'
         run: just end2end
         
       - name: Run tests (Windows ARM)
