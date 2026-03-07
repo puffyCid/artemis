@@ -1028,8 +1028,9 @@ mod tests {
             let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
 
             test_location.pop();
+            let evidence = "test";
 
-            let message = add_message_strings(&log, &resources, &params, "test").unwrap();
+            let message = add_message_strings(&log, &resources, &params, evidence).unwrap();
 
             assert!(!message.message.contains("%%"));
             assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));
@@ -1139,7 +1140,7 @@ mod tests {
                         message.registry_path,
                         "ROOT\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\{9988748e-c2e8-4054-85f6-0c3e1cad2470}"
                     );
-                    assert_eq!(message.evidence, "");
+                    assert_eq!(message.evidence, evidence);
                     assert_eq!(message.source_name, "");
                     assert_eq!(message.computer, "DESKTOP-9FSUKAJ");
                     assert_eq!(message.generated, "2024-08-03T06:50:04.072688000Z");
