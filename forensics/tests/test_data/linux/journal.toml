@@ -11,6 +11,6 @@ output = "local"
 
 [[artifacts]]
 artifact_name = "journal"
-[artifacts.journals]
+[artifacts.journal]
 # Optional
 # alt_path = ""
