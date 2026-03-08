@@ -1,0 +1,56 @@
+{
+    "event_record_id": 12696,
+    "timestamp": "2025-11-05T03:00:24.5183222Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "PowerShell"
+                    }
+                },
+                "EventID": {
+                    "#attributes": {
+                        "Qualifiers": 0
+                    },
+                    "#text": 403
+                },
+                "Version": 0,
+                "Level": 4,
+                "Task": 4,
+                "Opcode": 0,
+                "Keywords": "0x80000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2025-11-05T03:00:24.518322Z"
+                    }
+                },
+                "EventRecordID": 12696,
+                "Correlation": null,
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 10780,
+                        "ThreadID": 0
+                    }
+                },
+                "Channel": "Windows PowerShell",
+                "Computer": "win",
+                "Security": null
+            },
+            "EventData": {
+                "Data": {
+                    "#text": [
+                        "Stopped",
+                        "Available",
+                        "\tNewEngineState=Stopped\r\n\tPreviousEngineState=Available\r\n\r\n\tSequenceNumber=15\r\n\r\n\tHostName=ConsoleHost\r\n\tHostVersion=5.1.26100.6584\r\n\tHostId=c203990d-eefa-4d71-9757-cc4ef96f89a8\r\n\tHostApplication=C:\\Windows\\sysnative\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy ByPass -Command &{ Get-Process * | Where-Object { $_.Path -Like (Join-Path \"C:\\Users\\azur3\\AppData\\Local\\Programs\\KDE Connect\" *) } |  %{ Write-Host $_.Path } }\r\n\tEngineVersion=5.1.26100.6584\r\n\tRunspaceId=c8049eb3-b6f2-4d96-af1e-16435c88fcbe\r\n\tPipelineId=\r\n\tCommandName=\r\n\tCommandType=\r\n\tScriptName=\r\n\tCommandPath=\r\n\tCommandLine="
+                    ]
+                },
+                "Binary": null
+            }
+        }
+    },
+    "evidence": "C:\\\\Windows\\\\System32\\\\winevt\\\\Logs\\\\Windows PowerShell.evtx"
+}
