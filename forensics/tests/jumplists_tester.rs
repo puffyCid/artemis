@@ -41,6 +41,7 @@ fn test_jumplists_parser() {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn validate_output(output: &PathBuf) {
     // Output is in JSONL based on the TOML file above!
     let file = File::open(output).unwrap();
@@ -56,6 +57,7 @@ fn validate_output(output: &PathBuf) {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn check_errors(output: &PathBuf) {
     let file = File::open(output).unwrap();
     let reader = BufReader::new(file);
