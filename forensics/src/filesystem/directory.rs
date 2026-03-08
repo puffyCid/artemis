@@ -96,6 +96,9 @@ fn linux_user_paths() -> Result<Vec<String>, FileSystemError> {
 
 /// Get the parent directory of a provided path. From: "C:\\Users\\bob\\1.txt" will return "C:\\Users\\bob"
 pub(crate) fn get_parent_directory(path: &str) -> String {
+    if path.is_empty() {
+        return String::new();
+    }
     let entry_opt = if path.contains('/') {
         path.rsplit_once('/')
     } else {

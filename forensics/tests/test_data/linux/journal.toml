@@ -2,7 +2,7 @@
 [output]
 name = "journal_collection"
 directory = "./tmp"
-format = "json"
+format = "jsonl"
 compress = false
 timeline = false
 endpoint_id = "abdc"
@@ -11,6 +11,6 @@ output = "local"
 
 [[artifacts]]
 artifact_name = "journal"
-[artifacts.journals]
+[artifacts.journal]
 # Optional
 # alt_path = ""
