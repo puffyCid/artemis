@@ -26,7 +26,7 @@ fn test_journal_parser() {
 
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"total_output_files\": 0,") {
+            if text.contains("\"total_output_files\":0,") {
                 panic!("missing Journals??");
             }
             continue;
