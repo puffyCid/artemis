@@ -17,34 +17,10 @@ pub(crate) fn add_message_strings(
     evidence: &str,
 ) -> Option<EventMessage> {
     let mut message = EventMessage {
-        message: String::new(),
-        template_message: String::new(),
-        raw_event_data: Value::Null,
-        event_id: 0,
-        qualifier: 0,
-        version: 0,
-        guid: String::new(),
-        provider: String::new(),
-        source_name: String::new(),
         record_id: log.event_record_id,
-        task: 0,
-        level: EventLevel::Unknown,
-        opcode: 0,
-        keywords: String::new(),
         generated: log.timestamp.clone(),
-        system_time: String::new(),
-        activity_id: String::new(),
-        process_id: 0,
-        thread_id: 0,
-        sid: String::new(),
-        channel: String::new(),
-        computer: String::new(),
-        message_file: String::new(),
-        parameter_file: String::new(),
-        registry_file: String::new(),
-        registry_path: String::new(),
-        rendering_info: None,
         evidence: evidence.to_string(),
+        ..Default::default()
     };
     let meta = log
         .data
@@ -212,6 +188,7 @@ pub(crate) fn add_message_strings(
             message.template_message = table.message.clone();
             message.message =
                 merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            clean_message(&mut message);
             return Some(message);
         }
 
@@ -249,6 +226,7 @@ pub(crate) fn add_message_strings(
                     param_regex,
                     &param_message_table,
                 )?;
+                clean_message(&mut message);
                 return Some(message);
             }
         };
@@ -281,6 +259,7 @@ pub(crate) fn add_message_strings(
         if event_definition.template.is_none() {
             message.message =
                 merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            clean_message(&mut message);
             return Some(message);
         }
 
@@ -303,6 +282,8 @@ pub(crate) fn add_message_strings(
     if message.message.is_empty() {
         message.message = merge_strings_no_manifest(&log.data)?;
     }
+
+    clean_message(&mut message);
     Some(message)
 }
 
@@ -709,10 +690,6 @@ fn merge_strings(
         }
     }
 
-    if clean_message.contains("TEMP_ARTEMIS_VALUE") {
-        clean_message = clean_message.replace("TEMP_ARTEMIS_VALUE", "%");
-    }
-
     Some(clean_message)
 }
 
@@ -968,6 +945,26 @@ fn clean_table(message: &str) -> String {
     clean
 }
 
+/// Make sure we remove any temporary modifications made to the message
+fn clean_message(event: &mut EventMessage) {
+    // When `add_event_string` is called we may replace '%' in Event Data to ensure that we do not merge them with a template string that starts with '%'
+    /*
+     * Ex:
+     * Event data value: %3{Where-Object eq $v}
+     * Template string:  Test %%%1
+     *
+     * We match against %%1 and replace it with %3{Where-Object eq $v}
+     * The new value would be 'Test %%3{Where-Object eq $v}' Which would mess up our regex that looks for '%%<number>'
+     * By temporary replacing '%3{Where-Object eq $v}' with 'TEMP_ARTEMIS_VALUE3{Where-Object eq $v}'
+     * We can avoid that.
+     *
+     * We restore the original value below
+     */
+    if event.message.contains("TEMP_ARTEMIS_VALUE") {
+        event.message = event.message.replace("TEMP_ARTEMIS_VALUE", "%");
+    }
+}
+
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
@@ -975,7 +972,7 @@ mod tests {
     use crate::{
         artifacts::os::windows::eventlogs::{
             combine::{
-                add_event_string, clean_table, get_guid, get_level, get_meta_number,
+                add_event_string, clean_message, clean_table, get_guid, get_level, get_meta_number,
                 get_meta_string, get_proc_thread, get_provider, get_sid, get_systemtime, raw_data,
             },
             strings::get_resources,
@@ -983,7 +980,7 @@ mod tests {
         filesystem::files::read_file,
         utils::regex_options::create_regex,
     };
-    use common::windows::{EventLevel, EventLogRecord};
+    use common::windows::{EventLevel, EventLogRecord, EventMessage};
     use serde_json::{Value, json};
     use std::{collections::HashMap, path::PathBuf};
 
@@ -1017,6 +1014,7 @@ mod tests {
             "application_cert.json",
             "system_missing.json",
             "configuration.json",
+            "powershell.json",
         ];
 
         let resources = get_resources().unwrap();
@@ -1259,6 +1257,9 @@ mod tests {
                     );
                     assert_eq!(message.event_id, 1);
                 }
+                "powershell.json" => {
+                    assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));
+                }
                 _ => panic!("should not have an unknown sample?"),
             }
         }
@@ -1418,5 +1419,15 @@ mod tests {
         let test = String::from("i really %1 windows eventlogs! /s");
         let result = add_event_string(&value, test, "%1", &HashMap::new()).unwrap();
         assert_eq!(result, "i really love windows eventlogs! /s");
+    }
+
+    #[test]
+    fn test_clean_message() {
+        let mut test = EventMessage {
+            message: String::from("testTEMP_ARTEMIS_VALUE"),
+            ..Default::default()
+        };
+        clean_message(&mut test);
+        assert!(!test.message.contains("TEMP_ARTEMIS_VALUE"))
     }
 }

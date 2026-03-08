@@ -119,6 +119,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
     )
 }
 
+/// Parse the `UsnJrnl` file at provided path and return results
 pub(crate) fn get_usnjrnl_alt_path(
     path: &str,
     mft_path: &Option<String>,
@@ -285,6 +286,7 @@ fn lookup_journal_cache(
     path
 }
 
+/// Output `UsnJrnl` entries based on `Output` structure
 fn output_usnjnl(
     entries: &[UsnJrnlEntry],
     output: &mut Output,
@@ -316,9 +318,16 @@ fn output_usnjnl(
 mod tests {
     use super::{get_data, parse_usnjrnl_data};
     use crate::{
-        artifacts::os::windows::usnjrnl::ntfs::get_usnjrnl_alt_path, structs::toml::Output,
+        artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
+        filesystem::metadata::glob_paths,
+        structs::toml::Output,
     };
-    use std::path::PathBuf;
+    use common::windows::UsnJrnlEntry;
+    use std::{
+        fs::File,
+        io::{BufRead, BufReader},
+        path::PathBuf,
+    };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
         Output {
@@ -352,5 +361,46 @@ mod tests {
 
         let results = get_usnjrnl_alt_path(test_location.to_str().unwrap(), &None).unwrap();
         assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_get_usnjrnl_path_stream() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\dfir\\windows\\usnjrnl\\win11\\$J");
+        let mut out = Output {
+            name: String::from("usnjrnl_stream_alt"),
+            directory: String::from("./tmp"),
+            format: String::from("jsonl"),
+            output: String::from("local"),
+            ..Default::default()
+        };
+        get_usnjrnl_path_stream(test_location.to_str().unwrap(), &None, &mut out, false, 0)
+            .unwrap();
+        let mut output_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        output_location.push("tmp/usnjrnl_stream_alt/*");
+
+        let results = glob_paths(output_location.to_str().unwrap()).unwrap();
+        let mut count = 0;
+        for result in results {
+            if !result.filename.contains("usnjrnl_") {
+                continue;
+            }
+
+            // Output is in JSONL based on the struct above!
+            let file = File::open(&result.full_path).unwrap();
+            let reader = BufReader::new(file);
+            for (_, line) in reader.lines().enumerate() {
+                let value = line.unwrap();
+
+                let info: UsnJrnlEntry = serde_json::from_str(&value).unwrap();
+                if info.filename.is_empty() {
+                    panic!("no filename?")
+                }
+                assert_ne!(info.update_time, "1970-01-01T00:00:00.000Z");
+                count += 1;
+            }
+        }
+
+        assert_eq!(count, 133099);
     }
 }

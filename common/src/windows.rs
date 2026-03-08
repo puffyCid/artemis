@@ -1446,7 +1446,7 @@ pub struct UserAssistEntry {
     pub evidence: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UsnJrnlEntry {
     pub mft_entry: u32,
     pub mft_sequence: u16,
@@ -1465,7 +1465,7 @@ pub struct UsnJrnlEntry {
     pub evidence: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum Reason {
     Overwrite,
     Extend,
@@ -1491,7 +1491,7 @@ pub enum Reason {
     Close,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub enum Source {
     DataManagement,
     AuxiliaryData,
@@ -1585,7 +1585,7 @@ pub enum PropertyType {
     Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EventMessage {
     pub message: String,
     pub template_message: String,
@@ -1617,13 +1617,14 @@ pub struct EventMessage {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub enum EventLevel {
     Information,
     Warning,
     Critical,
     Verbose,
     Error,
+    #[default]
     Unknown,
 }
 
