@@ -84,6 +84,10 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     let month = (date & month_adjust) >> month_min_shift;
     let day = date & day_sec_adjust;
 
+    if month == 0 || day == 0 {
+        return 0;
+    }
+
     let sec_multi = 2;
     let min_adjust = 0x7e0;
     let hour_shift = 11;
@@ -106,7 +110,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     let ymd = if let Some(result) = ymd_opt {
         result
     } else {
-        error!("[time] Could not get FAT time year month day");
+        error!("[time] Could not get FAT time year month day: {year}-{month}-{day}");
         return 0;
     };
 
@@ -114,7 +118,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     let hms = if let Some(result) = hms_opt {
         result
     } else {
-        error!("[time] Could not get FAT time hour min sec");
+        error!("[time] Could not get FAT time hour min sec: {hour}:{min}:{second}");
         return 0;
     };
     let utc = NaiveDateTime::new(ymd, hms);

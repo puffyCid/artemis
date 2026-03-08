@@ -25,7 +25,7 @@ fn test_usnjrnl_parser() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"output_count\":0,") {
+            if text.contains("\"total_output_files\": 0,") {
                 panic!("missing EventLogs??");
             }
             continue;
@@ -41,6 +41,7 @@ fn test_usnjrnl_parser() {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn validate_output(output: &PathBuf) {
     // Output is in JSONL based on the TOML file above!
     let file = File::open(output).unwrap();
@@ -57,6 +58,7 @@ fn validate_output(output: &PathBuf) {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn check_errors(output: &PathBuf) {
     let file = File::open(output).unwrap();
     let reader = BufReader::new(file);
@@ -74,21 +76,5 @@ fn check_errors(output: &PathBuf) {
 
     if count != 0 {
         panic!("error count: {count}");
-    }
-}
-
-fn read_ci_output() {
-    let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    test_location.push("tests/test_data/github_ci/windows/usnjrnl.jsonl");
-
-    let file = File::open(&test_location).unwrap();
-    let reader = BufReader::new(file);
-    for (_, line) in reader.lines().enumerate() {
-        let value = line.unwrap();
-        let info: UsnJrnlEntry = serde_json::from_str(&value).unwrap();
-        if info.filename.is_empty() {
-            panic!("no filename?")
-        }
-        assert_ne!(info.update_time, "1970-01-01T00:00:00.000Z");
     }
 }

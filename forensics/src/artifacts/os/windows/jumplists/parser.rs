@@ -41,7 +41,7 @@ pub(crate) fn grab_jumplists(
     };
 
     let path = format!(
-        "{drive}:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*"
+        "{drive}:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*Destinations-ms"
     );
 
     let glob_results = glob_paths(&path);
