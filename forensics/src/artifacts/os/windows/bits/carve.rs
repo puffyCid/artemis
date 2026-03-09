@@ -101,12 +101,8 @@ pub(crate) fn carve_bits<'a>(
             };
             let input = match parse_job(hit_data, &mut job, carve) {
                 Ok((result, _)) => result,
-                Err(err) => {
-                    warn!(
-                        "[bits] Best-effort carving skipped malformed job header at offset {} in {}: {err:?}",
-                        carve_offset(data, hit_data),
-                        evidence
-                    );
+                Err(_err) => {
+                    warn_carve_skip("job header", data, hit_data, evidence);
                     job_data = input;
                     continue;
                 }
@@ -115,24 +111,16 @@ pub(crate) fn carve_bits<'a>(
             if is_legacy {
                 let (remaining_input, file) = match get_legacy_files(input, is_legacy, carve) {
                     Ok(results) => results,
-                    Err(err) => {
-                        warn!(
-                            "[bits] Best-effort carving skipped malformed legacy file data at offset {} in {}: {err:?}",
-                            carve_offset(data, input),
-                            evidence
-                        );
+                    Err(_err) => {
+                        warn_carve_skip("legacy file data", data, input, evidence);
                         job_data = input;
                         continue;
                     }
                 };
                 let (remaining_input, _) = match job_details(remaining_input, &mut job, is_legacy) {
                     Ok(results) => results,
-                    Err(err) => {
-                        warn!(
-                            "[bits] Best-effort carving skipped malformed legacy job details at offset {} in {}: {err:?}",
-                            carve_offset(data, remaining_input),
-                            evidence
-                        );
+                    Err(_err) => {
+                        warn_carve_skip("legacy job details", data, remaining_input, evidence);
                         job_data = remaining_input;
                         continue;
                     }
@@ -146,12 +134,8 @@ pub(crate) fn carve_bits<'a>(
             let remaining_input_result = job_details(input, &mut job, is_legacy);
             match remaining_input_result {
                 Ok((result, _)) => job_data = result,
-                Err(err) => {
-                    warn!(
-                        "[bits] Best-effort carving skipped malformed job details at offset {} in {}: {err:?}",
-                        carve_offset(data, input),
-                        evidence
-                    );
+                Err(_err) => {
+                    warn_carve_skip("job details", data, input, evidence);
                     job_data = input;
                     continue;
                 }
@@ -198,6 +182,13 @@ pub(crate) fn carve_bits<'a>(
 
 fn carve_offset(data: &[u8], hit_data: &[u8]) -> usize {
     data.len().saturating_sub(hit_data.len())
+}
+
+fn warn_carve_skip(stage: &str, data: &[u8], hit_data: &[u8], evidence: &str) {
+    warn!(
+        "[bits] Best-effort carving skipped malformed {stage} at offset {} in {evidence}",
+        carve_offset(data, hit_data)
+    );
 }
 
 /// The legacy BITS format has both job and file info in same structure, we combine them both here into one structure

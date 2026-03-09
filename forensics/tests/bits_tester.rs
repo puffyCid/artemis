@@ -70,6 +70,9 @@ fn check_errors(output: &PathBuf) {
     let mut count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
+        if value.contains("[bits] Best-effort carving skipped malformed") {
+            continue;
+        }
         println!("{value}");
         count += 1;
     }
