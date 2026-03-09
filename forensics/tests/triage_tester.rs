@@ -51,7 +51,7 @@ fn test_triage_collection_firefox_windows() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"output_count\":0,") {
+            if text.contains("\"total_output_files\":0,") {
                 panic!("missing edge??");
             }
         }
@@ -80,7 +80,7 @@ fn test_triage_collection_linux() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"output_count\":0,") {
+            if text.contains("\"total_output_files\":0,") {
                 panic!("missing journals??");
             }
         }

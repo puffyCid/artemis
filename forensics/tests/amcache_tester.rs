@@ -25,7 +25,7 @@ fn test_amcache_parser() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"output_count\":0,") {
+            if text.contains("\"total_output_files\":0,") {
                 panic!("missing Amcache??");
             }
             continue;
@@ -41,6 +41,7 @@ fn test_amcache_parser() {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn validate_output(output: &PathBuf) {
     // Output is in JSONL based on the TOML file above!
     let file = File::open(output).unwrap();
@@ -57,6 +58,7 @@ fn validate_output(output: &PathBuf) {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn check_errors(output: &PathBuf) {
     let file = File::open(output).unwrap();
     let reader = BufReader::new(file);

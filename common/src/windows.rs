@@ -366,7 +366,7 @@ pub struct EventLogRecord {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JumplistEntry {
     pub lnk_info: ShortcutInfo,
     pub evidence: String,
@@ -376,7 +376,7 @@ pub struct JumplistEntry {
     pub jumplist_metadata: DestEntries,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DestEntries {
     pub droid_volume_id: String,
     pub droid_file_id: String,
@@ -389,20 +389,20 @@ pub struct DestEntries {
     pub path: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PinStatus {
     Pinned,
     NotPinned,
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ListType {
     Automatic,
     Custom,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ShortcutInfo {
     pub evidence: String,
     pub data_flags: Vec<DataFlags>,
@@ -441,7 +441,7 @@ pub struct ShortcutInfo {
     pub is_abnormal: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum NetworkProviderType {
     WnncNetAvid,
     WnncNetDocuspace,
@@ -488,14 +488,14 @@ pub enum NetworkProviderType {
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum LocationFlag {
     VolumeIDAndLocalBasePath,
     CommonNetworkRelativeLinkAndPathSuffix,
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum DriveType {
     DriveUnknown,
     DriveNotRootDir,
@@ -507,7 +507,7 @@ pub enum DriveType {
     None,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Console {
     pub color_flags: Vec<ColorFlags>,
     pub popup_fill_attributes: Vec<ColorFlags>,
@@ -531,7 +531,7 @@ pub struct Console {
     pub color_table: String,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ColorFlags {
     ForegroundBlue,
     ForegroundGreen,
@@ -543,7 +543,7 @@ pub enum ColorFlags {
     BackgroundIntensity,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum FontFamily {
     DontCare,
     Roman,
@@ -554,13 +554,13 @@ pub enum FontFamily {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum FontWeight {
     Regular,
     Bold,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum CursorSize {
     Small,
     Normal,
@@ -568,7 +568,7 @@ pub enum CursorSize {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum DataFlags {
     HasTargetIdList,
     HasLinkInfo,
@@ -627,7 +627,7 @@ pub enum AttributeFlags {
  * `mft_entry`: The MFT entry for a file or directory `ShellItem`
  * `mft_sequence`: The MFT sequence for a file or directory `ShellItem`
 */
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ShellItem {
     pub value: String,
     pub shell_type: ShellType,
@@ -642,7 +642,7 @@ pub struct ShellItem {
     pub stores: Vec<HashMap<String, Value>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ShellType {
     Directory, // After applying bitwise AND 0x70
     Network,   // After applying bitwise AND 0x70
