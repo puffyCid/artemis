@@ -23,6 +23,7 @@ use nom::{
     Parser,
     bytes::complete::{take, take_until},
     combinator::peek,
+    error::{Error, ErrorKind},
 };
 use std::mem::size_of;
 
@@ -247,24 +248,38 @@ pub(crate) fn parse_job<'a>(
 
     let (input, name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let wide_char_adjust = 2;
-    let (input, job_name_data) = take(name_size * wide_char_adjust)(input)?;
+    let Some(job_name_len) = utf16_byte_len(name_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, job_name_data) = take(job_name_len)(input)?;
     let job_name = extract_utf16_string(job_name_data);
 
     let (input, desc_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, desc_data) = take(desc_size * wide_char_adjust)(input)?;
+    let Some(desc_len) = utf16_byte_len(desc_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, desc_data) = take(desc_len)(input)?;
     let description = extract_utf16_string(desc_data);
 
     let (input, cmd_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, cmd_data) = take(cmd_size * wide_char_adjust)(input)?;
+    let Some(cmd_len) = utf16_byte_len(cmd_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, cmd_data) = take(cmd_len)(input)?;
     let cmd = extract_utf16_string(cmd_data);
 
     let (input, args_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, args_data) = take(args_size * wide_char_adjust)(input)?;
+    let Some(args_len) = utf16_byte_len(args_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, args_data) = take(args_len)(input)?;
     let args = extract_utf16_string(args_data);
 
     let (input, sid_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, sid_data) = take(sid_size * wide_char_adjust)(input)?;
+    let Some(sid_len) = utf16_byte_len(sid_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, sid_data) = take(sid_len)(input)?;
     let sid = extract_utf16_string(sid_data);
 
     let (input, job_flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -390,33 +405,39 @@ pub(crate) fn job_details<'a>(
 
     // Remaining data seems to only exist on newer versions of BITS (Win10+)
     let (input, target_path_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let wide_char_adjust = 2;
+    let Some(target_path_len) = utf16_byte_len(target_path_size) else {
+        return Ok((input, ()));
+    };
     // When carving return early if size is larger than remaining input
-    if target_path_size as usize > input.len()
-        || (target_path_size * wide_char_adjust) as usize > input.len()
-    {
+    if target_path_size as usize > input.len() || target_path_len > input.len() {
         return Ok((input, ()));
     }
 
-    let (input, target_path_data) = take(target_path_size * wide_char_adjust)(input)?;
+    let (input, target_path_data) = take(target_path_len)(input)?;
     job_info.target_path = extract_utf16_string(target_path_data);
 
     let unknown_size: u8 = 16;
     let (input, _unknown) = take(unknown_size)(input)?;
 
     let (input, method_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let Some(method_len) = utf16_byte_len(method_size) else {
+        return Ok((input, ()));
+    };
     // When carving return early if size is larger than remaining input
-    if method_size as usize > input.len() || (method_size * wide_char_adjust) as usize > input.len()
-    {
+    if method_size as usize > input.len() || method_len > input.len() {
         return Ok((input, ()));
     }
-    let (input, method_data) = take(method_size * wide_char_adjust)(input)?;
+    let (input, method_data) = take(method_len)(input)?;
     job_info.http_method = extract_utf16_string(method_data);
 
     // Rest of data is unknown maybe custom http headers?
     // Last 16 bytes is the footer (same value as header)
 
     Ok((input, ()))
+}
+
+fn utf16_byte_len(size: u32) -> Option<usize> {
+    (size as usize).checked_mul(2)
 }
 
 /// Determine the job type
