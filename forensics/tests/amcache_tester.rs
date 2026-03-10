@@ -76,9 +76,9 @@ fn check_errors(output: &PathBuf) {
 }
 
 #[test]
-fn read_ci_output() {
+fn read_sample_output() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    test_location.push("tests/test_data/github_ci/windows/amcache.jsonl");
+    test_location.push("tests/test_data/samples/windows/amcache.jsonl");
 
     let file = File::open(&test_location).unwrap();
     let reader = BufReader::new(file);

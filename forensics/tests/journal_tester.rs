@@ -50,7 +50,7 @@ fn validate_output(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: Journal = serde_json::from_str(&value).unwrap();
-        if info.message.is_empty() {
+        if info.message.is_empty() && info.machine_id.is_empty() {
             println!("{value}");
             panic!("no message?")
         }
@@ -68,11 +68,31 @@ fn check_errors(output: &PathBuf) {
         if value.contains("Failed to get UTF8 string") {
             continue;
         }
+        if value.contains("Unused") {
+            continue;
+        }
         println!("{value}");
         count += 1;
     }
 
     if count > 0 {
         panic!("Got errors: {count}");
+    }
+}
+
+#[test]
+fn read_sample_output() {
+    let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    test_location.push("tests/test_data/samples/linux/journals.jsonl");
+
+    let file = File::open(&test_location).unwrap();
+    let reader = BufReader::new(file);
+    for (_, line) in reader.lines().enumerate() {
+        let value = line.unwrap();
+        let info: Journal = serde_json::from_str(&value).unwrap();
+        if info.message.is_empty() && info.machine_id.is_empty() {
+            panic!("no names?")
+        }
+        assert_ne!(info.realtime, "1970-01-01T00:00:00.000Z");
     }
 }

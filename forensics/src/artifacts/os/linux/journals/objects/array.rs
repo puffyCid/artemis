@@ -65,7 +65,10 @@ impl EntryArray {
             };
 
             if object_header.obj_type != ObjectType::Entry {
-                warn!("[journal] Did not get Entry object type!");
+                warn!(
+                    "[journal] Did not get Entry object type, received: {:?}",
+                    object_header.obj_type
+                );
                 continue;
             }
 
@@ -156,7 +159,10 @@ impl EntryArray {
             };
 
             if object_header.obj_type != ObjectType::Entry {
-                warn!("[journal] Did not get Entry object type!");
+                warn!(
+                    "[journal] Did not get Entry object type, received: {:?}",
+                    object_header.obj_type
+                );
                 continue;
             }
 
