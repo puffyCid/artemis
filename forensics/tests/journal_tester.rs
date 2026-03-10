@@ -91,7 +91,7 @@ fn read_sample_output() {
         let value = line.unwrap();
         let info: Journal = serde_json::from_str(&value).unwrap();
         if info.message.is_empty() && info.machine_id.is_empty() {
-            panic!("no names?")
+            panic!("no message?")
         }
         assert_ne!(info.realtime, "1970-01-01T00:00:00.000Z");
     }
