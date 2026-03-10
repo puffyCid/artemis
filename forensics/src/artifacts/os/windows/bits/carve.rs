@@ -1,8 +1,10 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes};
 use common::windows::{BitsInfo, FileInfo, JobInfo, JobPriority, JobState, JobType};
+use log::warn;
 use nom::bytes::complete::take_until;
 
 use super::{
+    JOB_DELIMITERS,
     files::get_legacy_files,
     jobs::{get_type, job_details, parse_job},
 };
@@ -15,39 +17,6 @@ pub(crate) fn carve_bits<'a>(
     is_legacy: bool,
     evidence: &str,
 ) -> nom::IResult<&'a [u8], WinBits> {
-    let job_delimiters = vec![
-        [
-            147, 54, 32, 53, 160, 12, 16, 74, 132, 243, 177, 126, 123, 73, 156, 215,
-        ],
-        [
-            16, 19, 112, 200, 54, 83, 179, 65, 131, 229, 129, 85, 127, 54, 27, 135,
-        ],
-        [
-            140, 147, 234, 100, 3, 15, 104, 64, 180, 111, 249, 127, 229, 29, 77, 205,
-        ],
-        [
-            179, 70, 237, 61, 59, 16, 249, 68, 188, 47, 232, 55, 139, 211, 25, 134,
-        ],
-        [
-            161, 86, 9, 225, 67, 175, 201, 66, 146, 230, 111, 152, 86, 235, 167, 246,
-        ],
-        [
-            159, 149, 212, 76, 100, 112, 242, 75, 132, 215, 71, 106, 126, 98, 105, 159,
-        ],
-        [
-            241, 25, 38, 169, 50, 3, 191, 76, 148, 39, 137, 136, 24, 149, 136, 49,
-        ],
-        [
-            193, 51, 188, 221, 251, 90, 175, 77, 184, 161, 34, 104, 179, 157, 1, 173,
-        ],
-        [
-            208, 87, 86, 143, 44, 1, 62, 78, 173, 44, 244, 165, 215, 101, 111, 175,
-        ],
-        [
-            80, 103, 65, 148, 87, 3, 29, 70, 164, 204, 93, 217, 153, 7, 6, 228,
-        ],
-    ];
-
     let mut job_data = data;
     let mut bits = Vec::new();
     let mut jobs = Vec::new();
@@ -55,7 +24,7 @@ pub(crate) fn carve_bits<'a>(
     let carve = true;
 
     // Start by scanning for known job delimiters
-    for job in job_delimiters {
+    for job in JOB_DELIMITERS {
         while !job_data.is_empty() {
             let scan_results = scan_delimiter(job_data, &job);
             // If no hits move on to next delimiter
@@ -100,12 +69,30 @@ pub(crate) fn carve_bits<'a>(
             };
             let input = match parse_job(hit_data, &mut job, carve) {
                 Ok((result, _)) => result,
-                Err(_err) => break,
+                Err(_err) => {
+                    warn_carve_skip("job header", data, hit_data, evidence);
+                    job_data = input;
+                    continue;
+                }
             };
 
             if is_legacy {
-                let (remaining_input, file) = get_legacy_files(input, is_legacy, carve)?;
-                let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
+                let (remaining_input, file) = match get_legacy_files(input, is_legacy, carve) {
+                    Ok(results) => results,
+                    Err(_err) => {
+                        warn_carve_skip("legacy file data", data, input, evidence);
+                        job_data = input;
+                        continue;
+                    }
+                };
+                let (remaining_input, _) = match job_details(remaining_input, &mut job, is_legacy) {
+                    Ok(results) => results,
+                    Err(_err) => {
+                        warn_carve_skip("legacy job details", data, remaining_input, evidence);
+                        job_data = remaining_input;
+                        continue;
+                    }
+                };
 
                 job_data = remaining_input;
                 let carved = true;
@@ -115,7 +102,11 @@ pub(crate) fn carve_bits<'a>(
             let remaining_input_result = job_details(input, &mut job, is_legacy);
             match remaining_input_result {
                 Ok((result, _)) => job_data = result,
-                Err(_) => job_data = &[],
+                Err(_err) => {
+                    warn_carve_skip("job details", data, input, evidence);
+                    job_data = input;
+                    continue;
+                }
             }
             jobs.push(job);
         }
@@ -155,6 +146,17 @@ pub(crate) fn carve_bits<'a>(
         files.push(file);
     }
     Ok((data, (bits, jobs, files)))
+}
+
+fn carve_offset(data: &[u8], hit_data: &[u8]) -> usize {
+    data.len().saturating_sub(hit_data.len())
+}
+
+fn warn_carve_skip(stage: &str, data: &[u8], hit_data: &[u8], evidence: &str) {
+    warn!(
+        "[bits] Best-effort carving skipped malformed {stage} at offset {} in {evidence}",
+        carve_offset(data, hit_data)
+    );
 }
 
 /// The legacy BITS format has both job and file info in same structure, we combine them both here into one structure
@@ -209,7 +211,7 @@ pub(crate) fn scan_delimiter<'a>(data: &'a [u8], delimiter: &[u8]) -> nom::IResu
 
 #[cfg(test)]
 mod tests {
-    use super::{carve_bits, combine_file_and_job, scan_delimiter};
+    use super::{JOB_DELIMITERS, carve_bits, combine_file_and_job, scan_delimiter};
     use crate::filesystem::files::read_file;
     use common::windows::{FileInfo, JobInfo, JobPriority, JobState, JobType};
     use std::path::PathBuf;
@@ -256,6 +258,23 @@ mod tests {
             files[8].url,
             "https://download.visualstudio.microsoft.com/download/pr/40040b24-2de2-4177-8715-900ac0996174/ab3c263d5fb2e088ddc38701c467e832bf65cca25f68958b03daad9950f8647b/Xamarin.Android.Sdk-11.4.99.70.vsix"
         );
+    }
+
+    #[test]
+    fn test_carve_bits_ese_skips_malformed_prefix_jobs() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
+        let mut data = Vec::new();
+        for delimiter in JOB_DELIMITERS {
+            data.extend_from_slice(&delimiter);
+            data.extend_from_slice(&0u32.to_le_bytes());
+        }
+        data.extend_from_slice(&read_file(test_location.to_str().unwrap()).unwrap());
+
+        let (_, (_, jobs, files)) =
+            carve_bits(&data, false, test_location.to_str().unwrap()).unwrap();
+        assert_eq!(jobs.len(), 106);
+        assert_eq!(files.len(), 41);
     }
 
     #[test]
