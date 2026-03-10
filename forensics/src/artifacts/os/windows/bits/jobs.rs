@@ -1,4 +1,6 @@
-use super::{carve::combine_file_and_job, error::BitsError, files::get_legacy_files};
+use super::{
+    JOB_DELIMITERS, carve::combine_file_and_job, error::BitsError, files::get_legacy_files,
+};
 use crate::{
     artifacts::os::windows::{
         bits::carve::scan_delimiter,
@@ -23,6 +25,7 @@ use nom::{
     Parser,
     bytes::complete::{take, take_until},
     combinator::peek,
+    error::{Error, ErrorKind},
 };
 use std::mem::size_of;
 
@@ -158,41 +161,9 @@ fn parse_legacy_job<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8]
             break;
         }
 
-        let job_delimiters = vec![
-            [
-                147, 54, 32, 53, 160, 12, 16, 74, 132, 243, 177, 126, 123, 73, 156, 215,
-            ],
-            [
-                16, 19, 112, 200, 54, 83, 179, 65, 131, 229, 129, 85, 127, 54, 27, 135,
-            ],
-            [
-                140, 147, 234, 100, 3, 15, 104, 64, 180, 111, 249, 127, 229, 29, 77, 205,
-            ],
-            [
-                179, 70, 237, 61, 59, 16, 249, 68, 188, 47, 232, 55, 139, 211, 25, 134,
-            ],
-            [
-                161, 86, 9, 225, 67, 175, 201, 66, 146, 230, 111, 152, 86, 235, 167, 246,
-            ],
-            [
-                159, 149, 212, 76, 100, 112, 242, 75, 132, 215, 71, 106, 126, 98, 105, 159,
-            ],
-            [
-                241, 25, 38, 169, 50, 3, 191, 76, 148, 39, 137, 136, 24, 149, 136, 49,
-            ],
-            [
-                193, 51, 188, 221, 251, 90, 175, 77, 184, 161, 34, 104, 179, 157, 1, 173,
-            ],
-            [
-                208, 87, 86, 143, 44, 1, 62, 78, 173, 44, 244, 165, 215, 101, 111, 175,
-            ],
-            [
-                80, 103, 65, 148, 87, 3, 29, 70, 164, 204, 93, 217, 153, 7, 6, 228,
-            ],
-        ];
         let remaining_bits_size = input.len();
         // For legacy BITS scan data for known job delimiters, footer signifies the end of the job
-        for job in job_delimiters {
+        for job in JOB_DELIMITERS {
             if !remaining_input.is_empty() {
                 let scan_results = scan_delimiter(remaining_input, &job);
                 // If no hits move on to next delimiter
@@ -247,24 +218,38 @@ pub(crate) fn parse_job<'a>(
 
     let (input, name_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
-    let wide_char_adjust = 2;
-    let (input, job_name_data) = take(name_size * wide_char_adjust)(input)?;
+    let Some(job_name_len) = utf16_byte_len(name_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, job_name_data) = take(job_name_len)(input)?;
     let job_name = extract_utf16_string(job_name_data);
 
     let (input, desc_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, desc_data) = take(desc_size * wide_char_adjust)(input)?;
+    let Some(desc_len) = utf16_byte_len(desc_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, desc_data) = take(desc_len)(input)?;
     let description = extract_utf16_string(desc_data);
 
     let (input, cmd_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, cmd_data) = take(cmd_size * wide_char_adjust)(input)?;
+    let Some(cmd_len) = utf16_byte_len(cmd_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, cmd_data) = take(cmd_len)(input)?;
     let cmd = extract_utf16_string(cmd_data);
 
     let (input, args_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, args_data) = take(args_size * wide_char_adjust)(input)?;
+    let Some(args_len) = utf16_byte_len(args_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, args_data) = take(args_len)(input)?;
     let args = extract_utf16_string(args_data);
 
     let (input, sid_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let (input, sid_data) = take(sid_size * wide_char_adjust)(input)?;
+    let Some(sid_len) = utf16_byte_len(sid_size) else {
+        return Err(nom::Err::Failure(Error::new(input, ErrorKind::TooLarge)));
+    };
+    let (input, sid_data) = take(sid_len)(input)?;
     let sid = extract_utf16_string(sid_data);
 
     let (input, job_flag) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -390,33 +375,39 @@ pub(crate) fn job_details<'a>(
 
     // Remaining data seems to only exist on newer versions of BITS (Win10+)
     let (input, target_path_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
-    let wide_char_adjust = 2;
+    let Some(target_path_len) = utf16_byte_len(target_path_size) else {
+        return Ok((input, ()));
+    };
     // When carving return early if size is larger than remaining input
-    if target_path_size as usize > input.len()
-        || (target_path_size * wide_char_adjust) as usize > input.len()
-    {
+    if target_path_size as usize > input.len() || target_path_len > input.len() {
         return Ok((input, ()));
     }
 
-    let (input, target_path_data) = take(target_path_size * wide_char_adjust)(input)?;
+    let (input, target_path_data) = take(target_path_len)(input)?;
     job_info.target_path = extract_utf16_string(target_path_data);
 
     let unknown_size: u8 = 16;
     let (input, _unknown) = take(unknown_size)(input)?;
 
     let (input, method_size) = nom_unsigned_four_bytes(input, Endian::Le)?;
+    let Some(method_len) = utf16_byte_len(method_size) else {
+        return Ok((input, ()));
+    };
     // When carving return early if size is larger than remaining input
-    if method_size as usize > input.len() || (method_size * wide_char_adjust) as usize > input.len()
-    {
+    if method_size as usize > input.len() || method_len > input.len() {
         return Ok((input, ()));
     }
-    let (input, method_data) = take(method_size * wide_char_adjust)(input)?;
+    let (input, method_data) = take(method_len)(input)?;
     job_info.http_method = extract_utf16_string(method_data);
 
     // Rest of data is unknown maybe custom http headers?
     // Last 16 bytes is the footer (same value as header)
 
     Ok((input, ()))
+}
+
+fn utf16_byte_len(size: u32) -> Option<usize> {
+    (size as usize).checked_mul(2)
 }
 
 /// Determine the job type
