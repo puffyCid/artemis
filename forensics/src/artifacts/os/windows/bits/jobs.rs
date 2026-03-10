@@ -1,4 +1,6 @@
-use super::{carve::combine_file_and_job, error::BitsError, files::get_legacy_files};
+use super::{
+    JOB_DELIMITERS, carve::combine_file_and_job, error::BitsError, files::get_legacy_files,
+};
 use crate::{
     artifacts::os::windows::{
         bits::carve::scan_delimiter,
@@ -159,41 +161,9 @@ fn parse_legacy_job<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8]
             break;
         }
 
-        let job_delimiters = vec![
-            [
-                147, 54, 32, 53, 160, 12, 16, 74, 132, 243, 177, 126, 123, 73, 156, 215,
-            ],
-            [
-                16, 19, 112, 200, 54, 83, 179, 65, 131, 229, 129, 85, 127, 54, 27, 135,
-            ],
-            [
-                140, 147, 234, 100, 3, 15, 104, 64, 180, 111, 249, 127, 229, 29, 77, 205,
-            ],
-            [
-                179, 70, 237, 61, 59, 16, 249, 68, 188, 47, 232, 55, 139, 211, 25, 134,
-            ],
-            [
-                161, 86, 9, 225, 67, 175, 201, 66, 146, 230, 111, 152, 86, 235, 167, 246,
-            ],
-            [
-                159, 149, 212, 76, 100, 112, 242, 75, 132, 215, 71, 106, 126, 98, 105, 159,
-            ],
-            [
-                241, 25, 38, 169, 50, 3, 191, 76, 148, 39, 137, 136, 24, 149, 136, 49,
-            ],
-            [
-                193, 51, 188, 221, 251, 90, 175, 77, 184, 161, 34, 104, 179, 157, 1, 173,
-            ],
-            [
-                208, 87, 86, 143, 44, 1, 62, 78, 173, 44, 244, 165, 215, 101, 111, 175,
-            ],
-            [
-                80, 103, 65, 148, 87, 3, 29, 70, 164, 204, 93, 217, 153, 7, 6, 228,
-            ],
-        ];
         let remaining_bits_size = input.len();
         // For legacy BITS scan data for known job delimiters, footer signifies the end of the job
-        for job in job_delimiters {
+        for job in JOB_DELIMITERS {
             if !remaining_input.is_empty() {
                 let scan_results = scan_delimiter(remaining_input, &job);
                 // If no hits move on to next delimiter
