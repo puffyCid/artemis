@@ -286,7 +286,9 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             let dir_info = match reader.read_dir(entry.inode) {
                 Ok(value) => value,
                 Err(err) => {
-                    error!("[forensics] Failed to read ext4 directory, error: {err:?}");
+                    error!("[forensics] Failed to read ext4 directory {full_path}, error: {err:?}");
+                    params.cache.pop();
+
                     continue;
                 }
             };
