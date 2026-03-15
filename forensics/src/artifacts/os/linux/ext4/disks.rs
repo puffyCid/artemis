@@ -99,6 +99,8 @@ pub(crate) fn qcow_ext4(
         if !options.filelist.is_empty() {
             ext4_output(&options.filelist, output, start_time, options.filter);
         }
+        options.filelist.clear();
+        options.cache.pop();
     }
     Ok(())
 }
@@ -142,6 +144,8 @@ fn gpt_partitions(
         if !options.filelist.is_empty() {
             ext4_output(&options.filelist, output, start_time, options.filter);
         }
+        options.filelist.clear();
+        options.cache.pop();
     }
     Ok(())
 }
