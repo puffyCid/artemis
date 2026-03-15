@@ -91,7 +91,13 @@ pub(crate) fn qcow_ext4(
             }
         };
 
-        let root = get_root(&mut ext4_reader)?;
+        let root = match get_root(&mut ext4_reader) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[forensics] Could not get the QCOW ext4 linux partition root: {err:?}");
+                continue;
+            }
+        };
         options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -99,6 +105,8 @@ pub(crate) fn qcow_ext4(
         if !options.filelist.is_empty() {
             ext4_output(&options.filelist, output, start_time, options.filter);
         }
+        options.filelist.clear();
+        options.cache.pop();
     }
     Ok(())
 }
@@ -134,7 +142,13 @@ fn gpt_partitions(
             }
         };
 
-        let root = get_root(&mut ext4_reader)?;
+        let root = match get_root(&mut ext4_reader) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[forensics] Could not get the QCOW ext4 linux GPT partition root: {err:?}");
+                continue;
+            }
+        };
         options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
@@ -142,6 +156,8 @@ fn gpt_partitions(
         if !options.filelist.is_empty() {
             ext4_output(&options.filelist, output, start_time, options.filter);
         }
+        options.filelist.clear();
+        options.cache.pop();
     }
     Ok(())
 }
