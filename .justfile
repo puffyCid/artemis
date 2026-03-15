@@ -107,7 +107,7 @@ end2end:
   cargo test --release --test usnjrnl_tester
   cargo test --release --test journal_tester
   cargo test --release --test jumplists_tester
-
+  cargo test --release --test qcow_tester
 
 # Just build the artemis binary
 [group('workspace')]

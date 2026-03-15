@@ -7,14 +7,15 @@ use crate::{
     structs::toml::Output,
 };
 use calf::{
-    bootsector::boot::PartitionType,
-    calf::{CalfReaderAction, QcowInfo},
+    bootsector::boot::{GptPartition, GuidNames, PartitionType},
+    calf::{CalfReader, CalfReaderAction, QcowInfo},
     format::header::CalfHeader,
 };
 use ext4_fs::extfs::Ext4Reader;
 use log::error;
-use std::io::BufReader;
+use std::{fs::File, io::BufReader};
 
+/// Parse QCOW disk image
 pub(crate) fn qcow_ext4(
     options: &mut Ext4Params,
     output: &mut Output,
@@ -64,6 +65,10 @@ pub(crate) fn qcow_ext4(
         }
     };
 
+    if let Some(gpt) = boot_info.gpt_partitions {
+        return gpt_partitions(&gpt, options, output, start_time, &mut reader, &info);
+    }
+
     for entry in boot_info.partitions {
         if entry.partition_type != PartitionType::Linux {
             continue;
@@ -76,9 +81,9 @@ pub(crate) fn qcow_ext4(
             }
         };
 
-        let test = BufReader::new(os_reader);
+        let buff_read = BufReader::new(os_reader);
 
-        let mut ext4_reader = match Ext4Reader::new(test, 4096, entry.offset_start) {
+        let mut ext4_reader = match Ext4Reader::new(buff_read, 4096, entry.offset_start) {
             Ok(result) => result,
             Err(err) => {
                 error!("[forensics] Could not setup the QCOW ext4 linux reader: {err:?}");
@@ -94,6 +99,53 @@ pub(crate) fn qcow_ext4(
         if !options.filelist.is_empty() {
             ext4_output(&options.filelist, output, start_time, options.filter);
         }
+        options.filelist.clear();
+        options.cache.pop();
+    }
+    Ok(())
+}
+
+/// Handle GPT partition layout
+fn gpt_partitions(
+    partitions: &[GptPartition],
+    options: &mut Ext4Params,
+    output: &mut Output,
+    start_time: u64,
+    reader: &mut CalfReader<File>,
+    info: &QcowInfo,
+) -> Result<(), Ext4Error> {
+    for entry in partitions {
+        if entry.platform != GuidNames::Linux {
+            continue;
+        }
+        let os_reader = match reader.os_reader(info) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[forensics] Could not read the QCOW ext4 linux GPT partition: {err:?}");
+                continue;
+            }
+        };
+
+        let buff_read = BufReader::new(os_reader);
+
+        let mut ext4_reader = match Ext4Reader::new(buff_read, 4096, entry.offset_start) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[forensics] Could not setup the QCOW ext4 linux reader: {err:?}");
+                continue;
+            }
+        };
+
+        let root = get_root(&mut ext4_reader)?;
+        options
+            .cache
+            .push(root.name.trim_end_matches('/').to_string());
+        walk_ext4(&root, &mut ext4_reader, options, output);
+        if !options.filelist.is_empty() {
+            ext4_output(&options.filelist, output, start_time, options.filter);
+        }
+        options.filelist.clear();
+        options.cache.pop();
     }
     Ok(())
 }

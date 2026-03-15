@@ -97,7 +97,7 @@ pub enum Facility {
     None,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Ext4Filelist {
     pub full_path: String,
     pub directory: String,
