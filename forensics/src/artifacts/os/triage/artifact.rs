@@ -46,7 +46,7 @@ pub(crate) fn triage(output: &mut Output, options: &[TriageOptions]) -> Result<(
     let mut report = Vec::new();
     // Loop through all triage targets
     for target in options {
-        acquire_files(target, output, &mut acq, &mut report)?;
+        acquire_files(target, &mut acq, &mut report)?;
     }
     let mut bytes = serde_json::to_vec(&report).unwrap_or_default();
     acq.write_report(&mut bytes)?;
@@ -54,6 +54,7 @@ pub(crate) fn triage(output: &mut Output, options: &[TriageOptions]) -> Result<(
     if let Err(err) = acq.zip.finish() {
         warn!("[triage] Failed to finish zipping file: {err:?}");
     }
+    output.output_count = report.len() as u64;
 
     Ok(())
 }
@@ -73,7 +74,6 @@ struct TriageReport {
 /// Copy the targeted files
 fn acquire_files(
     target: &TriageOptions,
-    output: &mut Output,
     acq: &mut TriageReader<File, File>,
     report: &mut Vec<TriageReport>,
 ) -> Result<(), TriageError> {
@@ -127,8 +127,6 @@ fn acquire_files(
             report.push(file_report);
         }
     }
-
-    output.output_count += report.len() as u64;
 
     Ok(())
 }
@@ -426,7 +424,7 @@ mod tests {
             recreate_directories: false,
         };
 
-        let mut out = output_options("acquire_files", "local", "./tmp", false);
+        let out = output_options("acquire_files", "local", "./tmp", false);
         let zip_output = format!("{}/{}", out.directory, out.name);
         create_dir_all(&zip_output).unwrap();
         let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
@@ -438,7 +436,7 @@ mod tests {
             path: String::new(),
         };
         let mut report = Vec::new();
-        acquire_files(&target, &mut out, &mut acq, &mut report).unwrap();
+        acquire_files(&target, &mut acq, &mut report).unwrap();
     }
 
     #[test]

@@ -16,3 +16,10 @@ path = "/var/log/journal/"
 file_mask = "*.journal"
 recursive = true
 recreate_directories = true
+
+[[artifacts.triage]]
+name = "Auth File"
+path = "/var/log/"
+file_mask = "auth.log*"
+recursive = false
+recreate_directories = true
