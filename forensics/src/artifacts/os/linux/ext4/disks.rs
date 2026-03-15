@@ -7,14 +7,15 @@ use crate::{
     structs::toml::Output,
 };
 use calf::{
-    bootsector::boot::PartitionType,
-    calf::{CalfReaderAction, QcowInfo},
+    bootsector::boot::{GuidNames, PartitionType},
+    calf::{CalfReader, CalfReaderAction, QcowInfo},
     format::header::CalfHeader,
 };
 use ext4_fs::extfs::Ext4Reader;
 use log::error;
-use std::io::BufReader;
+use std::{fs::File, io::BufReader};
 
+/// Parse QCOW disk image
 pub(crate) fn qcow_ext4(
     options: &mut Ext4Params,
     output: &mut Output,
@@ -64,37 +65,64 @@ pub(crate) fn qcow_ext4(
         }
     };
 
+    if let Some(gpt) = boot_info.gpt_partitions {
+        for entry in gpt {
+            if entry.platform != GuidNames::Linux {
+                continue;
+            }
+            let start = entry.offset_start;
+            let _ = read_disk(options, output, start_time, &mut reader, &info, start);
+        }
+        return Ok(());
+    }
+
     for entry in boot_info.partitions {
         if entry.partition_type != PartitionType::Linux {
             continue;
         }
-        let os_reader = match reader.os_reader(&info) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Could not read the QCOW ext4 linux partition: {err:?}");
-                continue;
-            }
-        };
-
-        let test = BufReader::new(os_reader);
-
-        let mut ext4_reader = match Ext4Reader::new(test, 4096, entry.offset_start) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Could not setup the QCOW ext4 linux reader: {err:?}");
-                continue;
-            }
-        };
-
-        let root = get_root(&mut ext4_reader)?;
-        options
-            .cache
-            .push(root.name.trim_end_matches('/').to_string());
-        walk_ext4(&root, &mut ext4_reader, options, output);
-        if !options.filelist.is_empty() {
-            ext4_output(&options.filelist, output, start_time, options.filter);
-        }
+        let start = entry.offset_start;
+        let _ = read_disk(options, output, start_time, &mut reader, &info, start);
     }
+    Ok(())
+}
+
+/// Handle reading QCOW disk image
+fn read_disk(
+    options: &mut Ext4Params,
+    output: &mut Output,
+    start_time: u64,
+    reader: &mut CalfReader<File>,
+    info: &QcowInfo,
+    start: u64,
+) -> Result<(), Ext4Error> {
+    let os_reader = match reader.os_reader(info) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not read the QCOW ext4 linux partition: {err:?}");
+            return Err(Ext4Error::QcowDevice);
+        }
+    };
+
+    let buff_read = BufReader::new(os_reader);
+
+    let mut ext4_reader = match Ext4Reader::new(buff_read, 4096, start) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not setup the QCOW ext4 linux reader: {err:?}");
+            return Err(Ext4Error::QcowDevice);
+        }
+    };
+
+    let root = get_root(&mut ext4_reader)?;
+    options
+        .cache
+        .push(root.name.trim_end_matches('/').to_string());
+    walk_ext4(&root, &mut ext4_reader, options, output);
+    if !options.filelist.is_empty() {
+        ext4_output(&options.filelist, output, start_time, options.filter);
+    }
+    options.filelist.clear();
+    options.cache.pop();
     Ok(())
 }
 

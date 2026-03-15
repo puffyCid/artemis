@@ -18,14 +18,14 @@ use crate::structs::artifacts::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ArtemisToml {
     pub output: Output,
     pub artifacts: Vec<Artifacts>,
     pub marker: Option<Marker>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Output {
     /**Name for output folder */
     pub name: String,
@@ -112,7 +112,7 @@ pub struct Artifacts {
     pub script: Option<JSScript>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Marker {
     /**Path to save marker file in */
     pub path: String,
