@@ -128,7 +128,7 @@ fn acquire_files(
         }
     }
 
-    output.output_count += report.len() as u64;
+    output.output_count = report.len() as u64;
 
     Ok(())
 }
