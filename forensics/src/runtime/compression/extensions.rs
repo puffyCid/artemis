@@ -1,3 +1,5 @@
+use crate::runtime::compression::decompress::js_decompress_lz4;
+
 use super::decompress::{
     js_decompress_gzip, js_decompress_lzvn, js_decompress_snappy, js_decompress_zlib,
     js_decompress_zstd,
@@ -34,6 +36,12 @@ pub(crate) fn decompress_functions(context: &mut Context) {
         JsString::from("js_decompress_lzvn"),
         1,
         NativeFunction::from_fn_ptr(js_decompress_lzvn),
+    );
+
+    let _ = context.register_global_callable(
+        JsString::from("js_decompress_lz4"),
+        3,
+        NativeFunction::from_fn_ptr(js_decompress_lz4),
     );
 }
 
