@@ -1,7 +1,10 @@
 use crate::{
     runtime::helper::{bytes_arg, number_arg},
     utils::compression::{
-        decompress::{decompress_gzip_data, decompress_snappy, decompress_zlib, decompress_zstd},
+        decompress::{
+            decompress_gzip_data, decompress_lz4, decompress_snappy, decompress_zlib,
+            decompress_zstd,
+        },
         lzvn::decompress_lzvn,
     },
 };
@@ -110,6 +113,28 @@ pub(crate) fn js_decompress_lzvn(
     Ok(bytes.into())
 }
 
+/// Expose decompressing lz4 data to Boa
+pub(crate) fn js_decompress_lz4(
+    _this: &JsValue,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let data = bytes_arg(args, 0, context)?;
+    let decom_size = number_arg(args, 1)? as usize;
+    let initial_dict = bytes_arg(args, 2, context)?;
+
+    let decom_data = match decompress_lz4(&data, decom_size, &initial_dict) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get decompress data: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+    let bytes = JsUint8Array::from_iter(decom_data, context)?;
+
+    Ok(bytes.into())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -157,6 +182,17 @@ mod tests {
         let mut output = output_options("runtime_test", "local", "./tmp", false);
         let script = JSScript {
             name: String::from("snappy_test"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_lz4_decompress() {
+        let test = "KCgpPT57dmFyIHM9Y2xhc3MgZXh0ZW5kcyBFcnJvcntuYW1lO21lc3NhZ2U7Y29uc3RydWN0b3IodCxuKXtzdXBlcigpLHRoaXMubmFtZT10LHRoaXMubWVzc2FnZT1ufX07dmFyIGU9Y2xhc3MgZXh0ZW5kcyBze307ZnVuY3Rpb24gaShyLHQsbil7dHJ5e3JldHVybiBqc19kZWNvbXByZXNzX2x6NChyLHQsbil9Y2F0Y2gobyl7cmV0dXJuIG5ldyBlKCJMWlZOIixgZmFpbGVkIHRvIGRlY29tcHJlc3M6ICR7b31gKX19ZnVuY3Rpb24gYyhyKXtyZXR1cm4ganNfZXh0cmFjdF91dGY4X3N0cmluZyhyKX1mdW5jdGlvbiBhKCl7bGV0IHI9bmV3IFVpbnQ4QXJyYXkoWzE3NiwxMDQsMTAxLDEwOCwxMDgsMTExLDMyLDExOSwxMTEsMTE0LDEwOCwxMDBdKSx0PWkociwxMSxuZXcgVWludDhBcnJheSk7dCBpbnN0YW5jZW9mIGV8fGNvbnNvbGUubG9nKGModCkpfWEoKTt9KSgpOw0K";
+        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let script = JSScript {
+            name: String::from("lz4_test"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
