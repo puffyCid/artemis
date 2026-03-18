@@ -642,7 +642,7 @@ pub struct ShellItem {
     pub stores: Vec<HashMap<String, Value>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum ShellType {
     Directory, // After applying bitwise AND 0x70
     Network,   // After applying bitwise AND 0x70
@@ -655,6 +655,7 @@ pub enum ShellType {
     Uri,
     Variable,
     Mtp,
+    #[default]
     Unknown,
     History,
     GameFolder,
