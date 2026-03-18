@@ -1,5 +1,5 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes};
-use common::windows::{BitsInfo, FileInfo, JobInfo, JobPriority, JobState, JobType};
+use common::windows::{BitsInfo, FileInfo, JobInfo, JobType};
 use nom::bytes::complete::take_until;
 
 use super::{
@@ -73,31 +73,7 @@ pub(crate) fn carve_bits<'a>(
                 continue;
             }
 
-            let mut job = JobInfo {
-                job_id: String::new(),
-                owner_sid: String::new(),
-                created: String::new(),
-                modified: String::new(),
-                expiration: String::new(),
-                completed: String::new(),
-                job_name: String::new(),
-                job_description: String::new(),
-                job_command: String::new(),
-                job_arguments: String::new(),
-                error_count: 0,
-                job_type: JobType::Unknown,
-                job_state: JobState::Unknown,
-                priority: JobPriority::Unknown,
-                flags: Vec::new(),
-                http_method: String::new(),
-                acls: Vec::new(),
-                additional_sids: Vec::new(),
-                transient_error_count: 0,
-                retry_delay: 0,
-                timeout: 0,
-                target_path: String::new(),
-                file_ids: Vec::new(),
-            };
+            let mut job = JobInfo::default();
             let input = match parse_job(hit_data, &mut job, carve) {
                 Ok((result, _)) => result,
                 Err(_err) => break,

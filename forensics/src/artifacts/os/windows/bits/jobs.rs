@@ -30,31 +30,7 @@ use std::mem::size_of;
 pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, BitsError> {
     let mut jobs: Vec<JobInfo> = Vec::new();
     for rows in column_rows {
-        let mut job = JobInfo {
-            job_id: String::new(),
-            owner_sid: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            expiration: String::new(),
-            completed: String::new(),
-            job_name: String::new(),
-            job_description: String::new(),
-            job_command: String::new(),
-            job_arguments: String::new(),
-            error_count: 0,
-            job_type: JobType::Unknown,
-            job_state: JobState::Unknown,
-            priority: JobPriority::Unknown,
-            flags: Vec::new(),
-            http_method: String::new(),
-            acls: Vec::new(),
-            additional_sids: Vec::new(),
-            transient_error_count: 0,
-            retry_delay: 0,
-            timeout: 0,
-            target_path: String::new(),
-            file_ids: Vec::new(),
-        };
+        let mut job = JobInfo::default();
         // Only two (2) columns in BITS table (as of Win11)
         for column in rows {
             if column.column_name == "Id" {
@@ -119,31 +95,7 @@ fn parse_legacy_job<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8]
 
     let mut jobs: Vec<BitsInfo> = Vec::new();
     while job_count < number_jobs {
-        let mut job = JobInfo {
-            job_id: String::new(),
-            owner_sid: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            expiration: String::new(),
-            completed: String::new(),
-            job_name: String::new(),
-            job_description: String::new(),
-            job_command: String::new(),
-            job_arguments: String::new(),
-            error_count: 0,
-            job_type: JobType::Unknown,
-            job_state: JobState::Unknown,
-            priority: JobPriority::Unknown,
-            flags: Vec::new(),
-            http_method: String::new(),
-            acls: Vec::new(),
-            additional_sids: Vec::new(),
-            transient_error_count: 0,
-            retry_delay: 0,
-            timeout: 0,
-            target_path: String::new(),
-            file_ids: Vec::new(),
-        };
+        let mut job = JobInfo::default();
         let is_legacy = true;
         let carve = false;
         let (remaining_input, _) = parse_job(input, &mut job, carve)?;

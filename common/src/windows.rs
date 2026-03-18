@@ -144,7 +144,7 @@ pub struct FileInfo {
     pub files_transferred: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct JobInfo {
     pub job_id: String,
     pub owner_sid: String,
@@ -171,7 +171,7 @@ pub struct JobInfo {
     pub file_ids: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobState {
     Queued,
     Connecting,
@@ -182,23 +182,26 @@ pub enum JobState {
     Transferred,
     Acknowledged,
     Cancelled,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobPriority {
     Foreground,
     High,
     Normal,
     Low,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobType {
     Download,
     Upload,
     UploadReply,
+    #[default]
     Unknown,
 }
 
