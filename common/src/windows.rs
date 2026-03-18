@@ -70,7 +70,7 @@ pub struct PeInfo {
  * `Amcache` is just a Registry file with plaintext entries. No additional parsing is needed
  * Each entry contains PE metadata such as size, version, original filename, SHA1 (First ~31MB), publisher
  */
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Amcache {
     pub last_modified: String,
     pub path: String,
