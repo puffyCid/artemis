@@ -77,7 +77,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
         if let Ok(result) = read_result {
             let (_carved_bits, carved_jobs, carved_files) =
                 parse_carve(&result, is_legacy, bits_path);
-            add_carved_bits(&mut bits_info, &carved_jobs, &carved_files, bits_path);
+            add_carved_bits(&mut bits_info, carved_jobs, carved_files, bits_path);
         } else {
             error!(
                 "[bits] Could not read {bits_path} for carving: {:?}",
@@ -161,7 +161,7 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<Vec<BitsInfo>, Bits
     if carve {
         let is_legacy = false;
         let (_carved_bits, carved_jobs, carved_files) = parse_carve(&bits_data, is_legacy, path);
-        add_carved_bits(&mut bits, &carved_jobs, &carved_files, path);
+        add_carved_bits(&mut bits, carved_jobs, carved_files, path);
     }
     Ok(bits)
 }
@@ -184,43 +184,45 @@ fn parse_carve(data: &[u8], is_legacy: bool, evidence: &str) -> WinBits {
     }
 }
 
+/// Add the carved Jobs and Files to our parsed bits array
+/// We cannot combine them
 fn add_carved_bits(
     bits: &mut Vec<BitsInfo>,
-    jobs: &Vec<JobInfo>,
-    files: &Vec<FileInfo>,
+    jobs: Vec<JobInfo>,
+    files: Vec<FileInfo>,
     evidence: &str,
 ) {
     for job in jobs {
         let bit = BitsInfo {
-            job_id: job.job_id.clone(),
+            job_id: job.job_id,
             file_id: String::new(),
-            owner_sid: job.owner_sid.clone(),
-            created: job.created.clone(),
-            modified: job.modified.clone(),
-            completed: job.completed.clone(),
-            expiration: job.expiration.clone(),
+            owner_sid: job.owner_sid,
+            created: job.created,
+            modified: job.modified,
+            completed: job.completed,
+            expiration: job.expiration,
             bytes_downloaded: 0,
             bytes_transferred: 0,
-            job_name: job.job_name.clone(),
-            job_description: job.job_description.clone(),
-            job_command: job.job_command.clone(),
-            job_arguments: job.job_arguments.clone(),
+            job_name: job.job_name,
+            job_description: job.job_description,
+            job_command: job.job_command,
+            job_arguments: job.job_arguments,
             error_count: job.error_count,
-            job_type: job.job_type.clone(),
-            job_state: job.job_state.clone(),
-            priority: job.priority.clone(),
-            flags: job.flags.clone(),
-            http_method: job.http_method.clone(),
+            job_type: job.job_type,
+            job_state: job.job_state,
+            priority: job.priority,
+            flags: job.flags,
+            http_method: job.http_method,
             full_path: String::new(),
             filename: String::new(),
-            target_path: job.target_path.clone(),
+            target_path: job.target_path,
             volume: String::new(),
             url: String::new(),
             timeout: job.timeout,
             retry_delay: job.retry_delay,
             transient_error_count: job.transient_error_count,
-            acls: job.acls.clone(),
-            additional_sids: job.additional_sids.clone(),
+            acls: job.acls,
+            additional_sids: job.additional_sids,
             carved: true,
             drive: String::new(),
             tmp_fullpath: String::new(),
@@ -232,7 +234,7 @@ fn add_carved_bits(
     for file in files {
         let bit = BitsInfo {
             job_id: String::new(),
-            file_id: file.file_id.clone(),
+            file_id: file.file_id,
             owner_sid: String::new(),
             created: String::new(),
             modified: String::new(),
@@ -250,11 +252,11 @@ fn add_carved_bits(
             priority: JobPriority::Unknown,
             flags: Vec::new(),
             http_method: String::new(),
-            full_path: file.full_path.clone(),
-            filename: file.filename.clone(),
+            full_path: file.full_path,
+            filename: file.filename,
             target_path: String::new(),
-            volume: file.volume.clone(),
-            url: file.url.clone(),
+            volume: file.volume,
+            url: file.url,
             timeout: 0,
             retry_delay: 0,
             transient_error_count: 0,
