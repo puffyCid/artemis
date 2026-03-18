@@ -104,7 +104,7 @@ fn parse_legacy_job<'a>(data: &'a [u8], evidence: &str) -> nom::IResult<&'a [u8]
         let (remaining_input, _) = job_details(remaining_input, &mut job, is_legacy)?;
         let carved = false;
 
-        jobs.push(combine_file_and_job(&job, &file, carved, evidence));
+        jobs.push(combine_file_and_job(job, file, carved, evidence));
         job_count += 1;
         if job_count == number_jobs {
             break;
