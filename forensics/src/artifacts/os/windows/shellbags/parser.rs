@@ -321,6 +321,8 @@ fn update_shellbags(
                     .unwrap_or(&bag.path)
             })
             .clone();
+    } else {
+        bag.resolve_path = bag.path.clone();
     }
 
     shell_map.insert(reg_info.bagkey, bag);

@@ -66,7 +66,7 @@ fn get_entries(
             };
             userassist.path = rot_decode(&value.value);
             userassist.rot_path = value.value;
-            userassist.evidence = entry.evidence.clone();
+            userassist.evidence.clone_from(&reg_entries.reg_file);
 
             // Check if we can translate the CLSID values to the folder name
             for (key, value) in folder_descriptions {

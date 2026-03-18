@@ -85,7 +85,7 @@ pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, item_type) = nom_unsigned_one_byte(data, Endian::Le)?;
     // Determine `ShellItem` using known IDs, signatures, and expected `ShellItem` size
-    let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb2];
+    let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb1, 0xb2];
     let drive_item = [0x2f, 0x23, 0x25, 0x29, 0x2a, 0x2e];
     let delegate = 0x74;
     let control_panel = 0x1;
@@ -94,8 +94,7 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let ftp = 0x61;
     let root_property = 0x1f;
     let subroot = 0x1e;
-    let history = 0x69;
-    let history_directory = 0x65;
+    let history = [0x69, 0x65, 0x64];
 
     let beef0004 = [4, 0, 239, 190];
     let drive_property = 83;
@@ -167,7 +166,7 @@ pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
             return parse_property(input);
         }
         parse_root(input)?
-    } else if item_type == history || item_type == history_directory {
+    } else if history.contains(&item_type) {
         parse_history(input)?
     } else {
         parse_variable(data)?
