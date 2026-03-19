@@ -5,6 +5,10 @@ resolver = "2"
 [profile.release]
 strip = true
 
+[profile.profile]
+inherits = "release"
+strip = false
+
 [profile.release-action]
 inherits = "release"
 strip = true

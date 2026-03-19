@@ -3,14 +3,13 @@ use crate::{
     artifacts::os::systeminfo::info::{get_info_metadata, hostname},
     structs::toml::Output,
     utils::{
-        compression::compress::compress_gzip_bytes,
         logging::collection_status,
         output::final_output,
         time::{time_now, unixepoch_to_iso},
         uuid::generate_uuid,
     },
 };
-use log::{error, info};
+use log::error;
 use serde_json::{Value, json};
 
 /// Output to `json` format with some metadata
@@ -76,31 +75,13 @@ pub(crate) fn raw_json(
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
-    let mut collection_data = Vec::new();
-    if output.compress {
-        let compressed_results =
-            compress_gzip_bytes(&serde_json::to_vec(serde_data).unwrap_or_default());
-        collection_data = match compressed_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to compress data: {err:?}");
-                return Err(FormatError::Output);
-            }
-        };
-    } else {
-        let _ = serde_json::to_writer(&mut collection_data, serde_data);
-    }
-
     let uuid = generate_uuid();
     let filename = format!("{artifact_name}_{uuid}");
-    let output_result = final_output(&collection_data, output, &filename);
-    match output_result {
-        Ok(_) => info!("[forensics] {artifact_name} json output success"),
-        Err(err) => {
-            error!("[forensics] Failed to output {artifact_name} json: {err:?}");
-            return Err(FormatError::Output);
-        }
+    let status = final_output(serde_data, output, &filename);
+    if let Err(result) = status {
+        error!("[forensics] Failed to output {artifact_name} data: {result:?}");
     }
+
     let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())

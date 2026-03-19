@@ -1,4 +1,3 @@
-pub(crate) mod acquire;
 pub(crate) mod directory;
 pub(crate) mod disks;
 mod error;

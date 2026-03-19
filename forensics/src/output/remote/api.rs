@@ -1,20 +1,23 @@
 use super::error::RemoteError;
-use crate::structs::toml::Output;
+use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
 use log::error;
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
 };
+use serde_json::Value;
 use std::{thread::sleep, time::Duration};
 
 /// Upload data to a remote server. For now we use our unique endpoint ID for authentication
 /// It should have been obtained from our initial enrollment when running in deamon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
-    data: &[u8],
+    serde_data: &Value,
     output: &mut Output,
     output_name: &str,
 ) -> Result<(), RemoteError> {
+    let data = prep_data_upload(serde_data, output, "api")?;
+
     let api_url = if let Some(url) = &output.url {
         url
     } else {
@@ -34,7 +37,7 @@ pub(crate) fn api_upload(
         builder = builder.header("x-artemis-collection_name", &output.name);
         builder = builder.header("accept", "application/json");
 
-        let mut part = multipart::Part::bytes(data.to_vec());
+        let mut part = multipart::Part::bytes(data.clone());
         part = part.file_name(output_name.to_string());
 
         if output_name.ends_with(".log") {
@@ -126,7 +129,12 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
+        api_upload(
+            &serde_json::to_value(&test).unwrap(),
+            &mut output,
+            "uuid.gzip",
+        )
+        .unwrap();
         mock_me.assert();
     }
 
@@ -146,7 +154,12 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
+        api_upload(
+            &serde_json::to_value(&test).unwrap(),
+            &mut output,
+            "uuid.gzip",
+        )
+        .unwrap();
         mock_me.assert();
     }
 }

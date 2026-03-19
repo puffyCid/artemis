@@ -1,8 +1,9 @@
-use super::{error::ArtemisError, output::final_output, uuid::generate_uuid};
+use super::{error::ArtemisError, uuid::generate_uuid};
 use crate::{
     filesystem::files::{get_filename, list_files, read_file},
     output::remote::api::api_upload,
     structs::toml::Output,
+    utils::output::final_output,
 };
 use log::{LevelFilter, error, warn};
 use std::{
@@ -122,15 +123,16 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
                 continue;
             }
         };
+        let serde_data = serde_json::from_slice(&log_data).unwrap_or_default();
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
-            if let Err(err) = api_upload(&log_data, output, &get_filename(log)) {
+            if let Err(err) = api_upload(&serde_data, output, &get_filename(log)) {
                 error!("[forensics] Failed to upload to API server: {err:?}");
             }
             let _ = remove_file(log);
             break;
         }
-        final_output(&log_data, output, &get_filename(log))?;
+        final_output(&serde_data, output, &get_filename(log))?;
         let _ = remove_file(log);
     }
 

@@ -19,11 +19,6 @@ pub(crate) enum FileSystemError {
     FileData,
     NoDataAttributeValue,
     LargeFile,
-    CompressFile,
-    CompressedBytes,
-    AcquireFile,
-    UploadSetup,
-    FinalUpload,
 }
 
 impl std::error::Error for FileSystemError {}
@@ -50,11 +45,6 @@ impl fmt::Display for FileSystemError {
                 write!(f, "Failed to get NTFS $DATA attribute")
             }
             FileSystemError::NoAttribute => write!(f, "No attribute for entry"),
-            FileSystemError::CompressFile => write!(f, "Cannot compress acquire file"),
-            FileSystemError::CompressedBytes => write!(f, "Cannot compress all bytes"),
-            FileSystemError::AcquireFile => write!(f, "Could not finish file acquisition"),
-            FileSystemError::UploadSetup => write!(f, "Could not setup file upload"),
-            FileSystemError::FinalUpload => write!(f, "Could not finish file upload"),
         }
     }
 }

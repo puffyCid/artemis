@@ -3,14 +3,13 @@ use crate::{
     artifacts::os::systeminfo::info::{get_info_metadata, hostname},
     structs::toml::Output,
     utils::{
-        compression::compress::compress_gzip_bytes,
         logging::collection_status,
         output::final_output,
         time::{time_now, unixepoch_to_iso},
         uuid::generate_uuid,
     },
 };
-use log::{error, info};
+use log::error;
 use serde_json::{Value, json};
 
 /// Output to `jsonl` files
@@ -56,13 +55,11 @@ pub(crate) fn jsonl_format(
                     "build_date": info.build_date,
                     "interfaces": info.interfaces,
             }];
-            write_json(
-                &serde_json::to_vec(&collection_output).unwrap_or_default(),
-                output,
-                &filename,
-            )?;
+            let status = final_output(&collection_output, output, &filename);
+            if let Err(result) = status {
+                error!("[forensics] Failed to output {artifact_name} data: {result:?}");
+            }
         } else {
-            let mut json_lines = Vec::new();
             for entry in entries {
                 if entry.is_object() {
                     entry["collection_metadata"] = json![{
@@ -83,13 +80,9 @@ pub(crate) fn jsonl_format(
                             "interfaces": info.interfaces,
                     }];
                 }
-
-                let line = create_line(entry)?;
-                json_lines.push(line);
             }
 
-            let collection_data = json_lines.join("");
-            let status = write_json(collection_data.as_bytes(), output, &filename);
+            let status = final_output(serde_data, output, &filename);
             if let Err(result) = status {
                 error!("[forensics] Failed to output {artifact_name} data: {result:?}");
             }
@@ -110,13 +103,7 @@ pub(crate) fn jsonl_format(
                     "load_performance": info.performance
             }];
         }
-
-        let status = write_json(
-            &serde_json::to_vec(serde_data).unwrap_or_default(),
-            output,
-            &filename,
-        );
-
+        let status = final_output(serde_data, output, &filename);
         if let Err(result) = status {
             error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
@@ -142,27 +129,14 @@ pub(crate) fn raw_jsonl(
         if entries.is_empty() {
             return Ok(());
         }
-
-        let mut json_lines = Vec::new();
-        for entry in entries {
-            let line = create_line(entry)?;
-            json_lines.push(line);
-        }
-
-        let collection_data = json_lines.join("");
-        let status = write_json(collection_data.as_bytes(), output, &filename);
+        let status = final_output(serde_data, output, &filename);
         if let Err(result) = status {
-            error!("[forensics] Failed to output {artifact_name} raw data: {result:?}");
+            error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
     } else {
-        let status = write_json(
-            &serde_json::to_vec(serde_data).unwrap_or_default(),
-            output,
-            &filename,
-        );
-
+        let status = final_output(serde_data, output, &filename);
         if let Err(result) = status {
-            error!("[forensics] Failed to output {artifact_name} raw data: {result:?}");
+            error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
     }
 
@@ -171,65 +145,13 @@ pub(crate) fn raw_jsonl(
     Ok(())
 }
 
-/// Write JSONL bytes to file
-fn write_json(data: &[u8], output: &mut Output, output_name: &str) -> Result<(), FormatError> {
-    if output.compress {
-        let compressed_results = compress_gzip_bytes(data);
-        let compressed_data = match compressed_results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to compress data: {err:?}");
-                return Err(FormatError::Output);
-            }
-        };
-
-        let output_result = final_output(&compressed_data, output, output_name);
-        match output_result {
-            Ok(_) => info!("[forensics] {output_name} jsonl output success"),
-            Err(err) => {
-                error!("[forensics] Failed to output {output_name} jsonl: {err:?}");
-                return Err(FormatError::Output);
-            }
-        }
-
-        return Ok(());
-    }
-
-    let output_result = final_output(data, output, output_name);
-    match output_result {
-        Ok(_) => info!("[forensics] {output_name} jsonl output success"),
-        Err(err) => {
-            error!("[forensics] Failed to output {output_name} jsonl: {err:?}");
-            return Err(FormatError::Output);
-        }
-    }
-
-    Ok(())
-}
-
-/// Create the a single JSON line
-fn create_line(artifact_data: &Value) -> Result<String, FormatError> {
-    let serde_collection_results = serde_json::to_string(artifact_data);
-    let serde_collection = match serde_collection_results {
-        Ok(results) => format!("{results}\n"),
-        Err(err) => {
-            error!("[forensics] Failed to serialize jsonl output: {err:?}");
-            return Err(FormatError::Serialize);
-        }
-    };
-    Ok(serde_collection)
-}
-
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
-    use super::{create_line, raw_jsonl, write_json};
+    use super::raw_jsonl;
     use crate::{
-        output::formats::jsonl::jsonl_format,
-        structs::toml::Output,
-        utils::{time::time_now, uuid::generate_uuid},
+        output::formats::jsonl::jsonl_format, structs::toml::Output, utils::time::time_now,
     };
+    use serde_json::json;
 
     #[test]
     fn test_jsonl_format() {
@@ -264,30 +186,5 @@ mod tests {
         let name = "test";
         let data = serde_json::Value::String(String::from("test"));
         raw_jsonl(&data, name, &mut output).unwrap();
-    }
-
-    #[test]
-    fn test_write_json() {
-        let mut output = Output {
-            name: String::from("format_test"),
-            directory: String::from("./tmp"),
-            format: String::from("jsonl"),
-            compress: false,
-            endpoint_id: String::from("abcd"),
-            output: String::from("local"),
-            ..Default::default()
-        };
-
-        let uuid = generate_uuid();
-        let json_line = create_line(&serde_json::Value::String(String::from("test"))).unwrap();
-        write_json(json_line.as_bytes(), &mut output, &format!("jsonl_{uuid}")).unwrap();
-    }
-
-    #[test]
-    fn test_create_line() {
-        let mut data = serde_json::Value::String(String::from("test"));
-
-        let line = create_line(&mut data).unwrap();
-        assert!(!line.is_empty());
     }
 }
