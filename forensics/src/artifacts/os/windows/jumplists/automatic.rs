@@ -113,7 +113,7 @@ mod tests {
     fn test_parse_automatic_large() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push(
-            "tests/test_data//windows/jumplists/win11/automatic/3d2110c4a0cb6d15.automaticDestinations-ms",
+            "tests/test_data/windows/jumplists/win11/automatic/3d2110c4a0cb6d15.automaticDestinations-ms",
         );
         let data = read_file(&test_location.display().to_string()).unwrap();
 
