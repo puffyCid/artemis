@@ -90,39 +90,31 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
 
         let version_result = resources.version_info();
         if let Ok(result) = version_result {
-            for (_, value) in result.file_info().strings {
+            for (_, mut value) in result.file_info().strings {
                 info.file_version = value
-                    .get(&String::from("FileVersion"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("FileVersion"))
+                    .unwrap_or_default();
                 info.company_name = value
-                    .get(&String::from("CompanyName"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("CompanyName"))
+                    .unwrap_or_default();
                 info.file_description = value
-                    .get(&String::from("FileDescription"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("FileDescription"))
+                    .unwrap_or_default();
                 info.original_filename = value
-                    .get(&String::from("OriginalFilename"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("OriginalFilename"))
+                    .unwrap_or_default();
                 info.internal_name = value
-                    .get(&String::from("InternalName"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("InternalName"))
+                    .unwrap_or_default();
                 info.legal_copyright = value
-                    .get(&String::from("LegalCopyright"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("LegalCopyright"))
+                    .unwrap_or_default();
                 info.product_name = value
-                    .get(&String::from("ProductName"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("ProductName"))
+                    .unwrap_or_default();
                 info.product_version = value
-                    .get(&String::from("ProductVersion"))
-                    .unwrap_or(&String::new())
-                    .clone();
+                    .remove(&String::from("ProductVersion"))
+                    .unwrap_or_default();
             }
         }
         for icons in resources.icons() {

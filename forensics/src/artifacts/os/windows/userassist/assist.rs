@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 /// Parse the `UserAssist` data obtained from the Registry
 pub(crate) fn parse_userassist_data(
-    reg_entry: &[UserAssistReg],
+    reg_entry: Vec<UserAssistReg>,
     resolve: bool,
 ) -> Result<Vec<UserAssistEntry>, UserAssistError> {
     let mut userassist_entries: Vec<UserAssistEntry> = Vec::new();
@@ -39,13 +39,13 @@ pub(crate) fn parse_userassist_data(
 
 /// Go through all `UserAssist` entries
 fn get_entries(
-    reg_entries: &UserAssistReg,
+    reg_entries: UserAssistReg,
     userassist_entries: &mut Vec<UserAssistEntry>,
     folder_descriptions: &HashMap<String, String>,
 ) {
-    for entry in &reg_entries.regs {
+    for entry in reg_entries.regs {
         // Loop through UserAssist values
-        for value in &entry.values {
+        for value in entry.values {
             // UserAssist is in a binary format so we need to base64 decode the value string to get the binary data
             let decoded_result = base64_decode_standard(&value.data);
             let assist_data = match decoded_result {
@@ -64,8 +64,8 @@ fn get_entries(
                     continue;
                 }
             };
-            userassist.rot_path.clone_from(&value.value);
             userassist.path = rot_decode(&value.value);
+            userassist.rot_path = value.value;
             userassist.evidence.clone_from(&reg_entries.reg_file);
 
             // Check if we can translate the CLSID values to the folder name
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_parse_userassist_data() {
         let results = get_userassist_drive('C').unwrap();
-        let results = parse_userassist_data(&results, false).unwrap();
+        let results = parse_userassist_data(results, false).unwrap();
         if results.is_empty() {
             return;
         }
@@ -156,7 +156,7 @@ mod tests {
         let folder = get_folder_descriptions().unwrap();
 
         for entry in results {
-            get_entries(&entry, &mut entries, &folder);
+            get_entries(entry, &mut entries, &folder);
         }
         if entries.is_empty() {
             return;

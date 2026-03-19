@@ -24,7 +24,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct Shellbag {
     pub(crate) path: String,
     pub(crate) created: String,
@@ -203,6 +203,7 @@ fn extract_shellbags(
 
             // Vec start at 0
             let vec_adjust = 1;
+            // Index lookup is safe because we check for minimum size above
             let bagkey = format!("{}\\{}", bagkey_vec[min_length - vec_adjust], value.value);
             let data_result = parse_encoded_shellitem(&value.data);
             let data = match data_result {
@@ -234,7 +235,7 @@ fn extract_shellbags(
                 last_modified: entry.last_modified.clone(),
             };
 
-            update_shellbags(&data, shell_map, clsids, &reg_info);
+            update_shellbags(data, shell_map, clsids, reg_info);
         }
     }
 }
@@ -245,10 +246,10 @@ fn extract_shellbags(
   and insert into our hashmap as new entry
 */
 fn update_shellbags(
-    shell: &ShellItem,
+    shell: ShellItem,
     shell_map: &mut HashMap<String, Shellbag>,
     clsids: &HashMap<String, String>,
-    reg_info: &RegInfo,
+    reg_info: RegInfo,
 ) {
     if let Some(entry) = shell_map.get(&reg_info.bagmru) {
         let path = format!("{}\\{}", entry.path, shell.value);
@@ -272,58 +273,59 @@ fn update_shellbags(
 
         let bag = Shellbag {
             path,
-            created: shell.created.clone(),
-            modified: shell.modified.clone(),
-            accessed: shell.accessed.clone(),
+            created: shell.created,
+            modified: shell.modified,
+            accessed: shell.accessed,
             mft_entry: shell.mft_entry,
             mft_sequence: shell.mft_sequence,
-            shell_type: shell.shell_type.clone(),
+            shell_type: shell.shell_type,
             resolve_path,
-            reg_modified: reg_info.last_modified.clone(),
-            reg_file: reg_info.reg_file.clone(),
-            evidence: reg_info.reg_file_path.clone(),
-            reg_path: reg_info.reg_path.clone(),
-            stores: shell.stores.clone(),
+            reg_modified: reg_info.last_modified,
+            reg_file: reg_info.reg_file,
+            evidence: reg_info.reg_file_path,
+            reg_path: reg_info.reg_path,
+            stores: shell.stores,
         };
 
-        shell_map.insert(reg_info.bagkey.clone(), bag);
+        shell_map.insert(reg_info.bagkey, bag);
         return;
     }
 
-    let resolve_path = if shell.shell_type == ShellType::RootFolder
-        || shell.shell_type == ShellType::Delegate
-        || shell.shell_type == ShellType::Variable
-        || shell.shell_type == ShellType::Mtp
-    {
-        // GUID may either be upper or lowercase
-        clsids
-            .get(&format!("{{{}}}", shell.value))
-            .unwrap_or_else(|| {
-                clsids
-                    .get(&format!("{{{}}}", shell.value.to_uppercase()))
-                    .unwrap_or(&shell.value)
-            })
-    } else {
-        shell.value.as_str()
-    };
-
-    let bag = Shellbag {
-        path: shell.value.clone(),
-        created: shell.created.clone(),
-        modified: shell.modified.clone(),
-        accessed: shell.accessed.clone(),
+    let mut bag = Shellbag {
+        path: shell.value,
+        created: shell.created,
+        modified: shell.modified,
+        accessed: shell.accessed,
         mft_entry: shell.mft_entry,
         mft_sequence: shell.mft_sequence,
-        shell_type: shell.shell_type.clone(),
-        resolve_path: resolve_path.to_string(),
-        reg_modified: reg_info.last_modified.clone(),
-        reg_file: reg_info.reg_file.clone(),
-        evidence: reg_info.reg_file_path.clone(),
-        reg_path: reg_info.reg_path.clone(),
-        stores: shell.stores.clone(),
+        shell_type: shell.shell_type,
+        reg_modified: reg_info.last_modified,
+        reg_file: reg_info.reg_file,
+        evidence: reg_info.reg_file_path,
+        reg_path: reg_info.reg_path,
+        stores: shell.stores,
+        ..Default::default()
     };
 
-    shell_map.insert(reg_info.bagkey.clone(), bag);
+    if bag.shell_type == ShellType::RootFolder
+        || bag.shell_type == ShellType::Delegate
+        || bag.shell_type == ShellType::Variable
+        || bag.shell_type == ShellType::Mtp
+    {
+        // GUID may either be upper or lowercase
+        bag.resolve_path = clsids
+            .get(&format!("{{{}}}", &bag.path))
+            .unwrap_or_else(|| {
+                clsids
+                    .get(&format!("{{{}}}", &bag.path.to_uppercase()))
+                    .unwrap_or(&bag.path)
+            })
+            .clone();
+    } else {
+        bag.resolve_path = bag.path.clone();
+    }
+
+    shell_map.insert(reg_info.bagkey, bag);
 }
 
 /// Loop through hashmap and store in `Shellbag` structure and append to vec
@@ -417,7 +419,7 @@ mod tests {
             reg_file_path: String::from("shellbags are complex"),
             last_modified: String::new(),
         };
-        update_shellbags(&item, &mut shell_map, &empty_clsids, &reg_info);
+        update_shellbags(item, &mut shell_map, &empty_clsids, reg_info);
         assert_eq!(shell_map.len(), 1);
     }
 

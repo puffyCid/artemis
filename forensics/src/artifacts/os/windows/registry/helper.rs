@@ -45,6 +45,7 @@ pub(crate) fn get_registry_keys(
 
 /// Parse provided `Registry` file reference at starting Key path and apply any optional Key path regex filtering
 /// Use `get_registry_keys` if you want to provide a `Registry` file
+/// This wont fill in the the evidence field in the RegistryData array because we are parsing a file feference
 pub(crate) fn get_registry_keys_by_ref(
     start_path: &str,
     regex: &Regex,

@@ -41,14 +41,14 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
 
         if path.path.contains("Names\\") {
             for value in path.values {
-                user_rids.insert(value.data_type.clone(), path.name.clone());
+                user_rids.insert(value.data_type, path.name.clone());
             }
         } else if path.path.contains("\\Users\\0") {
             for value in path.values {
                 if value.value == "F" {
-                    user_info.insert(path.name.clone(), value.data.clone());
+                    user_info.insert(path.name.clone(), value.data);
                 } else if value.value == "V" {
-                    sid_info.insert(path.name.clone(), value.data.clone());
+                    sid_info.insert(path.name.clone(), value.data);
                 }
             }
         }

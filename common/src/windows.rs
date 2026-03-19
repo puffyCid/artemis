@@ -70,7 +70,7 @@ pub struct PeInfo {
  * `Amcache` is just a Registry file with plaintext entries. No additional parsing is needed
  * Each entry contains PE metadata such as size, version, original filename, SHA1 (First ~31MB), publisher
  */
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Amcache {
     pub last_modified: String,
     pub path: String,
@@ -144,7 +144,7 @@ pub struct FileInfo {
     pub files_transferred: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct JobInfo {
     pub job_id: String,
     pub owner_sid: String,
@@ -171,7 +171,7 @@ pub struct JobInfo {
     pub file_ids: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobState {
     Queued,
     Connecting,
@@ -182,23 +182,26 @@ pub enum JobState {
     Transferred,
     Acknowledged,
     Cancelled,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobPriority {
     Foreground,
     High,
     Normal,
     Low,
+    #[default]
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum JobType {
     Download,
     Upload,
     UploadReply,
+    #[default]
     Unknown,
 }
 
@@ -642,7 +645,7 @@ pub struct ShellItem {
     pub stores: Vec<HashMap<String, Value>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub enum ShellType {
     Directory, // After applying bitwise AND 0x70
     Network,   // After applying bitwise AND 0x70
@@ -655,6 +658,7 @@ pub enum ShellType {
     Uri,
     Variable,
     Mtp,
+    #[default]
     Unknown,
     History,
     GameFolder,
