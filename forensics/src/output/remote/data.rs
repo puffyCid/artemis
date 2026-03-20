@@ -21,11 +21,9 @@ pub(crate) fn prep_data_upload(
             }
             data.push(b'\n');
         }
-    } else {
-        if let Err(err) = serde_json::to_writer(&mut data, serde_data) {
-            error!("[forensics] Could not serialize to json {remote} writer: {err:?}");
-            return Err(RemoteError::RemoteUpload);
-        }
+    } else if let Err(err) = serde_json::to_writer(&mut data, serde_data) {
+        error!("[forensics] Could not serialize to json {remote} writer: {err:?}");
+        return Err(RemoteError::RemoteUpload);
     }
 
     if output.compress {

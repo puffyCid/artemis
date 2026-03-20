@@ -14,7 +14,7 @@ pub(crate) enum LocalWrite<W: Write> {
     /// Write data
     Raw(W),
     /// Write data with gzip compression
-    Gzip(GzEncoder<W>),
+    Gzip(Box<GzEncoder<W>>),
 }
 
 impl<W: Write> Write for LocalWrite<W> {
@@ -72,7 +72,7 @@ pub(crate) fn local_output(
     let file_buf = BufWriter::new(file);
 
     let mut writer = if output.compress {
-        LocalWrite::Gzip(GzEncoder::new(file_buf, Compression::default()))
+        LocalWrite::Gzip(Box::new(GzEncoder::new(file_buf, Compression::default())))
     } else {
         LocalWrite::Raw(file_buf)
     };
@@ -87,10 +87,10 @@ pub(crate) fn local_output(
     if data.is_array() && output.format.to_lowercase() == "jsonl" {
         let value = data.as_array().unwrap();
         for entry in value {
-            if let Err(err) = serde_json::to_writer(&mut writer, entry) {
-                error!("[forensics] Could not serialize to jsonl writer: {err:?}");
-            }
-            if let Err(err) = writer.write_all(b"\n") {
+            let mut line = serde_json::to_vec(&entry).unwrap_or_default();
+
+            line.push(b'\n');
+            if let Err(err) = writer.write_all(&line) {
                 error!("[forensics] Could not write all bytes to jsonl: {err:?}");
             }
         }
@@ -101,10 +101,10 @@ pub(crate) fn local_output(
     }
 
     // Write as normal json object
-    if let Err(err) = serde_json::to_writer(&mut writer, data) {
-        error!("[forensics] Could not serialize to json writer: {err:?}");
-    }
-    if let Err(err) = writer.write_all(b"\n") {
+    let mut line = serde_json::to_vec(&data).unwrap_or_default();
+
+    line.push(b'\n');
+    if let Err(err) = writer.write_all(&line) {
         error!("[forensics] Could not write all bytes to json: {err:?}");
     }
 
