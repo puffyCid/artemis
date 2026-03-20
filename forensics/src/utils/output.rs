@@ -13,41 +13,42 @@ use std::fs::{remove_dir, remove_file};
 
 /// Output artifact data based on output type
 pub(crate) fn final_output(
-    data: &Value,
+    data: &mut Value,
     output: &mut Output,
-    output_name: &str,
+    artifact_name: &str,
+    start_time: u64,
 ) -> Result<(), ArtemisError> {
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
-        "local" => match local_output(data, output, output_name) {
+        "local" => match local_output(data, output, artifact_name, start_time) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to output to local system: {err:?}");
                 return Err(ArtemisError::Local);
             }
         },
-        "gcp" => match gcp_upload(data, output, output_name) {
+        "gcp" => match gcp_upload(data, output, artifact_name, start_time) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to Google Cloud Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "aws" => match aws_upload(data, output, output_name) {
+        "aws" => match aws_upload(data, output, artifact_name, start_time) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to AWS S3 Bucket: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "azure" => match azure_upload(data, output, output_name) {
+        "azure" => match azure_upload(data, output, artifact_name, start_time) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to Azure Blob Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "api" => match api_upload(data, output, output_name) {
+        "api" => match api_upload(data, output, artifact_name, start_time) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to API server: {err:?}");
@@ -135,8 +136,13 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        let result =
-            final_output(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        let result = final_output(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
         assert_eq!(result, ());
     }
 
@@ -153,8 +159,13 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        let result =
-            final_output(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        let result = final_output(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
         assert_eq!(result, ());
     }
 

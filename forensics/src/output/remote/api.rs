@@ -1,5 +1,7 @@
 use super::error::RemoteError;
-use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
+use crate::{
+    output::remote::data::prep_data_upload, structs::toml::Output, utils::uuid::generate_uuid,
+};
 use log::error;
 use reqwest::{
     StatusCode,
@@ -12,11 +14,14 @@ use std::{thread::sleep, time::Duration};
 /// It should have been obtained from our initial enrollment when running in deamon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output: &mut Output,
-    output_name: &str,
+    artifact_name: &str,
+    start_time: u64,
 ) -> Result<(), RemoteError> {
-    let data = prep_data_upload(serde_data, output, "api")?;
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
+    let data = prep_data_upload(serde_data, output, "api", artifact_name, start_time)?;
 
     let api_url = if let Some(url) = &output.url {
         url
@@ -38,9 +43,9 @@ pub(crate) fn api_upload(
         builder = builder.header("accept", "application/json");
 
         let mut part = multipart::Part::bytes(data.clone());
-        part = part.file_name(output_name.to_string());
+        part = part.file_name(filename.clone());
 
-        if output_name.ends_with(".log") {
+        if filename.ends_with(".log") {
             // The last two uploads for collections are just plaintext log files
             part = part.mime_str("text/plain").unwrap();
         } else {
@@ -130,9 +135,10 @@ mod tests {
 
         let test = "A rust program";
         api_upload(
-            &serde_json::to_value(&test).unwrap(),
+            &mut serde_json::to_value(&test).unwrap(),
             &mut output,
-            "uuid.gzip",
+            "uuid",
+            0,
         )
         .unwrap();
         mock_me.assert();
@@ -155,9 +161,10 @@ mod tests {
 
         let test = "A rust program";
         api_upload(
-            &serde_json::to_value(&test).unwrap(),
+            &mut serde_json::to_value(&test).unwrap(),
             &mut output,
-            "uuid.gzip",
+            "uuid",
+            1,
         )
         .unwrap();
         mock_me.assert();

@@ -73,7 +73,9 @@ fn check_errors(output: &PathBuf) {
             continue;
         }
 
-        if value.contains("Could not parse log entry data for") {
+        if value.contains("Could not parse log entry data for")
+            || value.contains("Could not parse entry data")
+        {
             entry_error += 1;
             continue;
         }

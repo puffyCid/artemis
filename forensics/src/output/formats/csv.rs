@@ -9,14 +9,14 @@ use serde_json::Value;
 
 /// Output data as csv
 pub(crate) fn csv_format(
-    serde_data: &Value,
+    serde_data: &mut Value,
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
     let uuid = generate_uuid();
     let filename = format!("{artifact_name}_{uuid}");
 
-    if let Err(err) = final_output(serde_data, output, &filename) {
+    if let Err(err) = final_output(serde_data, output, artifact_name, 0) {
         error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
         return Err(FormatError::Output);
     }
@@ -44,7 +44,7 @@ mod tests {
             ..Default::default()
         };
 
-        let collection_output = json![{
+        let mut collection_output = json![{
                 "endpoint_id": "test",
                 "id": "1",
                 "artifact_name": "test",
@@ -53,6 +53,6 @@ mod tests {
 
         }];
 
-        csv_format(&collection_output, "test", &mut output).unwrap();
+        csv_format(&mut collection_output, "test", &mut output).unwrap();
     }
 }

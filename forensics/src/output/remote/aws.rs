@@ -2,6 +2,7 @@ use super::error::RemoteError;
 use crate::output::remote::data::prep_data_upload;
 use crate::structs::toml::Output;
 use crate::utils::encoding::base64_decode_standard;
+use crate::utils::uuid::generate_uuid;
 use log::{error, warn};
 use reqwest::header::ETAG;
 use reqwest::{StatusCode, Url, blocking::Client};
@@ -17,11 +18,15 @@ use std::time::Duration;
 
 /// Upload data to AWS S3 Bucket using a signed URL signature
 pub(crate) fn aws_upload(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output: &mut Output,
-    filename: &str,
+    artifact_name: &str,
+    start_time: u64,
 ) -> Result<(), RemoteError> {
-    let data = prep_data_upload(serde_data, output, "aws")?;
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
+
+    let data = prep_data_upload(serde_data, output, "aws", artifact_name, start_time)?;
 
     let aws_url = if let Some(url) = &output.url {
         url
@@ -445,7 +450,13 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        aws_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }
@@ -506,7 +517,13 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        aws_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+        )
+        .unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }

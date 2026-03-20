@@ -2,7 +2,7 @@ use super::error::RemoteError;
 use crate::{
     output::remote::data::prep_data_upload,
     structs::toml::Output,
-    utils::{encoding::base64_decode_standard, time::time_now},
+    utils::{encoding::base64_decode_standard, time::time_now, uuid::generate_uuid},
 };
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use log::{error, info, warn};
@@ -19,13 +19,17 @@ struct UploadResponse {
 
 /// Upload data to Google Cloud Storage Bucket using signed JWT tokens
 pub(crate) fn gcp_upload(
-    serde_data: &Value,
+    serde_data: &mut Value,
     output: &mut Output,
-    filename: &str,
+    artifact_name: &str,
+    start_time: u64,
 ) -> Result<(), RemoteError> {
-    let data = prep_data_upload(serde_data, output, "gcp")?;
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
 
-    let setup = setup_gcp_upload(output, filename)?;
+    let data = prep_data_upload(serde_data, output, "gcp", artifact_name, start_time)?;
+
+    let setup = setup_gcp_upload(output, &filename)?;
     // Full URL to target bucket and make upload resumable
     let session = &format!("{}/o?uploadType=resumable&name={}", setup.url, setup.output);
 
@@ -411,7 +415,13 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -561,7 +571,13 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            3,
+        )
+        .unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -586,7 +602,13 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        gcp_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -603,7 +625,13 @@ mod tests {
         });
         let test = "A rust program";
         let name = "output";
-        gcp_upload(&serde_json::to_value(&test).unwrap(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+        )
+        .unwrap();
         mock_me.assert();
     }
 }

@@ -59,7 +59,7 @@ pub(crate) fn generate_report(
     // The report will always be json
     output.format = String::from("json");
 
-    if let Err(err) = raw_json(&value, "report", output) {
+    if let Err(err) = raw_json(&mut value, "report", output) {
         error!("[forensics] Could not output report: {err:?}");
     }
 }

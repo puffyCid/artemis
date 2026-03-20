@@ -1,8 +1,16 @@
-use crate::{output::local::error::LocalError, structs::toml::Output};
+use crate::{
+    artifacts::os::systeminfo::info::get_info_metadata,
+    output::local::error::LocalError,
+    structs::toml::Output,
+    utils::{
+        time::{time_now, unixepoch_to_iso},
+        uuid::generate_uuid,
+    },
+};
 use csv::WriterBuilder;
 use flate2::{Compression, write::GzEncoder};
 use log::error;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     fs::{File, create_dir_all},
     io::{BufWriter, Write},
@@ -13,7 +21,7 @@ use std::{
 pub(crate) enum LocalWrite<W: Write> {
     /// Write data
     Raw(W),
-    /// Write data with gzip compression
+    /// Write data with gzip compression. Wrap in box due "larger" `GzEncoder` state.
     Gzip(Box<GzEncoder<W>>),
 }
 
@@ -35,9 +43,10 @@ impl<W: Write> Write for LocalWrite<W> {
 
 /// Output to local directory provided by TOML input
 pub(crate) fn local_output(
-    data: &Value,
+    data: &mut Value,
     output: &mut Output,
-    output_name: &str,
+    artifact_name: &str,
+    start_time: u64,
 ) -> Result<(), LocalError> {
     let output_path = format!("{}/{}", output.directory, output.name);
 
@@ -57,13 +66,16 @@ pub(crate) fn local_output(
         compression_extension = ".gz";
     }
     let extension = &output.format;
-    let output_file = format!("{output_path}/{output_name}.{extension}{compression_extension}");
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
+
+    let output_file = format!("{output_path}/{filename}.{extension}{compression_extension}");
 
     let file = match File::create(output_file) {
         Ok(results) => results,
         Err(err) => {
             error!(
-                "[forensics] Failed to create output file {output_name} at {output_path}. Error: {err:?}"
+                "[forensics] Failed to create output file {filename} at {output_path}. Error: {err:?}"
             );
             return Err(LocalError::CreateFile);
         }
@@ -83,10 +95,62 @@ pub(crate) fn local_output(
         return csv_writer(&mut writer, data);
     }
 
+    // Get small amount of system metadata
+    let info = get_info_metadata();
+    let complete = unixepoch_to_iso(time_now() as i64);
+    let disable_meta = 0;
+
     // Write serde data as newline json
     if data.is_array() && output.format.to_lowercase() == "jsonl" {
-        let value = data.as_array().unwrap();
+        let value = data.as_array_mut().unwrap();
+        // If we have an empty array. We always output metadata just so the user knows
+        if value.is_empty() {
+            let collection_output = json![{
+                    "endpoint_id": output.endpoint_id,
+                    "id": output.collection_id,
+                    "uuid": uuid,
+                    "artifact_name": artifact_name,
+                    "complete_time": complete,
+                    "start_time": unixepoch_to_iso(start_time as i64),
+                    "hostname": info.hostname,
+                    "os_version": info.os_version,
+                    "platform": info.platform,
+                    "kernel_version": info.kernel_version,
+                    "load_performance": info.performance,
+                    "version": info.version,
+                    "rust_version": info.rust_version,
+                    "build_date": info.build_date,
+                    "interfaces": info.interfaces,
+            }];
+
+            let line = serde_json::to_vec(&collection_output).unwrap_or_default();
+
+            if let Err(err) = writer.write_all(&line) {
+                error!("[forensics] Could not write all collection bytes to jsonl: {err:?}");
+            }
+        }
+
         for entry in value {
+            // Append metadata row
+            if entry.is_object() && start_time != disable_meta {
+                entry["collection_metadata"] = json![{
+                        "endpoint_id": output.endpoint_id,
+                        "uuid": uuid,
+                        "id": output.collection_id,
+                        "artifact_name": artifact_name,
+                        "complete_time": complete,
+                        "start_time": unixepoch_to_iso(start_time as i64),
+                        "hostname": info.hostname,
+                        "os_version": info.os_version,
+                        "platform": info.platform,
+                        "kernel_version": info.kernel_version,
+                        "load_performance": info.performance,
+                        "version": info.version,
+                        "rust_version": info.rust_version,
+                        "build_date": info.build_date,
+                        "interfaces": info.interfaces,
+                }];
+            }
             let mut line = serde_json::to_vec(&entry).unwrap_or_default();
 
             line.push(b'\n');
@@ -100,6 +164,21 @@ pub(crate) fn local_output(
         return Ok(());
     }
 
+    if data.is_object() && start_time != disable_meta {
+        data["collection_metadata"] = json![{
+                "endpoint_id": output.endpoint_id,
+                "uuid": uuid,
+                "id": output.collection_id,
+                "artifact_name": artifact_name,
+                "complete_time": complete,
+                "start_time": unixepoch_to_iso(start_time as i64),
+                "hostname": info.hostname,
+                "os_version": info.os_version,
+                "platform": info.platform,
+                "kernel_version": info.kernel_version,
+                "load_performance": info.performance
+        }];
+    }
     // Write as normal json object
     let mut line = serde_json::to_vec(&data).unwrap_or_default();
 
@@ -207,7 +286,13 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        local_output(&serde_json::to_value(test).unwrap(), &mut output, name).unwrap();
+        local_output(
+            &mut serde_json::to_value(test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -227,7 +312,13 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        local_output(&serde_json::to_value(test).unwrap(), &mut output, name).unwrap();
+        local_output(
+            &mut serde_json::to_value(test).unwrap(),
+            &mut output,
+            name,
+            0,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -246,8 +337,8 @@ mod tests {
         };
 
         let info = get_info();
-        let value = serde_json::to_value(&info).unwrap();
-        local_output(&value, &mut output, "csv_info").unwrap();
+        let mut value = serde_json::to_value(&info).unwrap();
+        local_output(&mut value, &mut output, "csv_info", 0).unwrap();
     }
 
     #[test]

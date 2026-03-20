@@ -2,15 +2,10 @@ use super::{error::FormatError, timeline::timeline_data};
 use crate::{
     artifacts::os::systeminfo::info::{get_info_metadata, hostname},
     structs::toml::Output,
-    utils::{
-        logging::collection_status,
-        output::final_output,
-        time::{time_now, unixepoch_to_iso},
-        uuid::generate_uuid,
-    },
+    utils::{logging::collection_status, output::final_output, uuid::generate_uuid},
 };
 use log::error;
-use serde_json::{Value, json};
+use serde_json::Value;
 
 /// Output to `jsonl` files
 pub(crate) fn jsonl_format(
@@ -25,88 +20,14 @@ pub(crate) fn jsonl_format(
     let uuid = generate_uuid();
     let filename = format!("{artifact_name}_{uuid}");
 
-    let complete = unixepoch_to_iso(time_now() as i64);
-
     // If our data is an array loop through each element and output as a separate line
-    if serde_data.is_array() {
-        let mut empty_vec = Vec::new();
+    if serde_data.is_array() && output.timeline {
         // If we are timelining data. Timeline now before appending collection metadata
-        if output.timeline {
-            timeline_data(serde_data, artifact_name);
-        }
-
-        let entries = serde_data.as_array_mut().unwrap_or(&mut empty_vec);
-        // If array is empty just output metadata
-        if entries.is_empty() {
-            let collection_output = json![{
-                    "endpoint_id": output.endpoint_id,
-                    "id": output.collection_id,
-                    "uuid": uuid,
-                    "artifact_name": artifact_name,
-                    "complete_time": unixepoch_to_iso(time_now() as i64),
-                    "start_time": unixepoch_to_iso(start_time as i64),
-                    "hostname": info.hostname,
-                    "os_version": info.os_version,
-                    "platform": info.platform,
-                    "kernel_version": info.kernel_version,
-                    "load_performance": info.performance,
-                    "version": info.version,
-                    "rust_version": info.rust_version,
-                    "build_date": info.build_date,
-                    "interfaces": info.interfaces,
-            }];
-            let status = final_output(&collection_output, output, &filename);
-            if let Err(result) = status {
-                error!("[forensics] Failed to output {artifact_name} data: {result:?}");
-            }
-        } else {
-            for entry in entries {
-                if entry.is_object() {
-                    entry["collection_metadata"] = json![{
-                            "endpoint_id": output.endpoint_id,
-                            "uuid": uuid,
-                            "id": output.collection_id,
-                            "artifact_name": artifact_name,
-                            "complete_time": complete,
-                            "start_time": unixepoch_to_iso(start_time as i64),
-                            "hostname": info.hostname,
-                            "os_version": info.os_version,
-                            "platform": info.platform,
-                            "kernel_version": info.kernel_version,
-                            "load_performance": info.performance,
-                            "version": info.version,
-                            "rust_version": info.rust_version,
-                            "build_date": info.build_date,
-                            "interfaces": info.interfaces,
-                    }];
-                }
-            }
-
-            let status = final_output(serde_data, output, &filename);
-            if let Err(result) = status {
-                error!("[forensics] Failed to output {artifact_name} data: {result:?}");
-            }
-        }
-    } else {
-        if serde_data.is_object() {
-            serde_data["collection_metadata"] = json![{
-                    "endpoint_id": output.endpoint_id,
-                    "uuid": uuid,
-                    "id": output.collection_id,
-                    "artifact_name": artifact_name,
-                    "complete_time": complete,
-                    "start_time": unixepoch_to_iso(start_time as i64),
-                    "hostname": info.hostname,
-                    "os_version": info.os_version,
-                    "platform": info.platform,
-                    "kernel_version": info.kernel_version,
-                    "load_performance": info.performance
-            }];
-        }
-        let status = final_output(serde_data, output, &filename);
-        if let Err(result) = status {
-            error!("[forensics] Failed to output {artifact_name} data: {result:?}");
-        }
+        timeline_data(serde_data, artifact_name);
+    }
+    let status = final_output(serde_data, output, artifact_name, start_time);
+    if let Err(result) = status {
+        error!("[forensics] Failed to output {artifact_name} data: {result:?}");
     }
 
     let _ = collection_status(&info.hostname, output, &filename);
@@ -116,7 +37,7 @@ pub(crate) fn jsonl_format(
 
 /// Output to `jsonl` files without metadata
 pub(crate) fn raw_jsonl(
-    serde_data: &Value,
+    serde_data: &mut Value,
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
@@ -129,12 +50,12 @@ pub(crate) fn raw_jsonl(
         if entries.is_empty() {
             return Ok(());
         }
-        let status = final_output(serde_data, output, &filename);
+        let status = final_output(serde_data, output, artifact_name, 0);
         if let Err(result) = status {
             error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
     } else {
-        let status = final_output(serde_data, output, &filename);
+        let status = final_output(serde_data, output, artifact_name, 0);
         if let Err(result) = status {
             error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         }
@@ -184,7 +105,7 @@ mod tests {
         };
 
         let name = "test";
-        let data = serde_json::Value::String(String::from("test"));
-        raw_jsonl(&data, name, &mut output).unwrap();
+        let mut data = serde_json::Value::String(String::from("test"));
+        raw_jsonl(&mut data, name, &mut output).unwrap();
     }
 }
