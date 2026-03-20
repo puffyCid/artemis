@@ -70,7 +70,7 @@ fn check_errors(output: &PathBuf) {
         if !value.contains("usnjrnl") {
             continue;
         }
-        println!("{value}");
+        println!("End2End test has error: {value}");
         count += 1;
     }
 

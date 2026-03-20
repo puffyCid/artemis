@@ -91,7 +91,7 @@ fn check_errors(output: &PathBuf) {
         if value.contains("[strings] Failed to get UTF8 string") {
             continue;
         }
-        println!("{value}");
+        println!("End2End test has error: {value}");
 
         // Not uncommon for Windows to not have all expected MUI files
         if value.contains("No MUI file at") {

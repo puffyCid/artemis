@@ -70,7 +70,7 @@ fn check_errors(output: &PathBuf) {
     let mut count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        println!("{value}");
+        println!("End2End test has error: {value}");
         count += 1;
     }
 

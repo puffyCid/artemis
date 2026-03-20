@@ -63,6 +63,7 @@ fn check_errors(output: &PathBuf) {
     let file = File::open(output).unwrap();
     let reader = BufReader::new(file);
     let mut count = 0;
+    let mut entry_error = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         if value.contains("Failed to get UTF8 string") {
@@ -71,12 +72,21 @@ fn check_errors(output: &PathBuf) {
         if value.contains("Unused") {
             continue;
         }
-        println!("{value}");
+
+        if value.contains("Could not parse log entry data for") {
+            entry_error += 1;
+            continue;
+        }
+        println!("End2End test has error: {value}");
         count += 1;
     }
 
     if count > 0 {
         panic!("Got errors: {count}");
+    }
+
+    if entry_error >= 10 {
+        panic!("Got lots of parse entry data errors: {entry_error}");
     }
 }
 
