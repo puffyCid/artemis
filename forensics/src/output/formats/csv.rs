@@ -13,14 +13,13 @@ pub(crate) fn csv_format(
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-
     if let Err(err) = final_output(serde_data, output, artifact_name, 0) {
         error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
         return Err(FormatError::Output);
     }
 
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
     let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())

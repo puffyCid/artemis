@@ -16,9 +16,9 @@ use std::{
     io::{BufWriter, Write},
 };
 
-/// A write for outputting results locally
-/// Supports gzip compression if compression is enabled
-pub(crate) enum LocalWrite<W: Write> {
+/// A writer for outputting results locally
+/// Supports gzip if compression is enabled
+enum LocalWrite<W: Write> {
     /// Write data
     Raw(W),
     /// Write data with gzip compression. Wrap in box due "larger" `GzEncoder` state.

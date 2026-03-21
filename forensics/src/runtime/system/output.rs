@@ -30,8 +30,8 @@ pub(crate) fn js_output_results(
         }
     };
 
-    let empty_start = 0;
-    let status = output_data(&mut data, &output_name, &mut output, empty_start);
+    let enable_metadata = 1;
+    let status = output_data(&mut data, &output_name, &mut output, enable_metadata);
     if status.is_err() {
         error!("[runtime] Failed could not output script data");
         let issue = String::from("Failed could not output script data");

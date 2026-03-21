@@ -11,7 +11,7 @@ use serde_json::Value;
 use std::{thread::sleep, time::Duration};
 
 /// Upload data to a remote server. For now we use our unique endpoint ID for authentication
-/// It should have been obtained from our initial enrollment when running in deamon mode
+/// It should have been obtained from our initial enrollment when running in daemon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
     serde_data: &mut Value,
@@ -21,6 +21,8 @@ pub(crate) fn api_upload(
 ) -> Result<(), RemoteError> {
     let uuid = generate_uuid();
     let filename = format!("{artifact_name}_{uuid}");
+    // API uploads should always be compressed
+    output.compress = true;
     let data = prep_data_upload(serde_data, output, "api", artifact_name, start_time)?;
 
     let api_url = if let Some(url) = &output.url {
