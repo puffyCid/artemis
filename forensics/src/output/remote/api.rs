@@ -40,6 +40,7 @@ pub(crate) fn api_upload(
         builder = builder.header("x-artemis-collection_id", &output.collection_id.to_string());
         builder = builder.header("x-artemis-collection_name", &output.name);
         builder = builder.header("accept", "application/json");
+        builder = builder.header("Content-Encoding", "gzip");
 
         let mut part = multipart::Part::bytes(data.clone());
         part = part.file_name(filename.to_string());
@@ -48,7 +49,6 @@ pub(crate) fn api_upload(
             // The last two uploads for collections are just plaintext log files
             part = part.mime_str("text/plain").unwrap();
         } else {
-            builder = builder.header("Content-Encoding", "gzip");
             // Should be safe to unwrap?
             part = part.mime_str("application/jsonl").unwrap();
         }
