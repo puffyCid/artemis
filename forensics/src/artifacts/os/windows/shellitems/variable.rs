@@ -5,7 +5,7 @@ use super::{
 use crate::{
     artifacts::os::windows::shellitems::{
         archive::parse_archive,
-        beef::{beef0004, beef0013, beef0026},
+        beef::{beef0003, beef0004, beef0013, beef0026},
     },
     utils::{
         nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
@@ -27,6 +27,7 @@ enum BeefTypes {
     Beef0004,
     Beef0026,
     Beef0013,
+    Beef0003,
 }
 
 /// Parse a `variable` `ShellItem`. May contain any 0xbeef00XX shell extension, zip file content, FTP URI, GUID, or Property view
@@ -64,6 +65,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
                 return Ok((input, variable_item));
             }
             BeefTypes::Beef0013 => beef0013::parse_beef(input),
+            BeefTypes::Beef0003 => beef0003::parse_beef(input),
         };
         let (input, guid) = match result {
             Ok(results) => results,
@@ -278,6 +280,7 @@ fn get_beef_sigs() -> HashMap<BeefTypes, [u8; 4]> {
         (BeefTypes::Beef0004, [4, 0, 239, 190]),
         (BeefTypes::Beef0026, [38, 0, 239, 190]),
         (BeefTypes::Beef0013, [19, 0, 239, 190]),
+        (BeefTypes::Beef0003, [3, 0, 239, 190]),
     ])
 }
 
