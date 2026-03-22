@@ -90,7 +90,11 @@ pub(crate) fn prep_data_upload(
                     "os_version": info.os_version,
                     "platform": info.platform,
                     "kernel_version": info.kernel_version,
-                    "load_performance": info.performance
+                    "load_performance": info.performance,
+                    "version": info.version,
+                    "rust_version":info.rust_version,
+                    "build_date": info.build_date,
+                    "interfaces": info.interfaces,
             }];
         }
         if let Err(err) = serde_json::to_writer(&mut data, serde_data) {

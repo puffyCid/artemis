@@ -182,7 +182,11 @@ pub(crate) fn local_output(
                 "os_version": info.os_version,
                 "platform": info.platform,
                 "kernel_version": info.kernel_version,
-                "load_performance": info.performance
+                "load_performance": info.performance,
+                "version": info.version,
+                "rust_version": info.rust_version,
+                "build_date": info.build_date,
+                "interfaces": info.interfaces,
         }];
     }
     // Write as normal json object
