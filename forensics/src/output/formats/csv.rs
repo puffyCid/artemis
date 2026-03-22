@@ -9,7 +9,7 @@ pub(crate) fn csv_format(
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
-    if let Err(err) = final_output(serde_data, output, artifact_name, 0) {
+    if let Err(err) = final_output(serde_data, output, artifact_name, 0, false) {
         error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
         return Err(FormatError::Output);
     }

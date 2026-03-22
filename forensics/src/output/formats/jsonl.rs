@@ -15,7 +15,7 @@ pub(crate) fn jsonl_format(
         // If we are timelining data. Timeline now before appending collection metadata
         timeline_data(serde_data, artifact_name);
     }
-    let status = final_output(serde_data, output, artifact_name, start_time);
+    let status = final_output(serde_data, output, artifact_name, start_time, false);
     if let Err(result) = status {
         error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         return Err(FormatError::Output);
@@ -31,7 +31,7 @@ pub(crate) fn raw_jsonl(
     output: &mut Output,
 ) -> Result<(), FormatError> {
     let disable_metadata = 0;
-    let status = final_output(serde_data, output, artifact_name, disable_metadata);
+    let status = final_output(serde_data, output, artifact_name, disable_metadata, false);
     if let Err(result) = status {
         error!("[forensics] Failed to output {artifact_name} data: {result:?}");
         return Err(FormatError::Output);

@@ -124,10 +124,12 @@ pub(crate) fn local_output(
             }];
 
             let line = serde_json::to_vec(&collection_output).unwrap_or_default();
-
             if let Err(err) = writer.write_all(&line) {
                 error!("[forensics] Could not write all collection bytes to jsonl: {err:?}");
             }
+            // Track output files
+            output.output_count += 1;
+            return Ok(());
         }
 
         for entry in value {
@@ -161,6 +163,8 @@ pub(crate) fn local_output(
                 }
             }
         }
+
+        // If we are writing jsonl output. We are done now
         if output.format.to_lowercase() == "jsonl" {
             // Track output files
             output.output_count += 1;

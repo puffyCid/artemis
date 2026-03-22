@@ -27,7 +27,7 @@ pub(crate) fn prep_data_upload(
     let disable_meta = 0;
 
     // Write serde data as newline json
-    if serde_data.is_array() && output.format.to_lowercase() == "jsonl" {
+    if serde_data.is_array() {
         let value = serde_data.as_array_mut().unwrap();
         if value.is_empty() {
             let collection_output = json![{

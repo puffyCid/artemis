@@ -7,6 +7,7 @@ use crate::{
     utils::output::final_output,
 };
 use log::{LevelFilter, error, warn};
+use serde_json::json;
 use std::{
     fs::{File, OpenOptions, create_dir_all, remove_dir, remove_file},
     io::Write,
@@ -121,7 +122,8 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
                 continue;
             }
         };
-        let mut serde_data = serde_json::from_slice(&log_data).unwrap_or_default();
+        // Not very elegant. But for now serialize the bytes for uploading
+        let mut serde_data = json!(log_data);
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
             if let Err(err) = api_upload(
@@ -136,7 +138,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
             let _ = remove_file(log);
             break;
         }
-        final_output(&mut serde_data, output, &get_filename(log), 0)?;
+        final_output(&mut serde_data, output, &get_filename(log), 0, true)?;
         let _ = remove_file(log);
     }
 

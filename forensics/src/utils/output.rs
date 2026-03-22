@@ -19,9 +19,16 @@ pub(crate) fn final_output(
     output: &mut Output,
     artifact_name: &str,
     start_time: u64,
+    is_logs: bool,
 ) -> Result<(), ArtemisError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
+    // If the logs are getting uploaded. Do not append uuid data
+    let filename = if is_logs {
+        artifact_name.to_string()
+    } else {
+        let uuid = generate_uuid();
+        format!("{artifact_name}_{uuid}")
+    };
+
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
         "local" => match local_output(data, output, &filename, start_time, artifact_name) {
@@ -64,7 +71,9 @@ pub(crate) fn final_output(
         }
     }
 
-    let _ = collection_status(output, &filename);
+    if !is_logs {
+        let _ = collection_status(output, &filename);
+    }
 
     Ok(())
 }
@@ -148,6 +157,7 @@ mod tests {
             &mut output,
             name,
             0,
+            false,
         )
         .unwrap();
         assert_eq!(result, ());
@@ -171,6 +181,7 @@ mod tests {
             &mut output,
             name,
             0,
+            false,
         )
         .unwrap();
         assert_eq!(result, ());
