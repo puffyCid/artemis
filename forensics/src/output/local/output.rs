@@ -270,25 +270,24 @@ fn csv_writer<W: Write>(writer: &mut LocalWrite<W>, serde_data: &Value) -> Resul
 }
 
 /// Clean serde values to look nice in csv
-fn cell_to_string(v: &Value) -> String {
-    match v {
+fn cell_to_string(data: &Value) -> String {
+    match data {
         Value::Null => "".into(),
-        Value::Bool(b) => b.to_string(),
-        Value::Number(n) => n.to_string(),
-        Value::String(s) => s.clone(),
-        _ => serde_json::to_string(v).unwrap(),
+        Value::Bool(bool) => bool.to_string(),
+        Value::Number(int) => int.to_string(),
+        Value::String(str) => str.clone(),
+        _ => serde_json::to_string(data).unwrap_or_default(),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value;
-
     use crate::{
         artifacts::os::systeminfo::info::get_info,
         output::local::output::{cell_to_string, local_output},
         structs::toml::Output,
     };
+    use serde_json::Value;
 
     #[test]
     fn test_output_json() {
