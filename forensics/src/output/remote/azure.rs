@@ -1,7 +1,5 @@
 use super::error::RemoteError;
-use crate::{
-    output::remote::data::prep_data_upload, structs::toml::Output, utils::uuid::generate_uuid,
-};
+use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
 use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client, header::HeaderMap};
 use serde_json::Value;
@@ -11,12 +9,10 @@ use std::time::Duration;
 pub(crate) fn azure_upload(
     serde_data: &mut Value,
     output: &mut Output,
-    artifact_name: &str,
+    filename: &str,
     start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-
     let data = prep_data_upload(serde_data, output, "azure", artifact_name, start_time)?;
 
     let azure_url = if let Some(url) = &output.url {
@@ -178,6 +174,7 @@ mod tests {
             &mut output,
             name,
             1,
+            "test",
         )
         .unwrap();
         mock_me.assert();
@@ -221,6 +218,7 @@ mod tests {
             &mut output,
             name,
             2,
+            "test",
         )
         .unwrap();
         mock_me.assert();
@@ -254,6 +252,7 @@ mod tests {
             &mut output,
             name,
             0,
+            "test",
         )
         .unwrap();
         mock_me.assert();

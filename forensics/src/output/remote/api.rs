@@ -1,7 +1,5 @@
 use super::error::RemoteError;
-use crate::{
-    output::remote::data::prep_data_upload, structs::toml::Output, utils::uuid::generate_uuid,
-};
+use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
 use log::error;
 use reqwest::{
     StatusCode,
@@ -16,11 +14,10 @@ use std::{thread::sleep, time::Duration};
 pub(crate) fn api_upload(
     serde_data: &mut Value,
     output: &mut Output,
-    artifact_name: &str,
+    filename: &str,
     start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
     // API uploads should always be compressed
     output.compress = true;
     let data = prep_data_upload(serde_data, output, "api", artifact_name, start_time)?;
@@ -45,7 +42,7 @@ pub(crate) fn api_upload(
         builder = builder.header("accept", "application/json");
 
         let mut part = multipart::Part::bytes(data.clone());
-        part = part.file_name(filename.clone());
+        part = part.file_name(filename.to_string());
 
         if filename.ends_with(".log") {
             // The last two uploads for collections are just plaintext log files
@@ -141,6 +138,7 @@ mod tests {
             &mut output,
             "uuid",
             0,
+            "test",
         )
         .unwrap();
         mock_me.assert();
@@ -167,6 +165,7 @@ mod tests {
             &mut output,
             "uuid",
             1,
+            "test",
         )
         .unwrap();
         mock_me.assert();

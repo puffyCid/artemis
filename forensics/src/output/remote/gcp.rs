@@ -2,7 +2,7 @@ use super::error::RemoteError;
 use crate::{
     output::remote::data::prep_data_upload,
     structs::toml::Output,
-    utils::{encoding::base64_decode_standard, time::time_now, uuid::generate_uuid},
+    utils::{encoding::base64_decode_standard, time::time_now},
 };
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use log::{error, info, warn};
@@ -21,15 +21,13 @@ struct UploadResponse {
 pub(crate) fn gcp_upload(
     serde_data: &mut Value,
     output: &mut Output,
-    artifact_name: &str,
+    filename: &str,
     start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-
     let data = prep_data_upload(serde_data, output, "gcp", artifact_name, start_time)?;
 
-    let setup = setup_gcp_upload(output, &filename)?;
+    let setup = setup_gcp_upload(output, filename)?;
     // Full URL to target bucket and make upload resumable
     let session = &format!("{}/o?uploadType=resumable&name={}", setup.url, setup.output);
 
@@ -420,6 +418,7 @@ mod tests {
             &mut output,
             name,
             0,
+            "test",
         )
         .unwrap();
         mock_me.assert();
@@ -576,6 +575,7 @@ mod tests {
             &mut output,
             name,
             3,
+            "test",
         )
         .unwrap();
         mock_me.assert();
@@ -607,6 +607,7 @@ mod tests {
             &mut output,
             name,
             1,
+            "test",
         )
         .unwrap();
     }
@@ -630,6 +631,7 @@ mod tests {
             &mut output,
             name,
             1,
+            "test",
         )
         .unwrap();
         mock_me.assert();

@@ -1,9 +1,5 @@
 use super::error::FormatError;
-use crate::{
-    artifacts::os::systeminfo::info::hostname,
-    structs::toml::Output,
-    utils::{logging::collection_status, output::final_output, uuid::generate_uuid},
-};
+use crate::{structs::toml::Output, utils::output::final_output};
 use log::error;
 use serde_json::Value;
 
@@ -17,11 +13,8 @@ pub(crate) fn json_format(
     let status = final_output(serde_data, output, artifact_name, start_time);
     if let Err(result) = status {
         error!("[forensics] Failed to output {artifact_name} data: {result:?}");
+        return Err(FormatError::Output);
     }
-
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }
@@ -32,15 +25,12 @@ pub(crate) fn raw_json(
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
     let disable_metadata = 0;
-    let status = final_output(serde_data, output, &filename, disable_metadata);
+    let status = final_output(serde_data, output, artifact_name, disable_metadata);
     if let Err(result) = status {
         error!("[forensics] Failed to output {artifact_name} data: {result:?}");
+        return Err(FormatError::Output);
     }
-
-    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }

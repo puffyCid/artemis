@@ -1,9 +1,5 @@
 use super::error::FormatError;
-use crate::{
-    artifacts::os::systeminfo::info::hostname,
-    structs::toml::Output,
-    utils::{logging::collection_status, output::final_output, uuid::generate_uuid},
-};
+use crate::{structs::toml::Output, utils::output::final_output};
 use log::error;
 use serde_json::Value;
 
@@ -17,10 +13,6 @@ pub(crate) fn csv_format(
         error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
         return Err(FormatError::Output);
     }
-
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }

@@ -49,7 +49,6 @@ pub(crate) fn prep_data_upload(
             }];
 
             data = serde_json::to_vec(&collection_output).unwrap_or_default();
-            return Ok(data);
         }
 
         for entry in value {
@@ -115,14 +114,40 @@ pub(crate) fn prep_data_upload(
 
 #[cfg(test)]
 mod tests {
-    use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
-    use serde_json::Value;
-
+    use crate::{
+        artifacts::os::systeminfo::info::get_info, output::remote::data::prep_data_upload,
+        structs::toml::Output,
+    };
+    use serde_json::{Value, json};
     #[test]
     fn test_prep_upload() {
         let out = Output::default();
         let mut test = Value::Null;
         let value = prep_data_upload(&mut test, &out, "test", "test", 2).unwrap();
+        assert!(!value.is_empty());
+    }
+
+    #[test]
+    fn test_prep_update_info() {
+        let out = Output {
+            format: String::from("jsonl"),
+            ..Default::default()
+        };
+        let info = get_info();
+        let mut value = serde_json::to_value(info).unwrap();
+        let value = prep_data_upload(&mut value, &out, "test", "test", 2).unwrap();
+        assert!(!value.is_empty());
+    }
+
+    #[test]
+    fn test_prep_update_info_array() {
+        let out = Output {
+            format: String::from("jsonl"),
+            ..Default::default()
+        };
+        let info = get_info();
+        let mut value = json!([serde_json::to_value(info).unwrap()]);
+        let value = prep_data_upload(&mut value, &out, "test", "test", 2).unwrap();
         assert!(!value.is_empty());
     }
 }

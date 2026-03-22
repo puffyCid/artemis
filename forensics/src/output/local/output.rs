@@ -45,8 +45,9 @@ impl<W: Write> Write for LocalWrite<W> {
 pub(crate) fn local_output(
     data: &mut Value,
     output: &mut Output,
-    artifact_name: &str,
+    filename: &str,
     start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), LocalError> {
     let output_path = format!("{}/{}", output.directory, output.name);
 
@@ -67,7 +68,6 @@ pub(crate) fn local_output(
     }
     let extension = &output.format;
     let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
 
     let output_file = format!("{output_path}/{filename}.{extension}{compression_extension}");
 
@@ -101,7 +101,7 @@ pub(crate) fn local_output(
     let disable_meta = 0;
 
     // Write serde data as newline json
-    if data.is_array() && output.format.to_lowercase() == "jsonl" {
+    if data.is_array() {
         let value = data.as_array_mut().unwrap();
         // If we have an empty array. We always output metadata just so the user knows
         if value.is_empty() {
@@ -151,20 +151,22 @@ pub(crate) fn local_output(
                         "interfaces": info.interfaces,
                 }];
             }
-            let mut line = serde_json::to_vec(&entry).unwrap_or_default();
+            // If we are outputting to jsonl write to newline
+            if output.format.to_lowercase() == "jsonl" {
+                let mut line = serde_json::to_vec(&entry).unwrap_or_default();
 
-            line.push(b'\n');
-            if let Err(err) = writer.write_all(&line) {
-                error!("[forensics] Could not write all bytes to jsonl: {err:?}");
+                line.push(b'\n');
+                if let Err(err) = writer.write_all(&line) {
+                    error!("[forensics] Could not write all bytes to jsonl: {err:?}");
+                }
             }
         }
-
-        // Track output files
-        output.output_count += 1;
-        return Ok(());
-    }
-
-    if data.is_object() && start_time != disable_meta {
+        if output.format.to_lowercase() == "jsonl" {
+            // Track output files
+            output.output_count += 1;
+            return Ok(());
+        }
+    } else if data.is_object() && start_time != disable_meta {
         data["collection_metadata"] = json![{
                 "endpoint_id": output.endpoint_id,
                 "uuid": uuid,
@@ -291,6 +293,7 @@ mod tests {
             &mut output,
             name,
             0,
+            test,
         )
         .unwrap();
     }
@@ -317,6 +320,7 @@ mod tests {
             &mut output,
             name,
             0,
+            test,
         )
         .unwrap();
     }
@@ -338,7 +342,7 @@ mod tests {
 
         let info = get_info();
         let mut value = serde_json::to_value(&info).unwrap();
-        local_output(&mut value, &mut output, "csv_info", 0).unwrap();
+        local_output(&mut value, &mut output, "csv_info", 0, "test").unwrap();
     }
 
     #[test]

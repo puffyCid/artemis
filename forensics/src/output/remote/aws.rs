@@ -2,7 +2,6 @@ use super::error::RemoteError;
 use crate::output::remote::data::prep_data_upload;
 use crate::structs::toml::Output;
 use crate::utils::encoding::base64_decode_standard;
-use crate::utils::uuid::generate_uuid;
 use log::{error, warn};
 use reqwest::header::ETAG;
 use reqwest::{StatusCode, Url, blocking::Client};
@@ -20,12 +19,10 @@ use std::time::Duration;
 pub(crate) fn aws_upload(
     serde_data: &mut Value,
     output: &mut Output,
-    artifact_name: &str,
+    filename: &str,
     start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-
     let data = prep_data_upload(serde_data, output, "aws", artifact_name, start_time)?;
 
     let aws_url = if let Some(url) = &output.url {
@@ -455,6 +452,7 @@ mod tests {
             &mut output,
             name,
             0,
+            "test",
         )
         .unwrap();
         mock_me.assert_calls(2);
@@ -522,6 +520,7 @@ mod tests {
             &mut output,
             name,
             1,
+            "test",
         )
         .unwrap();
         mock_me.assert_calls(2);

@@ -1,5 +1,6 @@
 use super::{error::ArtemisError, uuid::generate_uuid};
 use crate::{
+    artifacts::os::systeminfo::info::hostname,
     filesystem::files::{get_filename, list_files, read_file},
     output::remote::api::api_upload,
     structs::toml::Output,
@@ -50,11 +51,7 @@ pub(crate) fn create_log_file(output: &mut Output) -> Result<(File, LevelFilter)
 }
 
 /// Create and update a simple `status.log` file to track our output data
-pub(crate) fn collection_status(
-    hostname: &str,
-    output: &Output,
-    output_name: &str,
-) -> Result<(), ArtemisError> {
+pub(crate) fn collection_status(output: &Output, output_name: &str) -> Result<(), ArtemisError> {
     let path = format!("{}/{}", output.directory, output.name);
     let result = create_dir_all(&path);
     match result {
@@ -67,6 +64,7 @@ pub(crate) fn collection_status(
         }
     }
 
+    let hostname = hostname();
     let status_log = format!("{path}/status_{hostname}.log");
     let status_result = OpenOptions::new()
         .append(true)
@@ -126,7 +124,13 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
         let mut serde_data = serde_json::from_slice(&log_data).unwrap_or_default();
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
-            if let Err(err) = api_upload(&mut serde_data, output, &get_filename(log), 0) {
+            if let Err(err) = api_upload(
+                &mut serde_data,
+                output,
+                &get_filename(log),
+                0,
+                "collection_logs",
+            ) {
                 error!("[forensics] Failed to upload to API server: {err:?}");
             }
             let _ = remove_file(log);
@@ -190,7 +194,7 @@ mod tests {
             ..Default::default()
         };
 
-        collection_status("test", &test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
+        collection_status(&test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
     }
 
     #[test]

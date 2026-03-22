@@ -2,6 +2,8 @@ use super::error::ArtemisError;
 use crate::output::local::output::local_output;
 use crate::output::remote::api::api_upload;
 use crate::utils::compression::compress::compress_output_zip;
+use crate::utils::logging::collection_status;
+use crate::utils::uuid::generate_uuid;
 use crate::{
     filesystem::files::list_files,
     output::remote::{aws::aws_upload, azure::azure_upload, gcp::gcp_upload},
@@ -18,37 +20,39 @@ pub(crate) fn final_output(
     artifact_name: &str,
     start_time: u64,
 ) -> Result<(), ArtemisError> {
+    let uuid = generate_uuid();
+    let filename = format!("{artifact_name}_{uuid}");
     // Check for supported output types. Can customize via Cargo.toml
     match output.output.as_str() {
-        "local" => match local_output(data, output, artifact_name, start_time) {
+        "local" => match local_output(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to output to local system: {err:?}");
                 return Err(ArtemisError::Local);
             }
         },
-        "gcp" => match gcp_upload(data, output, artifact_name, start_time) {
+        "gcp" => match gcp_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to Google Cloud Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "aws" => match aws_upload(data, output, artifact_name, start_time) {
+        "aws" => match aws_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to AWS S3 Bucket: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "azure" => match azure_upload(data, output, artifact_name, start_time) {
+        "azure" => match azure_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to Azure Blob Storage: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         },
-        "api" => match api_upload(data, output, artifact_name, start_time) {
+        "api" => match api_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
                 error!("[forensics] Failed to upload to API server: {err:?}");
@@ -59,6 +63,9 @@ pub(crate) fn final_output(
             warn!("Unknown output format: {}", output.format);
         }
     }
+
+    let _ = collection_status(output, &filename);
+
     Ok(())
 }
 
