@@ -1,7 +1,7 @@
 use super::{error::ArtemisError, uuid::generate_uuid};
 use crate::{
     artifacts::os::systeminfo::info::hostname,
-    filesystem::files::{get_filename, list_files, read_file},
+    filesystem::files::{get_filename, list_files, read_text_file},
     output::remote::api::api_upload,
     structs::toml::Output,
     utils::output::final_output,
@@ -114,7 +114,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
         if !log.ends_with(".log") {
             continue;
         }
-        let read_res = read_file(log);
+        let read_res = read_text_file(log);
         let log_data = match read_res {
             Ok(result) => result,
             Err(err) => {
@@ -122,7 +122,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
                 continue;
             }
         };
-        // Not very elegant. But for now serialize the bytes for uploading
+        // Not very elegant. But for now serialize the string for uploading
         let mut serde_data = json!(log_data);
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {

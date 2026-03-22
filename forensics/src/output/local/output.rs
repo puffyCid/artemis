@@ -195,6 +195,14 @@ pub(crate) fn local_output(
     line.push(b'\n');
     if let Err(err) = writer.write_all(&line) {
         error!("[forensics] Could not write all bytes to json: {err:?}");
+        return Err(LocalError::CreateFile);
+    }
+
+    if let LocalWrite::Gzip(gz) = writer
+        && let Err(err) = gz.finish()
+    {
+        error!("[forensics] Could not finish writing compressed bytes to: {err:?}");
+        return Err(LocalError::CreateFile);
     }
 
     // Track output files
