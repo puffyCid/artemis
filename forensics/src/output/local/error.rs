@@ -4,7 +4,7 @@ use std::fmt;
 pub(crate) enum LocalError {
     CreateDirectory,
     CreateFile,
-    WriteJson,
+    WriteCsv,
 }
 
 impl std::error::Error for LocalError {}
@@ -14,7 +14,7 @@ impl fmt::Display for LocalError {
         match self {
             LocalError::CreateDirectory => write!(f, "Failed to create output directory"),
             LocalError::CreateFile => write!(f, "Failed to create output file"),
-            LocalError::WriteJson => write!(f, "Failed write json data"),
+            LocalError::WriteCsv => write!(f, "Failed write csv data"),
         }
     }
 }

@@ -1,10 +1,13 @@
-use super::{error::ArtemisError, output::final_output, uuid::generate_uuid};
+use super::{error::ArtemisError, uuid::generate_uuid};
 use crate::{
-    filesystem::files::{get_filename, list_files, read_file},
+    artifacts::os::systeminfo::info::hostname,
+    filesystem::files::{get_filename, list_files, read_text_file},
     output::remote::api::api_upload,
     structs::toml::Output,
+    utils::output::final_output,
 };
 use log::{LevelFilter, error, warn};
+use serde_json::json;
 use std::{
     fs::{File, OpenOptions, create_dir_all, remove_dir, remove_file},
     io::Write,
@@ -49,11 +52,7 @@ pub(crate) fn create_log_file(output: &mut Output) -> Result<(File, LevelFilter)
 }
 
 /// Create and update a simple `status.log` file to track our output data
-pub(crate) fn collection_status(
-    hostname: &str,
-    output: &Output,
-    output_name: &str,
-) -> Result<(), ArtemisError> {
+pub(crate) fn collection_status(output: &Output, output_name: &str) -> Result<(), ArtemisError> {
     let path = format!("{}/{}", output.directory, output.name);
     let result = create_dir_all(&path);
     match result {
@@ -66,6 +65,7 @@ pub(crate) fn collection_status(
         }
     }
 
+    let hostname = hostname();
     let status_log = format!("{path}/status_{hostname}.log");
     let status_result = OpenOptions::new()
         .append(true)
@@ -114,7 +114,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
         if !log.ends_with(".log") {
             continue;
         }
-        let read_res = read_file(log);
+        let read_res = read_text_file(log);
         let log_data = match read_res {
             Ok(result) => result,
             Err(err) => {
@@ -122,15 +122,23 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
                 continue;
             }
         };
+        // Not very elegant. But for now serialize the string for uploading
+        let mut serde_data = json!(log_data);
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
-            if let Err(err) = api_upload(&log_data, output, &get_filename(log)) {
+            if let Err(err) = api_upload(
+                &mut serde_data,
+                output,
+                &get_filename(log),
+                0,
+                "collection_logs",
+            ) {
                 error!("[forensics] Failed to upload to API server: {err:?}");
             }
             let _ = remove_file(log);
             break;
         }
-        final_output(&log_data, output, &get_filename(log))?;
+        final_output(&mut serde_data, output, &get_filename(log), 0, true)?;
         let _ = remove_file(log);
     }
 
@@ -188,7 +196,7 @@ mod tests {
             ..Default::default()
         };
 
-        collection_status("test", &test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
+        collection_status(&test, "c639679b-40ec-4aca-9ed1-dc740c38731c").unwrap();
     }
 
     #[test]

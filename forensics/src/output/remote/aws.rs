@@ -1,4 +1,5 @@
 use super::error::RemoteError;
+use crate::output::remote::data::prep_data_upload;
 use crate::structs::toml::Output;
 use crate::utils::encoding::base64_decode_standard;
 use log::{error, warn};
@@ -10,15 +11,20 @@ use rusty_s3::actions::{
 };
 use rusty_s3::{Bucket, Credentials, UrlStyle};
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
 
 /// Upload data to AWS S3 Bucket using a signed URL signature
 pub(crate) fn aws_upload(
-    data: &[u8],
+    serde_data: &mut Value,
     output: &mut Output,
     filename: &str,
+    start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
+    let data = prep_data_upload(serde_data, output, "aws", artifact_name, start_time)?;
+
     let aws_url = if let Some(url) = &output.url {
         url
     } else {
@@ -60,7 +66,7 @@ pub(crate) fn aws_upload(
 
     let setup = setup_upload(aws_info, aws_endpoint_url, &aws_filename, &HashMap::new())?;
 
-    aws_start_upload(setup, data)?;
+    aws_start_upload(setup, &data)?;
     // Track output files
     output.output_count += 1;
 
@@ -441,7 +447,14 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(test.as_bytes(), &mut output, name).unwrap();
+        aws_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+            "test",
+        )
+        .unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }
@@ -502,7 +515,14 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        aws_upload(test.as_bytes(), &mut output, name).unwrap();
+        aws_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+            "test",
+        )
+        .unwrap();
         mock_me.assert_calls(2);
         mock_me_put.assert();
     }

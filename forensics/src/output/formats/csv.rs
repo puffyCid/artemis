@@ -1,113 +1,25 @@
 use super::error::FormatError;
-use crate::{
-    artifacts::os::systeminfo::info::hostname,
-    structs::toml::Output,
-    utils::{
-        compression::compress::compress_gzip_bytes, logging::collection_status,
-        output::final_output, uuid::generate_uuid,
-    },
-};
-use csv::{Writer, WriterBuilder};
-use log::{error, info};
+use crate::{structs::toml::Output, utils::output::final_output};
+use log::error;
 use serde_json::Value;
-use std::io::{Error, ErrorKind};
 
 /// Output data as csv
 pub(crate) fn csv_format(
-    serde_data: &Value,
+    serde_data: &mut Value,
     artifact_name: &str,
     output: &mut Output,
 ) -> Result<(), FormatError> {
-    let writer_result = csv_writer(serde_data);
-    let writer = match writer_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Could not create csv writer: {err:?}");
-            return Err(FormatError::Output);
-        }
-    };
-
-    let uuid = generate_uuid();
-    let filename = format!("{artifact_name}_{uuid}");
-
-    let bytes = if output.compress {
-        match compress_gzip_bytes(&writer.into_inner().unwrap_or_default()) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to compress data: {err:?}");
-                return Err(FormatError::Output);
-            }
-        }
-    } else {
-        writer.into_inner().unwrap_or_default()
-    };
-
-    let output_result: Result<_, _> = final_output(&bytes, output, &filename);
-    match output_result {
-        Ok(_) => info!("[forensics] {artifact_name} csv output success"),
-        Err(err) => {
-            error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
-            return Err(FormatError::Output);
-        }
+    if let Err(err) = final_output(serde_data, output, artifact_name, 0, false) {
+        error!("[forensics] Failed to output {artifact_name} csv: {err:?}");
+        return Err(FormatError::Output);
     }
-
-    let _ = collection_status(&hostname(), output, &filename);
 
     Ok(())
 }
 
-/// Write serde data into a csv
-fn csv_writer(serde_data: &Value) -> Result<Writer<Vec<u8>>, Error> {
-    let mut writer = WriterBuilder::new().from_writer(Vec::new());
-
-    let mut header = Vec::new();
-    if serde_data.is_object() {
-        for key in serde_data.as_object().unwrap().keys() {
-            header.push(key);
-        }
-    } else if serde_data.is_array() {
-        let row = serde_data.as_array().unwrap().first();
-        if let Some(value) = row
-            && value.is_object()
-        {
-            for key in value.as_object().unwrap().keys() {
-                header.push(key);
-            }
-        }
-    }
-
-    if header.is_empty() {
-        return Err(Error::new(ErrorKind::InvalidData, "no headers"));
-    }
-
-    writer.write_record(&header)?;
-
-    let mut rows = Vec::new();
-    if serde_data.is_object() {
-        for value in serde_data.as_object().unwrap().values() {
-            rows.push(serde_json::to_string(value).unwrap_or_default());
-        }
-
-        writer.write_record(&rows)?;
-    } else if serde_data.is_array() {
-        for values in serde_data.as_array().unwrap() {
-            let mut rows = Vec::new();
-
-            if values.is_object() {
-                for value in values.as_object().unwrap().values() {
-                    rows.push(serde_json::to_string(value).unwrap_or_default());
-                }
-                writer.write_record(&rows)?;
-            }
-        }
-    }
-
-    Ok(writer)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{csv_format, csv_writer};
+    use super::csv_format;
     use crate::{structs::toml::Output, utils::time::time_now};
     use serde_json::json;
 
@@ -123,7 +35,7 @@ mod tests {
             ..Default::default()
         };
 
-        let collection_output = json![{
+        let mut collection_output = json![{
                 "endpoint_id": "test",
                 "id": "1",
                 "artifact_name": "test",
@@ -132,13 +44,6 @@ mod tests {
 
         }];
 
-        csv_format(&collection_output, "test", &mut output).unwrap();
-    }
-
-    #[test]
-    #[should_panic(expected = "InvalidData")]
-    fn test_csv_writer() {
-        let data = serde_json::Value::String(String::from("test"));
-        let _ = csv_writer(&data).unwrap();
+        csv_format(&mut collection_output, "test", &mut output).unwrap();
     }
 }

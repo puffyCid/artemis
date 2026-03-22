@@ -1,15 +1,20 @@
 use super::error::RemoteError;
-use crate::structs::toml::Output;
+use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
 use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client, header::HeaderMap};
+use serde_json::Value;
 use std::time::Duration;
 
 /// Upload data to Azure Blob Storage using a shared access signature (SAS) URI
 pub(crate) fn azure_upload(
-    data: &[u8],
+    serde_data: &mut Value,
     output: &mut Output,
     filename: &str,
+    start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
+    let data = prep_data_upload(serde_data, output, "azure", artifact_name, start_time)?;
+
     let azure_url = if let Some(url) = &output.url {
         url
     } else {
@@ -33,7 +38,7 @@ pub(crate) fn azure_upload(
 
     let azure_full_url = compose_azure_url(azure_url, &azure_filename)?;
 
-    azure_url_upload(&azure_full_url, &HeaderMap::new(), data, data.len())?;
+    azure_url_upload(&azure_full_url, &HeaderMap::new(), &data, data.len())?;
 
     info!(
         "[forensics] Uploaded {} bytes to Azure blob storage",
@@ -164,7 +169,14 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &mut output, name).unwrap();
+        azure_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 
@@ -201,7 +213,14 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &mut output, name).unwrap();
+        azure_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            2,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 
@@ -228,7 +247,14 @@ mod tests {
                 .header("Last-Modified", "2023-06-14 12:00:00")
                 .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
         });
-        azure_upload(test.as_bytes(), &mut output, name).unwrap();
+        azure_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 }

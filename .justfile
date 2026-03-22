@@ -119,6 +119,11 @@ cli:
 slim:
   cd cli && cargo build --release --no-default-features
 
+# Just build the artemis binary and enable profiling
+[group('workspace')]
+profile:
+  cd cli && cargo build --profile profile
+
 # Just build the forensics library
 [group('workspace')]
 forensics:

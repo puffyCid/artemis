@@ -1,5 +1,6 @@
 use super::error::RemoteError;
 use crate::{
+    output::remote::data::prep_data_upload,
     structs::toml::Output,
     utils::{encoding::base64_decode_standard, time::time_now},
 };
@@ -7,7 +8,7 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
-use serde_json::Error;
+use serde_json::{Error, Value};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -18,10 +19,14 @@ struct UploadResponse {
 
 /// Upload data to Google Cloud Storage Bucket using signed JWT tokens
 pub(crate) fn gcp_upload(
-    data: &[u8],
+    serde_data: &mut Value,
     output: &mut Output,
     filename: &str,
+    start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
+    let data = prep_data_upload(serde_data, output, "gcp", artifact_name, start_time)?;
+
     let setup = setup_gcp_upload(output, filename)?;
     // Full URL to target bucket and make upload resumable
     let session = &format!("{}/o?uploadType=resumable&name={}", setup.url, setup.output);
@@ -38,13 +43,13 @@ pub(crate) fn gcp_upload(
     builder = builder.header("Content-Type", header_value);
     builder = builder.header("Content-Length", data.len());
 
-    let res_result = builder.body(data.to_vec()).send();
+    let res_result = builder.body(data.clone()).send();
     let res = match res_result {
         Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to upload data to GCP storage: {err:?}");
             let attempt = 0;
-            return gcp_resume_upload(&session_uri, data, attempt);
+            return gcp_resume_upload(&session_uri, &data, attempt);
         }
     };
     if res.status() != StatusCode::OK && res.status() != StatusCode::CREATED {
@@ -53,7 +58,7 @@ pub(crate) fn gcp_upload(
             res.text()
         );
         let attempt = 0;
-        return gcp_resume_upload(&session_uri, data, attempt);
+        return gcp_resume_upload(&session_uri, &data, attempt);
     }
 
     match res.bytes() {
@@ -408,7 +413,14 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            0,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -558,7 +570,14 @@ mod tests {
                 .header("Location", format!("http://127.0.0.1:{port}"))
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
-        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            3,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
         mock_me_put.assert();
     }
@@ -583,7 +602,14 @@ mod tests {
 
         let test = "A rust program";
         let name = "output";
-        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+            "test",
+        )
+        .unwrap();
     }
 
     #[test]
@@ -600,7 +626,14 @@ mod tests {
         });
         let test = "A rust program";
         let name = "output";
-        gcp_upload(test.as_bytes(), &mut output, name).unwrap();
+        gcp_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            name,
+            1,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 }

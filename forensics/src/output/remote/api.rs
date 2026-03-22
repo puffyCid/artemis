@@ -1,20 +1,27 @@
 use super::error::RemoteError;
-use crate::structs::toml::Output;
+use crate::{output::remote::data::prep_data_upload, structs::toml::Output};
 use log::error;
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
 };
+use serde_json::Value;
 use std::{thread::sleep, time::Duration};
 
 /// Upload data to a remote server. For now we use our unique endpoint ID for authentication
-/// It should have been obtained from our initial enrollment when running in deamon mode
+/// It should have been obtained from our initial enrollment when running in daemon mode
 /// Inspired by osquery approach to remote uploads <https://osquery.readthedocs.io/en/stable/deployment/remote/>
 pub(crate) fn api_upload(
-    data: &[u8],
+    serde_data: &mut Value,
     output: &mut Output,
-    output_name: &str,
+    filename: &str,
+    start_time: u64,
+    artifact_name: &str,
 ) -> Result<(), RemoteError> {
+    // API uploads should always be compressed
+    output.compress = true;
+    let data = prep_data_upload(serde_data, output, "api", artifact_name, start_time)?;
+
     let api_url = if let Some(url) = &output.url {
         url
     } else {
@@ -33,15 +40,15 @@ pub(crate) fn api_upload(
         builder = builder.header("x-artemis-collection_id", &output.collection_id.to_string());
         builder = builder.header("x-artemis-collection_name", &output.name);
         builder = builder.header("accept", "application/json");
+        builder = builder.header("Content-Encoding", "gzip");
 
-        let mut part = multipart::Part::bytes(data.to_vec());
-        part = part.file_name(output_name.to_string());
+        let mut part = multipart::Part::bytes(data.clone());
+        part = part.file_name(filename.to_string());
 
-        if output_name.ends_with(".log") {
+        if filename.ends_with(".log") {
             // The last two uploads for collections are just plaintext log files
             part = part.mime_str("text/plain").unwrap();
         } else {
-            builder = builder.header("Content-Encoding", "gzip");
             // Should be safe to unwrap?
             part = part.mime_str("application/jsonl").unwrap();
         }
@@ -126,7 +133,14 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
+        api_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            "uuid",
+            0,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 
@@ -146,7 +160,14 @@ mod tests {
         });
 
         let test = "A rust program";
-        api_upload(test.as_bytes(), &mut output, "uuid.gzip").unwrap();
+        api_upload(
+            &mut serde_json::to_value(&test).unwrap(),
+            &mut output,
+            "uuid",
+            1,
+            "test",
+        )
+        .unwrap();
         mock_me.assert();
     }
 }

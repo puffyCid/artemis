@@ -77,7 +77,7 @@ impl EntryArray {
             let entry = match entry_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[journal] Could not parse entry data");
+                    error!("[journal] Could not parse log entry data for {evidence}");
                     continue;
                 }
             };

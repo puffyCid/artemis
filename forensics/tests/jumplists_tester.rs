@@ -69,7 +69,7 @@ fn check_errors(output: &PathBuf) {
         if value.contains("too small. Likely empty") {
             continue;
         }
-        println!("{value}");
+        println!("End2End test has error: {value}");
 
         count += 1;
     }

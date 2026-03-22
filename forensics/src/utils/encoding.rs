@@ -13,11 +13,6 @@ pub(crate) fn base64_encode_standard(data: &[u8]) -> String {
     general_purpose::STANDARD.encode(data)
 }
 
-/// Base64 encoded data using the URL engine
-pub(crate) fn base64_encode_url(data: &[u8]) -> String {
-    general_purpose::URL_SAFE.encode(data)
-}
-
 /// Base64 decode data use the STANDARD engine (alphabet along with "+" and "/")
 pub(crate) fn base64_decode_standard(data: &str) -> Result<Vec<u8>, DecodeError> {
     general_purpose::STANDARD.decode(data)
@@ -71,7 +66,7 @@ pub(crate) fn parse_protobuf(data: &[u8]) -> Result<HashMap<usize, ProtoTag>, Ar
 #[cfg(test)]
 mod tests {
     use crate::utils::encoding::{
-        base64_decode_standard, base64_encode_standard, base64_encode_url, parse_protobuf, read_xml,
+        base64_decode_standard, base64_encode_standard, parse_protobuf, read_xml,
     };
     use std::path::PathBuf;
 
@@ -79,13 +74,6 @@ mod tests {
     fn test_base64_encode_standard() {
         let test = b"Hello word!";
         let result = base64_encode_standard(test);
-        assert_eq!(result, "SGVsbG8gd29yZCE=")
-    }
-
-    #[test]
-    fn test_base64_encode_url() {
-        let test = b"Hello word!";
-        let result = base64_encode_url(test);
         assert_eq!(result, "SGVsbG8gd29yZCE=")
     }
 

@@ -30,8 +30,8 @@ pub(crate) fn js_output_results(
         }
     };
 
-    let empty_start = 0;
-    let status = output_data(&mut data, &output_name, &mut output, empty_start);
+    let enable_metadata = 1;
+    let status = output_data(&mut data, &output_name, &mut output, enable_metadata);
     if status.is_err() {
         error!("[runtime] Failed could not output script data");
         let issue = String::from("Failed could not output script data");
@@ -46,7 +46,7 @@ pub(crate) fn js_raw_dump(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let data = value_arg(args, 0, context)?;
+    let mut data = value_arg(args, 0, context)?;
     let output_name = string_arg(args, 1)?;
     let output_format = value_arg(args, 2, context)?;
     let sucess = true;
@@ -62,17 +62,17 @@ pub(crate) fn js_raw_dump(
     };
 
     if output.format == "jsonl" {
-        if raw_jsonl(&data, &output_name, &mut output).is_err() {
+        if raw_jsonl(&mut data, &output_name, &mut output).is_err() {
             let issue = String::from("Failed could not output raw jsonl data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     } else if output.format == "json" {
-        if raw_json(&data, &output_name, &mut output).is_err() {
+        if raw_json(&mut data, &output_name, &mut output).is_err() {
             let issue = String::from("Failed could not output raw json data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     } else if output.format == "csv" {
-        if csv_format(&data, &output_name, &mut output).is_err() {
+        if csv_format(&mut data, &output_name, &mut output).is_err() {
             let issue = String::from("Failed could not output raw csv data");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
