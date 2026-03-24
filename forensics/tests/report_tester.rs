@@ -20,17 +20,17 @@ fn test_report_parser() {
         if value.to_str().unwrap().contains("report_") {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
-            if text.contains("\"total_output_files\": 2,") {
+            if !text.contains("\"total_output_files\":2,") {
                 panic!("missing Quick report??");
             }
             continue;
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("\\systeminfo_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("systeminfo_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
-        if output_file.contains("\\processes_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("processes_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
     }
