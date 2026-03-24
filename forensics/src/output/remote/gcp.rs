@@ -82,7 +82,7 @@ pub(crate) fn gcp_upload(
     }
 
     // Track output files
-    output.output_count += 1;
+    output.output_files.push(setup.output);
     Ok(())
 }
 

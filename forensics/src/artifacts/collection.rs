@@ -34,7 +34,7 @@ use log::{error, info, warn};
 /// Parse the TOML collector and get artifacts
 pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
     // Make sure output starts at zero
-    collector.output.output_count = 0;
+    collector.output.output_files = Vec::new();
 
     // Track each artifact we parse
     let mut artifact_tracker = Vec::new();
@@ -663,11 +663,13 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         }
 
         // Generate artifact report
-        if let Ok(report) = generate_artifact_report(artifacts, &collector.output, &status) {
+        if let Ok(report) =
+            generate_artifact_report(artifacts, &collector.output.output_files, &status)
+        {
             artifact_runs.push(report);
-            total_count += collector.output.output_count;
+            total_count += collector.output.output_files.len();
             // Clear to the output files tracker
-            collector.output.output_count = 0;
+            collector.output.output_files.clear();
         }
     }
 

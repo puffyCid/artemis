@@ -55,7 +55,7 @@ pub struct Output {
     pub logging: Option<String>,
     #[serde(default)]
     /**Files containing the output */
-    pub output_count: u64,
+    pub output_files: Vec<String>,
     #[serde(default)]
     /**Path to the log file associated with the output */
     pub log_file: String,

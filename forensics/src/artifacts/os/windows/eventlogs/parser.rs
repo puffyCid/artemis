@@ -293,7 +293,7 @@ fn read_eventlogs(
     };
 
     let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
-    let limit = 10000;
+    let limit = 1000;
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
 
