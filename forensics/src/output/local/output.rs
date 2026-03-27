@@ -92,7 +92,13 @@ pub(crate) fn local_output(
     if output.format.to_lowercase() == "csv" {
         // Track output files
         output.output_files.push(output_file);
-        return csv_writer(&mut writer, data);
+        if let Err(err) = csv_writer(&mut writer, data) {
+            error!(
+                "[forensics] Failed to create csv file {filename} at {output_path}. Error: {err:?}"
+            );
+            return Err(LocalError::CreateFile);
+        }
+        return finish_writer(writer);
     }
 
     // Get small amount of system metadata
@@ -129,7 +135,7 @@ pub(crate) fn local_output(
             }
             // Track output files
             output.output_files.push(output_file);
-            return Ok(());
+            return finish_writer(writer);
         }
 
         for entry in value {
@@ -168,7 +174,7 @@ pub(crate) fn local_output(
         if output.format.to_lowercase() == "jsonl" {
             // Track output files
             output.output_files.push(output_file);
-            return Ok(());
+            return finish_writer(writer);
         }
     } else if data.is_object() && start_time != disable_meta {
         data["collection_metadata"] = json![{
@@ -198,17 +204,10 @@ pub(crate) fn local_output(
         return Err(LocalError::CreateFile);
     }
 
-    if let LocalWrite::Gzip(gz) = writer
-        && let Err(err) = gz.finish()
-    {
-        error!("[forensics] Could not finish writing compressed bytes to: {err:?}");
-        return Err(LocalError::CreateFile);
-    }
-
     // Track output files
     output.output_files.push(output_file);
 
-    Ok(())
+    finish_writer(writer)
 }
 
 /// Write to CSV instead of JSON/JSONL
@@ -278,6 +277,18 @@ fn cell_to_string(data: &Value) -> String {
         Value::String(str) => str.clone(),
         _ => serde_json::to_string(data).unwrap_or_default(),
     }
+}
+
+/// Complete the output process if compression with gzip
+fn finish_writer<W: Write>(writer: LocalWrite<W>) -> Result<(), LocalError> {
+    if let LocalWrite::Gzip(gz) = writer
+        && let Err(err) = gz.finish()
+    {
+        error!("[forensics] Could not finish writing compressed bytes: {err:?}");
+        return Err(LocalError::CreateFile);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
