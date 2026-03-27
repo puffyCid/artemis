@@ -87,7 +87,7 @@ pub(crate) fn api_upload(
     }
 
     // Track output files
-    output.output_count += 1;
+    output.output_files.push(filename.to_string());
     Ok(())
 }
 

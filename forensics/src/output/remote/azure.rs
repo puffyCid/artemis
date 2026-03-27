@@ -46,7 +46,7 @@ pub(crate) fn azure_upload(
     );
 
     // Track output files
-    output.output_count += 1;
+    output.output_files.push(azure_filename);
     Ok(())
 }
 

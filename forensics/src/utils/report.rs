@@ -19,8 +19,8 @@ pub(crate) struct ReportRuns {
     pub(crate) hash: String,
     pub(crate) last_run: String,
     pub(crate) unixepoch: u64,
-    pub(crate) output_count: u64,
-    pub(crate) log_file: String,
+    pub(crate) output_count: usize,
+    pub(crate) output_files: Vec<String>,
     pub(crate) status: String,
 }
 
@@ -30,7 +30,7 @@ pub(crate) fn generate_report(
     artifacts: &[String],
     start: u64,
     runs: &[ReportRuns],
-    total_count: u64,
+    total_count: usize,
 ) {
     let info = get_info();
 
@@ -47,6 +47,7 @@ pub(crate) fn generate_report(
     value["end_time"] = unixepoch_to_iso(time_now() as i64).into();
     value["total_output_files"] = total_count.into();
     value["artifacts"] = json!(artifacts);
+    value["log_file"] = output.log_file.clone().into();
     let value_runs = match serde_json::to_value(runs) {
         Ok(result) => result,
         Err(err) => {
@@ -67,7 +68,7 @@ pub(crate) fn generate_report(
 /// Create an artifact artifact report
 pub(crate) fn generate_artifact_report(
     artifacts: &Artifacts,
-    output: &Output,
+    files: &[String],
     status: &str,
 ) -> Result<ReportRuns, ArtemisError> {
     let artifact_bytes = match serde_json::to_vec(artifacts) {
@@ -93,8 +94,8 @@ pub(crate) fn generate_artifact_report(
         hash: md5,
         last_run: unixepoch_to_iso(time_now as i64),
         unixepoch: time_now,
-        output_count: output.output_count,
-        log_file: output.log_file.clone(),
+        output_count: files.len(),
+        output_files: files.to_vec(),
         status: status.to_string(),
     };
 
@@ -133,7 +134,7 @@ mod tests {
             ..Default::default()
         };
 
-        let report = generate_artifact_report(&art, &out, "completed").unwrap();
+        let report = generate_artifact_report(&art, &Vec::new(), "completed").unwrap();
         assert_eq!(report.hash, "890fe75691dd3cdc9febe324bf6c5fcf");
     }
 
@@ -159,7 +160,7 @@ mod tests {
             ..Default::default()
         };
 
-        let report = generate_artifact_report(&art, &out, "completed").unwrap();
+        let report = generate_artifact_report(&art, &Vec::new(), "completed").unwrap();
         generate_report(
             &mut out,
             &vec![String::from("processes")],

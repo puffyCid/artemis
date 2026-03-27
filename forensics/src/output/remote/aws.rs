@@ -68,7 +68,7 @@ pub(crate) fn aws_upload(
 
     aws_start_upload(setup, &data)?;
     // Track output files
-    output.output_count += 1;
+    output.output_files.push(aws_filename);
 
     Ok(())
 }

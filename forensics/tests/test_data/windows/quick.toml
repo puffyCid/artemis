@@ -2,7 +2,7 @@
 [output]
 name = "windows_quick"
 directory = "./tmp"
-format = "json"
+format = "jsonl"
 compress = false
 timeline = false
 endpoint_id = "abdc"

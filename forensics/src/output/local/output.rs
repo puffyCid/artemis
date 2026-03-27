@@ -71,7 +71,7 @@ pub(crate) fn local_output(
 
     let output_file = format!("{output_path}/{filename}.{extension}{compression_extension}");
 
-    let file = match File::create(output_file) {
+    let file = match File::create(&output_file) {
         Ok(results) => results,
         Err(err) => {
             error!(
@@ -91,7 +91,7 @@ pub(crate) fn local_output(
 
     if output.format.to_lowercase() == "csv" {
         // Track output files
-        output.output_count += 1;
+        output.output_files.push(output_file);
         return csv_writer(&mut writer, data);
     }
 
@@ -128,7 +128,7 @@ pub(crate) fn local_output(
                 error!("[forensics] Could not write all collection bytes to jsonl: {err:?}");
             }
             // Track output files
-            output.output_count += 1;
+            output.output_files.push(output_file);
             return Ok(());
         }
 
@@ -167,7 +167,7 @@ pub(crate) fn local_output(
         // If we are writing jsonl output. We are done now
         if output.format.to_lowercase() == "jsonl" {
             // Track output files
-            output.output_count += 1;
+            output.output_files.push(output_file);
             return Ok(());
         }
     } else if data.is_object() && start_time != disable_meta {
@@ -206,7 +206,7 @@ pub(crate) fn local_output(
     }
 
     // Track output files
-    output.output_count += 1;
+    output.output_files.push(output_file);
 
     Ok(())
 }

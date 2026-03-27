@@ -54,7 +54,11 @@ pub(crate) fn triage(output: &mut Output, options: &[TriageOptions]) -> Result<(
     if let Err(err) = acq.zip.finish() {
         warn!("[triage] Failed to finish zipping file: {err:?}");
     }
-    output.output_count = report.len() as u64;
+
+    // Track files we have acquired
+    for entry in report {
+        output.output_files.push(entry.full_path);
+    }
 
     Ok(())
 }
