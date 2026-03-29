@@ -114,15 +114,6 @@ mod tests {
 
     #[test]
     fn test_generate_artifact_report() {
-        let out = Output {
-            name: String::from("reporting"),
-            directory: String::from("tmp"),
-            format: String::from("json"),
-            endpoint_id: String::from("abcd"),
-            output: String::from("local"),
-            ..Default::default()
-        };
-
         let art = Artifacts {
             artifact_name: String::from("processes"),
             processes: Some(ProcessOptions {

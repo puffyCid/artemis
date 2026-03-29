@@ -83,13 +83,15 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
             let value = match utf16_result {
                 Ok(results) => format!("{}\n", results.trim_matches('\0')),
                 Err(err) => {
-                    warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
-
-                    let max_size = 2097152;
+                    let max_size = 100;
                     let issue = if data.len() < max_size {
+                        warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
                         base64_encode_standard(data)
                     } else {
-                        format!("Binary data size larger than 2MB, size: {}", data.len())
+                        format!(
+                            "Binary data size larger than 100 bytes, size: {} bytes",
+                            data.len()
+                        )
                     };
                     format!("Failed to get UTF16 multi-line string: {issue}")
                 }
@@ -110,13 +112,13 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     match utf8_result {
         Ok(result) => result,
         Err(err) => {
-            warn!("[strings] Failed to get UTF8 string: {err:?}");
-            let max_size = 2097152;
+            let max_size = 100;
             let issue = if data.len() < max_size {
+                warn!("[strings] Failed to get UTF8 string: {err:?}");
                 base64_encode_standard(data)
             } else {
                 format!(
-                    "[strings] Binary data size larger than 2MB, size: {}",
+                    "[strings] Binary data size larger than 100 bytes, size: {} bytes",
                     data.len()
                 )
             };
