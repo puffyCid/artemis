@@ -13,8 +13,19 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
             match result {
                 Ok(result) => result.trim_start_matches('\u{1}').to_string(),
                 Err(err) => {
-                    warn!("[strings] Failed to get UTF16 string: {err:?}");
-                    base64_encode_standard(data)
+                    let max_size = 100;
+                    let issue = if data.len() < max_size {
+                        warn!("[strings] Failed to get UTF16 string: {err:?}");
+                        base64_encode_standard(data)
+                    } else {
+                        warn!(
+                            "[strings] Failed to get large UTF16 string: {} bytes",
+                            data.len()
+                        );
+                        let preview = &data[0..50];
+                        format!("String size: {} bytes. Preview: {preview:?}", data.len())
+                    };
+                    format!("Failed to get UTF16 string: {issue}")
                 }
             }
         }
@@ -88,6 +99,10 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
                         warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
                         base64_encode_standard(data)
                     } else {
+                        warn!(
+                            "[strings] Failed to get large UTF16 multi-line string: {} bytes",
+                            data.len()
+                        );
                         let preview = &data[0..50];
                         format!("String size: {} bytes. Preview: {preview:?}", data.len())
                     };
@@ -115,6 +130,10 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
                 warn!("[strings] Failed to get UTF8 string: {err:?}");
                 base64_encode_standard(data)
             } else {
+                warn!(
+                    "[strings] Failed to get large UTF8 string: {} bytes",
+                    data.len()
+                );
                 let preview = &data[0..50];
                 format!("String size: {} bytes. Preview: {preview:?}", data.len())
             };
