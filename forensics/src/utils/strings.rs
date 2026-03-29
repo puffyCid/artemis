@@ -88,10 +88,8 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
                         warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
                         base64_encode_standard(data)
                     } else {
-                        format!(
-                            "Binary data size larger than 100 bytes, size: {} bytes",
-                            data.len()
-                        )
+                        let preview = &data[0..50];
+                        format!("String size: {} bytes. Preview: {preview:?}", data.len())
                     };
                     format!("Failed to get UTF16 multi-line string: {issue}")
                 }
@@ -117,10 +115,8 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
                 warn!("[strings] Failed to get UTF8 string: {err:?}");
                 base64_encode_standard(data)
             } else {
-                format!(
-                    "[strings] Binary data size larger than 100 bytes, size: {} bytes",
-                    data.len()
-                )
+                let preview = &data[0..50];
+                format!("String size: {} bytes. Preview: {preview:?}", data.len())
             };
             format!("[strings] Failed to get UTF8 string: {issue}")
         }

@@ -2,10 +2,13 @@ use super::header::ObjectFlag;
 use crate::utils::{
     compression::decompress::{decompress_lz4, decompress_xz, decompress_zstd},
     encoding::base64_encode_standard,
-    nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
+    nom_helper::{
+        Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
+    },
     strings::extract_utf8_string,
 };
 use log::error;
+use nom::bytes::complete::take_until;
 
 #[derive(Debug)]
 pub(crate) struct DataObject {
@@ -71,8 +74,9 @@ impl DataObject {
                     return Ok((input, data_object));
                 }
             };
-            let message = extract_utf8_string(&decompress_data);
-            data_object.message = message;
+            if let Ok((_, message)) = DataObject::extract_message(&decompress_data) {
+                data_object.message = message;
+            }
         } else if compress_type == &ObjectFlag::CompressedXz {
             let decompress_result = decompress_xz(input);
             let decompress_data = match decompress_result {
@@ -86,8 +90,9 @@ impl DataObject {
                     return Ok((input, data_object));
                 }
             };
-            let message = extract_utf8_string(&decompress_data);
-            data_object.message = message;
+            if let Ok((_, message)) = DataObject::extract_message(&decompress_data) {
+                data_object.message = message;
+            }
         } else if compress_type == &ObjectFlag::CompressedZstd {
             let decompress_result = decompress_zstd(input);
             let decompress_data = match decompress_result {
@@ -101,14 +106,36 @@ impl DataObject {
                     return Ok((input, data_object));
                 }
             };
-            let message = extract_utf8_string(&decompress_data);
-            data_object.message = message;
+            if let Ok((_, message)) = DataObject::extract_message(&decompress_data) {
+                data_object.message = message;
+            }
         } else {
-            let message = extract_utf8_string(input);
-            data_object.message = message;
+            if let Ok((_, message)) = DataObject::extract_message(input) {
+                data_object.message = message;
+            }
         }
 
         Ok((input, data_object))
+    }
+
+    /// Grab the journal message and handle any binary blobs in the message
+    fn extract_message(input: &[u8]) -> nom::IResult<&[u8], String> {
+        let mut message = extract_utf8_string(input);
+        // Messages are suppose to be UTF8 strings
+        // However raw binary blobs have been observed
+        // Ex: COREDUMP_PROC_AUXV
+        // Before returning base64 blob. Try one last time to extract at the message key
+        if message.starts_with("[strings] Failed to get UTF8 string: ") {
+            // "="
+            let delimiter = [61];
+            let (remaining_input, key_bytes) = take_until(delimiter.as_slice())(input)?;
+            let (remaining_input, _) = nom_unsigned_one_byte(remaining_input, Endian::Le)?;
+            let blob = base64_encode_standard(remaining_input);
+            let key = extract_utf8_string(key_bytes);
+            message = format!("{key}={blob}");
+        }
+
+        Ok((input, message))
     }
 }
 
@@ -136,5 +163,32 @@ mod tests {
         assert_eq!(result.tail_entry_array_offset, 3917960);
         assert_eq!(result.message, "PRIORITY=6");
         assert_eq!(result._entry_offset, 3738800);
+    }
+
+    #[test]
+    fn test_parse_data_object_binary_message() {
+        let test_data = [
+            67, 79, 82, 69, 68, 85, 77, 80, 95, 80, 82, 79, 67, 95, 65, 85, 88, 86, 61, 33, 0, 0,
+            0, 0, 0, 0, 0, 0, 240, 69, 220, 48, 127, 0, 0, 51, 0, 0, 0, 0, 0, 0, 0, 48, 14, 0, 0,
+            0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 255, 251, 235, 191, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0,
+            0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+            0, 0, 0, 0, 0, 0, 64, 224, 218, 130, 205, 85, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 56, 0, 0,
+            0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0,
+            0, 16, 70, 220, 48, 127, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0,
+            0, 0, 0, 0, 0, 176, 227, 218, 130, 205, 85, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 232, 3, 0,
+            0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 232, 3, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 0,
+            0, 232, 3, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 232, 3, 0, 0, 0, 0, 0, 0, 23, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 89, 75, 89, 142,
+            253, 127, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 31, 0, 0, 0, 0, 0, 0,
+            0, 204, 95, 89, 142, 253, 127, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 105, 75, 89, 142, 253,
+            127, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0,
+            32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let (_, result) = DataObject::extract_message(&test_data).unwrap();
+        assert_eq!(
+            result,
+            "COREDUMP_PROC_AUXV=IQAAAAAAAAAA8EXcMH8AADMAAAAAAAAAMA4AAAAAAAAQAAAAAAAAAP/7678AAAAABgAAAAAAAAAAEAAAAAAAABEAAAAAAAAAZAAAAAAAAAADAAAAAAAAAEDg2oLNVQAABAAAAAAAAAA4AAAAAAAAAAUAAAAAAAAADQAAAAAAAAAHAAAAAAAAAAAQRtwwfwAACAAAAAAAAAAAAAAAAAAAAAkAAAAAAAAAsOPags1VAAALAAAAAAAAAOgDAAAAAAAADAAAAAAAAADoAwAAAAAAAA0AAAAAAAAA6AMAAAAAAAAOAAAAAAAAAOgDAAAAAAAAFwAAAAAAAAAAAAAAAAAAABkAAAAAAAAAWUtZjv1/AAAaAAAAAAAAAAIAAAAAAAAAHwAAAAAAAADMX1mO/X8AAA8AAAAAAAAAaUtZjv1/AAAbAAAAAAAAABwAAAAAAAAAHAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        );
     }
 }

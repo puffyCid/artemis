@@ -337,6 +337,9 @@ impl EntryArray {
                     journal
                         .custom
                         .insert(field.to_string(), field_data.to_string());
+                } else if data.message.split_once("=").is_none() {
+                    // Possible binary blob?
+                    journal.custom.insert(data.message.clone(), String::new());
                 }
             }
 
