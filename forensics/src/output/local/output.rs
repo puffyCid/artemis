@@ -92,12 +92,7 @@ pub(crate) fn local_output(
     if output.format.to_lowercase() == "csv" {
         // Track output files
         output.output_files.push(output_file);
-        if let Err(err) = csv_writer(&mut writer, data) {
-            error!(
-                "[forensics] Failed to create csv file {filename} at {output_path}. Error: {err:?}"
-            );
-            return Err(LocalError::CreateFile);
-        }
+        csv_writer(&mut writer, data)?;
         return finish_writer(writer);
     }
 

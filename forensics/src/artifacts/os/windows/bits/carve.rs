@@ -76,7 +76,7 @@ pub(crate) fn carve_bits<'a>(
             let mut job = JobInfo::default();
             let input = match parse_job(hit_data, &mut job, carve) {
                 Ok((result, _)) => result,
-                Err(_err) => break,
+                Err(_err) => panic!("{_err:?}"),
             };
 
             if is_legacy {
