@@ -420,4 +420,17 @@ mod tests {
         let result = extract_ascii_utf16_string(&test);
         assert_eq!(result, "明治_明_Meiji_M");
     }
+
+    #[test]
+    fn test_string_glyph() {
+        let test = [
+            84, 104, 105, 115, 32, 105, 115, 32, 76, 105, 110, 101, 97, 114, 32, 65, 32, 119, 114,
+            105, 116, 105, 110, 103, 47, 108, 97, 110, 103, 117, 97, 103, 101, 58, 32, 240, 144,
+            152, 143, 240, 144, 152, 145,
+        ];
+        assert_eq!(
+            extract_utf8_string(&test),
+            "This is Linear A writing/language: 𐘏𐘑"
+        );
+    }
 }
