@@ -83,6 +83,7 @@ calf = "0.2.0"
 
 # JS API
 boa_engine = { version = "0.21.0", default-features = false }
+boa_gc = { version = "0.21.0", default-features = false }
 boa_runtime = { version = "0.21.0", default-features = false }
 futures-concurrency = { version = "7.7.1", default-features = false }
 futures-lite = { version = "2.6.1", default-features = false }

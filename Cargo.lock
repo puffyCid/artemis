@@ -1772,6 +1772,7 @@ dependencies = [
  "aes",
  "base64",
  "boa_engine",
+ "boa_gc",
  "boa_runtime",
  "byteorder",
  "calf",

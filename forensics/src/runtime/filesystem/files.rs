@@ -23,7 +23,7 @@ pub(crate) fn js_stat(
     let timestamps = match get_timestamps(&path) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not get timestamp for {path}: {err:?}");
+            let issue = format!("Could not get timestamps for {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
