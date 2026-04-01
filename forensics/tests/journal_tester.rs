@@ -66,7 +66,9 @@ fn check_errors(output: &PathBuf) {
     let mut entry_error = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        if value.contains("Failed to get UTF8 string") {
+        if value.contains("Failed to get large UTF8 string")
+            || value.contains("Failed to get UTF8 string")
+        {
             continue;
         }
         if value.contains("Unused") {

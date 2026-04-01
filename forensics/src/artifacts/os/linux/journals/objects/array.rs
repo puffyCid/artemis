@@ -337,6 +337,13 @@ impl EntryArray {
                     journal
                         .custom
                         .insert(field.to_string(), field_data.to_string());
+                } else {
+                    warn!(
+                        "[journal] Message missing '=' delimiter for entry at {evidence}:seqnum - {}",
+                        entry.seqnum
+                    );
+                    // Possible binary blob?
+                    journal.custom.insert(data.message.clone(), String::new());
                 }
             }
 

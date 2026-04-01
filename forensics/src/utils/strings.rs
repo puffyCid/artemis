@@ -13,8 +13,19 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
             match result {
                 Ok(result) => result.trim_start_matches('\u{1}').to_string(),
                 Err(err) => {
-                    warn!("[strings] Failed to get UTF16 string: {err:?}");
-                    base64_encode_standard(data)
+                    let max_size = 100;
+                    let issue = if data.len() < max_size {
+                        warn!("[strings] Failed to get UTF16 string: {err:?}");
+                        base64_encode_standard(data)
+                    } else {
+                        warn!(
+                            "[strings] Failed to get large UTF16 string: {} bytes",
+                            data.len()
+                        );
+                        let preview = &data[0..50];
+                        format!("String size: {} bytes. Preview: {preview:?}", data.len())
+                    };
+                    format!("Failed to get UTF16 string: {issue}")
                 }
             }
         }
@@ -83,13 +94,17 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
             let value = match utf16_result {
                 Ok(results) => format!("{}\n", results.trim_matches('\0')),
                 Err(err) => {
-                    warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
-
-                    let max_size = 2097152;
+                    let max_size = 100;
                     let issue = if data.len() < max_size {
+                        warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
                         base64_encode_standard(data)
                     } else {
-                        format!("Binary data size larger than 2MB, size: {}", data.len())
+                        warn!(
+                            "[strings] Failed to get large UTF16 multi-line string: {} bytes",
+                            data.len()
+                        );
+                        let preview = &data[0..50];
+                        format!("String size: {} bytes. Preview: {preview:?}", data.len())
                     };
                     format!("Failed to get UTF16 multi-line string: {issue}")
                 }
@@ -110,15 +125,17 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
     match utf8_result {
         Ok(result) => result,
         Err(err) => {
-            warn!("[strings] Failed to get UTF8 string: {err:?}");
-            let max_size = 2097152;
+            let max_size = 100;
             let issue = if data.len() < max_size {
+                warn!("[strings] Failed to get UTF8 string: {err:?}");
                 base64_encode_standard(data)
             } else {
-                format!(
-                    "[strings] Binary data size larger than 2MB, size: {}",
+                warn!(
+                    "[strings] Failed to get large UTF8 string: {} bytes",
                     data.len()
-                )
+                );
+                let preview = &data[0..50];
+                format!("String size: {} bytes. Preview: {preview:?}", data.len())
             };
             format!("[strings] Failed to get UTF8 string: {issue}")
         }
@@ -402,5 +419,18 @@ mod tests {
 
         let result = extract_ascii_utf16_string(&test);
         assert_eq!(result, "明治_明_Meiji_M");
+    }
+
+    #[test]
+    fn test_string_glyph() {
+        let test = [
+            84, 104, 105, 115, 32, 105, 115, 32, 76, 105, 110, 101, 97, 114, 32, 65, 32, 119, 114,
+            105, 116, 105, 110, 103, 47, 108, 97, 110, 103, 117, 97, 103, 101, 58, 32, 240, 144,
+            152, 143, 240, 144, 152, 145,
+        ];
+        assert_eq!(
+            extract_utf8_string(&test),
+            "This is Linear A writing/language: 𐘏𐘑"
+        );
     }
 }

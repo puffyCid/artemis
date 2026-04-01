@@ -68,10 +68,21 @@ fn check_errors(output: &PathBuf) {
     let reader = BufReader::new(file);
 
     let mut count = 0;
+    let mut acl_count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
+
+        // When carving may encounter errors due to entries being deleted
+        if value.contains("Unknown ACE Type") {
+            acl_count += 1;
+            continue;
+        }
         println!("End2End test has error: {value}");
         count += 1;
+    }
+
+    if acl_count > 5 {
+        panic!("Lots of ACE errors: {acl_count}");
     }
 
     if count != 0 {

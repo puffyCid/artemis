@@ -1,6 +1,6 @@
 [workspace]
 members = ["cli", "forensics", "common", "timeline", "daemon"]
-resolver = "2"
+resolver = "3"
 
 [profile.release]
 strip = true
