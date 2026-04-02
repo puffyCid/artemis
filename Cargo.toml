@@ -27,7 +27,7 @@ description = "A cross platform forensic parser"
 serde = { version = "1.0.228", features = ["derive"] }
 log = "0.4.29"
 serde_json = "1.0.149"
-toml = "1.1.0"
+toml = "1.1.2"
 base64 = "0.22.1"
 tokio = { version = "1.50.0", features = ["full"] }
 flate2 = "1.1.9"
