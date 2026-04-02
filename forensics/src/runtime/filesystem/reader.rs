@@ -33,6 +33,8 @@ impl Class for JsBufReader {
         Ok(())
     }
 
+    /// Initial the structure of the `JsBufReader` class
+    /// This is the `constructor` method
     fn data_constructor(
         _this: &JsValue,
         args: &[JsValue],
@@ -100,7 +102,7 @@ impl JsBufReader {
         let bytes = match read_bytes(offset as u64, size as u64, None, reader) {
             Ok(result) => result,
             Err(err) => {
-                let issue = format!("Could read bytes via API: {err:?}");
+                let issue = format!("Could not read bytes via API: {err:?}");
                 return Err(JsError::from_opaque(js_string!(issue).into()));
             }
         };
