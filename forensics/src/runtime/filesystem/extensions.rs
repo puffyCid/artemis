@@ -1,3 +1,5 @@
+use crate::runtime::filesystem::reader::JsBufReader;
+
 use super::{
     directory::js_read_dir,
     files::{js_glob, js_hash_file, js_read_file, js_read_lines, js_read_text_file, js_stat},
@@ -47,6 +49,8 @@ pub(crate) fn filesystem_functions(context: &mut Context) {
         3,
         NativeFunction::from_fn_ptr(js_read_lines),
     );
+
+    let _ = context.register_global_class::<JsBufReader>();
 }
 
 #[cfg(test)]
