@@ -30,7 +30,7 @@ pub(crate) fn proc_list(
     // Seen on ESXi devices: https://github.com/GuillaumeGomez/sysinfo/issues/1647
     if !sysinfo::IS_SUPPORTED_SYSTEM {
         error!("[processes] Unsupported OS");
-        return Err(ProcessError::ParseProcFile);
+        return Err(ProcessError::Empty);
     }
 
     let mut proc = System::new();
@@ -72,6 +72,13 @@ pub(crate) fn proc_list_entries(
     hashes: &Hashes,
     binary_data: bool,
 ) -> Result<Vec<Processes>, ProcessError> {
+    // For edge devices sysinfo may panic when trying to get a process listing
+    // Seen on ESXi devices: https://github.com/GuillaumeGomez/sysinfo/issues/1647
+    if !sysinfo::IS_SUPPORTED_SYSTEM {
+        error!("[processes] Unsupported OS");
+        return Err(ProcessError::Empty);
+    }
+
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
     proc.refresh_processes_specifics(
