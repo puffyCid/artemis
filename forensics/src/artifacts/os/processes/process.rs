@@ -26,6 +26,13 @@ pub(crate) fn proc_list(
     filter: bool,
     output: &mut Output,
 ) -> Result<(), ProcessError> {
+    // For edge devices sysinfo may panic when trying to get a process listing
+    // Seen on ESXi devices: https://github.com/GuillaumeGomez/sysinfo/issues/1647
+    if !sysinfo::IS_SUPPORTED_SYSTEM {
+        error!("[processes] Unsupported OS");
+        return Err(ProcessError::ParseProcFile);
+    }
+
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
     let start_time = time_now();
