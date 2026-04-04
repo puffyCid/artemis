@@ -4,12 +4,13 @@ use reqwest::blocking::Client;
 #[cfg(feature = "yarax")]
 use yara_x::{Compiler, Scanner};
 
-/// Scan a file using Yara-X
-pub(crate) fn scan_file(path: &str, encoded_rule: &str) -> Result<Vec<String>, ArtemisError> {
+/// Decode the provided Yara rule
+pub(crate) fn extract_rule(encoded_rule: &str) -> Result<String, ArtemisError> {
     #[cfg(not(feature = "yarax"))]
     {
-        return Ok(Vec::new());
+        return Ok(String::new());
     }
+
     #[cfg(feature = "yarax")]
     {
         let rule = if encoded_rule.starts_with("http") {
@@ -17,7 +18,19 @@ pub(crate) fn scan_file(path: &str, encoded_rule: &str) -> Result<Vec<String>, A
         } else {
             rule_decode(encoded_rule)?
         };
-        let compile = compile_rule(&rule)?;
+        Ok(rule)
+    }
+}
+
+/// Scan a file using Yara-X
+pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisError> {
+    #[cfg(not(feature = "yarax"))]
+    {
+        return Ok(Vec::new());
+    }
+    #[cfg(feature = "yarax")]
+    {
+        let compile = compile_rule(rule)?;
 
         let rules = compile.build();
         let mut scanner = Scanner::new(&rules);
@@ -145,7 +158,7 @@ mod tests {
         filesystem::files::read_file,
         utils::{
             encoding::base64_encode_standard,
-            yara::{remote_yara, scan_base64_bytes, scan_file},
+            yara::{extract_rule, remote_yara, scan_base64_bytes, scan_file},
         },
     };
     use std::path::PathBuf;
@@ -181,13 +194,24 @@ mod tests {
         }
         "#;
 
-        let result = scan_file(
-            test_location.to_str().unwrap(),
-            &base64_encode_standard(rule.as_bytes()),
-        )
-        .unwrap();
+        let result = scan_file(test_location.to_str().unwrap(), rule).unwrap();
 
         assert_eq!(result[0], "hello_world");
+    }
+
+    #[test]
+    fn test_extract_rule() {
+        let rule = r#"
+        rule hello_world {
+        strings:
+        $ = "hello, world! Its Rust!"
+        condition:
+        all of them
+        }
+        "#;
+
+        let result = extract_rule(&base64_encode_standard(&rule.as_bytes())).unwrap();
+        assert_eq!(result, rule);
     }
 
     #[test]
@@ -248,7 +272,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
 
-        let result = scan_file(test_location.to_str().unwrap(), rule).unwrap();
+        let rule = extract_rule(rule).unwrap();
+        let result = scan_file(test_location.to_str().unwrap(), &rule).unwrap();
         assert!(result.is_empty());
     }
 
