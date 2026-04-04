@@ -120,7 +120,15 @@ fn remote_yara(url: &str) -> Result<String, ArtemisError> {
         }
     };
 
-    Ok(response.text().unwrap_or_default())
+    let body = match response.text() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Bad body response: {err:?}");
+            return Err(ArtemisError::Remote);
+        }
+    };
+
+    Ok(body)
 }
 
 /// Base64 decode yara rule
