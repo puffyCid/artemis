@@ -20,7 +20,7 @@ use crate::filesystem::metadata::get_timestamps;
 use crate::structs::toml::Output;
 use crate::utils::regex_options::{create_regex, regex_check};
 use crate::utils::time::time_now;
-use crate::utils::yara::scan_file;
+use crate::utils::yara::{extract_rule, scan_file};
 use common::files::FileInfo;
 use common::files::Hashes;
 use log::{error, info, warn};
@@ -63,6 +63,17 @@ pub(crate) fn get_filelist(
         }
     }
 
+    let mut rule = String::new();
+    if !args.yara.is_empty() {
+        rule = match extract_rule(&args.yara) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[files] Bad yara rule {err:?}");
+                return Err(FileError::Filelisting);
+            }
+        };
+    }
+
     for entries in begin_walk
         .into_iter()
         .filter_entry(|f| !skip_firmlinks(f, &firmlink_paths))
@@ -76,11 +87,11 @@ pub(crate) fn get_filelist(
         };
 
         let mut scan = Vec::new();
-        if !args.yara.is_empty() {
+        if !rule.is_empty() {
             if !entry.file_type().is_file() {
                 continue;
             }
-            let scan_result = scan_file(&entry.path().display().to_string(), &args.yara);
+            let scan_result = scan_file(&entry.path().display().to_string(), &rule);
             scan = match scan_result {
                 Ok(result) => result,
                 Err(err) => {
