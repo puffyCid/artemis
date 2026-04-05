@@ -2,7 +2,8 @@
 # Credit to: https://github.com/lamw/ghettoVCB/blob/master/build/create_ghettoVCB_vib.sh (MIT license) and https://williamlam.com/2023/07/creating-a-custom-vib-for-esxi-8-x.html
 set -euo pipefail
 
-CUSTOM_VIB_TEMP_DIR=/tmp/vib-temp-$$
+mkdir -p vib-temp
+CUSTOM_VIB_TEMP_DIR=./vib-temp/vib-temp-$$
 CUSTOM_VIB_NAME=artemis
 CUSTOM_VIB_VERSION="0.19.0"
 CUSTOM_VIB_VENDOR="puffycid"
@@ -88,3 +89,4 @@ __VIB_DESC__
 # Create VIB using ar utility
 touch ${CUSTOM_VIB_TEMP_DIR}/sig.pkcs7
 ar r ${CUSTOM_VIB_FILE_NAME} ${VIB_DESC_FILE} ${CUSTOM_VIB_TEMP_DIR}/sig.pkcs7 ${CUSTOM_VIB_TEMP_DIR}/payload1
+rm -r ${CUSTOM_VIB_TEMP_DIR}
