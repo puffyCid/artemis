@@ -7,6 +7,7 @@ The files listed here are used to package artemis. All commands assume you are i
 - artemis.man - Simple manpage for artemis
 - artemis.wixproj - MSI Template project
 - artemis.wxs - MSI configuration
+- vib.sh - Bash script to create vSphere Installation Bundles (VIB) for ESXi systems
 
 ## RPM
 1. Ensure just, rpmbuild, rpmlint are installed
@@ -53,8 +54,13 @@ References for signing and notarizing cli/Rust tools:
 - https://github.com/GuillaumeFalourd/sign-and-notarize-gha
 
 
-# MSI 
+## MSI
 1. Install [dotnet](https://dotnet.microsoft.com/en-us/)
 2. Disable telemetry `setx DOTNET_CLI_TELEMETRY_OPTOUT 1`
 3. Install WiX via dotnet: `dotnet tool install --global wix`
 4. Run dotnet build -c Release to build MSI
+
+## vSphere Installation Bundles (VIB)
+
+1. Install [cross](https://github.com/cross-rs/cross)
+2. Run `just vib`
