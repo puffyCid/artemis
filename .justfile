@@ -293,6 +293,18 @@ _ci_msi target: (_ci_release target)
   @Remove-Item -Path target\{{target}}\release-action\* -Recurse && mv target\{{target}}\artemis.msi target\{{target}}\release-action\artemis-{{target}}.msi
   cd "target\{{target}}\release-action" && (Get-FileHash artemis-{{target}}.msi -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline artemis-{{target}}.msi.sha256
 
+
+# Package Artemis into ESXi VIB file
+[group('package')]
+vib:
+  @cd cli && cross build --release --target x86_64-unknown-linux-musl
+  @cp .packages/vib.sh ./target/x86_64-unknown-linux-musl/release
+  @cd ./target/x86_64-unknown-linux-musl/release && bash vib.sh
+
+  @echo ""
+  @echo "Artemis VIB at ./target/x86_64-unknown-linux-musl/release"
+
+
 # Start the example daemon server in a Podman container
 [group('daemon')]
 server-podman:
