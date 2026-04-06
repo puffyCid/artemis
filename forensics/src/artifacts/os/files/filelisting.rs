@@ -92,6 +92,18 @@ pub(crate) fn get_filelist(
             }
         };
 
+        // If Regex does not match then skip file info
+        if !args.path_regex.is_empty()
+            && !regex_check(&path_filter, &entry.path().display().to_string())
+        {
+            continue;
+        }
+        if !args.filename_regex.is_empty()
+            && !regex_check(&file_filter, &entry.file_name().display().to_string())
+        {
+            continue;
+        }
+
         let mut scan = Vec::new();
         if !rule.is_empty() {
             if !entry.file_type().is_file() {
@@ -109,14 +121,6 @@ pub(crate) fn get_filelist(
             if scan.is_empty() {
                 continue;
             }
-        }
-
-        // If Regex does not match then skip file info
-        if !regex_check(&path_filter, &entry.path().display().to_string()) {
-            continue;
-        }
-        if !regex_check(&file_filter, &entry.file_name().display().to_string()) {
-            continue;
         }
 
         let file_entry_result = file_metadata(&entry, args.metadata, hashes, &platform);
@@ -232,10 +236,7 @@ fn skip_directory(entry: &DirEntry, directories: &[String]) -> bool {
         return false;
     }
     for exclude_dir in directories {
-        let skip = entry
-            .path()
-            .to_str()
-            .is_some_and(|s| s.starts_with(exclude_dir));
+        let skip = entry.path().to_str().is_some_and(|s| s == exclude_dir);
         if skip {
             return skip;
         }
