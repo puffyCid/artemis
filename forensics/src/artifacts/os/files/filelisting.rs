@@ -199,7 +199,8 @@ fn file_metadata(
             executable_metadata(&entry.path().display().to_string(), plat).unwrap_or_default();
     }
 
-    if (hashes.md5 || hashes.sha1 || hashes.sha256) && file_entry.is_file {
+    if (hashes.md5 || hashes.sha1 || hashes.sha256) && file_entry.is_file && !file_entry.is_symlink
+    {
         let (md5, sha1, sha256) = hash_file(hashes, &file_entry.full_path);
         file_entry.md5 = md5;
         file_entry.sha1 = sha1;

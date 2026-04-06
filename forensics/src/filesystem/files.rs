@@ -61,7 +61,7 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
 /// Check if path is a file
 pub(crate) fn is_file(path: &str) -> bool {
     let file = Path::new(path);
-    if file.is_file() {
+    if file.is_file() && !file.is_symlink() {
         return true;
     }
     false
