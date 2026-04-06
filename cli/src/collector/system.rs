@@ -118,8 +118,10 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             metadata,
             start_path,
             depth,
-            regex_filter,
+            path_regex,
+            file_regex,
             yara_rule,
+            exclude_directories,
         } => {
             let options = FileOptions {
                 md5: Some(*md5),
@@ -128,8 +130,10 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 metadata: Some(*metadata),
                 sha1: Some(*sha1),
                 sha256: Some(*sha256),
-                regex_filter: regex_filter.clone(),
+                path_regex: path_regex.clone(),
+                file_regex: file_regex.clone(),
                 yara: yara_rule.clone(),
+                exclude_directories: exclude_directories.clone(),
             };
             collect.files = Some(options);
             collect.artifact_name = String::from("files");
@@ -540,8 +544,10 @@ mod tests {
                 metadata: false,
                 start_path: String::from("/"),
                 depth: 1,
-                regex_filter: None,
+                path_regex: None,
+                file_regex: None,
                 yara_rule: None,
+                exclude_directories: None,
             }),
             format: String::from("json"),
             compress: false,

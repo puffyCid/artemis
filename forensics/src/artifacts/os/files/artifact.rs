@@ -22,13 +22,23 @@ pub(crate) fn filelisting(
         depth: options.depth.unwrap_or(1) as usize,
         metadata: options.metadata.unwrap_or(false),
         yara: options.yara.as_ref().unwrap_or(&String::new()).clone(),
-        path_filter: options
-            .regex_filter
+        path_regex: options
+            .path_regex
             .as_ref()
             .unwrap_or(&String::new())
             .clone(),
+        file_regex: options
+            .file_regex
+            .as_ref()
+            .unwrap_or(&String::new())
+            .clone(),
+        exclude_directories: options
+            .exclude_directories
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .clone(),
     };
-    if let Err(err) = get_filelist(&args, &hashes, output, filter) {
+    if let Err(err) = get_filelist(args, &hashes, output, filter) {
         error!("[forensics] Failed to get file listing: {err:?}");
         return Err(FileError::Filelisting);
     }
@@ -67,8 +77,10 @@ mod tests {
             md5: Some(false),
             sha1: Some(false),
             sha256: Some(false),
-            regex_filter: Some(String::new()),
+            path_regex: None,
+            file_regex: None,
             yara: None,
+            exclude_directories: None,
         };
         let status = filelisting(&mut output, false, &file_config).unwrap();
         assert_eq!(status, ());
@@ -86,8 +98,10 @@ mod tests {
             md5: Some(false),
             sha1: Some(false),
             sha256: Some(false),
-            regex_filter: Some(String::new()),
+            path_regex: None,
+            file_regex: None,
             yara: None,
+            exclude_directories: None,
         };
         let status = filelisting(&mut output, false, &file_config).unwrap();
         assert_eq!(status, ());

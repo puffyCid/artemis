@@ -8,7 +8,7 @@ pub struct Hashes {
     pub sha1: bool,
     pub sha256: bool,
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct FileInfo {
     pub full_path: String,
     pub directory: String,

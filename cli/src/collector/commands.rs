@@ -39,9 +39,15 @@ pub(crate) enum CommandArgs {
         /// Depth for file listing. Max is 255
         #[arg(long, default_value_t = 2)]
         depth: u8,
-        /// Regex to only include entries that match
+        /// Regex to only include entries that match a provided path
         #[arg(long, default_value = None)]
-        regex_filter: Option<String>,
+        path_regex: Option<String>,
+        /// Regex to only include entries that match a provided filename
+        #[arg(long, default_value = None)]
+        file_regex: Option<String>,
+        /// Skip specific directories. Can provide comma separated list
+        #[arg(long, default_value = None, value_delimiter = ',')]
+        exclude_directories: Option<Vec<String>>,
         /// Base64 encoded Yara rule to only include entries that match
         #[arg(long, default_value = None)]
         yara_rule: Option<String>,
