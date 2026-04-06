@@ -27,8 +27,8 @@ pub(crate) fn filelisting(
             .as_ref()
             .unwrap_or(&String::new())
             .clone(),
-        file_regex: options
-            .file_regex
+        filename_regex: options
+            .filename_regex
             .as_ref()
             .unwrap_or(&String::new())
             .clone(),
@@ -78,7 +78,7 @@ mod tests {
             sha1: Some(false),
             sha256: Some(false),
             path_regex: None,
-            file_regex: None,
+            filename_regex: None,
             yara: None,
             exclude_directories: None,
         };
@@ -99,7 +99,7 @@ mod tests {
             sha1: Some(false),
             sha256: Some(false),
             path_regex: None,
-            file_regex: None,
+            filename_regex: None,
             yara: None,
             exclude_directories: None,
         };

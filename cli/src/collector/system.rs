@@ -119,7 +119,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             start_path,
             depth,
             path_regex,
-            file_regex,
+            filename_regex,
             yara_rule,
             exclude_directories,
         } => {
@@ -131,7 +131,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 sha1: Some(*sha1),
                 sha256: Some(*sha256),
                 path_regex: path_regex.clone(),
-                file_regex: file_regex.clone(),
+                filename_regex: filename_regex.clone(),
                 yara: yara_rule.clone(),
                 exclude_directories: exclude_directories.clone(),
             };
@@ -545,7 +545,7 @@ mod tests {
                 start_path: String::from("/"),
                 depth: 1,
                 path_regex: None,
-                file_regex: None,
+                filename_regex: None,
                 yara_rule: None,
                 exclude_directories: None,
             }),

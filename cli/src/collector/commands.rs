@@ -44,7 +44,7 @@ pub(crate) enum CommandArgs {
         path_regex: Option<String>,
         /// Regex to only include entries that match a provided filename
         #[arg(long, default_value = None)]
-        file_regex: Option<String>,
+        filename_regex: Option<String>,
         /// Skip specific directories. Can provide comma separated list
         #[arg(long, default_value = None, value_delimiter = ',')]
         exclude_directories: Option<Vec<String>>,

@@ -36,7 +36,7 @@ pub(crate) struct FileArgs {
     pub(crate) metadata: bool,
     pub(crate) yara: String,
     pub(crate) path_regex: String,
-    pub(crate) file_regex: String,
+    pub(crate) filename_regex: String,
     pub(crate) exclude_directories: Vec<String>,
 }
 
@@ -54,7 +54,7 @@ pub(crate) fn get_filelist(
     let mut filelist_vec: Vec<FileInfo> = Vec::new();
 
     let path_filter = user_regex(&args.path_regex)?;
-    let file_filter = user_regex(&args.file_regex)?;
+    let file_filter = user_regex(&args.filename_regex)?;
     let mut firmlink_paths: Vec<String> = Vec::new();
 
     let platform = get_platform_enum();
@@ -381,7 +381,7 @@ mod tests {
             metadata,
             yara: String::new(),
             path_regex: path_filter.to_string(),
-            file_regex: String::new(),
+            filename_regex: String::new(),
             exclude_directories: Vec::new(),
         };
 
@@ -428,7 +428,7 @@ mod tests {
             metadata,
             yara: String::new(),
             path_regex: path_filter.to_string(),
-            file_regex: String::new(),
+            filename_regex: String::new(),
             exclude_directories: Vec::new(),
         };
 
@@ -456,7 +456,7 @@ mod tests {
             metadata,
             yara: String::new(),
             path_regex: path_filter.to_string(),
-            file_regex: String::new(),
+            filename_regex: String::new(),
             exclude_directories: Vec::new(),
         };
 
