@@ -157,6 +157,7 @@ fn file_metadata(
 ) -> Result<FileInfo, ioError> {
     let mut file_entry = FileInfo {
         full_path: entry.path().display().to_string(),
+        depth: entry.depth(),
         ..Default::default()
     };
 
@@ -522,7 +523,7 @@ mod tests {
 
         for entries in skip_path {
             let entry_data = entries.unwrap();
-            let is_firmlink = skip_firmlinks(&entry_data, &results);
+            let is_firmlink = skip_directory(&entry_data, &results);
             assert_eq!(is_firmlink, true);
         }
 
