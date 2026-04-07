@@ -650,7 +650,7 @@ mod tests {
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0).unwrap();
+        parse_mft(&test_location.to_str().unwrap(), &mut output, false, 0, "").unwrap();
     }
 
     #[test]
@@ -693,6 +693,13 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
 
-        parse_mft(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_mft(
+            &test_location.display().to_string(),
+            &mut output,
+            false,
+            0,
+            "",
+        )
+        .unwrap();
     }
 }
