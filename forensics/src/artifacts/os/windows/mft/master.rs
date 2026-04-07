@@ -32,6 +32,7 @@ pub(crate) fn parse_mft(
     output: &mut Output,
     filter: bool,
     start_time: u64,
+    drive: &str,
 ) -> Result<(), MftError> {
     let plat = get_platform();
     let size;
@@ -48,6 +49,7 @@ pub(crate) fn parse_mft(
             filter,
             size,
             path,
+            drive,
         );
     }
 
@@ -78,6 +80,7 @@ pub(crate) fn parse_mft(
         filter,
         size,
         path,
+        drive,
     )
 }
 
@@ -90,6 +93,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     filter: bool,
     size: u64,
     evidence: &str,
+    drive: &str,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
     // Keep a directory cache limit of 1000 entries
@@ -215,29 +219,10 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
                 for value in &entry.filename {
                     let mut mft_entry = MftEntry {
-                        filename: String::new(),
-                        directory: String::new(),
-                        full_path: String::new(),
-                        extension: String::new(),
-                        created: String::new(),
-                        modified: String::new(),
-                        changed: String::new(),
-                        accessed: String::new(),
-                        filename_created: String::new(),
-                        filename_modified: String::new(),
-                        filename_changed: String::new(),
-                        filename_accessed: String::new(),
-                        size: 0,
-                        inode: 0,
-                        is_file: false,
-                        is_directory: false,
-                        attributes: Vec::new(),
-                        namespace: Namespace::Unknown,
-                        usn: 0,
-                        parent_inode: 0,
-                        attribute_list: Vec::new(),
                         deleted: !mft_header.entry_flags.contains(&EntryFlags::InUse),
                         evidence: evidence.to_string(),
+                        drive: drive.to_string(),
+                        ..Default::default()
                     };
 
                     if let Some(standard) = entry.standard.first() {
@@ -692,6 +677,7 @@ mod tests {
             false,
             size,
             "MFT",
+            "C",
         )
         .unwrap();
     }
