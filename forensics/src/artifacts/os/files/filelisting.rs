@@ -518,14 +518,24 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_skip_directory() {
         use crate::artifacts::os::files::filelisting::{read_firmlinks, skip_directory};
-        let skip_path = WalkDir::new("/Users").max_depth(1);
+        let skip_path = WalkDir::new("/").max_depth(1);
         let results = read_firmlinks().unwrap();
         assert!(results.len() > 3);
 
         for entries in skip_path {
             let entry_data = entries.unwrap();
             let is_firmlink = skip_directory(&entry_data, &results);
-            assert_eq!(is_firmlink, true);
+            if entry_data.file_name() == "Users" {
+                assert!(is_firmlink);
+            }
+
+            if entry_data.file_name() == "Applications" || entry_data.file_name() == "Library" {
+                assert!(is_firmlink);
+            }
+
+            if entry_data.file_name() == "bin" {
+                assert!(!is_firmlink);
+            }
         }
 
         let start_path = WalkDir::new("/sbin").max_depth(1);
