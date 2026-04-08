@@ -20,20 +20,22 @@ pub(crate) fn grab_mft(
 ) -> Result<(), MftError> {
     let start_time = time_now();
 
+    let mut drive = String::new();
     let path = if let Some(file) = &options.alt_file {
-        return parse_mft(file, output, filter, start_time);
+        return parse_mft(file, output, filter, start_time, &drive);
     } else {
         // Check if alternative drive letter provided
-        if let Some(drive) = &options.alt_drive {
-            format!("{drive}:\\$MFT")
+        if let Some(alt_drive) = &options.alt_drive {
+            drive = alt_drive.to_string();
+            format!("{alt_drive}:\\$MFT")
         } else {
             // Otherwise try to get the SystemDrive
-            let drive = get_systemdrive().unwrap_or('C');
+            drive = get_systemdrive().unwrap_or('C').to_string();
             format!("{drive}:\\$MFT")
         }
     };
 
-    parse_mft(&path, output, filter, start_time)
+    parse_mft(&path, output, filter, start_time, &drive)
 }
 
 #[cfg(test)]

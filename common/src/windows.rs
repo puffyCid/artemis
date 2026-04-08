@@ -1632,7 +1632,7 @@ pub enum EventLevel {
     Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct MftEntry {
     pub filename: String,
     pub directory: String,
@@ -1656,6 +1656,7 @@ pub struct MftEntry {
     pub parent_inode: u32,
     pub attribute_list: Vec<Value>,
     pub deleted: bool,
+    pub drive: String,
     pub evidence: String,
 }
 

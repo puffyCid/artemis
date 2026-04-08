@@ -143,6 +143,7 @@ pub(crate) fn get_usnjrnl_alt_path(
             return Err(UsnJrnlError::Parser);
         }
     };
+    // Drive is empty because we cannot be certain what the source drive is
     extract_entries(&mut entries, None, false, 0, &journal_cache, path, "")
 }
 
@@ -181,6 +182,7 @@ pub(crate) fn get_usnjrnl_path_stream(
         start_time,
         &journal_cache,
         path,
+        // Drive is empty because we cannot be certain what the source drive is
         "",
     )?;
     Ok(())
