@@ -11,10 +11,10 @@ use super::error::FileError;
 use crate::artifacts::os::linux::executable::parser::parse_elf_file;
 use crate::artifacts::os::macos::macho::error::MachoError;
 use crate::artifacts::os::macos::macho::parser::parse_macho;
-use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform, get_platform_enum};
+use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform_enum};
 use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 use crate::artifacts::output::output_artifact;
-use crate::filesystem::files::{file_extension, hash_file};
+use crate::filesystem::files::hash_file;
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::metadata::get_timestamps;
 use crate::structs::toml::Output;
@@ -35,12 +35,14 @@ pub(crate) struct FileArgs {
     pub(crate) depth: usize,
     pub(crate) metadata: bool,
     pub(crate) yara: String,
-    pub(crate) path_filter: String,
+    pub(crate) path_regex: String,
+    pub(crate) filename_regex: String,
+    pub(crate) exclude_directories: Vec<String>,
 }
 
 /// Get file listing
 pub(crate) fn get_filelist(
-    args: &FileArgs,
+    mut args: FileArgs,
     hashes: &Hashes,
     output: &mut Output,
     filter: bool,
@@ -51,7 +53,8 @@ pub(crate) fn get_filelist(
     let begin_walk = start_walk.max_depth(args.depth);
     let mut filelist_vec: Vec<FileInfo> = Vec::new();
 
-    let path_filter = user_regex(&args.path_filter)?;
+    let path_filter = user_regex(&args.path_regex)?;
+    let file_filter = user_regex(&args.filename_regex)?;
     let mut firmlink_paths: Vec<String> = Vec::new();
 
     let platform = get_platform_enum();
@@ -62,6 +65,9 @@ pub(crate) fn get_filelist(
             Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
         }
     }
+
+    // On macOS we always skip firmlinks
+    args.exclude_directories.append(&mut firmlink_paths);
 
     let mut rule = String::new();
     if !args.yara.is_empty() {
@@ -76,7 +82,7 @@ pub(crate) fn get_filelist(
 
     for entries in begin_walk
         .into_iter()
-        .filter_entry(|f| !skip_firmlinks(f, &firmlink_paths))
+        .filter_entry(|f| !skip_directory(f, &args.exclude_directories))
     {
         let entry = match entries {
             Ok(result) => result,
@@ -85,6 +91,18 @@ pub(crate) fn get_filelist(
                 continue;
             }
         };
+
+        // If Regex does not match then skip file info
+        if !args.path_regex.is_empty()
+            && !regex_check(&path_filter, &entry.path().display().to_string())
+        {
+            continue;
+        }
+        if !args.filename_regex.is_empty()
+            && !regex_check(&file_filter, &entry.file_name().display().to_string())
+        {
+            continue;
+        }
 
         let mut scan = Vec::new();
         if !rule.is_empty() {
@@ -103,11 +121,6 @@ pub(crate) fn get_filelist(
             if scan.is_empty() {
                 continue;
             }
-        }
-
-        // If Regex does not match then skip file info
-        if !regex_check(&path_filter, &entry.path().display().to_string()) {
-            continue;
         }
 
         let file_entry_result = file_metadata(&entry, args.metadata, hashes, &platform);
@@ -148,29 +161,16 @@ fn file_metadata(
 ) -> Result<FileInfo, ioError> {
     let mut file_entry = FileInfo {
         full_path: entry.path().display().to_string(),
-        directory: String::new(),
-        filename: String::new(),
-        extension: String::new(),
-        created: String::new(),
-        modified: String::new(),
-        changed: String::new(),
-        accessed: String::new(),
-        size: 0,
-        inode: 0,
-        mode: 0,
-        uid: 0,
-        gid: 0,
-        md5: String::new(),
-        sha1: String::new(),
-        sha256: String::new(),
-        is_file: false,
-        is_directory: false,
-        is_symlink: false,
         depth: entry.depth(),
-        binary_info: Value::Null,
-        yara_hits: Vec::new(),
+        ..Default::default()
     };
-    file_entry.extension = file_extension(&file_entry.full_path);
+
+    file_entry.extension = entry
+        .path()
+        .extension()
+        .unwrap_or_default()
+        .display()
+        .to_string();
     let metadata = get_metadata(&file_entry.full_path)?;
 
     let timestamps = get_timestamps(&file_entry.full_path)?;
@@ -204,7 +204,8 @@ fn file_metadata(
             executable_metadata(&entry.path().display().to_string(), plat).unwrap_or_default();
     }
 
-    if hashes.md5 || hashes.sha1 || hashes.sha256 {
+    if (hashes.md5 || hashes.sha1 || hashes.sha256) && file_entry.is_file && !file_entry.is_symlink
+    {
         let (md5, sha1, sha256) = hash_file(hashes, &file_entry.full_path);
         file_entry.md5 = md5;
         file_entry.sha1 = sha1;
@@ -229,25 +230,18 @@ fn file_metadata(
     Ok(file_entry)
 }
 
-/// Skip default firmlinks on macOS
-fn skip_firmlinks(entry: &DirEntry, firmlink_paths: &[String]) -> bool {
-    if firmlink_paths.is_empty() {
+/// Skip directory if in our exclusion array
+fn skip_directory(entry: &DirEntry, directories: &[String]) -> bool {
+    if directories.is_empty() {
         return false;
     }
-    let platform = get_platform();
-    if platform == "Darwin" {
-        let mut is_firmlink = true;
-        for firmlink in firmlink_paths {
-            is_firmlink = entry
-                .path()
-                .to_str()
-                .is_some_and(|s| s.starts_with(firmlink));
-            if is_firmlink {
-                return is_firmlink;
-            }
+    for exclude_dir in directories {
+        let skip = entry.path().to_str().is_some_and(|s| s == exclude_dir);
+        if skip {
+            return skip;
         }
-        return is_firmlink;
     }
+
     false
 }
 
@@ -342,18 +336,15 @@ fn file_output(filelist: &[FileInfo], output: &mut Output, start_time: u64, filt
 
 #[cfg(test)]
 mod tests {
-    use super::file_output;
-    use crate::artifacts::os::files::filelisting::FileArgs;
-    use crate::artifacts::os::files::filelisting::executable_metadata;
-    use crate::artifacts::os::files::filelisting::file_metadata;
-    use crate::artifacts::os::files::filelisting::get_filelist;
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::{
-        artifacts::os::files::filelisting::{Hashes, user_regex},
+        artifacts::os::files::filelisting::{
+            FileArgs, Hashes, executable_metadata, file_metadata, file_output, get_filelist,
+            user_regex,
+        },
         structs::toml::Output,
     };
     use common::files::FileInfo;
-    use serde_json::Value;
     use walkdir::WalkDir;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -390,10 +381,12 @@ mod tests {
             depth,
             metadata,
             yara: String::new(),
-            path_filter: path_filter.to_string(),
+            path_regex: path_filter.to_string(),
+            filename_regex: String::new(),
+            exclude_directories: Vec::new(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(args, &hashes, &mut output, false).unwrap();
         assert_eq!(results, ());
     }
 
@@ -403,26 +396,8 @@ mod tests {
         let info = FileInfo {
             full_path: String::from("/root"),
             directory: String::from("/root"),
-            filename: String::new(),
-            extension: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            changed: String::new(),
-            accessed: String::new(),
-            size: 0,
-            inode: 0,
-            mode: 0,
-            uid: 0,
-            gid: 0,
-            md5: String::new(),
-            sha1: String::new(),
-            sha256: String::new(),
-            is_file: false,
-            is_directory: true,
-            is_symlink: false,
             depth: 1,
-            binary_info: Value::Null,
-            yara_hits: Vec::new(),
+            ..Default::default()
         };
         file_output(&vec![info], &mut output, 0, false);
     }
@@ -453,10 +428,12 @@ mod tests {
             depth,
             metadata,
             yara: String::new(),
-            path_filter: path_filter.to_string(),
+            path_regex: path_filter.to_string(),
+            filename_regex: String::new(),
+            exclude_directories: Vec::new(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(args, &hashes, &mut output, false).unwrap();
         assert_eq!(results, ());
     }
 
@@ -479,10 +456,12 @@ mod tests {
             depth,
             metadata,
             yara: String::new(),
-            path_filter: path_filter.to_string(),
+            path_regex: path_filter.to_string(),
+            filename_regex: String::new(),
+            exclude_directories: Vec::new(),
         };
 
-        let results = get_filelist(&args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(args, &hashes, &mut output, false).unwrap();
         assert_eq!(results, ());
     }
 
@@ -537,22 +516,32 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "macos")]
-    fn test_skip_firmlinks() {
-        use crate::artifacts::os::files::filelisting::{read_firmlinks, skip_firmlinks};
-        let skip_path = WalkDir::new("/Users").max_depth(1);
+    fn test_skip_directory() {
+        use crate::artifacts::os::files::filelisting::{read_firmlinks, skip_directory};
+        let skip_path = WalkDir::new("/").max_depth(1);
         let results = read_firmlinks().unwrap();
         assert!(results.len() > 3);
 
         for entries in skip_path {
             let entry_data = entries.unwrap();
-            let is_firmlink = skip_firmlinks(&entry_data, &results);
-            assert_eq!(is_firmlink, true);
+            let is_firmlink = skip_directory(&entry_data, &results);
+            if entry_data.file_name() == "Users" {
+                assert!(is_firmlink);
+            }
+
+            if entry_data.file_name() == "Applications" || entry_data.file_name() == "Library" {
+                assert!(is_firmlink);
+            }
+
+            if entry_data.file_name() == "bin" {
+                assert!(!is_firmlink);
+            }
         }
 
         let start_path = WalkDir::new("/sbin").max_depth(1);
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let is_firmlink = skip_firmlinks(&entry_data, &results);
+            let is_firmlink = skip_directory(&entry_data, &results);
             assert_eq!(is_firmlink, false);
         }
     }
