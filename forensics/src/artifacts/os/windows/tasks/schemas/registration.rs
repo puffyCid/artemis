@@ -102,4 +102,42 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_parse_registration_win11() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/tasks/win11/SoftLandingCreativeManagementTask");
+
+        let xml = read_xml(&test_location.display().to_string()).unwrap();
+        let mut reader = Reader::from_str(&xml);
+        reader.config_mut().trim_text(true);
+
+        loop {
+            match reader.read_event() {
+                Err(_) => {
+                    break;
+                }
+                Ok(Event::Eof) => break,
+                Ok(Event::Start(tag)) => match tag.name().as_ref() {
+                    b"RegistrationInfo" => {
+                        let reg_info = parse_registration(&mut reader);
+                        assert_eq!(
+                            reg_info.uri,
+                            Some(String::from(
+                                "\\SoftLanding\\S-1-5-21-476446702-302789185-3387769606-1001\\SoftLandingCreativeManagementTask"
+                            ))
+                        );
+                        assert_eq!(
+                            reg_info.sid,
+                            Some(String::from(
+                                "D:P(A;;FA;;;SY)(A;CI;0x80010000;;;WD)(A;;FA;;;S-1-5-21-476446702-302789185-3387769606-1001)"
+                            ))
+                        );
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+    }
 }

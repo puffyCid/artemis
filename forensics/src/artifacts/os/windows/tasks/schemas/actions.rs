@@ -102,7 +102,7 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
                 _ => break,
             },
             Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"ComHandler " {
+                if tag.name().as_ref() == b"ComHandler" {
                     break;
                 }
             }
