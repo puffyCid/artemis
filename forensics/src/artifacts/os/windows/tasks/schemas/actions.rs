@@ -102,7 +102,7 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
                 _ => break,
             },
             Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"ComHandler " {
+                if tag.name().as_ref() == b"ComHandler" {
                     break;
                 }
             }
@@ -173,7 +173,7 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
                 _ => (),
             },
             Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"SendEmail " {
+                if tag.name().as_ref() == b"SendEmail" {
                     break;
                 }
             }
@@ -219,7 +219,7 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
                 _ => break,
             },
             Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"ShowMessage  " {
+                if tag.name().as_ref() == b"ShowMessage" {
                     break;
                 }
             }

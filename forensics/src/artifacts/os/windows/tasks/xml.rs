@@ -132,6 +132,24 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_xml_win11() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/tasks/win11/SoftLandingCreativeManagementTask");
+
+        let result = parse_xml(&test_location.display().to_string()).unwrap();
+        assert_eq!(
+            result.actions.com_handler[0].class_id,
+            String::from("{F576B2F9-7850-4226-ADB0-E5993FED4F02}")
+        );
+        assert_eq!(
+            result.registration_info.unwrap().uri.unwrap(),
+            String::from(
+                "\\SoftLanding\\S-1-5-21-476446702-302789185-3387769606-1001\\SoftLandingCreativeManagementTask"
+            )
+        );
+    }
+
+    #[test]
     fn test_process_xml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-21-476446702-302789185-3387769606-1001</UserId>
+      <RunLevel>LeastPrivilege</RunLevel>
+      <LogonType>InteractiveToken</LogonType>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT4H</Interval>
+      <Count>5</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <Enabled>true</Enabled>
+      <StateName>7550b9a33e06830d</StateName>
+    </WnfStateChangeTrigger>
+    <TimeTrigger>
+      <StartBoundary>2026-03-29T03:16:00Z</StartBoundary>
+      <Enabled>true</Enabled>
+    </TimeTrigger>
+    <TimeTrigger>
+      <StartBoundary>2026-03-29T13:19:07Z</StartBoundary>
+      <Enabled>true</Enabled>
+      <Repetition>
+        <Interval>PT24H</Interval>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="Author">
+    <ComHandler>
+      <ClassId>{F576B2F9-7850-4226-ADB0-E5993FED4F02}</ClassId>
+    </ComHandler>
+  </Actions>
+  <RegistrationInfo>
+    <URI>\SoftLanding\S-1-5-21-476446702-302789185-3387769606-1001\SoftLandingCreativeManagementTask</URI>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;CI;0x80010000;;;WD)(A;;FA;;;S-1-5-21-476446702-302789185-3387769606-1001)</SecurityDescriptor>
+  </RegistrationInfo>
+</Task>

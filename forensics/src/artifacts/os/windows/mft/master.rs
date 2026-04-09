@@ -35,22 +35,17 @@ pub(crate) fn parse_mft(
     drive: &str,
 ) -> Result<(), MftError> {
     let plat = get_platform();
-    let size;
+    let mut args = MftArgs {
+        size: 0,
+        start_time,
+        filter,
+    };
     if plat != "Windows" {
-        size = get_file_size(path);
+        args.size = get_file_size(path);
         let reader = setup_mft_reader(path)?;
         let mut buf_reader = BufReader::new(reader);
 
-        return read_mft(
-            &mut buf_reader,
-            None,
-            output,
-            start_time,
-            filter,
-            size,
-            path,
-            drive,
-        );
+        return read_mft(&mut buf_reader, None, output, path, drive, &args);
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked $MFT
@@ -71,17 +66,22 @@ pub(crate) fn parse_mft(
             return Err(MftError::RawSize);
         }
     };
+    args.size = size;
 
     read_mft(
         &mut ntfs_parser.fs,
         Some(&ntfs_file),
         output,
-        start_time,
-        filter,
-        size,
         path,
         drive,
+        &args,
     )
+}
+
+struct MftArgs {
+    start_time: u64,
+    filter: bool,
+    size: u64,
 }
 
 /// Read the MFT in small chunks
@@ -89,11 +89,9 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     reader: &mut BufReader<T>,
     ntfs_file: Option<&NtfsFile<'_>>,
     output: &mut Output,
-    start_time: u64,
-    filter: bool,
-    size: u64,
     evidence: &str,
     drive: &str,
+    args: &MftArgs,
 ) -> Result<(), MftError> {
     let mut cache: HashMap<String, String> = HashMap::new();
     // Keep a directory cache limit of 1000 entries
@@ -116,7 +114,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
         // Read through the MFT. We read 1000 entries at time
         while let Ok(header) = determine_header_info(offset, reader, ntfs_file) {
             // If our offset is larger than the MFT size. Then we are done
-            if offset > size {
+            if offset > args.size {
                 break;
             }
 
@@ -335,7 +333,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
 
                 let limit = 1000;
                 if entries.len() >= limit {
-                    let _ = output_mft(&entries, output, filter, start_time);
+                    let _ = output_mft(&entries, output, args.filter, args.start_time);
                     entries = Vec::new();
                 }
             }
@@ -348,7 +346,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     }
 
     if !entries.is_empty() {
-        let _ = output_mft(&entries, output, filter, start_time);
+        let _ = output_mft(&entries, output, args.filter, args.start_time);
     }
 
     Ok(())
@@ -658,7 +656,7 @@ mod tests {
     fn test_read_mft() {
         use super::setup_ntfs_parser;
         use crate::{
-            artifacts::os::windows::mft::master::{read_mft, setup_mft_reader_windows},
+            artifacts::os::windows::mft::master::{MftArgs, read_mft, setup_mft_reader_windows},
             filesystem::ntfs::attributes::get_raw_file_size,
         };
 
@@ -669,15 +667,18 @@ mod tests {
 
         let mut output = output_options("mft_test", "local", "./tmp", false);
         let size = get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs).unwrap();
+        let args = MftArgs {
+            size,
+            start_time: 0,
+            filter: false,
+        };
         read_mft(
             &mut ntfs_parser.fs,
             Some(&ntfs_file),
             &mut output,
-            0,
-            false,
-            size,
             "MFT",
             "C",
+            &args,
         )
         .unwrap();
     }
