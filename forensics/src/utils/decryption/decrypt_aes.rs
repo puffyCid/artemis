@@ -1,7 +1,7 @@
 use super::error::DecryptError;
 use aes::{
     Aes256,
-    cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7},
+    cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7},
 };
 use log::error;
 
@@ -19,8 +19,9 @@ pub(crate) fn decrypt_aes_data(
 
     type Aes256Cbc = cbc::Decryptor<Aes256>;
 
-    let cipher = Aes256Cbc::new(key.into(), iv.into());
-    let decrypt_result = cipher.decrypt_padded_mut::<Pkcs7>(data);
+    // unwrap should be safe because we make sure key and iv sizes are correct above
+    let cipher = Aes256Cbc::new(key.try_into().unwrap(), iv.try_into().unwrap());
+    let decrypt_result = cipher.decrypt_padded::<Pkcs7>(data);
     let decrypt = match decrypt_result {
         Ok(result) => result,
         Err(err) => {
