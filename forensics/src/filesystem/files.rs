@@ -1,5 +1,7 @@
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
+use base16ct::lower::encode_str;
 use common::files::Hashes;
+use digest_io::IoWrapper;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use sha1::Sha1;
@@ -169,17 +171,20 @@ pub(crate) fn hash_file_data(hashes: &Hashes, data: &[u8]) -> (String, String, S
     if hashes.md5 {
         md5.update(data);
         let hash = md5.finalize();
-        md5_string = format!("{hash:x}");
+        let mut buf = [0u8; 32];
+        md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hashes.sha1 {
         sha1.update(data);
         let hash = sha1.finalize();
-        sha1_string = format!("{hash:x}");
+        let mut buf = [0u8; 40];
+        sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hashes.sha256 {
         sha256.update(data);
         let hash = sha256.finalize();
-        sha256_string = format!("{hash:x}");
+        let mut buf = [0u8; 64];
+        sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
 
     (md5_string, sha1_string, sha256_string)
@@ -196,9 +201,9 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
         return (md5_string, sha1_string, sha256_string);
     }
 
-    let mut md5 = Md5::new();
-    let mut sha1 = Sha1::new();
-    let mut sha256 = Sha256::new();
+    let mut md5 = IoWrapper(Md5::new());
+    let mut sha1 = IoWrapper(Sha1::new());
+    let mut sha256 = IoWrapper(Sha256::new());
     let file_open = File::open(path);
     let mut file = match file_open {
         Ok(result) => result,
@@ -242,16 +247,19 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
     }
 
     if hashes.md5 {
-        let hash = md5.finalize();
-        md5_string = format!("{hash:x}");
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hashes.sha1 {
-        let hash = sha1.finalize();
-        sha1_string = format!("{hash:x}");
+        let hash = sha1.0.finalize();
+        let mut buf = [0u8; 40];
+        sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hashes.sha256 {
-        let hash = sha256.finalize();
-        sha256_string = format!("{hash:x}");
+        let hash = sha256.0.finalize();
+        let mut buf = [0u8; 64];
+        sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
 
     (md5_string, sha1_string, sha256_string)

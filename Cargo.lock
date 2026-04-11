@@ -314,6 +314,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
 
 [[package]]
+name = "base16ct"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd307490d624467aa6f74b0eabb77633d1f758a7b25f12bceb0b22e08d9726f6"
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -646,12 +652,11 @@ dependencies = [
 
 [[package]]
 name = "calf"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f65ef8715c5a7bbbacbd5937fb2b89a0e97a4a6d2503140e1e19c29208660f2e"
+checksum = "3b52aaf2f8f8172574df09c42dd7f560b82d65c1daccccd9ea83e1cafc839f9e"
 dependencies = [
  "base64",
- "ext4-fs",
  "log",
  "nom 8.0.0",
  "uuid",
@@ -1426,6 +1431,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "digest-io"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2de63d600bc7fab91180bc17385f29b342468dc8ef2af09dceba450a293de3da"
+dependencies = [
+ "digest 0.11.2",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,7 +1524,7 @@ version = "0.13.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6043086bf7973472e0c7dff2142ea0b680d30e18d9cc40f267efbf222bd47"
 dependencies = [
- "base16ct",
+ "base16ct 0.2.0",
  "crypto-bigint",
  "digest 0.10.7",
  "ff",
@@ -1714,17 +1728,19 @@ dependencies = [
 
 [[package]]
 name = "ext4-fs"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46e991104f127215e016bd15f80301bddfe1e2c052e0e97a4ce2ae97ee6714c4"
+checksum = "f7a809e704f6ff75dd94b7bbd99d68c5e02fa78d5b3bc4a467c53b27d337175b"
 dependencies = [
+ "base16ct 1.0.0",
  "base64",
+ "digest-io",
  "log",
- "md-5 0.10.6",
+ "md-5 0.11.0",
  "nom 8.0.0",
  "serde",
- "sha-1",
- "sha2 0.10.9",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
  "uuid",
 ]
 
@@ -1830,6 +1846,7 @@ name = "forensics"
 version = "0.19.0"
 dependencies = [
  "aes",
+ "base16ct 1.0.0",
  "base64",
  "boa_engine",
  "boa_gc",
@@ -1841,6 +1858,7 @@ dependencies = [
  "common",
  "criterion",
  "csv",
+ "digest-io",
  "elf",
  "evtx",
  "ext4-fs",
@@ -1856,7 +1874,7 @@ dependencies = [
  "lumination",
  "lz4_flex 0.13.0",
  "macos-unifiedlogs",
- "md-5 0.10.6",
+ "md-5 0.11.0",
  "miniz_oxide 0.9.1",
  "nom 8.0.0",
  "ntapi",
@@ -1871,8 +1889,8 @@ dependencies = [
  "ruzstd",
  "serde",
  "serde_json",
- "sha-1",
- "sha2 0.10.9",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
  "simplelog",
  "snap",
  "sunlight",
@@ -2215,7 +2233,7 @@ dependencies = [
  "http",
  "httpdate",
  "mime",
- "sha1",
+ "sha1 0.10.6",
 ]
 
 [[package]]
@@ -4456,7 +4474,7 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3e97a565f76233a6003f9f5c54be1d9c5bdfa3eccfb189469f11ec4901c47dc"
 dependencies = [
- "base16ct",
+ "base16ct 0.2.0",
  "der",
  "generic-array",
  "pkcs8",
@@ -4588,17 +4606,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha-1"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
-dependencies = [
- "cfg-if",
- "cpufeatures 0.2.17",
- "digest 0.10.7",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4607,6 +4614,17 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest 0.10.7",
+]
+
+[[package]]
+name = "sha1"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aacc4cc499359472b4abe1bf11d0b12e688af9a805fa5e3016f9a386dc2d0214"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "digest 0.11.2",
 ]
 
 [[package]]
@@ -6506,7 +6524,7 @@ dependencies = [
  "rustc-hash 2.1.2",
  "serde",
  "serde_json",
- "sha1",
+ "sha1 0.10.6",
  "sha2 0.10.9",
  "smallvec",
  "strum_macros 0.28.0",

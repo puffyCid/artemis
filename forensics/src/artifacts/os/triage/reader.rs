@@ -2,6 +2,8 @@ use crate::{
     artifacts::os::triage::error::TriageError,
     filesystem::ntfs::{raw_files::read_attribute, sector_reader::SectorReader},
 };
+use base16ct::lower::encode_str;
+use digest_io::IoWrapper;
 use log::error;
 use md5::{Digest, Md5};
 use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
@@ -24,7 +26,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         // Read 64MB of data at a time
         let bytes_limit = 1024 * 1024 * 64;
         let mut buf = vec![0; bytes_limit];
-        let mut md5 = Md5::new();
+        let mut md5 = IoWrapper(Md5::new());
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
@@ -54,8 +56,11 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
                 break;
             }
         }
-        let hash = format!("{:x}", md5.finalize());
-        Ok(hash)
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+
+        Ok(md5_string)
     }
 
     /// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
@@ -78,7 +83,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         // Read 64MB of data at a time
         let bytes_limit = 1024 * 1024 * 64;
         let mut buf = vec![0; bytes_limit];
-        let mut md5 = Md5::new();
+        let mut md5 = IoWrapper(Md5::new());
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
@@ -111,8 +116,11 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let _ = copy(&mut buf.as_slice(), &mut md5);
             let _ = copy(&mut buf.as_slice(), &mut self.zip);
         }
-        let hash = format!("{:x}", md5.finalize());
-        Ok(hash)
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+
+        Ok(md5_string)
     }
 
     pub(crate) fn acquire_file_ntfs_ads(
@@ -120,7 +128,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         entry_path: &str,
         attribute: &str,
     ) -> Result<String, TriageError> {
-        let mut md5 = Md5::new();
+        let mut md5 = IoWrapper(Md5::new());
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(entry_path, options) {
@@ -139,8 +147,11 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let _ = copy(&mut bytes.as_slice(), &mut md5);
         let _ = copy(&mut bytes.as_slice(), &mut self.zip);
 
-        let hash = format!("{:x}", md5.finalize());
-        Ok(hash)
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+
+        Ok(md5_string)
     }
 
     /// Write the triage JSON report to the triage zip file

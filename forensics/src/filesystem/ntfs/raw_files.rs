@@ -12,7 +12,9 @@ use crate::{
         strings::strings_contains,
     },
 };
+use base16ct::lower::encode_str;
 use common::files::Hashes;
+use digest_io::IoWrapper;
 use log::{error, warn};
 use md5::{Digest, Md5};
 use ntfs::{
@@ -114,9 +116,9 @@ pub(crate) fn raw_hash_data(
     fs: &mut BufReader<SectorReader<File>>,
     hash_data: &Hashes,
 ) -> (String, String, String) {
-    let mut md5 = Md5::new();
-    let mut sha1 = Sha1::new();
-    let mut sha256 = Sha256::new();
+    let mut md5 = IoWrapper(Md5::new());
+    let mut sha1 = IoWrapper(Sha1::new());
+    let mut sha256 = IoWrapper(Sha256::new());
     loop {
         let temp_buff_size = 65536;
         let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
@@ -133,7 +135,7 @@ pub(crate) fn raw_hash_data(
             break;
         }
 
-        // Make sure our temp buff does not have any extra zeros from the intialization
+        // Make sure our temp buff does not have any extra zeros from the initialization
         if bytes < temp_buff_size {
             temp_buff = temp_buff[0..bytes].to_vec();
         }
@@ -154,16 +156,19 @@ pub(crate) fn raw_hash_data(
     let mut sha256_string = String::new();
 
     if hash_data.md5 {
-        let hash = md5.finalize();
-        md5_string = format!("{hash:x}");
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hash_data.sha1 {
-        let hash = sha1.finalize();
-        sha1_string = format!("{hash:x}");
+        let hash = sha1.0.finalize();
+        let mut buf = [0u8; 40];
+        sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
     if hash_data.sha256 {
-        let hash = sha256.finalize();
-        sha256_string = format!("{hash:x}");
+        let hash = sha256.0.finalize();
+        let mut buf = [0u8; 64];
+        sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
 
     (md5_string, sha1_string, sha256_string)
