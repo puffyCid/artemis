@@ -51,7 +51,7 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shellbags] Could not get default systemdrive letter: {err:?}");
+            error!("[shellbags] Could not get default system drive letter: {err:?}");
             return Err(ShellbagError::DefaultDrive);
         }
     };

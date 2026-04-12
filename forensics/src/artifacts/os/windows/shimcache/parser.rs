@@ -1,5 +1,5 @@
 /**
- * Windows `Shimcache` (also called: `AppCompatCache`, `Application Compatability Cache`, `AppCompat`) are Registry entries that track application execution.
+ * Windows `Shimcache` (also called: `AppCompatCache`, `Application Compatibility Cache`, `AppCompat`) are Registry entries that track application execution.
  * These entries are only written when the system is shutdown/rebooted
  *
  * References:
@@ -27,7 +27,7 @@ pub(crate) fn grab_shimcache(
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimcache] Could not determine systemdrive: {err:?}");
+            error!("[shimcache] Could not determine system drive: {err:?}");
             return Err(ShimcacheError::Drive);
         }
     };

@@ -14,7 +14,7 @@ impl fmt::Display for UserAssistError {
         match self {
             UserAssistError::RegistryFiles => write!(f, "Could not get user Registry files"),
             UserAssistError::UserAssistData => write!(f, "Could not get UserAssist data"),
-            UserAssistError::DriveLetter => write!(f, "Failed to get systemdrive letter"),
+            UserAssistError::DriveLetter => write!(f, "Failed to get system drive letter"),
         }
     }
 }

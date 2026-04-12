@@ -5,7 +5,7 @@ use crate::{
 };
 use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
-/// Expose parsing usnjrnl located on systemdrive to `BoaJS`
+/// Expose parsing usnjrnl located on system drive to `BoaJS`
 pub(crate) fn js_usnjrnl(
     _this: &JsValue,
     args: &[JsValue],

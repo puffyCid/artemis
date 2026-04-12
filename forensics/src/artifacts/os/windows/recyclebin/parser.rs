@@ -36,7 +36,7 @@ pub(crate) fn grab_recycle_bin(
     let drive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[recyclebin] Could not get systemdrive: {err:?}");
+            error!("[recyclebin] Could not get system drive: {err:?}");
             return Err(RecycleBinError::Systemdrive);
         }
     };

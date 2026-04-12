@@ -19,7 +19,7 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
     {
         return Ok(drive);
     }
-    error!("[forensics] Empty systemdrive value");
+    error!("[forensics] Empty system drive value");
     Err(ArtemisError::Env)
 }
 
