@@ -229,7 +229,7 @@ pub(crate) fn hash_name(name: &str) -> String {
     }
     hash.update(class_data);
     let hash_name = hash.finalize();
-    let mut buf = [0u8; 32];
+    let mut buf = [0u8; 64];
     encode_str(&hash_name, &mut buf)
         .unwrap_or_default()
         .to_string()
