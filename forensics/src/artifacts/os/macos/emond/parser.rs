@@ -22,8 +22,8 @@ use plist::Value;
 
 /// Parse Emond rules on macOS
 pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, PlistError> {
-    if let Some(alt_path) = &options.alt_path {
-        return parse_emond_rules(alt_path);
+    if let Some(alt_dir) = &options.alt_dir {
+        return parse_emond_rules(alt_dir);
     }
 
     let paths = get_emond_rules_paths()?;
@@ -97,6 +97,6 @@ mod tests {
 
     #[test]
     fn test_grab_emond() {
-        let _ = grab_emond(&EmondOptions { alt_path: None }).unwrap();
+        let _ = grab_emond(&EmondOptions { alt_dir: None }).unwrap();
     }
 }

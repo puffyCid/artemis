@@ -12,4 +12,4 @@ output = "local"
 artifact_name = "bits"
 [artifacts.bits]
 carve = true
-#alt_path = "C:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db" # Optional
+# alt_file = "C:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db" # Optional

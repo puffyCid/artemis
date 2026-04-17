@@ -707,7 +707,7 @@ mod tests {
     fn test_usnjrnl() {
         let options = UsnJrnlOptions {
             alt_drive: None,
-            alt_path: None,
+            alt_file: None,
             alt_mft: None,
         };
         let mut output = output_options("usn_temp", "json", "./tmp", false);

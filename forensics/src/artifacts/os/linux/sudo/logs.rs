@@ -10,8 +10,8 @@ use common::linux::Journal;
 
 /// Grab sudo log entries in the Journal files
 pub(crate) fn grab_sudo_logs(options: &LinuxSudoOptions) -> Result<Vec<Journal>, JournalError> {
-    let paths = if let Some(alt_path) = &options.alt_path {
-        vec![alt_path.clone()]
+    let paths = if let Some(alt_dir) = &options.alt_dir {
+        vec![alt_dir.clone()]
     } else {
         let persist = "/var/log/journal/";
         let tmp = "/run/systemd/journal";

@@ -13,7 +13,7 @@ output = "local"
 artifact_name = "spotlight"
 [artifacts.spotlight]
 # Optional
-# alt_path = ""
+# alt_dir = ""
 # Include additional known Spotlight paths such as
 #     /Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*
 #     /Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*

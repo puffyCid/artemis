@@ -74,7 +74,7 @@ pub struct ShortcutOptions {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UsnJrnlOptions {
     pub alt_drive: Option<char>,
-    pub alt_path: Option<String>,
+    pub alt_file: Option<String>,
     pub alt_mft: Option<String>,
 }
 

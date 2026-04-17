@@ -14,4 +14,4 @@ artifact_name = "mft"
 [artifacts.mft]
 # Optional
 # alt_drive = 'C'
-# alt_path = ""
+# alt_file = ""

@@ -34,8 +34,8 @@ pub(crate) fn grab_journal(
 ) -> Result<(), JournalError> {
     let start_time = time::time_now();
 
-    let paths = if let Some(alt_path) = &options.alt_path {
-        vec![alt_path.clone()]
+    let paths = if let Some(alt_dir) = &options.alt_dir {
+        vec![alt_dir.clone()]
     } else {
         let persist = "/var/log/journal/";
         let tmp = "/run/systemd/journal";
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_grab_journal() {
         let mut output = output_options("grab_journal", "local", "./tmp", false);
-        grab_journal(&mut output, false, &JournalOptions { alt_path: None }).unwrap();
+        grab_journal(&mut output, false, &JournalOptions { alt_dir: None }).unwrap();
     }
 
     #[test]

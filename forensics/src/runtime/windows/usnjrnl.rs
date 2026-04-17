@@ -29,7 +29,7 @@ pub(crate) fn js_usnjrnl(
 
     let options = UsnJrnlOptions {
         alt_drive: drive,
-        alt_path: path,
+        alt_file: path,
         alt_mft: mft_path,
     };
     let jrnl = match grab_usnjrnl_path(&options) {

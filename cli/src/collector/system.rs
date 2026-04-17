@@ -139,9 +139,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.artifact_name = String::from("files");
         }
         CommandArgs::Systeminfo {} => collect.artifact_name = String::from("systeminfo"),
-        CommandArgs::Emond { alt_path } => {
+        CommandArgs::Emond { alt_dir } => {
             let options = EmondOptions {
-                alt_path: alt_path.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.emond = Some(options);
             collect.artifact_name = String::from("emond");
@@ -160,9 +160,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.execpolicy = Some(options);
             collect.artifact_name = String::from("execpolicy");
         }
-        CommandArgs::GroupsMacos { alt_path } => {
+        CommandArgs::GroupsMacos { alt_file } => {
             let options = MacosGroupsOptions {
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
             };
             collect.groups_macos = Some(options);
             collect.artifact_name = String::from("groups-macos");
@@ -181,9 +181,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.loginitems = Some(options);
             collect.artifact_name = String::from("loginitems");
         }
-        CommandArgs::UsersMacos { alt_path } => {
+        CommandArgs::UsersMacos { alt_file } => {
             let options = MacosUsersOptions {
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
             };
             collect.users_macos = Some(options);
             collect.artifact_name = String::from("users-macos");
@@ -207,19 +207,19 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.artifact_name = String::from("unifiedlogs");
         }
         CommandArgs::Spotlight {
-            alt_path,
+            alt_dir,
             include_additional,
         } => {
             let options = SpotlightOptions {
-                alt_path: alt_path.clone(),
+                alt_dir: alt_dir.clone(),
                 include_additional: Some(*include_additional),
             };
             collect.spotlight = Some(options);
             collect.artifact_name = String::from("spotlight");
         }
-        CommandArgs::Journal { alt_path } => {
+        CommandArgs::Journal { alt_dir } => {
             let options = JournalOptions {
-                alt_path: alt_path.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.journal = Some(options);
             collect.artifact_name = String::from("journal");
@@ -231,9 +231,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.logons = Some(options);
             collect.artifact_name = String::from("logons");
         }
-        CommandArgs::SudologsLinux { alt_path } => {
+        CommandArgs::SudologsLinux { alt_dir } => {
             let options = LinuxSudoOptions {
-                alt_path: alt_path.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.sudologs_linux = Some(options);
             collect.artifact_name = String::from("sudologs-linux");
@@ -436,12 +436,12 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         }
         CommandArgs::Usnjrnl {
             alt_drive,
-            alt_path,
+            alt_file,
             alt_mft,
         } => {
             let options = UsnJrnlOptions {
                 alt_drive: *alt_drive,
-                alt_path: alt_path.clone(),
+                alt_file: alt_file.clone(),
                 alt_mft: alt_mft.clone(),
             };
             collect.usnjrnl = Some(options);
@@ -573,7 +573,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(UsersMacos { alt_path: None }),
+            artifact: Some(UsersMacos { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
@@ -608,7 +608,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(GroupsMacos { alt_path: None }),
+            artifact: Some(GroupsMacos { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
@@ -641,7 +641,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(Emond { alt_path: None }),
+            artifact: Some(Emond { alt_dir: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
@@ -673,7 +673,7 @@ mod tests {
     fn test_run_collector_spotlight() {
         let command = Commands::Acquire {
             artifact: Some(Spotlight {
-                alt_path: None,
+                alt_dir: None,
                 include_additional: false,
             }),
             format: String::from("json"),
@@ -707,7 +707,7 @@ mod tests {
 
         let command = Commands::Acquire {
             artifact: Some(Journal {
-                alt_path: Some(String::from(".")),
+                alt_dir: Some(String::from(".")),
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
@@ -719,7 +719,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(SudologsLinux { alt_path: None }),
+            artifact: Some(SudologsLinux { alt_dir: None }),
             format: String::from("json"),
             compress: false,
             output_dir: String::from("./tmp"),

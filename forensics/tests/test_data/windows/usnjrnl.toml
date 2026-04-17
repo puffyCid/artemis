@@ -14,5 +14,5 @@ artifact_name = "usnjrnl"
 [artifacts.usnjrnl]
 # Optional
 # alt_drive = 'C'
-# alt_path = ""
+# alt_file = ""
 # alt_mft = ""
