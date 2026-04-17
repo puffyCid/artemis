@@ -2,7 +2,7 @@
  * `Prefetch` data tracks execution of applications on Windows Workstations
  * `Prefetch` is disabled on Windows Servers and may be disabled on systems with SSDs
  *
- * Referencs:
+ * References:
  *  `https://github.com/libyal/libscca/blob/main/documentation/Windows%20Prefetch%20File%20(PF)%20format.asciidoc`
  *
  * Other Parsers:
@@ -30,7 +30,7 @@ pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, 
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Could not determine systemdrive: {err:?}");
+            error!("[prefetch] Could not determine system drive: {err:?}");
             return Err(PrefetchError::DriveLetter);
         }
     };

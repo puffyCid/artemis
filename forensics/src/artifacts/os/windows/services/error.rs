@@ -15,7 +15,7 @@ impl fmt::Display for ServicesError {
         match self {
             ServicesError::RegistryFiles => write!(f, "Could not get Registry file"),
             ServicesError::ServicesData => write!(f, "Could not get Services data"),
-            ServicesError::DriveLetter => write!(f, "Failed to get systemdrive letter"),
+            ServicesError::DriveLetter => write!(f, "Failed to get system drive letter"),
             ServicesError::Base64Decode => write!(f, "Failed to base64 service data"),
         }
     }

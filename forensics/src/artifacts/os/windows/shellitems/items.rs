@@ -20,15 +20,13 @@ use super::{
     uri::parse_uri,
     variable::{
         check_beef, check_game, check_mtp_folder, check_mtp_storage, check_property, check_zip,
+        parse_variable,
     },
     volume::parse_drive,
 };
-use crate::{
-    artifacts::os::windows::shellitems::variable::parse_variable,
-    utils::{
-        encoding::base64_decode_standard,
-        nom_helper::{Endian, nom_unsigned_one_byte, nom_unsigned_two_bytes},
-    },
+use crate::utils::{
+    encoding::base64_decode_standard,
+    nom_helper::{Endian, nom_unsigned_one_byte, nom_unsigned_two_bytes},
 };
 use common::windows::ShellItem;
 use log::error;

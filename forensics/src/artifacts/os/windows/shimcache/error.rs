@@ -16,7 +16,7 @@ impl fmt::Display for ShimcacheError {
             ShimcacheError::RegistryFile => write!(f, "Could not parse SYSTEM registry file"),
             ShimcacheError::Base64 => write!(f, "Could not base64 decode data"),
             ShimcacheError::Parser => write!(f, "Could not parse shimcache data"),
-            ShimcacheError::Drive => write!(f, "Could not determine systemdrive letter"),
+            ShimcacheError::Drive => write!(f, "Could not determine system drive letter"),
         }
     }
 }

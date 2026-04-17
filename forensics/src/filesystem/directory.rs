@@ -9,11 +9,7 @@ use sysinfo::Users;
 
 /// Check if path is a directory
 pub(crate) fn is_directory(path: &str) -> bool {
-    let dir = Path::new(path);
-    if dir.is_dir() {
-        return true;
-    }
-    false
+    Path::new(path).is_dir()
 }
 
 /// Get a list of all directories in a provided directory. Use `list_files` to get only files. Use `list_files_directories` to get both files and directories

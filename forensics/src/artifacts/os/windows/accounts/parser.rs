@@ -15,7 +15,7 @@ pub(crate) fn grab_users(options: &WindowsUserOptions) -> Result<Vec<UserInfo>, 
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[accounts] Could not get default systemdrive letter: {err:?}");
+            error!("[accounts] Could not get default system drive letter: {err:?}");
             return Err(AccountError::DefaultDrive);
         }
     };
@@ -31,7 +31,7 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[accounts] Could not get default systemdrive letter: {err:?}");
+            error!("[accounts] Could not get default system drive letter: {err:?}");
             return Err(AccountError::DefaultDrive);
         }
     };

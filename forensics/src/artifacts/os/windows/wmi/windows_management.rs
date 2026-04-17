@@ -5,6 +5,7 @@ use crate::{
     artifacts::os::windows::{securitydescriptor::sid::grab_sid, wmi::index::parse_index},
     filesystem::files::read_file,
 };
+use base16ct::upper::encode_str;
 use common::windows::WmiPersist;
 use log::{error, warn};
 use md5::Md5;
@@ -99,10 +100,12 @@ pub(crate) fn get_wmi_persist(
                 let bytes = serde_json::to_vec(&persist).unwrap_or_default();
                 md5.update(&bytes);
                 let hash = md5.finalize();
+                let mut buf = [0u8; 32];
+                let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
 
-                if !persist.class.is_empty() && !hits.contains(&format!("{hash:x}")) {
+                if !persist.class.is_empty() && !hits.contains(&md5_string) {
                     persist_vec.push(persist);
-                    hits.insert(format!("{hash:x}"));
+                    hits.insert(md5_string);
                     break;
                 }
             }
@@ -226,7 +229,10 @@ pub(crate) fn hash_name(name: &str) -> String {
     }
     hash.update(class_data);
     let hash_name = hash.finalize();
-    format!("{hash_name:x}").to_uppercase()
+    let mut buf = [0u8; 64];
+    encode_str(&hash_name, &mut buf)
+        .unwrap_or_default()
+        .to_string()
 }
 
 #[cfg(test)]

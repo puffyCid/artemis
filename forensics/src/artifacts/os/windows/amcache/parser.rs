@@ -30,7 +30,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[amcache] Could not get default systemdrive letter: {err:?}");
+            error!("[amcache] Could not get default system drive letter: {err:?}");
             return Err(AmcacheError::DefaultDrive);
         }
     };
