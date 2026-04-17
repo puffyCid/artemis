@@ -281,7 +281,7 @@ pub(crate) enum CommandArgs {
     UsersMacos {
         /// Alternative path to users
         #[arg(long, default_value = None)]
-        alt_file: Option<String>,
+        alt_dir: Option<String>,
     },
     /// macos: Parse FsEvents entries
     Fsevents {
@@ -311,7 +311,7 @@ pub(crate) enum CommandArgs {
     GroupsMacos {
         /// Alternative path to groups
         #[arg(long, default_value = None)]
-        alt_file: Option<String>,
+        alt_dir: Option<String>,
     },
     /// macos: Parse the Unified Logs
     Unifiedlogs {

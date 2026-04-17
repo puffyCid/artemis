@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_grab_sudo_logs() {
-        let result = grab_sudo_logs(&LinuxSudoOptions { alt_path: None }).unwrap();
+        let result = grab_sudo_logs(&LinuxSudoOptions { alt_dir: None }).unwrap();
         assert!(!result.is_empty());
     }
 

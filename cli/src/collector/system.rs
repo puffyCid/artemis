@@ -160,9 +160,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.execpolicy = Some(options);
             collect.artifact_name = String::from("execpolicy");
         }
-        CommandArgs::GroupsMacos { alt_file } => {
+        CommandArgs::GroupsMacos { alt_dir } => {
             let options = MacosGroupsOptions {
-                alt_file: alt_file.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.groups_macos = Some(options);
             collect.artifact_name = String::from("groups-macos");
@@ -181,9 +181,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.loginitems = Some(options);
             collect.artifact_name = String::from("loginitems");
         }
-        CommandArgs::UsersMacos { alt_file } => {
+        CommandArgs::UsersMacos { alt_dir } => {
             let options = MacosUsersOptions {
-                alt_file: alt_file.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.users_macos = Some(options);
             collect.artifact_name = String::from("users-macos");
@@ -573,7 +573,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(UsersMacos { alt_file: None }),
+            artifact: Some(UsersMacos { alt_dir: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
@@ -608,7 +608,7 @@ mod tests {
         run_collector(&command, out);
 
         let command = Commands::Acquire {
-            artifact: Some(GroupsMacos { alt_file: None }),
+            artifact: Some(GroupsMacos { alt_dir: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,

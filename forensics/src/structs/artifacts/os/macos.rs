@@ -13,12 +13,12 @@ pub struct MacosSudoOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MacosUsersOptions {
-    pub alt_file: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MacosGroupsOptions {
-    pub alt_file: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

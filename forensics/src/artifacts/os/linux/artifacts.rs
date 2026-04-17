@@ -153,7 +153,7 @@ mod tests {
             &mut output,
             false,
             &JournalOptions {
-                alt_path: Some(String::from("./tmp")),
+                alt_dir: Some(String::from("./tmp")),
             },
         )
         .unwrap();
@@ -183,7 +183,7 @@ mod tests {
             &mut output,
             false,
             &LinuxSudoOptions {
-                alt_path: Some(String::from("./tmp")),
+                alt_dir: Some(String::from("./tmp")),
             },
         )
         .unwrap();
