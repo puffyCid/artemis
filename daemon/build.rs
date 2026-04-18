@@ -17,9 +17,13 @@ fn main() {
     println!("cargo:rerun-if-changed=../.git/HEAD");
 
     let git_hash = if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output() {
-        String::from_utf8(output.stdout).unwrap().trim().to_string()
+        if !output.status.success() {
+            String::from("Missing Git Commit")
+        } else {
+            String::from_utf8(output.stdout).unwrap().trim().to_string()
+        }
     } else {
-        String::from("No Git")
+        String::from("Missing Git")
     };
 
     println!("cargo:rustc-env=GIT_HASH={git_hash}");
