@@ -34,7 +34,7 @@ pub(crate) fn grab_usnjrnl(
     if let Some(alt) = options.alt_drive {
         return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"), output, filter, start_time);
     }
-    if let Some(path) = &options.alt_path {
+    if let Some(path) = &options.alt_file {
         return get_usnjrnl_path_stream(path, &options.alt_mft, output, filter, start_time);
     }
     let systemdrive_result = get_systemdrive();
@@ -62,7 +62,7 @@ pub(crate) fn grab_usnjrnl_path(
     if let Some(alt) = options.alt_drive {
         return get_usnjrnl_path(alt, &format!("{alt}:\\$MFT"));
     }
-    if let Some(path) = &options.alt_path {
+    if let Some(path) = &options.alt_file {
         return get_usnjrnl_alt_path(path, &options.alt_mft);
     }
     let systemdrive_result = get_systemdrive();
@@ -99,7 +99,7 @@ mod tests {
     fn test_grab_usnjrnl() {
         let params = UsnJrnlOptions {
             alt_drive: None,
-            alt_path: None,
+            alt_file: None,
             alt_mft: None,
         };
         let mut output = output_options("usnjrnl_temp", "local", "./tmp", false);
@@ -113,7 +113,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
         let params = UsnJrnlOptions {
             alt_drive: None,
-            alt_path: Some(test_location.display().to_string()),
+            alt_file: Some(test_location.display().to_string()),
             alt_mft: None,
         };
         let results = grab_usnjrnl_path(&params).unwrap();
@@ -126,7 +126,7 @@ mod tests {
         test_location.push("tests\\test_data\\dfir\\windows\\usnjrnl\\win11\\$J");
         let params = UsnJrnlOptions {
             alt_drive: None,
-            alt_path: Some(test_location.display().to_string()),
+            alt_file: Some(test_location.display().to_string()),
             alt_mft: None,
         };
         let results = grab_usnjrnl_path(&params).unwrap();

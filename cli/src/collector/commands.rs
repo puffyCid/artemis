@@ -168,9 +168,9 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse Shortcuts
     Shortcuts {
-        /// Path to directory containing Shortcut files
+        /// Glob to directory containing Shortcut files
         #[arg(long)]
-        path: String,
+        dir: String,
     },
     /// windows: Parse UsnJrnl
     Usnjrnl {
@@ -179,7 +179,7 @@ pub(crate) enum CommandArgs {
         alt_drive: Option<char>,
         /// Alternative path to UsnJrnl
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_file: Option<String>,
         /// Alternative path to MFT
         #[arg(long, default_value = None)]
         alt_mft: Option<String>,
@@ -225,9 +225,9 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse Jumplists
     Jumplists {
-        /// Alternative full path to Jumplist file
+        /// Alternative glob to Jumplist file
         #[arg(long, default_value = None)]
-        alt_file: Option<String>,
+        alt_dir: Option<String>,
     },
     /// windows: Parse RecycleBin
     Recyclebin {
@@ -281,7 +281,7 @@ pub(crate) enum CommandArgs {
     UsersMacos {
         /// Alternative path to users
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
     },
     /// macos: Parse FsEvents entries
     Fsevents {
@@ -293,7 +293,7 @@ pub(crate) enum CommandArgs {
     Emond {
         /// Alternative path to Emond
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
     },
     /// macos: Parse LoginItems
     Loginitems {
@@ -311,7 +311,7 @@ pub(crate) enum CommandArgs {
     GroupsMacos {
         /// Alternative path to groups
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
     },
     /// macos: Parse the Unified Logs
     Unifiedlogs {
@@ -330,9 +330,9 @@ pub(crate) enum CommandArgs {
     },
     /// macos: Parse the Spotlight database
     Spotlight {
-        /// Alternative path to a Spotlight database
+        /// Alternative path to a Spotlight database directory
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
         /// Include additional known Spotlight database locations
         #[arg(long)]
         include_additional: bool,
@@ -341,13 +341,13 @@ pub(crate) enum CommandArgs {
     SudologsLinux {
         /// Alternative Sudo log directory to use
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
     },
     /// linux: Parse systemd Journal files
     Journal {
         /// Alternative Journal log directory to use
         #[arg(long, default_value = None)]
-        alt_path: Option<String>,
+        alt_dir: Option<String>,
     },
     /// linux: Parse Logon files
     Logons {

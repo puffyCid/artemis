@@ -16,7 +16,7 @@ pub(crate) fn js_emond(
         Some(string_arg(args, 0)?)
     };
 
-    let options = EmondOptions { alt_path: path };
+    let options = EmondOptions { alt_dir: path };
 
     let emond = match grab_emond(&options) {
         Ok(result) => result,

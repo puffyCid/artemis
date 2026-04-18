@@ -13,10 +13,7 @@
  * Other parsers:
  * `https://ericzimmerman.github.io/#!index.md`
  */
-use super::{
-    error::JumplistError,
-    jumplist::{get_jumplist_path, get_jumplists},
-};
+use super::{error::JumplistError, jumplist::get_jumplists};
 use crate::{
     filesystem::metadata::glob_paths, structs::artifacts::os::windows::JumplistsOptions,
     utils::environment::get_systemdrive,
@@ -28,21 +25,22 @@ use log::error;
 pub(crate) fn grab_jumplists(
     options: &JumplistsOptions,
 ) -> Result<Vec<JumplistEntry>, JumplistError> {
-    if let Some(file) = &options.alt_file {
-        return grab_jumplist_file(file);
-    }
-    let systemdrive_result = get_systemdrive();
-    let drive = match systemdrive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[jumplist] Could not get systemdrive: {err:?}");
-            return Err(JumplistError::Systemdrive);
-        }
-    };
+    let path = if let Some(file) = &options.alt_dir {
+        file.clone()
+    } else {
+        let systemdrive_result = get_systemdrive();
+        let drive = match systemdrive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[jumplist] Could not get systemdrive: {err:?}");
+                return Err(JumplistError::Systemdrive);
+            }
+        };
 
-    let path = format!(
-        "{drive}:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*"
-    );
+        format!(
+            "{drive}:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*"
+        )
+    };
 
     let glob_results = glob_paths(&path);
     let glob_paths = match glob_results {
@@ -56,36 +54,31 @@ pub(crate) fn grab_jumplists(
     get_jumplists(&glob_paths)
 }
 
-/// Parse single `Jumplist` file. Supports both Custom and Automatic `Jumplist` files
-fn grab_jumplist_file(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
-    get_jumplist_path(path)
-}
-
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_jumplists;
-    use crate::{
-        artifacts::os::windows::jumplists::parser::grab_jumplist_file,
-        structs::artifacts::os::windows::JumplistsOptions,
-    };
+    use crate::structs::artifacts::os::windows::JumplistsOptions;
     use common::windows::ListType;
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_jumplists() {
-        let options = JumplistsOptions { alt_file: None };
+        let options = JumplistsOptions { alt_dir: None };
         let _ = grab_jumplists(&options).unwrap();
     }
 
     #[test]
-    fn test_grab_jumplist_file() {
+    fn test_grab_jumplist_alt_dir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push(
             "tests\\test_data\\windows\\jumplists\\win10\\custom\\1ced32d74a95c7bc.customDestinations-ms",
         );
+        let options = JumplistsOptions {
+            alt_dir: Some(test_location.display().to_string()),
+        };
 
-        let result = grab_jumplist_file(&test_location.display().to_string()).unwrap();
+        let result = grab_jumplists(&options).unwrap();
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].jumplist_type, ListType::Custom);
         assert_eq!(result[0].lnk_info.created, "2019-10-21T05:48:39.000Z");

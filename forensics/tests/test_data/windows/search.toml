@@ -12,4 +12,4 @@ output = "local"
 [[artifacts]]
 artifact_name = "search"
 [artifacts.search]
-#alt_path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb" # Optional
+# alt_file = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb" # Optional

@@ -258,7 +258,7 @@ pub(crate) fn shortcuts(
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
-    let artifact_result = grab_lnk_directory(&options.path);
+    let artifact_result = grab_lnk_directory(&options.dir);
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
@@ -707,7 +707,7 @@ mod tests {
     fn test_usnjrnl() {
         let options = UsnJrnlOptions {
             alt_drive: None,
-            alt_path: None,
+            alt_file: None,
             alt_mft: None,
         };
         let mut output = output_options("usn_temp", "json", "./tmp", false);
@@ -719,10 +719,10 @@ mod tests {
     #[test]
     fn test_shortcuts() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/lnk/win11");
+        test_location.push("tests/test_data/windows/lnk/win11/*");
 
         let options = ShortcutOptions {
-            path: test_location.display().to_string(),
+            dir: test_location.display().to_string(),
         };
         let mut output = output_options("shortcuts_temp", "json", "./tmp", false);
 
@@ -799,7 +799,7 @@ mod tests {
 
     #[test]
     fn test_jumplists() {
-        let options = JumplistsOptions { alt_file: None };
+        let options = JumplistsOptions { alt_dir: None };
         let mut output = output_options("jumplists_temp", "json", "./tmp", false);
 
         let status = jumplists(&options, &mut output, false).unwrap();

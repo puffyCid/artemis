@@ -13,17 +13,17 @@ pub struct MacosSudoOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MacosUsersOptions {
-    pub alt_path: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MacosGroupsOptions {
-    pub alt_path: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmondOptions {
-    pub alt_path: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,6 +48,6 @@ pub struct LoginitemsOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SpotlightOptions {
-    pub alt_path: Option<String>,
+    pub alt_dir: Option<String>,
     pub include_additional: Option<bool>,
 }

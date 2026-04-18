@@ -8,8 +8,8 @@ use log::{error, warn};
 
 /// Get users on a macOS system. Requires root
 pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers> {
-    let path = if let Some(alt_path) = &options.alt_path {
-        alt_path
+    let path = if let Some(alt_dir) = &options.alt_dir {
+        alt_dir
     } else {
         // Need root permissions to access files in dslocal directories
         "/var/db/dslocal/nodes/Default/users"
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_grab_users() {
-        let results = grab_users(&MacosUsersOptions { alt_path: None });
+        let results = grab_users(&MacosUsersOptions { alt_dir: None });
         for data in results {
             if data.uid.len() == 1 && data.uid[0] == "0" {
                 assert_eq!(data.real_name[0], "System Administrator");

@@ -13,10 +13,10 @@ pub(crate) fn js_get_sudologs_linux(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
 
-    let mut options = LinuxSudoOptions { alt_path: None };
+    let mut options = LinuxSudoOptions { alt_dir: None };
 
     if !path.is_empty() {
-        options.alt_path = Some(path);
+        options.alt_dir = Some(path);
     }
 
     let sudo_results = grab_sudo_logs(&options);

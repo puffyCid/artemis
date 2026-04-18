@@ -13,4 +13,4 @@ output = "local"
 artifact_name = "journal"
 [artifacts.journal]
 # Optional
-# alt_path = ""
+# alt_dir = ""

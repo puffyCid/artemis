@@ -17,7 +17,7 @@ pub(crate) fn js_users_macos(
         Some(string_arg(args, 0)?)
     };
 
-    let users = grab_users(&MacosUsersOptions { alt_path: path });
+    let users = grab_users(&MacosUsersOptions { alt_dir: path });
     let results = serde_json::to_value(&users).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
@@ -35,7 +35,7 @@ pub(crate) fn js_groups_macos(
     } else {
         Some(string_arg(args, 0)?)
     };
-    let groups = grab_groups(&MacosGroupsOptions { alt_path: path });
+    let groups = grab_groups(&MacosGroupsOptions { alt_dir: path });
 
     let results = serde_json::to_value(&groups).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;

@@ -315,7 +315,7 @@ mod tests {
     fn test_emond() {
         let mut output = output_options("emond_test", "local", "./tmp", false);
 
-        let status = emond(&mut output, false, &EmondOptions { alt_path: None }).unwrap();
+        let status = emond(&mut output, false, &EmondOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -324,7 +324,7 @@ mod tests {
         let mut output = output_options("users_test", "local", "./tmp", false);
 
         let status =
-            users_macos(&mut output, false, &&MacosUsersOptions { alt_path: None }).unwrap();
+            users_macos(&mut output, false, &&MacosUsersOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -333,7 +333,7 @@ mod tests {
         let mut output = output_options("groups_test", "local", "./tmp", false);
 
         let status =
-            groups_macos(&mut output, false, &&MacosGroupsOptions { alt_path: None }).unwrap();
+            groups_macos(&mut output, false, &&MacosGroupsOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
@@ -401,7 +401,7 @@ mod tests {
             &mut output,
             false,
             &SpotlightOptions {
-                alt_path: None,
+                alt_dir: None,
                 include_additional: None,
             },
         )
