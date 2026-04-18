@@ -19,7 +19,7 @@ fn bench_custom_jumplists(c: &mut Criterion) {
     );
 
     let options = JumplistsOptions {
-        alt_file: Some(test_location.display().to_string()),
+        alt_dir: Some(test_location.display().to_string()),
     };
 
     let out = Output {
@@ -56,7 +56,7 @@ fn bench_automatic_jumplists(c: &mut Criterion) {
     );
 
     let options = JumplistsOptions {
-        alt_file: Some(test_location.display().to_string()),
+        alt_dir: Some(test_location.display().to_string()),
     };
 
     let out = Output {

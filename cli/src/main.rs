@@ -232,7 +232,7 @@ mod tests {
             javascript: None,
             command: Some(Commands::Acquire {
                 artifact: Some(Shortcuts {
-                    path: String::from("C:\\"),
+                    dir: String::from("C:\\*"),
                 }),
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
