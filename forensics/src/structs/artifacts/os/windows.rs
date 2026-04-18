@@ -67,8 +67,8 @@ pub struct AmcacheOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ShortcutOptions {
-    /**Path to directory containing `Shortcut (lnk)` files */
-    pub path: String,
+    /**Glob path to directory containing `Shortcut (lnk)` files */
+    pub dir: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -121,7 +121,7 @@ pub struct ServicesOptions {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct JumplistsOptions {
-    pub alt_file: Option<String>,
+    pub alt_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

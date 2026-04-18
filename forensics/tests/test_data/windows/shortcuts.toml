@@ -12,4 +12,9 @@ output = "local"
 [[artifacts]]
 artifact_name = "shortcuts"
 [artifacts.shortcuts]
-path = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+dir = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\*"
+
+[[artifacts]]
+artifact_name = "shortcuts"
+[artifacts.shortcuts]
+dir = "C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*"

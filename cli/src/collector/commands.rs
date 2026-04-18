@@ -168,9 +168,9 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse Shortcuts
     Shortcuts {
-        /// Path to directory containing Shortcut files
+        /// Glob to directory containing Shortcut files
         #[arg(long)]
-        path: String,
+        dir: String,
     },
     /// windows: Parse UsnJrnl
     Usnjrnl {
@@ -225,9 +225,9 @@ pub(crate) enum CommandArgs {
     },
     /// windows: Parse Jumplists
     Jumplists {
-        /// Alternative full path to Jumplist file
+        /// Alternative glob to Jumplist file
         #[arg(long, default_value = None)]
-        alt_file: Option<String>,
+        alt_dir: Option<String>,
     },
     /// windows: Parse RecycleBin
     Recyclebin {

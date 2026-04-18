@@ -295,9 +295,9 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.eventlogs = Some(options);
             collect.artifact_name = String::from("eventlogs");
         }
-        CommandArgs::Jumplists { alt_file } => {
+        CommandArgs::Jumplists { alt_dir } => {
             let options = JumplistsOptions {
-                alt_file: alt_file.clone(),
+                alt_dir: alt_dir.clone(),
             };
             collect.jumplists = Some(options);
             collect.artifact_name = String::from("jumplists");
@@ -397,8 +397,8 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.shimdb = Some(options);
             collect.artifact_name = String::from("shimdb");
         }
-        CommandArgs::Shortcuts { path } => {
-            let options = ShortcutOptions { path: path.clone() };
+        CommandArgs::Shortcuts { dir } => {
+            let options = ShortcutOptions { dir: dir.clone() };
             collect.shortcuts = Some(options);
             collect.artifact_name = String::from("shortcuts");
         }
@@ -939,7 +939,7 @@ mod tests {
 
     #[test]
     fn test_setup_artifact_windows() {
-        let result = setup_artifact(&Jumplists { alt_file: None });
+        let result = setup_artifact(&Jumplists { alt_dir: None });
         assert_eq!(result.artifact_name, "jumplists");
     }
 }

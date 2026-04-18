@@ -15,7 +15,7 @@ pub(crate) fn js_jumplists(
     } else {
         Some(string_arg(args, 0)?)
     };
-    let options = JumplistsOptions { alt_file: path };
+    let options = JumplistsOptions { alt_dir: path };
     let jumplist = match grab_jumplists(&options) {
         Ok(result) => result,
         Err(err) => {
