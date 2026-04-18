@@ -14,12 +14,14 @@ fn main() {
         .emit()
         .unwrap();
 
-    let output = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .output()
-        .unwrap();
-    let git_hash = String::from_utf8(output.stdout).unwrap();
-    println!("cargo:rerun-if-changed=.git/HEAD");
+    println!("cargo:rerun-if-changed=../.git/HEAD");
+
+    let git_hash = if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output() {
+        String::from_utf8(output.stdout).unwrap().trim().to_string()
+    } else {
+        String::from("No Git")
+    };
+
     println!("cargo:rustc-env=GIT_HASH={git_hash}");
 
     let mut features = Vec::new();
