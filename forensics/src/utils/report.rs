@@ -16,7 +16,7 @@ use serde_json::json;
 #[derive(Debug, Serialize)]
 pub(crate) struct ReportRuns {
     pub(crate) name: String,
-    pub(crate) hash: String,
+    pub(crate) artifact_options_hash: String,
     pub(crate) last_run: String,
     pub(crate) unixepoch: u64,
     pub(crate) output_count: usize,
@@ -48,6 +48,8 @@ pub(crate) fn generate_report(
     value["total_output_files"] = total_count.into();
     value["artifacts"] = json!(artifacts);
     value["log_file"] = output.log_file.clone().into();
+    value["output_format"] = output.format.clone().into();
+    value["output"] = output.output.clone().into();
     let value_runs = match serde_json::to_value(runs) {
         Ok(result) => result,
         Err(err) => {
@@ -91,7 +93,7 @@ pub(crate) fn generate_artifact_report(
     let time_now = time_now();
     let report = ReportRuns {
         name: artifacts.artifact_name.clone(),
-        hash: md5,
+        artifact_options_hash: md5,
         last_run: unixepoch_to_iso(time_now as i64),
         unixepoch: time_now,
         output_count: files.len(),
@@ -126,7 +128,10 @@ mod tests {
         };
 
         let report = generate_artifact_report(&art, &Vec::new(), "completed").unwrap();
-        assert_eq!(report.hash, "890fe75691dd3cdc9febe324bf6c5fcf");
+        assert_eq!(
+            report.artifact_options_hash,
+            "890fe75691dd3cdc9febe324bf6c5fcf"
+        );
     }
 
     #[test]
