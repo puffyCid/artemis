@@ -37,10 +37,8 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
                 break;
             }
             Ok(Event::Eof) => break,
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"Settings" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"Settings" => {
+                break;
             }
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"AllowStartOnDemand" => {
@@ -187,10 +185,8 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"RestartOnFailure" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"RestartOnFailure" => {
+                break;
             }
             _ => (),
         }
@@ -236,10 +232,8 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"IdleSettings" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"IdleSettings" => {
+                break;
             }
             _ => (),
         }
@@ -269,10 +263,8 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"NetworkSettings" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"NetworkSettings" => {
+                break;
             }
             _ => (),
         }
@@ -294,10 +286,8 @@ fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
                 break;
             }
             Ok(Event::Eof) => break,
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"MaintenanceSettings" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"MaintenanceSettings" => {
+                break;
             }
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
                 b"Period" => {

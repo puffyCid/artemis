@@ -175,7 +175,7 @@ impl SecurityIDs {
             // Now parse the INDX record
             let result = SecurityIDs::parse_sii(&buff_data, indx_root.index_record_size());
             match result {
-                Ok((_, sid_data)) => sids.extend(sid_data.into_iter()),
+                Ok((_, sid_data)) => sids.extend(sid_data),
                 Err(err) => {
                     error!(
                         "[ntfs] Failed to parse $SII will not be able to lookup SID information, error: {err:?}"

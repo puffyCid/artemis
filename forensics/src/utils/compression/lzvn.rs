@@ -35,15 +35,12 @@ pub(crate) fn decompress_lzvn(data: &[u8]) -> Result<Vec<u8>, CompressionError> 
         }
 
         if match_size > 0 {
-            let mut match_offset = decom_offset - distance as usize;
-
-            for _value in 0..match_size {
+            for (match_offset, _value) in (decom_offset - distance as usize..).zip(0..match_size) {
                 if decom_offset >= decom_buf.len() {
                     decom_buf.push(decom_buf[match_offset]);
                 } else {
                     decom_buf[decom_offset] = decom_buf[match_offset];
                 }
-                match_offset += 1;
                 decom_offset += 1;
             }
         }
