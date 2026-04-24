@@ -625,7 +625,8 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
     let mut days = Vec::new();
     let mut months = Vec::new();
     let mut weeks = Vec::new();
-
+    
+    let mut value = "";
     loop {
         match reader.read_event() {
             Err(err) => {
@@ -634,10 +635,18 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Months" => months.push(extract_utf8_string(tag.name().0)),
-                b"DaysOfWeek" => days.push(extract_utf8_string(tag.name().0)),
-                b"Weeks" => weeks.push(read_text_unescaped(reader, tag.name())),
-                _ => {}
+                b"Months" => value = "months",
+                b"DaysOfWeek" => value = "days",
+                b"Weeks" => value = "weeks",
+                _ => {
+                    if value == "months" {
+                        months.push(extract_utf8_string(tag.name().0));
+                    } else if value == "weeks" {
+                        weeks.push(read_text_unescaped(reader, tag.name()));
+                    } else if value == "days" {
+                        days.push(extract_utf8_string(tag.name().0));
+                    }
+                }
             },
             Ok(Event::End(tag)) if tag.name().as_ref() == b"ScheduleByMonthDayOfWeek" => {
                 break;
