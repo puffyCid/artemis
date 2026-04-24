@@ -625,7 +625,7 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
     let mut days = Vec::new();
     let mut months = Vec::new();
     let mut weeks = Vec::new();
-    
+
     let mut value = "";
     loop {
         match reader.read_event() {
