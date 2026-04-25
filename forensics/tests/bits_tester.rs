@@ -62,7 +62,6 @@ fn validate_output(output: &PathBuf) {
             panic!("Empty target_path and full_path: {info:?}");
         }
         assert!(!info.job_name.is_empty());
-        assert!(!info.target_path.is_empty());
     }
 }
 
