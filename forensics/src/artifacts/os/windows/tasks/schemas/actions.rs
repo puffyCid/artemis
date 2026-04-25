@@ -27,10 +27,8 @@ pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
                 b"ShowMessage" => info.show_message.push(process_message(reader)),
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"Actions" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"Actions" => {
+                break;
             }
             _ => (),
         }
@@ -66,10 +64,8 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"Exec" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"Exec" => {
+                break;
             }
             _ => (),
         }
@@ -101,10 +97,8 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"ComHandler" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"ComHandler" => {
+                break;
             }
             _ => (),
         }
@@ -172,10 +166,8 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
                 }
                 _ => (),
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"SendEmail" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"SendEmail" => {
+                break;
             }
             _ => (),
         }
@@ -218,10 +210,8 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) => {
-                if tag.name().as_ref() == b"ShowMessage" {
-                    break;
-                }
+            Ok(Event::End(tag)) if tag.name().as_ref() == b"ShowMessage" => {
+                break;
             }
             _ => (),
         }
