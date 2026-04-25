@@ -1,18 +1,13 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# Calculate 30% of host cores (minimum 1)
+cpus = [1, (0.30 * `nproc`.to_i).to_i].max
+
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
-# Calculate 30% of host cores (minimum 1)
-cpus = [1, (0.30 * `nproc`.to_i).to_i].max
-
-
-
-
-
-
 Vagrant.configure("2") do |config|
   # Generic CentOS Stream 10 box (Optimized for libvirt/qemu)
   config.vm.box = "bento/centos-stream-9"
@@ -48,12 +43,19 @@ Vagrant.configure("2") do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
 
-  # Disable the default share of the current code directory. Doing this
-  # provides improved isolation between the vagrant box and your host
-  # by making sure your Vagrantfile isn't accessible to the vagrant box.
-  # If you use this you may want to enable additional shared subfolders as
-  # shown above.
-  # config.vm.synced_folder ".", "/vagrant", disabled: true
+  # Must update firewall to allow mounting of project code
+  # sudo firewall-cmd --zone=libvirt --add-service=nfs
+  # sudo firewall-cmd --zone=libvirt --add-service=mountd
+  # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
+
+  # Only the compiled musl artemis binary directory is exposed
+  # Our Vagrantfile is not exposed to the box
+  config.vm.synced_folder "./target/x86_64-unknown-linux-musl/release", "/vagrant",
+    type: "nfs", 
+    nfs_version: 4, 
+    nfs_udp: false, 
+    mount_options: ["tcp", "rsize=1048576", "wsize=1048576", "hard", "intr"]
+
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -80,30 +82,9 @@ Vagrant.configure("2") do |config|
     centosstream.graphics_type = 'none' 
   end
 
-  # Setup Rust, Just, and Nextest
   config.vm.provision "shell", inline: <<-SHELL
-    # Install build dependencies for CentOS Stream
-    sudo dnf groupinstall -y "Development Tools"
-    sudo dnf install -y curl gcc
-
-    # Install Rust for the vagrant user if not present
-    if [ ! -d "/home/vagrant/.cargo" ]; then
-      curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
-      echo 'source "$HOME/.cargo/env"' >> /home/vagrant/.bashrc
-    fi
-
-
-    # Enable provisioning with a shell script. Additional provisioners such as
-    # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
-    # documentation for more information about their specific syntax and use.
-    # config.vm.provision "shell", inline: <<-SHELL
-    #   apt-get update
-    #   apt-get install -y apache2
-    # SHELL
-
-    # Install tools via cargo as the vagrant user
-    # --locked is required for cargo-nextest
-    sudo -u vagrant -i bash -c "cargo install just && cargo install cargo-nextest --locked"
+    # Install updates for CentOS Stream
+    sudo dnf upgrade -y
   SHELL
 end
 
