@@ -8,3 +8,4 @@
 *.org~
 node_modules
 tools/daemon server/build
+.vagrant

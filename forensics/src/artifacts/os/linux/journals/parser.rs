@@ -38,7 +38,7 @@ pub(crate) fn grab_journal(
         vec![alt_dir.clone()]
     } else {
         let persist = "/var/log/journal/";
-        let tmp = "/run/systemd/journal";
+        let tmp = "/run/log/journal/";
         let mut logs = list_files_directories(persist).unwrap_or_default();
         let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
 
