@@ -15,7 +15,6 @@ Vagrant.configure("2") do |config|
     config_vm.cpus = cpus
     config_vm.driver = "kvm"
     config_vm.nic_model_type = "virtio"
-    config_vm.qemu_use_agent = true
     config_vm.cpu_mode = 'host-passthrough'
     config_vm.graphics_type = 'none'
   end
@@ -30,11 +29,12 @@ Vagrant.configure("2") do |config|
       mount_options: ["tcp", "rsize=1048576", "wsize=1048576", "hard", "intr"]
     centos.vm.box = "bento/centos-stream-9"
 
-  # Must update firewall to allow mounting of project code
-  # sudo firewall-cmd --zone=libvirt --add-service=nfs
-  # sudo firewall-cmd --zone=libvirt --add-service=mountd
-  # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
+    # Must update firewall to allow mounting of project code
+    # sudo firewall-cmd --zone=libvirt --add-service=nfs
+    # sudo firewall-cmd --zone=libvirt --add-service=mountd
+    # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
     centos.vm.provider :libvirt do |centosstream|
+      centosstream.qemu_use_agent = true
       centos.vm.provision "shell", inline: <<-SHELL
       # Install updates for CentOS Stream
       sudo dnf upgrade -y
@@ -52,14 +52,14 @@ Vagrant.configure("2") do |config|
       mount_options: ["tcp", "rsize=1048576", "wsize=1048576", "hard", "intr"]
     freebsd.vm.box = "bento/freebsd-14"
 
-  # Must update firewall to allow mounting of project code
-  # sudo firewall-cmd --zone=libvirt --add-service=nfs
-  # sudo firewall-cmd --zone=libvirt --add-service=mountd
-  # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
+    # Must update firewall to allow mounting of project code
+    # sudo firewall-cmd --zone=libvirt --add-service=nfs
+    # sudo firewall-cmd --zone=libvirt --add-service=mountd
+    # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
     freebsd.vm.provider :libvirt do |freebsd_vm|
-      freebsd_vm.vm.provision "shell", inline: <<-SHELL
+      freebsd.vm.provision "shell", inline: <<-SHELL
       # Install updates for FreeBSD Stream
-      sudo pkg update -y
+      sudo pkg update && sudo pkg upgrade -y
       SHELL
     end
   end
