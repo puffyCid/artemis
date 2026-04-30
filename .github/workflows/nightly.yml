@@ -45,6 +45,12 @@ jobs:
         with:
           tool: just
 
+      - name: Add macOS Intel target
+        if: matrix.info.os == 'macos-latest'
+        env:
+          TARGET: ${{ matrix.info.target }}
+        run: rustup target add ${TARGET}
+
       - name: Build Artemis
         if: matrix.info.os == 'macos-latest'
         env:
