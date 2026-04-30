@@ -10,15 +10,11 @@ rules:
       - release.yml
       - packages.yml
       - end2end.yml
-    config:
-      policies:
-        dtolnay/rust-toolchain # Action is a rolling action. Only has main branch and no tags
   forbidden-uses:
     config:
       allow:
       - actions/checkout
       - actions-rust-lang/audit
-      - dtolnay/rust-toolchain
       - taiki-e/install-action
       - Swatinem/rust-cache
       - codecov/codecov-action
