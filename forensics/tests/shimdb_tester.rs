@@ -11,7 +11,6 @@ fn test_shimdb_parser() {
     use forensics::core::parse_toml_file;
     use glob::glob;
     use std::fs::read;
-    use std::path::PathBuf;
 
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/windows/shimdb.toml");
