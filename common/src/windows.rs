@@ -857,7 +857,7 @@ pub enum Action {
     Unknown,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ShimcacheEntry {
     pub entry: u32,
     pub path: String,
@@ -866,14 +866,14 @@ pub struct ShimcacheEntry {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ShimData {
     pub indexes: Vec<TagData>,
     pub db_data: DatabaseData,
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DatabaseData {
     pub sdb_version: String,
     pub compile_time: String,
@@ -885,7 +885,7 @@ pub struct DatabaseData {
     pub list_data: Vec<TagData>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TagData {
     pub data: HashMap<String, String>, //key: TAG_SHIM_TAGID, value: "0x11", binary: base64, string
     pub list_data: Vec<HashMap<String, String>>,
