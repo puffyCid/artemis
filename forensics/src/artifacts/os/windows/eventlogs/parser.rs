@@ -82,6 +82,7 @@ pub(crate) fn parse_eventlogs(
     let mut eventlog_records = Vec::new();
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
+    let value_regex = create_regex(r"%%\d+").unwrap();
 
     for record in evt_parser.records_json_value().skip(offset) {
         match record {
@@ -109,7 +110,7 @@ pub(crate) fn parse_eventlogs(
         let mut raw_messages = Vec::new();
         for record in eventlog_records {
             let message = if let Some(result) =
-                add_message_strings(&record, resource, &param_regex, path)
+                add_message_strings(&record, resource, &param_regex, &value_regex, path)
             {
                 result
             } else {
@@ -296,7 +297,7 @@ fn read_eventlogs(
     let limit = 1000;
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
-
+    let value_regex = create_regex(r"%%\d+").unwrap();
     for record in evt_parser.records_json_value() {
         match record {
             Ok(data) => {
@@ -320,7 +321,7 @@ fn read_eventlogs(
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
                     let message = if let Some(result) =
-                        add_message_strings(&record, resource, &param_regex, path)
+                        add_message_strings(&record, resource, &param_regex, &value_regex, path)
                     {
                         result
                     } else {
@@ -370,7 +371,7 @@ fn read_eventlogs(
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
                 let message = if let Some(result) =
-                    add_message_strings(&record, resource, &param_regex, path)
+                    add_message_strings(&record, resource, &param_regex, &value_regex, path)
                 {
                     result
                 } else {

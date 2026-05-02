@@ -1,0 +1,58 @@
+{
+    "event_record_id": 12339,
+    "timestamp": "2026-04-29T14:21:54.0035284Z",
+    "data": {
+        "Event": {
+            "#attributes": {
+                "xmlns": "http://schemas.microsoft.com/win/2004/08/events/event"
+            },
+            "System": {
+                "Provider": {
+                    "#attributes": {
+                        "Name": "Microsoft-Windows-Security-Auditing",
+                        "Guid": "54849625-5478-4994-A5BA-3E3B0328C30D"
+                    }
+                },
+                "EventID": 4719,
+                "Version": 1,
+                "Level": 0,
+                "Task": 13568,
+                "Opcode": 0,
+                "Keywords": "0x8020000000000000",
+                "TimeCreated": {
+                    "#attributes": {
+                        "SystemTime": "2026-04-29T14:21:54.003528Z"
+                    }
+                },
+                "EventRecordID": 12339,
+                "Correlation": {
+                    "#attributes": {
+                        "ActivityID": "8C78F194-D7F3-0001-05F2-788CF3D7DC01"
+                    }
+                },
+                "Execution": {
+                    "#attributes": {
+                        "ProcessID": 716,
+                        "ThreadID": 828
+                    }
+                },
+                "Channel": "Security",
+                "Computer": "DESKTOP-O8964S4",
+                "Security": null
+            },
+            "EventData": {
+                "SubjectUserSid": "S-1-5-21-2716651203-721773598-1236239514-1001",
+                "SubjectUserName": "RaptorSniper",
+                "SubjectDomainName": "DESKTOP-O8964S4",
+                "SubjectLogonId": "0x2b53c",
+                "CategoryId": "%%8280",
+                "SubcategoryId": "%%14339",
+                "SubcategoryGuid": "0CCE9242-69AE-11D9-BED3-505054503030",
+                "AuditPolicyChanges": "%%8449, %%8451",
+                "ClientProcessId": 4280,
+                "ClientProcessStartKey": 16607023625928910
+            }
+        }
+    },
+    "evidence": "Security_6g.evtx"
+}
