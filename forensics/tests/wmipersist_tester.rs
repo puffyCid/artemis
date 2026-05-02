@@ -41,8 +41,6 @@ fn test_wmipersist_parser() {
     }
 }
 
-
-
 #[cfg(target_os = "windows")]
 fn validate_output(output: &PathBuf) {
     // Output is in JSONL based on the TOML file above!
