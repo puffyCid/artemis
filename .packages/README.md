@@ -8,6 +8,7 @@ The files listed here are used to package artemis. All commands assume you are i
 - artemis.wixproj - MSI Template project
 - artemis.wxs - MSI configuration
 - vib.sh - Bash script to create vSphere Installation Bundles (VIB) for ESXi systems
+- entitlements.plist - Starting on macOS Tahoe, Yara-X requires JIT and unsigned-executable-memory entitlements for its WASM runtime. If you compile artemis without Yara-X you do **not** need these entitlements
 
 ## RPM
 1. Ensure just, rpmbuild, rpmlint are installed

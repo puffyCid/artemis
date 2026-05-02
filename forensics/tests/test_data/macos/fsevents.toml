@@ -2,7 +2,7 @@
 [output]
 name = "fsevents_collection"
 directory = "./tmp"
-format = "json"
+format = "jsonl"
 compress = true
 timeline = false
 endpoint_id = "abdc"
