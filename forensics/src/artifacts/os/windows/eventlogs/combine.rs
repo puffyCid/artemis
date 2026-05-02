@@ -790,7 +790,7 @@ fn add_event_string(
                 }
             };
 
-            raw_param_id = raw_param_id.replace(match_value, &param_message_value.message);
+            raw_param_id = raw_param_id.replacen(match_value, &param_message_value.message, 1);
         }
         message = message.replacen(param, &raw_param_id, 1);
         return Some(message);
