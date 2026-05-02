@@ -67,6 +67,10 @@ fn check_errors(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         println!("{value}");
+
+        if (!value.contains("ERROR")) {
+            continue;
+        }
         count += 1;
     }
 
