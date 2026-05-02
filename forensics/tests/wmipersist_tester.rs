@@ -68,7 +68,7 @@ fn check_errors(output: &PathBuf) {
         let value = line.unwrap();
         println!("{value}");
 
-        if (!value.contains("ERROR")) {
+        if !value.contains("ERROR") {
             continue;
         }
         count += 1;
