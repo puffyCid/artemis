@@ -1503,7 +1503,7 @@ pub enum Source {
     None,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WmiPersist {
     pub class: String,
     pub values: BTreeMap<String, Value>,

@@ -14,6 +14,7 @@ pub(crate) fn add_message_strings(
     log: &EventLogRecord,
     resources: &StringResource,
     param_regex: &Regex,
+    value_regex: &Regex,
     evidence: &str,
 ) -> Option<EventMessage> {
     let mut message = EventMessage {
@@ -186,8 +187,13 @@ pub(crate) fn add_message_strings(
             };
 
             message.template_message = table.message.clone();
-            message.message =
-                merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            message.message = merge_strings_message_table(
+                &log.data,
+                table,
+                param_regex,
+                value_regex,
+                &param_message_table,
+            )?;
             clean_message(&mut message);
             return Some(message);
         }
@@ -224,6 +230,7 @@ pub(crate) fn add_message_strings(
                     &log.data,
                     table,
                     param_regex,
+                    value_regex,
                     &param_message_table,
                 )?;
                 clean_message(&mut message);
@@ -257,8 +264,13 @@ pub(crate) fn add_message_strings(
 
         // If we do not have any templates. Can just try messagetable only
         if event_definition.template.is_none() {
-            message.message =
-                merge_strings_message_table(&log.data, table, param_regex, &param_message_table)?;
+            message.message = merge_strings_message_table(
+                &log.data,
+                table,
+                param_regex,
+                value_regex,
+                &param_message_table,
+            )?;
             clean_message(&mut message);
             return Some(message);
         }
@@ -270,6 +282,7 @@ pub(crate) fn add_message_strings(
             table,
             event_definition,
             param_regex,
+            value_regex,
             &param_message_table,
         )?;
         break;
@@ -579,6 +592,7 @@ fn merge_strings(
     table: &MessageTable,
     manifest: &Definition,
     param_regex: &Regex,
+    value_regex: &Regex,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     let mut data = log.as_object()?.get("Event")?;
@@ -647,7 +661,8 @@ fn merge_strings(
         // If element list is too small, then we use the list of values from the event data
         if element_list.len() < (param_num - adjust_id) {
             let value = data_values.get(param_num - adjust_id)?;
-            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
+            clean_message =
+                add_event_string(value, clean_message, param, value_regex, parameter_message)?;
             continue;
         }
 
@@ -677,7 +692,8 @@ fn merge_strings(
             // Event Viewer can resolve these enums somehow (Ex: IntendedPackageState - Installed). Currently we cannot
             // Other EventLog parsers also cannot seem to resolve either
 
-            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
+            clean_message =
+                add_event_string(value, clean_message, param, value_regex, parameter_message)?;
             continue;
         }
 
@@ -686,7 +702,8 @@ fn merge_strings(
             // If we fail to find the attribute name. Return the parameter (%1)
             // Sometimes happens if we try to mix eventlogs and template strings from different systems
             let value = event_data.get(&attribute.value).unwrap_or(&default);
-            clean_message = add_event_string(value, clean_message, param, parameter_message)?;
+            clean_message =
+                add_event_string(value, clean_message, param, value_regex, parameter_message)?;
         }
     }
 
@@ -698,10 +715,12 @@ fn add_event_string(
     value: &Value,
     mut message: String,
     param: &str,
+    value_regex: &Regex,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
-    // Sometimes EventLog data values are a string of raw IDs (ex: "%%1538\r\n%%1539")
+    // Sometimes EventLog data values are a string of multiple raw parameter IDs (ex: "%%1538\r\n%%1539")
     // Below is an example EventLog message rendered by artemis (from Github CI runner)
+    // We use regex to loop through them all and replace each instance with the corresponding string from the MessageTable
     /*Ex:
         An operation was attempted on a privileged object.
 
@@ -735,35 +754,45 @@ fn add_event_string(
 
             Privileges:		SeTakeOwnershipPrivilege
     */
-    if value
-        .as_str()
-        .is_some_and(|s| s.starts_with("%%") && !s.contains("\r\n"))
-    {
+    if value.as_str().is_some_and(|s| s.starts_with("%%")) {
         if parameter_message.is_empty() {
             warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
             return Some(message);
         }
 
-        let num_result = value.as_str()?.get(2..)?.parse();
-        if let Err(status) = num_result {
-            warn!("[eventlogs] Could not get parameter message id: {status:?}. Value: {value:?}");
-            return Some(message);
-        }
-
-        let param_message_id: u32 = num_result.unwrap_or_default();
-
-        let param_message_value = if let Some(result) = parameter_message.get(&param_message_id) {
-            result
-        } else {
-            // Try one more time
-            let adjust = 0xffff;
-            match parameter_message.get(&(param_message_id & adjust)) {
-                Some(result) => result,
-                None => return Some(message),
+        // Unwrap is safe since we check to make sure its a string above
+        let mut raw_param_id = value.as_str().unwrap().to_string();
+        // Use our Regex to match on all parameter IDs in the evtx data
+        // Replace each one from with a MessageTable string
+        for found in value_regex.find_iter(value.as_str().unwrap()) {
+            let match_value = found.as_str();
+            if !match_value.starts_with("%%") {
+                continue;
             }
-        };
 
-        message = message.replacen(param, &param_message_value.message, 1);
+            let num_result = match_value.get(2..)?.parse();
+            if let Err(status) = num_result {
+                warn!(
+                    "[eventlogs] Could not get parameter message id: {status:?}. Value: {value:?}"
+                );
+                return Some(message);
+            }
+            let param_message_id: u32 = num_result.unwrap_or_default();
+            let param_message_value = if let Some(result) = parameter_message.get(&param_message_id)
+            {
+                result
+            } else {
+                // Try one more time
+                let adjust = 0xffff;
+                match parameter_message.get(&(param_message_id & adjust)) {
+                    Some(result) => result,
+                    None => return Some(message),
+                }
+            };
+
+            raw_param_id = raw_param_id.replacen(match_value, &param_message_value.message, 1);
+        }
+        message = message.replacen(param, &raw_param_id, 1);
         return Some(message);
     }
 
@@ -803,6 +832,7 @@ fn merge_strings_message_table(
     log: &Value,
     table: &MessageTable,
     param_regex: &Regex,
+    value_regex: &Regex,
     parameter_message: &HashMap<u32, MessageTable>,
 ) -> Option<String> {
     let mut clean_message = clean_table(&table.message);
@@ -884,7 +914,8 @@ fn merge_strings_message_table(
         }
 
         let value = values.get(param_num - adjust_id)?;
-        clean_message = add_event_string(value, clean_message, param, parameter_message)?;
+        clean_message =
+            add_event_string(value, clean_message, param, value_regex, parameter_message)?;
     }
 
     Some(clean_message)
@@ -1015,10 +1046,12 @@ mod tests {
             "system_missing.json",
             "configuration.json",
             "powershell.json",
+            "parameter_value.json",
         ];
 
         let resources = get_resources().unwrap();
         let params = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
+        let value_regex = create_regex(r"%%\d+").unwrap();
 
         for sample in samples {
             test_location.push(sample);
@@ -1028,7 +1061,8 @@ mod tests {
             test_location.pop();
             let evidence = "test";
 
-            let message = add_message_strings(&log, &resources, &params, evidence).unwrap();
+            let message =
+                add_message_strings(&log, &resources, &params, &value_regex, evidence).unwrap();
 
             assert!(!message.message.contains("%%"));
             assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));
@@ -1260,6 +1294,13 @@ mod tests {
                 "powershell.json" => {
                     assert!(!message.message.contains("TEMP_ARTEMIS_VALUE"));
                 }
+                "parameter_value.json" => {
+                    assert!(
+                        message
+                            .message
+                            .contains("Success Added\r\n, Failure added\r\n\r\n")
+                    )
+                }
                 _ => panic!("should not have an unknown sample?"),
             }
         }
@@ -1417,7 +1458,8 @@ mod tests {
     fn test_add_event_string() {
         let value = Value::String(String::from("love"));
         let test = String::from("i really %1 windows eventlogs! /s");
-        let result = add_event_string(&value, test, "%1", &HashMap::new()).unwrap();
+        let value_regex = create_regex(r"%%\d+").unwrap();
+        let result = add_event_string(&value, test, "%1", &value_regex, &HashMap::new()).unwrap();
         assert_eq!(result, "i really love windows eventlogs! /s");
     }
 
