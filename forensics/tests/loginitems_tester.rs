@@ -66,6 +66,9 @@ fn check_errors(output: &PathBuf) {
     let mut count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
+        if value.contains("not a bookmark got") {
+            continue;
+        }
         println!("{value}");
         count += 1;
     }

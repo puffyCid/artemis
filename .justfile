@@ -113,6 +113,7 @@ end2end:
   cargo test --release --test shortcuts_tester
   cargo test --release --test wmipersist_tester
   cargo test --release --test fsevents_tester
+  cargo test --release --test loginitems_tester
 
 # Just build the artemis binary
 [group('workspace')]
