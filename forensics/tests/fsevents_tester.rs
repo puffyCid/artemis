@@ -51,7 +51,6 @@ fn validate_output(output: &PathBuf) {
         println!("{value}");
         let info: FsEvents = serde_json::from_str(&value).unwrap();
         if info.path.is_empty() {
-            println!("{info:?}");
             panic!("no path?")
         }
         assert_ne!(info.evidence_modified, "1970-01-01T00:00:00.000Z");
