@@ -34,8 +34,11 @@ pub(crate) fn logons(
 ) -> Result<(), LinuxArtifactError> {
     let start_time = time::time_now();
 
-    let result = grab_logons(options);
-    let serde_data_result = serde_json::to_value(result);
+    let entries = grab_logons(options);
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -57,15 +60,18 @@ pub(crate) fn sudo_logs_linux(
     let start_time = time::time_now();
 
     let sudo_results = grab_sudo_logs(options);
-    let sudo_data = match sudo_results {
+    let entries = match sudo_results {
         Ok(results) => results,
         Err(err) => {
             warn!("[forensics] Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
+    if entries.is_empty() {
+        return Ok(());
+    }
 
-    let serde_data_result = serde_json::to_value(sudo_data);
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {

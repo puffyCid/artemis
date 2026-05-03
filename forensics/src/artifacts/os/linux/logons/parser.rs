@@ -11,8 +11,11 @@
  * Other Parsers:
  *  `https://github.com/Velocidex/velociraptor`
  */
-use super::logon::{Logon, Status};
-use crate::{filesystem::files::file_reader, structs::artifacts::os::linux::LogonOptions};
+use crate::{
+    artifacts::os::linux::logons::logon::logon_reader, filesystem::files::file_reader,
+    structs::artifacts::os::linux::LogonOptions,
+};
+use common::linux::{Logon, Status};
 use log::{error, warn};
 
 /// Grab all logon data from default paths
@@ -58,7 +61,7 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
         Status::Success
     };
 
-    let mut logon = Logon::logon_reader(&mut reader, status, path);
+    let mut logon = logon_reader(&mut reader, status, path);
 
     logons.append(&mut logon);
 }
