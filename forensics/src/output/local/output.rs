@@ -49,6 +49,11 @@ pub(crate) fn local_output(
     start_time: u64,
     artifact_name: &str,
 ) -> Result<(), LocalError> {
+    // If we have empty array return now
+    if data.as_array().is_some_and(|v| v.is_empty()) {
+        return Ok(());
+    }
+
     let output_path = format!("{}/{}", output.directory, output.name);
 
     let result = create_dir_all(&output_path);
@@ -104,34 +109,6 @@ pub(crate) fn local_output(
     // Write serde data as newline json
     if data.is_array() {
         let value = data.as_array_mut().unwrap();
-        // If we have an empty array. We always output metadata just so the user knows
-        if value.is_empty() {
-            let collection_output = json![{
-                    "endpoint_id": output.endpoint_id,
-                    "id": output.collection_id,
-                    "uuid": uuid,
-                    "artifact_name": artifact_name,
-                    "complete_time": complete,
-                    "start_time": unixepoch_to_iso(start_time as i64),
-                    "hostname": info.hostname,
-                    "os_version": info.os_version,
-                    "platform": info.platform,
-                    "kernel_version": info.kernel_version,
-                    "load_performance": info.performance,
-                    "artemis_version": info.artemis_version,
-                    "rust_version": info.rust_version,
-                    "build_date": info.build_date,
-                    "interfaces": info.interfaces,
-            }];
-
-            let line = serde_json::to_vec(&collection_output).unwrap_or_default();
-            if let Err(err) = writer.write_all(&line) {
-                error!("[forensics] Could not write all collection bytes to jsonl: {err:?}");
-            }
-            // Track output files
-            output.output_files.push(output_file);
-            return finish_writer(writer);
-        }
 
         for entry in value {
             // Append metadata row
