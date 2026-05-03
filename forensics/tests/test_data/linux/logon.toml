@@ -2,7 +2,7 @@
 [output]
 name = "logon_collection"
 directory = "./tmp"
-format = "json"
+format = "jsonl"
 compress = false
 timeline = false
 endpoint_id = "abdc"

@@ -122,3 +122,41 @@ pub struct Ext4Filelist {
     pub sha256: String,
     pub evidence: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Logon {
+    pub logon_type: LogonType,
+    pub pid: u32,
+    pub terminal: String,
+    pub terminal_id: u32,
+    pub username: String,
+    pub hostname: String,
+    pub termination_status: i16,
+    pub exit_status: i16,
+    pub session: i32,
+    pub timestamp: String,
+    pub microseconds: i32,
+    pub ip: String,
+    pub status: Status,
+    pub evidence: String,
+}
+
+#[derive(Debug, Serialize, PartialEq, Deserialize)]
+pub enum LogonType {
+    Unknown,
+    RunLevel,
+    BootTime,
+    NewTime,
+    OldTime,
+    InitProcess,
+    LoginProcess,
+    UserProcess,
+    DeadProcess,
+    Accounting,
+}
+
+#[derive(Debug, Serialize, PartialEq, Clone, Copy, Deserialize)]
+pub enum Status {
+    Success,
+    Failed,
+}
