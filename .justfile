@@ -112,6 +112,8 @@ end2end:
   cargo test --release --test shimdb_tester
   cargo test --release --test shortcuts_tester
   cargo test --release --test wmipersist_tester
+  cargo test --release --test fsevents_tester
+  cargo test --release --test loginitems_tester
 
 # Just build the artemis binary
 [group('workspace')]
@@ -255,7 +257,7 @@ _ci_deb version target: (_ci_release target)
 # Package Artemis into macOS PKG installer file
 [group('package')]
 pkg team_id version profile: (cli)
-  @cd target/release && codesign --timestamp -s {{team_id}} --deep -v -f -o runtime artemis
+  @cd target/release && codesign --timestamp -s {{team_id}} --entitlements ../../.packages/entitlements.plist --deep -v -f -o runtime artemis
   @mkdir target/release/pkg && mv target/release/artemis target/release/pkg
   @pkgbuild --timestamp --sign {{team_id}} --root target/release/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.pkg
   @xcrun notarytool submit artemis-{{version}}.pkg --keychain-profile {{profile}} --wait
@@ -268,7 +270,7 @@ pkg team_id version profile: (cli)
 # Package Artemis into macOS PKG installer file for CI Releases
 [group('package')]
 _ci_pkg version profile target: (_ci_release target)
-  @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --deep -v -f -o runtime artemis
+  @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --entitlements ../../../.packages/entitlements.plist --deep -v -f -o runtime artemis
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
   @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.{{target}}.pkg
   @xcrun notarytool submit artemis-{{version}}.{{target}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 

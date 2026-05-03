@@ -34,7 +34,7 @@ pub(crate) fn loginitems(
     let start_time = time::time_now();
 
     let artifact_result = grab_loginitems(options);
-    let result = match artifact_result {
+    let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to parse loginitems: {err:?}");
@@ -42,7 +42,11 @@ pub(crate) fn loginitems(
         }
     };
 
-    let serde_data_result = serde_json::to_value(result);
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -64,7 +68,7 @@ pub(crate) fn emond(
     let start_time = time::time_now();
 
     let results = grab_emond(options);
-    let emond_data = match results {
+    let entries = match results {
         Ok(result) => result,
         Err(err) => {
             warn!("[forensics] Failed to parse emond rules: {err:?}");
@@ -72,7 +76,11 @@ pub(crate) fn emond(
         }
     };
 
-    let serde_data_result = serde_json::to_value(emond_data);
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -93,8 +101,11 @@ pub(crate) fn users_macos(
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let users_data = grab_users(options);
-    let serde_data_result = serde_json::to_value(users_data);
+    let entries = grab_users(options);
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -115,8 +126,11 @@ pub(crate) fn groups_macos(
 ) -> Result<(), MacArtifactError> {
     let start_time = time::time_now();
 
-    let groups_data = grab_groups(options);
-    let serde_data_result = serde_json::to_value(groups_data);
+    let entries = grab_groups(options);
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -152,7 +166,7 @@ pub(crate) fn launchd(
     let start_time = time::time_now();
 
     let artifact_result = grab_launchd(options);
-    let results = match artifact_result {
+    let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to parse launchd: {err:?}");
@@ -160,7 +174,11 @@ pub(crate) fn launchd(
         }
     };
 
-    let serde_data_result = serde_json::to_value(results);
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -191,15 +209,17 @@ pub(crate) fn execpolicy(
     let start_time = time::time_now();
 
     let artifact_result = grab_execpolicy(options);
-    let results = match artifact_result {
+    let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to query execpolicy: {err:?}");
             return Err(MacArtifactError::ExecPolicy);
         }
     };
-
-    let serde_data_result = serde_json::to_value(results);
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {
@@ -220,7 +240,7 @@ pub(crate) fn sudo_logs_macos(
 ) -> Result<(), MacArtifactError> {
     let start_time = time_now();
     let artifact_result = grab_sudo_logs(options);
-    let results = match artifact_result {
+    let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
             warn!("[forensics] Failed to get sudo log data: {err:?}");
@@ -228,7 +248,11 @@ pub(crate) fn sudo_logs_macos(
         }
     };
 
-    let serde_data_result = serde_json::to_value(results);
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
         Err(err) => {

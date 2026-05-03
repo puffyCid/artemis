@@ -79,7 +79,7 @@ pub struct BookmarkData {
     pub target_filename: String,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Deserialize)]
 pub enum TargetFlags {
     RegularFile,
     Directory,
@@ -100,7 +100,7 @@ pub enum TargetFlags {
     MountTrigger,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Deserialize)]
 pub enum CreationFlags {
     MinimalBookmark,
     SuitableBookmark,
@@ -110,7 +110,7 @@ pub enum CreationFlags {
     PreferFileIDResolutionMask,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Deserialize)]
 pub enum VolumeFlags {
     Local,
     Automount,
@@ -268,7 +268,7 @@ pub struct ExecPolicy {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FsEvents {
     /**Flags associated with `FsEvent` record */
     pub flags: Vec<String>,
@@ -295,7 +295,7 @@ pub struct LaunchdPlist {
     pub changed: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Default, Deserialize)]
 pub struct LoginItemsData {
     /**Path to file to run */
     pub path: String,
