@@ -16,7 +16,6 @@ fn test_loginitems_parser() {
     test_location.push("tests/test_data/macos/loginitems.toml");
 
     parse_toml_file(&test_location.display().to_string()).unwrap();
-    parse_toml_file(&test_location.display().to_string()).unwrap();
     let mut output_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     output_location.push("tmp/loginitems_collection/*");
 
@@ -33,7 +32,7 @@ fn test_loginitems_parser() {
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("\\loginitems_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("/loginitems_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
         if value.extension().unwrap() == "log" && !value.to_str().unwrap().contains("status_") {

@@ -13,7 +13,7 @@ fn test_fsevents_parser() {
     use std::fs::read;
 
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    test_location.push("tests/test_data/windows/fsevents.toml");
+    test_location.push("tests/test_data/macos/fsevents.toml");
 
     parse_toml_file(&test_location.display().to_string()).unwrap();
     let mut output_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -32,7 +32,7 @@ fn test_fsevents_parser() {
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("\\fseventsd_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("/fseventsd_") && output_file.ends_with(".jsonl") {
             validate_output(value);
         }
         if value.extension().unwrap() == "log" && !value.to_str().unwrap().contains("status_") {
