@@ -54,7 +54,7 @@ fn validate_output(output: &PathBuf) {
             println!("{info:?}");
             panic!("no path?")
         }
-        assert_ne!(info.last_modified, "1970-01-01T00:00:00.000Z");
+        assert_ne!(info.evidence_modified, "1970-01-01T00:00:00.000Z");
     }
 }
 
