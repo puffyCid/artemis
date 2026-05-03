@@ -66,6 +66,9 @@ fn check_errors(output: &PathBuf) {
     let mut count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
+        if value.contains("Could not list FsEvents files: NotDirectory") {
+            continue;
+        }
         println!("{value}");
         count += 1;
     }
