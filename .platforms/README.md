@@ -10,7 +10,7 @@ Sample setup steps:
 2. Initialize the target template with packer. `packer init openbsd.pkr.hcl`
 3. Validate the target template with packer. `packer validate openbsd.pkr.hcl`
 4. Build the Vagrant box. `packer build openbsd.pkr.hcl`
-5. Once the box is built, add it locally. `vagrant box add --name artemis-openbsd openbsd-78.box`
+5. Once the box is built, add it locally. `vagrant box add --name artemis-openbsd ./boxes/openbsd-78.box`
 6. Initialize the box from repo root directory. `vagrant init artemis-openbsd`
 7. Start the box from repo root directory. `vagrant up --name artemis-openbsd`
 8. SSH into the the box. `vagrant ssh openbsd`
