@@ -1,4 +1,4 @@
-# Full credit to Gemini (google.com/ai) O.o
+# Full credit to Gemini (google.com/ai)
 packer {
   required_plugins {
     qemu = {
