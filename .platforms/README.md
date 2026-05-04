@@ -14,5 +14,4 @@ Sample setup steps:
 6. Initialize the box from repo root directory. `vagrant init artemis-openbsd`
 7. Start the box from repo root directory. `vagrant up --name artemis-openbsd`
 8. SSH into the the box. `vagrant ssh openbsd`
-9. Navigate to /vagrant directory. `cd /vagrant`
 10. Compile for OpenBSD. `just slim`
