@@ -43,7 +43,6 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "freebsd" do |freebsd|
-    # Only the compiled musl artemis binary directory is exposed
     # Our Vagrantfile is not exposed to the box
     freebsd.vm.synced_folder "./target/x86_64-unknown-freebsd/release", "/vagrant",
       type: "nfs", 
@@ -61,6 +60,22 @@ Vagrant.configure("2") do |config|
       # Install updates for FreeBSD Stream
       sudo pkg update && sudo pkg upgrade -y
       SHELL
+    end
+  end
+
+  config.vm.define "openbsd" do |openbsd|
+    # OpenBSD specific shell and command overrides
+    openbsd.ssh.shell = "ksh -l"
+    openbsd.ssh.sudo_command = "doas -n %c"
+    # Our Vagrantfile is not exposed to the box
+    openbsd.vm.synced_folder ".", "/home/vagrant/",
+      type: "rsync",
+      rsync__rsync_path: "doas rsync",
+      rsync__exclude: ["target/", ".platforms/", "Vagrantfile"]
+    openbsd.vm.box = "artemis-openbsd"
+      openbsd.vm.provider :libvirt do |obsd_libvirt|
+      # FORCE VGA output to match your Packer build's default OS layout
+      obsd_libvirt.graphics_type = 'vnc' 
     end
   end
 end
