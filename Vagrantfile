@@ -73,9 +73,23 @@ Vagrant.configure("2") do |config|
       rsync__rsync_path: "doas rsync",
       rsync__exclude: ["target/", ".platforms/", "Vagrantfile"]
     openbsd.vm.box = "artemis-openbsd"
-      openbsd.vm.provider :libvirt do |obsd_libvirt|
+    openbsd.vm.provider :libvirt do |obsd_libvirt|
       # FORCE VGA output to match your Packer build's default OS layout
       obsd_libvirt.graphics_type = 'vnc' 
+    end
+  end
+
+  config.vm.define "esxi" do |esxi|
+    esxi.vm.box = "artemis-esxi"
+    esxi.vm.provision "file", source: "./target/x86_64-unknown-linux-musl/release/artemis.vib", destination: "/vmfs/volumes/datastore1/release/artemis.vib"
+    esxi.vm.provision "shell", inline: <<-SHELL
+      esxcli software vib install -v /vmfs/volumes/datastore1/artemis.vib --no-sig-check
+    SHELL
+
+    esxi.vm.provider :libvirt do |esxi_libvirt|
+      # FORCE VGA output to match your Packer build's default OS layout
+      esxi_libvirt.graphics_type = 'vnc' 
+      esxi_libvirt.nic_model_type = "e1000e"
     end
   end
 end
