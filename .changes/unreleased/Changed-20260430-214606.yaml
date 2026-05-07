@@ -1,3 +1,0 @@
-kind: Changed
-body: Made output consistent when an artifact has no results. Now if artemis parses an artifact that has no data, it will just output runtime log and a JSON report. Previously artemis would output an empty result with runtime metadata
-time: 2026-04-30T21:46:06.8359461-04:00

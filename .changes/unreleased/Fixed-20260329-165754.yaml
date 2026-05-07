@@ -1,3 +1,0 @@
-kind: Fixed
-body: Bug where artemis would skip binary message blobs in systemd journal
-time: 2026-03-29T16:57:54.362753738-04:00

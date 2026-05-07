@@ -1,3 +1,0 @@
-kind: Changed
-body: Made all cli arguements consistent. --alt-file when you want to provide an alternative file. --alt-dir when you want to provide an alternative directory. Removed --alt-path.
-time: 2026-04-16T21:01:20.4914938-04:00
