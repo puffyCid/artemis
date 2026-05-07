@@ -142,8 +142,7 @@ build {
 
       # 5. Install Rust, Git, and supporting compiler tools
       "echo 'Installing requested development packages...'",
-      "pkg install -y git cmake rsync just",
-      "fetch http://www.ravenports.com/repository/ravenports-downloader.sh -o - | /bin/sh"
+      "pkg install -y git cmake rsync just rust",
     ]
   }
 
