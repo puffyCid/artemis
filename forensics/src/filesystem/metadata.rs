@@ -33,45 +33,42 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
         timestamps.created = unixepoch_to_iso(filetime_to_unixepoch(meta.creation_time()));
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd"))]
+    #[cfg(target_os = "linux")]
+    use std::os::linux::fs::MetadataExt;
+    #[cfg(target_os = "macos")]
+    use std::os::macos::fs::MetadataExt;
+    #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+    use std::os::unix::fs::MetadataExt;
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        #[cfg(target_os = "linux")]
-        use std::os::linux::fs::MetadataExt;
-        #[cfg(target_os = "macos")]
-        use std::os::macos::fs::MetadataExt;
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
-        use std::os::unix::fs::MetadataExt;
+        timestamps.accessed = unixepoch_to_iso(meta.st_atime());
+        timestamps.modified = unixepoch_to_iso(meta.st_mtime());
+        timestamps.changed = unixepoch_to_iso(meta.st_ctime());
+    }
 
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            timestamps.accessed = unixepoch_to_iso(meta.st_atime());
-            timestamps.modified = unixepoch_to_iso(meta.st_mtime());
-            timestamps.changed = unixepoch_to_iso(meta.st_ctime());
-        }
+    #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+    {
+        timestamps.accessed = unixepoch_to_iso(meta.atime());
+        timestamps.modified = unixepoch_to_iso(meta.mtime());
+        timestamps.changed = unixepoch_to_iso(meta.ctime());
+    }
 
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd"))]
-        {
-            timestamps.accessed = unixepoch_to_iso(meta.atime());
-            timestamps.modified = unixepoch_to_iso(meta.mtime());
-            timestamps.changed = unixepoch_to_iso(meta.ctime());
-        }
+    #[cfg(target_os = "linux")]
+    {
+        use std::time::SystemTime;
 
-        #[cfg(target_os = "linux")]
-        {
-            use std::time::SystemTime;
-
-            let created = meta
-                .created()
-                .unwrap_or(SystemTime::UNIX_EPOCH)
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            timestamps.created = unixepoch_to_iso(created as i64);
-        }
-        #[cfg(target_os = "macos")]
-        {
-            timestamps.created = unixepoch_to_iso(meta.st_birthtime());
-        }
+        let created = meta
+            .created()
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        timestamps.created = unixepoch_to_iso(created as i64);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        timestamps.created = unixepoch_to_iso(meta.st_birthtime());
     }
 
     Ok(timestamps)
