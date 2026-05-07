@@ -9,6 +9,6 @@
 node_modules
 tools/daemon server/build
 .vagrant
-./platforms/boxes
+.platforms/boxes
 *.box
 *.img
