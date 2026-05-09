@@ -128,9 +128,18 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     epoch.timestamp()
 }
 
-/// Convert `UnixEpoch` to ISO8601 format
+/// Convert `UnixEpoch` to ISO8601 format with millisecond precision
 pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
     let iso_opt = DateTime::from_timestamp(timestamp, 0);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T00:00:00.000Z"),
+    }
+}
+
+/// Convert `UnixEpoch` to ISO8601 format with with nanoseconds
+pub(crate) fn unixepoch_to_iso_with_nano(timestamp: i64, nanoseconds: i64) -> String {
+    let iso_opt = DateTime::from_timestamp(timestamp, nanoseconds as u32);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -193,7 +202,7 @@ mod tests {
     use crate::utils::time::{
         cocoatime_to_unixepoch, compare_timestamps, fattime_utc_to_unixepoch,
         filetime_to_unixepoch, get_fat_bits, ole_automationtime_to_unixepoch,
-        unixepoch_microseconds_to_iso, unixepoch_to_iso,
+        unixepoch_microseconds_to_iso, unixepoch_to_iso, unixepoch_to_iso_with_nano,
     };
 
     #[test]
@@ -274,5 +283,12 @@ mod tests {
         let timestamp2 = unixepoch_to_iso(1474819646);
 
         assert!(compare_timestamps(&timestamp, &timestamp2).unwrap());
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano() {
+        let timestamp = unixepoch_to_iso_with_nano(1574819646, 33077000);
+
+        assert_eq!(timestamp, "2019-11-27T01:54:06.033Z");
     }
 }
