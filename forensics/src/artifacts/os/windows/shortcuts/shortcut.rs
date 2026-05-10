@@ -280,9 +280,9 @@ mod tests {
         ];
 
         let (_, result) = get_shortcut_data(&test).unwrap();
-        assert_eq!(result.created, "2022-11-03T02:09:27.000Z");
-        assert_eq!(result.modified, "2022-12-09T06:08:20.000Z");
-        assert_eq!(result.accessed, "2022-12-09T06:10:52.000Z");
+        assert_eq!(result.created, "2022-11-03T02:09:27.905Z");
+        assert_eq!(result.modified, "2022-12-09T06:08:20.426Z");
+        assert_eq!(result.accessed, "2022-12-09T06:10:52.568Z");
 
         assert_eq!(
             result.data_flags,
@@ -449,9 +449,9 @@ mod tests {
         };
 
         let (_, _) = get_shortcut_info(input, &mut shortcut_info).unwrap();
-        assert_eq!(shortcut_info.created, "2022-11-03T02:09:27.000Z");
-        assert_eq!(shortcut_info.modified, "2022-12-09T06:08:20.000Z");
-        assert_eq!(shortcut_info.accessed, "2022-12-09T06:10:52.000Z");
+        assert_eq!(shortcut_info.created, "2022-11-03T02:09:27.905Z");
+        assert_eq!(shortcut_info.modified, "2022-12-09T06:08:20.426Z");
+        assert_eq!(shortcut_info.accessed, "2022-12-09T06:10:52.568Z");
 
         assert_eq!(
             shortcut_info.data_flags,

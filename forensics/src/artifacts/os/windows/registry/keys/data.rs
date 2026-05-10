@@ -356,7 +356,7 @@ mod tests {
         ];
 
         let (_, result) = parse_qword_filetime(&test_data, 0, 8, true).unwrap();
-        assert_eq!(result, "2019-10-21T02:46:54.000Z");
+        assert_eq!(result, "2019-10-21T02:46:54.766Z");
     }
 
     #[test]

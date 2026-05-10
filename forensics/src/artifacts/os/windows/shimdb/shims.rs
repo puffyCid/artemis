@@ -173,7 +173,7 @@ mod tests {
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let (_, result) = parse_shimdb(&buffer).unwrap();
         assert_eq!(result.indexes.len(), 1);
-        assert_eq!(result.db_data.compile_time, "2017-12-06T21:15:08.000Z");
+        assert_eq!(result.db_data.compile_time, "2017-12-06T21:15:08.290Z");
         assert_eq!(result.db_data.sdb_version, "2.1");
         assert_eq!(result.db_data.compiler_version, "2.1.0.3");
         assert_eq!(result.db_data.name, "AtomicShim");

@@ -1,17 +1,17 @@
 /**
- * Windows `Shortcut` files are files that point to another file.  
- * The have the extension `lnk` and be found in any directory.  
+ * Windows `Shortcut` files are files that point to another file.
+ * The have the extension `lnk` and be found in any directory.
  * The `Shortcut` files found in `C:\Users\<user>\AppData\Roaming\Microsoft\Windows\Recent` can be used to identify recent files and directories accessed by a user
  *
  * `Shortcut` files can also be used by malware to execute remote commands
  *
  * References:
- * `https://github.com/libyal/liblnk/blob/main/documentation/Windows%20Shortcut%20File%20(LNK)%20format.asciidoc`  
- * `https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/%5bMS-SHLLINK%5d.pdf`  
+ * `https://github.com/libyal/liblnk/blob/main/documentation/Windows%20Shortcut%20File%20(LNK)%20format.asciidoc`
+ * `https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/%5bMS-SHLLINK%5d.pdf`
  * `https://www.intezer.com/blog/malware-analysis/how-threat-actors-abuse-lnk-files/`
  *
  * Other parsers:
- * `https://github.com/EricZimmerman/LECmd`  
+ * `https://github.com/EricZimmerman/LECmd`
  * `https://github.com/Velocidex/velociraptor`
  */
 use super::{error::LnkError, header::LnkHeader, shortcut::get_shortcut_data};
@@ -154,9 +154,9 @@ mod tests {
         ];
 
         let result = parse_lnk_data(&test).unwrap();
-        assert_eq!(result.created, "2022-11-03T02:09:27.000Z");
-        assert_eq!(result.modified, "2022-12-09T06:08:20.000Z");
-        assert_eq!(result.accessed, "2022-12-09T06:10:52.000Z");
+        assert_eq!(result.created, "2022-11-03T02:09:27.905Z");
+        assert_eq!(result.modified, "2022-12-09T06:08:20.426Z");
+        assert_eq!(result.accessed, "2022-12-09T06:10:52.568Z");
 
         assert_eq!(
             result.data_flags,

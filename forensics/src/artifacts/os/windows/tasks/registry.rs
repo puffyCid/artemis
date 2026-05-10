@@ -158,7 +158,7 @@ mod tests {
     fn test_extract_dynamic_info() {
         let test = "AwAAAFcVjIlVK9sBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         let result = extract_dynamic_info(test).unwrap();
-        assert_eq!(result.created, "2024-10-31T05:27:11.000Z");
+        assert_eq!(result.created, "2024-10-31T05:27:11.743Z");
         assert_eq!(result.last_error_code, 0);
         assert_eq!(result.last_successful_run, "1601-01-01T00:00:00.000Z");
         assert_eq!(result.last_run, "1601-01-01T00:00:00.000Z");
