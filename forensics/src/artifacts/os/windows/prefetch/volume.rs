@@ -3,7 +3,7 @@ use crate::utils::{
         Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::filetime_to_iso,
 };
 use log::error;
 use nom::bytes::complete::take;
@@ -16,7 +16,7 @@ pub(crate) struct Volume {
     _volume_path_offset: u32,
     _volume_number_chars: u32,
     pub(crate) volume_path: String,
-    pub(crate) volume_creation: i64,
+    pub(crate) volume_creation: String,
     pub(crate) volume_serial: u32,
     _file_ref_offset: u32,
     _file_ref_data_size: u32,
@@ -64,7 +64,7 @@ impl Volume {
                 _volume_path_offset: volume_path_offset,
                 _volume_number_chars: volume_number_chars,
                 volume_path: extract_utf16_string(volume_path_data),
-                volume_creation: filetime_to_unixepoch(volume_creation),
+                volume_creation: filetime_to_iso(volume_creation),
                 volume_serial,
                 _file_ref_offset: file_ref_offset,
                 _file_ref_data_size: file_ref_data_size,
@@ -238,7 +238,7 @@ mod tests {
         );
         assert_eq!(results[0]._volume_path_offset, 96);
         assert_eq!(results[0]._volume_number_chars, 34);
-        assert_eq!(results[0].volume_creation, 1599200033);
+        assert_eq!(results[0].volume_creation, "2020-09-04T06:13:53.302Z");
         assert_eq!(results[0].volume_serial, 0x4290933e);
         assert_eq!(results[0]._file_ref_offset, 168);
         assert_eq!(results[0]._file_ref_data_size, 696);

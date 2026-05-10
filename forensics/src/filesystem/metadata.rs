@@ -1,5 +1,4 @@
 use crate::filesystem::error::FileSystemError;
-use crate::utils::time::unixepoch_to_iso_with_nano;
 use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
@@ -26,12 +25,12 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(target_os = "windows")]
     {
-        use crate::utils::time::filetime_to_unixepoch;
+        use crate::utils::time::filetime_to_iso;
         use std::os::windows::fs::MetadataExt;
         // Rust for Windows does not support getting Changed times :(
-        timestamps.accessed = unixepoch_to_iso(filetime_to_unixepoch(meta.last_access_time()));
-        timestamps.modified = unixepoch_to_iso(filetime_to_unixepoch(meta.last_write_time()));
-        timestamps.created = unixepoch_to_iso(filetime_to_unixepoch(meta.creation_time()));
+        timestamps.accessed = filetime_to_iso(meta.last_access_time());
+        timestamps.modified = filetime_to_iso(meta.last_write_time());
+        timestamps.created = filetime_to_iso(meta.creation_time());
     }
 
     #[cfg(target_os = "linux")]
@@ -43,6 +42,8 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
         timestamps.accessed = unixepoch_to_iso_with_nano(meta.st_atime(), meta.st_atime_nsec());
         timestamps.modified = unixepoch_to_iso_with_nano(meta.st_mtime(), meta.st_mtime_nsec());
         timestamps.changed = unixepoch_to_iso_with_nano(meta.st_ctime(), meta.st_ctime_nsec());

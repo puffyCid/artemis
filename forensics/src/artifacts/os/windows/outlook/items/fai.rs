@@ -68,7 +68,7 @@ mod tests {
         let meta = outlook_reader.folder_metadata(None, 1048616).unwrap();
 
         assert_eq!(meta.message_class, "IPM.Note");
-        assert_eq!(meta.created, "2024-09-10T07:14:33.000Z");
+        assert_eq!(meta.created, "2024-09-10T07:14:33.918Z");
         assert_eq!(meta.properties.len(), 13);
     }
 }

@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::filetime_to_iso,
 };
 use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
@@ -12,7 +12,7 @@ pub(crate) struct RegHeader {
     signature: u32,
     pub(crate) primary_sequence_num: u32,
     pub(crate) secondary_sequence_num: u32,
-    pub(crate) modified: i64,
+    pub(crate) modified: String,
     pub(crate) major_version: u32,
     pub(crate) minor_version: u32,
     file_type: u32,
@@ -79,7 +79,7 @@ impl RegHeader {
             signature,
             primary_sequence_num,
             secondary_sequence_num,
-            modified: filetime_to_unixepoch(modified),
+            modified: filetime_to_iso(modified),
             major_version,
             minor_version,
             file_type,
@@ -132,7 +132,7 @@ mod tests {
         assert_eq!(header.signature, 0x66676572); // regf
         assert_eq!(header.primary_sequence_num, 20);
         assert_eq!(header.secondary_sequence_num, 20);
-        assert_eq!(header.modified, -11644473600);
+        assert_eq!(header.modified, "1601-01-01T00:00:00.000Z");
         assert_eq!(header.major_version, 1);
         assert_eq!(header.minor_version, 5);
         assert_eq!(header.file_type, 0);
@@ -163,7 +163,7 @@ mod tests {
         assert_eq!(header.signature, 0x66676572); // regf
         assert_eq!(header.primary_sequence_num, 20);
         assert_eq!(header.secondary_sequence_num, 20);
-        assert_eq!(header.modified, -11644473600);
+        assert_eq!(header.modified, "1601-01-01T00:00:00.000Z");
         assert_eq!(header.major_version, 1);
         assert_eq!(header.minor_version, 5);
         assert_eq!(header.file_type, 0);

@@ -9,12 +9,11 @@ use super::{
     shellitems::parse_lnk_shellitems,
     volume::LnkVolume,
 };
-
 use crate::artifacts::os::windows::shortcuts::{
     extras::{property::has_property, tracker::has_tracker},
+    header::LnkHeader,
     strings::extract_string,
 };
-use crate::{artifacts::os::windows::shortcuts::header::LnkHeader, utils::time::unixepoch_to_iso};
 use common::windows::DataFlags::{
     HasArguements, HasIconLocation, HasLinkInfo, HasName, HasRelativePath, HasTargetIdList,
     HasWorkingDirectory,
@@ -33,9 +32,9 @@ pub(crate) fn get_shortcut_data(data: &[u8]) -> nom::IResult<&[u8], ShortcutInfo
         evidence: String::new(),
         data_flags: header.data_flags,
         attribute_flags: header.attribute_flags,
-        created: unixepoch_to_iso(header.created),
-        modified: unixepoch_to_iso(header.modified),
-        accessed: unixepoch_to_iso(header.access),
+        created: header.created,
+        modified: header.modified,
+        accessed: header.access,
         file_size: header.file_size,
         location_flags: LocationFlag::None,
         path: String::new(),
@@ -237,7 +236,6 @@ mod tests {
     use crate::artifacts::os::windows::shortcuts::shortcut::{
         ShortcutInfo, get_shortcut_data, get_shortcut_info,
     };
-    use crate::utils::time::unixepoch_to_iso;
     use common::windows::AttributeFlags;
     use common::windows::LocationFlag;
     use common::windows::ShellType::{Delegate, Directory, RootFolder};
@@ -416,9 +414,9 @@ mod tests {
             evidence: String::new(),
             data_flags: header.data_flags,
             attribute_flags: header.attribute_flags,
-            created: unixepoch_to_iso(header.created),
-            modified: unixepoch_to_iso(header.modified),
-            accessed: unixepoch_to_iso(header.access),
+            created: header.created,
+            modified: header.modified,
+            accessed: header.access,
             file_size: header.file_size,
             location_flags: LocationFlag::None,
             path: String::new(),

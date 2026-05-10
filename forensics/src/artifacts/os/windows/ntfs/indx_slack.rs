@@ -4,7 +4,7 @@ use crate::{
     utils::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::RawFilelist;
@@ -220,10 +220,10 @@ fn parse_indx_slack<'a>(
                 .collect();
 
             let mut slack_file = RawFilelist {
-                created: unixepoch_to_iso(filetime_to_unixepoch(created)),
-                modified: unixepoch_to_iso(filetime_to_unixepoch(modified)),
-                accessed: unixepoch_to_iso(filetime_to_unixepoch(accessed)),
-                changed: unixepoch_to_iso(filetime_to_unixepoch(changed)),
+                created: filetime_to_iso(created),
+                modified: filetime_to_iso(modified),
+                accessed: filetime_to_iso(accessed),
+                changed: filetime_to_iso(changed),
                 is_indx: true,
                 drive: directory[0..2].to_string(),
                 full_path: format!("{directory}\\{filename}"),
@@ -361,10 +361,10 @@ mod tests {
         assert_eq!(result[0].filename_changed, "");
         assert_eq!(result[0].filename_modified, "");
 
-        assert_eq!(result[0].created, "2022-11-09T04:43:46.000Z");
-        assert_eq!(result[0].modified, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].accessed, "2022-11-09T04:43:56.000Z");
-        assert_eq!(result[0].changed, "2022-11-09T04:43:56.000Z");
+        assert_eq!(result[0].created, "2022-11-09T04:43:46.905Z");
+        assert_eq!(result[0].modified, "2022-11-09T04:43:56.208Z");
+        assert_eq!(result[0].accessed, "2022-11-09T04:43:56.208Z");
+        assert_eq!(result[0].changed, "2022-11-09T04:43:56.208Z");
 
         assert_eq!(result[0].size, 699);
         assert_eq!(result[0].inode, 8589934608);

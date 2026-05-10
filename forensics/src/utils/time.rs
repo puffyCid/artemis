@@ -14,12 +14,17 @@ pub(crate) fn time_now() -> u64 {
 }
 
 /// Convert Windows filetime values to `UnixEpoch`
-pub(crate) fn filetime_to_unixepoch(filetime: u64) -> i64 {
-    let windows_nano = 10000000;
-    let seconds_to_unix: i64 = 11644473600;
+pub(crate) fn filetime_to_iso(filetime: u64) -> String {
+    let windows_milliseconds = 10000;
+    let seconds_to_unix: i64 = 11644473600000;
 
     // We should not overflow because of the division.
-    (filetime / windows_nano) as i64 - seconds_to_unix
+    let timestamp = (filetime / windows_milliseconds) as i64 - seconds_to_unix;
+    let iso_opt = DateTime::from_timestamp_millis(timestamp);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T00:00:00.000Z"),
+    }
 }
 
 /// Convert macOS Cocoa timestamp to `UnixEpoch` (also called mac time, mach absolute time)
@@ -200,9 +205,9 @@ fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
-        cocoatime_to_unixepoch, compare_timestamps, fattime_utc_to_unixepoch,
-        filetime_to_unixepoch, get_fat_bits, ole_automationtime_to_unixepoch,
-        unixepoch_microseconds_to_iso, unixepoch_to_iso, unixepoch_to_iso_with_nano,
+        cocoatime_to_unixepoch, compare_timestamps, fattime_utc_to_unixepoch, filetime_to_iso,
+        get_fat_bits, ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso,
+        unixepoch_to_iso, unixepoch_to_iso_with_nano,
     };
 
     #[test]
@@ -212,9 +217,9 @@ mod tests {
     }
 
     #[test]
-    fn test_filetime_to_unixepoch() {
+    fn test_filetime_to_iso() {
         let test_data = 132244766418940254;
-        assert_eq!(filetime_to_unixepoch(test_data), 1580003041)
+        assert_eq!(filetime_to_iso(test_data), "2020-01-26T01:44:01.894Z")
     }
 
     #[test]

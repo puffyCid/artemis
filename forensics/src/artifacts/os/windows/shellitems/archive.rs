@@ -4,7 +4,7 @@ use crate::utils::{
         nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
-    time::{filetime_to_unixepoch, unixepoch_to_iso},
+    time::filetime_to_iso,
 };
 use nom::bytes::complete::take;
 
@@ -26,7 +26,7 @@ pub(crate) fn parse_archive(data: &[u8]) -> nom::IResult<&[u8], (String, String)
     let (remaining, string_bytes) = take((size + size2) * adjust as u16)(input)?;
 
     // Modified timestamp of target folder
-    let modified = unixepoch_to_iso(filetime_to_unixepoch(time_bytes));
+    let modified = filetime_to_iso(time_bytes);
     let path = extract_utf16_string(string_bytes);
 
     Ok((remaining, (modified, path)))
@@ -47,7 +47,7 @@ mod tests {
         ];
 
         let (_, (modified, path)) = parse_archive(&test).unwrap();
-        assert_eq!(modified, "2024-04-03T06:06:36.000Z");
+        assert_eq!(modified, "2024-04-03T06:06:36.993Z");
         assert_eq!(path, "defender-database-extract-master");
     }
 
@@ -65,7 +65,7 @@ mod tests {
         ];
 
         let (_, (modified, path)) = parse_archive(&test).unwrap();
-        assert_eq!(modified, "2024-04-03T06:11:03.000Z");
+        assert_eq!(modified, "2024-04-03T06:11:03.902Z");
         assert_eq!(
             path,
             "defender-database-extract-master\\defender-database-extract-master"

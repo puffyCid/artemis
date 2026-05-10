@@ -10,7 +10,7 @@ use crate::{
     },
     utils::{
         nom_helper::{Endian, nom_unsigned_four_bytes},
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
@@ -72,10 +72,10 @@ pub(crate) fn filename_info(
         }
 
         file_info.filename = filename.name;
-        file_info.filename_created = unixepoch_to_iso(filetime_to_unixepoch(filename.created));
-        file_info.filename_accessed = unixepoch_to_iso(filetime_to_unixepoch(filename.accessed));
-        file_info.filename_modified = unixepoch_to_iso(filetime_to_unixepoch(filename.modified));
-        file_info.filename_changed = unixepoch_to_iso(filetime_to_unixepoch(filename.changed));
+        file_info.filename_created = filetime_to_iso(filename.created);
+        file_info.filename_accessed = filetime_to_iso(filename.accessed);
+        file_info.filename_modified = filetime_to_iso(filename.modified);
+        file_info.filename_changed = filetime_to_iso(filename.changed);
         file_info.namespace = filename.namespace;
         file_info.parent_mft_reference = filename.parent_mft as u64;
         break;
@@ -85,17 +85,10 @@ pub(crate) fn filename_info(
 
 /// Get Standard attributes data
 pub(crate) fn standard_info(standard: &NtfsStandardInformation, file_info: &mut RawFilelist) {
-    file_info.created = unixepoch_to_iso(filetime_to_unixepoch(
-        standard.creation_time().nt_timestamp(),
-    ));
-    file_info.modified = unixepoch_to_iso(filetime_to_unixepoch(
-        standard.modification_time().nt_timestamp(),
-    ));
-    file_info.changed = unixepoch_to_iso(filetime_to_unixepoch(
-        standard.mft_record_modification_time().nt_timestamp(),
-    ));
-    file_info.accessed =
-        unixepoch_to_iso(filetime_to_unixepoch(standard.access_time().nt_timestamp()));
+    file_info.created = filetime_to_iso(standard.creation_time().nt_timestamp());
+    file_info.modified = filetime_to_iso(standard.modification_time().nt_timestamp());
+    file_info.changed = filetime_to_iso(standard.mft_record_modification_time().nt_timestamp());
+    file_info.accessed = filetime_to_iso(standard.access_time().nt_timestamp());
 
     file_info.usn = standard.usn().unwrap_or(0);
     file_info.sid = standard.security_id().unwrap_or(0);

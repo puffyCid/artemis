@@ -1,5 +1,5 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
-use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
+use crate::utils::time::filetime_to_iso;
 use nom::bytes::complete::take;
 use nom::number::complete::le_u64;
 use std::mem::size_of;
@@ -22,9 +22,9 @@ pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], (String, String, St
     let (_, mod_filetime) = le_u64(modified_data)?;
     let (_, access_filetime) = le_u64(accessed_data)?;
 
-    let created = unixepoch_to_iso(filetime_to_unixepoch(create_filetime));
-    let modified = unixepoch_to_iso(filetime_to_unixepoch(mod_filetime));
-    let accessed = unixepoch_to_iso(filetime_to_unixepoch(access_filetime));
+    let created = filetime_to_iso(create_filetime);
+    let modified = filetime_to_iso(mod_filetime);
+    let accessed = filetime_to_iso(access_filetime);
     Ok((remaining_data, (created, accessed, modified)))
 }
 
@@ -39,8 +39,8 @@ mod tests {
             66, 226, 189, 132, 214, 1, 198, 63, 64, 72, 190, 132, 214, 1, 20, 0, 0, 0,
         ];
         let (_, (created, accessed, modified)) = parse_beef(&test_data).unwrap();
-        assert_eq!(created, "2020-09-04T03:11:59.000Z");
-        assert_eq!(accessed, "2020-09-07T02:26:24.000Z");
-        assert_eq!(modified, "2020-09-07T02:23:33.000Z");
+        assert_eq!(created, "2020-09-04T03:11:59.232Z");
+        assert_eq!(accessed, "2020-09-07T02:26:24.483Z");
+        assert_eq!(modified, "2020-09-07T02:23:33.367Z");
     }
 }

@@ -1,7 +1,7 @@
 use super::version30::Version30;
 use crate::utils::{
     nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
-    time::{filetime_to_unixepoch, unixepoch_to_iso},
+    time::filetime_to_iso,
 };
 use nom::bytes::complete::take;
 use std::mem::size_of;
@@ -25,7 +25,7 @@ impl Version23 {
 
         let mut run_times: Vec<String> = Vec::new();
         let (input, runtime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-        run_times.push(unixepoch_to_iso(filetime_to_unixepoch(runtime)));
+        run_times.push(filetime_to_iso(runtime));
 
         let (input, unknown2_data) = take(size_of::<u128>())(input)?;
 
@@ -82,6 +82,6 @@ mod tests {
         assert_eq!(result.number_volumes, 1);
         assert_eq!(result.volume_info_size, 2150);
         assert_eq!(result.run_count, 1);
-        assert_eq!(result.run_times, vec!["2022-10-31T02:40:38.000Z"]);
+        assert_eq!(result.run_times, vec!["2022-10-31T02:40:38.045Z"]);
     }
 }

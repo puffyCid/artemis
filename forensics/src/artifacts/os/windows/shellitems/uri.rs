@@ -3,7 +3,7 @@ use crate::utils::nom_helper::{
     nom_unsigned_two_bytes,
 };
 use crate::utils::strings::{extract_utf8_string, extract_utf16_string};
-use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
+use crate::utils::time::filetime_to_iso;
 use common::windows::ShellItem;
 use common::windows::ShellType::Uri;
 use nom::bytes::complete::{take, take_while};
@@ -43,7 +43,7 @@ pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, _unknown2) = take(size_of::<u32>())(input)?;
 
     let (input, access) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-    uri_item.accessed = unixepoch_to_iso(filetime_to_unixepoch(access));
+    uri_item.accessed = filetime_to_iso(access);
 
     let (input, _unknown3) = take(size_of::<u32>())(input)?;
 
@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(result.mft_entry, 0);
         assert_eq!(result.created, "1970-01-01T00:00:00.000Z");
         assert_eq!(result.modified, "1970-01-01T00:00:00.000Z");
-        assert_eq!(result.accessed, "2021-02-13T08:24:50.000Z");
+        assert_eq!(result.accessed, "2021-02-13T08:24:50.747Z");
     }
 
     #[test]

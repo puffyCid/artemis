@@ -217,7 +217,7 @@ mod tests {
         assert_eq!(files.len(), 41);
 
         assert_eq!(jobs[1].job_name, "PreSignInSettingsConfigJSON");
-        assert_eq!(jobs[3].created, "2019-11-24T23:30:03.000Z");
+        assert_eq!(jobs[3].created, "2019-11-24T23:30:03.984Z");
         assert_eq!(jobs[18].job_id, "2d101a37-d827-41c8-828c-664a276b096d");
 
         assert_eq!(

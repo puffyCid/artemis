@@ -1,7 +1,6 @@
 use super::conversion::{
-    js_cocoatime_to_unixepoch, js_fat_time_to_unixepoch, js_filetime_to_unixepoch,
-    js_hfs_to_unixepoch, js_ole_automationtime_to_unixepoch, js_time_now,
-    js_webkit_time_to_unixepoch,
+    js_cocoatime_to_unixepoch, js_fat_time_to_unixepoch, js_filetime_to_iso, js_hfs_to_unixepoch,
+    js_ole_automationtime_to_unixepoch, js_time_now, js_webkit_time_to_unixepoch,
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
@@ -14,9 +13,9 @@ pub(crate) fn time_functions(context: &mut Context) {
     );
 
     let _ = context.register_global_callable(
-        JsString::from("js_filetime_to_unixepoch"),
+        JsString::from("js_filetime_to_iso"),
         1,
-        NativeFunction::from_fn_ptr(js_filetime_to_unixepoch),
+        NativeFunction::from_fn_ptr(js_filetime_to_iso),
     );
 
     let _ = context.register_global_callable(

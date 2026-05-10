@@ -6,10 +6,7 @@ use super::{
     versions::version::VersionInfo,
     volume::Volume,
 };
-use crate::utils::{
-    compression::decompress::{XpressType, decompress_xpress},
-    time::unixepoch_to_iso,
-};
+use crate::utils::compression::decompress::{XpressType, decompress_xpress};
 use common::windows::Prefetch;
 use log::error;
 
@@ -127,9 +124,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
         prefetch
             .volume_serial
             .push(format!("{:X?}", volume.volume_serial));
-        prefetch
-            .volume_creation
-            .push(unixepoch_to_iso(volume.volume_creation));
+        prefetch.volume_creation.push(volume.volume_creation);
         prefetch.volume_path.push(volume.volume_path);
 
         prefetch.accessed_directories_count += volume.number_directory_strings;
@@ -191,22 +186,22 @@ mod tests {
         assert_eq!(results.evidence.contains("_IU14D2N.TMP-136252D4.pf"), true);
         assert_eq!(results.filename, "_IU14D2N.TMP");
         assert_eq!(results.hash, "136252D4");
-        assert_eq!(results.last_run_time, "2022-06-17T23:19:24.000Z");
+        assert_eq!(results.last_run_time, "2022-06-17T23:19:24.490Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                "2022-06-17T23:19:24.000Z",
-                "2022-03-11T06:04:51.000Z",
-                "2021-12-23T04:13:17.000Z",
-                "2021-10-29T03:11:01.000Z",
-                "2021-09-19T03:57:45.000Z",
-                "2021-08-15T01:33:42.000Z"
+                "2022-06-17T23:19:24.490Z",
+                "2022-03-11T06:04:51.859Z",
+                "2021-12-23T04:13:17.346Z",
+                "2021-10-29T03:11:01.864Z",
+                "2021-09-19T03:57:45.376Z",
+                "2021-08-15T01:33:42.618Z"
             ]
         );
         assert_eq!(results.run_count, 6);
         assert_eq!(results.size, 153064);
         assert_eq!(results.volume_serial, vec!["D49D126F"]);
-        assert_eq!(results.volume_creation, vec!["2015-09-28T03:56:10.000Z"]);
+        assert_eq!(results.volume_creation, vec!["2015-09-28T03:56:10.183Z"]);
         assert_eq!(
             results.volume_path,
             vec!["\\VOLUME{01d0f9a19c586134-d49d126f}"]
@@ -254,24 +249,24 @@ mod tests {
         assert_eq!(results.evidence.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");
+        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.430Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                "2020-05-24T01:31:21.000Z",
-                "2020-05-24T01:29:15.000Z",
-                "2020-05-24T01:25:43.000Z",
-                "2020-05-24T01:18:10.000Z",
-                "2020-05-24T00:24:17.000Z",
-                "2020-05-24T00:20:32.000Z",
-                "2020-05-24T00:12:48.000Z",
-                "2020-05-23T23:50:02.000Z"
+                "2020-05-24T01:31:21.430Z",
+                "2020-05-24T01:29:15.975Z",
+                "2020-05-24T01:25:43.367Z",
+                "2020-05-24T01:18:10.194Z",
+                "2020-05-24T00:24:17.550Z",
+                "2020-05-24T00:20:32.722Z",
+                "2020-05-24T00:12:48.204Z",
+                "2020-05-23T23:50:02.898Z"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.000Z"]);
+        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.962Z"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);

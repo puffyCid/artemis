@@ -48,7 +48,7 @@ pub enum UacFlags {
     UseAESKeys,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct PeInfo {
     pub imports: Vec<String>,
     pub sections: Vec<String>,

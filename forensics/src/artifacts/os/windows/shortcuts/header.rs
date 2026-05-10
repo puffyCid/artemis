@@ -4,7 +4,7 @@ use crate::{
         nom_helper::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
         },
-        time::filetime_to_unixepoch,
+        time::filetime_to_iso,
         uuid::format_guid_le_bytes,
     },
 };
@@ -20,9 +20,9 @@ pub(crate) struct LnkHeader {
     _class_id: String,
     pub(crate) data_flags: Vec<DataFlags>,
     pub(crate) attribute_flags: Vec<AttributeFlags>,
-    pub(crate) created: i64,
-    pub(crate) access: i64,
-    pub(crate) modified: i64,
+    pub(crate) created: String,
+    pub(crate) access: String,
+    pub(crate) modified: String,
     pub(crate) file_size: u32,
     _icon_index: u32,
     _window_value: u32,
@@ -59,9 +59,9 @@ impl LnkHeader {
             _class_id: class_id,
             data_flags: LnkHeader::get_flags(data_flags),
             attribute_flags: file_attribute_flags(attribute_flags),
-            created: filetime_to_unixepoch(created_filetime),
-            access: filetime_to_unixepoch(access_filetime),
-            modified: filetime_to_unixepoch(modified_filetime),
+            created: filetime_to_iso(created_filetime),
+            access: filetime_to_iso(access_filetime),
+            modified: filetime_to_iso(modified_filetime),
             file_size,
             _icon_index: icon_index,
             _window_value: window_value,
@@ -229,9 +229,9 @@ mod tests {
             ]
         );
         assert_eq!(result.attribute_flags, [AttributeFlags::Directory]);
-        assert_eq!(result.created, 1668204504);
-        assert_eq!(result.access, 1672273759);
-        assert_eq!(result.modified, 1672273759);
+        assert_eq!(result.created, "2022-11-11T22:08:24.237Z");
+        assert_eq!(result.access, "2022-12-29T00:29:19.217Z");
+        assert_eq!(result.modified, "2022-12-29T00:29:19.087Z");
         assert_eq!(result.file_size, 49152);
         assert_eq!(result._icon_index, 0);
         assert_eq!(result._window_value, 1);

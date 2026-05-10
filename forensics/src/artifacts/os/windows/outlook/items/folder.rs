@@ -215,7 +215,7 @@ mod tests {
 
         let result = outlook_reader.root_folder(None).unwrap();
 
-        assert_eq!(result.created, "2024-09-10T07:14:31.000Z");
+        assert_eq!(result.created, "2024-09-10T07:14:31.871Z");
         assert_eq!(result.subfolder_count, 2);
         assert_eq!(result.name, "");
     }
@@ -240,8 +240,8 @@ mod tests {
         let result = outlook_reader.search_folder(None, 524355).unwrap();
 
         assert_eq!(result.name, "Reminders");
-        assert_eq!(result.created, "2024-09-10T07:15:07.000Z");
-        assert_eq!(result.modified, "2024-09-10T07:15:07.000Z");
+        assert_eq!(result.created, "2024-09-10T07:15:07.783Z");
+        assert_eq!(result.modified, "2024-09-10T07:15:07.830Z");
 
         assert_eq!(result.properties.len(), 34);
         assert_eq!(result.messages_table.block_data.len(), 0);

@@ -933,7 +933,7 @@ mod tests {
                 .unwrap();
 
             assert_eq!(messages.len(), 5);
-            assert_eq!(messages[0].delivered, "2024-09-10T04:14:19.000Z");
+            assert_eq!(messages[0].delivered, "2024-09-10T04:14:19.701Z");
             assert_eq!(
                 messages[0].subject,
                 "     Get to know your OneDrive – How to back up your PC and mobile"
@@ -988,8 +988,8 @@ mod tests {
         let mut outlook_reader = setup_reader::<std::fs::File>();
 
         let folder = outlook_reader.root_folder(None).unwrap();
-        assert_eq!(folder.created, "2024-09-10T07:14:31.000Z");
-        assert_eq!(folder.modified, "2024-09-10T07:14:31.000Z");
+        assert_eq!(folder.created, "2024-09-10T07:14:31.871Z");
+        assert_eq!(folder.modified, "2024-09-10T07:14:31.871Z");
         assert_eq!(folder.subfolder_count, 2);
         assert_eq!(folder.subfolders[0].name, "Root - Public");
         assert_eq!(folder.subfolders[1].name, "Root - Mailbox");
@@ -1004,8 +1004,8 @@ mod tests {
         let folder = outlook_reader.read_folder(None, 8610).unwrap();
 
         assert_eq!(folder.name, "Outbox");
-        assert_eq!(folder.created, "2024-09-10T04:03:24.000Z");
-        assert_eq!(folder.modified, "2024-09-10T07:14:50.000Z");
+        assert_eq!(folder.created, "2024-09-10T04:03:24.091Z");
+        assert_eq!(folder.modified, "2024-09-10T07:14:50.114Z");
         assert_eq!(folder.properties.len(), 27);
         assert_eq!(folder.subfolder_count, 0);
         assert_eq!(folder.messages_table.columns.len(), 78);

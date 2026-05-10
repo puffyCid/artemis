@@ -3,7 +3,7 @@ use crate::utils::{
     encoding::base64_decode_standard,
     environment::get_folder_descriptions,
     nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
-    time::{filetime_to_unixepoch, unixepoch_to_iso},
+    time::filetime_to_iso,
 };
 use common::windows::UserAssistEntry;
 use log::{error, warn};
@@ -103,7 +103,7 @@ fn get_userassist_data(data: &[u8]) -> nom::IResult<&[u8], UserAssistEntry> {
     let (input, last_execution) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     userassist.count = count;
-    userassist.last_execution = unixepoch_to_iso(filetime_to_unixepoch(last_execution));
+    userassist.last_execution = filetime_to_iso(last_execution);
 
     Ok((input, userassist))
 }

@@ -6,7 +6,7 @@ use crate::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
         },
         strings::extract_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::{AttributeFlags, Reason, Source};
@@ -91,7 +91,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_time = filetime_to_iso(usn_time);
             let update_reason = UsnJrnlFormat::reason_flags(reason);
             let update_source_flags = UsnJrnlFormat::source_flag(source);
 
@@ -204,7 +204,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_time = filetime_to_iso(usn_time);
             let update_reason = UsnJrnlFormat::reason_flags(reason);
             let update_source_flags = UsnJrnlFormat::source_flag(source);
 

@@ -119,7 +119,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.000Z");
+        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.142Z");
     }
 
     #[test]
@@ -138,7 +138,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "SHELLEXPERIENCEHOST.EXE");
         assert_eq!(results[124].hash, "C83BCA53");
-        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.000Z");
+        assert_eq!(results[124].last_run_time, "2021-05-10T01:39:55.142Z");
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
         );
         assert_eq!(results[124].filename, "WINSDKSETUP.EXE");
         assert_eq!(results[124].hash, "637164D5");
-        assert_eq!(results[124].last_run_time, "2019-12-17T03:21:04.000Z");
+        assert_eq!(results[124].last_run_time, "2019-12-17T03:21:04.030Z");
     }
 
     #[test]
@@ -174,7 +174,7 @@ mod tests {
         );
         assert_eq!(results[1].filename, "DLLHOST.EXE");
         assert_eq!(results[1].hash, "5E46FA0D");
-        assert_eq!(results[1].last_run_time, "2022-10-31T02:39:50.000Z");
+        assert_eq!(results[1].last_run_time, "2022-10-31T02:39:50.980Z");
     }
 
     #[test]
@@ -188,20 +188,20 @@ mod tests {
         assert_eq!(results[1].evidence.contains("7ZFM.EXE-44040917.pf"), true);
         assert_eq!(results[1].filename, "7ZFM.EXE");
         assert_eq!(results[1].hash, "44040917");
-        assert_eq!(results[1].last_run_time, "2022-10-08T00:38:51.000Z");
+        assert_eq!(results[1].last_run_time, "2022-10-08T00:38:51.094Z");
 
         for result in results {
             if result.evidence.contains("SVCHOST.EXE-576FFE64.pf") {
                 assert_eq!(result.evidence.contains("SVCHOST.EXE-576FFE64.pf"), true);
                 assert_eq!(result.filename, "SVCHOST.EXE");
                 assert_eq!(result.hash, "576FFE64");
-                assert_eq!(result.last_run_time, "2022-10-21T01:52:22.000Z");
+                assert_eq!(result.last_run_time, "2022-10-21T01:52:22.429Z");
                 assert_eq!(
                     result.all_run_times,
                     vec![
-                        "2022-10-21T01:52:22.000Z",
-                        "2022-10-13T05:52:24.000Z",
-                        "2022-10-10T00:57:22.000Z"
+                        "2022-10-21T01:52:22.429Z",
+                        "2022-10-13T05:52:24.473Z",
+                        "2022-10-10T00:57:22.987Z"
                     ]
                 );
                 assert_eq!(
@@ -211,9 +211,9 @@ mod tests {
                 assert_eq!(
                     result.volume_creation,
                     vec![
-                        "2020-09-04T06:13:52.000Z",
-                        "2020-09-04T06:13:53.000Z",
-                        "2022-01-03T23:23:45.000Z"
+                        "2020-09-04T06:13:52.209Z",
+                        "2020-09-04T06:13:53.302Z",
+                        "2022-01-03T23:23:45.381Z"
                     ]
                 );
                 assert_eq!(
@@ -238,24 +238,24 @@ mod tests {
         assert_eq!(results.evidence.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
         assert_eq!(results.hash, "AC113AA8");
-        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.000Z");
+        assert_eq!(results.last_run_time, "2020-05-24T01:31:21.430Z");
         assert_eq!(
             results.all_run_times,
             vec![
-                "2020-05-24T01:31:21.000Z",
-                "2020-05-24T01:29:15.000Z",
-                "2020-05-24T01:25:43.000Z",
-                "2020-05-24T01:18:10.000Z",
-                "2020-05-24T00:24:17.000Z",
-                "2020-05-24T00:20:32.000Z",
-                "2020-05-24T00:12:48.000Z",
-                "2020-05-23T23:50:02.000Z"
+                "2020-05-24T01:31:21.430Z",
+                "2020-05-24T01:29:15.975Z",
+                "2020-05-24T01:25:43.367Z",
+                "2020-05-24T01:18:10.194Z",
+                "2020-05-24T00:24:17.550Z",
+                "2020-05-24T00:20:32.722Z",
+                "2020-05-24T00:12:48.204Z",
+                "2020-05-23T23:50:02.898Z"
             ]
         );
         assert_eq!(results.run_count, 80);
         assert_eq!(results.size, 14130);
         assert_eq!(results.volume_serial, vec!["7ADCE687"]);
-        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.000Z"]);
+        assert_eq!(results.volume_creation, vec!["2019-12-17T04:53:01.962Z"]);
         assert_eq!(results.volume_path, vec!["\\DEVICE\\HARDDISKVOLUME2"]);
         assert_eq!(results.accessed_files_count, 28);
         assert_eq!(results.accessed_directories_count, 5);

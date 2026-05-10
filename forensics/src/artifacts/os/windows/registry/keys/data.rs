@@ -4,7 +4,7 @@ use crate::{
         encoding::base64_encode_standard,
         nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
         strings::{extract_multiline_utf16_string, extract_utf16_string},
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use log::error;
@@ -87,8 +87,7 @@ pub(crate) fn parse_qword_filetime(
 
     let value = if filetime {
         let (_, value) = le_u64(allocated_data)?;
-        let reg_time = filetime_to_unixepoch(value);
-        unixepoch_to_iso(reg_time)
+        filetime_to_iso(value)
     } else {
         let (_, value) = le_i64(allocated_data)?;
         format!("{value}")

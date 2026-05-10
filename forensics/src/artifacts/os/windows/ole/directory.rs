@@ -5,7 +5,7 @@ use crate::utils::{
         nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
-    time::filetime_to_unixepoch,
+    time::filetime_to_iso,
     uuid::format_guid_le_bytes,
 };
 use nom::bytes::complete::take;
@@ -75,8 +75,8 @@ pub(crate) struct OleDirectory {
     _next_id: i32,
     _class_id: String,
     _flags: u32,
-    _created: i64,
-    _modified: i64,
+    _created: String,
+    _modified: String,
     pub(crate) sector_id: i32,
     pub(crate) directory_size: u32,
     _reserved: u32,
@@ -139,8 +139,8 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], Vec<OleDirecto
             _next_id: next_id,
             _class_id: format_guid_le_bytes(class_data),
             _flags: flags,
-            _created: filetime_to_unixepoch(created),
-            _modified: filetime_to_unixepoch(modified),
+            _created: filetime_to_iso(created),
+            _modified: filetime_to_iso(modified),
             sector_id,
             directory_size,
             _reserved: reserved,
@@ -230,8 +230,8 @@ mod tests {
 
         let (_, result) = parse_directory(&dir_data).unwrap();
         assert_eq!(result.len(), 8);
-        assert_eq!(result[0]._created, -11644473600);
-        assert_eq!(result[0]._modified, 1452975805);
+        assert_eq!(result[0]._created, "1601-01-01T00:00:00.000Z");
+        assert_eq!(result[0]._modified, "2016-01-16T20:23:25.046Z");
         assert_eq!(result[1].name, "1");
         assert_eq!(result[1].directory_size, 411);
     }

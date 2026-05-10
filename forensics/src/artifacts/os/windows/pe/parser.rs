@@ -46,22 +46,7 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
         Err(_) => return Err(pelite::Error::Overflow),
     };
 
-    let mut info = PeInfo {
-        imports: Vec::new(),
-        sections: Vec::new(),
-        cert: String::new(),
-        pdb: String::new(),
-        product_version: String::new(),
-        file_version: String::new(),
-        product_name: String::new(),
-        company_name: String::new(),
-        file_description: String::new(),
-        internal_name: String::new(),
-        legal_copyright: String::new(),
-        original_filename: String::new(),
-        manifest: String::new(),
-        icons: Vec::new(),
-    };
+    let mut info = PeInfo::default();
 
     let file_result = PeFile::from_bytes(&data);
     let file = match file_result {
