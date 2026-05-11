@@ -1,11 +1,11 @@
 use crate::filesystem::error::FileSystemError;
-use crate::utils::time::unixepoch_to_iso;
 use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
 use std::{fs::Metadata, io::Error};
 
 // Timestamps containing number of seconds since UNIXEPOCH
+#[derive(Debug)]
 pub(crate) struct StandardTimestamps {
     pub(crate) created: String,
     pub(crate) modified: String,
@@ -25,12 +25,12 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(target_os = "windows")]
     {
-        use crate::utils::time::filetime_to_unixepoch;
+        use crate::utils::time::filetime_to_iso;
         use std::os::windows::fs::MetadataExt;
         // Rust for Windows does not support getting Changed times :(
-        timestamps.accessed = unixepoch_to_iso(filetime_to_unixepoch(meta.last_access_time()));
-        timestamps.modified = unixepoch_to_iso(filetime_to_unixepoch(meta.last_write_time()));
-        timestamps.created = unixepoch_to_iso(filetime_to_unixepoch(meta.creation_time()));
+        timestamps.accessed = filetime_to_iso(meta.last_access_time());
+        timestamps.modified = filetime_to_iso(meta.last_write_time());
+        timestamps.created = filetime_to_iso(meta.creation_time());
     }
 
     #[cfg(target_os = "linux")]
@@ -42,20 +42,25 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        timestamps.accessed = unixepoch_to_iso(meta.st_atime());
-        timestamps.modified = unixepoch_to_iso(meta.st_mtime());
-        timestamps.changed = unixepoch_to_iso(meta.st_ctime());
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
+        timestamps.accessed = unixepoch_to_iso_with_nano(meta.st_atime(), meta.st_atime_nsec());
+        timestamps.modified = unixepoch_to_iso_with_nano(meta.st_mtime(), meta.st_mtime_nsec());
+        timestamps.changed = unixepoch_to_iso_with_nano(meta.st_ctime(), meta.st_ctime_nsec());
     }
 
     #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
     {
-        timestamps.accessed = unixepoch_to_iso(meta.atime());
-        timestamps.modified = unixepoch_to_iso(meta.mtime());
-        timestamps.changed = unixepoch_to_iso(meta.ctime());
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
+        timestamps.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
+        timestamps.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
+        timestamps.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());
     }
 
     #[cfg(target_os = "linux")]
     {
+        use crate::utils::time::unixepoch_microseconds_to_iso;
         use std::time::SystemTime;
 
         let created = meta
@@ -63,12 +68,15 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
             .unwrap_or(SystemTime::UNIX_EPOCH)
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
-            .as_secs();
-        timestamps.created = unixepoch_to_iso(created as i64);
+            .as_micros();
+        timestamps.created = unixepoch_microseconds_to_iso(created as i64);
     }
     #[cfg(target_os = "macos")]
     {
-        timestamps.created = unixepoch_to_iso(meta.st_birthtime());
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
+        timestamps.created =
+            unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
     }
 
     Ok(timestamps)
@@ -150,10 +158,8 @@ mod tests {
 
         let result = get_timestamps(&test_location.display().to_string()).unwrap();
         assert!(result.created != "");
-        assert!(result.created != "");
-
-        assert!(result.modified != "");
         assert!(result.accessed != "");
+        assert!(result.modified != "");
         #[cfg(target_os = "windows")]
         assert_eq!(result.changed, "1970-01-01T00:00:00Z");
         #[cfg(target_family = "unix")]

@@ -45,7 +45,7 @@ pub(crate) fn get_registry_keys(
 
 /// Parse provided `Registry` file reference at starting Key path and apply any optional Key path regex filtering
 /// Use `get_registry_keys` if you want to provide a `Registry` file
-/// This wont fill in the the evidence field in the `RegistryData` array because we are parsing a file feference
+/// This wont fill in the the evidence field in the `RegistryData` array because we are parsing a file reference
 pub(crate) fn get_registry_keys_by_ref(
     start_path: &str,
     regex: &Regex,
@@ -235,7 +235,7 @@ mod tests {
             result[0].values[0].data,
             "http://go.microsoft.com/fwlink/p/?LinkId=255141"
         );
-        assert_eq!(result[0].last_modified, "2019-12-07T09:16:14.000Z");
+        assert_eq!(result[0].last_modified, "2019-12-07T09:16:14.599Z");
         assert_eq!(result[0].depth, 4);
     }
 
@@ -262,13 +262,13 @@ mod tests {
     #[test]
     fn test_parse_infinite_loop_registry_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        // This Registry contains an infinte loop. An offset points to parent offset
+        // This Registry contains an infinite loop. An offset points to parent offset
         test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER_Bad.DAT");
         let start_path = "";
         let regex = Regex::new("").unwrap();
         let result =
             get_registry_keys(start_path, &regex, &test_location.display().to_string()).unwrap();
-        // The infinte loop causes the parser to skip two values
+        // The infinite loop causes the parser to skip two values
         assert_eq!(result.len(), 664);
     }
 

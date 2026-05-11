@@ -3,7 +3,7 @@ use crate::{
     utils::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::RecycleBin;
@@ -35,7 +35,7 @@ pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> 
 
     let mut recycle = RecycleBin {
         size,
-        deleted: unixepoch_to_iso(filetime_to_unixepoch(deletion)),
+        deleted: filetime_to_iso(deletion),
         filename: get_filename(&full_path),
         directory: String::new(),
         full_path,
@@ -66,7 +66,7 @@ mod tests {
         ];
         let (_, result) = parse_recycle_bin(&test).unwrap();
 
-        assert_eq!(result.deleted, "2021-09-09T00:27:08.000Z");
+        assert_eq!(result.deleted, "2021-09-09T00:27:08.015Z");
         assert_eq!(result.size, 0);
         assert_eq!(result.filename, "ns_osquery_utils_system_systemutils");
         assert_eq!(

@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{Endian, nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes},
     strings::extract_utf8_string,
-    time::unixepoch_to_iso,
+    time::unixepoch_to_iso_with_nano,
 };
 use common::linux::{Logon, LogonType, Status};
 use log::error;
@@ -107,7 +107,7 @@ fn parse_logon<'a>(
         String::from("0.0.0.0")
     };
 
-    let logon = Logon {
+    let mut logon = Logon {
         logon_type: get_logon_type(logon_type),
         pid,
         terminal: extract_utf8_string(term_data),
@@ -117,12 +117,15 @@ fn parse_logon<'a>(
         termination_status,
         exit_status,
         session,
-        timestamp: unixepoch_to_iso(timestamp as i64),
+        timestamp: String::new(),
         microseconds,
         ip,
         status,
         evidence: evidence.to_string(),
     };
+
+    let nano = 1000;
+    logon.timestamp = unixepoch_to_iso_with_nano(timestamp as i64, microseconds as i64 * nano);
 
     logons.push(logon);
 
@@ -169,7 +172,7 @@ mod tests {
         assert_eq!(results.len(), 13);
 
         assert_eq!(results[4].hostname, "5.4.0-84-generic");
-        assert_eq!(results[4].timestamp, "2023-07-04T06:13:44.000Z");
+        assert_eq!(results[4].timestamp, "2023-07-04T06:13:44.455Z");
         assert_eq!(results[0].terminal, "~");
         assert_eq!(results[0].status, Status::Success);
     }

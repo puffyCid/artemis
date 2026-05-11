@@ -3,7 +3,7 @@ use crate::utils::{
         Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
     strings::extract_utf16_string,
-    time::{filetime_to_unixepoch, unixepoch_to_iso},
+    time::filetime_to_iso,
 };
 use common::windows::ShimcacheEntry;
 use nom::bytes::complete::take;
@@ -61,7 +61,7 @@ pub(crate) fn win7_format<'a>(
             let shim_entry = ShimcacheEntry {
                 entry,
                 path: extract_utf16_string(path_data),
-                last_modified: unixepoch_to_iso(filetime_to_unixepoch(last_modified)),
+                last_modified: filetime_to_iso(last_modified),
                 key_path: key_path.to_string(),
                 evidence: path.to_string(),
             };
@@ -102,7 +102,7 @@ pub(crate) fn win7_format<'a>(
         let shim_entry = ShimcacheEntry {
             entry,
             path: extract_utf16_string(path_data),
-            last_modified: unixepoch_to_iso(filetime_to_unixepoch(last_modified)),
+            last_modified: filetime_to_iso(last_modified),
             key_path: key_path.to_string(),
             evidence: path.to_string(),
         };
@@ -129,11 +129,10 @@ mod tests {
             shim_data[34].path,
             "\\??\\C:\\Windows\\system32\\aitagent.EXE"
         );
-        assert_eq!(shim_data[34].last_modified, "2009-07-14T01:14:11.000Z");
+        assert_eq!(shim_data[34].last_modified, "2009-07-14T01:14:11.925Z");
     }
 
     #[test]
-    #[cfg(target_arch = "x86_64")]
     fn test_win7_64bit_format() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/shimcache/win7/win7x64.bin");

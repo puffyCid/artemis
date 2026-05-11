@@ -14,7 +14,7 @@ use crate::{
             nom_unsigned_two_bytes,
         },
         strings::extract_ascii_utf16_string,
-        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
+        time::{filetime_to_iso, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
@@ -394,8 +394,8 @@ pub(crate) fn extract_property_value<'a>(
         }
         PropertyType::Time => {
             let (_, prop_value) = nom_unsigned_eight_bytes(value_data, Endian::Le)?;
-            let timestamp = filetime_to_unixepoch(prop_value);
-            value = serde_json::to_value(unixepoch_to_iso(timestamp)).unwrap_or_default();
+            let timestamp = filetime_to_iso(prop_value);
+            value = serde_json::to_value(timestamp).unwrap_or_default();
         }
         PropertyType::Guid => {
             let string_value = format_guid_le_bytes(value_data);
@@ -504,10 +504,10 @@ pub(crate) fn extract_property_value<'a>(
             let mut int_values = Vec::new();
             while count < int_count {
                 let (input, prop_value) = nom_unsigned_eight_bytes(remaining, Endian::Le)?;
-                let timestamp = filetime_to_unixepoch(prop_value);
+                let timestamp = filetime_to_iso(prop_value);
 
                 remaining = input;
-                int_values.push(unixepoch_to_iso(timestamp));
+                int_values.push(timestamp);
                 count += 1;
             }
             value = serde_json::to_value(int_values).unwrap_or_default();
@@ -668,7 +668,7 @@ mod tests {
         assert_eq!(result[2].name, vec![PropertyName::PidTagCreationTime]);
         assert_eq!(
             result[2].value.as_str().unwrap(),
-            "2024-07-29T04:29:52.000Z"
+            "2024-07-29T04:29:52.199Z"
         );
 
         assert_eq!(result[9].property_type, PropertyType::Binary);
@@ -711,7 +711,7 @@ mod tests {
             80, 0, 0, 5, 0, 0, 0, 12, 0, 20, 0, 116, 0, 124, 0, 132, 0, 69, 2,
         ];
         let (_, value) = get_property_data(&test, &PropertyType::Time, 4, false).unwrap();
-        assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.000Z");
+        assert_eq!(value.as_str().unwrap(), "2024-07-29T04:29:52.199Z");
     }
 
     #[test]

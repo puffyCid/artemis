@@ -11,7 +11,7 @@ use crate::artifacts::os::windows::shimdb::tags::qword::parse_qword;
 use crate::artifacts::os::windows::shimdb::tags::word::parse_word;
 use crate::utils::encoding::base64_encode_standard;
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
-use crate::utils::time::{filetime_to_unixepoch, unixepoch_to_iso};
+use crate::utils::time::filetime_to_iso;
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::DatabaseData;
 use nom::bytes::complete::take;
@@ -56,7 +56,7 @@ pub(crate) fn parse_db<'a>(
             let (sdb_data, compile_time) = get_db_time(sdb_data)?;
 
             input = sdb_data;
-            database_data.compile_time = unixepoch_to_iso(filetime_to_unixepoch(compile_time));
+            database_data.compile_time = filetime_to_iso(compile_time);
             continue;
         } else if tag_value == tag_compiler_version {
             let (sdb_data, compiler_version) = get_compiler_version(sdb_data, stringtable_data)?;

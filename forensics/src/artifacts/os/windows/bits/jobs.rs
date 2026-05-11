@@ -11,7 +11,7 @@ use crate::{
             nom_unsigned_sixteen_bytes,
         },
         strings::extract_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
         uuid::format_guid_le_bytes,
     },
 };
@@ -322,10 +322,10 @@ pub(crate) fn job_details<'a>(
     let (input, expiration_time) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
     job_info.error_count = error_count;
-    job_info.created = unixepoch_to_iso(filetime_to_unixepoch(created));
-    job_info.modified = unixepoch_to_iso(filetime_to_unixepoch(modified));
-    job_info.completed = unixepoch_to_iso(filetime_to_unixepoch(complete_time));
-    job_info.expiration = unixepoch_to_iso(filetime_to_unixepoch(expiration_time));
+    job_info.created = filetime_to_iso(created);
+    job_info.modified = filetime_to_iso(modified);
+    job_info.completed = filetime_to_iso(complete_time);
+    job_info.expiration = filetime_to_iso(expiration_time);
     job_info.timeout = timeout;
     job_info.retry_delay = retry_delay;
     job_info.transient_error_count = transient_error_count;
@@ -478,31 +478,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win10/job.raw");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let mut job = JobInfo {
-            job_id: String::new(),
-            owner_sid: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            expiration: String::new(),
-            completed: String::new(),
-            job_name: String::new(),
-            job_description: String::new(),
-            job_command: String::new(),
-            job_arguments: String::new(),
-            error_count: 0,
-            job_type: JobType::Unknown,
-            job_state: JobState::Unknown,
-            priority: JobPriority::Unknown,
-            flags: Vec::new(),
-            http_method: String::new(),
-            acls: Vec::new(),
-            additional_sids: Vec::new(),
-            transient_error_count: 0,
-            retry_delay: 0,
-            timeout: 0,
-            target_path: String::new(),
-            file_ids: Vec::new(),
-        };
+        let mut job = JobInfo::default();
 
         let _ = parse_job(&data, &mut job, false).unwrap();
         assert_eq!(
@@ -522,31 +498,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win10/job.raw");
         let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let mut job = JobInfo {
-            job_id: String::new(),
-            owner_sid: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            expiration: String::new(),
-            completed: String::new(),
-            job_name: String::new(),
-            job_description: String::new(),
-            job_command: String::new(),
-            job_arguments: String::new(),
-            error_count: 0,
-            job_type: JobType::Unknown,
-            job_state: JobState::Unknown,
-            priority: JobPriority::Unknown,
-            flags: Vec::new(),
-            http_method: String::new(),
-            acls: Vec::new(),
-            additional_sids: Vec::new(),
-            transient_error_count: 0,
-            retry_delay: 0,
-            timeout: 0,
-            target_path: String::new(),
-            file_ids: Vec::new(),
-        };
+        let mut job = JobInfo::default();
 
         let (input, _) = parse_job(&data, &mut job, false).unwrap();
         assert_eq!(
@@ -568,7 +520,7 @@ mod tests {
 
         assert_eq!(job.http_method, "GET");
         assert_eq!(job.timeout, 86400);
-        assert_eq!(job.created, "2022-12-21T02:18:03.000Z");
+        assert_eq!(job.created, "2022-12-21T02:18:03.120Z");
         assert_eq!(job.retry_delay, 60);
         assert_eq!(
             job.target_path,
@@ -598,7 +550,7 @@ mod tests {
 
         let results = get_legacy_jobs(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
+        assert_eq!(results[0].created, "2023-03-14T06:39:48.195Z");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
         assert!(results[0].evidence.ends_with("qmgr0.dat"));
@@ -612,7 +564,7 @@ mod tests {
 
         let (_, results) = parse_legacy_job(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
-        assert_eq!(results[0].created, "2023-03-14T06:39:48.000Z");
+        assert_eq!(results[0].created, "2023-03-14T06:39:48.195Z");
         assert_eq!(results[0].job_type, JobType::Download);
         assert_eq!(results[0].job_state, JobState::Queued);
     }

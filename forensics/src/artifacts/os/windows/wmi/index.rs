@@ -45,7 +45,7 @@ struct IndexHeader {
 #[derive(PartialEq, Debug)]
 enum PageType {
     Active,
-    Adminstrative,
+    Administrative,
     Deleted,
     Unknown,
 }
@@ -59,7 +59,7 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], IndexHeader> {
 
     let page_type = match type_data {
         0xaccc => PageType::Active,
-        0xaddd => PageType::Adminstrative,
+        0xaddd => PageType::Administrative,
         0xbadd => PageType::Deleted,
         _ => PageType::Unknown,
     };

@@ -6,12 +6,12 @@ use crate::{
             nom_unsigned_two_bytes,
         },
         strings::extract_utf16_string,
-        time::filetime_to_unixepoch,
+        time::filetime_to_iso,
     },
 };
 use log::error;
 use nom::bytes::complete::{take, take_until};
-use serde_json::{Number, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse a `Property Store` stream
@@ -48,10 +48,7 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
 
     let time_results = scan_cache_time(input);
     let _ = match time_results {
-        Ok((_, result)) => values.insert(
-            String::from("AutoCacheTime"),
-            Value::Number(Number::from(result)),
-        ),
+        Ok((_, result)) => values.insert(String::from("AutoCacheTime"), result.into()),
         Err(_err) => Option::None,
     };
 
@@ -65,7 +62,7 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
 }
 
 /// Scan `Property Store` bytes for cache time
-fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], i64> {
+fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], String> {
     // UTF16 string: AutoCacheTime
     let cache_time = [
         65, 0, 117, 0, 116, 0, 111, 0, 108, 0, 105, 0, 115, 0, 116, 0, 67, 0, 97, 0, 99, 0, 104, 0,
@@ -76,8 +73,7 @@ fn scan_cache_time(data: &[u8]) -> nom::IResult<&[u8], i64> {
     let (input, _) = take(cache_time.len())(input)?;
     let (input, _unknown) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, filetime) = nom_unsigned_eight_bytes(input, Endian::Le)?;
-
-    Ok((input, filetime_to_unixepoch(filetime)))
+    Ok((input, filetime_to_iso(filetime)))
 }
 
 /// Scan `Property Store` bytes for cache key
@@ -179,6 +175,6 @@ mod tests {
         ];
 
         let (_, result) = scan_cache_time(&test).unwrap();
-        assert_eq!(result, -11643855890);
+        assert_eq!(result, "1601-01-08T03:35:10.049Z");
     }
 }

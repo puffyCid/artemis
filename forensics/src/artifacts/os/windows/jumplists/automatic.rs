@@ -101,7 +101,7 @@ mod tests {
 
         assert_eq!(result.len(), 4);
         assert_eq!(result[0].app_id, "1b4dd67f29cb1962");
-        assert_eq!(result[0].lnk_info.created, "2016-01-16T20:22:25.000Z");
+        assert_eq!(result[0].lnk_info.created, "2016-01-16T20:22:25.202Z");
         assert_eq!(result[0].lnk_info.drive_serial, "88008C2F");
         assert_eq!(
             result[0].jumplist_metadata.path,
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(result.len(), 41);
         assert_eq!(result[37].app_id, "3d2110c4a0cb6d15");
-        assert_eq!(result[37].lnk_info.created, "2022-11-19T17:32:21.000Z");
+        assert_eq!(result[37].lnk_info.created, "2022-11-19T17:32:21.354Z");
         assert_eq!(result[37].lnk_info.drive_serial, "4290933E");
         assert_eq!(
             result[37].jumplist_metadata.path,

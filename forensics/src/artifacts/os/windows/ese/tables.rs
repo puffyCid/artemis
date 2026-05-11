@@ -16,7 +16,7 @@ use crate::{
             nom_unsigned_two_bytes,
         },
         strings::extract_ascii_utf16_string,
-        time::{filetime_to_unixepoch, ole_automationtime_to_unixepoch, unixepoch_to_iso},
+        time::{filetime_to_iso, ole_automationtime_to_unixepoch, unixepoch_to_iso},
         uuid::format_guid_le_bytes,
     },
 };
@@ -236,9 +236,9 @@ fn extract_column_data_to_string<'a>(
             // Appears if flags contain NotNull, then the time is FILETIME
             if flags.contains(&ColumnFlags::NotNull) {
                 let (input, filetime_data) = nom_unsigned_eight_bytes(data, Endian::Le)?;
-                let filetime = filetime_to_unixepoch(filetime_data);
+                let filetime = filetime_to_iso(filetime_data);
 
-                (input, unixepoch_to_iso(filetime))
+                (input, filetime)
             } else {
                 let (input, float_data) = take(size_of::<u64>())(data)?;
                 let (_, float_value) = le_f64(float_data)?;

@@ -223,7 +223,7 @@ mod tests {
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
         let result = parse_amcache(test_location.to_str().unwrap()).unwrap();
 
-        assert_eq!(result[0].last_modified, "2023-01-11T04:42:58.000Z");
+        assert_eq!(result[0].last_modified, "2023-01-11T04:42:58.063Z");
         assert_eq!(
             result[0].path,
             "C:\\Users\\bob\\Documents\\artemis-core\\target\\release\\examples\\artemis_core.exe"
@@ -237,7 +237,7 @@ mod tests {
             "{11517B7C-E79D-4e20-961B-75A811715ADD}\\Root\\File\\8195d9c8-2089-11ea-824e-806e6f6e6963\\20000667bc"
         );
 
-        assert_eq!(result[3].last_modified, "2023-01-11T04:57:06.000Z");
+        assert_eq!(result[3].last_modified, "2023-01-11T04:57:06.355Z");
         assert_eq!(
             result[3].path,
             "c:\\program files (x86)\\microsoft\\edge\\application\\msedge.exe"

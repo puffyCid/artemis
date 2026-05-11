@@ -6,7 +6,7 @@ use crate::{
             Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
         },
         regex_options::create_regex,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::TaskCache;
@@ -128,9 +128,9 @@ fn parse_dynamic_info(data: &[u8]) -> nom::IResult<&[u8], DynamicInfo> {
     let (input, last_error_code) = nom_signed_four_bytes(input, Endian::Le)?;
     let (input, last_successful_run_bytes) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
-    let created = unixepoch_to_iso(filetime_to_unixepoch(created_bytes));
-    let last_run = unixepoch_to_iso(filetime_to_unixepoch(last_run_bytes));
-    let last_successful_run = unixepoch_to_iso(filetime_to_unixepoch(last_successful_run_bytes));
+    let created = filetime_to_iso(created_bytes);
+    let last_run = filetime_to_iso(last_run_bytes);
+    let last_successful_run = filetime_to_iso(last_successful_run_bytes);
     let info = DynamicInfo {
         created,
         last_run,
@@ -158,7 +158,7 @@ mod tests {
     fn test_extract_dynamic_info() {
         let test = "AwAAAFcVjIlVK9sBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         let result = extract_dynamic_info(test).unwrap();
-        assert_eq!(result.created, "2024-10-31T05:27:11.000Z");
+        assert_eq!(result.created, "2024-10-31T05:27:11.743Z");
         assert_eq!(result.last_error_code, 0);
         assert_eq!(result.last_successful_run, "1601-01-01T00:00:00.000Z");
         assert_eq!(result.last_run, "1601-01-01T00:00:00.000Z");
@@ -171,9 +171,9 @@ mod tests {
             0, 0, 0, 0, 0, 0, 73, 70, 171, 194, 252, 25, 220, 1,
         ];
         let (_, result) = parse_dynamic_info(&test).unwrap();
-        assert_eq!(result.created, "2024-10-31T05:27:12.000Z");
+        assert_eq!(result.created, "2024-10-31T05:27:12.971Z");
         assert_eq!(result.last_error_code, 0);
-        assert_eq!(result.last_successful_run, "2025-08-30T22:23:50.000Z");
-        assert_eq!(result.last_run, "2025-08-30T22:23:49.000Z");
+        assert_eq!(result.last_successful_run, "2025-08-30T22:23:50.272Z");
+        assert_eq!(result.last_run, "2025-08-30T22:23:49.040Z");
     }
 }

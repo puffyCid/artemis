@@ -13,19 +13,24 @@ pub(crate) fn time_now() -> u64 {
         .as_secs()
 }
 
-/// Convert Windows filetime values to `UnixEpoch`
-pub(crate) fn filetime_to_unixepoch(filetime: u64) -> i64 {
-    let windows_nano = 10000000;
-    let seconds_to_unix: i64 = 11644473600;
+/// Convert Windows filetime values to ISO8601 format with millisecond precision
+pub(crate) fn filetime_to_iso(filetime: u64) -> String {
+    let windows_milliseconds = 10000;
+    let seconds_to_unix: i64 = 11644473600000;
 
     // We should not overflow because of the division.
-    (filetime / windows_nano) as i64 - seconds_to_unix
+    let timestamp = (filetime / windows_milliseconds) as i64 - seconds_to_unix;
+    let iso_opt = DateTime::from_timestamp_millis(timestamp);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T00:00:00.000Z"),
+    }
 }
 
-/// Convert macOS Cocoa timestamp to `UnixEpoch` (also called mac time, mach absolute time)
-pub(crate) fn cocoatime_to_unixepoch(cocoatime: f64) -> i64 {
+/// Convert macOS Cocoa timestamp to ISO8601 format with millisecond precision
+pub(crate) fn cocoatime_to_iso(timestamp: f64) -> String {
     let adjust_to_unix = 978307200.0;
-    (cocoatime + adjust_to_unix) as i64
+    unixepoch_to_iso_float(timestamp + adjust_to_unix)
 }
 
 /// Convert macOS HFS+ timestamp to `UnixEpoch`
@@ -128,9 +133,43 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     epoch.timestamp()
 }
 
-/// Convert `UnixEpoch` to ISO8601 format
+/// Convert `UnixEpoch` to ISO8601 format with millisecond precision
 pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
     let iso_opt = DateTime::from_timestamp(timestamp, 0);
+    match iso_opt {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T00:00:00.000Z"),
+    }
+}
+
+/// Convert `UnixEpoch` float value to ISO8601 format with millisecond precision
+pub(crate) fn unixepoch_to_iso_float(timestamp: f64) -> String {
+    // Calculations performed like:
+    // 1. Round to smallest value. -1.5 rounds to -2.0. 1.5 rounds to 1
+    // 2. Subtract rounded value from timestamp. -1.5 - -2.0 = .5. 1.5 - 1 = .5
+    // 3. Convert timestamp
+    let round_value = timestamp.floor();
+    let fract_nano = (timestamp - round_value) * 1000000000.0;
+
+    match DateTime::from_timestamp(round_value as i64, fract_nano as u32) {
+        Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
+        None => String::from("1970-01-01T00:00:00.000Z"),
+    }
+}
+
+/// Convert `UnixEpoch` to ISO8601 format with with nanoseconds
+pub(crate) fn unixepoch_to_iso_with_nano(timestamp: i64, nanoseconds: i64) -> String {
+    let mut nano_value = nanoseconds;
+    let mut time_value = timestamp;
+
+    // Handle negative time values
+    // Similar to how we handle negative floats above
+    if nano_value < 0 {
+        time_value -= 1;
+        nano_value += 1000000000;
+    }
+
+    let iso_opt = DateTime::from_timestamp(time_value, nano_value as u32);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -191,9 +230,9 @@ fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
-        cocoatime_to_unixepoch, compare_timestamps, fattime_utc_to_unixepoch,
-        filetime_to_unixepoch, get_fat_bits, ole_automationtime_to_unixepoch,
-        unixepoch_microseconds_to_iso, unixepoch_to_iso,
+        cocoatime_to_iso, compare_timestamps, fattime_utc_to_unixepoch, filetime_to_iso,
+        get_fat_bits, ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso,
+        unixepoch_to_iso, unixepoch_to_iso_float, unixepoch_to_iso_with_nano,
     };
 
     #[test]
@@ -203,9 +242,9 @@ mod tests {
     }
 
     #[test]
-    fn test_filetime_to_unixepoch() {
+    fn test_filetime_to_iso() {
         let test_data = 132244766418940254;
-        assert_eq!(filetime_to_unixepoch(test_data), 1580003041)
+        assert_eq!(filetime_to_iso(test_data), "2020-01-26T01:44:01.894Z")
     }
 
     #[test]
@@ -248,10 +287,24 @@ mod tests {
     }
 
     #[test]
-    fn test_cocoatime_to_unixepoch() {
+    fn test_cocoatime_to_iso() {
         let test = 10.01875;
-        let result = cocoatime_to_unixepoch(test);
-        assert_eq!(result, 978307210);
+        let result = cocoatime_to_iso(test);
+        assert_eq!(result, "2001-01-01T00:00:10.018Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_float() {
+        let test = 1595003382.687535;
+        let result = unixepoch_to_iso_float(test);
+        assert_eq!(result, "2020-07-17T16:29:42.687Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_float_negative() {
+        let test = -1.5;
+        let result = unixepoch_to_iso_float(test);
+        assert_eq!(result, "1969-12-31T23:59:58.500Z");
     }
 
     #[test]
@@ -274,5 +327,26 @@ mod tests {
         let timestamp2 = unixepoch_to_iso(1474819646);
 
         assert!(compare_timestamps(&timestamp, &timestamp2).unwrap());
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano() {
+        let timestamp = unixepoch_to_iso_with_nano(1574819646, 33077000);
+
+        assert_eq!(timestamp, "2019-11-27T01:54:06.033Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano_negative() {
+        let timestamp = unixepoch_to_iso_with_nano(-1, -500000000);
+
+        assert_eq!(timestamp, "1969-12-31T23:59:58.500Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano_negative_postive() {
+        let timestamp = unixepoch_to_iso_with_nano(1, -500000000);
+
+        assert_eq!(timestamp, "1970-01-01T00:00:00.500Z");
     }
 }

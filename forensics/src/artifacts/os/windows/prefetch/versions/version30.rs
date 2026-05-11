@@ -1,6 +1,6 @@
 use crate::utils::{
     nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
-    time::{filetime_to_unixepoch, unixepoch_to_iso},
+    time::filetime_to_iso,
 };
 use log::warn;
 use nom::{Needed, bytes::complete::take};
@@ -51,7 +51,7 @@ impl Version30 {
 
             let no_runs = 0;
             if runtime != no_runs {
-                run_times.push(unixepoch_to_iso(filetime_to_unixepoch(runtime)));
+                run_times.push(filetime_to_iso(runtime));
             }
             count += 1;
             input = runs_data;
@@ -129,7 +129,7 @@ mod tests {
         assert_eq!(result.run_count, 1);
 
         assert_eq!(result._unknown, 4294967311);
-        assert_eq!(result.run_times, vec!["2022-10-16T02:17:45.000Z"]);
+        assert_eq!(result.run_times, vec!["2022-10-16T02:17:45.042Z"]);
         assert_eq!(result._unknown4, 0);
         assert_eq!(result._unknown2, vec![0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(result._unknown3, 1);

@@ -16,7 +16,7 @@ use crate::{
     artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
     filesystem::ntfs::setup::setup_ntfs_parser,
     structs::toml::Output,
-    utils::time::{filetime_to_unixepoch, unixepoch_to_iso},
+    utils::time::filetime_to_iso,
 };
 use common::windows::{AttributeFlags, MftEntry, Namespace};
 use log::{error, warn};
@@ -224,14 +224,10 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                     };
 
                     if let Some(standard) = entry.standard.first() {
-                        mft_entry.created =
-                            unixepoch_to_iso(filetime_to_unixepoch(standard.created));
-                        mft_entry.modified =
-                            unixepoch_to_iso(filetime_to_unixepoch(standard.modified));
-                        mft_entry.changed =
-                            unixepoch_to_iso(filetime_to_unixepoch(standard.changed));
-                        mft_entry.accessed =
-                            unixepoch_to_iso(filetime_to_unixepoch(standard.accessed));
+                        mft_entry.created = filetime_to_iso(standard.created);
+                        mft_entry.modified = filetime_to_iso(standard.modified);
+                        mft_entry.changed = filetime_to_iso(standard.changed);
+                        mft_entry.accessed = filetime_to_iso(standard.accessed);
                         mft_entry.attributes = standard.file_attributes.clone();
                         mft_entry.usn = standard.usn;
                     }
@@ -240,10 +236,10 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         mft_entry.attributes = value.file_attributes.clone();
                     }
 
-                    let created = unixepoch_to_iso(filetime_to_unixepoch(value.created));
-                    let modified = unixepoch_to_iso(filetime_to_unixepoch(value.modified));
-                    let accessed = unixepoch_to_iso(filetime_to_unixepoch(value.accessed));
-                    let changed = unixepoch_to_iso(filetime_to_unixepoch(value.changed));
+                    let created = filetime_to_iso(value.created);
+                    let modified = filetime_to_iso(value.modified);
+                    let accessed = filetime_to_iso(value.accessed);
+                    let changed = filetime_to_iso(value.changed);
 
                     mft_entry.filename = value.name.clone();
                     mft_entry.parent_inode = value.parent_mft;

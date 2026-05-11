@@ -6,7 +6,7 @@ use crate::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
         },
         strings::extract_utf16_string,
-        time::{filetime_to_unixepoch, unixepoch_to_iso},
+        time::filetime_to_iso,
     },
 };
 use common::windows::{AttributeFlags, Reason, Source};
@@ -91,7 +91,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_time = filetime_to_iso(usn_time);
             let update_reason = UsnJrnlFormat::reason_flags(reason);
             let update_source_flags = UsnJrnlFormat::source_flag(source);
 
@@ -204,7 +204,7 @@ impl UsnJrnlFormat {
             let (input, name_data) = take(name_size)(input)?;
             let name = extract_utf16_string(name_data);
 
-            let update_time = unixepoch_to_iso(filetime_to_unixepoch(usn_time));
+            let update_time = filetime_to_iso(usn_time);
             let update_reason = UsnJrnlFormat::reason_flags(reason);
             let update_source_flags = UsnJrnlFormat::source_flag(source);
 
@@ -405,7 +405,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.000Z");
+        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.292Z");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);
@@ -437,7 +437,7 @@ mod tests {
         assert_eq!(results[0].mft_sequence, 13);
         assert_eq!(results[0].parent_mft_entry, 350163);
         assert_eq!(results[0].parent_mft_sequence, 13);
-        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.000Z");
+        assert_eq!(results[0].update_time, "2023-01-30T00:39:59.292Z");
         assert_eq!(results[0].update_reason, vec![Extend, Close]);
         assert_eq!(results[0].update_source_flags, None);
         assert_eq!(results[0].security_descriptor_id, 0);
