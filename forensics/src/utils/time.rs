@@ -144,8 +144,14 @@ pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
 
 /// Convert `UnixEpoch` float value to ISO8601 format with millisecond precision
 pub(crate) fn unixepoch_to_iso_float(timestamp: f64) -> String {
-    let fract_nano = timestamp.fract() * 1000000000.0;
-    match DateTime::from_timestamp(timestamp.trunc() as i64, fract_nano as u32) {
+    // Calculations performed like:
+    // 1. Round to smallest value. -1.5 rounds to -2.0. 1.5 rounds to 1
+    // 2. Subtract rounded value from timestamp. -1.5 - -2.0 = .5. 1.5 - 1 = .5
+    // 3. Convert timestamp
+    let round_value = timestamp.floor();
+    let fract_nano = (timestamp - round_value) * 1000000000.0;
+
+    match DateTime::from_timestamp(round_value as i64, fract_nano as u32) {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
     }
@@ -282,6 +288,13 @@ mod tests {
         let test = 1595003382.687535;
         let result = unixepoch_to_iso_float(test);
         assert_eq!(result, "2020-07-17T16:29:42.687Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_float_negative() {
+        let test = -1.5;
+        let result = unixepoch_to_iso_float(test);
+        assert_eq!(result, "1969-12-31T23:59:58.500Z");
     }
 
     #[test]

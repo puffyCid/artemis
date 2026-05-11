@@ -1,7 +1,7 @@
 use crate::utils::{
     nom_helper::{Endian, nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes},
     strings::extract_utf8_string,
-    time::unixepoch_microseconds_to_iso,
+    time::unixepoch_to_iso_with_nano,
 };
 use common::linux::{Logon, LogonType, Status};
 use log::error;
@@ -15,7 +15,6 @@ use std::{
     io::Read,
     mem::size_of,
     net::{Ipv4Addr, Ipv6Addr},
-    time::Duration,
 };
 
 /// Stream the logon info
@@ -125,8 +124,8 @@ fn parse_logon<'a>(
         evidence: evidence.to_string(),
     };
 
-    let time = Duration::from_secs(timestamp as u64) + Duration::from_micros(microseconds as u64);
-    logon.timestamp = unixepoch_microseconds_to_iso(time.as_micros() as i64);
+    let nano = 1000;
+    logon.timestamp = unixepoch_to_iso_with_nano(timestamp as i64, (microseconds * nano) as i64);
 
     logons.push(logon);
 
