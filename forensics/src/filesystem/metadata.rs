@@ -51,9 +51,11 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
 
     #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
     {
-        timestamps.accessed = unixepoch_to_iso(meta.atime());
-        timestamps.modified = unixepoch_to_iso(meta.mtime());
-        timestamps.changed = unixepoch_to_iso(meta.ctime());
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
+        timestamps.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
+        timestamps.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
+        timestamps.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());
     }
 
     #[cfg(target_os = "linux")]
