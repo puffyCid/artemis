@@ -342,4 +342,11 @@ mod tests {
 
         assert_eq!(timestamp, "1969-12-31T23:59:58.500Z");
     }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano_negative_postive() {
+        let timestamp = unixepoch_to_iso_with_nano(1, -500000000);
+
+        assert_eq!(timestamp, "1970-01-01T00:00:00.500Z");
+    }
 }
