@@ -159,7 +159,17 @@ pub(crate) fn unixepoch_to_iso_float(timestamp: f64) -> String {
 
 /// Convert `UnixEpoch` to ISO8601 format with with nanoseconds
 pub(crate) fn unixepoch_to_iso_with_nano(timestamp: i64, nanoseconds: i64) -> String {
-    let iso_opt = DateTime::from_timestamp(timestamp, nanoseconds as u32);
+    let mut nano_value = nanoseconds;
+    let mut time_value = timestamp;
+
+    // Handle negative time values
+    // Similar to how we handle negative floats above
+    if nano_value < 0 {
+        time_value -= 1;
+        nano_value += 1000000000;
+    }
+
+    let iso_opt = DateTime::from_timestamp(time_value, nano_value as u32);
     match iso_opt {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z"),
@@ -324,5 +334,12 @@ mod tests {
         let timestamp = unixepoch_to_iso_with_nano(1574819646, 33077000);
 
         assert_eq!(timestamp, "2019-11-27T01:54:06.033Z");
+    }
+
+    #[test]
+    fn test_unixepoch_to_iso_with_nano_negative() {
+        let timestamp = unixepoch_to_iso_with_nano(-1, -500000000);
+
+        assert_eq!(timestamp, "1969-12-31T23:59:58.500Z");
     }
 }
