@@ -5,7 +5,7 @@ use crate::{
     },
     utils::{
         encoding::{base64_decode_standard, base64_encode_standard},
-        time::{unixepoch_to_iso_float},
+        time::unixepoch_to_iso_float,
     },
 };
 use common::macos::{OpendirectoryGroups, OpendirectoryUsers};

@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::spotlight::store::property::parse_variable_size,
-    utils::time::{cocoatime_to_iso},
+    utils::time::cocoatime_to_iso,
 };
 use nom::{bytes::complete::take, number::complete::le_f64};
 use serde_json::{Value, json};

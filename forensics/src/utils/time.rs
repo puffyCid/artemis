@@ -147,7 +147,7 @@ pub(crate) fn unixepoch_to_iso_float(timestamp: f64) -> String {
     let fract_nano = timestamp.fract() * 1000000000.0;
     match DateTime::from_timestamp(timestamp.trunc() as i64, fract_nano as u32) {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
-        None => String::from("1970-01-01T00:00:00.000Z")
+        None => String::from("1970-01-01T00:00:00.000Z"),
     }
 }
 
@@ -214,7 +214,9 @@ fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 mod tests {
     use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
-        cocoatime_to_iso, compare_timestamps, fattime_utc_to_unixepoch, filetime_to_iso, get_fat_bits, ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso, unixepoch_to_iso, unixepoch_to_iso_float, unixepoch_to_iso_with_nano
+        cocoatime_to_iso, compare_timestamps, fattime_utc_to_unixepoch, filetime_to_iso,
+        get_fat_bits, ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso,
+        unixepoch_to_iso, unixepoch_to_iso_float, unixepoch_to_iso_with_nano,
     };
 
     #[test]
@@ -282,7 +284,7 @@ mod tests {
         assert_eq!(result, "2020-07-17T16:29:42.687Z");
     }
 
-        #[test]
+    #[test]
     fn test_webkit_to_unixepoch() {
         let test = 13289983960;
         let result = webkit_time_to_unixepoch(test);
