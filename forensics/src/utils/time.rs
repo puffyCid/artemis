@@ -145,12 +145,10 @@ pub(crate) fn unixepoch_to_iso(timestamp: i64) -> String {
 /// Convert `UnixEpoch` float value to ISO8601 format with millisecond precision
 pub(crate) fn unixepoch_to_iso_float(timestamp: f64) -> String {
     let fract_nano = timestamp.fract() * 1000000000.0;
-    let iso_opt = match DateTime::from_timestamp(timestamp.trunc() as i64, fract_nano as u32) {
+    match DateTime::from_timestamp(timestamp.trunc() as i64, fract_nano as u32) {
         Some(result) => result.to_rfc3339_opts(SecondsFormat::Millis, true),
         None => String::from("1970-01-01T00:00:00.000Z")
-    };
-
-    iso_opt
+    }
 }
 
 /// Convert `UnixEpoch` to ISO8601 format with with nanoseconds
