@@ -71,7 +71,10 @@ pub(crate) fn get_timestamps(path: &str) -> Result<StandardTimestamps, Error> {
     }
     #[cfg(target_os = "macos")]
     {
-        timestamps.created = unixepoch_to_iso(meta.st_birthtime());
+        use crate::utils::time::unixepoch_to_iso_with_nano;
+
+        timestamps.created =
+            unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
     }
 
     Ok(timestamps)

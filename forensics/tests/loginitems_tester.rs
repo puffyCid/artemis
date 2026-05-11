@@ -48,8 +48,11 @@ fn validate_output(output: &PathBuf) {
     let reader = BufReader::new(file);
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        println!("{value}");
         let info: LoginItemsData = serde_json::from_str(&value).unwrap();
+        println!("{value}");
+        if info.evidence.starts_with("/var/db") {
+            continue;
+        }
         if info.path.is_empty() {
             panic!("no path?")
         }

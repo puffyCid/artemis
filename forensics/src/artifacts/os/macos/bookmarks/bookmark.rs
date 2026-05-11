@@ -4,7 +4,7 @@ use crate::utils::{
         nom_unsigned_four_bytes, nom_unsigned_two_bytes,
     },
     strings::extract_utf8_string,
-    time::{cocoatime_to_unixepoch, unixepoch_to_iso},
+    time::cocoatime_to_iso,
 };
 use common::macos::{BookmarkData, CreationFlags, TargetFlags, VolumeFlags};
 use log::warn;
@@ -212,7 +212,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                         continue;
                     }
                 };
-                bookmark_data.created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
+                bookmark_data.created = cocoatime_to_iso(creation);
             } else if standard_data.record_type == volume_path {
                 bookmark_data.volume_path = extract_utf8_string(&record_data);
             } else if standard_data.record_type == volume_url {
@@ -237,7 +237,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                         continue;
                     }
                 };
-                bookmark_data.volume_created = unixepoch_to_iso(cocoatime_to_unixepoch(creation));
+                bookmark_data.volume_created = cocoatime_to_iso(creation);
             } else if standard_data.record_type == volume_flags {
                 let flags_data = bookmark_target_flags(&record_data);
                 match flags_data {
@@ -519,7 +519,7 @@ fn bookmark_target_flags(standard_data: &[u8]) -> nom::IResult<&[u8], Vec<u64>> 
 
 /// Get bookmark creation timestamps
 fn bookmark_data_type_date(standard_data: &[u8]) -> nom::IResult<&[u8], f64> {
-    //Apple stores timestamps as Big Endian Float64
+    // Apple stores timestamps as Big Endian Float64
     let (data, creation) = be_f64(standard_data)?;
     Ok((data, creation))
 }
@@ -1158,7 +1158,7 @@ mod tests {
         assert_eq!(header._version, 1040);
 
         let (_, bookmark) = parse_bookmark_data(bookmark_data).unwrap();
-        assert_eq!(bookmark.created, "2022-06-20T03:21:40.000Z");
+        assert_eq!(bookmark.created, "2022-06-20T03:21:40.074Z");
         assert_eq!(bookmark.volume_created, "2022-02-26T07:05:07.000Z");
 
         assert_eq!(

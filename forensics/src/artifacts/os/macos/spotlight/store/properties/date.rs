@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::spotlight::store::property::parse_variable_size,
-    utils::time::{cocoatime_to_unixepoch, unixepoch_to_iso},
+    utils::time::{cocoatime_to_iso},
 };
 use nom::{bytes::complete::take, number::complete::le_f64};
 use serde_json::{Value, json};
@@ -18,7 +18,7 @@ pub(crate) fn extract_dates(data: &[u8], prop_type: u8) -> nom::IResult<&[u8], V
         while count < num_values {
             let (remaining, date_data) = take(size_of::<f64>())(input)?;
             let (_, mac_date) = le_f64(date_data)?;
-            let unix_epoch = unixepoch_to_iso(cocoatime_to_unixepoch(mac_date));
+            let unix_epoch = cocoatime_to_iso(mac_date);
             input = remaining;
             count += 1;
 
@@ -29,7 +29,7 @@ pub(crate) fn extract_dates(data: &[u8], prop_type: u8) -> nom::IResult<&[u8], V
 
     let (input, date_data) = take(size_of::<f64>())(data)?;
     let (_, mac_date) = le_f64(date_data)?;
-    let unix_epoch = unixepoch_to_iso(cocoatime_to_unixepoch(mac_date));
+    let unix_epoch = cocoatime_to_iso(mac_date);
 
     dates.push(unix_epoch);
 
