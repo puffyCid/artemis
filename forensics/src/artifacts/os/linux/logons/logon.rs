@@ -125,7 +125,7 @@ fn parse_logon<'a>(
     };
 
     let nano = 1000;
-    logon.timestamp = unixepoch_to_iso_with_nano(timestamp as i64, (microseconds * nano) as i64);
+    logon.timestamp = unixepoch_to_iso_with_nano(timestamp as i64, microseconds as i64 * nano);
 
     logons.push(logon);
 

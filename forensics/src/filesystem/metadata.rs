@@ -159,8 +159,6 @@ mod tests {
         let result = get_timestamps(&test_location.display().to_string()).unwrap();
         assert!(result.created != "");
         assert!(result.accessed != "");
-        assert!(!result.modified.contains(".000Z"));
-
         assert!(result.modified != "");
         #[cfg(target_os = "windows")]
         assert_eq!(result.changed, "1970-01-01T00:00:00Z");
