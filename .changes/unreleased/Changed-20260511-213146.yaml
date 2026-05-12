@@ -1,0 +1,3 @@
+kind: Changed
+body: Bumped artifact timestamp precision to milliseconds if supported
+time: 2026-05-11T21:31:46.1809511-04:00

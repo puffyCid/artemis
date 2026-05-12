@@ -33,14 +33,8 @@ pub(crate) fn cocoatime_to_iso(timestamp: f64) -> String {
     unixepoch_to_iso_float(timestamp + adjust_to_unix)
 }
 
-/// Convert macOS HFS+ timestamp to `UnixEpoch`
-pub(crate) fn hfs_to_unixepoch(hfstime: i64) -> i64 {
-    let adjust_to_unix = 2082844800;
-    hfstime - adjust_to_unix
-}
-
-/// Convert OLE Automation time (sometimes also referred to as Variant time) to `UnixEpoch`
-pub(crate) fn ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
+/// Convert OLE Automation time (sometimes also referred to as Variant time) to ISO8601 format with millisecond precision
+pub(crate) fn ole_automationtime_to_iso(oletime: f64) -> String {
     // OLE automation time is just the number of days since Jan 1 1900 as float64
     let hours = 24.0;
     let mins = 60.0;
@@ -51,30 +45,24 @@ pub(crate) fn ole_automationtime_to_unixepoch(oletime: f64) -> i64 {
     // and Microsoft wanting to be compatible between Excel and Lotus notes
     let adjust_jan1 = 172800.0;
 
-    let mut seconds = oletime * hours * mins * secs;
-    seconds -= adjust_epoch;
-    seconds -= adjust_jan1;
-    seconds as i64
+    let mut timestamp = oletime * hours * mins * secs;
+    timestamp -= adjust_epoch;
+    timestamp -= adjust_jan1;
+    unixepoch_to_iso_float(timestamp)
 }
 
-/// Convert Webkit time to `UnixEpoch`
-pub(crate) fn webkit_time_to_unixepoch(webkittime: i64) -> i64 {
-    let adjust_epoch = 11644473600;
-    webkittime - adjust_epoch
-}
-
-/// Convert Windows FAT time (UTC) values to `UnixEpoch`
-pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
+/// Convert Windows FAT time (UTC) values to to ISO8601 format with millisecond precision
+pub(crate) fn fattime_utc_to_iso(fattime: &[u8]) -> String {
     let minimum_length = 4;
     if fattime.len() < minimum_length {
-        return 0;
+        return String::from("1970-01-01T00:00:00.000Z");
     }
     let result = get_fat_bits(fattime);
     let (_, (date, time)) = match result {
         Ok(result) => result,
         Err(_err) => {
             error!("[time] Could not get FAT time");
-            return 0;
+            return String::from("1970-01-01T00:00:00.000Z");
         }
     };
 
@@ -90,7 +78,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
     let day = date & day_sec_adjust;
 
     if month == 0 || day == 0 {
-        return 0;
+        return String::from("1970-01-01T00:00:00.000Z");
     }
 
     let sec_multi = 2;
@@ -108,7 +96,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
             error!(
                 "[time] Got an extremely large year for FAT time (max should be 2108). Got: {year}"
             );
-            return 0;
+            return String::from("1970-01-01T00:00:00.000Z");
         }
     };
     let ymd_opt = NaiveDate::from_ymd_opt(year, month, day);
@@ -116,7 +104,7 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
         result
     } else {
         error!("[time] Could not get FAT time year month day: {year}-{month}-{day}");
-        return 0;
+        return String::from("1970-01-01T00:00:00.000Z");
     };
 
     let hms_opt = NaiveTime::from_hms_opt(hour, min, second);
@@ -124,13 +112,13 @@ pub(crate) fn fattime_utc_to_unixepoch(fattime: &[u8]) -> i64 {
         result
     } else {
         error!("[time] Could not get FAT time hour min sec: {hour}:{min}:{second}");
-        return 0;
+        return String::from("1970-01-01T00:00:00.000Z");
     };
     let utc = NaiveDateTime::new(ymd, hms);
 
     // The FAT time is already in UTC format
     let epoch: DateTime<Utc> = DateTime::from_naive_utc_and_offset(utc, Utc);
-    epoch.timestamp()
+    epoch.to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 /// Convert `UnixEpoch` to ISO8601 format with millisecond precision
@@ -228,11 +216,10 @@ fn get_fat_bits(fattime: &[u8]) -> nom::IResult<&[u8], (u32, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{hfs_to_unixepoch, time_now, webkit_time_to_unixepoch};
     use crate::utils::time::{
-        cocoatime_to_iso, compare_timestamps, fattime_utc_to_unixepoch, filetime_to_iso,
-        get_fat_bits, ole_automationtime_to_unixepoch, unixepoch_microseconds_to_iso,
-        unixepoch_to_iso, unixepoch_to_iso_float, unixepoch_to_iso_with_nano,
+        cocoatime_to_iso, compare_timestamps, fattime_utc_to_iso, filetime_to_iso, get_fat_bits,
+        ole_automationtime_to_iso, time_now, unixepoch_microseconds_to_iso, unixepoch_to_iso,
+        unixepoch_to_iso_float, unixepoch_to_iso_with_nano,
     };
 
     #[test]
@@ -248,9 +235,9 @@ mod tests {
     }
 
     #[test]
-    fn test_fattime_utc_to_unixepoch() {
+    fn test_fattime_utc_to_iso() {
         let test_data = [123, 79, 195, 14];
-        assert_eq!(fattime_utc_to_unixepoch(&test_data), 1574819646)
+        assert_eq!(fattime_utc_to_iso(&test_data), "2019-11-27T01:54:06.000Z")
     }
 
     #[test]
@@ -275,15 +262,23 @@ mod tests {
     }
 
     #[test]
-    fn test_fattime_utc_to_unixepoch_bad() {
-        assert_eq!(fattime_utc_to_unixepoch(&[]), 0);
+    fn test_fattime_utc_to_iso_bad() {
+        assert_eq!(fattime_utc_to_iso(&[]), "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
-    fn test_ole_automationtime_to_unixepoch() {
+    fn test_ole_automationtime_to_iso() {
         let test = 43794.01875;
-        let result = ole_automationtime_to_unixepoch(test);
-        assert_eq!(result, 1574641620);
+        let result = ole_automationtime_to_iso(test);
+        assert_eq!(result, "2019-11-25T00:27:00.000Z");
+    }
+
+    #[test]
+    fn test_ole_auomationtime_to_iso_milli() {
+        assert_eq!(
+            ole_automationtime_to_iso(45224.75001157),
+            "2023-10-25T18:00:00.999Z"
+        );
     }
 
     #[test]
@@ -305,20 +300,6 @@ mod tests {
         let test = -1.5;
         let result = unixepoch_to_iso_float(test);
         assert_eq!(result, "1969-12-31T23:59:58.500Z");
-    }
-
-    #[test]
-    fn test_webkit_to_unixepoch() {
-        let test = 13289983960;
-        let result = webkit_time_to_unixepoch(test);
-        assert_eq!(result, 1645510360);
-    }
-
-    #[test]
-    fn test_hfs_to_unixepoch() {
-        let test = 3453120824;
-        let result = hfs_to_unixepoch(test);
-        assert_eq!(result, 1370276024);
     }
 
     #[test]

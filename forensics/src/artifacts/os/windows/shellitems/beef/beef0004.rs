@@ -1,8 +1,7 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
-use crate::utils::time::unixepoch_to_iso;
 use crate::utils::{
     strings::{extract_ascii_utf16_string, extract_utf16_string},
-    time::fattime_utc_to_unixepoch,
+    time::fattime_utc_to_iso,
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use common::windows::{ShellItem, ShellType};
@@ -33,9 +32,9 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
     let mut directory_item = ShellItem {
         value: String::new(),
         shell_type,
-        created: unixepoch_to_iso(fattime_utc_to_unixepoch(created_data)),
+        created: fattime_utc_to_iso(created_data),
         modified: String::new(),
-        accessed: unixepoch_to_iso(fattime_utc_to_unixepoch(accessed_data)),
+        accessed: fattime_utc_to_iso(accessed_data),
         mft_entry: 0,
         mft_sequence: 0,
         stores: Vec::new(),
