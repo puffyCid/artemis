@@ -45,10 +45,10 @@ pub(crate) fn ole_automationtime_to_iso(oletime: f64) -> String {
     // and Microsoft wanting to be compatible between Excel and Lotus notes
     let adjust_jan1 = 172800.0;
 
-    let mut seconds = oletime * hours * mins * secs;
-    seconds -= adjust_epoch;
-    seconds -= adjust_jan1;
-    unixepoch_to_iso(seconds as i64)
+    let mut timestamp = oletime * hours * mins * secs;
+    timestamp -= adjust_epoch;
+    timestamp -= adjust_jan1;
+    unixepoch_to_iso_float(timestamp)
 }
 
 /// Convert Windows FAT time (UTC) values to to ISO8601 format with millisecond precision
@@ -271,6 +271,14 @@ mod tests {
         let test = 43794.01875;
         let result = ole_automationtime_to_iso(test);
         assert_eq!(result, "2019-11-25T00:27:00.000Z");
+    }
+
+    #[test]
+    fn test_ole_auomationtime_to_iso_milli() {
+        assert_eq!(
+            ole_automationtime_to_iso(45224.75001157),
+            "2023-10-25 18:00:00.999Z"
+        );
     }
 
     #[test]
