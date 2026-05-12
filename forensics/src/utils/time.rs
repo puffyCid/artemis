@@ -277,7 +277,7 @@ mod tests {
     fn test_ole_auomationtime_to_iso_milli() {
         assert_eq!(
             ole_automationtime_to_iso(45224.75001157),
-            "2023-10-25 18:00:00.999Z"
+            "2023-10-25T18:00:00.999Z"
         );
     }
 
