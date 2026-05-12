@@ -1,6 +1,6 @@
 use super::beef::beef0004;
 use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
-use crate::utils::time::{fattime_utc_to_unixepoch, unixepoch_to_iso};
+use crate::utils::time::fattime_utc_to_iso;
 use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::{ShellItem, ShellType};
 use nom::Parser;
@@ -97,7 +97,7 @@ pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
     let class_id = format_guid_le_bytes(guid_bytes);
 
     let (input, mut directory_item) = beef0004::parse_beef(input, ShellType::Delegate)?;
-    directory_item.modified = unixepoch_to_iso(fattime_utc_to_unixepoch(modified_data));
+    directory_item.modified = fattime_utc_to_iso(modified_data);
 
     let delegate_item = DelegateItem {
         value: directory_item.value,
