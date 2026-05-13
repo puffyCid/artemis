@@ -2,7 +2,11 @@ use crate::artifacts::{files::extract_times, filter::filter_data};
 use serde_json::{Value, json};
 
 /// Timeline Journal files
-pub(crate) fn journal(data: &mut Value) -> Option<()> {
+pub(crate) fn journal(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -17,14 +21,18 @@ pub(crate) fn journal(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Journals"));
         entry["data_type"] = Value::String(String::from("linux:journals:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Journal Entry Generated"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
 /// Timeline sudo entries in Journal files
-pub(crate) fn sudo_linux(data: &mut Value) -> Option<()> {
+pub(crate) fn sudo_linux(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -39,14 +47,14 @@ pub(crate) fn sudo_linux(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Sudo Linux"));
         entry["data_type"] = Value::String(String::from("linux:journals:sudo:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Sudo Journal Entry Generated"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
 /// Timeline Linux logons
-pub(crate) fn logons(data: &mut Value) -> Option<()> {
+pub(crate) fn logons(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -65,13 +73,17 @@ pub(crate) fn logons(data: &mut Value) -> Option<()> {
             entry["username"].as_str().unwrap_or_default(),
             entry["status"].as_str().unwrap_or_default()
         ));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn ext4_filelisting(data: &mut Value) -> Option<()> {
+pub(crate) fn ext4_filelisting(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
     for entry in data.as_array_mut()? {
         if !entry.is_object() {
@@ -89,7 +101,7 @@ pub(crate) fn ext4_filelisting(data: &mut Value) -> Option<()> {
         }];
         let times = extract_times(&temp)?;
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -115,7 +127,7 @@ mod tests {
             "data1":"anything i want"
         }]);
 
-        journal(&mut test).unwrap();
+        journal(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Journals");
         assert_eq!(test[0]["data1"], "anything i want");
@@ -129,7 +141,7 @@ mod tests {
             "data1":"anything i want"
         }]);
 
-        sudo_linux(&mut test).unwrap();
+        sudo_linux(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Sudo Linux");
         assert_eq!(test[0]["data1"], "anything i want");
@@ -145,7 +157,7 @@ mod tests {
             "status": "Success",
         }]);
 
-        logons(&mut test).unwrap();
+        logons(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Logon Linux");
         assert_eq!(test[0]["message"], "User: bob - Logon: Success");
@@ -164,7 +176,7 @@ mod tests {
             "accessed": "2025-10-23T00:00:00.000000000Z",
         }]);
 
-        ext4_filelisting(&mut test).unwrap();
+        ext4_filelisting(&mut test, &None, &None).unwrap();
         assert_eq!(test.as_array().unwrap().len(), 3);
         assert_eq!(
             test[0]["message"].as_str().unwrap(),

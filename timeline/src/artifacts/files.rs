@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Timeline filelisting info
-pub(crate) fn files(data: &mut Value) -> Option<()> {
+pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     let mut entries = Vec::new();
     for entry in data.as_array_mut()? {
         if !entry.is_object() {
@@ -22,7 +22,7 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
         }];
         let times = extract_times(&temp)?;
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -132,7 +132,7 @@ mod tests {
 
         }]);
 
-        files(&mut test).unwrap();
+        files(&mut test, &None, &None).unwrap();
         assert_eq!(test.as_array().unwrap().len(), 4);
         assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Files");

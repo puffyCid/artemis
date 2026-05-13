@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 
 /// Timeline Windows Users
-pub(crate) fn users(data: &mut Value) -> Option<()> {
+pub(crate) fn users(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -20,14 +20,18 @@ pub(crate) fn users(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Windows User"));
         entry["data_type"] = Value::String(String::from("windows:registry:users:entry"));
         entry["timestamp_desc"] = Value::String(String::from("User Last Logon"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
 /// Timeline Amcache
-pub(crate) fn amcache(data: &mut Value) -> Option<()> {
+pub(crate) fn amcache(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -43,14 +47,14 @@ pub(crate) fn amcache(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Amcache"));
         entry["data_type"] = Value::String(String::from("windows:registry:amcache:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Amcache Registry Last Modified"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
 /// Timeline Windows BITS
-pub(crate) fn bits(data: &mut Value) -> Option<()> {
+pub(crate) fn bits(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -65,7 +69,7 @@ pub(crate) fn bits(data: &mut Value) -> Option<()> {
         let temp = entry.clone();
         let times = extract_bits_times(&temp)?;
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -110,7 +114,11 @@ fn extract_bits_times(data: &Value) -> Option<HashMap<&str, String>> {
 }
 
 /// Timeline Eventlogs. Only Eventlog entries with template strings are supported
-pub(crate) fn eventlogs(data: &mut Value) -> Option<()> {
+pub(crate) fn eventlogs(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -141,13 +149,17 @@ pub(crate) fn eventlogs(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("EventLogs"));
         entry["data_type"] = Value::String(String::from("windows:eventlogs:entry"));
         entry["timestamp_desc"] = Value::String(String::from("EventLog Entry Generated"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
+pub(crate) fn jumplists(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -191,7 +203,7 @@ pub(crate) fn jumplists(data: &mut Value) -> Option<()> {
         let times = extract_shortcut_times(&temp["lnk_info"])?;
 
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -237,7 +249,11 @@ fn extract_shortcut_times(data: &Value) -> Option<HashMap<&str, String>> {
     Some(times)
 }
 
-pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
+pub(crate) fn raw_files(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -262,7 +278,7 @@ pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
             // If $INDX recovery is enabled. Standard Info timestamps will be empty
             // We will only have FileName timestamps
             // Skip emtpy Standard Info timestamps
-            if key.is_empty() || filter_data(key, None, None) {
+            if key.is_empty() || filter_data(key, start, end) {
                 continue;
             }
 
@@ -275,7 +291,11 @@ pub(crate) fn raw_files(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn outlook(data: &mut Value) -> Option<()> {
+pub(crate) fn outlook(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -294,13 +314,17 @@ pub(crate) fn outlook(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Outlook"));
         entry["data_type"] = Value::String(String::from("windows:outlook:email"));
         entry["timestamp_desc"] = Value::String(String::from("Email Delivered"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
+pub(crate) fn prefetch(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -309,14 +333,14 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
         entry["message"] = Value::String(entry["evidence"].as_str()?.into());
         entry["datetime"] = entry["last_run_time"].as_str()?.into();
         entry["timestamp_desc"] = Value::String(String::from("Prefetch Last Execution"));
-        if !filter_data(entry["last_run_time"].as_str()?, None, None) {
+        if !filter_data(entry["last_run_time"].as_str()?, start, end) {
             entries.push(entry.clone());
         }
 
         let mut temp = entry.clone();
 
         for value in entry["all_run_times"].as_array()? {
-            if filter_data(value.as_str()?, None, None) {
+            if filter_data(value.as_str()?, start, end) {
                 continue;
             }
             temp["datetime"] = value.as_str()?.into();
@@ -328,7 +352,11 @@ pub(crate) fn prefetch(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn recycle_bin(data: &mut Value) -> Option<()> {
+pub(crate) fn recycle_bin(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -343,13 +371,13 @@ pub(crate) fn recycle_bin(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("RecycleBin"));
         entry["data_type"] = Value::String(String::from("windows:recyclebin:entry"));
         entry["timestamp_desc"] = Value::String(String::from("File Deleted"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn search(data: &mut Value) -> Option<()> {
+pub(crate) fn search(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -380,13 +408,17 @@ pub(crate) fn search(data: &mut Value) -> Option<()> {
                 entry["message"] = value.as_str().unwrap_or_default().into();
             }
         }
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn services(data: &mut Value) -> Option<()> {
+pub(crate) fn services(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -405,13 +437,17 @@ pub(crate) fn services(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Service"));
         entry["data_type"] = Value::String(String::from("windows:registry:services:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn shellbags(data: &mut Value) -> Option<()> {
+pub(crate) fn shellbags(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -426,13 +462,17 @@ pub(crate) fn shellbags(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Shellbags"));
         entry["data_type"] = Value::String(String::from("windows:registry:shellbags:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn shimcache(data: &mut Value) -> Option<()> {
+pub(crate) fn shimcache(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -447,13 +487,17 @@ pub(crate) fn shimcache(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Shimcache"));
         entry["data_type"] = Value::String(String::from("windows:registry:shimcache:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Shimcache Last Modified"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn registry(data: &mut Value) -> Option<()> {
+pub(crate) fn registry(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -461,7 +505,7 @@ pub(crate) fn registry(data: &mut Value) -> Option<()> {
         entry["data_type"] = Value::String(String::from("windows:registry:entry"));
         entry["datetime"] = entry["last_modified"].as_str()?.into();
         entry["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
-        if filter_data(entry["datetime"].as_str().unwrap(), None, None) {
+        if filter_data(entry["datetime"].as_str().unwrap(), start, end) {
             continue;
         }
 
@@ -489,7 +533,7 @@ pub(crate) fn registry(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
+pub(crate) fn shimdb(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -504,7 +548,7 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
             .as_str()?
             .into();
         entry["timestamp_desc"] = Value::String(String::from("Shim Compile Time"));
-        if filter_data(entry["datetime"].as_str().unwrap(), None, None) {
+        if filter_data(entry["datetime"].as_str().unwrap(), start, end) {
             continue;
         }
 
@@ -568,7 +612,11 @@ pub(crate) fn shimdb(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
+pub(crate) fn shortcuts(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -580,7 +628,7 @@ pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
         let times = extract_shortcut_times(&temp)?;
 
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -592,7 +640,7 @@ pub(crate) fn shortcuts(data: &mut Value) -> Option<()> {
     Some(())
 }
 
-pub(crate) fn srum(data: &mut Value) -> Option<()> {
+pub(crate) fn srum(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -639,13 +687,13 @@ pub(crate) fn srum(data: &mut Value) -> Option<()> {
                 "windows:ese:srum:network_connectivity:notification_info:entry",
             ));
         }
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn tasks(data: &mut Value) -> Option<()> {
+pub(crate) fn tasks(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -660,13 +708,17 @@ pub(crate) fn tasks(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Schedule Task"));
         entry["data_type"] = Value::String(String::from("windows:tasks:xml:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Task Created"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn userassist(data: &mut Value) -> Option<()> {
+pub(crate) fn userassist(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -681,13 +733,17 @@ pub(crate) fn userassist(data: &mut Value) -> Option<()> {
         entry["artifact"] = Value::String(String::from("Userassist"));
         entry["data_type"] = Value::String(String::from("windows:registry:userassist:entry"));
         entry["timestamp_desc"] = Value::String(String::from("Userassist Last Execution"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn usnjrnl(data: &mut Value) -> Option<()> {
+pub(crate) fn usnjrnl(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -705,13 +761,13 @@ pub(crate) fn usnjrnl(data: &mut Value) -> Option<()> {
             "UsnJrnl {:?}",
             entry["update_reason"].as_array().unwrap_or(&Vec::new())
         ));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn wmi(data: &mut Value) -> Option<()> {
+pub(crate) fn wmi(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -722,13 +778,13 @@ pub(crate) fn wmi(data: &mut Value) -> Option<()> {
         entry["timestamp_desc"] = Value::String(String::from("N/A"));
         entry["artifact"] = Value::String(String::from("WMI Persist"));
         entry["data_type"] = Value::String(String::from("windows:wmi:persistence:entry"));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
-pub(crate) fn mft(data: &mut Value) -> Option<()> {
+pub(crate) fn mft(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     let mut entries = Vec::new();
 
     for entry in data.as_array_mut()? {
@@ -749,7 +805,7 @@ pub(crate) fn mft(data: &mut Value) -> Option<()> {
         let mut times = extract_times(&temp)?;
         extract_filename_times(&temp, &mut times)?;
         for (key, value) in times {
-            if filter_data(key, None, None) {
+            if filter_data(key, start, end) {
                 continue;
             }
             entry["datetime"] = Value::String(key.into());
@@ -777,7 +833,7 @@ mod tests {
             "username":"anything i want"
         }]);
 
-        users(&mut test).unwrap();
+        users(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Windows User");
         assert_eq!(test[0]["username"], "anything i want");
@@ -790,7 +846,7 @@ mod tests {
             "path":"C:\\Windows\\cmd.exe"
         }]);
 
-        amcache(&mut test).unwrap();
+        amcache(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Amcache");
         assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
@@ -807,7 +863,7 @@ mod tests {
             "job_name": "test"
         }]);
 
-        bits(&mut test).unwrap();
+        bits(&mut test, &None, &None).unwrap();
         assert_eq!(test.as_array().unwrap().len(), 1);
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "BITS");
@@ -825,7 +881,7 @@ mod tests {
             "template_message": "%1 data"
         }]);
 
-        eventlogs(&mut test).unwrap();
+        eventlogs(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "EventLogs");
         assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
@@ -843,7 +899,7 @@ mod tests {
             "jumplist_metadata": {},
         }]);
 
-        jumplists(&mut test).unwrap();
+        jumplists(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Jumplist");
         assert_eq!(test[0]["message"], "C:\\Windows\\cmd.exe");
@@ -863,7 +919,7 @@ mod tests {
             ],
         }]);
 
-        registry(&mut test).unwrap();
+        registry(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Registry");
         assert_eq!(test[0]["message"], "HKEY\\Test\\Run | Value: test");
@@ -883,7 +939,7 @@ mod tests {
             "filename_accessed": "2024-01-01T03:00:00.000Z",
         }]);
 
-        raw_files(&mut test).unwrap();
+        raw_files(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
         assert_eq!(test[0]["artifact"], "RawFiles");
         assert_eq!(test[0]["message"], "/usr/bin/ls");
@@ -903,7 +959,7 @@ mod tests {
             "filename_accessed": "2024-01-01T03:00:00.040Z",
         }]);
 
-        raw_files(&mut test).unwrap();
+        raw_files(&mut test, &None, &None).unwrap();
         assert_eq!(test.as_array().unwrap().len(), 4);
     }
 
@@ -921,7 +977,7 @@ mod tests {
             "filename_accessed": "2024-01-01T03:00:00.000Z",
         }]);
 
-        mft(&mut test).unwrap();
+        mft(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
         assert_eq!(test[0]["artifact"], "MFT");
         assert_eq!(test[0]["message"], "/usr/bin/ls");
@@ -935,7 +991,7 @@ mod tests {
             "from": "me!"
         }]);
 
-        outlook(&mut test).unwrap();
+        outlook(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Outlook");
         assert_eq!(test[0]["message"], "Subject: testing timelines From: me!");
@@ -949,7 +1005,7 @@ mod tests {
             "all_run_times": [],
         }]);
 
-        prefetch(&mut test).unwrap();
+        prefetch(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Prefetch");
         assert_eq!(test[0]["message"], "test.pf");
@@ -962,7 +1018,7 @@ mod tests {
             "full_path": "test.pf",
         }]);
 
-        recycle_bin(&mut test).unwrap();
+        recycle_bin(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "RecycleBin");
         assert_eq!(test[0]["message"], "test.pf");

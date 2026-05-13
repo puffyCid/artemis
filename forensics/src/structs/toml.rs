@@ -43,6 +43,10 @@ pub struct Output {
     pub compress: bool,
     /**Timeline supported artifacts */
     pub timeline: bool,
+    /**Filter out results with time before start time */
+    pub start_time: Option<String>,
+    /**Filter out results with time after end time */
+    pub end_time: Option<String>,
     /**Apply a filter script before outputting data */
     pub filter_name: Option<String>,
     /**Run parsed data through provided filter script */

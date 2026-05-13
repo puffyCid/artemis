@@ -64,47 +64,52 @@ pub enum Artifacts {
 }
 
 /// Timeline a parsed artifact
-pub fn timeline_artifact(data: &mut Value, artifact: &Artifacts) -> Option<()> {
+pub fn timeline_artifact(
+    data: &mut Value,
+    artifact: &Artifacts,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     match artifact {
-        Artifacts::Processes => processes(data),
-        Artifacts::Files => files(data),
-        Artifacts::Journal => journal(data),
-        Artifacts::Logons => logons(data),
-        Artifacts::SudoLinux => sudo_linux(data),
-        Artifacts::Ext4Files => ext4_filelisting(data),
-        Artifacts::Amcache => amcache(data),
-        Artifacts::Bits => bits(data),
-        Artifacts::Eventlogs => eventlogs(data),
-        Artifacts::Jumplist => jumplists(data),
-        Artifacts::RawFiles => raw_files(data),
-        Artifacts::Outlook => outlook(data),
-        Artifacts::Prefetch => prefetch(data),
-        Artifacts::RecycleBin => recycle_bin(data),
-        Artifacts::Registry => registry(data),
-        Artifacts::Search => search(data),
-        Artifacts::Services => services(data),
-        Artifacts::Shellbags => shellbags(data),
-        Artifacts::Shimcache => shimcache(data),
-        Artifacts::ShimDb => shimdb(data),
-        Artifacts::Shortcuts => shortcuts(data),
-        Artifacts::Srum => srum(data),
-        Artifacts::Tasks => tasks(data),
-        Artifacts::Userassist => userassist(data),
-        Artifacts::UsersWindows => users(data),
-        Artifacts::UsnJrnl => usnjrnl(data),
-        Artifacts::Wmi => wmi(data),
-        Artifacts::Mft => mft(data),
-        Artifacts::UsersMacos => users_macos(data),
-        Artifacts::GroupsMacos => groups_macos(data),
-        Artifacts::Emond => emond(data),
-        Artifacts::LaunchDaemon => launchd(data),
-        Artifacts::Fsevents => fsevents(data),
-        Artifacts::ExecPolicy => execpolicy(data),
-        Artifacts::LoginItems => loginitems(data),
-        Artifacts::Spotlight => spotlight(data),
-        Artifacts::UnifiedLogs => unifiedlogs(data),
-        Artifacts::SudoMacos => sudo_macos(data),
-        Artifacts::Connections => network(data),
+        Artifacts::Processes => processes(data, start, end),
+        Artifacts::Files => files(data, start, end),
+        Artifacts::Journal => journal(data, start, end),
+        Artifacts::Logons => logons(data, start, end),
+        Artifacts::SudoLinux => sudo_linux(data, start, end),
+        Artifacts::Ext4Files => ext4_filelisting(data, start, end),
+        Artifacts::Amcache => amcache(data, start, end),
+        Artifacts::Bits => bits(data, start, end),
+        Artifacts::Eventlogs => eventlogs(data, start, end),
+        Artifacts::Jumplist => jumplists(data, start, end),
+        Artifacts::RawFiles => raw_files(data, start, end),
+        Artifacts::Outlook => outlook(data, start, end),
+        Artifacts::Prefetch => prefetch(data, start, end),
+        Artifacts::RecycleBin => recycle_bin(data, start, end),
+        Artifacts::Registry => registry(data, start, end),
+        Artifacts::Search => search(data, start, end),
+        Artifacts::Services => services(data, start, end),
+        Artifacts::Shellbags => shellbags(data, start, end),
+        Artifacts::Shimcache => shimcache(data, start, end),
+        Artifacts::ShimDb => shimdb(data, start, end),
+        Artifacts::Shortcuts => shortcuts(data, start, end),
+        Artifacts::Srum => srum(data, start, end),
+        Artifacts::Tasks => tasks(data, start, end),
+        Artifacts::Userassist => userassist(data, start, end),
+        Artifacts::UsersWindows => users(data, start, end),
+        Artifacts::UsnJrnl => usnjrnl(data, start, end),
+        Artifacts::Wmi => wmi(data, start, end),
+        Artifacts::Mft => mft(data, start, end),
+        Artifacts::UsersMacos => users_macos(data, start, end),
+        Artifacts::GroupsMacos => groups_macos(data, start, end),
+        Artifacts::Emond => emond(data, start, end),
+        Artifacts::LaunchDaemon => launchd(data, start, end),
+        Artifacts::Fsevents => fsevents(data, start, end),
+        Artifacts::ExecPolicy => execpolicy(data, start, end),
+        Artifacts::LoginItems => loginitems(data, start, end),
+        Artifacts::Spotlight => spotlight(data, start, end),
+        Artifacts::UnifiedLogs => unifiedlogs(data, start, end),
+        Artifacts::SudoMacos => sudo_macos(data, start, end),
+        Artifacts::Connections => network(data, start, end),
         Artifacts::Unknown => {
             warn!("Got unknown artifact");
             None
@@ -132,7 +137,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Files).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Files, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 1296);
     }
 
@@ -150,7 +155,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Amcache).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Amcache, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 4);
     }
 
@@ -168,7 +173,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Bits).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Bits, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 9);
     }
 
@@ -186,7 +191,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Jumplist).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Jumplist, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 109);
     }
 
@@ -204,7 +209,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Registry).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Registry, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 133);
     }
 
@@ -222,7 +227,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Search).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Search, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 208);
     }
 
@@ -240,7 +245,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Shortcuts).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Shortcuts, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 13);
     }
 
@@ -258,7 +263,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Prefetch).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Prefetch, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 325);
     }
 
@@ -276,7 +281,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::ShimDb).unwrap();
+        timeline_artifact(&mut result, &Artifacts::ShimDb, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 1);
         assert_eq!(result.to_string().len(), 1851);
     }
@@ -295,7 +300,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Spotlight).unwrap();
+        timeline_artifact(&mut result, &Artifacts::Spotlight, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 66);
         assert_eq!(result.to_string().len(), 251620);
     }
@@ -314,7 +319,7 @@ mod tests {
         }
         let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::UnifiedLogs).unwrap();
+        timeline_artifact(&mut result, &Artifacts::UnifiedLogs, &None, &None).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 168);
         assert_eq!(result.to_string().len(), 382407);
     }

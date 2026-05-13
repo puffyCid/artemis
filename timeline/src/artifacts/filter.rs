@@ -4,14 +4,14 @@ use log::warn;
 /**
  * Determine if the data should be filtered and removed. Returns true if the data should be removed
  */
-pub(crate) fn filter_data(datetime: &str, start: Option<&str>, end: Option<&str>) -> bool {
+pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<String>) -> bool {
     // If no filtering is being done. We keep our data and do not remove it
     if start.is_none() && end.is_none() {
         return false;
     }
 
     // Check if the data timestamp falls between our range. If it does we keep it
-    if start.is_some_and(|start_filter| {
+    if start.as_ref().is_some_and(|start_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
             Err(err) => {
@@ -34,7 +34,7 @@ pub(crate) fn filter_data(datetime: &str, start: Option<&str>, end: Option<&str>
 
         // Filter the data
         false
-    }) && end.is_some_and(|end_filter| {
+    }) && end.as_ref().is_some_and(|end_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
             Err(err) => {
@@ -63,7 +63,7 @@ pub(crate) fn filter_data(datetime: &str, start: Option<&str>, end: Option<&str>
     }
 
     // Checks if the data timestamp is greater than our start time. If it does we keep it
-    if start.is_some_and(|start_filter| {
+    if start.as_ref().is_some_and(|start_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
             Err(err) => {
@@ -92,7 +92,7 @@ pub(crate) fn filter_data(datetime: &str, start: Option<&str>, end: Option<&str>
     }
 
     // Checks if the data timestamp is less than our end time. If it does we keep it
-    if end.is_some_and(|end_filter| {
+    if end.as_ref().is_some_and(|end_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
             Err(err) => {
@@ -130,49 +130,49 @@ mod tests {
 
     #[test]
     fn test_filter_data() {
-        let start = "1970-01-01T00:00:00.000Z";
-        let end = "3000-01-01T00:00:00.000Z";
+        let start = "1970-01-01T00:00:00.000Z".to_string();
+        let end = "3000-01-01T00:00:00.000Z".to_string();
         let now = "2026-03-01T00:00:00.000Z";
-        assert!(!filter_data(now, Some(start), Some(end)))
+        assert!(!filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_start() {
-        let start = "5970-01-01T00:00:00.000Z";
-        let end = "7000-01-01T00:00:00.000Z";
+        let start = "5970-01-01T00:00:00.000Z".to_string();
+        let end = "7000-01-01T00:00:00.000Z".to_string();
         let now = "2026-03-01T00:00:00.000Z";
-        assert!(filter_data(now, Some(start), Some(end)))
+        assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_end() {
-        let start = "1970-01-01T00:00:00.000Z";
-        let end = "2000-01-01T00:00:00.000Z";
+        let start = "1970-01-01T00:00:00.000Z".to_string();
+        let end = "2000-01-01T00:00:00.000Z".to_string();
         let now = "2026-03-01T00:00:00.000Z";
-        assert!(filter_data(now, Some(start), Some(end)))
+        assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_keep() {
-        let start = "2026-03-01T00:00:00.000Z";
-        let end = "2026-04-01T00:00:00.000Z";
+        let start = "2026-03-01T00:00:00.000Z".to_string();
+        let end = "2026-04-01T00:00:00.000Z".to_string();
         let now = "2026-03-14T00:00:00.000Z";
-        assert!(!filter_data(now, Some(start), Some(end)))
+        assert!(!filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_bad_end() {
-        let start = "2026-03-01T00:00:00.000Z";
-        let end = "1970-04-01T00:00:00.000Z";
+        let start = "2026-03-01T00:00:00.000Z".to_string();
+        let end = "1970-04-01T00:00:00.000Z".to_string();
         let now = "2026-03-14T00:00:00.000Z";
-        assert!(filter_data(now, Some(start), Some(end)))
+        assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_bad_start() {
-        let start = "9000-03-01T00:00:00.000Z";
-        let end = "2026-04-01T00:00:00.000Z";
+        let start = "9000-03-01T00:00:00.000Z".to_string();
+        let end = "2026-04-01T00:00:00.000Z".to_string();
         let now = "2026-01-14T00:00:00.000Z";
-        assert!(filter_data(now, Some(start), Some(end)))
+        assert!(filter_data(now, &Some(start), &Some(end)))
     }
 }

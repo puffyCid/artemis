@@ -2,7 +2,11 @@ use crate::artifacts::filter::filter_data;
 use serde_json::Value;
 
 /// Timeline process info
-pub(crate) fn processes(data: &mut Value) -> Option<()> {
+pub(crate) fn processes(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -21,14 +25,18 @@ pub(crate) fn processes(data: &mut Value) -> Option<()> {
             entry["full_path"].as_str().unwrap_or_default(),
             entry["arguments"].as_str().unwrap_or_default()
         ));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
 }
 
 /// Timeline network connections. We will not have timestamps but we can still include other stuff
-pub(crate) fn network(data: &mut Value) -> Option<()> {
+pub(crate) fn network(
+    data: &mut Value,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Option<()> {
     data.as_array_mut()?.retain_mut(|entry| {
         if !entry.is_object() {
             // Drop value if its not an object
@@ -46,7 +54,7 @@ pub(crate) fn network(data: &mut Value) -> Option<()> {
             entry["remote_port"].as_i64().unwrap_or_default(),
             entry["state"].as_str().unwrap_or_default(),
         ));
-        !filter_data(entry["datetime"].as_str().unwrap(), None, None)
+        !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
     Some(())
@@ -67,7 +75,7 @@ mod tests {
             "binary_info": [{"data":"data1"}]
         }]);
 
-        processes(&mut test).unwrap();
+        processes(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Processes");
         assert_eq!(test[0]["message"], "/usr/bin/ls  stuff");
@@ -86,7 +94,7 @@ mod tests {
             "process_name": "pasta.avx2",
         }]);
 
-        network(&mut test).unwrap();
+        network(&mut test, &None, &None).unwrap();
         assert_eq!(test[0]["artifact"], "Connections");
         assert_eq!(
             test[0]["message"].as_str().unwrap(),
