@@ -133,7 +133,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Files).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 20);
+        assert_eq!(result.as_array().unwrap().len(), 1296);
     }
 
     #[test]
@@ -187,7 +187,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Jumplist).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 78);
+        assert_eq!(result.as_array().unwrap().len(), 109);
     }
 
     #[test]
@@ -205,7 +205,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Registry).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 23);
+        assert_eq!(result.as_array().unwrap().len(), 133);
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Search).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 11);
+        assert_eq!(result.as_array().unwrap().len(), 208);
     }
 
     #[test]
@@ -241,7 +241,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Shortcuts).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 12);
+        assert_eq!(result.as_array().unwrap().len(), 13);
     }
 
     #[test]
@@ -259,7 +259,7 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Prefetch).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 27);
+        assert_eq!(result.as_array().unwrap().len(), 325);
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod tests {
 
         timeline_artifact(&mut result, &Artifacts::ShimDb).unwrap();
         assert_eq!(result.as_array().unwrap().len(), 1);
-        assert_eq!(result.to_string().len(), 1013);
+        assert_eq!(result.to_string().len(), 1851);
     }
 
     #[test]
@@ -296,7 +296,26 @@ mod tests {
         let mut result = Value::Array(data);
 
         timeline_artifact(&mut result, &Artifacts::Spotlight).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 18);
-        assert_eq!(result.to_string().len(), 80453);
+        assert_eq!(result.as_array().unwrap().len(), 66);
+        assert_eq!(result.to_string().len(), 251620);
+    }
+
+    #[test]
+    fn test_timeline_artifact_unifiedlogs() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/unifiedlogs.jsonl");
+        let mut data = Vec::new();
+
+        for line in read_to_string(test_location.to_str().unwrap())
+            .unwrap()
+            .lines()
+        {
+            data.push(serde_json::from_str(line).unwrap())
+        }
+        let mut result = Value::Array(data);
+
+        timeline_artifact(&mut result, &Artifacts::UnifiedLogs).unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 168);
+        assert_eq!(result.to_string().len(), 382407);
     }
 }
