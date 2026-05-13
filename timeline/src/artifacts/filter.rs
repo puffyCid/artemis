@@ -1,5 +1,4 @@
 use chrono::DateTime;
-use log::warn;
 
 /**
  * Determine if the data should be filtered and removed. Returns true if the data should be removed
@@ -14,17 +13,11 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
     if start.as_ref().is_some_and(|start_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse timestamp '{datetime}' for start: {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
         let start_timestamp = match DateTime::parse_from_rfc3339(start_filter) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse start time '{datetime}': {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
 
         // Keep the data
@@ -37,17 +30,11 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
     }) && end.as_ref().is_some_and(|end_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse timestamp '{datetime}' for end: {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
         let end_timestamp = match DateTime::parse_from_rfc3339(end_filter) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse end time '{datetime}': {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
 
         // Keep the data
@@ -66,17 +53,11 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
     if start.as_ref().is_some_and(|start_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse timestamp '{datetime}' for start: {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
         let start_timestamp = match DateTime::parse_from_rfc3339(start_filter) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse start time '{datetime}': {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
 
         // Keep the data
@@ -95,17 +76,11 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
     if end.as_ref().is_some_and(|end_filter| {
         let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse timestamp '{datetime}' for end: {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
         let end_timestamp = match DateTime::parse_from_rfc3339(end_filter) {
             Ok(result) => result,
-            Err(err) => {
-                warn!("[timeline] Failed to parse end time '{datetime}': {err:?}. Retaining data");
-                return true;
-            }
+            Err(_err) => return false,
         };
 
         // Keep the data
@@ -113,15 +88,15 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
             return false;
         }
 
-       // Remove the data
+        // Remove the data
         true
     }) {
         // Remove the data
         return true;
     }
 
-    // The data falls outside our timestamp filters. We should remove it
-    true
+    // The data falls within our timestamp filters. We should keep it
+    false
 }
 
 #[cfg(test)]
@@ -130,49 +105,77 @@ mod tests {
 
     #[test]
     fn test_filter_data() {
-        let start = "1970-01-01T00:00:00.000Z".to_string();
-        let end = "3000-01-01T00:00:00.000Z".to_string();
+        let start = String::from("1970-01-01T00:00:00.000Z");
+        let end = String::from("3000-01-01T00:00:00.000Z");
         let now = "2026-03-01T00:00:00.000Z";
         assert!(!filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_start() {
-        let start = "5970-01-01T00:00:00.000Z".to_string();
-        let end = "7000-01-01T00:00:00.000Z".to_string();
+        let start = String::from("5970-01-01T00:00:00.000Z");
+        let end = String::from("7000-01-01T00:00:00.000Z");
         let now = "2026-03-01T00:00:00.000Z";
         assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_end() {
-        let start = "1970-01-01T00:00:00.000Z".to_string();
-        let end = "2000-01-01T00:00:00.000Z".to_string();
+        let start = String::from("1970-01-01T00:00:00.000Z");
+        let end = String::from("2000-01-01T00:00:00.000Z");
         let now = "2026-03-01T00:00:00.000Z";
         assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_keep() {
-        let start = "2026-03-01T00:00:00.000Z".to_string();
-        let end = "2026-04-01T00:00:00.000Z".to_string();
+        let start = String::from("2026-03-01T00:00:00.000Z");
+        let end = String::from("2026-04-01T00:00:00.000Z");
         let now = "2026-03-14T00:00:00.000Z";
         assert!(!filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_bad_end() {
-        let start = "2026-03-01T00:00:00.000Z".to_string();
-        let end = "1970-04-01T00:00:00.000Z".to_string();
+        let start = String::from("2026-03-01T00:00:00.000Z");
+        let end = String::from("1970-04-01T00:00:00.000Z");
         let now = "2026-03-14T00:00:00.000Z";
         assert!(filter_data(now, &Some(start), &Some(end)))
     }
 
     #[test]
     fn test_filter_data_bad_start() {
-        let start = "9000-03-01T00:00:00.000Z".to_string();
-        let end = "2026-04-01T00:00:00.000Z".to_string();
+        let start = String::from("9000-03-01T00:00:00.000Z");
+        let end = String::from("2026-04-01T00:00:00.000Z");
         let now = "2026-01-14T00:00:00.000Z";
         assert!(filter_data(now, &Some(start), &Some(end)))
+    }
+
+    #[test]
+    fn test_filter_data_no_end() {
+        let start = String::from("2025-05-13T00:00:00.000Z");
+        let now = "2026-05-09T02:17:16.283Z";
+        assert!(!filter_data(now, &Some(start), &None))
+    }
+
+    #[test]
+    fn test_filter_data_no_end_no_start() {
+        let start = String::from("2025-05-13T00:00:00.000Z");
+        let now = "2023-05-09T02:17:16.283Z";
+        assert!(filter_data(now, &Some(start), &None))
+    }
+
+    #[test]
+    fn test_filter_data_no_start() {
+        let end = String::from("2026-04-01T00:00:00.000Z");
+        let now = "2026-07-14T00:00:00.000Z";
+        assert!(filter_data(now, &None, &Some(end)))
+    }
+
+    #[test]
+    fn test_filter_data_bad_time() {
+        let end = String::from("dsfasdfasdf00Z");
+        let now = "2026-01-14T00:00:00.000Z";
+        assert!(!filter_data(now, &None, &Some(end)))
     }
 }
