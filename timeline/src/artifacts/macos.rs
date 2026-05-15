@@ -239,10 +239,15 @@ pub(crate) fn spotlight(
             if key.contains("kMDItemDisplayName") {
                 entry["message"] = prop_value;
             } else if key.contains("kMDItemDateAdded") {
+                // This should always be string. But if not then continue loop
+                if !prop_value.is_string() {
+                    continue;
+                }
                 entry["datetime"] = prop_value;
                 entry["timestamp_desc"] = Value::String(String::from("Item Added"));
             }
         }
+
         !filter_data(entry["datetime"].as_str().unwrap(), start, end)
     });
 
