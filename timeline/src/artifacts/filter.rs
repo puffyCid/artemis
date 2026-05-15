@@ -21,7 +21,7 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
         };
 
         // Keep the data
-        if data_timestamp > start_timestamp {
+        if data_timestamp >= start_timestamp {
             return true;
         }
 
@@ -38,7 +38,7 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
         };
 
         // Keep the data
-        if data_timestamp < end_timestamp {
+        if data_timestamp <= end_timestamp {
             return true;
         }
 
@@ -61,7 +61,7 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
         };
 
         // Keep the data
-        if data_timestamp > start_timestamp {
+        if data_timestamp >= start_timestamp {
             return false;
         }
 
@@ -84,7 +84,7 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
         };
 
         // Keep the data
-        if data_timestamp < end_timestamp {
+        if data_timestamp <= end_timestamp {
             return false;
         }
 
