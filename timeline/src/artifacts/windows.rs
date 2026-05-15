@@ -699,7 +699,7 @@ pub(crate) fn tasks(data: &mut Value, start: &Option<String>, end: &Option<Strin
             // Drop value if its not an object
             return false;
         }
-        let start_time = match entry["start_time"].as_str() {
+        let start_time = match entry["created"].as_str() {
             Some(result) => result,
             None => return false,
         };
