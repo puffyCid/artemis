@@ -9,52 +9,13 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
         return false;
     }
 
-    // Check if the data timestamp falls between our range. If it does we keep it
-    if start.as_ref().is_some_and(|start_filter| {
-        let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
-        let start_timestamp = match DateTime::parse_from_rfc3339(start_filter) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
-
-        // Keep the data
-        if data_timestamp >= start_timestamp {
-            return true;
-        }
-
-        // Filter the data
-        false
-    }) && end.as_ref().is_some_and(|end_filter| {
-        let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
-        let end_timestamp = match DateTime::parse_from_rfc3339(end_filter) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
-
-        // Keep the data
-        if data_timestamp <= end_timestamp {
-            return true;
-        }
-
-        // Filter the data
-        false
-    }) {
-        // Keep the data
-        return false;
-    }
+    let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
+        Ok(result) => result,
+        Err(_err) => return false,
+    };
 
     // Checks if the data timestamp is greater than our start time. If it does we keep it
     if start.as_ref().is_some_and(|start_filter| {
-        let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
         let start_timestamp = match DateTime::parse_from_rfc3339(start_filter) {
             Ok(result) => result,
             Err(_err) => return false,
@@ -74,10 +35,6 @@ pub(crate) fn filter_data(datetime: &str, start: &Option<String>, end: &Option<S
 
     // Checks if the data timestamp is less than our end time. If it does we keep it
     if end.as_ref().is_some_and(|end_filter| {
-        let data_timestamp = match DateTime::parse_from_rfc3339(datetime) {
-            Ok(result) => result,
-            Err(_err) => return false,
-        };
         let end_timestamp = match DateTime::parse_from_rfc3339(end_filter) {
             Ok(result) => result,
             Err(_err) => return false,
