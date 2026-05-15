@@ -853,6 +853,18 @@ mod tests {
     }
 
     #[test]
+    fn test_amcache_missing_path() {
+        let mut test = json!([{
+            "last_modified": "2024-01-01T00:00:00.000Z",
+        }]);
+
+        amcache(&mut test, &None, &None).unwrap();
+        assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Amcache");
+        assert_eq!(test[0]["message"], "");
+    }
+
+    #[test]
     fn test_bits() {
         let mut test = json!([{
             "modified": "2024-01-01T00:00:00.000Z",
