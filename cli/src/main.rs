@@ -216,6 +216,8 @@ mod tests {
                 output_dir: String::from("./tmp"),
                 compress: false,
                 timeline: false,
+                start: None,
+                end: None,
             }),
         };
 
@@ -238,6 +240,8 @@ mod tests {
                 output_dir: String::from("./tmp"),
                 compress: false,
                 timeline: false,
+                start: None,
+                end: None,
             }),
         };
 
@@ -265,6 +269,8 @@ mod tests {
                 output_dir: String::from("./tmp"),
                 compress: false,
                 timeline: false,
+                start: None,
+                end: None,
             }),
         };
 

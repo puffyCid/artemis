@@ -3,14 +3,19 @@ use serde_json::Value;
 use timeline::timeline::{Artifacts, timeline_artifact};
 
 /// Attempt to timeline supported artifacts
-pub(crate) fn timeline_data(artifact: &mut Value, artifact_name: &str) {
+pub(crate) fn timeline_data(
+    artifact: &mut Value,
+    artifact_name: &str,
+    start: &Option<String>,
+    end: &Option<String>,
+) {
     let target = get_artifact(artifact_name);
     if target == Artifacts::Unknown {
         error!("[forensics] Unknown artifact to timeline {artifact_name}");
         return;
     }
 
-    let status = timeline_artifact(artifact, &target);
+    let status = timeline_artifact(artifact, &target, start, end);
     if status.is_none() {
         warn!("[forensics] Could not timeline {artifact_name}");
     }
@@ -121,7 +126,7 @@ mod tests {
     #[test]
     fn test_timeline_data() {
         let mut test = json![[{"full_path":"./deps/autocfg-36b1baa0a559f221.d","directory":"./deps","filename":"autocfg-36b1baa0a559f221.d","extension":"d","created":"2024-12-05T03:59:38.000Z","modified":"2024-12-05T03:59:36.000Z","changed":"2024-12-08T03:59:36.000Z","accessed":"2024-12-06T04:42:22.000Z","size":1780,"inode":4295384,"mode":33188,"uid":1000,"gid":1000,"md5":"9b5ec7c5011358706533373fdc05f59e","sha1":"","sha256":"","is_file":true,"is_directory":false,"is_symlink":false,"depth":2,"yara_hits":[],"binary_info":[]}]];
-        timeline_data(&mut test, "files");
+        timeline_data(&mut test, "files", &None, &None);
 
         assert_eq!(test.as_array().unwrap().len(), 4);
     }

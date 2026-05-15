@@ -1,17 +1,14 @@
+use crate::artifacts::filter::filter_data;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-use super::meta::check_meta;
-
 /// Timeline filelisting info
-pub(crate) fn files(data: &mut Value) -> Option<()> {
+pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
     let mut entries = Vec::new();
-    for values in data.as_array_mut()? {
-        let entry = if let Some(value) = values.get_mut("data") {
-            value
-        } else {
-            values
-        };
+    for entry in data.as_array_mut()? {
+        if !entry.is_object() {
+            continue;
+        }
 
         entry["artifact"] = Value::String(String::from("Files"));
         entry["data_type"] = Value::String(String::from("system:fs:file"));
@@ -25,13 +22,16 @@ pub(crate) fn files(data: &mut Value) -> Option<()> {
         }];
         let times = extract_times(&temp)?;
         for (key, value) in times {
+            if filter_data(key, start, end) {
+                continue;
+            }
             entry["datetime"] = Value::String(key.into());
             entry["timestamp_desc"] = Value::String(value);
             entries.push(entry.clone());
         }
     }
-
-    check_meta(data, &mut entries)
+    *data.as_array_mut()? = entries;
+    Some(())
 }
 
 /// Extract each timestamp into its own separate file if required
@@ -132,7 +132,7 @@ mod tests {
 
         }]);
 
-        files(&mut test).unwrap();
+        files(&mut test, &None, &None).unwrap();
         assert_eq!(test.as_array().unwrap().len(), 4);
         assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Files");

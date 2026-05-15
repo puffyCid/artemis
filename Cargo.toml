@@ -16,7 +16,7 @@ lto = true
 codegen-units = 1
 
 [workspace.package]
-version = "0.19.0"
+version = "0.20.0"
 homepage = "https://puffycid.github.io/artemis-api"
 repository = "https://github.com/puffycid/artemis"
 license = "MIT"
@@ -42,3 +42,4 @@ sysinfo = "0.39.0"
 uuid = { version = "1.23.1", features = ["v4"] }
 rusqlite = { version = "0.39.0", features = ["bundled", "serde_json"] }
 fastrand = { version = "2.4.1", default-features = false }
+chrono = "0.4.44"

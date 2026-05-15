@@ -5,7 +5,7 @@ set -euo pipefail
 mkdir -p vib-temp
 CUSTOM_VIB_TEMP_DIR=./vib-temp/vib-temp-$$
 CUSTOM_VIB_NAME=artemis
-CUSTOM_VIB_VERSION="0.19.0"
+CUSTOM_VIB_VERSION="0.20.0"
 CUSTOM_VIB_VENDOR="puffycid"
 CUSTOM_VIB_VENDOR_URL="https://puffycid.github.io/artemis-api"
 CUSTOM_VIB_SUMMARY="A small DFIR tool for ESXi"
