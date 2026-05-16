@@ -67,6 +67,7 @@ fn parse_args(args: &Args) {
             }
         }
     } else if let Some(js) = &args.javascript {
+        #[cfg(feature = "boa")]
         if !js.is_empty() {
             let collection_results = forensics::core::parse_js_file(js);
             match collection_results {

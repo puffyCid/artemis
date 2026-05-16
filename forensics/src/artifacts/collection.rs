@@ -19,7 +19,6 @@ use super::{
     },
 };
 use crate::{
-    runtime::run::execute_script,
     structs::toml::ArtemisToml,
     utils::{
         marker::{skip_artifact, update_marker},
@@ -30,6 +29,8 @@ use crate::{
 };
 use log::{error, info, warn};
 
+#[cfg(feature = "boa")]
+use crate::runtime::run::execute_script;
 #[cfg(feature = "network")]
 use crate::utils::logging::upload_logs;
 
@@ -241,6 +242,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     }
                 }
             }
+            #[cfg(feature = "boa")]
             "script" => {
                 let script_data = &artifacts.script;
                 let script = match script_data {

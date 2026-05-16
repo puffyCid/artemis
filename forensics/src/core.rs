@@ -1,5 +1,4 @@
 use crate::artifacts::collection::collect;
-use crate::runtime::run::raw_script;
 use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
@@ -10,6 +9,8 @@ use log::{LevelFilter, error, info};
 use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
 
+#[cfg(feature = "boa")]
+use crate::runtime::run::raw_script;
 #[cfg(feature = "network")]
 use url::Url;
 
@@ -57,6 +58,7 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
     artemis_collection(&mut collection)
 }
 
+#[cfg(feature = "boa")]
 /// Execute a JavaScript file at provided path
 pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
     let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
@@ -96,7 +98,7 @@ pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError>
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_js_file, parse_toml_data, parse_toml_file};
+    use super::{parse_toml_data, parse_toml_file};
     use crate::{
         core::{ArtemisToml, artemis_collection},
         filesystem::files::read_file,
@@ -162,7 +164,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "boa")]
     fn test_parse_js_file() {
+        use crate::core::parse_js_file;
+
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/deno_scripts/vanilla.js");
         parse_js_file(&test_location.display().to_string()).unwrap();

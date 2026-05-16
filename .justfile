@@ -121,9 +121,14 @@ end2end:
 cli:
   cd cli && cargo build --release
 
-# Just build the artemis binary. But do not enable Yara-X
+# Just build the artemis binary. But do not enable Yara-X or remote support
 [group('workspace')]
 slim:
+  cd cli && cargo build --release --no-default-features --features boa
+
+# Build artemis binary with all features disabled
+[group('workspace')]
+tiny:
   cd cli && cargo build --release --no-default-features
 
 # Just build the artemis binary and enable profiling
