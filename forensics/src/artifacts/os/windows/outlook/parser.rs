@@ -27,13 +27,15 @@ use crate::{
     utils::{
         environment::get_systemdrive,
         time::{compare_timestamps, time_now},
-        yara::{scan_base64_bytes, scan_bytes},
     },
 };
 use common::windows::{OutlookAttachment, OutlookMessage};
 use log::error;
 use ntfs::NtfsFile;
 use std::io::BufReader;
+
+#[cfg(feature = "yarax")]
+use crate::utils::yara::{scan_base64_bytes, scan_bytes};
 
 /// Parse and grab Outlook messages based on options provided
 pub(crate) fn grab_outlook(
@@ -377,6 +379,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
         yara_hits: Vec::new(),
     };
 
+    #[cfg(feature = "yarax")]
     // Check if message body matches Yara rule
     if let Some(rule) = &options.yara_rule_message {
         let result = scan_bytes(message_result.body.as_bytes(), rule).unwrap_or_default();
@@ -420,6 +423,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
                 properties: attach_info.props,
             };
 
+            #[cfg(feature = "yarax")]
             // Check if attachment matches Yara rule
             if let Some(rule) = &options.yara_rule_attachment {
                 let result = scan_base64_bytes(&message_attach.data, rule).unwrap_or_default();

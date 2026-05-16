@@ -6,6 +6,7 @@ mod environment;
 mod error;
 mod filesystem;
 mod helper;
+#[cfg(feature = "network")]
 mod http;
 mod linux;
 mod macos;

@@ -1,9 +1,11 @@
 use super::error::ArtemisError;
 use crate::structs::toml::ArtemisToml;
 use log::error;
+#[cfg(feature = "network")]
 use reqwest::blocking::Client;
 
 impl ArtemisToml {
+    #[cfg(feature = "network")]
     /// Parse a remotely hosted TOML file
     pub(crate) fn remote_artemis_toml(url: &str) -> Result<ArtemisToml, ArtemisError> {
         let client = match Client::builder().build() {
@@ -69,6 +71,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "network")]
     fn test_mock_remote_toml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos.toml");
@@ -90,6 +93,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "network")]
     fn test_remote_toml_github() {
         let value = ArtemisToml::remote_artemis_toml("https://raw.githubusercontent.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/linux.toml").unwrap();
         assert_eq!(value.output.name, "linux_collection");
@@ -97,12 +101,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "network")]
     #[should_panic(expected = "BadToml")]
     fn test_remote_bad_toml_github() {
         let _ = ArtemisToml::remote_artemis_toml("https://raw.githubusercontent.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/fake.toml").unwrap();
     }
 
     #[test]
+    #[cfg(feature = "network")]
     #[should_panic(expected = "Remote")]
     fn test_remote_bad_toml_domain() {
         let _ = ArtemisToml::remote_artemis_toml("https://raw.google.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/fake.toml").unwrap();

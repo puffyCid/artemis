@@ -20,7 +20,6 @@ use crate::filesystem::metadata::get_timestamps;
 use crate::structs::toml::Output;
 use crate::utils::regex_options::{create_regex, regex_check};
 use crate::utils::time::time_now;
-use crate::utils::yara::{extract_rule, scan_file};
 use common::files::FileInfo;
 use common::files::Hashes;
 use log::{error, info, warn};
@@ -29,6 +28,9 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error as ioError};
 use walkdir::{DirEntry, WalkDir};
+
+#[cfg(feature = "yarax")]
+use crate::utils::yara::{extract_rule, scan_file};
 
 pub(crate) struct FileArgs {
     pub(crate) start_directory: String,
@@ -70,6 +72,7 @@ pub(crate) fn get_filelist(
     args.exclude_directories.append(&mut firmlink_paths);
 
     let mut rule = String::new();
+    #[cfg(feature = "yarax")]
     if !args.yara.is_empty() {
         rule = match extract_rule(&args.yara) {
             Ok(result) => result,
@@ -105,6 +108,7 @@ pub(crate) fn get_filelist(
         }
 
         let mut scan = Vec::new();
+        #[cfg(feature = "yarax")]
         if !rule.is_empty() {
             if !entry.file_type().is_file() {
                 continue;

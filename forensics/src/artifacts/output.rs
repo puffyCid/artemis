@@ -1,11 +1,13 @@
 use crate::{
     artifacts::error::CollectionError,
     output::formats::{csv::csv_format, json::json_format, jsonl::jsonl_format},
-    runtime::run::filter_script,
     structs::toml::Output,
 };
 use log::error;
 use serde_json::Value;
+
+#[cfg(feature = "boa")]
+use crate::runtime::run::filter_script;
 
 /// Output forensic artifacts
 pub(crate) fn output_artifact(
@@ -15,6 +17,7 @@ pub(crate) fn output_artifact(
     start_time: u64,
     filter: bool,
 ) -> Result<(), CollectionError> {
+    #[cfg(feature = "boa")]
     if filter && let Some(script) = &output.filter_script.clone() {
         let args = vec![serde_data.to_string(), output_name.to_string()];
         if let Some(name) = &output.filter_name.clone() {
@@ -27,6 +30,7 @@ pub(crate) fn output_artifact(
                 }
             };
         }
+
         let filter_result = filter_script(output, &args, "UnknownFilterName", script);
         return match filter_result {
             Ok(_) => Ok(()),

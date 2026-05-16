@@ -8,6 +8,7 @@ fn main() {
 
     if args.len() == 2 {
         let path = &args[1];
+        #[cfg(feature = "boa")]
         if Path::new(path).is_file() {
             let status = forensics::core::parse_js_file(path).expect("failed script execution");
             if status != Value::Null {

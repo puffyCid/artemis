@@ -75,6 +75,7 @@ pub mod core;
 mod error;
 mod filesystem;
 mod output;
+#[cfg(feature = "boa")]
 mod runtime;
 pub mod structs;
 mod utils;
