@@ -2,7 +2,6 @@ use super::{error::ArtemisError, uuid::generate_uuid};
 use crate::{
     artifacts::os::systeminfo::info::hostname,
     filesystem::files::{get_filename, list_files, read_text_file},
-    output::remote::api::api_upload,
     structs::toml::Output,
     utils::output::final_output,
 };
@@ -12,6 +11,9 @@ use std::{
     fs::{File, OpenOptions, create_dir_all, remove_dir, remove_file},
     io::Write,
 };
+
+#[cfg(feature = "api")]
+use crate::output::remote::api::api_upload;
 
 /// Create log output file and logging level based on TOML `Output` configuration
 pub(crate) fn create_log_file(output: &mut Output) -> Result<(File, LevelFilter), ArtemisError> {
@@ -98,6 +100,7 @@ pub(crate) fn collection_status(output: &Output, output_name: &str) -> Result<()
     Ok(())
 }
 
+#[cfg(feature = "network")]
 /// Upload artemis logs
 pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), ArtemisError> {
     let files_res = list_files(output_dir);
@@ -124,6 +127,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
         };
         // Not very elegant. But for now serialize the string for uploading
         let mut serde_data = json!(log_data);
+        #[cfg(feature = "api")]
         // For API uploads on the last log file we mark the upload as complete
         if output.output.to_lowercase() == "api" && peek.peek().is_none() {
             if let Err(err) = api_upload(
@@ -138,6 +142,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
             let _ = remove_file(log);
             break;
         }
+
         final_output(&mut serde_data, output, &get_filename(log), 0, true)?;
         let _ = remove_file(log);
     }
@@ -157,7 +162,7 @@ pub(crate) fn upload_logs(output_dir: &str, output: &mut Output) -> Result<(), A
 
 #[cfg(test)]
 mod tests {
-    use super::{collection_status, create_log_file, upload_logs};
+    use super::{collection_status, create_log_file};
     use crate::structs::toml::Output;
     use httpmock::{
         Method::{POST, PUT},
@@ -200,7 +205,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "network")]
     fn test_upload_logs() {
+        use crate::utils::logging::upload_logs;
         let server = MockServer::start();
         let port = server.port();
 
@@ -250,7 +257,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "api")]
     fn test_api_upload_logs() {
+        use crate::utils::logging::upload_logs;
+
         let server = MockServer::start();
         let port = server.port();
 

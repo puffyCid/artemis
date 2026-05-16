@@ -1,17 +1,21 @@
 use super::error::ArtemisError;
 use crate::output::local::output::local_output;
-use crate::output::remote::api::api_upload;
 use crate::utils::compression::compress::compress_output_zip;
 use crate::utils::logging::collection_status;
 use crate::utils::uuid::generate_uuid;
-use crate::{
-    filesystem::files::list_files,
-    output::remote::{aws::aws_upload, azure::azure_upload, gcp::gcp_upload},
-    structs::toml::Output,
-};
+use crate::{filesystem::files::list_files, structs::toml::Output};
 use log::{error, warn};
 use serde_json::Value;
 use std::fs::{remove_dir, remove_file};
+
+#[cfg(feature = "api")]
+use crate::output::remote::api::api_upload;
+#[cfg(feature = "aws")]
+use crate::output::remote::aws::aws_upload;
+#[cfg(feature = "azure")]
+use crate::output::remote::azure::azure_upload;
+#[cfg(feature = "gcp")]
+use crate::output::remote::gcp::gcp_upload;
 
 /// Output artifact data based on output type
 pub(crate) fn final_output(
@@ -38,6 +42,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Local);
             }
         },
+        #[cfg(feature = "gcp")]
         "gcp" => match gcp_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
@@ -45,6 +50,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Remote);
             }
         },
+        #[cfg(feature = "aws")]
         "aws" => match aws_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
@@ -52,6 +58,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Remote);
             }
         },
+        #[cfg(feature = "azure")]
         "azure" => match azure_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {
@@ -59,6 +66,7 @@ pub(crate) fn final_output(
                 return Err(ArtemisError::Remote);
             }
         },
+        #[cfg(feature = "api")]
         "api" => match api_upload(data, output, &filename, start_time, artifact_name) {
             Ok(_) => {}
             Err(err) => {

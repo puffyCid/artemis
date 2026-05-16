@@ -22,7 +22,6 @@ use crate::{
     runtime::run::execute_script,
     structs::toml::ArtemisToml,
     utils::{
-        logging::upload_logs,
         marker::{skip_artifact, update_marker},
         output::compress_final_output,
         report::{generate_artifact_report, generate_report},
@@ -30,6 +29,9 @@ use crate::{
     },
 };
 use log::{error, info, warn};
+
+#[cfg(feature = "network")]
+use crate::utils::logging::upload_logs;
 
 /// Parse the TOML collector and get artifacts
 pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
@@ -684,7 +686,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
 
     if collector.output.output != "local" {
         let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
-
+        #[cfg(feature = "network")]
         let _ = upload_logs(&output_dir, &mut collector.output);
     } else if collector.output.compress && collector.output.output == "local" {
         let _ = compress_final_output(&collector.output);

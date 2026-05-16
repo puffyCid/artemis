@@ -9,10 +9,13 @@ use crate::{
 use log::{LevelFilter, error, info};
 use serde_json::Value;
 use simplelog::{Config, SimpleLogger, WriteLogger};
+
+#[cfg(feature = "network")]
 use url::Url;
 
 /// Parse a TOML file at provided path
 pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
+    #[cfg(feature = "network")]
     if let Ok(url) = Url::parse(path)
         && path.starts_with("http")
     {

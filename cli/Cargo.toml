@@ -15,5 +15,6 @@ clap = { version = "4.6.1", features = ["std", "help", "derive"] }
 
 # Artemis features
 [features]
-default = ["yarax"]
+default = ["yarax", "cloud"]
 yarax = ["forensics/yarax"]
+cloud = ["forensics/gcp", "forensics/aws", "forensics/azure", "forensics/api"]

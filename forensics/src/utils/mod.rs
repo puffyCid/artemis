@@ -13,4 +13,5 @@ pub(crate) mod report;
 pub(crate) mod strings;
 pub(crate) mod time;
 pub(crate) mod uuid;
+#[cfg(feature = "yarax")]
 pub(crate) mod yara;

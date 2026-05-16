@@ -2,10 +2,10 @@ use super::{
     application::extensions::application_functions, compression::extensions::decompress_functions,
     decryption::extensions::decrypt_functions, encoding::extensions::encoding_functions,
     environment::extensions::env_functions, error::RuntimeError,
-    filesystem::extensions::filesystem_functions, http::extensions::http_functions,
-    linux::extensions::linux_functions, macos::extensions::macos_functions,
-    nom::extensions::nom_functions, system::extensions::system_functions,
-    time::extensions::time_functions, windows::extensions::windows_functions,
+    filesystem::extensions::filesystem_functions, linux::extensions::linux_functions,
+    macos::extensions::macos_functions, nom::extensions::nom_functions,
+    system::extensions::system_functions, time::extensions::time_functions,
+    windows::extensions::windows_functions,
 };
 use boa_engine::{
     Context, JsError, JsResult, JsValue, Source,
@@ -21,6 +21,9 @@ use log::{error, warn};
 use serde_json::Value;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 use tokio::task;
+
+#[cfg(feature = "network")]
+use super::http::extensions::http_functions;
 
 /// Execute non-async scripts
 pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
@@ -237,6 +240,7 @@ fn setup_runtime(context: &mut Context) {
     application_functions(context);
     linux_functions(context);
     nom_functions(context);
+    #[cfg(feature = "network")]
     http_functions(context);
     env_functions(context);
     decompress_functions(context);

@@ -6,81 +6,59 @@ use yara_x::{Compiler, Scanner};
 
 /// Decode the provided Yara rule
 pub(crate) fn extract_rule(encoded_rule: &str) -> Result<String, ArtemisError> {
-    #[cfg(not(feature = "yarax"))]
-    {
-        return Ok(String::new());
-    }
-
-    #[cfg(feature = "yarax")]
-    {
-        let rule = if encoded_rule.starts_with("http") {
-            remote_yara(encoded_rule)?
-        } else {
-            rule_decode(encoded_rule)?
-        };
-        Ok(rule)
-    }
+    let rule = if encoded_rule.starts_with("http") {
+        remote_yara(encoded_rule)?
+    } else {
+        rule_decode(encoded_rule)?
+    };
+    Ok(rule)
 }
 
 /// Scan a file using Yara-X
 pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisError> {
-    #[cfg(not(feature = "yarax"))]
-    {
-        return Ok(Vec::new());
-    }
-    #[cfg(feature = "yarax")]
-    {
-        let compile = compile_rule(rule)?;
+    let compile = compile_rule(rule)?;
 
-        let rules = compile.build();
-        let mut scanner = Scanner::new(&rules);
-        let results = scanner.scan_file(path);
-        let hits = match results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to scan file {path}: {err:?}",);
-                return Err(ArtemisError::YaraScan);
-            }
-        };
-        let mut matches = Vec::new();
-        for hit in hits.matching_rules() {
-            matches.push(hit.identifier().to_string());
+    let rules = compile.build();
+    let mut scanner = Scanner::new(&rules);
+    let results = scanner.scan_file(path);
+    let hits = match results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Failed to scan file {path}: {err:?}",);
+            return Err(ArtemisError::YaraScan);
         }
-        Ok(matches)
+    };
+    let mut matches = Vec::new();
+    for hit in hits.matching_rules() {
+        matches.push(hit.identifier().to_string());
     }
+    Ok(matches)
 }
 
 /// Scan bytes using Yara-X
 pub(crate) fn scan_bytes(data: &[u8], encoded_rule: &str) -> Result<Vec<String>, ArtemisError> {
-    #[cfg(not(feature = "yarax"))]
-    {
-        return Ok(Vec::new());
-    }
-    #[cfg(feature = "yarax")]
-    {
-        let rule = if encoded_rule.starts_with("http") {
-            remote_yara(encoded_rule)?
-        } else {
-            rule_decode(encoded_rule)?
-        };
-        let compile = compile_rule(&rule)?;
+    let rule = if encoded_rule.starts_with("http") {
+        remote_yara(encoded_rule)?
+    } else {
+        rule_decode(encoded_rule)?
+    };
+    let compile = compile_rule(&rule)?;
 
-        let rules = compile.build();
-        let mut scanner = Scanner::new(&rules);
-        let results = scanner.scan(data);
-        let hits = match results {
-            Ok(result) => result,
-            Err(err) => {
-                error!("[forensics] Failed to scan bytes: {err:?}",);
-                return Err(ArtemisError::YaraScan);
-            }
-        };
-        let mut matches = Vec::new();
-        for hit in hits.matching_rules() {
-            matches.push(hit.identifier().to_string());
+    let rules = compile.build();
+    let mut scanner = Scanner::new(&rules);
+    let results = scanner.scan(data);
+    let hits = match results {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Failed to scan bytes: {err:?}",);
+            return Err(ArtemisError::YaraScan);
         }
-        Ok(matches)
+    };
+    let mut matches = Vec::new();
+    for hit in hits.matching_rules() {
+        matches.push(hit.identifier().to_string());
     }
+    Ok(matches)
 }
 
 /// Scan base64 encoded bytes using Yara-X
@@ -145,7 +123,6 @@ fn rule_decode(rule: &str) -> Result<String, ArtemisError> {
     Ok(extract_utf8_string(&rule_bytes))
 }
 
-#[cfg(feature = "yarax")]
 /// Attempt to compile the Yara rule
 fn compile_rule(rule: &str) -> Result<Compiler<'_>, ArtemisError> {
     let mut compile = Compiler::new();
