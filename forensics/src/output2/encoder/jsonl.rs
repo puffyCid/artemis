@@ -26,6 +26,7 @@ impl ArtifactEncoder for JsonlEncoder {
             let mut value = record.into_value();
             append_metadata(&mut value, context);
             serde_json::to_writer(&mut *writer, &value)?;
+            writer.write_all(b"\n")?;
 
             count += 1;
         }

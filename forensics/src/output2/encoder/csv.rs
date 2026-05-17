@@ -39,7 +39,7 @@ impl ArtifactEncoder for CsvEncoder {
 
         while let Some(record) = records.next_record()? {
             let Record::Json(record) = record;
-            write_row(&mut csv_writer, &headers, &record.fields);
+            write_row(&mut csv_writer, &headers, &record.fields)?;
 
             count += 1;
         }

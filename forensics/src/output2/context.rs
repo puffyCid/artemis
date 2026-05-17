@@ -1,7 +1,10 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     output2::config::OutputConfig,
-    utils::time::{time_now, unixepoch_to_iso},
+    utils::{
+        time::{time_now, unixepoch_to_iso},
+        uuid::generate_uuid,
+    },
 };
 use common::system::SystemInfoMetadata;
 use serde::{Deserialize, Serialize};
@@ -22,6 +25,7 @@ pub(crate) struct CollectionContext {
 pub(crate) struct ArtifactContext {
     pub(crate) artifact_name: String,
     pub(crate) endpoint_id: String,
+    pub(crate) metadata_uuid: String,
     pub(crate) collection_id: u64,
     pub(crate) collection_name: String,
     pub(crate) start_time: String,
@@ -58,6 +62,7 @@ impl CollectionContext {
         ArtifactContext {
             artifact_name: artifact_name.to_string(),
             endpoint_id: self.endpoint_id.clone(),
+            metadata_uuid: generate_uuid(),
             collection_id: self.collection_id,
             collection_name: self.collection_name.clone(),
             start_time: self.start_time.clone(),

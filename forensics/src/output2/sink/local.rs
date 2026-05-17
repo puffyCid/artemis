@@ -60,7 +60,7 @@ impl OutputSink for LocalSink {
         extension: &str,
         _mime_type: &str,
         encode: &mut dyn FnMut(&mut dyn std::io::Write) -> OutputResult<usize>,
-    ) -> OutputResult<super::output_handle::OutputHandle> {
+    ) -> OutputResult<OutputHandle> {
         let output_path = self.output_path(artifact_name, extension);
         let file =
             File::create(&output_path).map_err(|err| OutputError::io_path(&output_path, err))?;
@@ -69,6 +69,7 @@ impl OutputSink for LocalSink {
         let record_count = if self.compress {
             let mut gzip = GzEncoder::new(writer, Compression::default());
             let count = encode(&mut gzip)?;
+            gzip.finish()?;
             count
         } else {
             let mut writer = writer;
@@ -91,7 +92,8 @@ impl OutputSink for LocalSink {
         &mut self,
         report: &crate::output2::report::CollectionReport,
     ) -> OutputResult<OutputHandle> {
-        let output_path = self.output_path("report", "json");
+        let uuid = generate_uuid();
+        let output_path = self.output_directory.join(format!("report_{uuid}.json"));
 
         let file =
             File::create(&output_path).map_err(|err| OutputError::io_path(&output_path, err))?;

@@ -100,7 +100,7 @@ impl OutputManager {
 }
 
 fn log_level(level: Option<&str>) -> LevelFilter {
-    match level.unwrap_or("warn").to_ascii_uppercase().as_str() {
+    match level.unwrap_or("warn").to_ascii_lowercase().as_str() {
         "error" => LevelFilter::Error,
         "warn" => LevelFilter::Warn,
         "info" => LevelFilter::Info,
