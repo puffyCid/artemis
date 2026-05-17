@@ -13,6 +13,7 @@ pub(crate) enum OutputError {
     Sink(String),
     Report(String),
     Finalize(String),
+    Logger(String),
 
     Io {
         path: Option<PathBuf>,
@@ -57,6 +58,7 @@ impl fmt::Display for OutputError {
             Self::Sink(value) => write!(f, "Sink error: {value}"),
             Self::Report(value) => write!(f, "Report error: {value}"),
             Self::Finalize(value) => write!(f, "Finalize error: {value}"),
+            Self::Logger(value) => write!(f, "Logger error: {value}"),
             Self::Io { path, source } => {
                 if let Some(io_path) = path {
                     write!(f, "IO error at {}: {source}", io_path.display())

@@ -37,7 +37,7 @@ pub(crate) struct OutputConfig {
     pub logging: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum OutputFormat {
     Json,
@@ -46,7 +46,7 @@ pub(crate) enum OutputFormat {
     Csv,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum OutputDestination {
     #[default]

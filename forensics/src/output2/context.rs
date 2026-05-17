@@ -1,11 +1,11 @@
-use common::system::SystemInfoMetadata;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
     output2::config::OutputConfig,
     utils::time::{time_now, unixepoch_to_iso},
 };
+use common::system::SystemInfoMetadata;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct CollectionContext {
@@ -14,6 +14,7 @@ pub(crate) struct CollectionContext {
     pub(crate) collection_name: String,
     pub(crate) start_time: String,
     pub(crate) start_time_epoch: u64,
+    pub(crate) log_file: PathBuf,
     pub(crate) system: SystemInfoMetadata,
 }
 
@@ -37,13 +38,14 @@ impl CollectionContext {
     /**
      * Collect the initial metadata at the start of the artemis execution
      */
-    pub(crate) fn new(config: &OutputConfig, start_time: u64) -> Self {
+    pub(crate) fn new(config: &OutputConfig, start_time: u64, log_file: PathBuf) -> Self {
         Self {
             endpoint_id: config.endpoint_id.clone(),
             collection_id: config.collection_id,
             collection_name: config.name.clone(),
             start_time: unixepoch_to_iso(start_time as i64),
             start_time_epoch: start_time,
+            log_file,
             system: get_info_metadata(),
         }
     }
@@ -68,6 +70,8 @@ impl CollectionContext {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::{
         output2::{config::OutputConfig, context::CollectionContext},
         structs::toml::Output,
@@ -79,7 +83,7 @@ mod tests {
         let out = Output::default();
         let out_ng = OutputConfig::try_from(out).unwrap();
 
-        let context = CollectionContext::new(&out_ng, time_now());
+        let context = CollectionContext::new(&out_ng, time_now(), PathBuf::from("./tmp"));
         assert_eq!(context.collection_name, "");
         assert!(!context.start_time.is_empty());
 
