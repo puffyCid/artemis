@@ -28,12 +28,11 @@ impl OutputManager {
         let log_output = sink.create_log_file()?;
         let log_path = log_output.path.clone();
 
-        WriteLogger::init(
+        let _ = WriteLogger::init(
             log_level(config.logging.as_deref()),
             Config::default(),
             log_output.file,
-        )
-        .map_err(|err| OutputError::Logger(err.to_string()))?;
+        );
 
         let context = CollectionContext::new(&config, start_time, log_path);
         Ok(Self {
@@ -60,7 +59,9 @@ impl OutputManager {
             &mut |writer| self.encoder.encode(records, writer, &artifact_context),
         )?;
 
-        self.artifacts.push(artifact_name.to_string());
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
         self.record_completed_artifact_output(
             artifact_name,
             artifact_options_hash,

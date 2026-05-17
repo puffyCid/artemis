@@ -1,5 +1,5 @@
 use std::{
-    fs::{File, create_dir_all},
+    fs::{File, create_dir_all, remove_dir, remove_file},
     io::{BufWriter, Write},
     path::PathBuf,
 };
@@ -7,6 +7,7 @@ use std::{
 use flate2::{Compression, write::GzEncoder};
 
 use crate::{
+    filesystem::files::list_files,
     output2::{
         config::OutputConfig,
         error::{OutputError, OutputResult},
@@ -15,7 +16,7 @@ use crate::{
             output_sink::{LogOutput, OutputSink},
         },
     },
-    utils::uuid::generate_uuid,
+    utils::{compression::compress::compress_output_zip, uuid::generate_uuid},
 };
 
 pub(crate) struct LocalSink {
@@ -50,6 +51,38 @@ impl LocalSink {
     fn log_path(&self) -> PathBuf {
         let log = format!("artemis_{}_{}.log", self.collection_id, generate_uuid());
         self.output_directory.join(log)
+    }
+
+    fn compress_final_output(&self) -> OutputResult<()> {
+        let output_dir = self.output_directory.display().to_string();
+        let zip_name = self.output_directory.display().to_string();
+        compress_output_zip(&output_dir, &zip_name).map_err(|err| {
+            OutputError::Finalize(format!(
+                "failed to zip output directory {}: {err:?}",
+                self.output_directory.display()
+            ))
+        })?;
+        let entries = list_files(&output_dir).map_err(|err| {
+            OutputError::Finalize(format!(
+                "failed to list output directory {}: {err:?}",
+                self.output_directory.display()
+            ))
+        })?;
+        for entry in entries {
+            if !entry.ends_with(".json")
+                && !entry.ends_with(".log")
+                && !entry.ends_with(".gz")
+                && !entry.ends_with(".csv")
+                && !entry.ends_with(".jsonl")
+                && !entry.ends_with(".zip")
+            {
+                continue;
+            }
+            remove_file(&entry).map_err(|err| OutputError::io_path(&entry, err))?;
+        }
+        remove_dir(&self.output_directory)
+            .map_err(|err| OutputError::io_path(&self.output_directory, err))?;
+        Ok(())
     }
 }
 
@@ -114,5 +147,13 @@ impl OutputSink for LocalSink {
         let file = File::create(&path).map_err(|err| OutputError::io_path(&path, err))?;
 
         Ok(LogOutput { path, file })
+    }
+
+    fn finalize(&mut self) -> OutputResult<()> {
+        if !self.compress {
+            return Ok(());
+        }
+
+        self.compress_final_output()
     }
 }
