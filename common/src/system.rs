@@ -30,7 +30,7 @@ pub struct SystemInfo {
     pub vendor: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SystemInfoMetadata {
     pub hostname: String,
     pub os_version: String,
