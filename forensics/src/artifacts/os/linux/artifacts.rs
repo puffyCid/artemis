@@ -1,7 +1,6 @@
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::linux::ext4::parser::ext4_filelisting;
 use crate::artifacts::output::output_artifact;
-use crate::output2::manager::OutputManager;
 use crate::structs::artifacts::os::linux::{
     Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
 };
@@ -15,7 +14,7 @@ use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 
 /// Get Linux `Journals`
 pub(crate) fn journals(
-    output: &mut OutputManager,
+    output: &mut Output,
     filter: bool,
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
@@ -122,13 +121,11 @@ mod tests {
         ext4_filelist, journals, logons, output_data, sudo_logs_linux,
     };
     use crate::artifacts::os::systeminfo::info::get_info_metadata;
-    use crate::output2::config::OutputConfig;
-    use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::linux::{
         Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
     };
     use crate::structs::toml::Output;
-    use crate::utils::time::{self, time_now};
+    use crate::utils::time;
     use serde_json::json;
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -157,11 +154,9 @@ mod tests {
     #[test]
     fn test_journals() {
         let mut output = output_options("journals_test", "local", "./tmp", false);
-        let config = OutputConfig::try_from(output).unwrap();
-        let mut manage = OutputManager::new(config).unwrap();
 
         let status = journals(
-            &mut manage,
+            &mut output,
             false,
             &JournalOptions {
                 alt_dir: Some(String::from("./tmp")),

@@ -99,7 +99,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         }
     }
 
-    artemis_collection(collector).unwrap();
+    artemis_collection(&mut collector).unwrap();
 }
 
 /// Setup any artifact options

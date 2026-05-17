@@ -21,7 +21,6 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    output2::manager::OutputManager,
     structs::{artifacts::os::linux::JournalOptions, toml::Output},
     utils::time,
 };
@@ -29,7 +28,7 @@ use common::linux::Journal;
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
 pub(crate) fn grab_journal(
-    output: &mut OutputManager,
+    output: &mut Output,
     filter: bool,
     options: &JournalOptions,
 ) -> Result<(), JournalError> {
@@ -87,9 +86,7 @@ mod tests {
     use super::grab_journal;
     use crate::{
         artifacts::os::linux::journals::parser::grab_journal_file,
-        output2::{config::OutputConfig, manager::OutputManager},
         structs::{artifacts::os::linux::JournalOptions, toml::Output},
-        utils::time::time_now,
     };
     use std::path::PathBuf;
 
@@ -108,10 +105,7 @@ mod tests {
     #[test]
     fn test_grab_journal() {
         let mut output = output_options("grab_journal", "local", "./tmp", false);
-        let config = OutputConfig::try_from(output).unwrap();
-        let mut manage = OutputManager::new(config).unwrap();
-
-        grab_journal(&mut manage, false, &JournalOptions { alt_dir: None }).unwrap();
+        grab_journal(&mut output, false, &JournalOptions { alt_dir: None }).unwrap();
     }
 
     #[test]

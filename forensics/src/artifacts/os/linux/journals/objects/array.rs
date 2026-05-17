@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     artifacts::os::linux::artifacts::output_data,
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
     structs::toml::Output,
     utils::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
@@ -29,7 +28,7 @@ impl EntryArray {
         reader: &mut File,
         data: &'a [u8],
         is_compact: bool,
-        manage: &mut OutputManager,
+        output: &mut Output,
         filter: bool,
         start_time: u64,
         evidence: &str,
@@ -88,7 +87,6 @@ impl EntryArray {
             // To limit memory usage we output every 1k entries
             if entry_array.entries.len() >= limit {
                 let messages = EntryArray::parse_messages(&entry_array.entries, evidence);
-                /*
                 let serde_data_result = serde_json::to_value(messages);
                 let mut serde_data = match serde_data_result {
                     Ok(results) => results,
@@ -96,14 +94,9 @@ impl EntryArray {
                         error!("[journal] Failed to serialize journal data: {err:?}");
                         continue;
                     }
-                };*/
-                let mut records = serialize_records_to_stream(messages).unwrap();
+                };
 
-                manage
-                    .write_artifact("journal", String::from("TODO"), &mut records)
-                    .unwrap();
-
-                //let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+                let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
                 // Now empty the vec
                 entry_array.entries = Vec::new();
             }
@@ -115,23 +108,17 @@ impl EntryArray {
 
         // Output any leftover messages
         let messages = EntryArray::parse_messages(&entry_array.entries, evidence);
-        /*
-                let serde_data_result = serde_json::to_value(messages);
-                let mut serde_data: serde_json::Value = match serde_data_result {
-                    Ok(results) => results,
-                    Err(err) => {
-                        error!("[journal] Failed to serialize last journal data: {err:?}");
-                        return Ok((input, entry_array.next_entry_array_offset));
-                    }
-                };
+        let serde_data_result = serde_json::to_value(messages);
+        let mut serde_data: serde_json::Value = match serde_data_result {
+            Ok(results) => results,
+            Err(err) => {
+                error!("[journal] Failed to serialize last journal data: {err:?}");
+                return Ok((input, entry_array.next_entry_array_offset));
+            }
+        };
 
-                let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
-        */
-        let mut records = serialize_records_to_stream(messages).unwrap();
+        let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
 
-        manage
-            .write_artifact("journal", String::from("TODO"), &mut records)
-            .unwrap();
         Ok((input, entry_array.next_entry_array_offset))
     }
 
@@ -421,9 +408,7 @@ mod tests {
             objects::header::{ObjectHeader, ObjectType},
         },
         filesystem::files::file_reader,
-        output2::{config::OutputConfig, manager::OutputManager},
         structs::toml::Output,
-        utils::time::time_now,
     };
     use common::linux::{Facility, Priority};
     use std::{io::Read, path::PathBuf};
@@ -457,15 +442,13 @@ mod tests {
         } else {
             false
         };
-        let output = output_options("journal_test", "local", "./tmp", false);
-        let config = OutputConfig::try_from(output).unwrap();
-        let mut manage = OutputManager::new(config).unwrap();
+        let mut output = output_options("journal_test", "local", "./tmp", false);
 
         let (_, result) = EntryArray::walk_entries(
             &mut reader,
             &object.payload,
             is_compact,
-            &mut manage,
+            &mut output,
             false,
             0,
             test_location.to_str().unwrap(),

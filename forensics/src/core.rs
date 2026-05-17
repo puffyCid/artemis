@@ -20,11 +20,11 @@ pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
     if let Ok(url) = Url::parse(path)
         && path.starts_with("http")
     {
-        let collection = match ArtemisToml::remote_artemis_toml(url.as_str()) {
+        let mut collection = match ArtemisToml::remote_artemis_toml(url.as_str()) {
             Ok(result) => result,
             Err(_err) => return Err(TomlError::RemoteToml),
         };
-        return artemis_collection(collection);
+        return artemis_collection(&mut collection);
     }
 
     let buffer_results = read_file(path);
@@ -36,26 +36,26 @@ pub fn parse_toml_file(path: &str) -> Result<(), TomlError> {
     };
 
     let toml_results = ArtemisToml::parse_artemis_toml(&buffer);
-    let collection = match toml_results {
+    let mut collection = match toml_results {
         Ok(results) => results,
         Err(_) => {
             return Err(TomlError::BadToml);
         }
     };
 
-    artemis_collection(collection)
+    artemis_collection(&mut collection)
 }
 
 /// Parse an already read TOML file
 pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
     let toml_results = ArtemisToml::parse_artemis_toml(data);
-    let collection = match toml_results {
+    let mut collection = match toml_results {
         Ok(results) => results,
         Err(_) => {
             return Err(TomlError::BadToml);
         }
     };
-    artemis_collection(collection)
+    artemis_collection(&mut collection)
 }
 
 #[cfg(feature = "boa")]
@@ -80,10 +80,10 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 }
 
 /// Based on target system collect data based on TOML config
-pub fn artemis_collection(collection: ArtemisToml) -> Result<(), TomlError> {
-    //if let Ok((log_file, level)) = create_log_file(&mut collection.output) {
-    //    let _ = WriteLogger::init(level, Config::default(), log_file);
-    //}
+pub fn artemis_collection(collection: &mut ArtemisToml) -> Result<(), TomlError> {
+    if let Ok((log_file, level)) = create_log_file(&mut collection.output) {
+        let _ = WriteLogger::init(level, Config::default(), log_file);
+    }
 
     let result = collect(collection);
     match result {
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_bad_parse_toml_file() {
-        let collection = ArtemisToml {
+        let mut collection = ArtemisToml {
             output: Output {
                 name: String::from("core"),
                 directory: String::from("tmp"),
@@ -187,6 +187,6 @@ mod tests {
             marker: None,
             artifacts: Vec::new(),
         };
-        artemis_collection(collection).unwrap();
+        artemis_collection(&mut collection).unwrap();
     }
 }
