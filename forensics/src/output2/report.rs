@@ -18,6 +18,7 @@ pub(crate) struct ArtifactRunReport {
     pub(crate) last_run: String,
     pub(crate) last_run_epoch: u64,
     pub(crate) output_count: usize,
+    pub(crate) record_count: usize,
     pub(crate) output_files: Vec<String>,
     pub(crate) status: String,
 }
@@ -26,11 +27,12 @@ impl ArtifactRunReport {
     pub(crate) fn new(
         name: &str,
         artifact_options_hash: String,
-        output_count: usize,
         output_files: Vec<String>,
+        record_count: usize,
         status: &str,
     ) -> Self {
         let last_run_epoch = time_now();
+        let output_count = output_files.len();
         Self {
             name: name.to_string(),
             artifact_options_hash,
@@ -38,8 +40,19 @@ impl ArtifactRunReport {
             last_run_epoch,
             output_count,
             output_files,
+            record_count,
             status: status.to_string(),
         }
+    }
+
+    pub(crate) fn add_output_file(&mut self, output_file: String, record_count: usize) {
+        self.output_files.push(output_file);
+        self.output_count = self.output_files.len();
+        self.record_count += record_count;
+
+        let last_run_epoch = time_now();
+        self.last_run = unixepoch_to_iso(last_run_epoch as i64);
+        self.last_run_epoch = last_run_epoch;
     }
 }
 

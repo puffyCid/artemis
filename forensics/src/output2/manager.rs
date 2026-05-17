@@ -61,13 +61,12 @@ impl OutputManager {
         )?;
 
         self.artifacts.push(artifact_name.to_string());
-        self.artifact_runs.push(ArtifactRunReport::new(
+        self.record_completed_artifact_output(
             artifact_name,
             artifact_options_hash,
+            handle.location_string(),
             handle.record_count,
-            vec![handle.location_string()],
-            "completed",
-        ));
+        );
 
         Ok(())
     }
@@ -81,8 +80,8 @@ impl OutputManager {
         self.artifact_runs.push(ArtifactRunReport::new(
             artifact_name,
             artifact_options_hash,
-            0,
             Vec::new(),
+            0,
             "failed",
         ));
     }
@@ -96,6 +95,28 @@ impl OutputManager {
         );
         self.sink.write_report(&report)?;
         self.sink.finalize()
+    }
+
+    fn record_completed_artifact_output(
+        &mut self,
+        artifact_name: &str,
+        artifact_options_hash: String,
+        output_file: String,
+        record_count: usize,
+    ) {
+        if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
+            run.name == artifact_name && run.artifact_options_hash == artifact_options_hash
+        }) {
+            run.add_output_file(output_file, record_count);
+            return;
+        }
+        self.artifact_runs.push(ArtifactRunReport::new(
+            artifact_name,
+            artifact_options_hash,
+            vec![output_file],
+            record_count,
+            "completed",
+        ));
     }
 }
 
@@ -200,7 +221,8 @@ mod tests {
         assert_eq!(report["artifacts"][0], "files");
         assert_eq!(report["artifact_runs"][0]["name"], "files");
         assert_eq!(report["artifact_runs"][0]["artifact_options_hash"], "md5");
-        assert_eq!(report["artifact_runs"][0]["output_count"], 2);
+        assert_eq!(report["artifact_runs"][0]["output_count"], 1);
+        assert_eq!(report["artifact_runs"][0]["record_count"], 2);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
     }
 }

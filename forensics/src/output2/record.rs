@@ -1,4 +1,5 @@
-use crate::output2::error::OutputResult;
+use crate::output2::error::{OutputError, OutputResult};
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::vec::IntoIter;
 
@@ -42,6 +43,29 @@ impl RecordStream for VecRecordStream {
     fn next_record(&mut self) -> OutputResult<Option<Record>> {
         Ok(self.records.next())
     }
+}
+
+pub(crate) fn serialize_to_record<T: Serialize>(value: T) -> OutputResult<Record> {
+    let value = serde_json::to_value(value)?;
+    let fields = match value {
+        Value::Object(fields) => fields,
+        _ => {
+            return Err(OutputError::Record(String::from(
+                "serialized artifact record was not a JSON object",
+            )));
+        }
+    };
+    Ok(Record::Json(JsonRecord::new(fields)))
+}
+
+pub(crate) fn serialize_records_to_stream<T: Serialize>(
+    records: Vec<T>,
+) -> OutputResult<VecRecordStream> {
+    let records = records
+        .into_iter()
+        .map(serialize_to_record)
+        .collect::<OutputResult<Vec<_>>>()?;
+    Ok(VecRecordStream::new(records))
 }
 
 #[cfg(test)]
