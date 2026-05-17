@@ -4,9 +4,7 @@ use csv::{Writer, WriterBuilder};
 use serde_json::{Map, Value};
 
 use crate::output2::{
-    encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
-    error::OutputResult,
-    record::Record,
+    encoder::artifact_encoder::ArtifactEncoder, error::OutputResult, record::Record,
 };
 
 pub(crate) struct CsvEncoder;
@@ -22,7 +20,7 @@ impl ArtifactEncoder for CsvEncoder {
         &self,
         records: &mut dyn crate::output2::record::RecordStream,
         writer: &mut dyn std::io::Write,
-        context: &crate::output2::context::ArtifactContext,
+        _context: &crate::output2::context::ArtifactContext,
     ) -> OutputResult<usize> {
         let mut csv_writer = WriterBuilder::new().from_writer(writer);
         let Some(record) = records.next_record()? else {

@@ -58,7 +58,7 @@ impl CollectionContext {
      * Metadata associated with each artifact value record
      */
     pub(crate) fn artifact(&self, artifact_name: &str) -> ArtifactContext {
-        let start_time_epoch = time_now();
+        let complete = time_now();
         ArtifactContext {
             artifact_name: artifact_name.to_string(),
             endpoint_id: self.endpoint_id.clone(),
@@ -66,8 +66,8 @@ impl CollectionContext {
             collection_id: self.collection_id,
             collection_name: self.collection_name.clone(),
             start_time: self.start_time.clone(),
-            complete_time: unixepoch_to_iso(start_time_epoch as i64),
-            start_time_epoch,
+            start_time_epoch: self.start_time_epoch,
+            complete_time: unixepoch_to_iso(complete as i64),
             system: self.system.clone(),
         }
     }

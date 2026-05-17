@@ -5,10 +5,11 @@ pub(crate) fn append_metadata(record: &mut Value, context: &ArtifactContext) {
     if let Value::Object(fields) = record {
         fields.insert(
             String::from("collection_metadata"),
-            json!([{
+            json!({
                 "endpoint_id": context.endpoint_id,
                 "id": context.collection_id,
                 "collection_name": context.collection_name,
+                "uuid": context.metadata_uuid,
                 "artifact_name": context.artifact_name,
                 "complete_time": context.complete_time,
                 "start_time": context.start_time,
@@ -21,7 +22,7 @@ pub(crate) fn append_metadata(record: &mut Value, context: &ArtifactContext) {
                 "rust_version": context.system.rust_version,
                 "build_date": context.system.build_date,
                 "interfaces": context.system.interfaces,
-            }]),
+            }),
         );
     }
 }

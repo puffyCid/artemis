@@ -1,12 +1,14 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info,
+    filesystem::files::hash_file_data,
     output2::{
         config::{OutputConfig, OutputDestination, OutputFormat},
         context::CollectionContext,
+        error::OutputResult,
     },
     utils::time::{time_now, unixepoch_to_iso},
 };
-use common::system::SystemInfo;
+use common::{files::Hashes, system::SystemInfo};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -79,4 +81,15 @@ impl CollectionReport {
             artifact_runs,
         }
     }
+}
+
+pub(crate) fn hash_artifact_options<T: Serialize>(options: &T) -> OutputResult<String> {
+    let bytes = serde_json::to_vec(options)?;
+    let hashes = Hashes {
+        md5: true,
+        sha1: false,
+        sha256: false,
+    };
+    let (md5, _, _) = hash_file_data(&hashes, &bytes);
+    Ok(md5)
 }
