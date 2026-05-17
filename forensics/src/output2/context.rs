@@ -42,7 +42,8 @@ impl CollectionContext {
     /**
      * Collect the initial metadata at the start of the artemis execution
      */
-    pub(crate) fn new(config: &OutputConfig, start_time: u64, log_file: PathBuf) -> Self {
+    pub(crate) fn new(config: &OutputConfig, log_file: PathBuf) -> Self {
+        let start_time = time_now();
         Self {
             endpoint_id: config.endpoint_id.clone(),
             collection_id: config.collection_id,
@@ -75,20 +76,18 @@ impl CollectionContext {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::{
         output2::{config::OutputConfig, context::CollectionContext},
         structs::toml::Output,
-        utils::time::time_now,
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_output_context() {
         let out = Output::default();
         let out_ng = OutputConfig::try_from(out).unwrap();
 
-        let context = CollectionContext::new(&out_ng, time_now(), PathBuf::from("./tmp"));
+        let context = CollectionContext::new(&out_ng, PathBuf::from("./tmp"));
         assert_eq!(context.collection_name, "");
         assert!(!context.start_time.is_empty());
 

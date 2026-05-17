@@ -6,6 +6,8 @@ use super::pe::pe_metadata;
  */
 use super::{error::ProcessError, macho::macho_metadata};
 use crate::artifacts::os::systeminfo::info::get_platform_enum;
+use crate::output2::manager::OutputManager;
+use crate::output2::record::serialize_records_to_stream;
 use crate::{
     artifacts::{os::systeminfo::info::PlatformType, output::output_artifact},
     filesystem::{directory::get_parent_directory, files::hash_file},
@@ -24,7 +26,7 @@ pub(crate) fn proc_list(
     hashes: &Hashes,
     binary_data: bool,
     filter: bool,
-    output: &mut Output,
+    output: &mut OutputManager,
 ) -> Result<(), ProcessError> {
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
@@ -49,13 +51,13 @@ pub(crate) fn proc_list(
         let system_proc = proc_info(process, hashes, binary_data, &plat);
         processes_list.push(system_proc);
         if binary_data && processes_list.len() == binary_proc_limit {
-            let _ = output_process(&processes_list, output, filter, start_time);
+            let _ = output_process(processes_list, output, filter, start_time);
             processes_list = Vec::new();
         }
     }
 
     if !processes_list.is_empty() {
-        let _ = output_process(&processes_list, output, filter, start_time);
+        let _ = output_process(processes_list, output, filter, start_time);
     }
     Ok(())
 }
@@ -202,8 +204,8 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, Process
 
 /// Output processes results
 fn output_process(
-    entries: &[Processes],
-    output: &mut Output,
+    entries: Vec<Processes>,
+    manage: &mut OutputManager,
     filter: bool,
     start_time: u64,
 ) -> Result<(), ProcessError> {
@@ -211,6 +213,13 @@ fn output_process(
         return Ok(());
     }
 
+    let mut records = serialize_records_to_stream(entries).unwrap();
+
+    manage
+        .write_artifact("processes", String::from("TODO"), &mut records)
+        .unwrap();
+
+    /*
     let serde_data_result = serde_json::to_value(entries);
     let mut serde_data = match serde_data_result {
         Ok(results) => results,
@@ -226,7 +235,7 @@ fn output_process(
             error!("[processes] Could not output process data: {err:?}");
             return Err(ProcessError::OutputData);
         }
-    }
+    }*/
 
     Ok(())
 }
@@ -237,7 +246,10 @@ mod tests {
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::artifacts::os::systeminfo::info::get_platform_enum;
+    use crate::output2::config::OutputConfig;
+    use crate::output2::manager::OutputManager;
     use crate::structs::toml::Output;
+    use crate::utils::time::time_now;
     use common::files::Hashes;
     use common::system::Processes;
     use sysinfo::{ProcessesToUpdate, System};
@@ -261,9 +273,10 @@ mod tests {
             sha1: false,
             sha256: false,
         };
-        let mut output = output_options("proc_test", "local", "./tmp", false);
-
-        proc_list(&hashes, false, false, &mut output).unwrap();
+        let output = output_options("proc_test", "local", "./tmp", false);
+        let config = OutputConfig::try_from(output).unwrap();
+        let mut manage = OutputManager::new(config).unwrap();
+        proc_list(&hashes, false, false, &mut manage).unwrap();
     }
 
     #[test]

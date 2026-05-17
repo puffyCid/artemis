@@ -19,6 +19,7 @@ use super::{
     },
 };
 use crate::{
+    output2::{config::OutputConfig, manager::OutputManager},
     structs::toml::ArtemisToml,
     utils::{
         marker::{skip_artifact, update_marker},
@@ -35,7 +36,7 @@ use crate::runtime::run::execute_script;
 use crate::utils::logging::upload_logs;
 
 /// Parse the TOML collector and get artifacts
-pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
+pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError> {
     // Make sure output starts at zero
     collector.output.output_files = Vec::new();
 
@@ -44,10 +45,13 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
     // Status for the artifact run
     let mut status = String::from("completed");
     // Keep track of each artifact execution report
-    let mut artifact_runs = Vec::new();
+    //let mut artifact_runs = Vec::new();
     // How long it takes to complete the entire collection
     let start = time_now();
     let mut total_count = 0;
+
+    let output_config = OutputConfig::try_from(collector.output).unwrap();
+    let mut manage = OutputManager::new(output_config).unwrap();
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
@@ -60,6 +64,36 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
 
         let filter = artifacts.filter.unwrap_or(false);
         match artifacts.artifact_name.as_str() {
+            "processes" => {
+                let options = match &artifacts.processes {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = processes(&mut manage, filter, options);
+                match results {
+                    Ok(_) => info!("Collected processes"),
+                    Err(err) => {
+                        error!("[forensics] Failed to parse processes: {err:?}");
+                    }
+                }
+            }
+            // Linux
+            "journal" => {
+                let options = match &artifacts.journal {
+                    Some(result_data) => result_data,
+                    _ => continue,
+                };
+
+                let results = journals(&mut manage, filter, options);
+                match results {
+                    Ok(_) => info!("Collected journals"),
+                    Err(err) => {
+                        error!("[forensics] Failed to parse journals: {err:?}");
+                    }
+                }
+            }
+            /*
             "loginitems" => {
                 let options = match &artifacts.loginitems {
                     Some(result_data) => result_data,
@@ -653,7 +687,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                         status = String::from("failed");
                     }
                 }
-            }
+            }*/
             _ => warn!(
                 "[forensics] Unsupported artifact: {}",
                 artifacts.artifact_name
@@ -667,6 +701,7 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         }
 
         // Generate artifact report
+        /*
         if let Ok(report) =
             generate_artifact_report(artifacts, &collector.output.output_files, &status)
         {
@@ -674,9 +709,10 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
             total_count += collector.output.output_files.len();
             // Clear to the output files tracker
             collector.output.output_files.clear();
-        }
+        }*/
     }
 
+    /*
     // Now generate a collection report
     generate_report(
         &mut collector.output,
@@ -686,13 +722,15 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         total_count,
     );
 
+
     if collector.output.output != "local" {
         let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
         #[cfg(feature = "network")]
         let _ = upload_logs(&output_dir, &mut collector.output);
     } else if collector.output.compress && collector.output.output == "local" {
         let _ = compress_final_output(&collector.output);
-    }
+    }*/
+    manage.finalize().unwrap();
 
     Ok(())
 }
@@ -710,7 +748,7 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -720,7 +758,7 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -730,7 +768,7 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -740,6 +778,6 @@ mod tests {
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        collect(collector).unwrap();
     }
 }

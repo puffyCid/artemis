@@ -8,7 +8,7 @@ use forensics::{
 };
 use std::path::PathBuf;
 
-fn amcache(data: &mut ArtemisToml) {
+fn amcache(data: ArtemisToml) {
     artemis_collection(data).unwrap();
 }
 

@@ -8,7 +8,7 @@ use forensics::{
 };
 use std::path::PathBuf;
 
-fn jumplists(data: &mut ArtemisToml) {
+fn jumplists(data: ArtemisToml) {
     artemis_collection(data).unwrap();
 }
 
@@ -44,9 +44,7 @@ fn bench_custom_jumplists(c: &mut Criterion) {
         marker: None,
     };
 
-    c.bench_function("Benching Custom Jumplists", |b| {
-        b.iter(|| jumplists(&mut data))
-    });
+    c.bench_function("Benching Custom Jumplists", |b| b.iter(|| jumplists(data)));
 }
 
 fn bench_automatic_jumplists(c: &mut Criterion) {
@@ -82,7 +80,7 @@ fn bench_automatic_jumplists(c: &mut Criterion) {
     };
 
     c.bench_function("Benching Automatic Jumplists", |b| {
-        b.iter(|| jumplists(&mut data))
+        b.iter(|| jumplists(data))
     });
 }
 

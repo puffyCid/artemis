@@ -1,11 +1,14 @@
 use super::{error::ProcessError, process::proc_list};
-use crate::structs::{artifacts::os::processes::ProcessOptions, toml::Output};
+use crate::{
+    output2::manager::OutputManager,
+    structs::{artifacts::os::processes::ProcessOptions, toml::Output},
+};
 use common::files::Hashes;
 use log::warn;
 
 /// Collect a process listing from a system
 pub(crate) fn processes(
-    output: &mut Output,
+    output: &mut OutputManager,
     filter: bool,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
@@ -27,7 +30,9 @@ pub(crate) fn processes(
 mod tests {
     use crate::{
         artifacts::os::processes::artifact::processes,
+        output2::{config::OutputConfig, manager::OutputManager},
         structs::{artifacts::os::processes::ProcessOptions, toml::Output},
+        utils::time::time_now,
     };
 
     fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
@@ -52,8 +57,10 @@ mod tests {
             sha256: false,
             metadata: true,
         };
+        let config = OutputConfig::try_from(output).unwrap();
+        let mut manage = OutputManager::new(config).unwrap();
 
-        let status = processes(&mut output, false, &proc_config).unwrap();
+        let status = processes(&mut manage, false, &proc_config).unwrap();
         assert_eq!(status, ());
     }
 }

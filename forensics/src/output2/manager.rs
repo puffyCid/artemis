@@ -21,7 +21,7 @@ pub(crate) struct OutputManager {
 }
 
 impl OutputManager {
-    pub(crate) fn new(config: OutputConfig, start_time: u64) -> OutputResult<Self> {
+    pub(crate) fn new(config: OutputConfig) -> OutputResult<Self> {
         let encoder = build_encoder(&config);
         let mut sink = build_sink(&config)?;
 
@@ -34,7 +34,7 @@ impl OutputManager {
             log_output.file,
         );
 
-        let context = CollectionContext::new(&config, start_time, log_path);
+        let context = CollectionContext::new(&config, log_path);
         Ok(Self {
             config,
             context,
@@ -163,7 +163,7 @@ mod tests {
             ..Default::default()
         };
 
-        let mut manage = OutputManager::new(config, time_now()).unwrap();
+        let mut manage = OutputManager::new(config).unwrap();
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
