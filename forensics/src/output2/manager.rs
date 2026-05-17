@@ -5,7 +5,7 @@ use crate::output2::{
     config::OutputConfig,
     context::CollectionContext,
     encoder::{artifact_encoder::Encoder, factory::build_encoder},
-    error::{OutputError, OutputResult},
+    error::OutputResult,
     record::RecordStream,
     report::{ArtifactRunReport, CollectionReport},
     sink::factory::{Sink, build_sink},
@@ -77,7 +77,9 @@ impl OutputManager {
         artifact_name: &str,
         artifact_options_hash: String,
     ) {
-        self.artifacts.push(artifact_name.to_string());
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
         self.artifact_runs.push(ArtifactRunReport::new(
             artifact_name,
             artifact_options_hash,
