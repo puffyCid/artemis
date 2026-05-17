@@ -1,6 +1,3 @@
-use log::LevelFilter;
-use simplelog::{Config, WriteLogger};
-
 use crate::output2::{
     config::OutputConfig,
     context::CollectionContext,
@@ -10,6 +7,8 @@ use crate::output2::{
     report::{ArtifactRunReport, CollectionReport},
     sink::factory::{Sink, build_sink},
 };
+use log::LevelFilter;
+use simplelog::{Config, WriteLogger};
 
 pub(crate) struct OutputManager {
     config: OutputConfig,
@@ -136,13 +135,10 @@ fn log_level(level: Option<&str>) -> LevelFilter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-            record::{JsonRecord, Record, VecRecordStream},
-        },
-        utils::time::time_now,
+    use crate::output2::{
+        config::{OutputConfig, OutputDestination, OutputFormat},
+        manager::OutputManager,
+        record::{JsonRecord, Record, VecRecordStream},
     };
     use serde_json::Map;
     use std::{
