@@ -1,26 +1,41 @@
 use std::{fmt, io, path::PathBuf};
 
+/// Result type used by output workflow
 pub(crate) type OutputResult<T> = Result<T, OutputError>;
 
+/// Errors produced by output workflow
 #[derive(Debug)]
 pub(crate) enum OutputError {
+    /// Got unsupported output format
     UnsupportedFormat(String),
+    /// Got unsupported destination value
     UnsupportedDestination(String),
+    /// Got bad output config
     Config(String),
+    /// Could not create an output context value
     Context(String),
+    /// Could not write an artifact record
     Record(String),
+    /// Could not encode artifact record into output format
     Encode(String),
+    /// Could not write encoded artifact record to destination
     Sink(String),
+    /// Issue writing Artemis reports
     Report(String),
+    /// Issue finalizing the output
     Finalize(String),
+    /// Could not initialize or write to log file
     Logger(String),
-
+    /// Filesystem output errors
     Io {
+        /// Optional path associated with IO
         path: Option<PathBuf>,
+        /// Original IO error
         source: io::Error,
     },
-
+    /// JSON serialization error
     Json(serde_json::Error),
+    /// CSV serialization error
     Csv(csv::Error),
 }
 

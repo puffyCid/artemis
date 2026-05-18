@@ -10,38 +10,55 @@ use common::system::SystemInfoMetadata;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Context shared across an entire Artemis collection
+///
+/// `CollectionContext` has collection metadata
+/// for the entire Artemis execution
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct CollectionContext {
-    pub(crate) endpoint_id: String,
+    /// Collection ID for the Artemis execution
     pub(crate) collection_id: u64,
+    /// Endpoint ID for the target system
+    pub(crate) endpoint_id: String,
+    /// Name of the collection
     pub(crate) collection_name: String,
+    /// Start time for the Artemis execution
     pub(crate) start_time: String,
+    /// Unix epoch start time for the Artemis execution
     pub(crate) start_time_epoch: u64,
+    /// Log file associated with the Artemis collection
     pub(crate) log_file: PathBuf,
+    /// Metadata associated with the target system
     pub(crate) system: SystemInfoMetadata,
 }
 
+/// Context for each artifact run
+///
+/// `ArtifactContext` has collection metadata for artifact run
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct ArtifactContext {
+    /// Artifact name that was collected
     pub(crate) artifact_name: String,
+    /// Endpoint ID for the target system
     pub(crate) endpoint_id: String,
+    /// UUID shared for entire artifact run
     pub(crate) metadata_uuid: String,
+    /// Collection ID for the Artemis execution
     pub(crate) collection_id: u64,
+    /// Name of the collection
     pub(crate) collection_name: String,
+    /// Start time for the Artemis execution
     pub(crate) start_time: String,
+    /// Unix epoch start time for the Artemis execution
     pub(crate) start_time_epoch: u64,
+    /// Completion time for the Artemis artifact run
     pub(crate) complete_time: String,
+    /// Metadata associated with the target system
     pub(crate) system: SystemInfoMetadata,
 }
 
-/**
- * Setup the entire Artemis collection context
- * Contains metadata associated with the entire collection workflow
- */
 impl CollectionContext {
-    /**
-     * Collect the initial metadata at the start of the artemis execution
-     */
+    /// Creates collection context at the start of an Artemis execution
     pub(crate) fn new(config: &OutputConfig, log_file: PathBuf) -> Self {
         let start_time = time_now();
         Self {
@@ -55,9 +72,7 @@ impl CollectionContext {
         }
     }
 
-    /**
-     * Metadata associated with each artifact value record
-     */
+    /// Creates artifact context for records created per artifact output
     pub(crate) fn artifact(&self, artifact_name: &str) -> ArtifactContext {
         let complete = time_now();
         ArtifactContext {

@@ -1,11 +1,3 @@
-use std::{
-    fs::{File, create_dir_all, remove_dir, remove_file},
-    io::{BufWriter, Write},
-    path::PathBuf,
-};
-
-use flate2::{Compression, write::GzEncoder};
-
 use crate::{
     filesystem::files::list_files,
     output2::{
@@ -17,6 +9,12 @@ use crate::{
         },
     },
     utils::{compression::compress::compress_output_zip, uuid::generate_uuid},
+};
+use flate2::{Compression, write::GzEncoder};
+use std::{
+    fs::{File, create_dir_all, remove_dir, remove_file},
+    io::{BufWriter, Write},
+    path::PathBuf,
 };
 
 pub(crate) struct LocalSink {
