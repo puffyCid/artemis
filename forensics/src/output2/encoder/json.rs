@@ -4,6 +4,8 @@ use crate::output2::{
     record::Record,
 };
 
+/// Encoder for JSON files
+#[derive(Debug, PartialEq)]
 pub(crate) struct JsonEncoder;
 
 impl ArtifactEncoder for JsonEncoder {

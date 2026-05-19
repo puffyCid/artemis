@@ -9,11 +9,17 @@ use crate::output2::{
     },
 };
 
+/// Selected destination for encoded output.
+///
+/// `Sink` delegates destination writing to the configured output sink.
+/// <https://en.wikipedia.org/wiki/Sink_(computing)>
 pub(crate) enum Sink {
+    /// Write encoded output to local system
     Local(LocalSink),
 }
 
 impl Sink {
+    /// Write artifact results to destination
     pub(crate) fn write_artifact(
         &mut self,
         artifact_name: &str,
@@ -26,18 +32,23 @@ impl Sink {
         }
     }
 
+    /// Finalizes destination-specific output.
+    ///
+    /// For local output, this may perform final zip compression and cleanup.
     pub(crate) fn finalize(&mut self) -> OutputResult<()> {
         match self {
             Self::Local(sink) => sink.finalize(),
         }
     }
 
+    /// Initialize the log file
     pub(crate) fn create_log_file(&mut self) -> OutputResult<LogOutput> {
         match self {
             Self::Local(sink) => sink.create_log_file(),
         }
     }
 
+    /// Once collection is completed, write a JSON collection report
     pub(crate) fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
         match self {
             Self::Local(sink) => sink.write_report(report),
@@ -45,6 +56,7 @@ impl Sink {
     }
 }
 
+/// Setup a `Sink` to send data to selected output destination
 pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
     match config.destination {
         OutputDestination::Local => Ok(Sink::Local(LocalSink::new(config)?)),

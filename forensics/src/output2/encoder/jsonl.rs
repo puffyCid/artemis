@@ -4,6 +4,8 @@ use crate::output2::{
     record::Record,
 };
 
+/// Encoder for JSONL files
+#[derive(Debug, PartialEq)]
 pub(crate) struct JsonlEncoder;
 
 impl ArtifactEncoder for JsonlEncoder {

@@ -1,12 +1,12 @@
-use std::io::Write;
-
-use csv::{Writer, WriterBuilder};
-use serde_json::{Map, Value};
-
 use crate::output2::{
     encoder::artifact_encoder::ArtifactEncoder, error::OutputResult, record::Record,
 };
+use csv::{Writer, WriterBuilder};
+use serde_json::{Map, Value};
+use std::io::Write;
 
+/// Encoder for CSV files
+#[derive(Debug, PartialEq)]
 pub(crate) struct CsvEncoder;
 
 impl ArtifactEncoder for CsvEncoder {
@@ -47,6 +47,7 @@ impl ArtifactEncoder for CsvEncoder {
     }
 }
 
+/// Writes one artifact record as a CSV row.
 fn write_row<W: Write>(
     writer: &mut Writer<W>,
     headers: &[String],
@@ -62,6 +63,7 @@ fn write_row<W: Write>(
     Ok(())
 }
 
+/// Converts a JSON value into a CSV cell string.
 fn value_to_cell(value: &Value) -> String {
     match value {
         Value::Null => String::new(),

@@ -17,13 +17,18 @@ use std::{
     path::PathBuf,
 };
 
+/// A data Sink representing the local system
 pub(crate) struct LocalSink {
+    /// Target output directory
     output_directory: PathBuf,
+    /// Collection ID for the Artemis execution
     collection_id: u64,
+    /// Whether to compress the results with gzip. Then all files are compressed with zip
     compress: bool,
 }
 
 impl LocalSink {
+    /// Creates a local sink and ensures the output directory exists
     pub(crate) fn new(config: &OutputConfig) -> OutputResult<Self> {
         let output_dir = config.directory.join(&config.name);
         create_dir_all(&output_dir).map_err(|err| OutputError::io_path(&output_dir, err))?;
@@ -35,6 +40,7 @@ impl LocalSink {
         })
     }
 
+    /// Builds a unique output path for an artifact file
     fn output_path(&self, artifact_name: &str, extension: &str) -> PathBuf {
         let uuid = generate_uuid();
         let filename = if self.compress {
@@ -46,11 +52,13 @@ impl LocalSink {
         self.output_directory.join(filename)
     }
 
+    /// Builds a unique log file path for this Artemis run
     fn log_path(&self) -> PathBuf {
         let log = format!("artemis_{}_{}.log", self.collection_id, generate_uuid());
         self.output_directory.join(log)
     }
 
+    /// Zips the completed local output directory and removes loose output files
     fn compress_final_output(&self) -> OutputResult<()> {
         let output_dir = self.output_directory.display().to_string();
         let zip_name = self.output_directory.display().to_string();
@@ -66,6 +74,7 @@ impl LocalSink {
                 self.output_directory.display()
             ))
         })?;
+        // Only delete files associated with Artemis output
         for entry in entries {
             if !entry.ends_with(".json")
                 && !entry.ends_with(".log")
@@ -78,6 +87,7 @@ impl LocalSink {
             }
             remove_file(&entry).map_err(|err| OutputError::io_path(&entry, err))?;
         }
+        // We only remove empty directories
         remove_dir(&self.output_directory)
             .map_err(|err| OutputError::io_path(&self.output_directory, err))?;
         Ok(())

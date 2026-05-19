@@ -1,26 +1,43 @@
 use std::path::PathBuf;
 
+/// A small amount of metadata returned by the sink when output is written to the destination
+///
+/// Metadata associated with the record written by an output sink
 pub(crate) struct OutputHandle {
+    /// Artifact name
     pub(crate) artifact_name: String,
+    /// Output destination
     pub(crate) location: OutputLocation,
+    /// How many records were written
     pub(crate) record_count: usize,
+    /// Output file extension
     pub(crate) extension: String,
+    /// Whether the output compressed
     pub(crate) compressed: bool,
+    /// Type of output item
     pub(crate) output_type: OutputType,
 }
 
+/// Location to write the data
 pub(crate) enum OutputLocation {
+    /// Write records to local system
     Local(PathBuf),
+    /// Write records to remote system
     Remote(String),
 }
 
+/// What type of file was written
 pub(crate) enum OutputType {
+    /// Artifact result written
     Artifact,
+    /// Report result written
     Report,
+    /// Log file result written
     Log,
 }
 
 impl OutputHandle {
+    /// Create `OutputHandle` when writing artifact file
     pub(crate) fn artifact(
         artifact_name: &str,
         location: OutputLocation,
@@ -38,6 +55,7 @@ impl OutputHandle {
         }
     }
 
+    /// Create `OutputHandle` when writing report file
     pub(crate) fn report(location: OutputLocation) -> Self {
         Self {
             artifact_name: String::from("report"),
@@ -48,6 +66,8 @@ impl OutputHandle {
             output_type: OutputType::Report,
         }
     }
+
+    /// Create `OutputHandle` when writing log file
     pub(crate) fn log(location: OutputLocation) -> Self {
         Self {
             artifact_name: String::from("logs"),
@@ -58,6 +78,8 @@ impl OutputHandle {
             output_type: OutputType::Log,
         }
     }
+
+    /// Convert sink destination location to string
     pub(crate) fn location_string(&self) -> String {
         match &self.location {
             OutputLocation::Local(path) => path.display().to_string(),
