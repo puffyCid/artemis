@@ -66,3 +66,49 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
         ))),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::output2::{
+        config::OutputConfig,
+        manager::OutputManager,
+        record::{JsonRecord, Record, VecRecordStream},
+    };
+    use log::error;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_sink_local_write_artifact() {
+        let test = json!({"test":"value"});
+        let mut output = OutputConfig::default();
+        output.directory = PathBuf::from("./tmp");
+        output.name = String::from("sink_test");
+
+        let mut manager = OutputManager::new(output).unwrap();
+        let mut records = VecRecordStream::new(vec![Record::Json(JsonRecord::new(
+            test.as_object().unwrap().clone(),
+        ))]);
+        manager
+            .write_artifact("test", String::from("test"), &mut records)
+            .unwrap();
+    }
+
+    #[test]
+    fn test_sink_local_create_log_file_and_report() {
+        let test = json!({"test":"value"});
+        let mut output = OutputConfig::default();
+        output.directory = PathBuf::from("./tmp");
+        output.name = String::from("sink_test");
+
+        let mut manager = OutputManager::new(output).unwrap();
+        let mut records = VecRecordStream::new(vec![Record::Json(JsonRecord::new(
+            test.as_object().unwrap().clone(),
+        ))]);
+        manager
+            .write_artifact("test", String::from("test"), &mut records)
+            .unwrap();
+        error!("hello");
+        manager.finalize().unwrap();
+    }
+}
