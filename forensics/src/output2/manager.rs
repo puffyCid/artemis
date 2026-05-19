@@ -10,16 +10,24 @@ use crate::output2::{
 use log::LevelFilter;
 use simplelog::{Config, WriteLogger};
 
+/// A structure that supports outputting forensic data based on `OutputConfig`
 pub(crate) struct OutputManager {
+    /// Configuration to to control how to output data
     config: OutputConfig,
+    /// Artemis runtime collection context
     context: CollectionContext,
+    /// Output format encoder
     encoder: Encoder,
+    /// Destination to write forensic data
     sink: Sink,
+    /// Array of artifacts from Artemis collection
     artifacts: Vec<String>,
+    /// Array of artifacts collected from the Artemis execution
     artifact_runs: Vec<ArtifactRunReport>,
 }
 
 impl OutputManager {
+    /// Create a manager to output forensic data
     pub(crate) fn new(config: OutputConfig) -> OutputResult<Self> {
         let encoder = build_encoder(&config);
         let mut sink = build_sink(&config)?;
@@ -44,6 +52,7 @@ impl OutputManager {
         })
     }
 
+    /// Write a forensic artifact result
     pub(crate) fn write_artifact(
         &mut self,
         artifact_name: &str,
@@ -71,6 +80,7 @@ impl OutputManager {
         Ok(())
     }
 
+    /// Write a failed artifact run
     pub(crate) fn write_failed_artifact(
         &mut self,
         artifact_name: &str,
@@ -88,6 +98,7 @@ impl OutputManager {
         ));
     }
 
+    /// Complete a Artemis collection execution
     pub(crate) fn finalize(mut self) -> OutputResult<()> {
         let report = CollectionReport::new(
             &self.config,
@@ -99,6 +110,7 @@ impl OutputManager {
         self.sink.finalize()
     }
 
+    /// Track artifact collected from Artemis execution
     fn record_completed_artifact_output(
         &mut self,
         artifact_name: &str,
@@ -106,12 +118,16 @@ impl OutputManager {
         output_file: String,
         record_count: usize,
     ) {
+        // Only track unique artifacts per Artemis collection
+        // If a user collects a process listing twice in a single Artemis collection
+        // We only `Processes` artifact once instead of twice
         if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
             run.name == artifact_name && run.artifact_options_hash == artifact_options_hash
         }) {
             run.add_output_file(output_file, record_count);
             return;
         }
+        // Track each artifact run event
         self.artifact_runs.push(ArtifactRunReport::new(
             artifact_name,
             artifact_options_hash,
@@ -122,6 +138,7 @@ impl OutputManager {
     }
 }
 
+/// Translate Artemis collection log level to proper `LevelFilter`
 fn log_level(level: Option<&str>) -> LevelFilter {
     match level.unwrap_or("warn").to_ascii_lowercase().as_str() {
         "error" => LevelFilter::Error,
@@ -174,6 +191,8 @@ mod tests {
         manage
             .write_artifact("files", String::from("md5"), &mut records)
             .unwrap();
+
+        manage.write_failed_artifact("made_up_artifact", String::from("test"));
 
         manage.finalize().unwrap();
 
