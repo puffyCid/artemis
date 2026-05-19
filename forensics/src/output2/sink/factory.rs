@@ -70,7 +70,7 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
 #[cfg(test)]
 mod tests {
     use crate::output2::{
-        config::OutputConfig,
+        config::{OutputConfig, OutputFormat},
         manager::OutputManager,
         record::{JsonRecord, Record, VecRecordStream},
     };
@@ -98,6 +98,7 @@ mod tests {
     fn test_sink_local_create_log_file_and_report() {
         let test = json!({"test":"value"});
         let mut output = OutputConfig::default();
+        output.format = OutputFormat::Csv;
         output.directory = PathBuf::from("./tmp");
         output.name = String::from("sink_test");
 
