@@ -125,7 +125,7 @@ mod tests {
         assert_eq!(count, 1);
 
         let jsonl_encoder = Encoder::Jsonl(JsonlEncoder);
-        let count = json_encoder
+        let count = jsonl_encoder
             .encode(
                 &mut VecRecordStream::new(vec![Record::Json(JsonRecord::new(
                     test.as_object().unwrap().clone(),

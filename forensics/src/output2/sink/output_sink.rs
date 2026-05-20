@@ -25,7 +25,7 @@ pub(crate) trait OutputSink {
     /// Write report data to sink and return a small amount of data
     fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle>;
 
-    /// Write log data to sink and returns the log writer
+    /// Creates the log destination and returns the open log writer
     fn create_log_file(&mut self) -> OutputResult<LogOutput>;
 
     /// Complete writing data to the sink
