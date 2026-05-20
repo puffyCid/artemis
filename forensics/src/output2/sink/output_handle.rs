@@ -18,26 +18,26 @@ pub(crate) struct OutputHandle {
     pub(crate) output_type: OutputType,
 }
 
-/// Location to write the data
+/// Location where an output item was written.
 pub(crate) enum OutputLocation {
-    /// Write records to local system
+    /// Output sent to local system
     Local(PathBuf),
-    /// Write records to remote system
+    /// Output sent to remote system
     Remote(String),
 }
 
-/// What type of file was written
+/// What type of file was output
 pub(crate) enum OutputType {
-    /// Artifact result written
+    /// Artifact result output
     Artifact,
-    /// Report result written
+    /// Report result output
     Report,
-    /// Log file result written
+    /// Log file result output
     Log,
 }
 
 impl OutputHandle {
-    /// Create `OutputHandle` when writing artifact file
+    /// Create `OutputHandle` for an artifact output item
     pub(crate) fn artifact(
         artifact_name: &str,
         location: OutputLocation,
@@ -55,7 +55,7 @@ impl OutputHandle {
         }
     }
 
-    /// Create `OutputHandle` when writing report file
+    /// Creates an `OutputHandle` for a collection report output item
     pub(crate) fn report(location: OutputLocation) -> Self {
         Self {
             artifact_name: String::from("report"),
@@ -67,7 +67,7 @@ impl OutputHandle {
         }
     }
 
-    /// Create `OutputHandle` when writing log file
+    /// Create `OutputHandle` for a log output item
     pub(crate) fn log(location: OutputLocation) -> Self {
         Self {
             artifact_name: String::from("logs"),

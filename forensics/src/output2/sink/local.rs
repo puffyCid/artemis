@@ -4,7 +4,7 @@ use crate::{
         config::OutputConfig,
         error::{OutputError, OutputResult},
         sink::{
-            output_handle::{OutputHandle, OutputLocation, OutputType},
+            output_handle::{OutputHandle, OutputLocation},
             output_sink::{LogOutput, OutputSink},
         },
     },
@@ -119,14 +119,13 @@ impl OutputSink for LocalSink {
             count
         };
 
-        Ok(OutputHandle {
-            artifact_name: artifact_name.to_string(),
-            location: OutputLocation::Local(output_path),
+        Ok(OutputHandle::artifact(
+            artifact_name,
+            OutputLocation::Local(output_path),
             record_count,
-            extension: extension.to_string(),
-            compressed: self.compress,
-            output_type: OutputType::Artifact,
-        })
+            extension,
+            self.compress,
+        ))
     }
 
     fn write_report(
@@ -140,14 +139,7 @@ impl OutputSink for LocalSink {
             File::create(&output_path).map_err(|err| OutputError::io_path(&output_path, err))?;
         serde_json::to_writer(file, report)?;
 
-        Ok(OutputHandle {
-            artifact_name: String::from("report"),
-            location: OutputLocation::Local(output_path),
-            record_count: 1,
-            extension: String::from("json"),
-            compressed: false,
-            output_type: OutputType::Report,
-        })
+        Ok(OutputHandle::report(OutputLocation::Local(output_path)))
     }
 
     fn create_log_file(&mut self) -> OutputResult<LogOutput> {
