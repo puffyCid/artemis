@@ -307,4 +307,76 @@ mod tests {
         mock_me.assert_calls(3);
         mock_me_put.assert_calls(3);
     }
+
+    #[test]
+    fn test_output_manager_timeline() {
+        let name = String::from("manager_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Timeline,
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("full_path".to_string(), "/tmp/one.txt".into());
+        first.insert("arguments".to_string(), 1235.into());
+        first.insert("start_time".to_string(), "2026-01-01T00:00:00.000Z".into());
+        let mut records = VecRecordStream::new(vec![Record::Json(JsonRecord::new(first))]);
+
+        manage
+            .write_artifact("processes", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.write_failed_artifact("made_up_artifact", String::from("test"));
+
+        manage.finalize().unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection"));
+        assert!(output_dir.exists());
+
+        let mut jsonl_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("processes_") && name.ends_with(".jsonl") {
+                jsonl_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+                log_files.push(path);
+            }
+        }
+        assert!(!jsonl_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+        let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
+        let lines = jsonl_data.lines().collect::<Vec<_>>();
+        let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+        assert_eq!(first_record["full_path"], "/tmp/one.txt");
+        assert_eq!(first_record["arguments"], 1235);
+        assert_eq!(first_record["collection_metadata"]["endpoint_id"], "test");
+        assert_eq!(first_record["collection_metadata"]["id"], 0);
+        assert_eq!(
+            first_record["collection_metadata"]["artifact_name"],
+            "files"
+        );
+        let report_data = read_to_string(&report_files[0]).unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
+        assert_eq!(report["collection_id"], 0);
+        assert_eq!(report["endpoint_id"], "test");
+        assert_eq!(report["total_output_files"], 1);
+        assert_eq!(report["artifacts"][0], "files");
+        assert_eq!(report["artifact_runs"][0]["name"], "files");
+        assert_eq!(report["artifact_runs"][0]["artifact_options_hash"], "md5");
+        assert_eq!(report["artifact_runs"][0]["output_count"], 1);
+        assert_eq!(report["artifact_runs"][0]["record_count"], 2);
+        assert_eq!(report["artifact_runs"][0]["status"], "completed");
+    }
 }

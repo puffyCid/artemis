@@ -1,6 +1,6 @@
 use crate::output2::{
     context::ArtifactContext,
-    encoder::{csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder},
+    encoder::{csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, timeline::TimelineEncoder},
     error::OutputResult,
     record::RecordStream,
 };
@@ -17,6 +17,8 @@ pub(crate) enum Encoder {
     Jsonl(JsonlEncoder),
     /// CSV encoder
     Csv(CsvEncoder),
+    /// Timeline encoder
+    Timeline(TimelineEncoder),
 }
 
 impl Encoder {
@@ -26,6 +28,7 @@ impl Encoder {
             Self::Csv(encoder) => encoder.extension(),
             Self::Json(encoder) => encoder.extension(),
             Self::Jsonl(encoder) => encoder.extension(),
+            Self::Timeline(encoder) => encoder.extension(),
         }
     }
 
@@ -37,6 +40,7 @@ impl Encoder {
             Self::Csv(encoder) => encoder.mime_type(),
             Self::Json(encoder) => encoder.mime_type(),
             Self::Jsonl(encoder) => encoder.mime_type(),
+            Self::Timeline(encoder) => encoder.mime_type(),
         }
     }
 
@@ -53,6 +57,7 @@ impl Encoder {
             Self::Csv(encoder) => encoder.encode(records, writer, context),
             Self::Json(encoder) => encoder.encode(records, writer, context),
             Self::Jsonl(encoder) => encoder.encode(records, writer, context),
+            Self::Timeline(encoder) => encoder.encode(records, writer, context),
         }
     }
 }

@@ -1,6 +1,9 @@
 use crate::output2::{
     config::{OutputConfig, OutputFormat},
-    encoder::{artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder},
+    encoder::{
+        artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
+        timeline::TimelineEncoder,
+    },
 };
 
 /// Create an `Encoder` to output forensic data
@@ -9,6 +12,7 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
         OutputFormat::Json => Encoder::Json(JsonEncoder),
         OutputFormat::Jsonl => Encoder::Jsonl(JsonlEncoder),
         OutputFormat::Csv => Encoder::Csv(CsvEncoder),
+        OutputFormat::Timeline => Encoder::Timeline(TimelineEncoder),
     }
 }
 

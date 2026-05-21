@@ -6,11 +6,11 @@ use crate::output2::{
 };
 use std::io::Write;
 
-/// Encoder for JSONL files
+/// Encoder for Timeline files. This is same as JSONL encoder except we do extra processing to timeline the data
 #[derive(Debug, PartialEq)]
-pub(crate) struct JsonlEncoder;
+pub(crate) struct TimelineEncoder;
 
-impl ArtifactEncoder for JsonlEncoder {
+impl ArtifactEncoder for TimelineEncoder {
     fn mime_type(&self) -> &str {
         "application/jsonl"
     }

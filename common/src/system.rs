@@ -17,7 +17,7 @@ pub struct SystemInfo {
     pub artemis_version: String,
     pub artemis_commit: String,
     pub artemis_args: String,
-    pub artemis_features: String,
+    pub artemis_features: Vec<String>,
     pub artemis_target: String,
     pub artemis_profile: String,
     pub rust_version: String,

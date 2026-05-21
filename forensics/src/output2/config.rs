@@ -22,8 +22,6 @@ pub(crate) struct OutputConfig {
     pub format: OutputFormat,
     /// Whether to compress the results with gzip. The local output type is then compressed with zip
     pub compress: bool,
-    /// Timeline supported artifacts
-    pub timeline: bool,
     /// Filter out results with time before start time
     pub start_time: Option<String>,
     /// Filter out results with time after end time
@@ -47,6 +45,7 @@ pub(crate) enum OutputFormat {
     #[default]
     Jsonl,
     Csv,
+    Timeline,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
@@ -72,7 +71,6 @@ impl TryFrom<Output> for OutputConfig {
             destination: OutputDestination::parse(&value.output)?,
             format: OutputFormat::parse(&value.format)?,
             compress: value.compress,
-            timeline: value.timeline,
             start_time: value.start_time,
             end_time: value.end_time,
             filter_name: value.filter_name,
@@ -91,6 +89,7 @@ impl OutputFormat {
             "json" => Ok(Self::Json),
             "" | "jsonl" => Ok(Self::Jsonl),
             "csv" => Ok(Self::Csv),
+            "timeline" => Ok(Self::Timeline),
             _ => Err(OutputError::UnsupportedFormat(value.to_string())),
         }
     }
