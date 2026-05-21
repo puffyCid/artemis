@@ -142,7 +142,6 @@ impl OutputManager {
 fn log_level(level: Option<&str>) -> LevelFilter {
     match level.unwrap_or("warn").to_ascii_lowercase().as_str() {
         "error" => LevelFilter::Error,
-        "warn" => LevelFilter::Warn,
         "info" => LevelFilter::Info,
         "debug" => LevelFilter::Debug,
         "trace" => LevelFilter::Trace,
@@ -298,7 +297,14 @@ mod tests {
             .write_artifact("files", String::from("md5"), &mut records)
             .unwrap();
 
-        mock_me.assert();
-        mock_me_put.assert();
+        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.finalize().unwrap();
+
+        // 3 uploads:
+        // Dummy artifact
+        // Failed artifact
+        // log file
+        mock_me.assert_calls(3);
+        mock_me_put.assert_calls(3);
     }
 }

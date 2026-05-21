@@ -18,7 +18,7 @@ use std::{
     path::PathBuf,
 };
 
-/// A data Sink representing the local system
+/// A data Sink representing the local system pipeline flow
 pub(crate) struct LocalSink {
     /// Target output directory
     output_directory: PathBuf,

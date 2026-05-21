@@ -15,7 +15,7 @@ impl JsonRecord {
         Self { fields }
     }
 
-    /// Converts the `JsonRecord` back into serde_json `Value` object
+    /// Converts the `JsonRecord` back into `serde_json` `Value` object
     pub(crate) fn into_value(self) -> Value {
         Value::Object(self.fields)
     }

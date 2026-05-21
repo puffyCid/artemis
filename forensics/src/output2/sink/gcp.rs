@@ -20,18 +20,24 @@ use std::{
     path::PathBuf,
 };
 
+/// GCP response upload successful upload
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UploadResponse {
+    /// Timestamp file was created upon uplad
     time_created: String,
+    /// Name of file
     name: String,
 }
+
+/// Key used to authenticate to GCP
 #[derive(Deserialize)]
 struct GcpKey {
     private_key_id: String,
     private_key: String,
     client_email: String,
 }
+
 #[derive(Serialize)]
 struct JwtToken {
     iss: String,
@@ -40,21 +46,34 @@ struct JwtToken {
     iat: u64,
     exp: u64,
 }
+
+/// Status we track when uploading files
+#[derive(Debug, PartialEq)]
 enum UploadStatus {
+    /// Upload is done
     Complete,
+    /// Need to resume large upload
     ResumeFrom(usize),
 }
 
+/// A data Sink representing the GCP pipeline fow
 pub(crate) struct GcpSink {
+    /// Full URL to GCP Bucket
     url: String,
+    /// Full URL that we upload our data too. Contains directory and name of out collection
     url_path: String,
+    /// Local log file we are using to log any issues during the Artemis execution
     log_file: PathBuf,
+    /// JSON credential used for uploads
     credential: String,
+    /// Collection ID for the Artemis execution
     collection_id: u64,
+    /// Whether to compress the results with gzip
     compress: bool,
 }
 
 impl GcpSink {
+    /// Create a GCP sink and construct the URL target for the uploads
     pub(crate) fn new(config: &OutputConfig) -> OutputResult<Self> {
         let url = match &config.url {
             Some(result) => result,
@@ -66,13 +85,13 @@ impl GcpSink {
             None => return Err(OutputError::Sink(String::from("no GCP API key provided"))),
         };
 
+        // Full URL path that we upload data to. Our directory and collection name will be folders in GCP
+        // This mimics what Artemis does when writing to local disk
         let url_path = format!("{}/{}", config.directory.display(), config.name);
 
-        let log_file = config.directory.join(&config.name).join(format!(
-            "artemis_{}_{}.log",
-            config.collection_id,
-            generate_uuid()
-        ));
+        // Local directory to store log file. Artemis logs issues locally. Once artifact and report uploads are done
+        // The log file is then uploaded. The log file is uploaded last
+        let log_file = config.directory.join(&config.name);
         Ok(Self {
             url: url.clone(),
             url_path,
@@ -83,10 +102,12 @@ impl GcpSink {
         })
     }
 
+    /// Encode our uploaded filenames
     fn object_path(&self, filename: &str) -> String {
-        format!("{}%2F{filename}", self.encode_path(&self.url_path))
+        format!("{}%2F{filename}", GcpSink::encode_path(&self.url_path))
     }
 
+    /// Construct the filename for our upload
     fn output_path(&self, artifact_name: &str, extension: &str) -> String {
         let uuid = generate_uuid();
         let filename = if self.compress {
@@ -98,22 +119,26 @@ impl GcpSink {
         self.object_path(&filename)
     }
 
-    fn encode_path(&self, path: &str) -> String {
+    /// URL encode upload paths to "%2F"
+    fn encode_path(path: &str) -> String {
         path.trim_matches('/').replace('/', "%2F")
     }
 
-    fn remote_location(&self, url_path: &str) -> String {
+    /// URL decode upload paths to "/"
+    fn remote_location(url_path: &str) -> String {
         url_path.replace("%2F", "/")
     }
 
+    /// Return the log file we are logging to
     fn log_filename(&self) -> String {
         format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
     }
 
+    /// Start the upload process to GCP
     fn upload_bytes(&self, object_name: &str, data: Vec<u8>, mime_type: &str) -> OutputResult<()> {
         let session = format!("{}/o?uploadType=resumable&name={object_name}", self.url);
         let token = self.create_jwt()?;
-        let session_uri = self.create_upload_session(&session, &token)?;
+        let session_uri = GcpSink::create_upload_session(&session, &token)?;
         let client = Client::new();
         let result = client
             .put(&session_uri)
@@ -127,14 +152,14 @@ impl GcpSink {
                 if response.status() == StatusCode::OK
                     || response.status() == StatusCode::CREATED =>
             {
-                if let Ok(bytes) = response.bytes() {
-                    if let Ok(status) = serde_json::from_slice::<UploadResponse>(&bytes) {
-                        log::info!(
-                            "[forensics] Uploaded GCP object {} at {}",
-                            status.name,
-                            status.time_created
-                        );
-                    }
+                if let Ok(bytes) = response.bytes()
+                    && let Ok(status) = serde_json::from_slice::<UploadResponse>(&bytes)
+                {
+                    log::info!(
+                        "[forensics] Uploaded GCP object {} at {}",
+                        status.name,
+                        status.time_created
+                    );
                 }
                 return Ok(());
             }
@@ -143,18 +168,21 @@ impl GcpSink {
                     "[forensics] Non-success response from GCP upload: {:?}",
                     response.text()
                 );
-                self.resume_upload(&session_uri, &data)?
+                // Retry the upload 15 times
+                GcpSink::resume_upload(&session_uri, &data)?;
             }
             Err(err) => {
                 log::error!("[output2] Failed to upload to GCP: {err:?}");
-                self.resume_upload(&session_uri, &data)?
+                // Retry the upload 15 times
+                GcpSink::resume_upload(&session_uri, &data)?;
             }
         }
 
         Ok(())
     }
 
-    fn create_upload_session(&self, url: &str, token: &str) -> OutputResult<String> {
+    /// Initialize the GCP upload session to start uploading data
+    fn create_upload_session(url: &str, token: &str) -> OutputResult<String> {
         let response = Client::new()
             .post(url)
             .bearer_auth(token)
@@ -178,6 +206,7 @@ impl GcpSink {
             .map_err(|err| OutputError::Sink(format!("invalid GCP session Location header: {err}")))
     }
 
+    /// Generate JWT token based on provided JSON service object
     fn create_jwt(&self) -> OutputResult<String> {
         let decoded_key = base64_decode_standard(&self.credential)
             .map_err(|err| OutputError::Sink(format!("failed to decode GCP key: {err:?}")))?;
@@ -206,10 +235,10 @@ impl GcpSink {
             .map_err(|err| OutputError::Sink(format!("failed to create GCP JWT: {err:?}")))
     }
 
-    fn resume_upload(&self, session_uri: &str, data: &[u8]) -> OutputResult<()> {
+    fn resume_upload(session_uri: &str, data: &[u8]) -> OutputResult<()> {
         let max_attempts = 15;
         for _ in 0..max_attempts {
-            match self.upload_status(session_uri, data.len())? {
+            match GcpSink::upload_status(session_uri, data.len())? {
                 UploadStatus::Complete => return Ok(()),
                 UploadStatus::ResumeFrom(offset) => {
                     if offset >= data.len() {
@@ -251,7 +280,8 @@ impl GcpSink {
         )))
     }
 
-    fn upload_status(&self, session_uri: &str, upload_size: usize) -> OutputResult<UploadStatus> {
+    /// Check our upload status when resume uploads. We try to resume any interrupted uploads
+    fn upload_status(session_uri: &str, upload_size: usize) -> OutputResult<UploadStatus> {
         let response = Client::new()
             .put(session_uri)
             .header("Content-Length", 0)
@@ -306,15 +336,14 @@ impl OutputSink for GcpSink {
             data = gzip.finish()?;
             count
         } else {
-            let count = encode(&mut data)?;
-            count
+            encode(&mut data)?
         };
 
         self.upload_bytes(&upload_filename, data, mime_type)?;
 
         Ok(OutputHandle::artifact(
             artifact_name,
-            OutputLocation::Remote(self.remote_location(&upload_filename)),
+            OutputLocation::Remote(GcpSink::remote_location(&upload_filename)),
             record_count,
             extension,
             self.compress,
@@ -328,7 +357,7 @@ impl OutputSink for GcpSink {
 
         self.upload_bytes(&upload_report, data, "application/json")?;
         Ok(OutputHandle::report(OutputLocation::Remote(
-            self.remote_location(&upload_report),
+            GcpSink::remote_location(&upload_report),
         )))
     }
 
@@ -347,12 +376,226 @@ impl OutputSink for GcpSink {
             .file_name()
             .and_then(|name| name.to_str())
             .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
-        let object_log = self.encode_path(filename);
+        let object_log = GcpSink::encode_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         self.upload_bytes(&object_log, data, "text/plain")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::output2::error::OutputError;
+    use crate::output2::sink::gcp::{GcpSink, UploadStatus};
+    use httpmock::Method::{POST, PUT};
+    use httpmock::MockServer;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    fn gcp_config(port: u16) -> OutputConfig {
+        OutputConfig {
+            name: String::from("test"),
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Gcp,
+            format: OutputFormat::Csv,
+            url: Some(format!("http://127.0.0.1:{port}")),
+            api_key: Some(String::from(
+                "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAiZmFrZW1lIiwKICAicHJpdmF0ZV9rZXlfaWQiOiAiZmFrZW1lIiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdndJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLa3dnZ1NsQWdFQUFvSUJBUUM3VkpUVXQ5VXM4Y0tqTXpFZll5amlXQTRSNC9NMmJTMUdCNHQ3TlhwOThDM1NDNmRWTXZEdWljdEdldXJUOGpOYnZKWkh0Q1N1WUV2dU5Nb1NmbTc2b3FGdkFwOEd5MGl6NXN4alptU25YeUNkUEVvdkdoTGEwVnpNYVE4cytDTE95UzU2WXlDRkdlSlpxZ3R6SjZHUjNlcW9ZU1c5YjlVTXZrQnBaT0RTY3RXU05HajNQN2pSRkRPNVZvVHdDUUFXYkZuT2pEZkg1VWxncDJQS1NRblNKUDNBSkxRTkZOZTdicjFYYnJoVi8vZU8rdDUxbUlwR1NEQ1V2M0UwRERGY1dEVEg5Y1hEVFRsUlpWRWlSMkJ3cFpPT2tFL1owL0JWbmhaWUw3MW9aVjM0YktmV2pRSXQ2Vi9pc1NNYWhkc0FBU0FDcDRaVEd0d2lWdU5kOXR5YkFnTUJBQUVDZ2dFQkFLVG1qYVM2dGtLOEJsUFhDbFRRMnZwei9ONnV4RGVTMzVtWHBxYXNxc2tWbGFBaWRnZy9zV3FwalhEYlhyOTNvdElNTGxXc00rWDBDcU1EZ1NYS2VqTFMyang0R0RqSTFaVFhnKyswQU1KOHNKNzRwV3pWRE9mbUNFUS83d1hzMytjYm5YaEtyaU84WjAzNnE5MlFjMStOODdTSTM4bmtHYTBBQkg5Q044M0htUXF0NGZCN1VkSHp1SVJlL21lMlBHaElxNVpCemo2aDNCcG9QR3pFUCt4M2w5WW1LOHQvMWNOMHBxSStkUXdZZGdmR2phY2tMdS8ycUg4ME1DRjdJeVFhc2VaVU9KeUtyQ0x0U0QvSWl4di9oekRFVVBmT0NqRkRnVHB6ZjNjd3RhOCtvRTR3SENvMWlJMS80VGxQa3dtWHg0cVNYdG13NGFRUHo3SURRdkVDZ1lFQThLTlRoQ08yZ3NDMkk5UFFETS84Q3cwTzk4M1dDRFkrb2krN0pQaU5BSnd2NURZQnFFWkIxUVlkajA2WUQxNlhsQy9IQVpNc01rdTFuYTJUTjBkcml3ZW5RUVd6b2V2M2cyUzdnUkRvUy9GQ0pTSTNqSitramd0YUE3UW16bGdrMVR4T0ROK0cxSDkxSFc3dDBsN1ZuTDI3SVd5WW8ycVJSSzNqenhxVWlQVUNnWUVBeDBvUXMycmVCUUdNVlpuQXBEMWplcTduNE12TkxjUHZ0OGIvZVU5aVV2Nlk0TWowU3VvL0FVOGxZWlhtOHViYnFBbHd6MlZTVnVuRDJ0T3BsSHlNVXJ0Q3RPYkFmVkRVQWhDbmRLYUE5Z0FwZ2ZiM3h3MUlLYnVRMXU0SUYxRkpsM1Z0dW1mUW4vL0xpSDFCM3JYaGNkeW8zL3ZJdHRFazQ4UmFrVUtDbFU4Q2dZRUF6VjdXM0NPT2xERGNRZDkzNURkdEtCRlJBUFJQQWxzcFFVbnpNaTVlU0hNRC9JU0xEWTVJaVFIYklIODNENGJ2WHEwWDdxUW9TQlNOUDdEdnYzSFl1cU1oZjBEYWVncmxCdUpsbEZWVnE5cVBWUm5LeHQxSWwySGd4T0J2YmhPVCs5aW4xQnpBK1lKOTlVekM4NU8wUXowNkErQ210SEV5NGFaMmtqNWhIakVDZ1lFQW1OUzQrQThGa3NzOEpzMVJpZUsyTG5pQnhNZ21ZbWwzcGZWTEtHbnptbmc3SDIrY3dQTGhQSXpJdXd5dFh5d2gyYnpic1lFZll4M0VvRVZnTUVwUGhvYXJRbllQdWtySk80Z3dFMm81VGU2VDVtSlNaR2xRSlFqOXE0WkIyRGZ6ZXQ2SU5zSzBvRzhYVkdYU3BRdlFoM1JVWWVrQ1pRa0JCRmNwcVdwYklFc0NnWUFuTTNEUWYzRkpvU25YYU1oclZCSW92aWM1bDB4RmtFSHNrQWpGVGV2Tzg2RnN6MUMyYVNlUktTcUdGb09RMHRtSnpCRXMxUjZLcW5ISW5pY0RUUXJLaEFyZ0xYWDR2M0NkZGpmVFJKa0ZXRGJFL0NrdktaTk9yY2YxbmhhR0NQc3BSSmoyS1VrajFGaGw5Q25jZG4vUnNZRU9OYndRU2pJZk1Qa3Z4Ris4SFE9PVxuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogImZha2VAZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICJmYWtlbWUiLAogICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsCiAgInRva2VuX3VyaSI6ICJodHRwczovL29hdXRoMi5nb29nbGVhcGlzLmNvbS90b2tlbiIsCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLAogICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9yb2JvdC92MS9tZXRhZGF0YS94NTA5L2Zha2VtZSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo=",
+            )),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_gcp_sink() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = gcp_config(port);
+        let sink = GcpSink::new(&config).unwrap();
+        assert_eq!(
+            sink.credential,
+            "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAiZmFrZW1lIiwKICAicHJpdmF0ZV9rZXlfaWQiOiAiZmFrZW1lIiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdndJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLa3dnZ1NsQWdFQUFvSUJBUUM3VkpUVXQ5VXM4Y0tqTXpFZll5amlXQTRSNC9NMmJTMUdCNHQ3TlhwOThDM1NDNmRWTXZEdWljdEdldXJUOGpOYnZKWkh0Q1N1WUV2dU5Nb1NmbTc2b3FGdkFwOEd5MGl6NXN4alptU25YeUNkUEVvdkdoTGEwVnpNYVE4cytDTE95UzU2WXlDRkdlSlpxZ3R6SjZHUjNlcW9ZU1c5YjlVTXZrQnBaT0RTY3RXU05HajNQN2pSRkRPNVZvVHdDUUFXYkZuT2pEZkg1VWxncDJQS1NRblNKUDNBSkxRTkZOZTdicjFYYnJoVi8vZU8rdDUxbUlwR1NEQ1V2M0UwRERGY1dEVEg5Y1hEVFRsUlpWRWlSMkJ3cFpPT2tFL1owL0JWbmhaWUw3MW9aVjM0YktmV2pRSXQ2Vi9pc1NNYWhkc0FBU0FDcDRaVEd0d2lWdU5kOXR5YkFnTUJBQUVDZ2dFQkFLVG1qYVM2dGtLOEJsUFhDbFRRMnZwei9ONnV4RGVTMzVtWHBxYXNxc2tWbGFBaWRnZy9zV3FwalhEYlhyOTNvdElNTGxXc00rWDBDcU1EZ1NYS2VqTFMyang0R0RqSTFaVFhnKyswQU1KOHNKNzRwV3pWRE9mbUNFUS83d1hzMytjYm5YaEtyaU84WjAzNnE5MlFjMStOODdTSTM4bmtHYTBBQkg5Q044M0htUXF0NGZCN1VkSHp1SVJlL21lMlBHaElxNVpCemo2aDNCcG9QR3pFUCt4M2w5WW1LOHQvMWNOMHBxSStkUXdZZGdmR2phY2tMdS8ycUg4ME1DRjdJeVFhc2VaVU9KeUtyQ0x0U0QvSWl4di9oekRFVVBmT0NqRkRnVHB6ZjNjd3RhOCtvRTR3SENvMWlJMS80VGxQa3dtWHg0cVNYdG13NGFRUHo3SURRdkVDZ1lFQThLTlRoQ08yZ3NDMkk5UFFETS84Q3cwTzk4M1dDRFkrb2krN0pQaU5BSnd2NURZQnFFWkIxUVlkajA2WUQxNlhsQy9IQVpNc01rdTFuYTJUTjBkcml3ZW5RUVd6b2V2M2cyUzdnUkRvUy9GQ0pTSTNqSitramd0YUE3UW16bGdrMVR4T0ROK0cxSDkxSFc3dDBsN1ZuTDI3SVd5WW8ycVJSSzNqenhxVWlQVUNnWUVBeDBvUXMycmVCUUdNVlpuQXBEMWplcTduNE12TkxjUHZ0OGIvZVU5aVV2Nlk0TWowU3VvL0FVOGxZWlhtOHViYnFBbHd6MlZTVnVuRDJ0T3BsSHlNVXJ0Q3RPYkFmVkRVQWhDbmRLYUE5Z0FwZ2ZiM3h3MUlLYnVRMXU0SUYxRkpsM1Z0dW1mUW4vL0xpSDFCM3JYaGNkeW8zL3ZJdHRFazQ4UmFrVUtDbFU4Q2dZRUF6VjdXM0NPT2xERGNRZDkzNURkdEtCRlJBUFJQQWxzcFFVbnpNaTVlU0hNRC9JU0xEWTVJaVFIYklIODNENGJ2WHEwWDdxUW9TQlNOUDdEdnYzSFl1cU1oZjBEYWVncmxCdUpsbEZWVnE5cVBWUm5LeHQxSWwySGd4T0J2YmhPVCs5aW4xQnpBK1lKOTlVekM4NU8wUXowNkErQ210SEV5NGFaMmtqNWhIakVDZ1lFQW1OUzQrQThGa3NzOEpzMVJpZUsyTG5pQnhNZ21ZbWwzcGZWTEtHbnptbmc3SDIrY3dQTGhQSXpJdXd5dFh5d2gyYnpic1lFZll4M0VvRVZnTUVwUGhvYXJRbllQdWtySk80Z3dFMm81VGU2VDVtSlNaR2xRSlFqOXE0WkIyRGZ6ZXQ2SU5zSzBvRzhYVkdYU3BRdlFoM1JVWWVrQ1pRa0JCRmNwcVdwYklFc0NnWUFuTTNEUWYzRkpvU25YYU1oclZCSW92aWM1bDB4RmtFSHNrQWpGVGV2Tzg2RnN6MUMyYVNlUktTcUdGb09RMHRtSnpCRXMxUjZLcW5ISW5pY0RUUXJLaEFyZ0xYWDR2M0NkZGpmVFJKa0ZXRGJFL0NrdktaTk9yY2YxbmhhR0NQc3BSSmoyS1VrajFGaGw5Q25jZG4vUnNZRU9OYndRU2pJZk1Qa3Z4Ris4SFE9PVxuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogImZha2VAZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICJmYWtlbWUiLAogICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsCiAgInRva2VuX3VyaSI6ICJodHRwczovL29hdXRoMi5nb29nbGVhcGlzLmNvbS90b2tlbiIsCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLAogICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9yb2JvdC92MS9tZXRhZGF0YS94NTA5L2Zha2VtZSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo="
+        );
+
+        assert!(!sink.log_file.display().to_string().is_empty());
+        assert_eq!(sink.object_path("test"), ".%2Ftmp%2Ftest%2Ftest");
+        assert!(
+            sink.output_path("processes", "jsonl")
+                .contains(".%2Ftmp%2Ftest%2Fprocesses_")
+        );
+
+        assert_eq!(GcpSink::encode_path("test/test/test"), "test%2Ftest%2Ftest");
+        assert_eq!(
+            GcpSink::remote_location("test%2Ftest%2Ftest"),
+            "test/test/test"
+        );
+        assert!(sink.log_filename().contains("artemis_"));
+
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .header("Location", format!("http://127.0.0.1:{port}"))
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+
+        let mock_me_put = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(200)
+                .header("content-type", "application/json")
+                .header("Location", format!("http://127.0.0.1:{port}"))
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+        sink.upload_bytes(
+            &sink.output_path("test", "jsonl"),
+            vec![0, 0, 0, 0, 0],
+            "applicstion/jsonl",
+        )
+        .unwrap();
+        mock_me.assert();
+        mock_me_put.assert();
+    }
+
+    #[test]
+    fn test_gcp_upload_session() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = gcp_config(port);
+        let sink = GcpSink::new(&config).unwrap();
+        let object = &sink.output_path("test", "jsonl");
+        let session = format!("{}/o?uploadType=resumable&name={object}", sink.url);
+        let token = sink.create_jwt().unwrap();
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .header("Location", format!("http://127.0.0.1:{port}"))
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+        let session_uri = GcpSink::create_upload_session(&session, &token).unwrap();
+        assert!(session_uri.contains("http://127.0.0.1:"));
+        mock_me.assert();
+    }
+
+    #[test]
+    fn test_gcp_create_jwt() {
+        let config = gcp_config(0);
+        let sink = GcpSink::new(&config).unwrap();
+
+        assert!(sink.create_jwt().unwrap().len() > 40);
+    }
+
+    #[test]
+    fn test_gcp_resume_upload() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = gcp_config(port);
+        let sink = GcpSink::new(&config).unwrap();
+
+        let mock_me_post = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .header("Location", format!("http://127.0.0.1:{port}"))
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+        let mock_me_resume = server.mock(|when, then| {
+            when.method(PUT)
+                .header_exists("Content-Length")
+                .header("Content-Range", "bytes 3-4/5");
+            then.status(200)
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+        let mock_me = server.mock(|when, then| {
+            when.method(PUT)
+                .header("Content-Range", "bytes */5")
+                .header("Content-Length", "0");
+            then.status(308)
+                .header("Range", "0-2")
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+
+        let data = [0, 1, 2, 3, 4];
+        let object = &sink.output_path("test", "jsonl");
+        let session = format!("{}/o?uploadType=resumable&name={object}", sink.url);
+        let token = sink.create_jwt().unwrap();
+        let session_uri = GcpSink::create_upload_session(&session, &token).unwrap();
+        GcpSink::resume_upload(&session_uri, &data).unwrap();
+
+        mock_me.assert();
+        mock_me_resume.assert();
+        mock_me_post.assert();
+    }
+
+    #[test]
+    fn test_gcp_upload_status() {
+        let server = MockServer::start();
+        let port = server.port();
+
+        let mock_me = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(308)
+                .header("Range", "0-5")
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+
+        let bytes = GcpSink::upload_status(&format!("http://127.0.0.1:{port}"), 10).unwrap();
+
+        assert_eq!(bytes, UploadStatus::ResumeFrom(6));
+        mock_me.assert();
+    }
+
+    #[test]
+    fn test_gcp_upload_status_complete() {
+        let server = MockServer::start();
+        let port = server.port();
+
+        let mock_me = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(200)
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+
+        let bytes = GcpSink::upload_status(&format!("http://127.0.0.1:{port}"), 10).unwrap();
+
+        assert_eq!(bytes, UploadStatus::Complete);
+        mock_me.assert();
+    }
+
+    #[test]
+    fn test_gcp_max_attempts() {
+        let server = MockServer::start();
+        let port = server.port();
+        let mock_me = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(308)
+                .header("Range", "0-2")
+                .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
+        });
+        let data = [0, 1, 2, 3, 4];
+        let err = GcpSink::resume_upload(&format!("http://127.0.0.1:{port}"), &data).unwrap_err();
+
+        assert!(
+            matches!(err, OutputError::Sink(value) if value == "max attempts reached for GCP upload")
+        );
+        mock_me.assert_calls(30);
+    }
+
+    #[test]
+    fn test_gcp_bad_url() {
+        let config = gcp_config(12345);
+        let sink = GcpSink::new(&config).unwrap();
+        let err = sink
+            .upload_bytes("test", vec![0, 0, 0], "test")
+            .unwrap_err();
+        assert!(
+            matches!(err, OutputError::Sink(value) if value == "failed to create GCP session: reqwest::Error { kind: Request, url: \"http://127.0.0.1:12345/o?uploadType=resumable&name=test\", source: hyper_util::client::legacy::Error(Connect, ConnectError(\"tcp connect error\", 127.0.0.1:12345, Os { code: 111, kind: ConnectionRefused, message: \"Connection refused\" })) }")
+        )
     }
 }
