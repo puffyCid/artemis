@@ -3,6 +3,7 @@ use crate::{
     output2::{
         config::OutputConfig,
         error::{OutputError, OutputResult},
+        report::CollectionReport,
         sink::{
             output_handle::{OutputHandle, OutputLocation},
             output_sink::{LogOutput, OutputSink},
@@ -128,10 +129,7 @@ impl OutputSink for LocalSink {
         ))
     }
 
-    fn write_report(
-        &mut self,
-        report: &crate::output2::report::CollectionReport,
-    ) -> OutputResult<OutputHandle> {
+    fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
         let uuid = generate_uuid();
         let output_path = self.output_directory.join(format!("report_{uuid}.json"));
 

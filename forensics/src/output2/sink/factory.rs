@@ -3,6 +3,7 @@ use crate::output2::{
     error::{OutputError, OutputResult},
     report::CollectionReport,
     sink::{
+        gcp::GcpSink,
         local::LocalSink,
         output_handle::OutputHandle,
         output_sink::{LogOutput, OutputSink},
@@ -16,6 +17,7 @@ use crate::output2::{
 pub(crate) enum Sink {
     /// Write encoded output to local system
     Local(LocalSink),
+    Gcp(GcpSink),
 }
 
 impl Sink {
@@ -29,6 +31,7 @@ impl Sink {
     ) -> OutputResult<OutputHandle> {
         match self {
             Self::Local(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            Self::Gcp(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
         }
     }
 
@@ -38,6 +41,7 @@ impl Sink {
     pub(crate) fn finalize(&mut self) -> OutputResult<()> {
         match self {
             Self::Local(sink) => sink.finalize(),
+            Self::Gcp(sink) => sink.finalize(),
         }
     }
 
@@ -45,6 +49,7 @@ impl Sink {
     pub(crate) fn create_log_file(&mut self) -> OutputResult<LogOutput> {
         match self {
             Self::Local(sink) => sink.create_log_file(),
+            Self::Gcp(sink) => sink.create_log_file(),
         }
     }
 
@@ -52,6 +57,7 @@ impl Sink {
     pub(crate) fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
         match self {
             Self::Local(sink) => sink.write_report(report),
+            Self::Gcp(sink) => sink.write_report(report),
         }
     }
 }
@@ -60,6 +66,7 @@ impl Sink {
 pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
     match config.destination {
         OutputDestination::Local => Ok(Sink::Local(LocalSink::new(config)?)),
+        OutputDestination::Gcp => Ok(Sink::Gcp(GcpSink::new(config)?)),
         _ => Err(OutputError::UnsupportedDestination(format!(
             "{:?}",
             config.destination
