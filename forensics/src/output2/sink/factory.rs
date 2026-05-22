@@ -3,6 +3,7 @@ use crate::output2::{
     error::{OutputError, OutputResult},
     report::CollectionReport,
     sink::{
+        aws::AwsSink,
         gcp::GcpSink,
         local::LocalSink,
         output_handle::OutputHandle,
@@ -18,6 +19,7 @@ pub(crate) enum Sink {
     /// Write encoded output to local system
     Local(LocalSink),
     Gcp(GcpSink),
+    Aws(AwsSink),
 }
 
 impl Sink {
@@ -32,6 +34,7 @@ impl Sink {
         match self {
             Self::Local(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
             Self::Gcp(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            Self::Aws(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
         }
     }
 
@@ -42,6 +45,7 @@ impl Sink {
         match self {
             Self::Local(sink) => sink.finalize(),
             Self::Gcp(sink) => sink.finalize(),
+            Self::Aws(sink) => sink.finalize(),
         }
     }
 
@@ -50,6 +54,7 @@ impl Sink {
         match self {
             Self::Local(sink) => sink.create_log_file(),
             Self::Gcp(sink) => sink.create_log_file(),
+            Self::Aws(sink) => sink.create_log_file(),
         }
     }
 
@@ -58,6 +63,7 @@ impl Sink {
         match self {
             Self::Local(sink) => sink.write_report(report),
             Self::Gcp(sink) => sink.write_report(report),
+            Self::Aws(sink) => sink.write_report(report),
         }
     }
 }
@@ -67,6 +73,7 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
     match config.destination {
         OutputDestination::Local => Ok(Sink::Local(LocalSink::new(config)?)),
         OutputDestination::Gcp => Ok(Sink::Gcp(GcpSink::new(config)?)),
+        OutputDestination::Aws => Ok(Sink::Aws(AwsSink::new(config)?)),
         _ => Err(OutputError::UnsupportedDestination(format!(
             "{:?}",
             config.destination

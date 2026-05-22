@@ -56,7 +56,7 @@ enum UploadStatus {
     ResumeFrom(usize),
 }
 
-/// A data Sink representing the GCP pipeline fow
+/// A data Sink representing the GCP pipeline flow
 pub(crate) struct GcpSink {
     /// Full URL to GCP Bucket
     url: String,
@@ -107,7 +107,7 @@ impl GcpSink {
         format!("{}%2F{filename}", GcpSink::encode_path(&self.url_path))
     }
 
-    /// Construct the filename for our upload
+    /// Construct the full path for our upload
     fn output_path(&self, artifact_name: &str, extension: &str) -> String {
         let uuid = generate_uuid();
         let filename = if self.compress {
@@ -165,14 +165,14 @@ impl GcpSink {
             }
             Ok(response) => {
                 log::error!(
-                    "[forensics] Non-success response from GCP upload: {:?}",
+                    "[forensics] Non-OK response from GCP upload: {:?}",
                     response.text()
                 );
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
             Err(err) => {
-                log::error!("[output2] Failed to upload to GCP: {err:?}");
+                log::error!("[forensics] Failed to upload to GCP: {err:?}");
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
@@ -343,7 +343,11 @@ impl OutputSink for GcpSink {
 
         Ok(OutputHandle::artifact(
             artifact_name,
-            OutputLocation::Remote(GcpSink::remote_location(&upload_filename)),
+            OutputLocation::Remote(format!(
+                "{}/{}",
+                self.url,
+                GcpSink::remote_location(&upload_filename)
+            )),
             record_count,
             extension,
             self.compress,
@@ -376,7 +380,7 @@ impl OutputSink for GcpSink {
             .file_name()
             .and_then(|name| name.to_str())
             .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
-        let object_log = GcpSink::encode_path(filename);
+        let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         self.upload_bytes(&object_log, data, "text/plain")?;

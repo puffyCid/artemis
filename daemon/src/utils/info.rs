@@ -7,7 +7,10 @@ use sysinfo::{Disks, Networks, Product, System};
 pub(crate) fn get_info() -> SystemInfo {
     let mut system = System::new();
     let args: Vec<String> = env::args().collect();
-
+    let artemis_features: Vec<String> = env!("ENABLED_FEATURES")
+        .split(",")
+        .map(|s| s.to_string())
+        .collect();
     SystemInfo {
         boot_time: unixepoch_to_iso(sysinfo::System::boot_time() as i64),
         hostname: sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname")),
@@ -25,7 +28,7 @@ pub(crate) fn get_info() -> SystemInfo {
         artemis_args: args.join(" "),
         artemis_version: env!("CARGO_PKG_VERSION").to_string(),
         artemis_commit: env!("GIT_HASH").to_string(),
-        artemis_features: env!("ENABLED_FEATURES").to_string(),
+        artemis_features,
         artemis_profile: env!("BUILD_PROFILE").to_string(),
         artemis_target: env!("COMPILE_TARGET").to_string(),
         rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),

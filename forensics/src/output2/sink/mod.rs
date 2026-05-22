@@ -1,3 +1,4 @@
+mod aws;
 pub(crate) mod factory;
 #[cfg(feature = "gcp")]
 mod gcp;

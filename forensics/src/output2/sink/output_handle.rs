@@ -18,6 +18,7 @@ pub(crate) struct OutputHandle {
     pub(crate) output_type: OutputType,
 }
 
+#[derive(Debug)]
 /// Location where an output item was written.
 pub(crate) enum OutputLocation {
     /// Output sent to local system
