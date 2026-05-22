@@ -35,13 +35,13 @@ fn main() {
             features.push(feature.to_lowercase());
         }
     }
-    // Pass the list to your main code as a compile-time env var
+    // Pass the list to main code as a compile-time env var
     println!("cargo:rustc-env=ENABLED_FEATURES={}", features.join(", "));
 
     // Read the TARGET variable provided by Cargo
     let target = std::env::var("TARGET").unwrap();
 
-    // Tell Cargo to set a compile-time env variable for your main code
+    // Tell Cargo to set a compile-time env variable for main code
     println!("cargo:rustc-env=COMPILE_TARGET={}", target);
 
     // Read the PROFILE env var set by Cargo

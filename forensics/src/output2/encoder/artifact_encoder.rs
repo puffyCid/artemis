@@ -98,7 +98,11 @@ mod tests {
     fn test_encoder() {
         let test = json!({"test":"value"});
         let output = OutputConfig::default();
-        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact("test");
+        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        );
 
         let mut writer = Cursor::new(Vec::new());
         let csv_encoder = Encoder::Csv(CsvEncoder);

@@ -23,9 +23,9 @@ pub(crate) struct OutputConfig {
     /// Whether to compress the results with gzip. The local output type is then compressed with zip
     pub compress: bool,
     /// Filter out results with time before start time
-    pub start_time: Option<String>,
+    pub start_time_filter: Option<String>,
     /// Filter out results with time after end time
-    pub end_time: Option<String>,
+    pub end_time_filter: Option<String>,
     /// Apply a filter script before outputting data
     pub filter_name: Option<String>,
     /// Run parsed data through provided filter script
@@ -71,8 +71,8 @@ impl TryFrom<Output> for OutputConfig {
             destination: OutputDestination::parse(&value.output)?,
             format: OutputFormat::parse(&value.format)?,
             compress: value.compress,
-            start_time: value.start_time,
-            end_time: value.end_time,
+            start_time_filter: value.start_time,
+            end_time_filter: value.end_time,
             filter_name: value.filter_name,
             filter_script: value.filter_script,
             url: value.url,

@@ -5,6 +5,7 @@ use crate::output2::{
     record::{Record, RecordStream},
 };
 use std::io::Write;
+use timeline::timeline::timeline_artifact_ng;
 
 /// Encoder for Timeline files. This is same as JSONL encoder except we do extra processing to timeline the data
 #[derive(Debug, PartialEq)]
@@ -29,6 +30,12 @@ impl ArtifactEncoder for TimelineEncoder {
             let Record::Json(record) = record;
             let mut value = record.into_value();
             append_metadata(&mut value, context);
+            timeline_artifact_ng(
+                &mut value,
+                &context.artifact_name,
+                &context.start_time_filter,
+                &context.end_time_filter,
+            );
             serde_json::to_writer(&mut *writer, &value)?;
             writer.write_all(b"\n")?;
 

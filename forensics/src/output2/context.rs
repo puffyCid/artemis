@@ -53,6 +53,10 @@ pub(crate) struct ArtifactContext {
     pub(crate) start_time_epoch: u64,
     /// Completion time for the Artemis artifact run
     pub(crate) complete_time: String,
+    /// Filter out results with time before start time
+    pub(crate) start_time_filter: Option<String>,
+    /// Filter out results with time after end time
+    pub(crate) end_time_filter: Option<String>,
     /// Metadata associated with the target system
     pub(crate) system: SystemInfoMetadata,
 }
@@ -73,7 +77,12 @@ impl CollectionContext {
     }
 
     /// Creates artifact context for records created per artifact output
-    pub(crate) fn artifact(&self, artifact_name: &str) -> ArtifactContext {
+    pub(crate) fn artifact(
+        &self,
+        artifact_name: &str,
+        start_time_filter: &Option<String>,
+        end_time_filter: &Option<String>,
+    ) -> ArtifactContext {
         let complete = time_now();
         ArtifactContext {
             artifact_name: artifact_name.to_string(),
@@ -85,6 +94,8 @@ impl CollectionContext {
             start_time_epoch: self.start_time_epoch,
             complete_time: unixepoch_to_iso(complete as i64),
             system: self.system.clone(),
+            start_time_filter: start_time_filter.clone(),
+            end_time_filter: end_time_filter.clone(),
         }
     }
 }
@@ -106,7 +117,11 @@ mod tests {
         assert_eq!(context.collection_name, "");
         assert!(!context.start_time.is_empty());
 
-        let artifact = context.artifact("processes");
+        let artifact = context.artifact(
+            "processes",
+            &out_ng.start_time_filter,
+            &out_ng.end_time_filter,
+        );
         assert_eq!(artifact.collection_name, "");
         assert_eq!(artifact.artifact_name, "processes");
     }

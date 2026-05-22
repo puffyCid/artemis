@@ -59,7 +59,11 @@ impl OutputManager {
         artifact_options_hash: String,
         records: &mut dyn RecordStream,
     ) -> OutputResult<()> {
-        let artifact_context = self.context.artifact(artifact_name);
+        let artifact_context = self.context.artifact(
+            artifact_name,
+            &self.config.start_time_filter,
+            &self.config.end_time_filter,
+        );
         let handle = self.sink.write_artifact(
             artifact_name,
             self.encoder.extension(),
@@ -310,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_output_manager_timeline() {
-        let name = String::from("manager_collection");
+        let name = String::from("manager_collection_timeline");
         let config = OutputConfig {
             name,
             endpoint_id: String::from("test"),
@@ -336,7 +340,7 @@ mod tests {
 
         manage.finalize().unwrap();
 
-        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection"));
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection_timeline"));
         assert!(output_dir.exists());
 
         let mut jsonl_files = Vec::new();
@@ -365,18 +369,18 @@ mod tests {
         assert_eq!(first_record["collection_metadata"]["id"], 0);
         assert_eq!(
             first_record["collection_metadata"]["artifact_name"],
-            "files"
+            "processes"
         );
         let report_data = read_to_string(&report_files[0]).unwrap();
         let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
         assert_eq!(report["collection_id"], 0);
         assert_eq!(report["endpoint_id"], "test");
         assert_eq!(report["total_output_files"], 1);
-        assert_eq!(report["artifacts"][0], "files");
-        assert_eq!(report["artifact_runs"][0]["name"], "files");
+        assert_eq!(report["artifacts"][0], "processes");
+        assert_eq!(report["artifact_runs"][0]["name"], "processes");
         assert_eq!(report["artifact_runs"][0]["artifact_options_hash"], "md5");
         assert_eq!(report["artifact_runs"][0]["output_count"], 1);
-        assert_eq!(report["artifact_runs"][0]["record_count"], 2);
+        assert_eq!(report["artifact_runs"][0]["record_count"], 1);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
     }
 }
