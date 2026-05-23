@@ -20,7 +20,7 @@ use std::{
 
 /// A data Sink representing the Azure pipeline flow
 pub(crate) struct AzureSink {
-    /// Full URL to GCP Bucket
+    /// Full URL to Azure Bucket
     url: String,
     /// Full URL that we upload our data too. Contains directory and name of out collection
     url_path: String,
@@ -40,7 +40,7 @@ impl AzureSink {
             None => return Err(OutputError::Sink(String::from("no Azure bucket provided"))),
         };
 
-        // Full URL path that we upload data to. Our directory and collection name will be folders in GCP
+        // Full URL path that we upload data to. Our directory and collection name will be folders in Azure
         // This mimics what Artemis does when writing to local disk
         let url_path = format!("{}/{}", config.directory.display(), config.name);
 
@@ -115,7 +115,7 @@ impl AzureSink {
     }
 
     /// Construct the full path for our upload
-    fn output_path(&self, artifact_name: &str, extension: &str) -> String {
+    fn construct_filename(&self, artifact_name: &str, extension: &str) -> String {
         let uuid = generate_uuid();
         let filename = if self.compress {
             format!("{artifact_name}_{uuid}.{extension}.gz")
@@ -145,7 +145,7 @@ impl OutputSink for AzureSink {
         mime_type: &str,
         encode: &mut dyn FnMut(&mut dyn Write) -> OutputResult<usize>,
     ) -> OutputResult<OutputHandle> {
-        let upload_filename = self.output_path(artifact_name, extension);
+        let upload_filename = self.construct_filename(artifact_name, extension);
         let mut data = Vec::new();
 
         let record_count = if self.compress {
@@ -260,7 +260,7 @@ mod tests {
         });
 
         sink.upload_bytes(
-            &sink.output_path("test", "jsonl"),
+            &sink.construct_filename("test", "jsonl"),
             vec![0, 0, 0, 0],
             "application/csv",
         )

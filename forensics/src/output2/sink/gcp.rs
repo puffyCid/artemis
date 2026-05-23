@@ -109,7 +109,7 @@ impl GcpSink {
     }
 
     /// Construct the full path for our upload
-    fn output_path(&self, artifact_name: &str, extension: &str) -> String {
+    fn construct_filename(&self, artifact_name: &str, extension: &str) -> String {
         let uuid = generate_uuid();
         let filename = if self.compress {
             format!("{artifact_name}_{uuid}.{extension}.gz")
@@ -327,7 +327,7 @@ impl OutputSink for GcpSink {
         mime_type: &str,
         encode: &mut dyn FnMut(&mut dyn Write) -> OutputResult<usize>,
     ) -> OutputResult<OutputHandle> {
-        let upload_filename = self.output_path(artifact_name, extension);
+        let upload_filename = self.construct_filename(artifact_name, extension);
         let mut data = Vec::new();
 
         let record_count = if self.compress {
@@ -430,7 +430,7 @@ mod tests {
         assert!(!sink.log_file.display().to_string().is_empty());
         assert_eq!(sink.object_path("test"), ".%2Ftmp%2Ftest%2Ftest");
         assert!(
-            sink.output_path("processes", "jsonl")
+            sink.construct_filename("processes", "jsonl")
                 .contains(".%2Ftmp%2Ftest%2Fprocesses_")
         );
 
@@ -457,7 +457,7 @@ mod tests {
                 .json_body(json!({ "timeCreated": "whatever", "name":"mockme" }));
         });
         sink.upload_bytes(
-            &sink.output_path("test", "jsonl"),
+            &sink.construct_filename("test", "jsonl"),
             vec![0, 0, 0, 0, 0],
             "application/jsonl",
         )
@@ -472,7 +472,7 @@ mod tests {
         let port = server.port();
         let config = gcp_config(port);
         let sink = GcpSink::new(&config).unwrap();
-        let object = &sink.output_path("test", "jsonl");
+        let object = &sink.construct_filename("test", "jsonl");
         let session = format!("{}/o?uploadType=resumable&name={object}", sink.url);
         let token = sink.create_jwt().unwrap();
         let mock_me = server.mock(|when, then| {
@@ -526,7 +526,7 @@ mod tests {
         });
 
         let data = [0, 1, 2, 3, 4];
-        let object = &sink.output_path("test", "jsonl");
+        let object = &sink.construct_filename("test", "jsonl");
         let session = format!("{}/o?uploadType=resumable&name={object}", sink.url);
         let token = sink.create_jwt().unwrap();
         let session_uri = GcpSink::create_upload_session(&session, &token).unwrap();

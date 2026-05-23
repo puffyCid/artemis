@@ -184,7 +184,7 @@ impl AwsSink {
     }
 
     /// Construct the filename for our upload
-    fn output_path(&self, artifact_name: &str, extension: &str) -> String {
+    fn construct_filename(&self, artifact_name: &str, extension: &str) -> String {
         let uuid = generate_uuid();
         let filename = if self.compress {
             format!("{artifact_name}_{uuid}.{extension}.gz")
@@ -271,7 +271,7 @@ impl OutputSink for AwsSink {
         mime_type: &str,
         encode: &mut dyn FnMut(&mut dyn Write) -> OutputResult<usize>,
     ) -> OutputResult<OutputHandle> {
-        let upload_filename = self.output_path(artifact_name, extension);
+        let upload_filename = self.construct_filename(artifact_name, extension);
         let mut data = Vec::new();
 
         let record_count = if self.compress {
@@ -297,9 +297,6 @@ impl OutputSink for AwsSink {
     fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
         let filename = format!("report_{}.json", generate_uuid());
         let upload_report = self.object_path(&filename);
-        let data = serde_json::to_vec(report)?;
-
-        self.upload_bytes(&upload_report, data, "application/json")?;
         let data = serde_json::to_vec(report)?;
 
         self.upload_bytes(&upload_report, data, "application/json")?;
