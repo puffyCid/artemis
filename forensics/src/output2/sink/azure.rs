@@ -78,7 +78,7 @@ impl AzureSink {
             match result {
                 Ok(response)
                     if response.status() == StatusCode::OK
-                        && response.status() == StatusCode::CREATED =>
+                        || response.status() == StatusCode::CREATED =>
                 {
                     return Ok(());
                 }
