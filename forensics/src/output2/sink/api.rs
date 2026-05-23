@@ -10,8 +10,11 @@ use crate::{
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
-use log::error;
-use reqwest::{StatusCode, blocking::Client};
+use log::{error, warn};
+use reqwest::{
+    StatusCode,
+    blocking::{Client, multipart},
+};
 use std::{
     fs::{File, create_dir_all, read, remove_file},
     path::PathBuf,
@@ -55,26 +58,53 @@ impl ApiSink {
     }
 
     /// Start the upload process to API server
-    fn upload_bytes(&self, data: Vec<u8>, mime_type: &str) -> OutputResult<()> {
+    fn upload_bytes(
+        &self,
+        data: Vec<u8>,
+        mime_type: &str,
+        compress: bool,
+        filename: &str,
+    ) -> OutputResult<()> {
         let client = Client::new();
         let max_attempts = 15;
         let pause = 8;
 
         for attempt in 0..max_attempts {
-            let result = client
+            let mut builder = client
                 .post(&self.url)
                 .header("x-artemis-endpoint_id", &self.endpoint_id)
-                .header("x-artemis-collection-id", self.collection_id)
-                .header("x-artemis-collection-name", &self.name)
+                .header("x-artemis-collection_id", self.collection_id)
+                .header("x-artemis-collection_name", &self.name)
                 .header("accept", "application/json")
-                .header("Content-Encoding", "gzip")
                 .header("Content-Type", mime_type)
-                .body(data.clone())
-                .send();
+                .body(data.clone());
+
+            let mut part = multipart::Part::bytes(data.clone());
+            part = part.file_name(filename.to_string());
+            if compress {
+                builder = builder.header("Content-Encoding", "gzip")
+            }
+            if filename.ends_with(".log") {
+                // The last two uploads for collections are just plaintext log files
+                part = part.mime_str("text/plain").unwrap();
+            } else if filename.ends_with(".jsonl") {
+                // Should be safe to unwrap?
+                part = part.mime_str("application/jsonl").unwrap();
+            } else {
+                // Should be safe to unwrap?
+                part = part.mime_str("application/json").unwrap();
+            }
+
+            let form = multipart::Form::new().part("artemis-upload", part);
+            builder = builder.multipart(form);
+            let result = builder.send();
 
             match result {
                 Ok(response) if response.status() == StatusCode::OK => return Ok(()),
-                Ok(_response) => {}
+                Ok(response) => warn!(
+                    "[forensics] Non-OK response from server: {:?}",
+                    response.status()
+                ),
                 Err(err) => {
                     error!("[forensics] Failed to upload data to API. Error: {err:?}");
                 }
@@ -109,7 +139,7 @@ impl OutputSink for ApiSink {
         let mut gzip = GzEncoder::new(Vec::new(), Compression::default());
         let record_count = encode(&mut gzip)?;
         let data = gzip.finish()?;
-        self.upload_bytes(data, mime_type)?;
+        self.upload_bytes(data, mime_type, true, artifact_name)?;
 
         Ok(OutputHandle::artifact(
             artifact_name,
@@ -125,8 +155,9 @@ impl OutputSink for ApiSink {
         report: &crate::output2::report::CollectionReport,
     ) -> crate::output2::error::OutputResult<super::output_handle::OutputHandle> {
         let data = serde_json::to_vec(report)?;
+        let filename = format!("report_{}.json", generate_uuid());
 
-        self.upload_bytes(data, "application/json")?;
+        self.upload_bytes(data, "application/json", false, &filename)?;
         Ok(OutputHandle::report(OutputLocation::Remote(
             self.url.clone(),
         )))
@@ -144,8 +175,13 @@ impl OutputSink for ApiSink {
     }
 
     fn finalize(&mut self) -> OutputResult<()> {
+        let filename = self
+            .log_file
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(data, "text/plain")?;
+        self.upload_bytes(data, "text/plain", false, &filename)?;
         let _ = remove_file(&self.log_file);
 
         Ok(())
@@ -193,7 +229,7 @@ mod tests {
                 .json_body(json!({ "message": "ok" }));
         });
 
-        sink.upload_bytes(vec![0, 0, 0, 0, 0], "applicstion/jsonl")
+        sink.upload_bytes(vec![0, 0, 0, 0, 0], "applicstion/jsonl", true, "test")
             .unwrap();
         mock_me.assert();
     }
