@@ -73,9 +73,7 @@ impl ApiSink {
                 .send();
 
             match result {
-                Ok(response) if response.status() == StatusCode::OK => {
-                    break;
-                }
+                Ok(response) if response.status() == StatusCode::OK => return Ok(()),
                 Ok(_response) => {}
                 Err(err) => {
                     error!("[forensics] Failed to upload data to API. Error: {err:?}");
@@ -87,7 +85,9 @@ impl ApiSink {
             // Pause between each attempt
             sleep(Duration::from_secs(backoff as u64));
         }
-        Ok(())
+        Err(OutputError::Sink(String::from(
+            "max attempts reached for API upload",
+        )))
     }
 
     /// Return the log file we are logging to

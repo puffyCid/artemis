@@ -404,8 +404,6 @@ mod tests {
             when.method(PUT);
             then.status(200).header("ETAG", "whatever");
         });
-        sink.upload_bytes("test", vec![0, 0, 0, 0], "application/jsonl")
-            .unwrap();
 
         let mut encode = |writer: &mut dyn std::io::Write| {
             writer.write_all(br#"{"pid":1}"#)?;
@@ -421,8 +419,8 @@ mod tests {
         sink.write_report(&report).unwrap();
         sink.create_log_file().unwrap();
         sink.finalize().unwrap();
-        mock_me.assert_calls(8);
-        mock_me_put.assert_calls(4);
+        mock_me.assert_calls(6);
+        mock_me_put.assert_calls(3);
     }
 
     #[test]
@@ -467,5 +465,36 @@ mod tests {
         assert!(
             matches!(err, OutputError::Sink(value) if value == "max attempts reached for AWS setup")
         );
+    }
+
+    #[test]
+    fn test_aws_upload_bytes() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = aws_config(port);
+        let sink = AwsSink::new(&config)
+            .unwrap()
+            .with_url_style(UrlStyle::Path);
+
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200).body(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <InitiateMultipartUploadResult>
+            <Bucket>mybucket</Bucket>
+            <Key>mykey</Key>
+            <UploadId>whatever</UploadId>
+         </InitiateMultipartUploadResult>",
+            );
+        });
+        let mock_me_put = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(200).header("ETAG", "whatever");
+        });
+        sink.upload_bytes("test", vec![0, 0, 0, 0], "application/jsonl")
+            .unwrap();
+
+        mock_me.assert_calls(2);
+        mock_me_put.assert_calls(1);
     }
 }
