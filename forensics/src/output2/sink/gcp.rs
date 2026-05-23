@@ -12,6 +12,7 @@ use crate::{
 };
 use flate2::{Compression, write::GzEncoder};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -77,7 +78,7 @@ impl GcpSink {
     pub(crate) fn new(config: &OutputConfig) -> OutputResult<Self> {
         let url = match &config.url {
             Some(result) => result,
-            None => return Err(OutputError::Sink(String::from("no bucket provided"))),
+            None => return Err(OutputError::Sink(String::from("no GCP bucket provided"))),
         };
 
         let key = match &config.api_key {
@@ -155,16 +156,15 @@ impl GcpSink {
                 if let Ok(bytes) = response.bytes()
                     && let Ok(status) = serde_json::from_slice::<UploadResponse>(&bytes)
                 {
-                    log::info!(
+                    info!(
                         "[forensics] Uploaded GCP object {} at {}",
-                        status.name,
-                        status.time_created
+                        status.name, status.time_created
                     );
                 }
                 return Ok(());
             }
             Ok(response) => {
-                log::error!(
+                error!(
                     "[forensics] Non-OK response from GCP upload: {:?}",
                     response.text()
                 );
@@ -172,7 +172,7 @@ impl GcpSink {
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
             Err(err) => {
-                log::error!("[forensics] Failed to upload to GCP: {err:?}");
+                error!("[forensics] Failed to upload to GCP: {err:?}");
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
@@ -263,13 +263,13 @@ impl GcpSink {
                             return Ok(());
                         }
                         Ok(response) => {
-                            log::warn!(
+                            warn!(
                                 "[forensics] GCP resume upload got response: {:?}",
                                 response.text()
                             );
                         }
                         Err(err) => {
-                            log::warn!("[forensics] GCP resume upload failed: {err:?}");
+                            warn!("[forensics] GCP resume upload failed: {err:?}");
                         }
                     }
                 }
@@ -459,7 +459,7 @@ mod tests {
         sink.upload_bytes(
             &sink.output_path("test", "jsonl"),
             vec![0, 0, 0, 0, 0],
-            "applicstion/jsonl",
+            "application/jsonl",
         )
         .unwrap();
         mock_me.assert();

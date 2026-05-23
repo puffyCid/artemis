@@ -3,7 +3,9 @@ use crate::output2::{
     error::{OutputError, OutputResult},
     report::CollectionReport,
     sink::{
+        api::ApiSink,
         aws::AwsSink,
+        azure::AzureSink,
         gcp::GcpSink,
         local::LocalSink,
         output_handle::OutputHandle,
@@ -20,6 +22,8 @@ pub(crate) enum Sink {
     Local(LocalSink),
     Gcp(GcpSink),
     Aws(AwsSink),
+    Azure(AzureSink),
+    Api(ApiSink),
 }
 
 impl Sink {
@@ -35,6 +39,8 @@ impl Sink {
             Self::Local(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
             Self::Gcp(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
             Self::Aws(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            Self::Azure(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            Self::Api(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
         }
     }
 
@@ -46,6 +52,8 @@ impl Sink {
             Self::Local(sink) => sink.finalize(),
             Self::Gcp(sink) => sink.finalize(),
             Self::Aws(sink) => sink.finalize(),
+            Self::Azure(sink) => sink.finalize(),
+            Self::Api(sink) => sink.finalize(),
         }
     }
 
@@ -55,6 +63,8 @@ impl Sink {
             Self::Local(sink) => sink.create_log_file(),
             Self::Gcp(sink) => sink.create_log_file(),
             Self::Aws(sink) => sink.create_log_file(),
+            Self::Azure(sink) => sink.create_log_file(),
+            Self::Api(sink) => sink.create_log_file(),
         }
     }
 
@@ -64,6 +74,8 @@ impl Sink {
             Self::Local(sink) => sink.write_report(report),
             Self::Gcp(sink) => sink.write_report(report),
             Self::Aws(sink) => sink.write_report(report),
+            Self::Azure(sink) => sink.write_report(report),
+            Self::Api(sink) => sink.write_report(report),
         }
     }
 }
@@ -74,6 +86,8 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
         OutputDestination::Local => Ok(Sink::Local(LocalSink::new(config)?)),
         OutputDestination::Gcp => Ok(Sink::Gcp(GcpSink::new(config)?)),
         OutputDestination::Aws => Ok(Sink::Aws(AwsSink::new(config)?)),
+        OutputDestination::Azure => Ok(Sink::Azure(AzureSink::new(config)?)),
+        OutputDestination::Api => Ok(Sink::Api(ApiSink::new(config)?)),
         _ => Err(OutputError::UnsupportedDestination(format!(
             "{:?}",
             config.destination

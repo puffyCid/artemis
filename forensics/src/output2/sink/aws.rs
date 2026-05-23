@@ -63,7 +63,7 @@ impl AwsSink {
     pub(crate) fn new(config: &OutputConfig) -> OutputResult<Self> {
         let url = match &config.url {
             Some(result) => result,
-            None => return Err(OutputError::Sink(String::from("no bucket provided"))),
+            None => return Err(OutputError::Sink(String::from("no AWS bucket provided"))),
         };
 
         let key = match &config.api_key {

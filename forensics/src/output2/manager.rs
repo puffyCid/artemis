@@ -383,4 +383,102 @@ mod tests {
         assert_eq!(report["artifact_runs"][0]["record_count"], 1);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
     }
+
+    #[test]
+    fn test_output_manager_azure() {
+        let server = MockServer::start();
+        let port = server.port();
+        let name = String::from("manager_azure_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Azure,
+            format: OutputFormat::Json,
+            url: Some(format!(
+                "http://127.0.0.1:{port}/mycontainername?sp=rcw&st=2023-06-14T03:00:40Z&se=2023-06-14T11:00:40Z&skoid=asdfasdfas-asdfasdfsadf-asdfsfd-sadf"
+            )),
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+        let mock_me = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(200)
+                .header("Last-Modified", "2023-06-14 12:00:00")
+                .header("Content-MD5", "sQqNsWTgdUEFt6mb5y4/5Q==");
+        });
+
+        manage
+            .write_artifact("files", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.finalize().unwrap();
+
+        // 3 uploads:
+        // Dummy artifact
+        // Failed artifact
+        // log file
+        mock_me.assert_calls(3);
+    }
+
+    #[test]
+    fn test_output_manager_api() {
+        let server = MockServer::start();
+        let port = server.port();
+        let name = String::from("manager_api_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Api,
+            format: OutputFormat::Jsonl,
+            url: Some(format!("http://127.0.0.1:{port}")),
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+        let mock_me = server.mock(|when, then| {
+            when.method(POST).header("x-artemis-endpoint_id", "abcd");
+            then.status(200)
+                .header("content-type", "application/json")
+                .json_body(json!({ "message": "ok" }));
+        });
+
+        manage
+            .write_artifact("files", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.finalize().unwrap();
+
+        // 3 uploads:
+        // Dummy artifact
+        // Failed artifact
+        // log file
+        mock_me.assert_calls(3);
+    }
 }
