@@ -287,7 +287,7 @@ impl OutputSink for AwsSink {
 
         Ok(OutputHandle::artifact(
             artifact_name,
-            OutputLocation::Remote(format!("{}/{upload_filename}", self.url.as_str())),
+            OutputLocation::Remote(upload_filename),
             record_count,
             extension,
             self.compress,
@@ -300,10 +300,7 @@ impl OutputSink for AwsSink {
         let data = serde_json::to_vec(report)?;
 
         self.upload_bytes(&upload_report, data, "application/json")?;
-        Ok(OutputHandle::report(OutputLocation::Remote(format!(
-            "{}/{upload_report}",
-            self.url.as_str()
-        ))))
+        Ok(OutputHandle::report(OutputLocation::Remote(upload_report)))
     }
 
     fn create_log_file(&mut self) -> OutputResult<LogOutput> {

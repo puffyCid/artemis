@@ -343,11 +343,7 @@ impl OutputSink for GcpSink {
 
         Ok(OutputHandle::artifact(
             artifact_name,
-            OutputLocation::Remote(format!(
-                "{}/{}",
-                self.url,
-                GcpSink::remote_location(&upload_filename)
-            )),
+            OutputLocation::Remote(GcpSink::remote_location(&upload_filename)),
             record_count,
             extension,
             self.compress,
