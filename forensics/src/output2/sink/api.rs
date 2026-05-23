@@ -76,8 +76,7 @@ impl ApiSink {
                 .header("x-artemis-collection_id", self.collection_id)
                 .header("x-artemis-collection_name", &self.name)
                 .header("accept", "application/json")
-                .header("Content-Type", mime_type)
-                .body(data.clone());
+                .header("Content-Type", mime_type);
 
             let mut part = multipart::Part::bytes(data.clone());
             part = part.file_name(filename.to_string());
