@@ -22,8 +22,8 @@ use std::{
 pub(crate) struct AzureSink {
     /// Full URL to Azure Bucket
     url: String,
-    /// Full URL that we upload our data too. Contains directory and name of out collection
-    url_path: String,
+    /// Full object that we upload our data too. Contains directory and name of out collection
+    object_prefix: String,
     /// Local log file we are using to log any issues during the Artemis execution
     log_file: PathBuf,
     /// Collection ID for the Artemis execution
@@ -40,16 +40,16 @@ impl AzureSink {
             None => return Err(OutputError::Sink(String::from("no Azure bucket provided"))),
         };
 
-        // Full URL path that we upload data to. Our directory and collection name will be folders in Azure
+        // Full path that we upload data to. Our directory and collection name will be folders in Azure
         // This mimics what Artemis does when writing to local disk
-        let url_path = format!("{}/{}", config.directory.display(), config.name);
+        let object_prefix = format!("{}/{}", config.directory.display(), config.name);
 
         // Local directory to store log file. Artemis logs issues locally. Once artifact and report uploads are done
         // The log file is then uploaded. The log file is uploaded last
         let log_file = config.directory.join(&config.name);
         Ok(Self {
             url: url.clone(),
-            url_path,
+            object_prefix,
             collection_id: config.collection_id,
             compress: config.compress,
             log_file,
@@ -112,7 +112,10 @@ impl AzureSink {
 
     /// Encode our uploaded filenames
     fn object_path(&self, filename: &str) -> String {
-        format!("{}%2F{filename}", AzureSink::encode_path(&self.url_path))
+        format!(
+            "{}%2F{filename}",
+            AzureSink::encode_path(&self.object_prefix)
+        )
     }
 
     /// Construct the full path for our upload
@@ -128,8 +131,8 @@ impl AzureSink {
     }
 
     /// URL decode upload paths to "/"
-    fn remote_location(url_path: &str) -> String {
-        url_path.replace("%2F", "/")
+    fn remote_location(object_prefix: &str) -> String {
+        object_prefix.replace("%2F", "/")
     }
 
     /// Return the log file we are logging to

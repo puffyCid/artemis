@@ -21,7 +21,7 @@ use rusty_s3::{
 };
 use serde::Deserialize;
 use std::{
-    fs::{File, read, remove_file},
+    fs::{File, create_dir_all, read, remove_file},
     io::Write,
     path::PathBuf,
     time::Duration,
@@ -46,8 +46,8 @@ struct AwsSetup {
 pub(crate) struct AwsSink {
     /// Full URL to AWS Bucket
     url: Url,
-    /// Full URL that we upload our data too. Contains directory and name of out collection
-    url_path: String,
+    /// Full object that we upload our data too. Contains directory and name of out collection
+    object_prefix: String,
     /// Local log file we are using to log any issues during the Artemis execution
     log_file: PathBuf,
     /// JSON credential used for uploads
@@ -71,9 +71,9 @@ impl AwsSink {
             None => return Err(OutputError::Sink(String::from("no AWS API key provided"))),
         };
 
-        // Full URL path that we upload data to. Our directory and collection name will be folders in AWS
+        // Path that we upload data to. Our directory and collection name will be folders in AWS
         // This mimics what Artemis does when writing to local disk
-        let url_path = format!("{}/{}", config.directory.display(), config.name);
+        let object_prefix = format!("{}/{}", config.directory.display(), config.name);
 
         // Local directory to store log file. Artemis logs issues locally. Once artifact and report uploads are done
         // The log file is then uploaded. The log file is uploaded last
@@ -83,7 +83,7 @@ impl AwsSink {
             .map_err(|err| OutputError::Sink(format!("failed to parse AWS URL: {err:?}")))?;
         Ok(Self {
             url,
-            url_path,
+            object_prefix,
             credential: key.clone(),
             collection_id: config.collection_id,
             compress: config.compress,
@@ -109,7 +109,7 @@ impl AwsSink {
         let max_attempts = 15;
         let client = Client::new();
         let mut etag = Vec::new();
-        for _ in 0..max_attempts {
+        for attempt in 0..max_attempts {
             let signed_url = part_upload.sign(duration);
             let result = client
                 .put(signed_url)
@@ -126,12 +126,12 @@ impl AwsSink {
                 }
                 Ok(response) => {
                     log::error!(
-                        "[forensics] Non-OK response from AWS upload: {:?}",
+                        "[forensics] Non-OK response for upload on attempt {attempt}: {:?}",
                         response.text()
                     );
                 }
                 Err(err) => {
-                    log::error!("[forensics] Failed to upload to AWS: {err:?}");
+                    log::error!("[forensics] Failed to upload on attempt {attempt}: {err:?}");
                 }
             }
         }
@@ -151,7 +151,7 @@ impl AwsSink {
         );
         let url = action.sign(duration);
 
-        for _ in 0..max_attempts {
+        for attempt in 0..max_attempts {
             let result = client.post(url.as_str()).body(action.clone().body()).send();
             match result {
                 Ok(response) if response.status() == StatusCode::OK => {
@@ -161,26 +161,30 @@ impl AwsSink {
                         .contains("Internal Error")
                     {
                         error!(
-                            "[forensics] OK response on final upload but the response contained an error"
+                            "[forensics] OK response on final upload but the response contained an error for attempt {attempt}"
                         );
                         continue;
                     }
-                    break;
+                    return Ok(());
                 }
                 Ok(response) => {
-                    warn!("[forensics] Non-OK response on final upload Response: {response:?}");
+                    warn!(
+                        "[forensics] Non-OK response on attempt {attempt} for final upload : {response:?}"
+                    );
                 }
                 Err(err) => {
-                    log::error!("[forensics] Final upload failed to upload to AWS: {err:?}");
+                    error!("[forensics] Final upload failed on attempt {attempt}: {err:?}");
                 }
             }
         }
-        Ok(())
+        Err(OutputError::Sink(String::from(
+            "max attempts reached for AWS upload",
+        )))
     }
 
     /// Construct the full path for our upload
     fn object_path(&self, filename: &str) -> String {
-        format!("{}/{filename}", self.url_path)
+        format!("{}/{filename}", self.object_prefix)
     }
 
     /// Construct the filename for our upload
@@ -229,8 +233,7 @@ impl AwsSink {
         let client = Client::new();
         let max_attempts = 15;
 
-        let mut xml_session = String::new();
-        for _ in 0..max_attempts {
+        for attempt in 0..max_attempts {
             let response = client
                 .post(url.as_str())
                 .send()
@@ -238,28 +241,30 @@ impl AwsSink {
 
             if response.status() != StatusCode::OK {
                 warn!(
-                    "[forensics] Non-200 AWS response on upload start. Response: {:?}",
+                    "[forensics] Non-200 AWS response on upload start. Attempt {attempt}: {:?}",
                     response.status()
                 );
                 continue;
             }
-            xml_session = response.text().map_err(|err| {
+            let xml_session = response.text().map_err(|err| {
                 OutputError::Sink(format!("failed to get AWS XML start: {err:?}"))
             })?;
-            break;
+
+            let session = CreateMultipartUpload::parse_response(xml_session).map_err(|err| {
+                OutputError::Sink(format!("failed to parse AWS XML session: {err:?}"))
+            })?;
+
+            let setup = AwsSetup {
+                bucket,
+                creds,
+                session,
+            };
+
+            return Ok(setup);
         }
-
-        let session = CreateMultipartUpload::parse_response(xml_session).map_err(|err| {
-            OutputError::Sink(format!("failed to parse AWS XML session: {err:?}"))
-        })?;
-
-        let setup = AwsSetup {
-            bucket,
-            creds,
-            session,
-        };
-
-        Ok(setup)
+        Err(OutputError::Sink(String::from(
+            "max attempts reached for AWS setup",
+        )))
     }
 }
 
@@ -295,6 +300,7 @@ impl OutputSink for AwsSink {
     }
 
     fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
+        create_dir_all(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         let filename = format!("report_{}.json", generate_uuid());
         let upload_report = self.object_path(&filename);
         let data = serde_json::to_vec(report)?;
