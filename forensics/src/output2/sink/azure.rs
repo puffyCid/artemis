@@ -62,7 +62,7 @@ impl AzureSink {
         let max_attempts = 15;
         let azure_url = self.compose_url(object_name)?;
 
-        for _ in 0..max_attempts {
+        for attempt in 0..max_attempts {
             let mut builder = client
                 .put(&azure_url)
                 .header("Content-Type", mime_type)
@@ -70,38 +70,39 @@ impl AzureSink {
                 .header("x-ms-version", "2019-12-12");
 
             if !azure_url.contains("&comp=") {
-                builder = builder.header("x-ms-blob-type", "Blockblob");
+                builder = builder.header("x-ms-blob-type", "BlockBlob");
             }
 
             let result = builder.body(data.clone()).send();
 
             match result {
                 Ok(response)
-                    if response.status() != StatusCode::OK
-                        && response.status() != StatusCode::CREATED =>
+                    if response.status() == StatusCode::OK
+                        && response.status() == StatusCode::CREATED =>
                 {
-                    error!(
-                        "[forensics] Non-OK response from Azure blob storage: {:?}",
-                        response.status()
-                    );
+                    return Ok(());
                 }
-                Ok(_response) => break,
-                Err(err) => error!("[forensics] Failed to upload to Azure: {err:?}"),
+                Ok(response) => error!(
+                    "[forensics] Non-OK response from Azure blob storage on {attempt}: {:?}",
+                    response.status()
+                ),
+                Err(err) => error!("[forensics] Failed to upload to Azure on {attempt}: {err:?}"),
             }
         }
-        Ok(())
+
+        Err(OutputError::Sink(String::from(
+            "max attempts reached for Azure upload",
+        )))
     }
 
     /// Compose the final URL to upload data to Azure
     fn compose_url(&self, full_path: &str) -> OutputResult<String> {
-        let azure_uris: Vec<&str> = self.url.split('?').collect();
-        let required_len = 2;
-        if azure_uris.len() < required_len {
+        let Some((base, query)) = self.url.split_once('?') else {
             error!("[forensics] Unexpected Azure URL provided: {}", self.url);
             return Err(OutputError::Sink(String::from("Bad Azure URL length")));
-        }
+        };
 
-        Ok(format!("{}/{full_path}?{}", azure_uris[0], azure_uris[1]))
+        Ok(format!("{base}/{full_path}?{query}"))
     }
 
     /// URL encode upload paths to "%2F"
@@ -161,11 +162,7 @@ impl OutputSink for AzureSink {
 
         Ok(OutputHandle::artifact(
             artifact_name,
-            OutputLocation::Remote(format!(
-                "{}/{}",
-                self.url,
-                AzureSink::remote_location(&upload_filename)
-            )),
+            OutputLocation::Remote(AzureSink::remote_location(&upload_filename)),
             record_count,
             extension,
             self.compress,

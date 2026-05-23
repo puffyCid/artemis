@@ -237,7 +237,7 @@ impl GcpSink {
 
     fn resume_upload(session_uri: &str, data: &[u8]) -> OutputResult<()> {
         let max_attempts = 15;
-        for _ in 0..max_attempts {
+        for attempt in 0..max_attempts {
             match GcpSink::upload_status(session_uri, data.len())? {
                 UploadStatus::Complete => return Ok(()),
                 UploadStatus::ResumeFrom(offset) => {
@@ -264,12 +264,12 @@ impl GcpSink {
                         }
                         Ok(response) => {
                             warn!(
-                                "[forensics] GCP resume upload got response: {:?}",
+                                "[forensics] GCP resume issue on attempt {attempt}: {:?}",
                                 response.text()
                             );
                         }
                         Err(err) => {
-                            warn!("[forensics] GCP resume upload failed: {err:?}");
+                            warn!("[forensics] GCP resume failed on attempt {attempt}: {err:?}");
                         }
                     }
                 }
