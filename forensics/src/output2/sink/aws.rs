@@ -56,6 +56,7 @@ pub(crate) struct AwsSink {
     collection_id: u64,
     /// Whether to compress the results with gzip
     compress: bool,
+    url_style: UrlStyle,
 }
 
 impl AwsSink {
@@ -88,6 +89,7 @@ impl AwsSink {
             collection_id: config.collection_id,
             compress: config.compress,
             log_file,
+            url_style: UrlStyle::VirtualHost,
         })
     }
 
@@ -216,13 +218,10 @@ impl AwsSink {
 
     /// Setup the AWS upload session using our credentials
     fn create_upload_session(&self, info: AwsInfo, object_name: &str) -> OutputResult<AwsSetup> {
-        let bucket = Bucket::new(
-            self.url.clone(),
-            UrlStyle::VirtualHost,
-            info.bucket,
-            info.region,
-        )
-        .map_err(|err| OutputError::Sink(format!("failed to initialize AWS bucket: {err:?}")))?;
+        let bucket = Bucket::new(self.url.clone(), self.url_style, info.bucket, info.region)
+            .map_err(|err| {
+                OutputError::Sink(format!("failed to initialize AWS bucket: {err:?}"))
+            })?;
 
         let creds = Credentials::new(info.key, info.secret);
         // Valid for one hour
@@ -330,5 +329,143 @@ impl OutputSink for AwsSink {
         let _ = remove_file(&self.log_file);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl AwsSink {
+    pub(crate) fn with_url_style(mut self, url_style: UrlStyle) -> Self {
+        self.url_style = url_style;
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::output2::{
+        config::{OutputConfig, OutputDestination, OutputFormat},
+        context::CollectionContext,
+        error::OutputError,
+        report::CollectionReport,
+        sink::{aws::AwsSink, output_sink::OutputSink},
+    };
+    use httpmock::{
+        Method::{POST, PUT},
+        MockServer,
+    };
+    use rusty_s3::UrlStyle;
+    use std::path::PathBuf;
+
+    fn aws_config(port: u16) -> OutputConfig {
+        OutputConfig {
+            name: String::from("test"),
+            endpoint_id: String::from("abcd"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Aws,
+            format: OutputFormat::Csv,
+            // Fake keys created at https://canarytokens.org/generate
+            api_key: Some(String::from(
+                "ewogICAgImJ1Y2tldCI6ICJibGFoIiwKICAgICJzZWNyZXQiOiAicGtsNkFpQWFrL2JQcEdPenlGVW9DTC96SW1hSEoyTzVtR3ZzVWxSTCIsCiAgICAia2V5IjogIkFLSUEyT0dZQkFINlRPSUFVSk1SIiwKICAgICJyZWdpb24iOiAidXMtZWFzdC0yIgp9",
+            )),
+            url: Some(format!("http://127.0.0.1:{port}")),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_aws_sink() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = aws_config(port);
+        let mut sink = AwsSink::new(&config)
+            .unwrap()
+            .with_url_style(UrlStyle::Path);
+
+        assert!(
+            sink.construct_filename("test", "csv")
+                .starts_with("./tmp/test/test_")
+        );
+
+        let result = sink.decode_creds().unwrap();
+        assert_eq!(result.region, "us-east-2");
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200).body(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <InitiateMultipartUploadResult>
+            <Bucket>mybucket</Bucket>
+            <Key>mykey</Key>
+            <UploadId>whatever</UploadId>
+         </InitiateMultipartUploadResult>",
+            );
+        });
+        let mock_me_put = server.mock(|when, then| {
+            when.method(PUT);
+            then.status(200).header("ETAG", "whatever");
+        });
+        sink.upload_bytes("test", vec![0, 0, 0, 0], "application/jsonl")
+            .unwrap();
+
+        let mut encode = |writer: &mut dyn std::io::Write| {
+            writer.write_all(br#"{"pid":1}"#)?;
+            writer.write_all(b"\n")?;
+            Ok(1)
+        };
+
+        sink.write_artifact("artifact_name", "jsonl", "application/jsonl", &mut encode)
+            .unwrap();
+
+        let context = CollectionContext::new(&config, PathBuf::new());
+        let report = CollectionReport::new(&config, &context, Vec::new(), Vec::new());
+        sink.write_report(&report).unwrap();
+        sink.create_log_file().unwrap();
+        sink.finalize().unwrap();
+        mock_me.assert_calls(8);
+        mock_me_put.assert_calls(4);
+    }
+
+    #[test]
+    fn test_aws_create_session() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = aws_config(port);
+        let sink = AwsSink::new(&config)
+            .unwrap()
+            .with_url_style(UrlStyle::Path);
+
+        let mock_me = server.mock(|when, then| {
+            when.method(POST);
+            then.status(200).body(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <InitiateMultipartUploadResult>
+            <Bucket>mybucket</Bucket>
+            <Key>mykey</Key>
+            <UploadId>whatever</UploadId>
+         </InitiateMultipartUploadResult>",
+            );
+        });
+        let creds = sink.decode_creds().unwrap();
+        let session = sink.create_upload_session(creds, "test").unwrap();
+        assert!(session.bucket.base_url().as_str().starts_with("http://127"));
+        mock_me.assert_calls(1);
+    }
+
+    #[test]
+    fn test_aws_no_response() {
+        let server = MockServer::start();
+        let port = server.port();
+        let config = aws_config(port);
+        let sink = AwsSink::new(&config)
+            .unwrap()
+            .with_url_style(UrlStyle::Path);
+
+        let err = sink
+            .upload_bytes("test", vec![0, 0, 0], "test")
+            .unwrap_err();
+
+        assert!(
+            matches!(err, OutputError::Sink(value) if value == "max attempts reached for AWS setup")
+        );
     }
 }
