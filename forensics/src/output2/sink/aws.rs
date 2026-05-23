@@ -300,7 +300,6 @@ impl OutputSink for AwsSink {
     }
 
     fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
-        create_dir_all(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         let filename = format!("report_{}.json", generate_uuid());
         let upload_report = self.object_path(&filename);
         let data = serde_json::to_vec(report)?;
@@ -310,6 +309,7 @@ impl OutputSink for AwsSink {
     }
 
     fn create_log_file(&mut self) -> OutputResult<LogOutput> {
+        create_dir_all(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         let log_name = self.log_filename();
         let path = self.log_file.join(log_name);
         let file = File::create(&path).map_err(|err| OutputError::io_path(&path, err))?;
