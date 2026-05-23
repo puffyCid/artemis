@@ -81,12 +81,12 @@ impl ApiSink {
             let mut part = multipart::Part::bytes(data.clone());
             part = part.file_name(filename.to_string());
             if compress {
-                builder = builder.header("Content-Encoding", "gzip")
+                builder = builder.header("Content-Encoding", "gzip");
             }
             if filename.ends_with(".log") {
                 // The last two uploads for collections are just plaintext log files
                 part = part.mime_str("text/plain").unwrap();
-            } else if filename.ends_with(".jsonl") {
+            } else if filename.contains(".jsonl") {
                 // Should be safe to unwrap?
                 part = part.mime_str("application/jsonl").unwrap();
             } else {
@@ -180,7 +180,7 @@ impl OutputSink for ApiSink {
             .and_then(|name| name.to_str())
             .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(data, "text/plain", false, &filename)?;
+        self.upload_bytes(data, "text/plain", false, filename)?;
         let _ = remove_file(&self.log_file);
 
         Ok(())
