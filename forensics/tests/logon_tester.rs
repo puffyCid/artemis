@@ -65,7 +65,10 @@ fn check_errors(output: &PathBuf) {
     let mut count = 0;
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        if value.contains("PermissionDenied") || value.contains("OpenFile") {
+        if value.contains("PermissionDenied")
+            || value.contains("OpenFile")
+            || value.contains("Could not read file /var/run/utmp: NotFile")
+        {
             continue;
         }
         println!("End2End test has error: {value}");

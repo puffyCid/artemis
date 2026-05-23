@@ -252,6 +252,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "gcp")]
     fn test_output_manager_gcp() {
         let server = MockServer::start();
         let port = server.port();
@@ -385,6 +386,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "azure")]
     fn test_output_manager_azure() {
         let server = MockServer::start();
         let port = server.port();
@@ -435,6 +437,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "api")]
     fn test_output_manager_api() {
         let server = MockServer::start();
         let port = server.port();

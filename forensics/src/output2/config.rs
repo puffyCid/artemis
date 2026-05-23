@@ -48,14 +48,24 @@ pub(crate) enum OutputFormat {
     Timeline,
 }
 
+/// Determine where our data should be sent
 #[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum OutputDestination {
+    /// Local filesystem
     #[default]
     Local,
+    /// Upload to an API server
+    #[cfg(feature = "api")]
     Api,
+    /// Upload to AWS bucket
+    #[cfg(feature = "aws")]
     Aws,
+    /// Upload to Azure bucket
+    #[cfg(feature = "azure")]
     Azure,
+    /// Upload to GCP bucket
+    #[cfg(feature = "gcp")]
     Gcp,
 }
 
@@ -96,13 +106,17 @@ impl OutputFormat {
 }
 
 impl OutputDestination {
-    /// Parse output location to destination enum value
+    /// Parse output location to destination enum value. Default location is local system
     pub(crate) fn parse(value: &str) -> Result<Self, OutputError> {
         match value.to_ascii_lowercase().as_str() {
             "" | "local" => Ok(Self::Local),
+            #[cfg(feature = "api")]
             "api" => Ok(Self::Api),
+            #[cfg(feature = "azure")]
             "azure" => Ok(Self::Azure),
+            #[cfg(feature = "aws")]
             "aws" => Ok(Self::Aws),
+            #[cfg(feature = "gcp")]
             "gcp" => Ok(Self::Gcp),
             _ => Err(OutputError::UnsupportedDestination(value.to_string())),
         }
@@ -139,6 +153,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "aws")]
     fn test_output_config_jsonl() {
         let out = Output {
             name: String::from("test"),
@@ -158,6 +173,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "azure")]
     fn test_output_config_csv() {
         let out = Output {
             name: String::from("test"),
@@ -177,6 +193,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "azure")]
     fn test_output_config_bad_format() {
         let out = Output {
             name: String::from("test"),

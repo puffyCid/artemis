@@ -1,28 +1,45 @@
 use crate::output2::{
     config::{OutputConfig, OutputDestination},
-    error::{OutputError, OutputResult},
+    error::OutputResult,
     report::CollectionReport,
     sink::{
-        api::ApiSink,
-        aws::AwsSink,
-        azure::AzureSink,
-        gcp::GcpSink,
         local::LocalSink,
         output_handle::OutputHandle,
         output_sink::{LogOutput, OutputSink},
     },
 };
 
+#[cfg(feature = "api")]
+use crate::output2::sink::api::ApiSink;
+#[cfg(feature = "aws")]
+use crate::output2::sink::aws::AwsSink;
+#[cfg(feature = "azure")]
+use crate::output2::sink::azure::AzureSink;
+#[cfg(feature = "gcp")]
+use crate::output2::sink::gcp::GcpSink;
+
 /// Selected destination for encoded output.
 ///
 /// `Sink` delegates destination writing to the configured output sink.
 /// <https://en.wikipedia.org/wiki/Sink_(computing)>
+///
+/// All remote cloud bucket uploads try to follow a similar approach that Velociraptor uses
+///
+/// AWS - <https://docs.velociraptor.app/blog/2020/2020-07-14-triage-with-velociraptor-pt-4-cf0e60810d1e>
+///
+/// GCP - <https://docs.velociraptor.app/blog/2019/2019-10-08_triage-with-velociraptor-pt-3-d6f63215f579>
+///
+/// Azure - <https://docs.velociraptor.app/knowledge_base/tips/dropbox_server>
 pub(crate) enum Sink {
     /// Write encoded output to local system
     Local(LocalSink),
+    #[cfg(feature = "gcp")]
     Gcp(GcpSink),
+    #[cfg(feature = "aws")]
     Aws(AwsSink),
+    #[cfg(feature = "azure")]
     Azure(AzureSink),
+    #[cfg(feature = "api")]
     Api(ApiSink),
 }
 
@@ -37,9 +54,13 @@ impl Sink {
     ) -> OutputResult<OutputHandle> {
         match self {
             Self::Local(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            #[cfg(feature = "gcp")]
             Self::Gcp(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            #[cfg(feature = "aws")]
             Self::Aws(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            #[cfg(feature = "azure")]
             Self::Azure(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+            #[cfg(feature = "api")]
             Self::Api(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
         }
     }
@@ -50,9 +71,13 @@ impl Sink {
     pub(crate) fn finalize(&mut self) -> OutputResult<()> {
         match self {
             Self::Local(sink) => sink.finalize(),
+            #[cfg(feature = "gcp")]
             Self::Gcp(sink) => sink.finalize(),
+            #[cfg(feature = "aws")]
             Self::Aws(sink) => sink.finalize(),
+            #[cfg(feature = "azure")]
             Self::Azure(sink) => sink.finalize(),
+            #[cfg(feature = "api")]
             Self::Api(sink) => sink.finalize(),
         }
     }
@@ -61,9 +86,13 @@ impl Sink {
     pub(crate) fn create_log_file(&mut self) -> OutputResult<LogOutput> {
         match self {
             Self::Local(sink) => sink.create_log_file(),
+            #[cfg(feature = "gcp")]
             Self::Gcp(sink) => sink.create_log_file(),
+            #[cfg(feature = "aws")]
             Self::Aws(sink) => sink.create_log_file(),
+            #[cfg(feature = "azure")]
             Self::Azure(sink) => sink.create_log_file(),
+            #[cfg(feature = "api")]
             Self::Api(sink) => sink.create_log_file(),
         }
     }
@@ -72,9 +101,13 @@ impl Sink {
     pub(crate) fn write_report(&mut self, report: &CollectionReport) -> OutputResult<OutputHandle> {
         match self {
             Self::Local(sink) => sink.write_report(report),
+            #[cfg(feature = "gcp")]
             Self::Gcp(sink) => sink.write_report(report),
+            #[cfg(feature = "aws")]
             Self::Aws(sink) => sink.write_report(report),
+            #[cfg(feature = "azure")]
             Self::Azure(sink) => sink.write_report(report),
+            #[cfg(feature = "api")]
             Self::Api(sink) => sink.write_report(report),
         }
     }
@@ -84,14 +117,14 @@ impl Sink {
 pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
     match config.destination {
         OutputDestination::Local => Ok(Sink::Local(LocalSink::new(config)?)),
+        #[cfg(feature = "gcp")]
         OutputDestination::Gcp => Ok(Sink::Gcp(GcpSink::new(config)?)),
+        #[cfg(feature = "aws")]
         OutputDestination::Aws => Ok(Sink::Aws(AwsSink::new(config)?)),
+        #[cfg(feature = "azure")]
         OutputDestination::Azure => Ok(Sink::Azure(AzureSink::new(config)?)),
+        #[cfg(feature = "api")]
         OutputDestination::Api => Ok(Sink::Api(ApiSink::new(config)?)),
-        _ => Err(OutputError::UnsupportedDestination(format!(
-            "{:?}",
-            config.destination
-        ))),
     }
 }
 
