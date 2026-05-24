@@ -331,7 +331,10 @@ impl JsFilterRuntime {
                 return Err(RuntimeError::ScriptResult);
             };
 
-            let _ = self.context.run_jobs();
+            self.context.run_jobs().map_err(|err| {
+                error!("[runtime] JavaScript filter could no run job: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
 
             let resolved = promise.await_blocking(&mut self.context).map_err(|err| {
                 error!("[runtime] JavaScript filter promise failed: {err:?}");

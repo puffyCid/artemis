@@ -101,8 +101,8 @@ pub(crate) struct JsFilterRuntime {
     pub(crate) context: Context,
 }
 /// Create a JavaScript runtime to filter data
-pub(crate) fn create_filter_runtime(encoded_script: &str) -> Result<JsFilterRuntime, RuntimeError> {
-    JsFilterRuntime::new(encoded_script)
+pub(crate) fn create_filter_runtime(script: &str) -> Result<JsFilterRuntime, RuntimeError> {
+    JsFilterRuntime::new(script)
 }
 
 /// Output Javascript results based on the output options provided from the TOML file
