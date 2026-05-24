@@ -4,10 +4,10 @@ use super::{
 };
 use crate::{
     artifacts::output::output_artifact,
-    runtime::setup::{run_async_script_value, run_script_value},
     structs::{artifacts::runtime::script::JSScript, toml::Output},
     utils::{encoding::base64_decode_standard, time},
 };
+use boa_engine::Context;
 use log::error;
 use serde_json::Value;
 use std::str::from_utf8;
@@ -25,16 +25,6 @@ pub(crate) fn filter_script(
     filter_script: &str,
 ) -> Result<(), RuntimeError> {
     decode_script(output, filter_name, filter_script, args)
-}
-
-/// Execute the provided JavaScript data from the TOML and provide a JSON object as an argument to JavaScript
-pub(crate) fn filter_record(
-    encoded_script: &str,
-    record: Value,
-    filter_context: Value,
-) -> Result<Value, RuntimeError> {
-    let args = vec![record, filter_context];
-    decode_script_value(encoded_script, &args)
 }
 
 /// Execute raw JavaScript code
@@ -105,43 +95,14 @@ fn decode_script(
     Ok(())
 }
 
-/// Base64 decode the Javascript string and execute using Boa runtime and return the value
-pub(crate) fn decode_script_value(
-    encoded_script: &str,
-    args: &[Value],
-) -> Result<Value, RuntimeError> {
-    let script_result = base64_decode_standard(encoded_script);
-    let script_bytes = match script_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not base64 provided javascript script: {err:?}",);
-            return Err(RuntimeError::Decode);
-        }
-    };
-
-    let str_result = from_utf8(&script_bytes);
-    let script = match str_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not read javascript script as string: {err:?}");
-            return Err(RuntimeError::Decode);
-        }
-    };
-
-    let result = if script.contains("async function") || script.contains(" await ") {
-        run_async_script_value(script, args)
-    } else {
-        run_script_value(script, args)
-    };
-    let script_value = match result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[runtime] Could not execute javascript: {err:?}");
-            return Err(RuntimeError::ExecuteScript);
-        }
-    };
-
-    Ok(script_value)
+/// A `BoaJS` runtime we use to filter data
+pub(crate) struct JsFilterRuntime {
+    /// `BoaJS` runtime context
+    pub(crate) context: Context,
+}
+/// Create a JavaScript runtime to filter data
+pub(crate) fn create_filter_runtime(encoded_script: &str) -> Result<JsFilterRuntime, RuntimeError> {
+    JsFilterRuntime::new(encoded_script)
 }
 
 /// Output Javascript results based on the output options provided from the TOML file

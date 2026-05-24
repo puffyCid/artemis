@@ -4,7 +4,8 @@ use crate::{
         error::{OutputError, OutputResult},
         record::{JsonRecord, Record, RecordStream},
     },
-    runtime::run::filter_record,
+    runtime::run::{JsFilterRuntime, create_filter_runtime},
+    utils::{encoding::base64_decode_standard, strings::extract_utf8_string},
 };
 use serde_json::{Value, json};
 
@@ -14,8 +15,8 @@ pub(crate) struct JsFilterRecordStream<'a> {
     ///
     /// Each record is passed to the JavaScript code as a JSON object
     inner: &'a mut dyn RecordStream,
-    /// Base64 encoded JavaScript code
-    encoded_script: String,
+    /// A JavaScript runtime we use to filter data
+    runtime: JsFilterRuntime,
     /// Some minor metadata to pass to our script
     filter_context: Value,
 }
@@ -28,7 +29,13 @@ impl<'a> JsFilterRecordStream<'a> {
         artifact_name: &str,
         filter_name: &str,
         context: &CollectionContext,
-    ) -> Self {
+    ) -> OutputResult<Self> {
+        let script_bytes = base64_decode_standard(encoded_script).map_err(|err| {
+            OutputError::Record(format!("javascript filter decode failed: {err:?}"))
+        })?;
+        let script = extract_utf8_string(&script_bytes);
+        let runtime = create_filter_runtime(&script)
+            .map_err(|err| OutputError::Record(format!("javascript filter failed: {err:?}")))?;
         let filter_context = json!({
             "artifact_name": artifact_name,
             "filter_name": filter_name,
@@ -36,11 +43,11 @@ impl<'a> JsFilterRecordStream<'a> {
             "collection_id": context.collection_id,
             "endpoint_id": context.endpoint_id,
         });
-        Self {
+        Ok(Self {
             inner,
-            encoded_script: encoded_script.to_string(),
+            runtime,
             filter_context,
-        }
+        })
     }
 }
 
@@ -53,12 +60,10 @@ impl RecordStream for JsFilterRecordStream<'_> {
 
             let Record::Json(record) = record;
             // Excute our JavaScript code using the BoaJS runtime
-            let result = filter_record(
-                &self.encoded_script,
-                record.into_value(),
-                self.filter_context.clone(),
-            )
-            .map_err(|err| OutputError::Record(format!("javascript filter failed: {err:?}")))?;
+            let result = self
+                .runtime
+                .filter_record(record.into_value(), &self.filter_context)
+                .map_err(|err| OutputError::Record(format!("javascript filter failed: {err:?}")))?;
 
             // Only JSON objects are supported right now. Any other value is dropped
             if let Value::Object(fields) = result {
@@ -95,8 +100,7 @@ mod tests {
             Record::Json(JsonRecord::new(first)),
             Record::Json(JsonRecord::new(second)),
         ]);
-        let js = JsFilterRecordStream::new(&mut records, "test", "test", "test", &context);
-        assert_eq!(js.encoded_script, "test");
+        let js = JsFilterRecordStream::new(&mut records, "test", "test", "test", &context).unwrap();
         assert_eq!(js.filter_context["collection_name"], "");
     }
 
@@ -122,7 +126,7 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            matches!(err, OutputError::Record(value) if value == "javascript filter failed: Decode")
+            matches!(err, OutputError::Record(value) if value == "javascript filter failed: ExecuteScript")
         );
     }
 }

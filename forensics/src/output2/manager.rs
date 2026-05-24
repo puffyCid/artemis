@@ -165,7 +165,7 @@ impl OutputManager {
                 artifact_name,
                 filter_name,
                 &self.context,
-            );
+            )?;
 
             let handle = self.sink.write_artifact(
                 artifact_name,
@@ -545,7 +545,7 @@ mod tests {
             format: OutputFormat::Jsonl,
             filter_name: Some(String::from("test")),
             filter_script: Some(String::from(
-                "ZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB2YWx1ZSA9IFNUQVRJQ19BUkdTWzBdOwogIGNvbnN0IGNvbnRleHQgPSBTVEFUSUNfQVJHU1sxXTsKCiAgaWYodmFsdWUucGF0aCAhPT0gIi90bXAvdHdvLnR4dCIpIHsKICAgIHJldHVybiBudWxsOwogIH0KCiAgY29uc29sZS5sb2coYEkgZ290ICR7dmFsdWUucGF0aH1gKTsKICBjb25zb2xlLmxvZyhgQ29udGV4dCBpcyBlbmRwb2ludCBJRDogJHtjb250ZXh0LmVuZHBvaW50X2lkfWApOwogIHZhbHVlWyJtZXNzYWdlIl0gPSAiWW91IGdvdCBmaWx0ZXJlZCEiOwogIHJldHVybiB2YWx1ZTsKfQoKbWFpbigpOw==",
+                "ZnVuY3Rpb24gbWFpbih2YWx1ZSwgY29udGV4dCkgewogIGlmKHZhbHVlLnBhdGggIT09ICIvdG1wL3R3by50eHQiKSB7CiAgICByZXR1cm4gbnVsbDsKICB9CgogIGNvbnNvbGUubG9nKGBJIGdvdCAke3ZhbHVlLnBhdGh9YCk7CiAgY29uc29sZS5sb2coYENvbnRleHQgaXMgZW5kcG9pbnQgSUQ6ICR7Y29udGV4dC5lbmRwb2ludF9pZH1gKTsKICB2YWx1ZVsibWVzc2FnZSJdID0gIllvdSBnb3QgZmlsdGVyZWQhIjsKICByZXR1cm4gdmFsdWU7Cn0=",
             )),
             ..Default::default()
         };
@@ -599,5 +599,66 @@ mod tests {
             first_record["collection_metadata"]["artifact_name"],
             "files"
         );
+    }
+
+    #[test]
+    #[cfg(feature = "boa")]
+    fn test_output_js_async_filter() {
+        let name = String::from("manager_js_async_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Csv,
+            filter_name: Some(String::from("test")),
+            filter_script: Some(String::from(
+                "YXN5bmMgZnVuY3Rpb24gbWFpbihyZWNvcmQsIGNvbnRleHQpIHsKICBhd2FpdCBQcm9taXNlLnJlc29sdmUoKTsKICBpZihyZWNvcmQucGF0aCAhPT0gIi90bXAvdHdvLnR4dCIpIHsKICAgIHJldHVybiBudWxsOwogIH0KIGNvbnNvbGUubG9nKGBJIGdvdCAke3JlY29yZC5wYXRofWApOwogIGNvbnNvbGUubG9nKGBDb250ZXh0IGlzIGVuZHBvaW50IElEOiAke2NvbnRleHQuZW5kcG9pbnRfaWR9YCk7CiAgcmVjb3JkWyJtZXNzYWdlIl0gPSAiWW91IGdvdCBhc3luYyBmaWx0ZXJlZCEiOwogIHJlY29yZFsiZmlsdGVyZWRfYnkiXSA9IGNvbnRleHQuZmlsdGVyX25hbWU7CiAgcmVjb3JkWyJhc3luY19maWx0ZXIiXSA9IHRydWU7CiAgcmV0dXJuIHJlY29yZDsKfQ==",
+            )),
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact("files", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.finalize().unwrap();
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_js_async_collection"));
+        assert!(output_dir.exists());
+        let mut csv_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("files_") && name.ends_with(".csv") {
+                csv_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+                log_files.push(path);
+            }
+        }
+        assert!(!csv_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+        let csv_data = read_to_string(&csv_files[0]).unwrap();
+        let lines = csv_data.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].contains("You got async filtered!"));
+        assert!(lines[1].contains(",true"));
     }
 }
