@@ -1,8 +1,10 @@
 use crate::output2::{
+    context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::OutputResult,
-    record::Record,
+    record::{Record, RecordStream},
 };
+use std::io::Write;
 
 /// Encoder for JSON files
 #[derive(Debug, PartialEq)]
@@ -17,9 +19,9 @@ impl ArtifactEncoder for JsonEncoder {
     }
     fn encode(
         &self,
-        records: &mut dyn crate::output2::record::RecordStream,
-        writer: &mut dyn std::io::Write,
-        context: &crate::output2::context::ArtifactContext,
+        records: &mut dyn RecordStream,
+        writer: &mut dyn Write,
+        context: &ArtifactContext,
     ) -> OutputResult<usize> {
         let mut count = 0;
         writer.write_all(b"[")?;

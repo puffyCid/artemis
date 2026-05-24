@@ -1,5 +1,8 @@
 use crate::output2::{
-    encoder::artifact_encoder::ArtifactEncoder, error::OutputResult, record::Record,
+    context::ArtifactContext,
+    encoder::artifact_encoder::ArtifactEncoder,
+    error::OutputResult,
+    record::{Record, RecordStream},
 };
 use csv::{Writer, WriterBuilder};
 use serde_json::{Map, Value};
@@ -18,15 +21,16 @@ impl ArtifactEncoder for CsvEncoder {
     }
     fn encode(
         &self,
-        records: &mut dyn crate::output2::record::RecordStream,
-        writer: &mut dyn std::io::Write,
-        _context: &crate::output2::context::ArtifactContext,
+        records: &mut dyn RecordStream,
+        writer: &mut dyn Write,
+        _context: &ArtifactContext,
     ) -> OutputResult<usize> {
         let mut csv_writer = WriterBuilder::new().from_writer(writer);
         let Some(record) = records.next_record()? else {
             return Ok(0);
         };
 
+        // Need headers first
         let Record::Json(record) = record;
         let fields = record.fields;
         let headers: Vec<String> = fields.keys().cloned().collect();
@@ -35,6 +39,7 @@ impl ArtifactEncoder for CsvEncoder {
 
         let mut count = 1;
 
+        // Now write each row
         while let Some(record) = records.next_record()? {
             let Record::Json(record) = record;
             write_row(&mut csv_writer, &headers, &record.fields)?;
