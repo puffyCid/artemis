@@ -98,8 +98,7 @@ pub(crate) fn run_script_value(script: &str, args: &[Value]) -> Result<Value, Ru
         Ok(result) => result,
         Err(err) => {
             error!("[runtime] Could not execute script: {err:?}");
-            // A script should never halt execution
-            return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
+            return Err(RuntimeError::ExecuteScript);
         }
     };
     if result.is_undefined() {
