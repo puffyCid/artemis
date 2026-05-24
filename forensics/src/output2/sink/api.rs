@@ -86,7 +86,7 @@ impl ApiSink {
             if filename.ends_with(".log") {
                 // The last two uploads for collections are just plaintext log files
                 part = part.mime_str("text/plain").unwrap();
-            } else if filename.contains(".jsonl") {
+            } else if filename.ends_with(".jsonl.gz") {
                 // Should be safe to unwrap?
                 part = part.mime_str("application/jsonl").unwrap();
             } else {
@@ -138,7 +138,11 @@ impl OutputSink for ApiSink {
         let mut gzip = GzEncoder::new(Vec::new(), Compression::default());
         let record_count = encode(&mut gzip)?;
         let data = gzip.finish()?;
-        self.upload_bytes(data, mime_type, true, artifact_name)?;
+        let uuid = generate_uuid();
+
+        // Only JSONL and compress API uploads are supported right now
+        let filename = format!("{artifact_name}_{uuid}.jsonl.gz");
+        self.upload_bytes(data, mime_type, true, &filename)?;
 
         Ok(OutputHandle::artifact(
             artifact_name,

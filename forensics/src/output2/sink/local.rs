@@ -155,3 +155,36 @@ impl OutputSink for LocalSink {
         self.compress_final_output()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::output2::{
+        config::OutputConfig,
+        sink::{local::LocalSink, output_handle::OutputType, output_sink::OutputSink},
+    };
+    use std::{io::Write, path::PathBuf};
+
+    #[test]
+    fn test_local_sink() {
+        let mut config = OutputConfig::default();
+        config.directory = PathBuf::from("./tmp");
+        config.name = String::from("local_sink");
+        config.compress = true;
+
+        let mut encode = |writer: &mut dyn Write| {
+            writer.write_all(br#"{"pid":1}"#)?;
+            writer.write_all(b"\n")?;
+            Ok(1)
+        };
+        let mut sink = LocalSink::new(&config).unwrap();
+        let handle = sink
+            .write_artifact("test", "jsonl", "application/jsonl", &mut encode)
+            .unwrap();
+
+        assert_eq!(handle.compressed, true);
+        assert_eq!(handle.output_type, OutputType::Artifact);
+        assert_eq!(handle.extension, "jsonl");
+
+        sink.finalize().unwrap();
+    }
+}

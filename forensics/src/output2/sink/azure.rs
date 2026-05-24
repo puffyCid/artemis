@@ -98,7 +98,7 @@ impl AzureSink {
     /// Compose the final URL to upload data to Azure
     fn compose_url(&self, full_path: &str) -> OutputResult<String> {
         let Some((base, query)) = self.url.split_once('?') else {
-            error!("[forensics] Unexpected Azure URL provided: {}", self.url);
+            error!("[forensics] Unexpected Azure URL provided. Missing '?' delimiter.");
             return Err(OutputError::Sink(String::from("Bad Azure URL length")));
         };
 

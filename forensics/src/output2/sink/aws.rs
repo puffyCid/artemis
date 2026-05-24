@@ -354,7 +354,7 @@ mod tests {
         MockServer,
     };
     use rusty_s3::UrlStyle;
-    use std::path::PathBuf;
+    use std::{io::Write, path::PathBuf};
 
     fn aws_config(port: u16) -> OutputConfig {
         OutputConfig {
@@ -405,7 +405,7 @@ mod tests {
             then.status(200).header("ETAG", "whatever");
         });
 
-        let mut encode = |writer: &mut dyn std::io::Write| {
+        let mut encode = |writer: &mut dyn Write| {
             writer.write_all(br#"{"pid":1}"#)?;
             writer.write_all(b"\n")?;
             Ok(1)

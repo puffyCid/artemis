@@ -36,7 +36,7 @@ fn main() {
         }
     }
     // Pass the list to main code as a compile-time env var
-    println!("cargo:rustc-env=ENABLED_FEATURES={}", features.join(", "));
+    println!("cargo:rustc-env=ENABLED_FEATURES={}", features.join(","));
 
     // Read the TARGET variable provided by Cargo
     let target = std::env::var("TARGET").unwrap();

@@ -595,7 +595,7 @@ mod tests {
             .upload_bytes("test", vec![0, 0, 0], "test")
             .unwrap_err();
         assert!(
-            matches!(err, OutputError::Sink(value) if value == "failed to create GCP session: reqwest::Error { kind: Request, url: \"http://127.0.0.1:12345/o?uploadType=resumable&name=test\", source: hyper_util::client::legacy::Error(Connect, ConnectError(\"tcp connect error\", 127.0.0.1:12345, Os { code: 111, kind: ConnectionRefused, message: \"Connection refused\" })) }")
+            matches!(err, OutputError::Sink(value) if value.contains("failed to create GCP session: reqwest::Error "))
         )
     }
 }

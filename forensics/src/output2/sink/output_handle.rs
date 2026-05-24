@@ -28,6 +28,7 @@ pub(crate) enum OutputLocation {
 }
 
 /// What type of file was output
+#[derive(Debug, PartialEq)]
 pub(crate) enum OutputType {
     /// Artifact result output
     Artifact,
