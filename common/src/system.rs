@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SystemInfo {
     pub boot_time: String,
     pub hostname: String,
@@ -17,7 +17,7 @@ pub struct SystemInfo {
     pub artemis_version: String,
     pub artemis_commit: String,
     pub artemis_args: String,
-    pub artemis_features: String,
+    pub artemis_features: Vec<String>,
     pub artemis_target: String,
     pub artemis_profile: String,
     pub rust_version: String,
@@ -30,7 +30,7 @@ pub struct SystemInfo {
     pub vendor: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SystemInfoMetadata {
     pub hostname: String,
     pub os_version: String,

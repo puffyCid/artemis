@@ -117,6 +117,18 @@ pub fn timeline_artifact(
     }
 }
 
+pub fn timeline_artifact_ng(
+    data: &mut Value,
+    artifact: &str,
+    start: &Option<String>,
+    end: &Option<String>,
+) {
+    match artifact.to_ascii_lowercase().as_str() {
+        "processes" => println!("TODO"),
+        _ => warn!("Got unknown artifact: {artifact}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Artifacts, timeline_artifact};

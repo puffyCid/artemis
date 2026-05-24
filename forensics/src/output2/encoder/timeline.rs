@@ -1,0 +1,47 @@
+use crate::output2::{
+    context::ArtifactContext,
+    encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
+    error::OutputResult,
+    record::{Record, RecordStream},
+};
+use std::io::Write;
+use timeline::timeline::timeline_artifact_ng;
+
+/// Encoder for Timeline files. This is same as JSONL encoder except we do extra processing to timeline the data
+#[derive(Debug, PartialEq)]
+pub(crate) struct TimelineEncoder;
+
+impl ArtifactEncoder for TimelineEncoder {
+    fn mime_type(&self) -> &str {
+        "application/jsonl"
+    }
+    fn extension(&self) -> &str {
+        "jsonl"
+    }
+    fn encode(
+        &self,
+        records: &mut dyn RecordStream,
+        writer: &mut dyn Write,
+        context: &ArtifactContext,
+    ) -> OutputResult<usize> {
+        let mut count = 0;
+
+        while let Some(record) = records.next_record()? {
+            let Record::Json(record) = record;
+            let mut value = record.into_value();
+            append_metadata(&mut value, context);
+            timeline_artifact_ng(
+                &mut value,
+                &context.artifact_name,
+                &context.start_time_filter,
+                &context.end_time_filter,
+            );
+            serde_json::to_writer(&mut *writer, &value)?;
+            writer.write_all(b"\n")?;
+
+            count += 1;
+        }
+
+        Ok(count)
+    }
+}
