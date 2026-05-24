@@ -70,6 +70,51 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     Err(RuntimeError::ScriptResult)
 }
 
+/// Execute non-async scripts
+pub(crate) fn run_script_value(script: &str, args: &[Value]) -> Result<Value, RuntimeError> {
+    let mut context = Context::default();
+
+    let console = Console::init(&mut context);
+    let status = context.register_global_property(Console::NAME, console, Attribute::all());
+    if let Err(err) = status {
+        error!("[runtime] Could not register console property: {err:?}");
+        return Err(RuntimeError::ExecuteScript);
+    }
+
+    if !args.is_empty() {
+        let serde_value = serde_json::to_value(args).unwrap_or_default();
+        let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
+        let status =
+            context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
+        if let Err(err) = status {
+            error!("[runtime] Could not register static args property: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
+    }
+
+    setup_runtime(&mut context);
+
+    let result = match context.eval(Source::from_bytes(script.as_bytes())) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not execute script: {err:?}");
+            // A script should never halt execution
+            return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
+        }
+    };
+    if result.is_undefined() {
+        return Ok(Value::Null);
+    }
+    if let Ok(Some(value)) = result.to_json(&mut context) {
+        return Ok(value);
+    }
+    error!(
+        "[runtime] Could not serialize script value: {:?}",
+        result.to_json(&mut context)
+    );
+    Err(RuntimeError::ScriptResult)
+}
+
 /// Queue to handle async scripts
 struct Queue {
     async_jobs: RefCell<VecDeque<NativeAsyncJob>>,
@@ -161,6 +206,80 @@ impl JobExecutor for Queue {
 
 /// Execute async scripts
 pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, RuntimeError> {
+    let queue = Queue::new();
+    let mut context = match ContextBuilder::new().job_executor(Rc::new(queue)).build() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not create async context: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
+    };
+
+    let console = Console::init(&mut context);
+    let status = context.register_global_property(Console::NAME, console, Attribute::all());
+    if let Err(err) = status {
+        error!("[runtime] Could not register console property: {err:?}");
+        return Err(RuntimeError::ExecuteScript);
+    }
+
+    if !args.is_empty() {
+        let serde_value = serde_json::to_value(args).unwrap_or_default();
+        let value = JsValue::from_json(&serde_value, &mut context).unwrap_or_default();
+        let status =
+            context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
+        if let Err(err) = status {
+            error!("[runtime] Could not register static args property: {err:?}");
+            return Err(RuntimeError::ExecuteScript);
+        }
+    }
+
+    setup_runtime(&mut context);
+
+    let result = match context.eval(Source::from_bytes(script.as_bytes())) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not execute script: {err:?}");
+            // A script should never halt execution
+            return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
+        }
+    };
+
+    // Run and wait for our script to complete
+    let _ = context.run_jobs();
+    if result.is_undefined() {
+        return Ok(Value::Null);
+    } else if result.is_promise() {
+        // Handle async/await promises
+        if let Some(promise) = result.as_promise() {
+            // Wait for promise to resolve
+            if let Ok(js_value) = promise.await_blocking(&mut context) {
+                if js_value.is_undefined() {
+                    return Ok(Value::Null);
+                }
+                if let Ok(Some(value)) = js_value.to_json(&mut context) {
+                    return Ok(value);
+                }
+                error!(
+                    "[runtime] Could not serialize async promise script value: {:?}",
+                    result.to_json(&mut context)
+                );
+                return Err(RuntimeError::ScriptResult);
+            }
+        }
+    }
+
+    if let Ok(Some(value)) = result.to_json(&mut context) {
+        return Ok(value);
+    }
+    error!(
+        "[runtime] Could not serialize async script value: {:?}",
+        result.to_json(&mut context)
+    );
+    Err(RuntimeError::ScriptResult)
+}
+
+/// Execute async scripts
+pub(crate) fn run_async_script_value(script: &str, args: &[Value]) -> Result<Value, RuntimeError> {
     let queue = Queue::new();
     let mut context = match ContextBuilder::new().job_executor(Rc::new(queue)).build() {
         Ok(result) => result,
