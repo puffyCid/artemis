@@ -10,6 +10,7 @@ use crate::{
 };
 use common::{files::Hashes, system::SystemInfo};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 /// Report metadata for a single artifact run
 ///
@@ -21,6 +22,7 @@ pub(crate) struct ArtifactRunReport {
     pub(crate) name: String,
     /// Hash of the artifact run options
     pub(crate) artifact_options_hash: String,
+    pub(crate) artifact_options: Value,
     /// Timestamp when the artifact run completed
     pub(crate) last_run: String,
     /// Unix epoch when the artifact run completed
@@ -37,18 +39,20 @@ pub(crate) struct ArtifactRunReport {
 
 impl ArtifactRunReport {
     /// Create a new artifact run report from execution runtime
-    pub(crate) fn new(
+    pub(crate) fn new<T: Serialize>(
         name: &str,
-        artifact_options_hash: String,
+        artifact_options: &T,
         output_files: Vec<String>,
         record_count: usize,
         status: &str,
     ) -> Self {
         let last_run_epoch = time_now();
         let output_count = output_files.len();
+        let options = serde_json::to_value(artifact_options).unwrap_or_default();
         Self {
             name: name.to_string(),
-            artifact_options_hash,
+            artifact_options_hash: hash_artifact_options(artifact_options).unwrap_or_default(),
+            artifact_options: options,
             last_run: unixepoch_to_iso(last_run_epoch as i64),
             last_run_epoch,
             output_count,
@@ -159,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_artifact_run_report() {
-        let result = ArtifactRunReport::new("test", String::new(), Vec::new(), 10, "compleed");
+        let result = ArtifactRunReport::new("test", &String::new(), Vec::new(), 10, "compleed");
         assert!(!result.last_run.is_empty());
         assert_eq!(result.output_count, 0);
     }

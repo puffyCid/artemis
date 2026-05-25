@@ -4,13 +4,14 @@ use crate::output2::{
     encoder::{artifact_encoder::Encoder, factory::build_encoder},
     error::OutputResult,
     record::RecordStream,
-    report::{ArtifactRunReport, CollectionReport},
+    report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
     sink::{
         factory::{Sink, build_sink},
         output_handle::OutputHandle,
     },
 };
 use log::LevelFilter;
+use serde::Serialize;
 use simplelog::{Config, WriteLogger};
 
 #[cfg(feature = "boa")]
@@ -59,10 +60,10 @@ impl OutputManager {
     }
 
     /// Write a forensic artifact result
-    pub(crate) fn write_artifact(
+    pub(crate) fn write_artifact<T: Serialize>(
         &mut self,
         artifact_name: &str,
-        artifact_options_hash: String,
+        artifact_options: &T,
         records: &mut dyn RecordStream,
     ) -> OutputResult<()> {
         let handle = self.write(artifact_name, records)?;
@@ -72,7 +73,7 @@ impl OutputManager {
         }
         self.record_completed_artifact_output(
             artifact_name,
-            artifact_options_hash,
+            artifact_options,
             handle.location_string(),
             handle.record_count,
         );
@@ -81,17 +82,17 @@ impl OutputManager {
     }
 
     /// Write a failed artifact run
-    pub(crate) fn write_failed_artifact(
+    pub(crate) fn write_failed_artifact<T: Serialize>(
         &mut self,
         artifact_name: &str,
-        artifact_options_hash: String,
+        artifact_options: &T,
     ) {
         if !self.artifacts.iter().any(|name| name == artifact_name) {
             self.artifacts.push(artifact_name.to_string());
         }
         self.artifact_runs.push(ArtifactRunReport::new(
             artifact_name,
-            artifact_options_hash,
+            artifact_options,
             Vec::new(),
             0,
             "failed",
@@ -111,26 +112,29 @@ impl OutputManager {
     }
 
     /// Track artifact collected from Artemis execution
-    fn record_completed_artifact_output(
+    fn record_completed_artifact_output<T: Serialize>(
         &mut self,
         artifact_name: &str,
-        artifact_options_hash: String,
+        artifact_options: &T,
         output_file: String,
         record_count: usize,
     ) {
+        let hash = hash_artifact_options(&artifact_options).unwrap_or_default();
         // Only track unique artifacts per Artemis collection
         // If a user collects a process listing twice in a single Artemis collection
         // We only `Processes` artifact once instead of twice
-        if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
-            run.name == artifact_name && run.artifact_options_hash == artifact_options_hash
-        }) {
+        if let Some(run) = self
+            .artifact_runs
+            .iter_mut()
+            .find(|run| run.name == artifact_name && run.artifact_options_hash == hash)
+        {
             run.add_output_file(output_file, record_count);
             return;
         }
         // Track each artifact run event
         self.artifact_runs.push(ArtifactRunReport::new(
             artifact_name,
-            artifact_options_hash,
+            artifact_options,
             vec![output_file],
             record_count,
             "completed",
@@ -243,10 +247,14 @@ mod tests {
         ]);
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
-        manage.write_failed_artifact("made_up_artifact", String::from("test"));
+        manage.write_failed_artifact("made_up_artifact", &String::from("test"));
 
         manage.finalize().unwrap();
 
@@ -292,7 +300,10 @@ mod tests {
         assert_eq!(report["total_output_files"], 1);
         assert_eq!(report["artifacts"][0], "files");
         assert_eq!(report["artifact_runs"][0]["name"], "files");
-        assert_eq!(report["artifact_runs"][0]["artifact_options_hash"], "md5");
+        assert_eq!(
+            report["artifact_runs"][0]["artifact_options_hash"],
+            "2297a2e4d2902655a171ae9b818ce092"
+        );
         assert_eq!(report["artifact_runs"][0]["output_count"], 1);
         assert_eq!(report["artifact_runs"][0]["record_count"], 2);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
@@ -346,10 +357,14 @@ mod tests {
         });
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
-        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.write_failed_artifact("madeup", &String::from("nothing matters"));
         manage.finalize().unwrap();
 
         // 3 uploads:
@@ -381,10 +396,14 @@ mod tests {
         let mut records = VecRecordStream::new(vec![Record::Json(JsonRecord::new(first))]);
 
         manage
-            .write_artifact("processes", String::from("md5"), &mut records)
+            .write_artifact(
+                "processes",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
-        manage.write_failed_artifact("made_up_artifact", String::from("test"));
+        manage.write_failed_artifact("made_up_artifact", &String::from("test"));
 
         manage.finalize().unwrap();
 
@@ -426,7 +445,10 @@ mod tests {
         assert_eq!(report["total_output_files"], 1);
         assert_eq!(report["artifacts"][0], "processes");
         assert_eq!(report["artifact_runs"][0]["name"], "processes");
-        assert_eq!(report["artifact_runs"][0]["artifact_options_hash"], "md5");
+        assert_eq!(
+            report["artifact_runs"][0]["artifact_options_hash"],
+            "2297a2e4d2902655a171ae9b818ce092"
+        );
         assert_eq!(report["artifact_runs"][0]["output_count"], 1);
         assert_eq!(report["artifact_runs"][0]["record_count"], 1);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
@@ -470,10 +492,14 @@ mod tests {
         });
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
-        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.write_failed_artifact("madeup", &String::from("nothing matters"));
         manage.finalize().unwrap();
 
         // 3 uploads:
@@ -519,10 +545,14 @@ mod tests {
         });
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
-        manage.write_failed_artifact("madeup", String::from("nothing matters"));
+        manage.write_failed_artifact("madeup", &String::from("nothing matters"));
         manage.finalize().unwrap();
 
         // 3 uploads:
@@ -563,7 +593,11 @@ mod tests {
         ]);
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
         manage.finalize().unwrap();
@@ -632,7 +666,11 @@ mod tests {
         ]);
 
         manage
-            .write_artifact("files", String::from("md5"), &mut records)
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
             .unwrap();
 
         manage.finalize().unwrap();
