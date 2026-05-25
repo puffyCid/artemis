@@ -1,0 +1,26 @@
+[
+  {
+    "name": "files",
+    "artifact_options_hash": "2297a2e4d2902655a171ae9b818ce092",
+    "artifact_options": { "start_path": "./tmp", "depth": 99 },
+    "last_run": "2026-05-25T22:35:24.000Z",
+    "last_run_epoch": 1779748524,
+    "output_count": 1,
+    "record_count": 2,
+    "output_files": [
+      "./tmp/manager_collection/files_03e96c80-1b2f-44d7-9c38-5e17af90dd2e.jsonl"
+    ],
+    "status": "completed"
+  },
+  {
+    "name": "made_up_artifact",
+    "artifact_options_hash": "303b5c8988601647873b4ffd247d83cb",
+    "artifact_options": "test",
+    "last_run": "2026-05-25T22:35:24.000Z",
+    "last_run_epoch": 1779748524,
+    "output_count": 0,
+    "record_count": 0,
+    "output_files": [],
+    "status": "failed"
+  }
+]
