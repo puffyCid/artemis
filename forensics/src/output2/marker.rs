@@ -5,13 +5,14 @@ use crate::{
     },
     utils::time::time_now,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, create_dir_all},
     path::PathBuf,
 };
 
 /// Determine if an artifact was recently collected
+#[derive(Debug, Deserialize)]
 pub(crate) struct MarkerTracker {
     /// Path to save the marker file to
     path: PathBuf,
@@ -102,7 +103,7 @@ mod tests {
             output_count: 0,
             record_count: 1,
             output_files: Vec::new(),
-            status: String::from("complete"),
+            status: String::from("completed"),
         }
     }
 
