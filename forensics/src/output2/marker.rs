@@ -48,15 +48,17 @@ impl MarkerTracker {
     }
 
     /// Update the `MarkerTracker` JSON file
-    pub(crate) fn update(&self, run: &ArtifactRunReport) -> OutputResult<()> {
+    pub(crate) fn update_runs(&self, new_runs: &[ArtifactRunReport]) -> OutputResult<()> {
         let mut runs = self.read_runs()?;
-
-        if let Some(exists) = runs.iter_mut().find(|existing| {
-            existing.name == run.name && existing.artifact_options_hash == run.artifact_options_hash
-        }) {
-            *exists = run.clone();
-        } else {
-            runs.push(run.clone());
+        for run in new_runs {
+            if let Some(exists) = runs.iter_mut().find(|existing| {
+                existing.name == run.name
+                    && existing.artifact_options_hash == run.artifact_options_hash
+            }) {
+                *exists = run.clone();
+            } else {
+                runs.push(run.clone());
+            }
         }
 
         let path = self.path.join(&self.name);
@@ -136,11 +138,11 @@ mod tests {
 
         let run =
             create_report(json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}));
-        tracker.update(&run).unwrap();
+        tracker.update_runs(&[run]).unwrap();
 
         let run =
             create_report(json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}));
-        tracker.update(&run).unwrap();
+        tracker.update_runs(&[run]).unwrap();
 
         let runs = tracker.read_runs().unwrap();
         assert_eq!(runs.len(), 2);
@@ -157,7 +159,7 @@ mod tests {
         let run =
             create_report(json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}));
 
-        tracker.update(&run).unwrap();
+        tracker.update_runs(&[run.clone()]).unwrap();
         assert!(
             tracker
                 .should_skip("processes", &run.artifact_options)
