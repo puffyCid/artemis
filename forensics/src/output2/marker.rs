@@ -5,6 +5,7 @@ use crate::{
     },
     utils::time::time_now,
 };
+use log::error;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, create_dir_all},
@@ -49,7 +50,14 @@ impl MarkerTracker {
 
     /// Update the `MarkerTracker` JSON file
     pub(crate) fn update_runs(&self, new_runs: &[ArtifactRunReport]) -> OutputResult<()> {
-        let mut runs = self.read_runs()?;
+        // If we cannot read the marker file. We create a new one
+        let mut runs = match self.read_runs() {
+            Ok(results) => results,
+            Err(err) => {
+                error!("[forensics] Could not read marker file {err:?}. Overwriting it");
+                Vec::new()
+            }
+        };
         for run in new_runs {
             if let Some(exists) = runs.iter_mut().find(|existing| {
                 existing.name == run.name
