@@ -7,6 +7,7 @@ use crate::{
     structs::{artifacts::runtime::script::JSScript, toml::Output},
     utils::{encoding::base64_decode_standard, time},
 };
+use boa_engine::Context;
 use log::error;
 use serde_json::Value;
 use std::str::from_utf8;
@@ -92,6 +93,16 @@ fn decode_script(
 
     output_data(&mut script_value, script_name, output, start_time)?;
     Ok(())
+}
+
+/// A `BoaJS` runtime we use to filter data
+pub(crate) struct JsFilterRuntime {
+    /// `BoaJS` runtime context
+    pub(crate) context: Context,
+}
+/// Create a JavaScript runtime to filter data
+pub(crate) fn create_filter_runtime(script: &str) -> Result<JsFilterRuntime, RuntimeError> {
+    JsFilterRuntime::new(script)
 }
 
 /// Output Javascript results based on the output options provided from the TOML file

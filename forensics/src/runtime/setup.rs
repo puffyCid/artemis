@@ -1,3 +1,5 @@
+use crate::runtime::run::JsFilterRuntime;
+
 use super::{
     application::extensions::application_functions, compression::extensions::decompress_functions,
     decryption::extensions::decrypt_functions, encoding::extensions::encoding_functions,
@@ -8,7 +10,7 @@ use super::{
     windows::extensions::windows_functions,
 };
 use boa_engine::{
-    Context, JsError, JsResult, JsValue, Source,
+    Context, JsError, JsResult, JsString, JsValue, Source,
     context::ContextBuilder,
     job::{GenericJob, Job, JobExecutor, NativeAsyncJob, PromiseJob, TimeoutJob},
     js_str, js_string,
@@ -231,6 +233,149 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         result.to_json(&mut context)
     );
     Err(RuntimeError::ScriptResult)
+}
+
+impl JsFilterRuntime {
+    /// Creates a new runtime to filter artifacts
+    pub(crate) fn new(script: &str) -> Result<Self, RuntimeError> {
+        let queue = Queue::new();
+        let mut context = ContextBuilder::new()
+            .job_executor(Rc::new(queue))
+            .build()
+            .map_err(|err| {
+                error!("[runtime] Could not create JavaScript filter context: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+        register_console(&mut context)?;
+        setup_runtime(&mut context);
+
+        context
+            .eval(Source::from_bytes(script.as_bytes()))
+            .map_err(|err| {
+                error!("[runtime] Could not evaluate JavaScript filter script: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+        let entrypoint = context
+            .global_object()
+            .get(JsString::from("main"), &mut context)
+            .map_err(|err| {
+                error!("[runtime] Could not get JavaScript filter entrypoint: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+        if !entrypoint.is_callable() {
+            error!("[runtime] JavaScript filter script must define function `main()`");
+            return Err(RuntimeError::ExecuteScript);
+        }
+
+        Ok(Self { context })
+    }
+
+    /// Pass our artifact record in the `main()` function of the script
+    pub(crate) fn filter_record(
+        &mut self,
+        record: Value,
+        filter_conext: &Value,
+    ) -> Result<Value, RuntimeError> {
+        let entrypoint = self
+            .context
+            .global_object()
+            .get(JsString::from("main"), &mut self.context)
+            .map_err(|err| {
+                error!("[runtime] Could not get JavaScript filter entrypoint: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+        // Validate one more time. We validate the entrypoint is callable when we initialize JsFilterRuntime
+        let Some(entrypoint) = entrypoint.as_callable() else {
+            error!("[runtime] JavaScript filter entrypoint `main()` is not callable");
+            return Err(RuntimeError::ExecuteScript);
+        };
+
+        let record_arg = JsValue::from_json(&record, &mut self.context).map_err(|err| {
+            error!("[runtime] Could not convert filter record to JavaScript: {err:?}");
+            RuntimeError::ExecuteScript
+        })?;
+
+        let context_arg = JsValue::from_json(filter_conext, &mut self.context).map_err(|err| {
+            error!("[runtime] Could not convert filter context to JavaScript: {err:?}");
+            RuntimeError::ExecuteScript
+        })?;
+
+        // Call `main()` function
+        let result = entrypoint
+            .call(
+                &JsValue::undefined(),
+                &[record_arg, context_arg],
+                &mut self.context,
+            )
+            .map_err(|err| {
+                error!("[runtime] JavaScript filter entrypoint failed: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+        self.resolve_filter_result(result)
+    }
+
+    /// Handle both async and sync scripts
+    fn resolve_filter_result(&mut self, result: JsValue) -> Result<Value, RuntimeError> {
+        if result.is_undefined() || result.is_null() {
+            return Ok(Value::Null);
+        }
+
+        if result.is_promise() {
+            let Some(promise) = result.as_promise() else {
+                error!("[runtime] JavaScript filter result was promise-like but not awaitable");
+                return Err(RuntimeError::ScriptResult);
+            };
+
+            self.context.run_jobs().map_err(|err| {
+                error!("[runtime] JavaScript filter could no run job: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+            let resolved = promise.await_blocking(&mut self.context).map_err(|err| {
+                error!("[runtime] JavaScript filter promise failed: {err:?}");
+                RuntimeError::ExecuteScript
+            })?;
+
+            return js_value_to_json(resolved, &mut self.context);
+        }
+
+        js_value_to_json(result, &mut self.context)
+    }
+}
+
+/// Setup basic `console` commands for script development
+fn register_console(context: &mut Context) -> Result<(), RuntimeError> {
+    let console = Console::init(context);
+    context
+        .register_global_property(Console::NAME, console, Attribute::all())
+        .map_err(|err| {
+            error!("[runtime] Could not register console property: {err:?}");
+            RuntimeError::ExecuteScript
+        })?;
+    Ok(())
+}
+
+/// Convert a JavaScript value to serde `Value`
+fn js_value_to_json(value: JsValue, context: &mut Context) -> Result<Value, RuntimeError> {
+    if value.is_undefined() {
+        return Ok(Value::Null);
+    }
+
+    value
+        .to_json(context)
+        .map_err(|err| {
+            error!("[runtime] Could not convert JavaScript value to JSON: {err:?}");
+            RuntimeError::ScriptResult
+        })?
+        .ok_or_else(|| {
+            error!("[runtime] JavaScript value could not be represented as JSON");
+            RuntimeError::ScriptResult
+        })
 }
 
 /// Register and create our custom JavaScript runtime

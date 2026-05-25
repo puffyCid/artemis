@@ -5,10 +5,16 @@ use crate::output2::{
     error::OutputResult,
     record::RecordStream,
     report::{ArtifactRunReport, CollectionReport},
-    sink::factory::{Sink, build_sink},
+    sink::{
+        factory::{Sink, build_sink},
+        output_handle::OutputHandle,
+    },
 };
 use log::LevelFilter;
 use simplelog::{Config, WriteLogger};
+
+#[cfg(feature = "boa")]
+use crate::output2::filter::js::JsFilterRecordStream;
 
 /// A structure that supports outputting forensic data based on `OutputConfig`
 pub(crate) struct OutputManager {
@@ -59,17 +65,7 @@ impl OutputManager {
         artifact_options_hash: String,
         records: &mut dyn RecordStream,
     ) -> OutputResult<()> {
-        let artifact_context = self.context.artifact(
-            artifact_name,
-            &self.config.start_time_filter,
-            &self.config.end_time_filter,
-        );
-        let handle = self.sink.write_artifact(
-            artifact_name,
-            self.encoder.extension(),
-            self.encoder.mime_type(),
-            &mut |writer| self.encoder.encode(records, writer, &artifact_context),
-        )?;
+        let handle = self.write(artifact_name, records)?;
 
         if !self.artifacts.iter().any(|name| name == artifact_name) {
             self.artifacts.push(artifact_name.to_string());
@@ -139,6 +135,57 @@ impl OutputManager {
             record_count,
             "completed",
         ));
+    }
+
+    /// Write artifact records to our configured destination `Sink`
+    fn write(
+        &mut self,
+        artifact_name: &str,
+        records: &mut dyn RecordStream,
+    ) -> OutputResult<OutputHandle> {
+        let artifact_context = self.context.artifact(
+            artifact_name,
+            &self.config.start_time_filter,
+            &self.config.end_time_filter,
+        );
+        // If boa is enabled and we have a filter script
+        // Filter records before writing them to Sink
+        #[cfg(feature = "boa")]
+        if let Some(script) = &self.config.filter_script {
+            // User should give us a name. But if we do not have one
+            // Use `UnknownFilterScript` as default
+            let filter_name = self
+                .config
+                .filter_name
+                .as_deref()
+                .unwrap_or("UnknownFilterScript");
+            let mut filtered_records = JsFilterRecordStream::new(
+                records,
+                script,
+                artifact_name,
+                filter_name,
+                &self.context,
+            )?;
+
+            let handle = self.sink.write_artifact(
+                artifact_name,
+                self.encoder.extension(),
+                self.encoder.mime_type(),
+                &mut |writer| {
+                    self.encoder
+                        .encode(&mut filtered_records, writer, &artifact_context)
+                },
+            )?;
+
+            return Ok(handle);
+        }
+
+        self.sink.write_artifact(
+            artifact_name,
+            self.encoder.extension(),
+            self.encoder.mime_type(),
+            &mut |writer| self.encoder.encode(records, writer, &artifact_context),
+        )
     }
 }
 
@@ -483,5 +530,135 @@ mod tests {
         // Failed artifact
         // log file
         mock_me.assert_calls(3);
+    }
+
+    #[test]
+    #[cfg(feature = "boa")]
+    fn test_output_js_filter() {
+        let name = String::from("manager_js_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            filter_name: Some(String::from("test")),
+            filter_script: Some(String::from(
+                "ZnVuY3Rpb24gbWFpbih2YWx1ZSwgY29udGV4dCkgewogIGlmKHZhbHVlLnBhdGggIT09ICIvdG1wL3R3by50eHQiKSB7CiAgICByZXR1cm4gbnVsbDsKICB9CgogIGNvbnNvbGUubG9nKGBJIGdvdCAke3ZhbHVlLnBhdGh9YCk7CiAgY29uc29sZS5sb2coYENvbnRleHQgaXMgZW5kcG9pbnQgSUQ6ICR7Y29udGV4dC5lbmRwb2ludF9pZH1gKTsKICB2YWx1ZVsibWVzc2FnZSJdID0gIllvdSBnb3QgZmlsdGVyZWQhIjsKICByZXR1cm4gdmFsdWU7Cn0=",
+            )),
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact("files", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.finalize().unwrap();
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_js_collection"));
+        assert!(output_dir.exists());
+        let mut jsonl_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("files_") && name.ends_with(".jsonl") {
+                jsonl_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+                log_files.push(path);
+            }
+        }
+        assert!(!jsonl_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+        let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
+        let lines = jsonl_data.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 1);
+        let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+        assert_eq!(first_record["path"], "/tmp/two.txt");
+        assert_eq!(first_record["size"], 5);
+        assert_eq!(first_record["message"], "You got filtered!");
+        assert_eq!(first_record["collection_metadata"]["endpoint_id"], "test");
+        assert_eq!(first_record["collection_metadata"]["id"], 0);
+        assert_eq!(
+            first_record["collection_metadata"]["artifact_name"],
+            "files"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "boa")]
+    fn test_output_js_async_filter() {
+        let name = String::from("manager_js_async_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Csv,
+            filter_name: Some(String::from("test")),
+            filter_script: Some(String::from(
+                "YXN5bmMgZnVuY3Rpb24gbWFpbihyZWNvcmQsIGNvbnRleHQpIHsKICBhd2FpdCBQcm9taXNlLnJlc29sdmUoKTsKICBpZihyZWNvcmQucGF0aCAhPT0gIi90bXAvdHdvLnR4dCIpIHsKICAgIHJldHVybiBudWxsOwogIH0KIGNvbnNvbGUubG9nKGBJIGdvdCAke3JlY29yZC5wYXRofWApOwogIGNvbnNvbGUubG9nKGBDb250ZXh0IGlzIGVuZHBvaW50IElEOiAke2NvbnRleHQuZW5kcG9pbnRfaWR9YCk7CiAgcmVjb3JkWyJtZXNzYWdlIl0gPSAiWW91IGdvdCBhc3luYyBmaWx0ZXJlZCEiOwogIHJlY29yZFsiZmlsdGVyZWRfYnkiXSA9IGNvbnRleHQuZmlsdGVyX25hbWU7CiAgcmVjb3JkWyJhc3luY19maWx0ZXIiXSA9IHRydWU7CiAgcmV0dXJuIHJlY29yZDsKfQ==",
+            )),
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact("files", String::from("md5"), &mut records)
+            .unwrap();
+
+        manage.finalize().unwrap();
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_js_async_collection"));
+        assert!(output_dir.exists());
+        let mut csv_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("files_") && name.ends_with(".csv") {
+                csv_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+                log_files.push(path);
+            }
+        }
+        assert!(!csv_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+        let csv_data = read_to_string(&csv_files[0]).unwrap();
+        let lines = csv_data.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].contains("You got async filtered!"));
+        assert!(lines[1].contains(",true"));
     }
 }
