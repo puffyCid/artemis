@@ -16,7 +16,7 @@ use serde_json::Value;
 ///
 /// `ArtifactRunReport` contains metadata associated with each
 /// completed artifact run
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct ArtifactRunReport {
     /// Artifact name
     pub(crate) name: String,

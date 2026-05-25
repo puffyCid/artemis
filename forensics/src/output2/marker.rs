@@ -89,8 +89,22 @@ mod tests {
         },
         utils::time::time_now,
     };
-    use serde_json::json;
+    use serde_json::{Value, json};
     use std::path::PathBuf;
+
+    fn create_report(options: Value) -> ArtifactRunReport {
+        ArtifactRunReport {
+            name: String::from("processes"),
+            artifact_options_hash: hash_artifact_options(&options).unwrap(),
+            artifact_options: options,
+            last_run: String::from("1970-01-01T00:00:00.000Z"),
+            last_run_epoch: time_now(),
+            output_count: 0,
+            record_count: 1,
+            output_files: Vec::new(),
+            status: String::from("complete"),
+        }
+    }
 
     #[test]
     fn test_marker_read_runs() {
@@ -119,28 +133,12 @@ mod tests {
             age: 300,
         };
 
-        let run = ArtifactRunReport {
-            name: String::from("processes"),
-            artifact_options_hash: hash_artifact_options(
-                &json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}),
-            )
-            .unwrap(),
-            artifact_options: json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}),
-            ..Default::default()
-        };
-
+        let run =
+            create_report(json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}));
         tracker.update(&run).unwrap();
 
-        let run = ArtifactRunReport {
-            name: String::from("processes"),
-            artifact_options_hash: hash_artifact_options(
-                &json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}),
-            )
-            .unwrap(),
-            artifact_options: json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}),
-            ..Default::default()
-        };
-
+        let run =
+            create_report(json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}));
         tracker.update(&run).unwrap();
 
         let runs = tracker.read_runs().unwrap();
@@ -155,16 +153,8 @@ mod tests {
             age: 300,
         };
 
-        let run = ArtifactRunReport {
-            name: String::from("processes"),
-            last_run_epoch: time_now(),
-            artifact_options_hash: hash_artifact_options(
-                &json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}),
-            )
-            .unwrap(),
-            artifact_options: json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}),
-            ..Default::default()
-        };
+        let run =
+            create_report(json!({"md5": true, "sha1": false, "sha256": false, "metadata": true}));
 
         tracker.update(&run).unwrap();
         assert!(
@@ -173,15 +163,8 @@ mod tests {
                 .unwrap()
         );
 
-        let run = ArtifactRunReport {
-            name: String::from("processes"),
-            artifact_options_hash: hash_artifact_options(
-                &json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}),
-            )
-            .unwrap(),
-            artifact_options: json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}),
-            ..Default::default()
-        };
+        let run =
+            create_report(json!({"md5": false, "sha1": false, "sha256": false, "metadata": true}));
         assert!(
             !tracker
                 .should_skip("processes", &run.artifact_options)
