@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_artifact_run_report() {
-        let result = ArtifactRunReport::new("test", String::new(), Vec::new(), 10, "compleed");
+        let result = ArtifactRunReport::new("test", &String::new(), Vec::new(), 10, "compleed");
         assert!(!result.last_run.is_empty());
         assert_eq!(result.output_count, 0);
     }

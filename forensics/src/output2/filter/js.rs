@@ -122,7 +122,7 @@ mod tests {
 
         let mut manager = OutputManager::new(config).unwrap();
         let err = manager
-            .write_artifact("test", String::from("test"), &mut records)
+            .write_artifact("test", &String::from("test"), &mut records)
             .unwrap_err();
 
         assert!(

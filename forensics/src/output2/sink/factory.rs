@@ -151,7 +151,7 @@ mod tests {
             test.as_object().unwrap().clone(),
         ))]);
         manager
-            .write_artifact("test", String::from("test"), &mut records)
+            .write_artifact("test", &String::from("test"), &mut records)
             .unwrap();
     }
 
@@ -168,7 +168,7 @@ mod tests {
             test.as_object().unwrap().clone(),
         ))]);
         manager
-            .write_artifact("test", String::from("test"), &mut records)
+            .write_artifact("test", &String::from("test"), &mut records)
             .unwrap();
         error!("hello");
         manager.finalize().unwrap();
