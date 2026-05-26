@@ -71,7 +71,7 @@ pub fn timeline_artifact(
     end: &Option<String>,
 ) -> Option<()> {
     match artifact {
-        Artifacts::Processes => processes(data, start, end),
+        Artifacts::Processes => todo!(),
         Artifacts::Files => files(data, start, end),
         Artifacts::Journal => journal(data, start, end),
         Artifacts::Logons => logons(data, start, end),
@@ -109,7 +109,7 @@ pub fn timeline_artifact(
         Artifacts::Spotlight => spotlight(data, start, end),
         Artifacts::UnifiedLogs => unifiedlogs(data, start, end),
         Artifacts::SudoMacos => sudo_macos(data, start, end),
-        Artifacts::Connections => network(data, start, end),
+        Artifacts::Connections => todo!(),
         Artifacts::Unknown => {
             warn!("Got unknown artifact");
             None
@@ -122,10 +122,51 @@ pub fn timeline_artifact_ng(
     artifact: &str,
     start: &Option<String>,
     end: &Option<String>,
-) {
+) -> bool {
     match artifact.to_ascii_lowercase().as_str() {
-        "processes" => println!("TODO"),
-        _ => warn!("Got unknown artifact: {artifact}"),
+        "amcache" => todo!(),
+        "bits" => todo!(),
+        "files" => todo!(),
+        "journal" => todo!(),
+        "registry" => todo!(),
+        "processes" => processes(data, start, end),
+        "prefetch" => todo!(),
+        "mft" => todo!(),
+        "srum" => todo!(),
+        "search" => todo!(),
+        "rawfiles" => todo!(),
+        "recyclebin" => todo!(),
+        "shimcache" => todo!(),
+        "shimdb" => todo!(),
+        "shellbags" => todo!(),
+        "shortcuts" => todo!(),
+        "tasks" => todo!(),
+        "userassist" => todo!(),
+        "usnjrnl" => todo!(),
+        "wmipersist" => todo!(),
+        "services" => todo!(),
+        "jumplists" => todo!(),
+        "eventlogs" => todo!(),
+        "emond" => todo!(),
+        "launchd" => todo!(),
+        "outlook" => todo!(),
+        "loginitems" => todo!(),
+        "fseventsd" => todo!(),
+        "users-macos" => todo!(),
+        "groups-macos" => todo!(),
+        "execpolicy" => todo!(),
+        "unifiedlogs" => todo!(),
+        "sudologs-macos" => todo!(),
+        "spotlight" => todo!(),
+        "logons" => todo!(),
+        "sudologs-linux" => todo!(),
+        "users-windows" => todo!(),
+        "connections" => network(data),
+        "ext4files" => todo!(),
+        _ => {
+            warn!("Got unknown artifact: {artifact}");
+            false
+        }
     }
 }
 
