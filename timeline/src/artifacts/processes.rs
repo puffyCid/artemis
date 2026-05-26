@@ -63,8 +63,7 @@ mod tests {
             "binary_info": [{"data":"data1"}]
         });
 
-        let write_timeline = processes(&mut test, &None, &None);
-        assert!(write_timeline);
+        assert!(processes(&mut test, &None, &None));
         assert_eq!(test["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test["artifact"], "Processes");
         assert_eq!(test["message"], "/usr/bin/ls  stuff");
@@ -72,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_network() {
-        let mut test = json!([{
+        let mut test = json!({
             "protocol": "Tcp",
             "local_address": "::",
             "local_port": 9600,
@@ -81,10 +80,9 @@ mod tests {
             "state": "Listen",
             "pid": 1529358,
             "process_name": "pasta.avx2",
-        }]);
+        });
 
-        let write_timeline = network(&mut test);
-        assert!(write_timeline);
+        assert!(network(&mut test));
         assert_eq!(test["artifact"], "Connections");
         assert_eq!(
             test["message"].as_str().unwrap(),

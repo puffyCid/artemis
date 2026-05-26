@@ -73,10 +73,10 @@ pub fn timeline_artifact(
     match artifact {
         Artifacts::Processes => todo!(),
         Artifacts::Files => todo!(),
-        Artifacts::Journal => journal(data, start, end),
-        Artifacts::Logons => logons(data, start, end),
-        Artifacts::SudoLinux => sudo_linux(data, start, end),
-        Artifacts::Ext4Files => ext4_filelisting(data, start, end),
+        Artifacts::Journal => todo!(),
+        Artifacts::Logons => todo!(),
+        Artifacts::SudoLinux => todo!(),
+        Artifacts::Ext4Files => todo!(),
         Artifacts::Amcache => amcache(data, start, end),
         Artifacts::Bits => bits(data, start, end),
         Artifacts::Eventlogs => eventlogs(data, start, end),
@@ -126,8 +126,8 @@ pub fn timeline_artifact_ng(
     match artifact.to_ascii_lowercase().as_str() {
         "amcache" => todo!(),
         "bits" => todo!(),
-        "files" => todo!(),
-        "journal" => todo!(),
+        "files" => files(data, start, end),
+        "journal" => journal(data, start, end),
         "registry" => todo!(),
         "processes" => processes(data, start, end),
         "prefetch" => todo!(),
@@ -158,11 +158,11 @@ pub fn timeline_artifact_ng(
         "unifiedlogs" => todo!(),
         "sudologs-macos" => todo!(),
         "spotlight" => todo!(),
-        "logons" => todo!(),
-        "sudologs-linux" => todo!(),
+        "logons" => logons(data, start, end),
+        "sudologs-linux" => sudo_linux(data, start, end),
         "users-windows" => todo!(),
         "connections" => network(data),
-        "ext4files" => todo!(),
+        "ext4files" => ext4_filelisting(data, start, end),
         _ => {
             warn!("Got unknown artifact: {artifact}");
             false

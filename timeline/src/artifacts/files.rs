@@ -26,6 +26,9 @@ pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<Strin
         data["timestamp_desc"] = Value::String(value);
         entries.push(data.clone());
     }
+    if entries.is_empty() {
+        return false;
+    }
     *data = Value::Array(entries);
 
     true
@@ -129,8 +132,7 @@ mod tests {
 
         });
 
-        let write_timeline = files(&mut test, &None, &None);
-        assert!(write_timeline);
+        assert!(files(&mut test, &None, &None));
         assert_eq!(test.as_array().unwrap().len(), 4);
         assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Files");
