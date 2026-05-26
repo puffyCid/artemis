@@ -72,7 +72,7 @@ pub fn timeline_artifact(
 ) -> Option<()> {
     match artifact {
         Artifacts::Processes => todo!(),
-        Artifacts::Files => files(data, start, end),
+        Artifacts::Files => todo!(),
         Artifacts::Journal => journal(data, start, end),
         Artifacts::Logons => logons(data, start, end),
         Artifacts::SudoLinux => sudo_linux(data, start, end),

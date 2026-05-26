@@ -3,35 +3,32 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Timeline filelisting info
-pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<String>) -> Option<()> {
+pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
+    if !data.is_object() {
+        return false;
+    }
     let mut entries = Vec::new();
-    for entry in data.as_array_mut()? {
-        if !entry.is_object() {
+    data["artifact"] = Value::String(String::from("Files"));
+    data["data_type"] = Value::String(String::from("system:fs:file"));
+    data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
+    let temp = json![{
+        "created": data["created"].as_str().unwrap_or_default(),
+        "modified": data["modified"].as_str().unwrap_or_default(),
+        "accessed": data["accessed"].as_str().unwrap_or_default(),
+        "changed": data["changed"].as_str().unwrap_or_default(),
+    }];
+    let times = extract_times(&temp).unwrap_or_default();
+    for (key, value) in times {
+        if filter_data(key, start, end) {
             continue;
         }
-
-        entry["artifact"] = Value::String(String::from("Files"));
-        entry["data_type"] = Value::String(String::from("system:fs:file"));
-        entry["message"] = Value::String(entry["full_path"].as_str()?.into());
-
-        let temp = json![{
-            "created": entry["created"].as_str()?,
-            "modified": entry["modified"].as_str()?,
-            "accessed": entry["accessed"].as_str()?,
-            "changed": entry["changed"].as_str()?,
-        }];
-        let times = extract_times(&temp)?;
-        for (key, value) in times {
-            if filter_data(key, start, end) {
-                continue;
-            }
-            entry["datetime"] = Value::String(key.into());
-            entry["timestamp_desc"] = Value::String(value);
-            entries.push(entry.clone());
-        }
+        data["datetime"] = Value::String(key.into());
+        data["timestamp_desc"] = Value::String(value);
+        entries.push(data.clone());
     }
-    *data.as_array_mut()? = entries;
-    Some(())
+    *data = Value::Array(entries);
+
+    true
 }
 
 /// Extract each timestamp into its own separate file if required
@@ -123,16 +120,17 @@ mod tests {
 
     #[test]
     fn test_files() {
-        let mut test = json!([{
+        let mut test = json!({
             "created": "2024-01-01T00:00:00.000Z",
             "full_path": "/usr/bin/ls",
             "modified": "2024-01-01T03:00:00.000Z",
             "changed": "2024-01-01T02:00:00.000Z",
             "accessed": "2024-01-01T01:00:00.000Z",
 
-        }]);
+        });
 
-        files(&mut test, &None, &None).unwrap();
+        let write_timeline = files(&mut test, &None, &None);
+        assert!(write_timeline);
         assert_eq!(test.as_array().unwrap().len(), 4);
         assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Files");
