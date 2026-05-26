@@ -93,6 +93,9 @@ pub(crate) fn ext4_filelisting(
         data["timestamp_desc"] = Value::String(value);
         entries.push(data.clone());
     }
+    if entries.is_empty() {
+        return false;
+    }
 
     *data = Value::Array(entries);
 

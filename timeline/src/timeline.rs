@@ -172,6 +172,8 @@ pub fn timeline_artifact_ng(
 
 #[cfg(test)]
 mod tests {
+    use crate::timeline::timeline_artifact_ng;
+
     use super::{Artifacts, timeline_artifact};
     use serde_json::Value;
     use std::{fs::read_to_string, path::PathBuf};
@@ -186,12 +188,13 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "files", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
-
-        timeline_artifact(&mut result, &Artifacts::Files, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 1296);
+        assert_eq!(data.len(), 1296);
     }
 
     #[test]
