@@ -12,6 +12,7 @@ use super::{
 };
 use crate::{
     artifacts::output::output_artifact,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
     structs::{
         artifacts::os::macos::{
             EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
@@ -27,12 +28,9 @@ use serde_json::Value;
 
 /// Parse macOS `LoginItems`
 pub(crate) fn loginitems(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &LoginitemsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_loginitems(options);
     let entries = match artifact_result {
         Ok(results) => results,
@@ -45,28 +43,25 @@ pub(crate) fn loginitems(
     if entries.is_empty() {
         return Ok(());
     }
-
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize loginitems: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
-    let output_name = "loginitems";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "loginitems";
+    manager.write_artifact(artifact_name, options, &mut records);
+
+    Ok(())
 }
 
 /// Parse macOS `Emond`
 pub(crate) fn emond(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &EmondOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let results = grab_emond(options);
     let entries = match results {
         Ok(result) => result,
@@ -80,8 +75,7 @@ pub(crate) fn emond(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize emond: {err:?}");
@@ -89,8 +83,10 @@ pub(crate) fn emond(
         }
     };
 
-    let output_name = "emond";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "emond";
+    manager.write_artifact(artifact_name, options, &mut records);
+
+    Ok(())
 }
 
 /// Get macOS `Users`

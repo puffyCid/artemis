@@ -19,6 +19,7 @@ use super::{
     },
 };
 use crate::{
+    output2::{config::OutputConfig, manager::OutputManager},
     structs::toml::ArtemisToml,
     utils::{
         marker::{skip_artifact, update_marker},
@@ -31,23 +32,11 @@ use log::{error, info, warn};
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::execute_script;
-#[cfg(feature = "network")]
-use crate::utils::logging::upload_logs;
 
 /// Parse the TOML collector and get artifacts
-pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
-    // Make sure output starts at zero
-    collector.output.output_files = Vec::new();
-
-    // Track each artifact we parse
-    let mut artifact_tracker = Vec::new();
-    // Status for the artifact run
-    let mut status = String::from("completed");
-    // Keep track of each artifact execution report
-    let mut artifact_runs = Vec::new();
-    // How long it takes to complete the entire collection
-    let start = time_now();
-    let mut total_count = 0;
+pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError> {
+    let config = OutputConfig::try_from(collector.output).unwrap();
+    let mut manager = OutputManager::new(config).unwrap();
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
@@ -65,12 +54,11 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = loginitems(&mut collector.output, filter, options);
+                let results = loginitems(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected loginitems"),
                     Err(err) => {
                         error!("[forensics] Failed to parse loginitems: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -84,7 +72,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected emond"),
                     Err(err) => {
                         error!("[forensics] Failed to parse emond: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -98,7 +85,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected fseventsd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse fseventsd: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -112,7 +98,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected launchd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse launchd: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -127,7 +112,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
                         error!("[forensics] Failed to parse filelisting: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -141,7 +125,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
                         error!("[forensics] Failed to parse users: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -155,7 +138,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
                         error!("[forensics] Failed to parse groups: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -170,7 +152,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
                         error!("[forensics] Failed to parse processes: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -180,7 +161,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
                         error!("[forensics] Failed to parse systeminfo: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -194,7 +174,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected execpolicy"),
                     Err(err) => {
                         error!("[forensics] Failed to parse execpolicy: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -209,7 +188,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse unified logs: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -224,7 +202,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse macOS sudo log data: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -238,7 +215,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected spotlight"),
                     Err(err) => {
                         error!("[forensics] Failed to parse spotlight: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -256,7 +232,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {
                         error!("[forensics] Failed to execute JavaScript error: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -272,7 +247,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected journals"),
                     Err(err) => {
                         error!("[forensics] Failed to parse journals: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -287,7 +261,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected logons"),
                     Err(err) => {
                         error!("[forensics] Failed to parse logons: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -302,7 +275,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Linux sudo log data: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -317,7 +289,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Linux raw ext4 file listing"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Linux ext4 filesystem: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -332,7 +303,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected prefetch"),
                     Err(err) => {
                         error!("[forensics] Failed to parse prefetch: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -346,7 +316,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Eventlogs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Eventlogs: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -360,7 +329,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Raw Filelisting"),
                     Err(err) => {
                         error!("[forensics] Failed to get raw filelisting: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -374,7 +342,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected shimdb"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shimdb: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -388,7 +355,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected registry"),
                     Err(err) => {
                         error!("[forensics] Failed to parse registry: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -402,7 +368,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected userassist"),
                     Err(err) => {
                         error!("[forensics] Failed to parse userassist: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -416,7 +381,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected shimcache"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shimcache: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -430,7 +394,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected shellbags"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shellbags: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -444,7 +407,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected amcache"),
                     Err(err) => {
                         error!("[forensics] Failed to parse amcache: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -458,7 +420,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected shortcuts"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shortcut files: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -472,7 +433,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected usnjrnl"),
                     Err(err) => {
                         error!("[forensics] Failed to parse usnjrnl: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -486,7 +446,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected bits"),
                     Err(err) => {
                         error!("[forensics] Failed to parse bits: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -500,7 +459,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected SRUM"),
                     Err(err) => {
                         error!("[forensics] Failed to parse srum: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -514,7 +472,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected search"),
                     Err(err) => {
                         error!("[forensics] Failed to parse search: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -528,7 +485,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Users"),
                     Err(err) => {
                         error!("[forensics] Failed to parse users: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -542,7 +498,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Schedule Tasks"),
                     Err(err) => {
                         error!("[forensics] Failed to parse schedule tasks: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -556,7 +511,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Services"),
                     Err(err) => {
                         error!("[forensics] Failed to parse services: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -570,7 +524,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Jumplists"),
                     Err(err) => {
                         error!("[forensics] Failed to parse jumplists: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -584,7 +537,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected Recycle Bin"),
                     Err(err) => {
                         error!("[forensics] Failed to parse recycle bin: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -598,7 +550,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected WMI Persistence"),
                     Err(err) => {
                         error!("[forensics] Failed to parse WMI persistence: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -612,7 +563,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected outlook"),
                     Err(err) => {
                         error!("[forensics] Failed to parse outlook: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -626,7 +576,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected MFT"),
                     Err(err) => {
                         error!("[forensics] Failed to parse MFT: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -636,7 +585,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[forensics] Failed to parse MFT: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -650,7 +598,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[forensics] Failed to collect triage: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -659,39 +606,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 artifacts.artifact_name
             ),
         }
-
-        artifact_tracker.push(artifacts.artifact_name.clone());
-        // If marker file is enabled, write and update a marker file to track most recent artifact runs
-        if let Some(marker) = &collector.marker {
-            update_marker(marker, artifacts);
-        }
-
-        // Generate artifact report
-        if let Ok(report) =
-            generate_artifact_report(artifacts, &collector.output.output_files, &status)
-        {
-            artifact_runs.push(report);
-            total_count += collector.output.output_files.len();
-            // Clear to the output files tracker
-            collector.output.output_files.clear();
-        }
-    }
-
-    // Now generate a collection report
-    generate_report(
-        &mut collector.output,
-        &artifact_tracker,
-        start,
-        &artifact_runs,
-        total_count,
-    );
-
-    if collector.output.output != "local" {
-        let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
-        #[cfg(feature = "network")]
-        let _ = upload_logs(&output_dir, &mut collector.output);
-    } else if collector.output.compress && collector.output.output == "local" {
-        let _ = compress_final_output(&collector.output);
     }
 
     Ok(())
@@ -709,8 +623,8 @@ mod tests {
         test_location.push("tests/test_data/macos/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -719,8 +633,8 @@ mod tests {
         test_location.push("tests/test_data/windows/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -729,8 +643,8 @@ mod tests {
         test_location.push("tests/test_data/linux/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -739,7 +653,7 @@ mod tests {
         test_location.push("tests/test_data/marker.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 }
