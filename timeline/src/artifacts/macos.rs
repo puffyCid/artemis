@@ -1,6 +1,5 @@
-use super::files::extract_times;
 use crate::artifacts::filter::filter_data;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 /// Timeline macOS Users
 pub(crate) fn users_macos(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
