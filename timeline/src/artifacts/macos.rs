@@ -21,16 +21,20 @@ pub(crate) fn users_macos(data: &mut Value, start: &Option<String>, end: &Option
         .first()
         .unwrap_or(&String::from("Unknown username").into())
         .clone();
-    data["artifact"] = Value::String(String::from("macOS User"));
-    data["data_type"] = Value::String(String::from("macos:plist:users:entry"));
-    data["timestamp_desc"] = Value::String(String::from("User Account Created"));
+    data["artifact"] = "macOS User".into();
+    data["data_type"] = "macos:plist:users:entry".into();
+    data["timestamp_desc"] = "User Account Created".into();
 
     true
 }
 
 /// Timeline macOS groups
 pub(crate) fn groups_macos(data: &mut Value) -> bool {
-    data["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
+    if !data.is_object() {
+        return false;
+    }
+
+    data["datetime"] = "1970-01-01T00:00:00.000Z".into();
     data["message"] = data["name"]
         .as_array()
         .unwrap_or(&Vec::new())
@@ -58,9 +62,9 @@ pub(crate) fn emond(data: &mut Value, start: &Option<String>, end: &Option<Strin
     }
     data["datetime"] = plist_created.into();
     data["message"] = data["name"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Emond"));
-    data["data_type"] = Value::String(String::from("macos:plist:emond:entry"));
-    data["timestamp_desc"] = Value::String(String::from("PLIST Created"));
+    data["artifact"] = "Emond".into();
+    data["data_type"] = "macos:plist:emond:entry".into();
+    data["timestamp_desc"] = "PLIST Created".into();
 
     true
 }
@@ -99,9 +103,9 @@ pub(crate) fn fsevents(data: &mut Value, start: &Option<String>, end: &Option<St
     }
     data["datetime"] = evidence_created.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("FsEvents"));
-    data["data_type"] = Value::String(String::from("macos:fsevents:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Evidence File Created"));
+    data["artifact"] = "FsEvents".into();
+    data["data_type"] = "macos:fsevents:entry".into();
+    data["timestamp_desc"] = "Evidence File Created".into();
 
     true
 }
@@ -120,9 +124,9 @@ pub(crate) fn launchd(data: &mut Value, start: &Option<String>, end: &Option<Str
 
     data["datetime"] = created.into();
     data["message"] = data["evidence"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Launch Daemon"));
-    data["data_type"] = Value::String(String::from("macos:plist:launchd:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Launch Daemon Created"));
+    data["artifact"] = "Launch Daemon".into();
+    data["data_type"] = "macos:plist:launchd:entry".into();
+    data["timestamp_desc"] = "Launch Daemon Created".into();
 
     true
 }
@@ -140,9 +144,9 @@ pub(crate) fn loginitems(data: &mut Value, start: &Option<String>, end: &Option<
     }
     data["datetime"] = created.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("LoginItems"));
-    data["data_type"] = Value::String(String::from("macos:plist:loginitems:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Target Created"));
+    data["artifact"] = "LoginItems".into();
+    data["data_type"] = "macos:plist:loginitems:entry".into();
+    data["timestamp_desc"] = "Target Created".into();
 
     if data["message"].as_str().unwrap_or_default().is_empty() {
         data["message"] = data["app_id"].as_str().unwrap_or_default().into();
@@ -156,12 +160,12 @@ pub(crate) fn spotlight(data: &mut Value, start: &Option<String>, end: &Option<S
         return false;
     }
 
-    data["artifact"] = Value::String(String::from("Spotlight"));
-    data["data_type"] = Value::String(String::from("macos:spotlight:entry"));
+    data["artifact"] = "Spotlight".into();
+    data["data_type"] = "macos:spotlight:entry".into();
     // Default value
-    data["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
+    data["datetime"] = "1970-01-01T00:00:00.000Z".into();
     // Default value
-    data["timestamp_desc"] = Value::String(String::from("N/A"));
+    data["timestamp_desc"] = "N/A".into();
 
     // Deal with nested json metadata
     let temp = match data["values"].as_object() {
@@ -197,10 +201,13 @@ pub(crate) fn spotlight(data: &mut Value, start: &Option<String>, end: &Option<S
                 return false;
             }
             data["datetime"] = prop_value;
-            data["timestamp_desc"] = Value::String(String::from("Item Added"));
+            data["timestamp_desc"] = "Item Added".into();
         }
     }
-
+    // unwrap is safe since we check for string type
+    if filter_data(data["datetime"].as_str().unwrap(), start, end) {
+        return false;
+    }
     true
 }
 
@@ -216,9 +223,9 @@ pub(crate) fn unifiedlogs(data: &mut Value, start: &Option<String>, end: &Option
         return false;
     }
     data["datetime"] = timestamp.into();
-    data["artifact"] = Value::String(String::from("Unified Logs"));
-    data["data_type"] = Value::String(String::from("macos:unifiedlog:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Entry Generated"));
+    data["artifact"] = "Unified Logs".into();
+    data["data_type"] = "macos:unifiedlog:entry".into();
+    data["timestamp_desc"] = "Entry Generated".into();
 
     data["log_timestamp"] = data["timestamp"].as_str().unwrap().into();
     // Timestamp is reserved word by Timesketch
@@ -242,9 +249,9 @@ pub(crate) fn sudo_macos(data: &mut Value, start: &Option<String>, end: &Option<
         return false;
     }
     data["datetime"] = timestamp.into();
-    data["artifact"] = Value::String(String::from("Sudo macOS"));
-    data["data_type"] = Value::String(String::from("macos:unifiedlog:sudo:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Entry Generated"));
+    data["artifact"] = "Sudo macOS".into();
+    data["data_type"] = "macos:unifiedlog:sudo:entry".into();
+    data["timestamp_desc"] = "Entry Generated".into();
 
     // Always an object since we check above
     data.as_object_mut().unwrap().remove("message_entries");
