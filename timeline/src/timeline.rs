@@ -15,64 +15,8 @@ use crate::artifacts::{
 use log::warn;
 use serde_json::Value;
 
-#[derive(PartialEq, Debug)]
-pub enum Artifacts {
-    Processes,
-    Files,
-    Connections,
-    // Linux
-    Journal,
-    Logons,
-    SudoLinux,
-    Ext4Files,
-    // Windows
-    UsersWindows,
-    Amcache,
-    Bits,
-    Eventlogs,
-    Jumplist,
-    RawFiles,
-    Outlook,
-    Prefetch,
-    RecycleBin,
-    Registry,
-    Search,
-    Services,
-    Shellbags,
-    Shimcache,
-    ShimDb,
-    Shortcuts,
-    Srum,
-    Tasks,
-    Userassist,
-    UsnJrnl,
-    Wmi,
-    Mft,
-    // macOS
-    UsersMacos,
-    GroupsMacos,
-    LaunchDaemon,
-    Fsevents,
-    Emond,
-    ExecPolicy,
-    LoginItems,
-    Spotlight,
-    UnifiedLogs,
-    SudoMacos,
-
-    Unknown,
-}
-
-/// Timeline a parsed artifact
-pub fn timeline_artifact(
-    data: &mut Value,
-    artifact: &Artifacts,
-    start: &Option<String>,
-    end: &Option<String>,
-) -> Option<()> {
-    Some(())
-}
-
+/// Timeline supported artifacts.
+/// Returns false if the artifact could not be timelined
 pub fn timeline_artifact_ng(
     data: &mut Value,
     artifact: &str,
