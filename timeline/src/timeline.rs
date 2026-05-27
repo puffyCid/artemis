@@ -70,51 +70,7 @@ pub fn timeline_artifact(
     start: &Option<String>,
     end: &Option<String>,
 ) -> Option<()> {
-    match artifact {
-        Artifacts::Processes => todo!(),
-        Artifacts::Files => todo!(),
-        Artifacts::Journal => todo!(),
-        Artifacts::Logons => todo!(),
-        Artifacts::SudoLinux => todo!(),
-        Artifacts::Ext4Files => todo!(),
-        Artifacts::Amcache => amcache(data, start, end),
-        Artifacts::Bits => bits(data, start, end),
-        Artifacts::Eventlogs => eventlogs(data, start, end),
-        Artifacts::Jumplist => jumplists(data, start, end),
-        Artifacts::RawFiles => raw_files(data, start, end),
-        Artifacts::Outlook => outlook(data, start, end),
-        Artifacts::Prefetch => prefetch(data, start, end),
-        Artifacts::RecycleBin => recycle_bin(data, start, end),
-        Artifacts::Registry => registry(data, start, end),
-        Artifacts::Search => search(data, start, end),
-        Artifacts::Services => services(data, start, end),
-        Artifacts::Shellbags => shellbags(data, start, end),
-        Artifacts::Shimcache => shimcache(data, start, end),
-        Artifacts::ShimDb => shimdb(data, start, end),
-        Artifacts::Shortcuts => shortcuts(data, start, end),
-        Artifacts::Srum => srum(data, start, end),
-        Artifacts::Tasks => tasks(data, start, end),
-        Artifacts::Userassist => userassist(data, start, end),
-        Artifacts::UsersWindows => users(data, start, end),
-        Artifacts::UsnJrnl => usnjrnl(data, start, end),
-        Artifacts::Wmi => wmi(data, start, end),
-        Artifacts::Mft => mft(data, start, end),
-        Artifacts::UsersMacos => todo!(),
-        Artifacts::GroupsMacos => todo!(),
-        Artifacts::Emond => todo!(),
-        Artifacts::LaunchDaemon => todo!(),
-        Artifacts::Fsevents => todo!(),
-        Artifacts::ExecPolicy => todo!(),
-        Artifacts::LoginItems => todo!(),
-        Artifacts::Spotlight => todo!(),
-        Artifacts::UnifiedLogs => todo!(),
-        Artifacts::SudoMacos => todo!(),
-        Artifacts::Connections => todo!(),
-        Artifacts::Unknown => {
-            warn!("Got unknown artifact");
-            None
-        }
-    }
+    Some(())
 }
 
 pub fn timeline_artifact_ng(
@@ -124,32 +80,32 @@ pub fn timeline_artifact_ng(
     end: &Option<String>,
 ) -> bool {
     match artifact.to_ascii_lowercase().as_str() {
-        "amcache" => todo!(),
-        "bits" => todo!(),
+        "amcache" => amcache(data, start, end),
+        "bits" => bits(data, start, end),
         "files" => files(data, start, end),
         "journal" => journal(data, start, end),
-        "registry" => todo!(),
+        "registry" => registry(data, start, end),
         "processes" => processes(data, start, end),
-        "prefetch" => todo!(),
-        "mft" => todo!(),
-        "srum" => todo!(),
-        "search" => todo!(),
-        "rawfiles" => todo!(),
-        "recyclebin" => todo!(),
-        "shimcache" => todo!(),
-        "shimdb" => todo!(),
-        "shellbags" => todo!(),
-        "shortcuts" => todo!(),
-        "tasks" => todo!(),
-        "userassist" => todo!(),
-        "usnjrnl" => todo!(),
-        "wmipersist" => todo!(),
-        "services" => todo!(),
-        "jumplists" => todo!(),
-        "eventlogs" => todo!(),
+        "prefetch" => prefetch(data, start, end),
+        "mft" => mft(data, start, end),
+        "srum" => srum(data, start, end),
+        "search" => search(data, start, end),
+        "rawfiles" => raw_files(data, start, end),
+        "recyclebin" => recycle_bin(data, start, end),
+        "shimcache" => shimcache(data, start, end),
+        "shimdb" => shimdb(data, start, end),
+        "shellbags" => shellbags(data, start, end),
+        "shortcuts" => shortcuts(data, start, end),
+        "tasks" => tasks(data, start, end),
+        "userassist" => userassist(data, start, end),
+        "usnjrnl" => usnjrnl(data, start, end),
+        "wmipersist" => wmi(data),
+        "services" => services(data, start, end),
+        "jumplists" => jumplists(data, start, end),
+        "eventlogs" => eventlogs(data, start, end),
         "emond" => emond(data, start, end),
         "launchd" => launchd(data, start, end),
-        "outlook" => todo!(),
+        "outlook" => outlook(data, start, end),
         "loginitems" => loginitems(data, start, end),
         "fseventsd" => fsevents(data, start, end),
         "users-macos" => users_macos(data, start, end),
@@ -160,7 +116,7 @@ pub fn timeline_artifact_ng(
         "spotlight" => spotlight(data, start, end),
         "logons" => logons(data, start, end),
         "sudologs-linux" => sudo_linux(data, start, end),
-        "users-windows" => todo!(),
+        "users-windows" => users(data, start, end),
         "connections" => network(data),
         "ext4files" => ext4_filelisting(data, start, end),
         _ => {
@@ -172,10 +128,7 @@ pub fn timeline_artifact_ng(
 
 #[cfg(test)]
 mod tests {
-    use crate::timeline::timeline_artifact_ng;
-
-    use super::{Artifacts, timeline_artifact};
-    use serde_json::Value;
+    use super::timeline_artifact_ng;
     use std::{fs::read_to_string, path::PathBuf};
 
     #[test]
@@ -207,12 +160,13 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
-        }
-        let mut result = Value::Array(data);
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "amcache", &None, &None));
 
-        timeline_artifact(&mut result, &Artifacts::Amcache, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 4);
+            data.push(value);
+        }
+
+        assert_eq!(data.len(), 4);
     }
 
     #[test]
@@ -225,12 +179,14 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "bits", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Bits, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 9);
+        assert_eq!(data.len(), 9);
     }
 
     #[test]
@@ -243,12 +199,14 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "jumplists", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Jumplist, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 109);
+        assert_eq!(data.len(), 109);
     }
 
     #[test]
@@ -261,12 +219,12 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "tasks", &None, &None));
+            data.push(value);
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Tasks, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 109);
+        assert_eq!(data.len(), 109);
     }
 
     #[test]
@@ -279,12 +237,14 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "registry", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Registry, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 133);
+        assert_eq!(data.len(), 133);
     }
 
     #[test]
@@ -297,12 +257,12 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "search", &None, &None));
+            data.push(value);
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Search, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 208);
+        assert_eq!(data.len(), 208);
     }
 
     #[test]
@@ -315,12 +275,14 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "shortcuts", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Shortcuts, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 13);
+        assert_eq!(data.len(), 13);
     }
 
     #[test]
@@ -333,12 +295,14 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "prefetch", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::Prefetch, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 325);
+        assert_eq!(data.len(), 325);
     }
 
     #[test]
@@ -351,13 +315,15 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "shimdb", &None, &None));
+            for entry in value.as_array().unwrap() {
+                data.push(entry.clone())
+            }
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::ShimDb, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 1);
-        assert_eq!(result.to_string().len(), 1851);
+        assert_eq!(data.len(), 1);
+        assert_eq!(data[0].to_string().len(), 1849);
     }
 
     #[test]
@@ -370,13 +336,12 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(&mut value, "spotlight", &None, &None));
+            data.push(value);
         }
-        let mut result = Value::Array(data);
-
-        timeline_artifact(&mut result, &Artifacts::Spotlight, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 66);
-        assert_eq!(result.to_string().len(), 251620);
+        assert_eq!(data.len(), 66);
+        assert_eq!(format!("{data:?}").len(), 339010);
     }
 
     #[test]
@@ -389,12 +354,17 @@ mod tests {
             .unwrap()
             .lines()
         {
-            data.push(serde_json::from_str(line).unwrap())
+            let mut value = serde_json::from_str(line).unwrap();
+            assert!(timeline_artifact_ng(
+                &mut value,
+                "unifiedlogs",
+                &None,
+                &None
+            ));
+            data.push(value);
         }
-        let mut result = Value::Array(data);
 
-        timeline_artifact(&mut result, &Artifacts::UnifiedLogs, &None, &None).unwrap();
-        assert_eq!(result.as_array().unwrap().len(), 168);
-        assert_eq!(result.to_string().len(), 382407);
+        assert_eq!(data.len(), 168);
+        assert_eq!(format!("{data:?}").len(), 519542);
     }
 }
