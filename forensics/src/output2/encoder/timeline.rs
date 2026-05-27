@@ -38,7 +38,7 @@ impl ArtifactEncoder for TimelineEncoder {
                 &context.end_time_filter,
             ) {
                 debug!(
-                    "[forensics] Could not timeline all '{}' records ",
+                    "[forensics] Skipping '{}' record during timeline encoding. Unexpected artifact format.",
                     context.artifact_name
                 );
                 continue;
@@ -46,9 +46,9 @@ impl ArtifactEncoder for TimelineEncoder {
             if let Some(value_array) = value.as_array_mut() {
                 for entry in value_array {
                     append_metadata(entry, context);
-                    count += 1;
                     serde_json::to_writer(&mut *writer, entry)?;
                     writer.write_all(b"\n")?;
+                    count += 1;
                 }
 
                 continue;
