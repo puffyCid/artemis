@@ -4,6 +4,7 @@ use crate::output2::{
     error::OutputResult,
     record::{Record, RecordStream},
 };
+use log::debug;
 use std::io::Write;
 use timeline::timeline::timeline_artifact_ng;
 
@@ -29,13 +30,31 @@ impl ArtifactEncoder for TimelineEncoder {
         while let Some(record) = records.next_record()? {
             let Record::Json(record) = record;
             let mut value = record.into_value();
-            append_metadata(&mut value, context);
-            timeline_artifact_ng(
+            // If false skip writing
+            if !timeline_artifact_ng(
                 &mut value,
                 &context.artifact_name,
                 &context.start_time_filter,
                 &context.end_time_filter,
-            );
+            ) {
+                debug!(
+                    "[forensics] Skipping '{}' record during timeline encoding. Unexpected artifact format.",
+                    context.artifact_name
+                );
+                continue;
+            }
+            if let Some(value_array) = value.as_array_mut() {
+                for entry in value_array {
+                    append_metadata(entry, context);
+                    serde_json::to_writer(&mut *writer, entry)?;
+                    writer.write_all(b"\n")?;
+                    count += 1;
+                }
+
+                continue;
+            }
+            append_metadata(&mut value, context);
+
             serde_json::to_writer(&mut *writer, &value)?;
             writer.write_all(b"\n")?;
 

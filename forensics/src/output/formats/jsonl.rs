@@ -1,4 +1,4 @@
-use super::{error::FormatError, timeline::timeline_data};
+use super::error::FormatError;
 use crate::{structs::toml::Output, utils::output::final_output};
 use log::error;
 use serde_json::Value;
@@ -10,16 +10,6 @@ pub(crate) fn jsonl_format(
     output: &mut Output,
     start_time: u64,
 ) -> Result<(), FormatError> {
-    // Check if we want to timeline data. Only array of JSON objects can be timelined
-    if serde_data.is_array() && output.timeline {
-        // If we are timelining data. Timeline now before appending collection metadata
-        timeline_data(
-            serde_data,
-            artifact_name,
-            &output.start_time,
-            &output.end_time,
-        );
-    }
     let status = final_output(serde_data, output, artifact_name, start_time, false);
     if let Err(result) = status {
         error!("[forensics] Failed to output {artifact_name} data: {result:?}");

@@ -391,7 +391,7 @@ mod tests {
         let mut manage = OutputManager::new(config).unwrap();
         let mut first = Map::new();
         first.insert("full_path".to_string(), "/tmp/one.txt".into());
-        first.insert("arguments".to_string(), 1235.into());
+        first.insert("arguments".to_string(), "1235".into());
         first.insert("start_time".to_string(), "2026-01-01T00:00:00.000Z".into());
         let mut records = VecRecordStream::new(vec![Record::Json(JsonRecord::new(first))]);
 
@@ -431,13 +431,16 @@ mod tests {
         let lines = jsonl_data.lines().collect::<Vec<_>>();
         let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
         assert_eq!(first_record["full_path"], "/tmp/one.txt");
-        assert_eq!(first_record["arguments"], 1235);
+        assert_eq!(first_record["arguments"], "1235");
         assert_eq!(first_record["collection_metadata"]["endpoint_id"], "test");
         assert_eq!(first_record["collection_metadata"]["id"], 0);
         assert_eq!(
             first_record["collection_metadata"]["artifact_name"],
             "processes"
         );
+        assert_eq!(first_record["message"], "/tmp/one.txt 1235");
+        assert_eq!(first_record["datetime"], "2026-01-01T00:00:00.000Z");
+        assert_eq!(first_record["data_type"], "system:processes:process");
         let report_data = read_to_string(&report_files[0]).unwrap();
         let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
         assert_eq!(report["collection_id"], 0);
