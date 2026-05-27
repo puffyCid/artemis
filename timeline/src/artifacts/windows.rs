@@ -17,9 +17,9 @@ pub(crate) fn users(data: &mut Value, start: &Option<String>, end: &Option<Strin
     }
     data["datetime"] = last_logon.into();
     data["message"] = data["username"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Windows User"));
-    data["data_type"] = Value::String(String::from("windows:registry:users:entry"));
-    data["timestamp_desc"] = Value::String(String::from("User Last Logon"));
+    data["artifact"] = "Windows User".into();
+    data["data_type"] = "windows:registry:users:entry".into();
+    data["timestamp_desc"] = "User Last Logon".into();
 
     true
 }
@@ -39,9 +39,9 @@ pub(crate) fn amcache(data: &mut Value, start: &Option<String>, end: &Option<Str
 
     data["datetime"] = last_modified.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Amcache"));
-    data["data_type"] = Value::String(String::from("windows:registry:amcache:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Amcache Registry Last Modified"));
+    data["artifact"] = "Amcache".into();
+    data["data_type"] = "windows:registry:amcache:entry".into();
+    data["timestamp_desc"] = "Amcache Registry Last Modified".into();
 
     true
 }
@@ -52,8 +52,8 @@ pub(crate) fn bits(data: &mut Value, start: &Option<String>, end: &Option<String
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("BITS"));
-    data["data_type"] = Value::String(String::from("windows:ese:bits:entry"));
+    data["artifact"] = "BITS".into();
+    data["data_type"] = "windows:ese:bits:entry".into();
     data["message"] = Value::String(format!(
         "Job: {} - Target Path: {}",
         data["job_name"]
@@ -138,9 +138,9 @@ pub(crate) fn eventlogs(data: &mut Value, start: &Option<String>, end: &Option<S
     data.as_object_mut().unwrap().remove("raw_event_data");
     data.as_object_mut().unwrap().remove("template_message");
 
-    data["artifact"] = Value::String(String::from("EventLogs"));
-    data["data_type"] = Value::String(String::from("windows:eventlogs:entry"));
-    data["timestamp_desc"] = Value::String(String::from("EventLog Entry Generated"));
+    data["artifact"] = "EventLogs".into();
+    data["data_type"] = "windows:eventlogs:entry".into();
+    data["timestamp_desc"] = "EventLog Entry Generated".into();
 
     true
 }
@@ -150,8 +150,8 @@ pub(crate) fn jumplists(data: &mut Value, start: &Option<String>, end: &Option<S
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("Jumplist"));
-    data["data_type"] = Value::String(String::from("windows:jumplist:entry"));
+    data["artifact"] = "Jumplist".into();
+    data["data_type"] = "windows:jumplist:entry".into();
 
     let temp = data.clone();
     data.as_object_mut().unwrap().remove("lnk_info");
@@ -242,8 +242,8 @@ pub(crate) fn raw_files(data: &mut Value, start: &Option<String>, end: &Option<S
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("RawFiles"));
-    data["data_type"] = Value::String(String::from("windows:ntfs:file"));
+    data["artifact"] = "RawFiles".into();
+    data["data_type"] = "windows:ntfs:file".into();
     data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
     let temp = json![{
         "created": &data["created"].as_str().unwrap_or_default(),
@@ -292,9 +292,9 @@ pub(crate) fn outlook(data: &mut Value, start: &Option<String>, end: &Option<Str
         data["subject"].as_str().unwrap_or_default(),
         data["from"].as_str().unwrap_or_default()
     ));
-    data["artifact"] = Value::String(String::from("Outlook"));
-    data["data_type"] = Value::String(String::from("windows:outlook:email"));
-    data["timestamp_desc"] = Value::String(String::from("Email Delivered"));
+    data["artifact"] = "Outlook".into();
+    data["data_type"] = "windows:outlook:email".into();
+    data["timestamp_desc"] = "Email Delivered".into();
 
     true
 }
@@ -304,11 +304,11 @@ pub(crate) fn prefetch(data: &mut Value, start: &Option<String>, end: &Option<St
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("Prefetch"));
-    data["data_type"] = Value::String(String::from("windows:prefetch:file"));
+    data["artifact"] = "Prefetch".into();
+    data["data_type"] = "windows:prefetch:file".into();
     data["message"] = Value::String(data["evidence"].as_str().unwrap_or_default().into());
     data["datetime"] = data["last_run_time"].as_str().unwrap_or_default().into();
-    data["timestamp_desc"] = Value::String(String::from("Prefetch Last Execution"));
+    data["timestamp_desc"] = "Prefetch Last Execution".into();
     if !filter_data(
         data["last_run_time"].as_str().unwrap_or_default(),
         start,
@@ -323,7 +323,7 @@ pub(crate) fn prefetch(data: &mut Value, start: &Option<String>, end: &Option<St
             continue;
         }
         temp["datetime"] = value.as_str().unwrap_or_default().into();
-        temp["timestamp_desc"] = Value::String(String::from("Prefetch Execution"));
+        temp["timestamp_desc"] = "Prefetch Execution".into();
         entries.push(temp.clone());
     }
 
@@ -348,9 +348,9 @@ pub(crate) fn recycle_bin(data: &mut Value, start: &Option<String>, end: &Option
 
     data["datetime"] = deleted.into();
     data["message"] = data["full_path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("RecycleBin"));
-    data["data_type"] = Value::String(String::from("windows:recyclebin:entry"));
-    data["timestamp_desc"] = Value::String(String::from("File Deleted"));
+    data["artifact"] = "RecycleBin".into();
+    data["data_type"] = "windows:recyclebin:entry".into();
+    data["timestamp_desc"] = "File Deleted".into();
 
     true
 }
@@ -368,9 +368,9 @@ pub(crate) fn search(data: &mut Value, start: &Option<String>, end: &Option<Stri
     }
     data["datetime"] = last_modified.into();
     data["message"] = data["entry"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Search"));
-    data["data_type"] = Value::String(String::from("windows:ese:search:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Entry Last Modified"));
+    data["artifact"] = "Search".into();
+    data["data_type"] = "windows:ese:search:entry".into();
+    data["timestamp_desc"] = "Entry Last Modified".into();
     let temp = data["properties"]
         .as_object()
         .unwrap_or(&Map::new())
@@ -407,9 +407,9 @@ pub(crate) fn services(data: &mut Value, start: &Option<String>, end: &Option<St
         data["name"].as_str().unwrap_or_default(),
         data["path"].as_str().unwrap_or_default(),
     ));
-    data["artifact"] = Value::String(String::from("Service"));
-    data["data_type"] = Value::String(String::from("windows:registry:services:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
+    data["artifact"] = "Service".into();
+    data["data_type"] = "windows:registry:services:entry".into();
+    data["timestamp_desc"] = "Registry Last Modified".into();
 
     true
 }
@@ -428,9 +428,9 @@ pub(crate) fn shellbags(data: &mut Value, start: &Option<String>, end: &Option<S
 
     data["datetime"] = reg_modified.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Shellbags"));
-    data["data_type"] = Value::String(String::from("windows:registry:shellbags:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
+    data["artifact"] = "Shellbags".into();
+    data["data_type"] = "windows:registry:shellbags:entry".into();
+    data["timestamp_desc"] = "Registry Last Modified".into();
 
     true
 }
@@ -448,9 +448,9 @@ pub(crate) fn shimcache(data: &mut Value, start: &Option<String>, end: &Option<S
     }
     data["datetime"] = last_modified.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Shimcache"));
-    data["data_type"] = Value::String(String::from("windows:registry:shimcache:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Shimcache Last Modified"));
+    data["artifact"] = "Shimcache".into();
+    data["data_type"] = "windows:registry:shimcache:entry".into();
+    data["timestamp_desc"] = "Shimcache Last Modified".into();
 
     true
 }
@@ -468,9 +468,9 @@ pub(crate) fn registry(data: &mut Value, start: &Option<String>, end: &Option<St
     }
 
     data["datetime"] = last_modified.into();
-    data["artifact"] = Value::String(String::from("Registry"));
-    data["data_type"] = Value::String(String::from("windows:registry:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Registry Last Modified"));
+    data["artifact"] = "Registry".into();
+    data["data_type"] = "windows:registry:entry".into();
+    data["timestamp_desc"] = "Registry Last Modified".into();
     let mut entries = Vec::new();
 
     let temp = data.clone();
@@ -508,8 +508,8 @@ pub(crate) fn shimdb(data: &mut Value, start: &Option<String>, end: &Option<Stri
     data.as_object_mut().unwrap().remove("indexes");
     let mut entries = Vec::new();
 
-    data["artifact"] = Value::String(String::from("Shimdb"));
-    data["data_type"] = Value::String(String::from("windows:shimdb:entry"));
+    data["artifact"] = "Shimdb".into();
+    data["data_type"] = "windows:shimdb:entry".into();
     let Some(db_data) = data["db_data"].as_object() else {
         return false;
     };
@@ -517,7 +517,7 @@ pub(crate) fn shimdb(data: &mut Value, start: &Option<String>, end: &Option<Stri
     if filter_data(data["datetime"].as_str().unwrap(), start, end) {
         return false;
     }
-    data["timestamp_desc"] = Value::String(String::from("Shim Compile Time"));
+    data["timestamp_desc"] = "Shim Compile Time".into();
 
     let temp = data.clone();
     data.as_object_mut().unwrap().remove("db_data");
@@ -590,8 +590,8 @@ pub(crate) fn shortcuts(data: &mut Value, start: &Option<String>, end: &Option<S
     if !data.is_object() {
         return false;
     }
-    data["artifact"] = Value::String(String::from("Shortcut"));
-    data["data_type"] = Value::String(String::from("windows:shortcut:lnk"));
+    data["artifact"] = "Shortcut".into();
+    data["data_type"] = "windows:shortcut:lnk".into();
     data["message"] = data["evidence"].clone();
     let mut entries = Vec::new();
 
@@ -631,32 +631,30 @@ pub(crate) fn srum(data: &mut Value, start: &Option<String>, end: &Option<String
     data["srum_timestamp"] = data["timestamp"].as_str().unwrap().into();
     // Timestamp is reserved word by Timesketch
     data.as_object_mut().unwrap().remove("timestamp");
-    data["timestamp_desc"] = Value::String(String::from("SRUM Table Update"));
+    data["timestamp_desc"] = "SRUM Table Update".into();
     if !data["facetime"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Application Info"));
-        data["data_type"] = Value::String(String::from("windows:ese:srum:application_info:entry"));
+        data["artifact"] = "SRUM Application Info".into();
+        data["data_type"] = "windows:ese:srum:application_info:entry".into();
     } else if !data["cycles_web"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Application Timeline"));
-        data["data_type"] =
-            Value::String(String::from("windows:ese:srum:application_timeline:entry"));
+        data["artifact"] = "SRUM Application Timeline".into();
+        data["data_type"] = "windows:ese:srum:application_timeline:entry".into();
     } else if !data["start_time"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM App VFU"));
-        data["data_type"] = Value::String(String::from("windows:ese:srum:app_vfu:entry"));
+        data["artifact"] = "SRUM App VFU".into();
+        data["data_type"] = "windows:ese:srum:app_vfu:entry".into();
     } else if !data["binary_data"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Energy Info"));
-        data["data_type"] = Value::String(String::from("windows:ese:srum:energy_info:entry"));
+        data["artifact"] = "SRUM Energy Info".into();
+        data["data_type"] = "windows:ese:srum:energy_info:entry".into();
     } else if !data["event_timestamp"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Energy Usage"));
-        data["data_type"] = Value::String(String::from("windows:ese:srum:energy_usage:entry"));
+        data["artifact"] = "SRUM Energy Usage".into();
+        data["data_type"] = "windows:ese:srum:energy_usage:entry".into();
     } else if !data["bytes_sent"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Network Info"));
-        data["data_type"] = Value::String(String::from("windows:ese:srum:network_info:entry"));
+        data["artifact"] = "SRUM Network Info".into();
+        data["data_type"] = "windows:ese:srum:network_info:entry".into();
     } else if !data["connected_time"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Network Connectivity"));
-        data["data_type"] =
-            Value::String(String::from("windows:ese:srum:network_connectivity:entry"));
+        data["artifact"] = "SRUM Network Connectivity".into();
+        data["data_type"] = "windows:ese:srum:network_connectivity:entry".into();
     } else if !data["notification_type"].is_null() {
-        data["artifact"] = Value::String(String::from("SRUM Notification Info"));
+        data["artifact"] = "SRUM Notification Info".into();
         data["data_type"] = Value::String(String::from(
             "windows:ese:srum:network_connectivity:notification_info:entry",
         ));
@@ -678,9 +676,9 @@ pub(crate) fn tasks(data: &mut Value, start: &Option<String>, end: &Option<Strin
     }
     data["datetime"] = created.into();
     data["message"] = data["evidence"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Schedule Task"));
-    data["data_type"] = Value::String(String::from("windows:tasks:xml:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Task Created"));
+    data["artifact"] = "Schedule Task".into();
+    data["data_type"] = "windows:tasks:xml:entry".into();
+    data["timestamp_desc"] = "Task Created".into();
 
     true
 }
@@ -698,9 +696,9 @@ pub(crate) fn userassist(data: &mut Value, start: &Option<String>, end: &Option<
     }
     data["datetime"] = last_execution.into();
     data["message"] = data["path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("Userassist"));
-    data["data_type"] = Value::String(String::from("windows:registry:userassist:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Userassist Last Execution"));
+    data["artifact"] = "Userassist".into();
+    data["data_type"] = "windows:registry:userassist:entry".into();
+    data["timestamp_desc"] = "Userassist Last Execution".into();
 
     true
 }
@@ -719,8 +717,8 @@ pub(crate) fn usnjrnl(data: &mut Value, start: &Option<String>, end: &Option<Str
 
     data["datetime"] = update_time.into();
     data["message"] = data["full_path"].as_str().unwrap_or_default().into();
-    data["artifact"] = Value::String(String::from("UsnJrnl"));
-    data["data_type"] = Value::String(String::from("windows:ntfs:usnjrnl:entry"));
+    data["artifact"] = "UsnJrnl".into();
+    data["data_type"] = "windows:ntfs:usnjrnl:entry".into();
     data["timestamp_desc"] = Value::String(format!(
         "UsnJrnl {:?}",
         data["update_reason"].as_array().unwrap_or(&Vec::new())
@@ -734,10 +732,10 @@ pub(crate) fn wmi(data: &mut Value) -> bool {
         return false;
     }
     data["message"] = data["consumer"].as_str().unwrap_or_default().into();
-    data["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
-    data["timestamp_desc"] = Value::String(String::from("N/A"));
-    data["artifact"] = Value::String(String::from("WMI Persist"));
-    data["data_type"] = Value::String(String::from("windows:wmi:persistence:entry"));
+    data["datetime"] = "1970-01-01T00:00:00.000Z".into();
+    data["timestamp_desc"] = "N/A".into();
+    data["artifact"] = "WMI Persist".into();
+    data["data_type"] = "windows:wmi:persistence:entry".into();
 
     true
 }
@@ -747,8 +745,8 @@ pub(crate) fn mft(data: &mut Value, start: &Option<String>, end: &Option<String>
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("MFT"));
-    data["data_type"] = Value::String(String::from("windows:ntfs:mft::entry"));
+    data["artifact"] = "MFT".into();
+    data["data_type"] = "windows:ntfs:mft::entry".into();
     data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
 
     let temp = json![{

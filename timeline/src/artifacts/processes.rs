@@ -15,9 +15,9 @@ pub(crate) fn processes(data: &mut Value, start: &Option<String>, end: &Option<S
     }
 
     data["datetime"] = start_time.into();
-    data["artifact"] = Value::String(String::from("Processes"));
-    data["data_type"] = Value::String(String::from("system:processes:process"));
-    data["timestamp_desc"] = Value::String(String::from("Process Start Time"));
+    data["artifact"] = "Processes".into();
+    data["data_type"] = "system:processes:process".into();
+    data["timestamp_desc"] = "Process Start Time".into();
     data["message"] = Value::String(format!(
         "{} {}",
         data["full_path"].as_str().unwrap_or_default(),
@@ -32,10 +32,10 @@ pub(crate) fn network(data: &mut Value) -> bool {
     if !data.is_object() {
         return false;
     }
-    data["datetime"] = Value::String(String::from("1970-01-01T00:00:00.000Z"));
-    data["artifact"] = Value::String(String::from("Connections"));
-    data["data_type"] = Value::String(String::from("system:network:connection"));
-    data["timestamp_desc"] = Value::String(String::from("N/A"));
+    data["datetime"] = "1970-01-01T00:00:00.000Z".into();
+    data["artifact"] = "Connections".into();
+    data["data_type"] = "system:network:connection".into();
+    data["timestamp_desc"] = "N/A".into();
     data["message"] = Value::String(format!(
         "Local: {}:{} Remote: {}:{} State: {}",
         data["local_address"].as_str().unwrap_or_default(),

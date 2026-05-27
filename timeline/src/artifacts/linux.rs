@@ -14,9 +14,9 @@ pub(crate) fn journal(data: &mut Value, start: &Option<String>, end: &Option<Str
         return false;
     }
     data["datetime"] = realtime.into();
-    data["artifact"] = Value::String(String::from("Journals"));
-    data["data_type"] = Value::String(String::from("linux:journals:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Journal Entry Generated"));
+    data["artifact"] = "Journals".into();
+    data["data_type"] = "linux:journals:entry".into();
+    data["timestamp_desc"] = "Journal Entry Generated".into();
 
     true
 }
@@ -34,9 +34,9 @@ pub(crate) fn sudo_linux(data: &mut Value, start: &Option<String>, end: &Option<
         return false;
     }
     data["datetime"] = realtime.into();
-    data["artifact"] = Value::String(String::from("Sudo Linux"));
-    data["data_type"] = Value::String(String::from("linux:journals:sudo:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Sudo Journal Entry Generated"));
+    data["artifact"] = "Sudo Linux".into();
+    data["data_type"] = "linux:journals:sudo:entry".into();
+    data["timestamp_desc"] = "Sudo Journal Entry Generated".into();
 
     true
 }
@@ -54,9 +54,9 @@ pub(crate) fn logons(data: &mut Value, start: &Option<String>, end: &Option<Stri
         return false;
     }
     data["datetime"] = timestamp.into();
-    data["artifact"] = Value::String(String::from("Logon Linux"));
-    data["data_type"] = Value::String(String::from("linux:logons:entry"));
-    data["timestamp_desc"] = Value::String(String::from("Logon Event"));
+    data["artifact"] = "Logon Linux".into();
+    data["data_type"] = "linux:logons:entry".into();
+    data["timestamp_desc"] = "Logon Event".into();
     data["message"] = Value::String(format!(
         "User: {} - Logon: {}",
         data["username"].as_str().unwrap_or_default(),
@@ -75,8 +75,8 @@ pub(crate) fn ext4_filelisting(
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("RawFilesExt4"));
-    data["data_type"] = Value::String(String::from("linux:ext4:file"));
+    data["artifact"] = "RawFilesExt4".into();
+    data["data_type"] = "linux:ext4:file".into();
     data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
     let temp = json![{
     "created": data["created"].as_str().unwrap_or_default(),
