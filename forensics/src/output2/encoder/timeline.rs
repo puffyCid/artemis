@@ -4,7 +4,7 @@ use crate::output2::{
     error::OutputResult,
     record::{Record, RecordStream},
 };
-use log::warn;
+use log::debug;
 use std::io::Write;
 use timeline::timeline::timeline_artifact_ng;
 
@@ -37,7 +37,7 @@ impl ArtifactEncoder for TimelineEncoder {
                 &context.start_time_filter,
                 &context.end_time_filter,
             ) {
-                warn!(
+                debug!(
                     "[forensics] Could not timeline all '{}' records ",
                     context.artifact_name
                 );
@@ -46,10 +46,11 @@ impl ArtifactEncoder for TimelineEncoder {
             if let Some(value_array) = value.as_array_mut() {
                 for entry in value_array {
                     append_metadata(entry, context);
-
-                    serde_json::to_writer(&mut *writer, &entry)?;
+                    count += 1;
+                    serde_json::to_writer(&mut *writer, entry)?;
                     writer.write_all(b"\n")?;
                 }
+
                 continue;
             }
             append_metadata(&mut value, context);
