@@ -115,7 +115,6 @@ allow = [
     "Unlicense",
     "Zlib",
     "Unicode-3.0",
-    "OpenSSL",
     "CDLA-Permissive-2.0",
 ]
 # List of explicitly disallowed licenses

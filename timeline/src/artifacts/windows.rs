@@ -271,6 +271,10 @@ pub(crate) fn raw_files(data: &mut Value, start: &Option<String>, end: &Option<S
         entries.push(data.clone());
     }
 
+    if entries.is_empty() {
+        return false;
+    }
+
     *data = Value::Array(entries);
     true
 }
@@ -491,6 +495,10 @@ pub(crate) fn registry(data: &mut Value, start: &Option<String>, end: &Option<St
     if temp["values"].as_array().is_some_and(|v| v.is_empty()) {
         data["message"] = data["path"].clone();
         entries.push(data.clone());
+    }
+
+    if entries.is_empty() {
+        return false;
     }
 
     *data = Value::Array(entries);
