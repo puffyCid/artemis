@@ -8,8 +8,8 @@ pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<Strin
         return false;
     }
     let mut entries = Vec::new();
-    data["artifact"] = Value::String(String::from("Files"));
-    data["data_type"] = Value::String(String::from("system:fs:file"));
+    data["artifact"] = "Files".into();
+    data["data_type"] = "system:fs:file".into();
     data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
     let temp = json![{
         "created": data["created"].as_str().unwrap_or_default(),

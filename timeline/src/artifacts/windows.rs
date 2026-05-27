@@ -663,9 +663,7 @@ pub(crate) fn srum(data: &mut Value, start: &Option<String>, end: &Option<String
         data["data_type"] = "windows:ese:srum:network_connectivity:entry".into();
     } else if !data["notification_type"].is_null() {
         data["artifact"] = "SRUM Notification Info".into();
-        data["data_type"] = Value::String(String::from(
-            "windows:ese:srum:network_connectivity:notification_info:entry",
-        ));
+        data["data_type"] = "windows:ese:srum:network_connectivity:notification_info:entry".into();
     }
 
     true
