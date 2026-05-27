@@ -196,10 +196,7 @@ pub(crate) fn spotlight(data: &mut Value, start: &Option<String>, end: &Option<S
             if !prop_value.is_string() {
                 continue;
             }
-            // unwrap is safe since we check for string type
-            if filter_data(prop_value.as_str().unwrap(), start, end) {
-                return false;
-            }
+
             data["datetime"] = prop_value;
             data["timestamp_desc"] = "Item Added".into();
         }
