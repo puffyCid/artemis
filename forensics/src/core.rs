@@ -3,11 +3,10 @@ use crate::{
     error::TomlError,
     filesystem::files::{read_file, read_text_file},
     structs::toml::ArtemisToml,
-    utils::logging::create_log_file,
 };
 use log::{LevelFilter, error, info};
 use serde_json::Value;
-use simplelog::{Config, SimpleLogger, WriteLogger};
+use simplelog::{Config, SimpleLogger};
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::raw_script;
@@ -80,11 +79,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 }
 
 /// Based on target system collect data based on TOML config
-pub fn artemis_collection(mut collection: ArtemisToml) -> Result<(), TomlError> {
-    if let Ok((log_file, level)) = create_log_file(&mut collection.output) {
-        let _ = WriteLogger::init(level, Config::default(), log_file);
-    }
-
+pub fn artemis_collection(collection: ArtemisToml) -> Result<(), TomlError> {
     let result = collect(collection);
     match result {
         Ok(_) => info!("[forensics] Parsed TOML data"),

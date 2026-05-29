@@ -30,8 +30,20 @@ use crate::runtime::run::execute_script;
 
 /// Parse the TOML collector and get artifacts
 pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError> {
-    let config = OutputConfig::try_from(collector.output.clone()).unwrap();
-    let mut manager = OutputManager::new(config).unwrap();
+    let config = match OutputConfig::try_from(collector.output.clone()) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not setup output config: {err:?}");
+            return Err(CollectionError::Output);
+        }
+    };
+    let mut manager = match OutputManager::new(config) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not setup output manager: {err:?}");
+            return Err(CollectionError::Output);
+        }
+    };
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
