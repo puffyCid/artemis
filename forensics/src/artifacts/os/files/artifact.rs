@@ -1,44 +1,13 @@
-use super::{
-    error::FileError,
-    filelisting::{FileArgs, get_filelist},
-};
-use crate::structs::{artifacts::os::files::FileOptions, toml::Output};
-use common::files::Hashes;
+use super::{error::FileError, filelisting::get_filelist};
+use crate::{output2::manager::OutputManager, structs::artifacts::os::files::FileOptions};
 use log::error;
 
 /// Get a filelisting based on provided options
 pub(crate) fn filelisting(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &FileOptions,
 ) -> Result<(), FileError> {
-    let hashes = Hashes {
-        md5: options.md5.unwrap_or(false),
-        sha1: options.sha1.unwrap_or(false),
-        sha256: options.sha256.unwrap_or(false),
-    };
-    let args = FileArgs {
-        start_directory: options.start_path.clone(),
-        depth: options.depth.unwrap_or(1) as usize,
-        metadata: options.metadata.unwrap_or(false),
-        yara: options.yara.as_ref().unwrap_or(&String::new()).clone(),
-        path_regex: options
-            .path_regex
-            .as_ref()
-            .unwrap_or(&String::new())
-            .clone(),
-        filename_regex: options
-            .filename_regex
-            .as_ref()
-            .unwrap_or(&String::new())
-            .clone(),
-        exclude_directories: options
-            .exclude_directories
-            .as_ref()
-            .unwrap_or(&Vec::new())
-            .clone(),
-    };
-    if let Err(err) = get_filelist(args, &hashes, output, filter) {
+    if let Err(err) = get_filelist(options, manager) {
         error!("[forensics] Failed to get file listing: {err:?}");
         return Err(FileError::Filelisting);
     }
@@ -50,25 +19,31 @@ pub(crate) fn filelisting(
 mod tests {
     use crate::{
         artifacts::os::files::artifact::filelisting,
-        structs::{artifacts::os::files::FileOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::files::FileOptions,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     #[cfg(target_family = "unix")]
     fn test_filelisting_unix() {
-        let mut output = output_options("file_test", "local", "./tmp", false);
+        let mut output = output_options("file_test", "./tmp", false);
 
         let file_config = FileOptions {
             start_path: String::from("/"),
@@ -82,7 +57,7 @@ mod tests {
             yara: None,
             exclude_directories: None,
         };
-        let status = filelisting(&mut output, false, &file_config).unwrap();
+        let status = filelisting(&mut output, &file_config).unwrap();
         assert_eq!(status, ());
     }
 

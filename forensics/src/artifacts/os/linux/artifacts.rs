@@ -1,24 +1,21 @@
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::linux::ext4::parser::ext4_filelisting;
-use crate::artifacts::output::output_artifact;
+use crate::output2::manager::OutputManager;
+use crate::output2::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::linux::{
     Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
 };
-use crate::structs::toml::Output;
-use crate::utils::time;
 use log::{error, warn};
-use serde_json::Value;
 
 use super::sudo::logs::grab_sudo_logs;
 use super::{journals::parser::grab_journal, logons::parser::grab_logons};
 
 /// Get Linux `Journals`
 pub(crate) fn journals(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
-    if let Err(err) = grab_journal(output, filter, options) {
+    if let Err(err) = grab_journal(manager, options) {
         error!("[forensics] Failed to get journals: {err:?}");
         return Err(LinuxArtifactError::Journal);
     }
@@ -28,37 +25,35 @@ pub(crate) fn journals(
 
 /// Get Linux `Logon` info
 pub(crate) fn logons(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &LogonOptions,
 ) -> Result<(), LinuxArtifactError> {
-    let start_time = time::time_now();
-
     let entries = grab_logons(options);
     if entries.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize logons: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
 
-    let output_name = "logons";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "logons";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output logons: {err:?}");
+    }
+
+    Ok(())
 }
 
 /// Parse sudo logs on Linux
 pub(crate) fn sudo_logs_linux(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &LinuxSudoOptions,
 ) -> Result<(), LinuxArtifactError> {
-    let start_time = time::time_now();
-
     let sudo_results = grab_sudo_logs(options);
     let entries = match sudo_results {
         Ok(results) => results,
@@ -71,26 +66,28 @@ pub(crate) fn sudo_logs_linux(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize sudo log data: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
 
-    let output_name = "sudologs-linux";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "sudologs-linux";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output sudologs-linux: {err:?}");
+    }
+
+    Ok(())
 }
 
 /// Parse the ext4 filesystem
 pub(crate) fn ext4_filelist(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &Ext4Options,
 ) -> Result<(), LinuxArtifactError> {
-    if let Err(err) = ext4_filelisting(options, output, filter) {
+    if let Err(err) = ext4_filelisting(options, manager) {
         error!("[forensics] Failed to get ext4 filelisting: {err:?}");
         return Err(LinuxArtifactError::Ext4);
     }
@@ -98,66 +95,39 @@ pub(crate) fn ext4_filelist(
     Ok(())
 }
 
-/// Output Linux artifacts
-pub(crate) fn output_data(
-    serde_data: &mut Value,
-    output_name: &str,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
-) -> Result<(), LinuxArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
-    if let Err(result) = status {
-        error!("[forensics] Could not output data: {result:?}");
-        return Err(LinuxArtifactError::Output);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
     use crate::artifacts::os::linux::artifacts::{
-        ext4_filelist, journals, logons, output_data, sudo_logs_linux,
+        ext4_filelist, journals, logons, sudo_logs_linux,
     };
     use crate::artifacts::os::systeminfo::info::get_info_metadata;
+    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::linux::{
         Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
     };
-    use crate::structs::toml::Output;
-    use crate::utils::time;
-    use serde_json::json;
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_output_data() {
-        let mut output = output_options("output_test", "local", "./tmp", false);
-        let start_time = time::time_now();
-
-        let name = "test";
-        let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
-        assert_eq!(status, ());
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_journals() {
-        let mut output = output_options("journals_test", "local", "./tmp", false);
+        let mut output = output_options("journals_test", "./tmp", false);
 
         let status = journals(
             &mut output,
-            false,
             &JournalOptions {
                 alt_dir: Some(String::from("./tmp")),
             },
@@ -168,11 +138,10 @@ mod tests {
 
     #[test]
     fn test_logons() {
-        let mut output = output_options("logons_test", "local", "./tmp", false);
+        let mut output = output_options("logons_test", "./tmp", false);
 
         let status = logons(
             &mut output,
-            false,
             &LogonOptions {
                 alt_file: Some(String::from("/var/run/utmp")),
             },
@@ -183,11 +152,10 @@ mod tests {
 
     #[test]
     fn test_sudo_logs_linux() {
-        let mut output = output_options("sudologs", "local", "./tmp", false);
+        let mut output = output_options("sudologs", "./tmp", false);
 
         let status = sudo_logs_linux(
             &mut output,
-            false,
             &LinuxSudoOptions {
                 alt_dir: Some(String::from("./tmp")),
             },
@@ -202,10 +170,9 @@ mod tests {
         if !get_info_metadata().kernel_version.contains("azure") {
             return;
         }
-        let mut output = output_options("ext4", "local", "./tmp", false);
+        let mut output = output_options("ext4", "./tmp", false);
         ext4_filelist(
             &mut output,
-            false,
             &Ext4Options {
                 start_path: String::from("/"),
                 depth: 99,

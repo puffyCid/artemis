@@ -1,14 +1,11 @@
 use super::error::ConnectionsError;
-use crate::{artifacts::output::output_artifact, structs::toml::Output, utils::time};
+use crate::output2::{manager::OutputManager, record::serialize_records_to_stream};
 use log::error;
 use lumination::connections::connections;
-use serde_json::Value;
 
 /// Attempt to get network connections on a system
-pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), ConnectionsError> {
-    let start_time = time::time_now();
-
-    let conns = match connections() {
+pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), ConnectionsError> {
+    let entries = match connections() {
         Ok(result) => result,
         Err(err) => {
             error!("[connections] Failed to collect network connections: {err:?}");
@@ -16,31 +13,17 @@ pub(crate) fn list_connections(output: &mut Output, filter: bool) -> Result<(), 
         }
     };
 
-    let serde_data_result = serde_json::to_value(conns);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize connections: {err:?}");
             return Err(ConnectionsError::Serialize);
         }
     };
 
-    let output_name = "connections";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
-}
-
-/// Output connections
-pub(crate) fn output_data(
-    serde_data: &mut Value,
-    output_name: &str,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
-) -> Result<(), ConnectionsError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
-    if let Err(result) = status {
-        error!("[forensics] Could not output data: {result:?}");
-        return Err(ConnectionsError::OutputData);
+    let artifact_name = "connections";
+    if let Err(err) = manager.write_artifact(artifact_name, &"", &mut records) {
+        error!("[forensics] Failed to output connections: {err:?}");
     }
     Ok(())
 }
@@ -48,22 +31,28 @@ pub(crate) fn output_data(
 #[cfg(test)]
 mod tests {
     use super::list_connections;
-    use crate::structs::toml::Output;
+    use crate::output2::{
+        config::{OutputConfig, OutputDestination, OutputFormat},
+        manager::OutputManager,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("csv"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
     #[test]
     fn test_list_connections() {
-        let mut output = output_options("connections_test", "local", "./tmp", false);
-        list_connections(&mut output, false).unwrap();
+        let output = output_options("connections_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
+
+        list_connections(&mut manage).unwrap();
     }
 }

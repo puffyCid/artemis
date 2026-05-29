@@ -41,7 +41,7 @@ fn test_qcow_parser() {
         ..Default::default()
     };
 
-    let mut data = ArtemisToml {
+    let data = ArtemisToml {
         output: out,
         artifacts: vec![Artifacts {
             artifact_name: String::from("rawfiles-ext4"),
@@ -51,7 +51,7 @@ fn test_qcow_parser() {
         marker: None,
     };
 
-    artemis_collection(&mut data).unwrap();
+    artemis_collection(data).unwrap();
 
     let mut output_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     output_location.push("tmp/qcow_collection/*");

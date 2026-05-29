@@ -1,29 +1,27 @@
 /**
- * Linux EXT4 is a common filesystem used on Linux  
- * This parser leverages the `ext4-fs` Rust crate to parse the raw filesystem  
+ * Linux EXT4 is a common filesystem used on Linux
+ * This parser leverages the `ext4-fs` Rust crate to parse the raw filesystem
  *
- * References:  
- *   `https://wiki.osdev.org/Ext4`  
- *   `https://metebalci.com/blog/a-minimum-complete-tutorial-of-linux-ext4-file-system/`  
+ * References:
+ *   `https://wiki.osdev.org/Ext4`
+ *   `https://metebalci.com/blog/a-minimum-complete-tutorial-of-linux-ext4-file-system/`
  *   `https://github.com/libyal/libfsext`
  *
- * Other Parsers:  
+ * Other Parsers:
  *  `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
     artifacts::os::{
-        linux::{
-            artifacts::output_data,
-            ext4::{disks::qcow_ext4, error::Ext4Error},
-        },
+        linux::ext4::{disks::qcow_ext4, error::Ext4Error},
         systeminfo::info::get_disks,
     },
     filesystem::files::file_extension,
-    structs::{artifacts::os::linux::Ext4Options, toml::Output},
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::linux::Ext4Options,
     utils::{
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
-        time::{time_now, unixepoch_nanoseconds_to_iso},
+        time::unixepoch_nanoseconds_to_iso,
     },
 };
 use common::linux::Ext4Filelist;
@@ -38,8 +36,7 @@ use std::{fs::File, io::BufReader};
 /// Parse the raw EXT4 data and get a file listing
 pub(crate) fn ext4_filelisting(
     params: &Ext4Options,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), Ext4Error> {
     let user_path_regex = params
         .path_regex
@@ -50,7 +47,6 @@ pub(crate) fn ext4_filelisting(
         .as_ref()
         .map_or("", |file_regex| file_regex);
 
-    let start_time = time_now();
     if let Some(device) = &params.device {
         let hashing = Ext4Hash {
             md5: params.md5.unwrap_or_default(),
@@ -69,11 +65,9 @@ pub(crate) fn ext4_filelisting(
             cache: Vec::new(),
             filelist: Vec::new(),
             hashing,
-            start_time,
-            filter,
         };
         if options.device.starts_with("qcow://") {
-            return qcow_ext4(&mut options, output, start_time);
+            return qcow_ext4(&mut options, manager, params);
         }
         let reader = match File::open(&options.device) {
             Ok(result) => result,
@@ -94,9 +88,9 @@ pub(crate) fn ext4_filelisting(
         options
             .cache
             .push(root.name.trim_end_matches('/').to_string());
-        walk_ext4(&root, &mut ext_reader, &mut options, output);
+        walk_ext4(&root, &mut ext_reader, &mut options, manager, params);
         if !options.filelist.is_empty() {
-            ext4_output(&options.filelist, output, start_time, filter);
+            ext4_output(options.filelist, manager, params);
         }
     } else {
         let disks = get_disks();
@@ -122,8 +116,6 @@ pub(crate) fn ext4_filelisting(
                 cache: Vec::new(),
                 filelist: Vec::new(),
                 hashing,
-                start_time,
-                filter,
             };
             let reader = match File::open(&options.device) {
                 Ok(result) => result,
@@ -146,9 +138,9 @@ pub(crate) fn ext4_filelisting(
             options
                 .cache
                 .push(root.name.trim_end_matches('/').to_string());
-            walk_ext4(&root, &mut ext_reader, &mut options, output);
+            walk_ext4(&root, &mut ext_reader, &mut options, manager, params);
             if !options.filelist.is_empty() {
-                ext4_output(&options.filelist, output, start_time, filter);
+                ext4_output(options.filelist, manager, params);
             }
         }
     }
@@ -188,9 +180,9 @@ pub(crate) struct Ext4Params {
     /// We need a device path. Ex: /dev/sda1. If none is provided, we attempt to get a list using `get_disk`.
     /// We then attempt to iterate through all ext4 disks
     pub(crate) device: String,
-    /// Start path may get updated if an ext4 image was mounted.  
-    /// If a /home partition is mounted to /run/media and then unmounted.  
-    /// The `start_path` would become /run/media because the ext4 header last mount path was updated.  
+    /// Start path may get updated if an ext4 image was mounted.
+    /// If a /home partition is mounted to /run/media and then unmounted.
+    /// The `start_path` would become /run/media because the ext4 header last mount path was updated.
     /// Not applicable for live systems
     pub(crate) start_path: String,
     pub(crate) start_path_depth: usize,
@@ -201,8 +193,6 @@ pub(crate) struct Ext4Params {
     pub(crate) cache: Vec<String>,
     pub(crate) filelist: Vec<Ext4Filelist>,
     pub(crate) hashing: Ext4Hash,
-    pub(crate) start_time: u64,
-    pub(crate) filter: bool,
 }
 
 /// Walk the entire ext4 filesystem
@@ -210,7 +200,8 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
     info: &FileInfo,
     reader: &mut Ext4Reader<T>,
     params: &mut Ext4Params,
-    output: &mut Output,
+    manager: &mut OutputManager,
+    options: &Ext4Options,
 ) {
     for entry in &info.children {
         if entry.name == "." || entry.name == ".." {
@@ -273,7 +264,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             let max_size = 10000;
             params.filelist.push(ext4_entry);
             if params.filelist.len() >= max_size {
-                ext4_output(&params.filelist, output, params.start_time, params.filter);
+                ext4_output(params.filelist.clone(), manager, options);
                 params.filelist.clear();
             }
         }
@@ -292,7 +283,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
                     continue;
                 }
             };
-            walk_ext4(&dir_info, reader, params, output);
+            walk_ext4(&dir_info, reader, params, manager, options);
             params.cache.pop();
         }
     }
@@ -300,26 +291,21 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
 
 /// Every 10k files we output the results
 pub(crate) fn ext4_output(
-    filelist: &[Ext4Filelist],
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
+    entries: Vec<Ext4Filelist>,
+    manager: &mut OutputManager,
+    options: &Ext4Options,
 ) {
-    let serde_data_result = serde_json::to_value(filelist);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize ext4 files: {err:?}");
             return;
         }
     };
 
-    let output_result = output_data(&mut serde_data, "ext4files", output, start_time, filter);
-    match output_result {
-        Ok(_) => {}
-        Err(err) => {
-            error!("[forensics] Failed to output ext4 files data: {err:?}");
-        }
+    let artifact_name = "ext4files";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output ext4files: {err:?}");
     }
 }
 
@@ -329,7 +315,11 @@ mod tests {
         artifacts::os::linux::ext4::parser::{
             Ext4Params, ext4_filelisting, ext4_output, filesystem_regex, get_root, walk_ext4,
         },
-        structs::{artifacts::os::linux::Ext4Options, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::linux::Ext4Options,
         utils::regex_options::create_regex,
     };
     use ext4_fs::{
@@ -338,23 +328,24 @@ mod tests {
     };
     use std::{fs::File, io::BufReader, path::PathBuf};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_ext4_filelisting() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/images/ext4/test.img");
-        let mut output = output_options("ext4_files_temp", "local", "./tmp", false);
+        let mut output = output_options("ext4_files_temp", "./tmp", false);
         let options = Ext4Options {
             start_path: String::from("/"),
             depth: 99,
@@ -365,14 +356,15 @@ mod tests {
             path_regex: None,
             filename_regex: None,
         };
-        ext4_filelisting(&options, &mut output, false).unwrap();
+
+        ext4_filelisting(&options, &mut output).unwrap();
     }
 
     #[test]
     fn test_walk_ext4() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/images/ext4/test.img");
-        let mut output = output_options("ext4_files_temp", "local", "./tmp", false);
+        let mut output = output_options("ext4_files_temp", "./tmp", false);
 
         let mut params = Ext4Params {
             device: test_location.display().to_string(),
@@ -388,10 +380,17 @@ mod tests {
                 sha1: false,
                 sha256: false,
             },
-            start_time: 0,
-            filter: false,
         };
-
+        let options = Ext4Options {
+            start_path: String::from("/"),
+            depth: 99,
+            device: None,
+            md5: None,
+            sha1: None,
+            sha256: None,
+            path_regex: None,
+            filename_regex: None,
+        };
         let reader = File::open(&params.device).unwrap();
         let buf = BufReader::new(reader);
         let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
@@ -399,7 +398,7 @@ mod tests {
         params
             .cache
             .push(root.name.trim_end_matches('/').to_string());
-        walk_ext4(&root, &mut ext_reader, &mut params, &mut output);
+        walk_ext4(&root, &mut ext_reader, &mut params, &mut output, &options);
 
         assert_eq!(params.filelist.len(), 7);
         for entry in params.filelist {
@@ -435,7 +434,17 @@ mod tests {
 
     #[test]
     fn test_ext4_output() {
-        let mut output = output_options("ext4_files_none", "local", "./tmp", false);
-        ext4_output(&[], &mut output, 0, false);
+        let mut output = output_options("ext4_files_none", "./tmp", false);
+        let params = Ext4Options {
+            start_path: String::from("/"),
+            depth: 99,
+            device: None,
+            md5: None,
+            sha1: None,
+            sha256: None,
+            path_regex: None,
+            filename_regex: None,
+        };
+        ext4_output(Vec::new(), &mut output, &params);
     }
 }

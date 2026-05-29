@@ -30,8 +30,8 @@ pub(crate) enum Commands {
     Acquire {
         #[command(subcommand)]
         artifact: Option<CommandArgs>,
-        /// Output format. JSON or JSONL or CSV.
-        #[arg(long, default_value_t = String::from("JSON"))]
+        /// Output format. JSON, JSONL, CSV, or Timeline.
+        #[arg(long, default_value_t = String::from("JSONL"))]
         format: String,
         /// Optional output directory for storing results
         #[arg(long, default_value_t = String::from("./tmp"))]
@@ -39,14 +39,11 @@ pub(crate) enum Commands {
         /// GZIP Compress results
         #[arg(long)]
         compress: bool,
-        /// Timeline parsed data. Output is always JSONL
+        /// Start time to use when timelining. Requires timeline format
         #[arg(long)]
-        timeline: bool,
-        /// Start time to use when timelining. Requires timeline option
-        #[arg(long, requires = "timeline")]
         start: Option<String>,
-        /// End time to use when timelining. Requires timeline option
-        #[arg(long, requires = "timeline")]
+        /// End time to use when timelining. Requires timeline format
+        #[arg(long)]
         end: Option<String>,
     },
 }
@@ -64,7 +61,6 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             format,
             output_dir,
             compress,
-            timeline,
             start,
             end,
         } => {
@@ -76,7 +72,6 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             let arti = artifact.as_ref().unwrap();
             collector.artifacts.push(setup_artifact(arti));
             collector.output.compress = *compress;
-            collector.output.timeline = *timeline;
             collector.output.start_time = start.clone();
             collector.output.end_time = end.clone();
 
@@ -87,11 +82,6 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
                 collector.output.directory = output_dir.to_string();
             }
 
-            // Timelining data will always output to jsonl
-            if *timeline {
-                collector.output.format = String::from("jsonl")
-            }
-
             println!(
                 "[artemis] Writing output to: {}",
                 collector.output.directory
@@ -99,7 +89,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         }
     }
 
-    artemis_collection(&mut collector).unwrap();
+    artemis_collection(collector).unwrap();
 }
 
 /// Setup any artifact options
@@ -537,7 +527,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -563,7 +552,6 @@ mod tests {
             }),
             format: String::from("json"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
             output_dir: String::from("./tmp"),
@@ -580,7 +568,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: true,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -593,7 +580,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -608,7 +594,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -621,7 +606,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -634,7 +618,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -647,7 +630,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -660,7 +642,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -673,7 +654,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -692,7 +672,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -711,7 +690,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -733,7 +711,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -748,7 +725,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -781,7 +757,6 @@ mod tests {
             }),
             format: String::from("json"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
             output_dir: String::from("./tmp"),
@@ -805,7 +780,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -821,7 +795,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -837,7 +810,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -850,7 +822,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -863,7 +834,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -876,7 +846,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -889,7 +858,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -902,7 +870,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -915,7 +882,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -934,7 +900,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -950,7 +915,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -969,7 +933,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };
@@ -996,7 +959,6 @@ mod tests {
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
-            timeline: false,
             start: None,
             end: None,
         };

@@ -6,7 +6,10 @@ use super::{
         header::{ObjectHeader, ObjectType},
     },
 };
-use crate::{filesystem::files::file_reader, structs::toml::Output};
+use crate::{
+    filesystem::files::file_reader, output2::manager::OutputManager,
+    structs::artifacts::os::linux::JournalOptions,
+};
 use common::linux::Journal;
 use log::error;
 use std::{collections::HashSet, fs::File, io::Read};
@@ -14,9 +17,8 @@ use std::{collections::HashSet, fs::File, io::Read};
 /// Parse provided `Journal` file path. Will output results when finished. Use `parse_journal_file` if you want the results
 pub(crate) fn parse_journal(
     path: &str,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    manager: &mut OutputManager,
+    options: &JournalOptions,
 ) -> Result<(), JournalError> {
     let reader_result = file_reader(path);
     let mut reader = match reader_result {
@@ -51,9 +53,8 @@ pub(crate) fn parse_journal(
         &mut reader,
         journal_header.entry_array_offset,
         is_compact,
-        output,
-        filter,
-        start_time,
+        manager,
+        options,
         path,
     )?;
 
@@ -142,9 +143,8 @@ fn get_entries(
     reader: &mut File,
     array_offset: u64,
     is_compact: bool,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    manager: &mut OutputManager,
+    options: &JournalOptions,
     evidence: &str,
 ) -> Result<(), JournalError> {
     let mut offset = array_offset;
@@ -168,9 +168,8 @@ fn get_entries(
             reader,
             &object_header.payload,
             is_compact,
-            output,
-            filter,
-            start_time,
+            manager,
+            options,
             evidence,
         );
         let next_offset = match entry_result {
@@ -197,29 +196,40 @@ mod tests {
     use super::{get_entries, parse_journal};
     use crate::{
         artifacts::os::linux::journals::journal::parse_journal_file,
-        filesystem::files::file_reader, structs::toml::Output,
+        filesystem::files::file_reader,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::linux::JournalOptions,
     };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_parse_journal() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
-        let mut output = output_options("journal_test", "local", "./tmp", false);
+        let mut output = output_options("journal_test", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(
+            &test_location.display().to_string(),
+            &mut output,
+            &JournalOptions { alt_dir: None },
+        )
+        .unwrap();
     }
 
     #[test]
@@ -228,14 +238,13 @@ mod tests {
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
         let mut reader = file_reader(&test_location.display().to_string()).unwrap();
-        let mut output = output_options("journal_test", "local", "./tmp", false);
+        let mut output = output_options("journal_test", "./tmp", false);
         get_entries(
             &mut reader,
             3738992,
             true,
             &mut output,
-            false,
-            0,
+            &JournalOptions { alt_dir: None },
             test_location.to_str().unwrap(),
         )
         .unwrap();
@@ -263,8 +272,13 @@ mod tests {
     fn test_parse_journal_bad() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
-        let mut output = output_options("journal_test", "local", "./tmp", false);
+        let mut output = output_options("journal_test", "./tmp", false);
 
-        parse_journal(&test_location.display().to_string(), &mut output, false, 0).unwrap();
+        parse_journal(
+            &test_location.display().to_string(),
+            &mut output,
+            &JournalOptions { alt_dir: None },
+        )
+        .unwrap();
     }
 }
