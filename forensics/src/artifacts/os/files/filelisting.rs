@@ -428,28 +428,22 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_filelist() {
-        let start_location = "C:\\Windows";
-        let depth = 1;
-        let metadata = true;
-        let hashes = Hashes {
-            md5: true,
-            sha1: false,
-            sha256: false,
-        };
-        let path_filter = "";
-        let mut output = output_options("files_temp", "local", "./tmp", false);
+        let mut manager = output_options("files_temp", "./tmp", false);
 
-        let args = FileArgs {
-            start_directory: start_location.to_string(),
-            depth,
-            metadata,
-            yara: String::new(),
-            path_regex: path_filter.to_string(),
-            filename_regex: String::new(),
-            exclude_directories: Vec::new(),
+        let options = FileOptions {
+            start_path: String::from("C:\\Windows"),
+            depth: Some(1),
+            metadata: Some(true),
+            md5: Some(true),
+            sha1: Some(false),
+            sha256: Some(false),
+            path_regex: None,
+            filename_regex: None,
+            yara: None,
+            exclude_directories: None,
         };
 
-        let results = get_filelist(args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&options, &mut manager).unwrap();
         assert_eq!(results, ());
     }
 
@@ -479,16 +473,22 @@ mod tests {
     fn test_file_metadata() {
         let start_path = WalkDir::new("C:\\Windows\\System32").max_depth(1);
         let metadata = true;
-        let hashes = Hashes {
-            md5: false,
-            sha1: false,
-            sha256: false,
+        let options = FileOptions {
+            start_path: String::new(),
+            depth: Some(1),
+            metadata: Some(metadata),
+            md5: Some(false),
+            sha1: Some(false),
+            sha256: Some(false),
+            path_regex: None,
+            filename_regex: None,
+            yara: None,
+            exclude_directories: None,
         };
         let mut results: Vec<FileInfo> = Vec::new();
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let data =
-                file_metadata(&entry_data, metadata, &hashes, &PlatformType::Windows).unwrap();
+            let data = file_metadata(&entry_data, &options, &PlatformType::Windows).unwrap();
             results.push(data);
         }
         assert!(results.len() > 3);
@@ -565,15 +565,22 @@ mod tests {
     fn test_file_metadata() {
         let start_path = WalkDir::new("/sbin").max_depth(1);
         let metadata = true;
-        let hashes = Hashes {
-            md5: true,
-            sha1: false,
-            sha256: false,
+        let options = FileOptions {
+            start_path: String::new(),
+            depth: Some(1),
+            metadata: Some(metadata),
+            md5: Some(false),
+            sha1: Some(false),
+            sha256: Some(false),
+            path_regex: None,
+            filename_regex: None,
+            yara: None,
+            exclude_directories: None,
         };
         let mut results: Vec<FileInfo> = Vec::new();
         for entries in start_path {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, metadata, &hashes, &PlatformType::Macos).unwrap();
+            let data = file_metadata(&entry_data, &options, &PlatformType::Macos).unwrap();
             results.push(data);
         }
         assert!(results.len() > 3);

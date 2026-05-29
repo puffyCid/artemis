@@ -64,7 +64,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_filelisting_windows() {
-        let mut output = output_options("file_test", "local", "./tmp", false);
+        let mut output = output_options("file_test", "./tmp", false);
 
         let file_config = FileOptions {
             start_path: String::from("C:\\"),
@@ -78,7 +78,7 @@ mod tests {
             yara: None,
             exclude_directories: None,
         };
-        let status = filelisting(&mut output, false, &file_config).unwrap();
+        let status = filelisting(&mut output, &file_config).unwrap();
         assert_eq!(status, ());
     }
 }
