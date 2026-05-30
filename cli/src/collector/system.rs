@@ -737,7 +737,6 @@ mod tests {
             format: String::from("json"),
             compress: false,
             output_dir: String::from("./tmp"),
-            timeline: true,
             start: Some(String::from("2020-01-01T00:00:00.000Z")),
             end: Some(String::from("7000-01-01T00:00:00.000Z")),
         };

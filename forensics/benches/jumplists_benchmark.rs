@@ -18,33 +18,36 @@ fn bench_custom_jumplists(c: &mut Criterion) {
         "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
     );
 
-    let options = JumplistsOptions {
-        alt_dir: Some(test_location.display().to_string()),
-    };
+    c.bench_function("Benching Custom Jumplists", |b| {
+        b.iter(|| {
+            let options = JumplistsOptions {
+                alt_dir: Some(test_location.display().to_string()),
+            };
 
-    let out = Output {
-        name: String::from("jumplist_benchmark"),
-        endpoint_id: String::from("benchmark_jumplists"),
-        collection_id: 0,
-        directory: String::from("./tmp"),
-        output: String::from("local"),
-        format: String::from("jsonl"),
-        compress: false,
-        timeline: false,
-        ..Default::default()
-    };
+            let out = Output {
+                name: String::from("jumplist_benchmark"),
+                endpoint_id: String::from("benchmark_jumplists"),
+                collection_id: 0,
+                directory: String::from("./tmp"),
+                output: String::from("local"),
+                format: String::from("jsonl"),
+                compress: false,
+                timeline: false,
+                ..Default::default()
+            };
 
-    let data = ArtemisToml {
-        output: out,
-        artifacts: vec![Artifacts {
-            artifact_name: String::from("jumplists"),
-            jumplists: Some(options),
-            ..Default::default()
-        }],
-        marker: None,
-    };
-
-    c.bench_function("Benching Custom Jumplists", |b| b.iter(|| jumplists(data)));
+            let data = ArtemisToml {
+                output: out,
+                artifacts: vec![Artifacts {
+                    artifact_name: String::from("jumplists"),
+                    jumplists: Some(options),
+                    ..Default::default()
+                }],
+                marker: None,
+            };
+            jumplists(data)
+        })
+    });
 }
 
 fn bench_automatic_jumplists(c: &mut Criterion) {
