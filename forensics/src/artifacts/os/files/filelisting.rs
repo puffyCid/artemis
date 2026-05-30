@@ -368,28 +368,22 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_get_filelist() {
-        let start_location = "/System/Volumes/Data/Users";
-        let depth = 4;
-        let metadata = true;
-        let hashes = Hashes {
-            md5: true,
-            sha1: false,
-            sha256: false,
-        };
-        let path_filter = r".*/Downloads";
-        let mut output = output_options("files_temp", "local", "./tmp", false);
+        let mut manager = output_options("files_temp", "./tmp", false);
 
-        let args = FileArgs {
-            start_directory: start_location.to_string(),
-            depth,
-            metadata,
-            yara: String::new(),
-            path_regex: path_filter.to_string(),
-            filename_regex: String::new(),
-            exclude_directories: Vec::new(),
+        let options = FileOptions {
+            start_path: String::from("/System/Volumes/Data/Users"),
+            depth: Some(4),
+            metadata: Some(true),
+            md5: Some(true),
+            sha1: Some(false),
+            sha256: Some(false),
+            path_regex: Some(String::from(r".*/Downloads")),
+            filename_regex: None,
+            yara: None,
+            exclude_directories: None,
         };
 
-        let results = get_filelist(args, &hashes, &mut output, false).unwrap();
+        let results = get_filelist(&options, &mut manager).unwrap();
         assert_eq!(results, ());
     }
 

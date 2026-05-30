@@ -298,10 +298,16 @@ pub(crate) fn output_data(
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, output_data,
             spotlight, sudo_logs_macos, unifiedlogs, users_macos,
+        },
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
         },
         structs::{
             artifacts::os::macos::{
@@ -327,19 +333,32 @@ mod tests {
         }
     }
 
+    fn output_options2(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
+
     #[test]
     fn test_loginitems() {
-        let mut output = output_options("loginitems_test", "local", "./tmp", false);
+        let mut output = output_options2("loginitems_test", "./tmp", false);
 
-        let status = loginitems(&mut output, false, &LoginitemsOptions { alt_file: None }).unwrap();
+        let status = loginitems(&mut output, &LoginitemsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_emond() {
-        let mut output = output_options("emond_test", "local", "./tmp", false);
+        let mut output = output_options2("emond_test", "./tmp", false);
 
-        let status = emond(&mut output, false, &EmondOptions { alt_dir: None }).unwrap();
+        let status = emond(&mut output, &EmondOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
