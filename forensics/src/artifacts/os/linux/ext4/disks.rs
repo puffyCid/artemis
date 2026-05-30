@@ -14,7 +14,7 @@ use calf::{
 };
 use ext4_fs::extfs::Ext4Reader;
 use log::error;
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, mem::take};
 
 /// Parse QCOW disk image
 pub(crate) fn qcow_ext4(
@@ -120,7 +120,7 @@ fn read_disk(
         .push(root.name.trim_end_matches('/').to_string());
     walk_ext4(&root, &mut ext4_reader, options, manager, params);
     if !options.filelist.is_empty() {
-        ext4_output(options.filelist.clone(), manager, params);
+        ext4_output(take(&mut options.filelist), manager, params);
     }
     options.filelist.clear();
     options.cache.pop();

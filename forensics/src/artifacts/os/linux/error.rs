@@ -6,6 +6,7 @@ pub(crate) enum LinuxArtifactError {
     Journal,
     SudoLog,
     Ext4,
+    Output,
 }
 
 impl std::error::Error for LinuxArtifactError {}
@@ -17,6 +18,7 @@ impl fmt::Display for LinuxArtifactError {
             LinuxArtifactError::Journal => write!(f, "Failed to parse Journals"),
             LinuxArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
             LinuxArtifactError::Ext4 => write!(f, "Failed to parse ext4 filesystem"),
+            LinuxArtifactError::Output => write!(f, "Failed to write linux artifact"),
         }
     }
 }

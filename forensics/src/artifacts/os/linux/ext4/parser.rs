@@ -31,7 +31,7 @@ use ext4_fs::{
 };
 use log::error;
 use regex::Regex;
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, mem::take};
 
 /// Parse the raw EXT4 data and get a file listing
 pub(crate) fn ext4_filelisting(
@@ -264,7 +264,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             let max_size = 10000;
             params.filelist.push(ext4_entry);
             if params.filelist.len() >= max_size {
-                ext4_output(params.filelist.clone(), manager, options);
+                ext4_output(take(&mut params.filelist), manager, options);
                 params.filelist.clear();
             }
         }

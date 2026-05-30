@@ -24,6 +24,7 @@ pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), Connec
     let artifact_name = "connections";
     if let Err(err) = manager.write_artifact(artifact_name, &"", &mut records) {
         error!("[forensics] Failed to output connections: {err:?}");
+        return Err(ConnectionsError::Output);
     }
     Ok(())
 }

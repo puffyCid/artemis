@@ -44,6 +44,7 @@ pub(crate) fn logons(
     let artifact_name = "logons";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[forensics] Failed to output logons: {err:?}");
+        return Err(LinuxArtifactError::Output);
     }
 
     Ok(())
@@ -77,6 +78,7 @@ pub(crate) fn sudo_logs_linux(
     let artifact_name = "sudologs-linux";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[forensics] Failed to output sudologs-linux: {err:?}");
+        return Err(LinuxArtifactError::Output);
     }
 
     Ok(())
