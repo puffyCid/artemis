@@ -1,21 +1,13 @@
 use super::{error::ProcessError, process::proc_list};
-use crate::structs::{artifacts::os::processes::ProcessOptions, toml::Output};
-use common::files::Hashes;
+use crate::{output2::manager::OutputManager, structs::artifacts::os::processes::ProcessOptions};
 use log::warn;
 
 /// Collect a process listing from a system
 pub(crate) fn processes(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
-    let hashes = Hashes {
-        md5: options.md5,
-        sha1: options.sha1,
-        sha256: options.sha256,
-    };
-
-    if let Err(result) = proc_list(&hashes, options.metadata, filter, output) {
+    if let Err(result) = proc_list(manager, options) {
         warn!("[forensics] Failed to get process list: {result:?}");
         return Err(ProcessError::ProcessList);
     }
@@ -27,24 +19,30 @@ pub(crate) fn processes(
 mod tests {
     use crate::{
         artifacts::os::processes::artifact::processes,
-        structs::{artifacts::os::processes::ProcessOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::processes::ProcessOptions,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_processes() {
-        let mut output = output_options("processes_test", "local", "./tmp", false);
+        let mut output = output_options("processes_test", "./tmp", false);
 
         let proc_config = ProcessOptions {
             md5: true,
@@ -53,7 +51,7 @@ mod tests {
             metadata: true,
         };
 
-        let status = processes(&mut output, false, &proc_config).unwrap();
+        let status = processes(&mut output, &proc_config).unwrap();
         assert_eq!(status, ());
     }
 }

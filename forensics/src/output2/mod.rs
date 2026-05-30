@@ -1,4 +1,4 @@
-mod config;
+pub(crate) mod config;
 mod context;
 mod encoder;
 mod error;
@@ -6,6 +6,6 @@ mod error;
 mod filter;
 pub(crate) mod manager;
 pub(crate) mod marker;
-mod record;
+pub(crate) mod record;
 mod report;
 mod sink;

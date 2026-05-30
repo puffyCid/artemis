@@ -20,7 +20,7 @@ use crate::output2::filter::js::JsFilterRecordStream;
 /// A structure that supports outputting forensic data based on `OutputConfig`
 pub(crate) struct OutputManager {
     /// Configuration to to control how to output data
-    config: OutputConfig,
+    pub(crate) config: OutputConfig,
     /// Artemis runtime collection context
     context: CollectionContext,
     /// Output format encoder

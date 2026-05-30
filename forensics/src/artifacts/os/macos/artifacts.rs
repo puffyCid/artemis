@@ -12,6 +12,7 @@ use super::{
 };
 use crate::{
     artifacts::output::output_artifact,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
     structs::{
         artifacts::os::macos::{
             EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
@@ -27,12 +28,9 @@ use serde_json::Value;
 
 /// Parse macOS `LoginItems`
 pub(crate) fn loginitems(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &LoginitemsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_loginitems(options);
     let entries = match artifact_result {
         Ok(results) => results,
@@ -45,28 +43,28 @@ pub(crate) fn loginitems(
     if entries.is_empty() {
         return Ok(());
     }
-
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize loginitems: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
-    let output_name = "loginitems";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "loginitems";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output loginitems: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse macOS `Emond`
 pub(crate) fn emond(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &EmondOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let results = grab_emond(options);
     let entries = match results {
         Ok(result) => result,
@@ -80,8 +78,7 @@ pub(crate) fn emond(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize emond: {err:?}");
@@ -89,8 +86,13 @@ pub(crate) fn emond(
         }
     };
 
-    let output_name = "emond";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "emond";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output emond: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get macOS `Users`
@@ -298,10 +300,16 @@ pub(crate) fn output_data(
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, output_data,
             spotlight, sudo_logs_macos, unifiedlogs, users_macos,
+        },
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
         },
         structs::{
             artifacts::os::macos::{
@@ -327,19 +335,32 @@ mod tests {
         }
     }
 
+    fn output_options2(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
+
     #[test]
     fn test_loginitems() {
-        let mut output = output_options("loginitems_test", "local", "./tmp", false);
+        let mut output = output_options2("loginitems_test", "./tmp", false);
 
-        let status = loginitems(&mut output, false, &LoginitemsOptions { alt_file: None }).unwrap();
+        let status = loginitems(&mut output, &LoginitemsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_emond() {
-        let mut output = output_options("emond_test", "local", "./tmp", false);
+        let mut output = output_options2("emond_test", "./tmp", false);
 
-        let status = emond(&mut output, false, &EmondOptions { alt_dir: None }).unwrap();
+        let status = emond(&mut output, &EmondOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 

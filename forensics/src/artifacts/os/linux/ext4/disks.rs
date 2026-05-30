@@ -4,7 +4,8 @@ use crate::{
         parser::{Ext4Params, ext4_output, get_root, walk_ext4},
     },
     filesystem::disks::qcow::qcow_reader,
-    structs::toml::Output,
+    output2::manager::OutputManager,
+    structs::artifacts::os::linux::Ext4Options,
 };
 use calf::{
     bootsector::boot::{GuidNames, PartitionType},
@@ -13,13 +14,13 @@ use calf::{
 };
 use ext4_fs::extfs::Ext4Reader;
 use log::error;
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, mem::take};
 
 /// Parse QCOW disk image
 pub(crate) fn qcow_ext4(
     options: &mut Ext4Params,
-    output: &mut Output,
-    start_time: u64,
+    manager: &mut OutputManager,
+    params: &Ext4Options,
 ) -> Result<(), Ext4Error> {
     let mut reader = match qcow_reader(&options.device.replace("qcow://", "")) {
         Ok(result) => result,
@@ -71,7 +72,7 @@ pub(crate) fn qcow_ext4(
                 continue;
             }
             let start = entry.offset_start;
-            let _ = read_disk(options, output, start_time, &mut reader, &info, start);
+            let _ = read_disk(options, manager, params, &mut reader, &info, start);
         }
         return Ok(());
     }
@@ -81,7 +82,7 @@ pub(crate) fn qcow_ext4(
             continue;
         }
         let start = entry.offset_start;
-        let _ = read_disk(options, output, start_time, &mut reader, &info, start);
+        let _ = read_disk(options, manager, params, &mut reader, &info, start);
     }
     Ok(())
 }
@@ -89,8 +90,8 @@ pub(crate) fn qcow_ext4(
 /// Handle reading QCOW disk image
 fn read_disk(
     options: &mut Ext4Params,
-    output: &mut Output,
-    start_time: u64,
+    manager: &mut OutputManager,
+    params: &Ext4Options,
     reader: &mut CalfReader<File>,
     info: &QcowInfo,
     start: u64,
@@ -117,11 +118,10 @@ fn read_disk(
     options
         .cache
         .push(root.name.trim_end_matches('/').to_string());
-    walk_ext4(&root, &mut ext4_reader, options, output);
+    walk_ext4(&root, &mut ext4_reader, options, manager, params);
     if !options.filelist.is_empty() {
-        ext4_output(&options.filelist, output, start_time, options.filter);
+        ext4_output(take(&mut options.filelist), manager, params);
     }
-    options.filelist.clear();
     options.cache.pop();
     Ok(())
 }
@@ -130,22 +130,27 @@ fn read_disk(
 mod tests {
     use crate::{
         artifacts::os::linux::ext4::{disks::qcow_ext4, parser::Ext4Params},
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::linux::Ext4Options,
         utils::regex_options::create_regex,
     };
     use ext4_fs::structs::Ext4Hash;
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -153,7 +158,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/disks/qcow/test.qcow");
 
-        let mut output = output_options("ext4_qcow_temp", "local", "./tmp", false);
+        let mut output = output_options("ext4_qcow_temp", "./tmp", false);
         let mut options = Ext4Params {
             start_path: String::from("/"),
             depth: 99,
@@ -168,11 +173,19 @@ mod tests {
                 sha1: false,
                 sha256: false,
             },
-            start_time: 0,
-            filter: false,
+        };
+        let params = Ext4Options {
+            start_path: String::from("/"),
+            depth: 99,
+            device: None,
+            md5: None,
+            sha1: None,
+            sha256: None,
+            path_regex: None,
+            filename_regex: None,
         };
 
-        qcow_ext4(&mut options, &mut output, 0).unwrap()
+        qcow_ext4(&mut options, &mut output, &params).unwrap()
     }
 
     #[test]
@@ -181,7 +194,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/images/ext4/test.img");
 
-        let mut output = output_options("ext4_qcow_temp", "local", "./tmp", false);
+        let mut output = output_options("ext4_qcow_temp", "./tmp", false);
         let mut options = Ext4Params {
             start_path: String::from("/"),
             depth: 99,
@@ -196,10 +209,18 @@ mod tests {
                 sha1: false,
                 sha256: false,
             },
-            start_time: 0,
-            filter: false,
+        };
+        let params = Ext4Options {
+            start_path: String::from("/"),
+            depth: 99,
+            device: None,
+            md5: None,
+            sha1: None,
+            sha256: None,
+            path_regex: None,
+            filename_regex: None,
         };
 
-        qcow_ext4(&mut options, &mut output, 0).unwrap()
+        qcow_ext4(&mut options, &mut output, &params).unwrap()
     }
 }

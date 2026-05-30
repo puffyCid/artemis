@@ -1,9 +1,9 @@
 /**
- * Linux `Journal` files are the logs associated with the Systemd service  
+ * Linux `Journal` files are the logs associated with the Systemd service
  * Systemd is a popular system service that is common on most Linux distros
  * The logs can contain data related to application activity, sudo commands, and more
  *
- * References:  
+ * References:
  *  `https://systemd.io/JOURNAL_FILE_FORMAT/`
  *  `https://wiki.archlinux.org/title/Systemd/Journal`
  *  `https://github.com/systemd/systemd/blob/main/src/libsystemd/sd-journal/journal-def.h`
@@ -21,19 +21,16 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    structs::{artifacts::os::linux::JournalOptions, toml::Output},
-    utils::time,
+    output2::manager::OutputManager,
+    structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
 pub(crate) fn grab_journal(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &JournalOptions,
 ) -> Result<(), JournalError> {
-    let start_time = time::time_now();
-
     let paths = if let Some(alt_dir) = &options.alt_dir {
         vec![alt_dir.clone()]
     } else {
@@ -51,7 +48,7 @@ pub(crate) fn grab_journal(
             continue;
         }
         if is_file(&path) {
-            let _ = parse_journal(&path, output, filter, start_time);
+            let _ = parse_journal(&path, manager, options);
             continue;
         }
 
@@ -63,7 +60,7 @@ pub(crate) fn grab_journal(
                     continue;
                 }
                 if is_file(&log) {
-                    let _ = parse_journal(&log, output, filter, start_time);
+                    let _ = parse_journal(&log, manager, options);
                 }
             }
         }
@@ -86,26 +83,31 @@ mod tests {
     use super::grab_journal;
     use crate::{
         artifacts::os::linux::journals::parser::grab_journal_file,
-        structs::{artifacts::os::linux::JournalOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::linux::JournalOptions,
     };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_grab_journal() {
-        let mut output = output_options("grab_journal", "local", "./tmp", false);
-        grab_journal(&mut output, false, &JournalOptions { alt_dir: None }).unwrap();
+        let mut manager = output_options("grab_journal", "./tmp", false);
+        grab_journal(&mut manager, &JournalOptions { alt_dir: None }).unwrap();
     }
 
     #[test]

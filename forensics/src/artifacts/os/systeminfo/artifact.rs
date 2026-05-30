@@ -1,30 +1,31 @@
 use super::info::get_info;
 use crate::{
-    artifacts::os::{macos::artifacts::output_data, systeminfo::error::SystemInfoError},
-    structs::toml::Output,
-    utils::time,
+    artifacts::os::systeminfo::error::SystemInfoError,
+    output2::{
+        manager::OutputManager,
+        record::{VecRecordStream, serialize_to_record},
+    },
 };
 use log::error;
 
 /// Get basic sysinfo for a system
-pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), SystemInfoError> {
-    let start_time = time::time_now();
+pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoError> {
+    let entries = get_info();
 
-    let system_data = get_info();
-    let serde_data_result = serde_json::to_value(system_data);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let records = match serialize_to_record(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize systeminfo: {err:?}");
             return Err(SystemInfoError::Serialize);
         }
     };
 
-    let output_name = "systeminfo";
-    let status = output_data(&mut serde_data, output_name, output, start_time, filter);
-
-    if let Err(result) = status {
-        error!("[forensics] Could not output sysinfo data: {result:?}");
+    let artifact_name = "systeminfo";
+    if let Err(err) =
+        manager.write_artifact(artifact_name, &"", &mut VecRecordStream::new(vec![records]))
+    {
+        error!("[forensics] Failed to output systeminfo: {err:?}");
+        return Err(SystemInfoError::Output);
     }
 
     Ok(())
@@ -32,25 +33,33 @@ pub(crate) fn systeminfo(output: &mut Output, filter: bool) -> Result<(), System
 
 #[cfg(test)]
 mod tests {
-    use crate::{artifacts::os::systeminfo::artifact::systeminfo, structs::toml::Output};
+    use crate::{
+        artifacts::os::systeminfo::artifact::systeminfo,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
 
     #[test]
     fn test_systeminfo() {
-        let mut output = output_options("system_test", "local", "./tmp", false);
+        let output = output_options("system_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
 
-        let status = systeminfo(&mut output, false).unwrap();
+        let status = systeminfo(&mut manage).unwrap();
         assert_eq!(status, ());
     }
 }

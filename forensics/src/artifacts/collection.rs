@@ -19,35 +19,31 @@ use super::{
     },
 };
 use crate::{
+    output2::{config::OutputConfig, manager::OutputManager},
     structs::toml::ArtemisToml,
-    utils::{
-        marker::{skip_artifact, update_marker},
-        output::compress_final_output,
-        report::{generate_artifact_report, generate_report},
-        time::time_now,
-    },
+    utils::marker::skip_artifact,
 };
 use log::{error, info, warn};
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::execute_script;
-#[cfg(feature = "network")]
-use crate::utils::logging::upload_logs;
 
 /// Parse the TOML collector and get artifacts
-pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError> {
-    // Make sure output starts at zero
-    collector.output.output_files = Vec::new();
-
-    // Track each artifact we parse
-    let mut artifact_tracker = Vec::new();
-    // Status for the artifact run
-    let mut status = String::from("completed");
-    // Keep track of each artifact execution report
-    let mut artifact_runs = Vec::new();
-    // How long it takes to complete the entire collection
-    let start = time_now();
-    let mut total_count = 0;
+pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError> {
+    let config = match OutputConfig::try_from(collector.output.clone()) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not setup output config: {err:?}");
+            return Err(CollectionError::Output);
+        }
+    };
+    let mut manager = match OutputManager::new(config) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[forensics] Could not setup output manager: {err:?}");
+            return Err(CollectionError::Output);
+        }
+    };
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
@@ -59,18 +55,19 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
         }
 
         let filter = artifacts.filter.unwrap_or(false);
-        match artifacts.artifact_name.as_str() {
+        let artifact = artifacts.artifact_name.as_str();
+        match artifact {
             "loginitems" => {
                 let options = match &artifacts.loginitems {
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = loginitems(&mut collector.output, filter, options);
+                let results = loginitems(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected loginitems"),
                     Err(err) => {
                         error!("[forensics] Failed to parse loginitems: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -79,12 +76,12 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = emond(&mut collector.output, filter, options);
+                let results = emond(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected emond"),
                     Err(err) => {
                         error!("[forensics] Failed to parse emond: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -98,7 +95,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected fseventsd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse fseventsd: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -112,7 +108,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected launchd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse launchd: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -122,12 +117,12 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = filelisting(&mut collector.output, filter, options);
+                let results = filelisting(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
                         error!("[forensics] Failed to parse filelisting: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -141,7 +136,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
                         error!("[forensics] Failed to parse users: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -155,7 +149,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
                         error!("[forensics] Failed to parse groups: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -165,22 +158,22 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = processes(&mut collector.output, filter, options);
+                let results = processes(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
                         error!("[forensics] Failed to parse processes: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, &options);
                     }
                 }
             }
             "systeminfo" => {
-                let results = systeminfo(&mut collector.output, filter);
+                let results = systeminfo(&mut manager);
                 match results {
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
                         error!("[forensics] Failed to parse systeminfo: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, &"");
                     }
                 }
             }
@@ -194,7 +187,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected execpolicy"),
                     Err(err) => {
                         error!("[forensics] Failed to parse execpolicy: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -209,7 +201,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse unified logs: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -224,7 +215,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse macOS sudo log data: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -238,7 +228,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Collected spotlight"),
                     Err(err) => {
                         error!("[forensics] Failed to parse spotlight: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -256,7 +245,6 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {
                         error!("[forensics] Failed to execute JavaScript error: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -267,12 +255,12 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = journals(&mut collector.output, filter, options);
+                let results = journals(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected journals"),
                     Err(err) => {
                         error!("[forensics] Failed to parse journals: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -282,12 +270,12 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = logons(&mut collector.output, filter, options);
+                let results = logons(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected logons"),
                     Err(err) => {
                         error!("[forensics] Failed to parse logons: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -297,12 +285,12 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = sudo_logs_linux(&mut collector.output, filter, options);
+                let results = sudo_logs_linux(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Linux sudo log data: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -312,345 +300,322 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                     _ => continue,
                 };
 
-                let results = ext4_filelist(&mut collector.output, filter, options);
+                let results = ext4_filelist(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected Linux raw ext4 file listing"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Linux ext4 filesystem: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
             // Windows
             "prefetch" => {
-                let artifact = match &artifacts.prefetch {
+                let options = match &artifacts.prefetch {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = prefetch(artifact, &mut collector.output, filter);
+                let results = prefetch(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected prefetch"),
                     Err(err) => {
                         error!("[forensics] Failed to parse prefetch: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "eventlogs" => {
-                let artifact = match &artifacts.eventlogs {
+                let options = match &artifacts.eventlogs {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = eventlogs(artifact, &mut collector.output, filter);
+                let results = eventlogs(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Eventlogs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse Eventlogs: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "rawfiles" => {
-                let artifact = match &artifacts.rawfiles {
+                let options = match &artifacts.rawfiles {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = raw_filelist(artifact, &mut collector.output, filter);
+                let results = raw_filelist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Raw Filelisting"),
                     Err(err) => {
                         error!("[forensics] Failed to get raw filelisting: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "shimdb" => {
-                let artifact = match &artifacts.shimdb {
+                let options = match &artifacts.shimdb {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimdb(artifact, &mut collector.output, filter);
+                let results = shimdb(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimdb"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shimdb: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "registry" => {
-                let artifact = match &artifacts.registry {
+                let options = match &artifacts.registry {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = registry(artifact, &mut collector.output, filter);
+                let results = registry(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected registry"),
                     Err(err) => {
                         error!("[forensics] Failed to parse registry: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "userassist" => {
-                let artifact = match &artifacts.userassist {
+                let options = match &artifacts.userassist {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = userassist(artifact, &mut collector.output, filter);
+                let results = userassist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected userassist"),
                     Err(err) => {
                         error!("[forensics] Failed to parse userassist: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "shimcache" => {
-                let artifact = match &artifacts.shimcache {
+                let options = match &artifacts.shimcache {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimcache(artifact, &mut collector.output, filter);
+                let results = shimcache(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimcache"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shimcache: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "shellbags" => {
-                let artifact = match &artifacts.shellbags {
+                let options = match &artifacts.shellbags {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shellbags(artifact, &mut collector.output, filter);
+                let results = shellbags(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shellbags"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shellbags: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "amcache" => {
-                let artifact = match &artifacts.amcache {
+                let options = match &artifacts.amcache {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = amcache(artifact, &mut collector.output, filter);
+                let results = amcache(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected amcache"),
                     Err(err) => {
                         error!("[forensics] Failed to parse amcache: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "shortcuts" => {
-                let artifact = match &artifacts.shortcuts {
+                let options = match &artifacts.shortcuts {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shortcuts(artifact, &mut collector.output, filter);
+                let results = shortcuts(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shortcuts"),
                     Err(err) => {
                         error!("[forensics] Failed to parse shortcut files: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "usnjrnl" => {
-                let artifact = match &artifacts.usnjrnl {
+                let options = match &artifacts.usnjrnl {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = usnjrnl(artifact, &mut collector.output, filter);
+                let results = usnjrnl(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected usnjrnl"),
                     Err(err) => {
                         error!("[forensics] Failed to parse usnjrnl: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "bits" => {
-                let artifact = match &artifacts.bits {
+                let options = match &artifacts.bits {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = bits(artifact, &mut collector.output, filter);
+                let results = bits(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected bits"),
                     Err(err) => {
                         error!("[forensics] Failed to parse bits: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "srum" => {
-                let artifact = match &artifacts.srum {
+                let options = match &artifacts.srum {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = srum(artifact, &mut collector.output, filter);
+                let results = srum(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected SRUM"),
                     Err(err) => {
                         error!("[forensics] Failed to parse srum: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "search" => {
-                let artifact = match &artifacts.search {
+                let options = match &artifacts.search {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = search(artifact, &mut collector.output, filter);
+                let results = search(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected search"),
                     Err(err) => {
                         error!("[forensics] Failed to parse search: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "users-windows" => {
-                let artifact = match &artifacts.users_windows {
+                let options = match &artifacts.users_windows {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = users_windows(artifact, &mut collector.output, filter);
+                let results = users_windows(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Users"),
                     Err(err) => {
                         error!("[forensics] Failed to parse users: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "tasks" => {
-                let artifact = match &artifacts.tasks {
+                let options = match &artifacts.tasks {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = tasks(artifact, &mut collector.output, filter);
+                let results = tasks(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Schedule Tasks"),
                     Err(err) => {
                         error!("[forensics] Failed to parse schedule tasks: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "services" => {
-                let artifact = match &artifacts.services {
+                let options = match &artifacts.services {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = services(artifact, &mut collector.output, filter);
+                let results = services(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Services"),
                     Err(err) => {
                         error!("[forensics] Failed to parse services: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "jumplists" => {
-                let artifact = match &artifacts.jumplists {
+                let options = match &artifacts.jumplists {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = jumplists(artifact, &mut collector.output, filter);
+                let results = jumplists(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Jumplists"),
                     Err(err) => {
                         error!("[forensics] Failed to parse jumplists: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "recyclebin" => {
-                let artifact = match &artifacts.recyclebin {
+                let options = match &artifacts.recyclebin {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = recycle_bin(artifact, &mut collector.output, filter);
+                let results = recycle_bin(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Recycle Bin"),
                     Err(err) => {
                         error!("[forensics] Failed to parse recycle bin: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "wmipersist" => {
-                let artifact = match &artifacts.wmipersist {
+                let options = match &artifacts.wmipersist {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = wmi_persist(artifact, &mut collector.output, filter);
+                let results = wmi_persist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected WMI Persistence"),
                     Err(err) => {
                         error!("[forensics] Failed to parse WMI persistence: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "outlook" => {
-                let artifact = match &artifacts.outlook {
+                let options = match &artifacts.outlook {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = outlook(artifact, &mut collector.output, filter);
+                let results = outlook(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected outlook"),
                     Err(err) => {
                         error!("[forensics] Failed to parse outlook: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "mft" => {
-                let artifact = match &artifacts.mft {
+                let options = match &artifacts.mft {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = mft(artifact, &mut collector.output, filter);
+                let results = mft(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected MFT"),
                     Err(err) => {
                         error!("[forensics] Failed to parse MFT: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
             "connections" => {
-                let results = list_connections(&mut collector.output, filter);
+                let results = list_connections(&mut manager);
                 match results {
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[forensics] Failed to parse MFT: {err:?}");
-                        status = String::from("failed");
+                        manager.write_failed_artifact(artifact, &"");
                     }
                 }
             }
             "triage" => {
-                let artifact = match &artifacts.triage {
+                let options = match &artifacts.triage {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = triage(&mut collector.output, artifact);
+                let results = triage(&mut collector.output, options);
                 match results {
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
                         error!("[forensics] Failed to collect triage: {err:?}");
-                        status = String::from("failed");
                     }
                 }
             }
@@ -659,41 +624,11 @@ pub(crate) fn collect(collector: &mut ArtemisToml) -> Result<(), CollectionError
                 artifacts.artifact_name
             ),
         }
-
-        artifact_tracker.push(artifacts.artifact_name.clone());
-        // If marker file is enabled, write and update a marker file to track most recent artifact runs
-        if let Some(marker) = &collector.marker {
-            update_marker(marker, artifacts);
-        }
-
-        // Generate artifact report
-        if let Ok(report) =
-            generate_artifact_report(artifacts, &collector.output.output_files, &status)
-        {
-            artifact_runs.push(report);
-            total_count += collector.output.output_files.len();
-            // Clear to the output files tracker
-            collector.output.output_files.clear();
-        }
     }
 
-    // Now generate a collection report
-    generate_report(
-        &mut collector.output,
-        &artifact_tracker,
-        start,
-        &artifact_runs,
-        total_count,
-    );
-
-    if collector.output.output != "local" {
-        let output_dir = format!("{}/{}", collector.output.directory, collector.output.name);
-        #[cfg(feature = "network")]
-        let _ = upload_logs(&output_dir, &mut collector.output);
-    } else if collector.output.compress && collector.output.output == "local" {
-        let _ = compress_final_output(&collector.output);
+    if let Err(err) = manager.finalize() {
+        error!("[forensics] Could not finalize collection: {err:?}");
     }
-
     Ok(())
 }
 
@@ -709,8 +644,8 @@ mod tests {
         test_location.push("tests/test_data/macos/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -719,8 +654,8 @@ mod tests {
         test_location.push("tests/test_data/windows/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -729,8 +664,8 @@ mod tests {
         test_location.push("tests/test_data/linux/quick.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 
     #[test]
@@ -739,7 +674,7 @@ mod tests {
         test_location.push("tests/test_data/marker.toml");
 
         let buffer = read_file(&test_location.display().to_string()).unwrap();
-        let mut collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
-        collect(&mut collector).unwrap();
+        let collector = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
+        collect(collector).unwrap();
     }
 }

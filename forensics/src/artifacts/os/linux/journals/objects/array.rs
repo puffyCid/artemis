@@ -3,8 +3,8 @@ use super::{
     header::{ObjectHeader, ObjectType},
 };
 use crate::{
-    artifacts::os::linux::artifacts::output_data,
-    structs::toml::Output,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::linux::JournalOptions,
     utils::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         time::unixepoch_microseconds_to_iso,
@@ -28,9 +28,8 @@ impl EntryArray {
         reader: &mut File,
         data: &'a [u8],
         is_compact: bool,
-        output: &mut Output,
-        filter: bool,
-        start_time: u64,
+        manager: &mut OutputManager,
+        options: &JournalOptions,
         evidence: &str,
     ) -> nom::IResult<&'a [u8], u64> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
@@ -86,17 +85,20 @@ impl EntryArray {
             // The Journal file can be configured to be very large. Default size is usually ~10MB
             // To limit memory usage we output every 1k entries
             if entry_array.entries.len() >= limit {
-                let messages = EntryArray::parse_messages(&entry_array.entries, evidence);
-                let serde_data_result = serde_json::to_value(messages);
-                let mut serde_data = match serde_data_result {
-                    Ok(results) => results,
+                let entries = EntryArray::parse_messages(&entry_array.entries, evidence);
+
+                let mut records = match serialize_records_to_stream(entries) {
+                    Ok(result) => result,
                     Err(err) => {
                         error!("[journal] Failed to serialize journal data: {err:?}");
                         continue;
                     }
                 };
 
-                let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
+                let artifact_name = "journal";
+                if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+                    error!("[forensics] Failed to output journal: {err:?}");
+                }
                 // Now empty the vec
                 entry_array.entries = Vec::new();
             }
@@ -107,18 +109,19 @@ impl EntryArray {
         }
 
         // Output any leftover messages
-        let messages = EntryArray::parse_messages(&entry_array.entries, evidence);
-        let serde_data_result = serde_json::to_value(messages);
-        let mut serde_data: serde_json::Value = match serde_data_result {
-            Ok(results) => results,
+        let entries = EntryArray::parse_messages(&entry_array.entries, evidence);
+        let mut records = match serialize_records_to_stream(entries) {
+            Ok(result) => result,
             Err(err) => {
                 error!("[journal] Failed to serialize last journal data: {err:?}");
                 return Ok((input, entry_array.next_entry_array_offset));
             }
         };
 
-        let _ = output_data(&mut serde_data, "journal", output, start_time, filter);
-
+        let artifact_name = "journal";
+        if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+            error!("[forensics] Failed to output journal: {err:?}");
+        }
         Ok((input, entry_array.next_entry_array_offset))
     }
 
@@ -408,21 +411,26 @@ mod tests {
             objects::header::{ObjectHeader, ObjectType},
         },
         filesystem::files::file_reader,
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::linux::JournalOptions,
     };
     use common::linux::{Facility, Priority};
     use std::{io::Read, path::PathBuf};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -442,15 +450,14 @@ mod tests {
         } else {
             false
         };
-        let mut output = output_options("journal_test", "local", "./tmp", false);
+        let mut output = output_options("journal_test", "./tmp", false);
 
         let (_, result) = EntryArray::walk_entries(
             &mut reader,
             &object.payload,
             is_compact,
             &mut output,
-            false,
-            0,
+            &JournalOptions { alt_dir: None },
             test_location.to_str().unwrap(),
         )
         .unwrap();
