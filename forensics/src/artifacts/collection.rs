@@ -311,11 +311,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
             }
             // Windows
             "prefetch" => {
-                let artifact = match &artifacts.prefetch {
+                let options = match &artifacts.prefetch {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = prefetch(artifact, &mut collector.output, filter);
+                let results = prefetch(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected prefetch"),
                     Err(err) => {
@@ -324,11 +324,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "eventlogs" => {
-                let artifact = match &artifacts.eventlogs {
+                let options = match &artifacts.eventlogs {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = eventlogs(artifact, &mut collector.output, filter);
+                let results = eventlogs(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Eventlogs"),
                     Err(err) => {
@@ -337,11 +337,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "rawfiles" => {
-                let artifact = match &artifacts.rawfiles {
+                let options = match &artifacts.rawfiles {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = raw_filelist(artifact, &mut collector.output, filter);
+                let results = raw_filelist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Raw Filelisting"),
                     Err(err) => {
@@ -350,11 +350,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "shimdb" => {
-                let artifact = match &artifacts.shimdb {
+                let options = match &artifacts.shimdb {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimdb(artifact, &mut collector.output, filter);
+                let results = shimdb(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimdb"),
                     Err(err) => {
@@ -363,11 +363,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "registry" => {
-                let artifact = match &artifacts.registry {
+                let options = match &artifacts.registry {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = registry(artifact, &mut collector.output, filter);
+                let results = registry(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected registry"),
                     Err(err) => {
@@ -376,11 +376,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "userassist" => {
-                let artifact = match &artifacts.userassist {
+                let options = match &artifacts.userassist {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = userassist(artifact, &mut collector.output, filter);
+                let results = userassist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected userassist"),
                     Err(err) => {
@@ -389,11 +389,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "shimcache" => {
-                let artifact = match &artifacts.shimcache {
+                let options = match &artifacts.shimcache {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shimcache(artifact, &mut collector.output, filter);
+                let results = shimcache(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shimcache"),
                     Err(err) => {
@@ -402,11 +402,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "shellbags" => {
-                let artifact = match &artifacts.shellbags {
+                let options = match &artifacts.shellbags {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shellbags(artifact, &mut collector.output, filter);
+                let results = shellbags(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shellbags"),
                     Err(err) => {
@@ -415,11 +415,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "amcache" => {
-                let artifact = match &artifacts.amcache {
+                let options = match &artifacts.amcache {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = amcache(artifact, &mut collector.output, filter);
+                let results = amcache(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected amcache"),
                     Err(err) => {
@@ -428,11 +428,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "shortcuts" => {
-                let artifact = match &artifacts.shortcuts {
+                let options = match &artifacts.shortcuts {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = shortcuts(artifact, &mut collector.output, filter);
+                let results = shortcuts(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected shortcuts"),
                     Err(err) => {
@@ -441,11 +441,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "usnjrnl" => {
-                let artifact = match &artifacts.usnjrnl {
+                let options = match &artifacts.usnjrnl {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = usnjrnl(artifact, &mut collector.output, filter);
+                let results = usnjrnl(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected usnjrnl"),
                     Err(err) => {
@@ -454,11 +454,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "bits" => {
-                let artifact = match &artifacts.bits {
+                let options = match &artifacts.bits {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = bits(artifact, &mut collector.output, filter);
+                let results = bits(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected bits"),
                     Err(err) => {
@@ -467,11 +467,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "srum" => {
-                let artifact = match &artifacts.srum {
+                let options = match &artifacts.srum {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = srum(artifact, &mut collector.output, filter);
+                let results = srum(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected SRUM"),
                     Err(err) => {
@@ -480,11 +480,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "search" => {
-                let artifact = match &artifacts.search {
+                let options = match &artifacts.search {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = search(artifact, &mut collector.output, filter);
+                let results = search(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected search"),
                     Err(err) => {
@@ -493,11 +493,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "users-windows" => {
-                let artifact = match &artifacts.users_windows {
+                let options = match &artifacts.users_windows {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = users_windows(artifact, &mut collector.output, filter);
+                let results = users_windows(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Users"),
                     Err(err) => {
@@ -506,11 +506,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "tasks" => {
-                let artifact = match &artifacts.tasks {
+                let options = match &artifacts.tasks {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = tasks(artifact, &mut collector.output, filter);
+                let results = tasks(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Schedule Tasks"),
                     Err(err) => {
@@ -519,11 +519,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "services" => {
-                let artifact = match &artifacts.services {
+                let options = match &artifacts.services {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = services(artifact, &mut collector.output, filter);
+                let results = services(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Services"),
                     Err(err) => {
@@ -532,11 +532,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "jumplists" => {
-                let artifact = match &artifacts.jumplists {
+                let options = match &artifacts.jumplists {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = jumplists(artifact, &mut collector.output, filter);
+                let results = jumplists(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Jumplists"),
                     Err(err) => {
@@ -545,11 +545,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "recyclebin" => {
-                let artifact = match &artifacts.recyclebin {
+                let options = match &artifacts.recyclebin {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = recycle_bin(artifact, &mut collector.output, filter);
+                let results = recycle_bin(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected Recycle Bin"),
                     Err(err) => {
@@ -558,11 +558,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "wmipersist" => {
-                let artifact = match &artifacts.wmipersist {
+                let options = match &artifacts.wmipersist {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = wmi_persist(artifact, &mut collector.output, filter);
+                let results = wmi_persist(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected WMI Persistence"),
                     Err(err) => {
@@ -571,11 +571,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "outlook" => {
-                let artifact = match &artifacts.outlook {
+                let options = match &artifacts.outlook {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = outlook(artifact, &mut collector.output, filter);
+                let results = outlook(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected outlook"),
                     Err(err) => {
@@ -584,11 +584,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "mft" => {
-                let artifact = match &artifacts.mft {
+                let options = match &artifacts.mft {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = mft(artifact, &mut collector.output, filter);
+                let results = mft(options, &mut collector.output, filter);
                 match results {
                     Ok(_) => info!("Collected MFT"),
                     Err(err) => {
@@ -607,11 +607,11 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             "triage" => {
-                let artifact = match &artifacts.triage {
+                let options = match &artifacts.triage {
                     Some(result) => result,
                     None => continue,
                 };
-                let results = triage(&mut collector.output, artifact);
+                let results = triage(&mut collector.output, options);
                 match results {
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
