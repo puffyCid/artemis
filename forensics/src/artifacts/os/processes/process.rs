@@ -1,16 +1,18 @@
-use super::executable::elf_metadata;
-use super::pe::pe_metadata;
 /**
  * Get a process listing using `sysinfo` crate
  * Depending on `ProcessOptions` will also parse and get basic executable metadata
  */
+use super::executable::elf_metadata;
+use super::pe::pe_metadata;
 use super::{error::ProcessError, macho::macho_metadata};
 use crate::artifacts::os::systeminfo::info::get_platform_enum;
+use crate::output2::manager::OutputManager;
+use crate::output2::record::serialize_records_to_stream;
+use crate::structs::artifacts::os::processes::ProcessOptions;
 use crate::{
-    artifacts::{os::systeminfo::info::PlatformType, output::output_artifact},
+    artifacts::os::systeminfo::info::PlatformType,
     filesystem::{directory::get_parent_directory, files::hash_file},
-    structs::toml::Output,
-    utils::time::{time_now, unixepoch_to_iso},
+    utils::time::unixepoch_to_iso,
 };
 use common::files::Hashes;
 use common::system::Processes;
@@ -21,14 +23,11 @@ use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
 
 /// Get process listing.
 pub(crate) fn proc_list(
-    hashes: &Hashes,
-    binary_data: bool,
-    filter: bool,
-    output: &mut Output,
+    manager: &mut OutputManager,
+    options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
-    let start_time = time_now();
 
     proc.refresh_processes_specifics(
         ProcessesToUpdate::All,
@@ -46,25 +45,22 @@ pub(crate) fn proc_list(
     let plat = get_platform_enum();
 
     for process in proc.processes().values() {
-        let system_proc = proc_info(process, hashes, binary_data, &plat);
+        let system_proc = proc_info(process, options, &plat);
         processes_list.push(system_proc);
-        if binary_data && processes_list.len() == binary_proc_limit {
-            let _ = output_process(&processes_list, output, filter, start_time);
+        if options.metadata && processes_list.len() == binary_proc_limit {
+            let _ = output_process(processes_list, manager, options);
             processes_list = Vec::new();
         }
     }
 
     if !processes_list.is_empty() {
-        let _ = output_process(&processes_list, output, filter, start_time);
+        let _ = output_process(processes_list, manager, options);
     }
     Ok(())
 }
 
 /// Pull a process listing and return the results. If we parse binary data for all processes. Expect a lot of data
-pub(crate) fn proc_list_entries(
-    hashes: &Hashes,
-    binary_data: bool,
-) -> Result<Vec<Processes>, ProcessError> {
+pub(crate) fn proc_list_entries(options: &ProcessOptions) -> Result<Vec<Processes>, ProcessError> {
     let mut proc = System::new();
     let mut processes_list: Vec<Processes> = Vec::new();
     proc.refresh_processes_specifics(
@@ -77,7 +73,7 @@ pub(crate) fn proc_list_entries(
     }
     let plat = get_platform_enum();
     for process in proc.processes().values() {
-        let system_proc = proc_info(process, hashes, binary_data, &plat);
+        let system_proc = proc_info(process, options, &plat);
         processes_list.push(system_proc);
     }
 
@@ -85,12 +81,7 @@ pub(crate) fn proc_list_entries(
 }
 
 // Get the process info data
-fn proc_info(
-    process: &Process,
-    hashes: &Hashes,
-    binary_data: bool,
-    plat: &PlatformType,
-) -> Processes {
+fn proc_info(process: &Process, options: &ProcessOptions, plat: &PlatformType) -> Processes {
     let uid_result = process.user_id();
     let uid = match uid_result {
         Some(result) => result.to_string(),
@@ -138,7 +129,7 @@ fn proc_info(
         binary_info: Value::Null,
     };
 
-    if binary_data && !system_proc.full_path.is_empty() {
+    if options.metadata && !system_proc.full_path.is_empty() {
         let binary_results = executable_metadata(&system_proc.full_path, plat);
         match binary_results {
             Ok(results) => {
@@ -171,9 +162,14 @@ fn proc_info(
         }
     }
 
-    if hashes.md5 || hashes.sha1 || hashes.sha256 {
+    if options.md5 || options.sha1 || options.sha256 {
+        let hashes = Hashes {
+            md5: options.md5,
+            sha1: options.sha1,
+            sha256: options.sha256,
+        };
         (system_proc.md5, system_proc.sha1, system_proc.sha256) =
-            hash_file(hashes, &system_proc.full_path);
+            hash_file(&hashes, &system_proc.full_path);
     }
 
     system_proc
@@ -202,30 +198,26 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, Process
 
 /// Output processes results
 fn output_process(
-    entries: &[Processes],
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    entries: Vec<Processes>,
+    manager: &mut OutputManager,
+    options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
     if entries.is_empty() {
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[processes] Failed to serialize process entries: {err:?}");
             return Err(ProcessError::Serialize);
         }
     };
-    let result = output_artifact(&mut serde_data, "processes", output, start_time, filter);
-    match result {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[processes] Could not output process data: {err:?}");
-            return Err(ProcessError::OutputData);
-        }
+
+    let artifact_name = "processes";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[processes] Could not output process data: {err:?}");
+        return Err(ProcessError::OutputData);
     }
 
     Ok(())
@@ -237,51 +229,56 @@ mod tests {
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::artifacts::os::systeminfo::info::get_platform_enum;
-    use crate::structs::toml::Output;
-    use common::files::Hashes;
+    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::output2::manager::OutputManager;
+    use crate::structs::artifacts::os::processes::ProcessOptions;
     use common::system::Processes;
+    use std::path::PathBuf;
     use sysinfo::{ProcessesToUpdate, System};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_proc_list() {
-        let hashes = Hashes {
+        let options = ProcessOptions {
             md5: false,
             sha1: false,
             sha256: false,
+            metadata: false,
         };
-        let mut output = output_options("proc_test", "local", "./tmp", false);
 
-        proc_list(&hashes, false, false, &mut output).unwrap();
+        let mut output = output_options("proc_test", "./tmp", false);
+
+        proc_list(&mut output, &options).unwrap();
     }
 
     #[test]
     fn test_proc_info() {
+        let options = ProcessOptions {
+            md5: true,
+            sha1: true,
+            sha256: true,
+            metadata: false,
+        };
         let mut proc = System::new();
         let mut processes_list: Vec<Processes> = Vec::new();
 
         proc.refresh_processes(ProcessesToUpdate::All, false);
 
-        let hashes = Hashes {
-            md5: true,
-            sha1: true,
-            sha256: true,
-        };
-
         let plat = get_platform_enum();
         for process in proc.processes().values() {
-            let system_proc = proc_info(process, &hashes, false, &plat);
+            let system_proc = proc_info(process, &options, &plat);
             processes_list.push(system_proc);
         }
         assert!(processes_list.len() > 10);

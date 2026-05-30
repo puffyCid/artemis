@@ -49,6 +49,7 @@ mod tests {
             ..Default::default()
         }
     }
+
     #[test]
     fn test_list_connections() {
         let output = output_options("connections_test", "./tmp", false);

@@ -1,6 +1,7 @@
 use crate::{
     artifacts::os::processes::process::proc_list_entries,
     runtime::helper::{boolean_arg, value_arg},
+    structs::artifacts::os::processes::ProcessOptions,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use common::files::Hashes;
@@ -19,7 +20,15 @@ pub(crate) fn js_get_processes(
         sha1: false,
         sha256: false,
     });
-    let proc = match proc_list_entries(&hashes, metadata) {
+
+    let options = ProcessOptions {
+        metadata,
+        md5: hashes.md5,
+        sha1: hashes.sha1,
+        sha256: hashes.sha256,
+    };
+
+    let proc = match proc_list_entries(&options) {
         Ok(results) => results,
         Err(err) => {
             let issue = format!("Failed to get process listing: {err:?}");

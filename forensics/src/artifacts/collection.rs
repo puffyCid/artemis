@@ -158,20 +158,22 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     _ => continue,
                 };
 
-                let results = processes(&mut collector.output, filter, options);
+                let results = processes(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected processes"),
                     Err(err) => {
                         error!("[forensics] Failed to parse processes: {err:?}");
+                        manager.write_failed_artifact(artifact, &options);
                     }
                 }
             }
             "systeminfo" => {
-                let results = systeminfo(&mut collector.output, filter);
+                let results = systeminfo(&mut manager);
                 match results {
                     Ok(_) => info!("Collected systeminfo"),
                     Err(err) => {
                         error!("[forensics] Failed to parse systeminfo: {err:?}");
+                        manager.write_failed_artifact(artifact, &"");
                     }
                 }
             }
