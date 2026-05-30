@@ -54,6 +54,7 @@ pub(crate) fn loginitems(
     let artifact_name = "loginitems";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[forensics] Failed to output loginitems: {err:?}");
+        return Err(MacArtifactError::Output);
     }
 
     Ok(())
@@ -88,6 +89,7 @@ pub(crate) fn emond(
     let artifact_name = "emond";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[forensics] Failed to output emond: {err:?}");
+        return Err(MacArtifactError::Output);
     }
 
     Ok(())
