@@ -265,7 +265,6 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             params.filelist.push(ext4_entry);
             if params.filelist.len() >= max_size {
                 ext4_output(take(&mut params.filelist), manager, options);
-                params.filelist.clear();
             }
         }
 

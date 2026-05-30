@@ -122,7 +122,6 @@ fn read_disk(
     if !options.filelist.is_empty() {
         ext4_output(take(&mut options.filelist), manager, params);
     }
-    options.filelist.clear();
     options.cache.pop();
     Ok(())
 }
