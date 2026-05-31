@@ -6,7 +6,8 @@ use super::{
 use crate::{
     artifacts::os::macos::spotlight::store::db::get_blocks,
     filesystem::{files::file_reader, metadata::glob_paths},
-    structs::toml::Output,
+    output2::manager::OutputManager,
+    structs::artifacts::os::macos::SpotlightOptions,
 };
 use common::macos::SpotlightEntries;
 use log::error;
@@ -15,9 +16,8 @@ use serde::{Deserialize, Serialize};
 /// Parse the Spotlight database and output results
 pub(crate) fn parse_spotlight(
     glob_path: &str,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SpotlightOptions,
 ) -> Result<(), SpotlightError> {
     let paths_result = glob_paths(glob_path);
     let paths = match paths_result {
@@ -45,7 +45,7 @@ pub(crate) fn parse_spotlight(
             }
         };
 
-        let result = parse_store(&mut store_reader, &meta, output, start_time, filter);
+        let result = parse_store(&mut store_reader, &meta, manager, options);
         if result.is_err() {
             error!(
                 "[spotlight] Could not parse the spotlight store at: {}",
@@ -125,17 +125,23 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
 #[cfg(test)]
 mod tests {
     use super::{parse_spotlight, parse_spotlight_reader, setup_spotlight_reader};
-    use crate::structs::toml::Output;
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::macos::SpotlightOptions,
+    };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
@@ -144,9 +150,18 @@ mod tests {
     fn test_parse_spotlight() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*");
-        let mut output = output_options("spotlight_test", "local", "./tmp", false);
+        let output = output_options("spotlight_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
 
-        parse_spotlight(test_location.to_str().unwrap(), &mut output, 0, false).unwrap();
+        parse_spotlight(
+            test_location.to_str().unwrap(),
+            &mut manage,
+            &SpotlightOptions {
+                alt_dir: None,
+                include_additional: Some(false),
+            },
+        )
+        .unwrap();
     }
 
     #[test]

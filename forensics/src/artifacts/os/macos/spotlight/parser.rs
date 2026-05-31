@@ -15,16 +15,12 @@
  * `https://github.com/ydkhatri/mac_apt`
  */
 use super::{error::SpotlightError, light::parse_spotlight};
-use crate::{
-    structs::{artifacts::os::macos::SpotlightOptions, toml::Output},
-    utils::time::time_now,
-};
+use crate::{output2::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
 
 /// Dump the Spotlight database. Requires root
 pub(crate) fn grab_spotlight(
     options: &SpotlightOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), SpotlightError> {
     let paths = if let Some(alt_dir) = &options.alt_dir {
         vec![format!("{alt_dir}/*")]
@@ -49,9 +45,8 @@ pub(crate) fn grab_spotlight(
         default_paths
     };
 
-    let start_time = time_now();
     for glob in paths {
-        let _ = parse_spotlight(&glob, output, start_time, filter);
+        let _ = parse_spotlight(&glob, manager, options);
     }
 
     Ok(())
@@ -61,32 +56,36 @@ pub(crate) fn grab_spotlight(
 mod tests {
     use crate::{
         artifacts::os::macos::spotlight::parser::grab_spotlight,
-        structs::{artifacts::os::macos::SpotlightOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::macos::SpotlightOptions,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
 
     #[test]
     fn test_grab_spotlight() {
-        let mut output = output_options("spotlight_test", "local", "./tmp", false);
-
+        let output = output_options("spotlight_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
         grab_spotlight(
             &SpotlightOptions {
                 alt_dir: None,
                 include_additional: Some(true),
             },
-            &mut output,
-            false,
+            &mut manage,
         )
         .unwrap();
     }

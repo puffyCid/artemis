@@ -11,10 +11,10 @@
  */
 use super::{error::FsEventsError, fsevent::fsevents_data};
 use crate::{
-    artifacts::output::output_artifact,
     filesystem::files::list_files,
-    structs::{artifacts::os::macos::FseventsOptions, toml::Output},
-    utils::{compression::decompress::decompress_gzip, time::time_now},
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::macos::FseventsOptions,
+    utils::compression::decompress::decompress_gzip,
 };
 use common::macos::FsEvents;
 use log::error;
@@ -22,14 +22,11 @@ use log::error;
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
 pub(crate) fn grab_fseventsd(
     options: &FseventsOptions,
-    filter: bool,
-    output: &mut Output,
+    manager: &mut OutputManager,
 ) -> Result<(), FsEventsError> {
-    let start_time = time_now();
-
     if let Some(alt_file) = &options.alt_file {
         let results = grab_fsventsd_file(alt_file)?;
-        return output_fsevents(&results, output, filter, start_time);
+        return output_fsevents(results, manager, options);
     }
 
     let mut events = get_fseventsd()?;
@@ -55,7 +52,7 @@ pub(crate) fn grab_fseventsd(
                 continue;
             }
         };
-        let _ = output_fsevents(&results, output, filter, start_time);
+        let _ = output_fsevents(results, manager, options);
     }
     Ok(())
 }
@@ -123,30 +120,25 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
 
 /// Output `FsEvents` results
 fn output_fsevents(
-    entries: &[FsEvents],
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    entries: Vec<FsEvents>,
+    manager: &mut OutputManager,
+    options: &FseventsOptions,
 ) -> Result<(), FsEventsError> {
     if entries.is_empty() {
         return Ok(());
     }
-
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[fsevent] Failed to serialize fsevents entries: {err:?}");
             return Err(FsEventsError::Serialize);
         }
     };
-    let result = output_artifact(&mut serde_data, "fseventsd", output, start_time, filter);
-    match result {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[fsevent] Could not output fsevents data: {err:?}");
-            return Err(FsEventsError::OutputData);
-        }
+
+    let artifact_name = "fseventsd";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[fsevent] Could not output fsevents data: {err:?}");
+        return Err(FsEventsError::OutputData);
     }
 
     Ok(())
@@ -158,19 +150,23 @@ mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
-        structs::{artifacts::os::macos::FseventsOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::macos::FseventsOptions,
         utils::compression::decompress::decompress_gzip,
     };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
@@ -183,8 +179,9 @@ mod tests {
 
     #[test]
     fn test_grab_fseventsd() {
-        let mut output = output_options("fsevents_test", "local", "./tmp", false);
-        grab_fseventsd(&FseventsOptions { alt_file: None }, false, &mut output).unwrap();
+        let output = output_options("fsevents_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
+        grab_fseventsd(&FseventsOptions { alt_file: None }, &mut manage).unwrap();
     }
 
     #[test]
