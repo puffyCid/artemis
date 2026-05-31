@@ -46,11 +46,11 @@ regex_filter = ""
 
 [[artifacts]]
 artifact_name = "users-macos"
-[artifacts.users]
+[artifacts.users_macos]
 
 [[artifacts]]
 artifact_name = "groups-macos"
-[artifacts.groups]
+[artifacts.groups_macos]
 
 [[artifacts]]
 artifact_name = "systeminfo"

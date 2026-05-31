@@ -48,11 +48,14 @@ pub(crate) fn grab_fseventsd(
         let results = match parse_fsevents(&decompress_data, &file) {
             Ok((_, data)) => data,
             Err(err) => {
-                error!("Failed to parse FsEvent file {file}, err: {err:?}");
+                error!("Failed to parse FsEvent file '{file}', err: {err:?}");
                 continue;
             }
         };
-        let _ = output_fsevents(results, manager, options);
+        if let Err(err) = output_fsevents(results, manager, options) {
+            error!("Failed to output FsEvent data for '{file}', err: {err:?}");
+            continue;
+        }
     }
     Ok(())
 }

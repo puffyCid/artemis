@@ -221,6 +221,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse macOS sudo log data: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
