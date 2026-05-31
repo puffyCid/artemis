@@ -5,6 +5,7 @@ use crate::{
     },
     filesystem::files::get_filename,
     output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::windows::RegistryOptions,
     utils::{
         nom_helper::{
             Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -53,6 +54,7 @@ impl NameKey {
         params: &mut Params,
         minor_version: u32,
         manager: &mut Option<&mut OutputManager>,
+        options: Option<&RegistryOptions>,
     ) -> nom::IResult<&'a [u8], ()> {
         let (input, sig) = nom_unsigned_two_bytes(name_key, Endian::Le)?;
         let (input, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -157,12 +159,12 @@ impl NameKey {
             let max_limit = 200;
             if let Some(writer) = manager
                 && params.registry_list.len() >= max_limit
+                && let Some(opt) = options
             {
                 let artifact_name = "registry";
                 if let Ok(mut records) =
                     serialize_records_to_stream(mem::take(&mut params.registry_list))
-                    && let Err(err) =
-                        writer.write_artifact(artifact_name, &params.options, &mut records)
+                    && let Err(err) = writer.write_artifact(artifact_name, opt, &mut records)
                 {
                     error!(
                         "[registry] Failed to output data for {}, error: {err:?}",
@@ -170,25 +172,6 @@ impl NameKey {
                     );
                 }
             }
-            /*
-            if output.is_some() && params.registry_list.len() >= max_limit {
-                if let Ok(mut serde_data) = serde_json::to_value(&params.registry_list)
-                    && let Err(err) = output_data(
-                        &mut serde_data,
-                        "registry",
-                        output.as_mut().unwrap(),
-                        params.start_time,
-                        params.filter,
-                    )
-                {
-                    error!(
-                        "[registry] Failed to output data for {}, error: {err:?}",
-                        params.registry_path
-                    );
-                }
-
-                params.registry_list = Vec::new();
-            }*/
         }
 
         if name_key.subkeys_list_offset != no_lists
@@ -203,6 +186,7 @@ impl NameKey {
                 params,
                 minor_version,
                 manager,
+                options,
             );
             match result {
                 Ok((_, _)) => {}
@@ -252,11 +236,10 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::from("test/test"),
-            options: None,
         };
 
         let (_, result) =
-            NameKey::parse_name_key(&buffer, &test_data, &mut params, 4, &mut None).unwrap();
+            NameKey::parse_name_key(&buffer, &test_data, &mut params, 4, &mut None, None).unwrap();
         assert_eq!(result, ())
     }
 }

@@ -9,7 +9,6 @@ use super::{
     tasks::parser::grab_tasks, userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
     wmi::parser::grab_wmi_persist,
 };
-use crate::artifacts::output::output_artifact;
 use crate::output2::manager::OutputManager;
 use crate::output2::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::windows::{
@@ -19,10 +18,7 @@ use crate::structs::artifacts::os::windows::{
     SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
     WmiPersistOptions,
 };
-use crate::structs::toml::Output;
-use crate::utils::time;
 use log::error;
-use serde_json::Value;
 
 /// Parse the Windows `Prefetch` artifact
 pub(crate) fn prefetch(
@@ -75,7 +71,7 @@ pub(crate) fn eventlogs(
 
 /// Parse the Windows `Registry` artifact
 pub(crate) fn registry(
-    options: RegistryOptions,
+    options: &RegistryOptions,
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
@@ -601,56 +597,40 @@ pub(crate) fn mft(
     Ok(())
 }
 
-/// Output Windows artifacts
-pub(crate) fn output_data(
-    serde_data: &mut Value,
-    output_name: &str,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
-) -> Result<(), WinArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
-    if let Err(result) = status {
-        error!("[forensics] Could not output data: {result:?}");
-        return Err(WinArtifactError::Output);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, mft, output_data, prefetch, raw_filelist,
-            recycle_bin, registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum,
-            tasks, userassist, users_windows, usnjrnl, wmi_persist,
+            amcache, bits, eventlogs, jumplists, mft, prefetch, raw_filelist, recycle_bin,
+            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
+            userassist, users_windows, usnjrnl, wmi_persist,
         },
-        structs::{
-            artifacts::os::windows::{
-                AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
-                PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions,
-                SearchOptions, ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
-                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
-                WindowsUserOptions, WmiPersistOptions,
-            },
-            toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
         },
-        utils::time,
+        structs::artifacts::os::windows::{
+            AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
+            PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+            ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions,
+            SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
+            WmiPersistOptions,
+        },
     };
-    use serde_json::json;
     use std::path::PathBuf;
 
-    fn output_options(name: &str, format: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: format.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: String::from("local"),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -663,27 +643,27 @@ mod tests {
             alt_template_file: None,
             only_templates: false,
         };
-        let mut output = output_options("eventlogs_temp", "json", "./tmp", true);
+        let mut output = output_options("eventlogs_temp", "./tmp", true);
 
-        let status = eventlogs(&evt, &mut output, false).unwrap();
+        let status = eventlogs(&evt, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_shimdb() {
         let sdb = ShimdbOptions { alt_file: None };
-        let mut output = output_options("shimdb_temp", "json", "./tmp", false);
+        let mut output = output_options("shimdb_temp", "./tmp", false);
 
-        let status = shimdb(&sdb, &mut output, false).unwrap();
+        let status = shimdb(&sdb, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_prefetch() {
         let pf = PrefetchOptions { alt_dir: None };
-        let mut output = output_options("prefetch_temp", "json", "./tmp", false);
+        let mut output = output_options("prefetch_temp", "./tmp", false);
 
-        let status = prefetch(&pf, &mut output, false).unwrap();
+        let status = prefetch(&pf, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -695,9 +675,9 @@ mod tests {
             path_regex: None,
             alt_file: None,
         };
-        let mut output = output_options("reg_temp", "json", "./tmp", true);
+        let mut output = output_options("reg_temp", "./tmp", true);
 
-        let status = registry(&options, &mut output, false).unwrap();
+        let status = registry(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -715,9 +695,9 @@ mod tests {
             filename_regex: None,
             path_regex: None,
         };
-        let mut output = output_options("rawfiles_temp", "json", "./tmp", false);
+        let mut output = output_options("rawfiles_temp", "./tmp", false);
 
-        let status = raw_filelist(&options, &mut output, false).unwrap();
+        let status = raw_filelist(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -727,18 +707,18 @@ mod tests {
             alt_file: None,
             resolve_descriptions: Some(true),
         };
-        let mut output = output_options("assist_temp", "json", "./tmp", false);
+        let mut output = output_options("assist_temp", "./tmp", false);
 
-        let status = userassist(&options, &mut output, false).unwrap();
+        let status = userassist(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_shimcache() {
         let options = ShimcacheOptions { alt_file: None };
-        let mut output = output_options("shimcache_temp", "json", "./tmp", false);
+        let mut output = output_options("shimcache_temp", "./tmp", false);
 
-        let status = shimcache(&options, &mut output, false).unwrap();
+        let status = shimcache(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -748,18 +728,18 @@ mod tests {
             alt_file: None,
             resolve_guids: false,
         };
-        let mut output = output_options("bags_temp", "json", "./tmp", false);
+        let mut output = output_options("bags_temp", "./tmp", false);
 
-        let status = shellbags(&options, &mut output, false).unwrap();
+        let status = shellbags(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_amcache() {
         let options = AmcacheOptions { alt_file: None };
-        let mut output = output_options("amcache_temp", "json", "./tmp", false);
+        let mut output = output_options("amcache_temp", "./tmp", false);
 
-        let status = amcache(&options, &mut output, false).unwrap();
+        let status = amcache(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -771,9 +751,9 @@ mod tests {
             alt_file: None,
             alt_mft: None,
         };
-        let mut output = output_options("usn_temp", "json", "./tmp", false);
+        let mut output = output_options("usn_temp", "./tmp", false);
 
-        let status = usnjrnl(&options, &mut output, false).unwrap();
+        let status = usnjrnl(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -785,9 +765,9 @@ mod tests {
         let options = ShortcutOptions {
             dir: test_location.display().to_string(),
         };
-        let mut output = output_options("shortcuts_temp", "json", "./tmp", false);
+        let mut output = output_options("shortcuts_temp", "./tmp", false);
 
-        let status = shortcuts(&options, &mut output, false).unwrap();
+        let status = shortcuts(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -797,18 +777,18 @@ mod tests {
             alt_file: None,
             carve: false,
         };
-        let mut output = output_options("bits_temp", "json", "./tmp", false);
+        let mut output = output_options("bits_temp", "./tmp", false);
 
-        let status = bits(&options, &mut output, false).unwrap();
+        let status = bits(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_srum() {
         let options = SrumOptions { alt_file: None };
-        let mut output = output_options("srum_temp", "json", "./tmp", false);
+        let mut output = output_options("srum_temp", "./tmp", false);
 
-        let status = srum(&options, &mut output, false).unwrap();
+        let status = srum(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -816,63 +796,63 @@ mod tests {
     #[ignore = "Takes a long time"]
     fn test_search() {
         let options = SearchOptions { alt_file: None };
-        let mut output = output_options("search_temp", "json", "./tmp", false);
+        let mut output = output_options("search_temp", "./tmp", false);
 
-        let status = search(&options, &mut output, false).unwrap();
+        let status = search(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_wmipersist() {
         let options = WmiPersistOptions { alt_dir: None };
-        let mut output = output_options("wmipersist_temp", "json", "./tmp", false);
+        let mut output = output_options("wmipersist_temp", "./tmp", false);
 
-        let status = wmi_persist(&options, &mut output, false).unwrap();
+        let status = wmi_persist(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_users_windows() {
         let options = WindowsUserOptions { alt_file: None };
-        let mut output = output_options("users_temp", "json", "./tmp", false);
+        let mut output = output_options("users_temp", "./tmp", false);
 
-        let status = users_windows(&options, &mut output, false).unwrap();
+        let status = users_windows(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_tasks() {
         let options = TasksOptions { alt_file: None };
-        let mut output = output_options("tasks_temp", "json", "./tmp", false);
+        let mut output = output_options("tasks_temp", "./tmp", false);
 
-        let status = tasks(&options, &mut output, false).unwrap();
+        let status = tasks(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_services() {
         let options = ServicesOptions { alt_file: None };
-        let mut output = output_options("services_temp", "json", "./tmp", false);
+        let mut output = output_options("services_temp", "./tmp", false);
 
-        let status = services(&options, &mut output, false).unwrap();
+        let status = services(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_jumplists() {
         let options = JumplistsOptions { alt_dir: None };
-        let mut output = output_options("jumplists_temp", "json", "./tmp", false);
+        let mut output = output_options("jumplists_temp", "./tmp", false);
 
-        let status = jumplists(&options, &mut output, false).unwrap();
+        let status = jumplists(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_recycle_bin() {
         let options = RecycleBinOptions { alt_file: None };
-        let mut output = output_options("recyclebin_temp", "json", "./tmp", false);
+        let mut output = output_options("recyclebin_temp", "./tmp", false);
 
-        let status = recycle_bin(&options, &mut output, false).unwrap();
+        let status = recycle_bin(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 
@@ -883,20 +863,9 @@ mod tests {
             alt_drive: None,
             alt_file: None,
         };
-        let mut output = output_options("mft_temp", "json", "./tmp", false);
+        let mut output = output_options("mft_temp", "./tmp", false);
 
-        let status = mft(&options, &mut output, false).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_output_data() {
-        let mut output = output_options("output_test", "json", "./tmp", false);
-        let start_time = time::time_now();
-
-        let name = "test";
-        let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
+        let status = mft(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 }

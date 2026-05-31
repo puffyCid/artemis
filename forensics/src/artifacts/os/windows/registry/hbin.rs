@@ -5,6 +5,7 @@ use crate::{
         keys::nk::NameKey,
     },
     output2::manager::OutputManager,
+    structs::artifacts::os::windows::RegistryOptions,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };
 use common::windows::RegistryData;
@@ -50,6 +51,7 @@ impl HiveBin {
         params: &mut Params,
         minor_version: u32,
         manager: &mut Option<&mut OutputManager>,
+        options: Option<&RegistryOptions>,
     ) -> nom::IResult<&'a [u8], Vec<RegistryData>> {
         let skip_header: usize = 32;
         // We already parsed the header data. We can skip it
@@ -83,7 +85,7 @@ impl HiveBin {
                 continue;
             }
             // We only need the ROOT key
-            NameKey::parse_name_key(reg_data, cell_data, params, minor_version, manager)?;
+            NameKey::parse_name_key(reg_data, cell_data, params, minor_version, manager, options)?;
             break;
         }
 
@@ -141,11 +143,10 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::from("test\\test"),
-            options: None,
         };
 
         let (_, result) =
-            HiveBin::parse_hive_cells(&buffer, &buffer, &mut params, 4, &mut None).unwrap();
+            HiveBin::parse_hive_cells(&buffer, &buffer, &mut params, 4, &mut None, None).unwrap();
         assert_eq!(result.len(), 666)
     }
 }

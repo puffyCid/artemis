@@ -43,12 +43,11 @@ pub(crate) struct Params {
     pub(crate) key_tracker: Vec<String>, // Track Registry paths as we walk them
     pub(crate) offset_tracker: HashMap<u32, u32>, // Track Registry offsets to prevent infinite loops
     pub(crate) registry_path: String,
-    pub(crate) options: Option<RegistryOptions>,
 }
 
 /// Parse Windows `Registry` files based on provided options
 pub(crate) fn parse_registry(
-    options: RegistryOptions,
+    options: &RegistryOptions,
     manager: &mut OutputManager,
 ) -> Result<(), RegistryError> {
     let path_regex = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
@@ -59,14 +58,11 @@ pub(crate) fn parse_registry(
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
         registry_path: String::new(),
-        options: Some(options),
     };
 
-    if let Some(alt) = params.options.as_ref()
-        && let Some(path) = &alt.alt_file
-    {
+    if let Some(path) = &options.alt_file {
         params.registry_path = path.clone();
-        return parse_registry_file(manager, &mut params);
+        return parse_registry_file(manager, &mut params, options);
     }
 
     let drive_result = get_systemdrive();
@@ -78,12 +74,12 @@ pub(crate) fn parse_registry(
         }
     };
 
-    if params.options.as_ref().is_some_and(|v| v.user_hives) {
-        parse_user_hives(drive, manager, &mut params)?;
+    if options.user_hives {
+        parse_user_hives(drive, manager, &mut params, options)?;
     }
 
-    if params.options.as_ref().is_some_and(|v| v.system_hives) {
-        parse_default_system_hives(drive, manager, &mut params)?;
+    if options.system_hives {
+        parse_default_system_hives(drive, manager, &mut params, options)?;
     }
 
     Ok(())
@@ -106,6 +102,7 @@ fn parse_default_system_hives(
     drive: char,
     manager: &mut OutputManager,
     params: &mut Params,
+    options: &RegistryOptions,
 ) -> Result<(), RegistryError> {
     let paths = vec![
         format!("{drive}:\\Windows\\System32\\config\\SOFTWARE"),
@@ -116,7 +113,7 @@ fn parse_default_system_hives(
 
     for path in paths {
         params.registry_path = path;
-        let result = parse_registry_file(manager, params);
+        let result = parse_registry_file(manager, params, options);
         match result {
             Ok(_) => {}
             Err(err) => {
@@ -134,9 +131,10 @@ fn parse_default_system_hives(
 fn parse_registry_file(
     manager: &mut OutputManager,
     params: &mut Params,
+    options: &RegistryOptions,
 ) -> Result<(), RegistryError> {
     let buffer = read_registry(&params.registry_path)?;
-    let reg_results = parse_raw_registry(&buffer, params, &mut Some(manager));
+    let reg_results = parse_raw_registry(&buffer, params, &mut Some(manager), Some(options));
     let entries = match reg_results {
         Ok((_, results)) => results,
         Err(_err) => {
@@ -159,7 +157,7 @@ fn parse_registry_file(
             return Err(RegistryError::Serialize);
         }
     };
-    if let Err(err) = manager.write_artifact(artifact_name, &params.options, &mut records) {
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!(
             "[registry] Failed to output data for {}, error: {err:?}",
             params.registry_path
@@ -175,6 +173,7 @@ fn parse_user_hives(
     drive: char,
     manager: &mut OutputManager,
     params: &mut Params,
+    options: &RegistryOptions,
 ) -> Result<(), RegistryError> {
     let user_hives_results = get_user_registry_files(drive);
     let user_hives = match user_hives_results {
@@ -209,7 +208,7 @@ fn parse_user_hives(
 
         params.registry_path = path.full_path;
 
-        let reg_results = parse_raw_registry(&buffer, params, &mut Some(manager));
+        let reg_results = parse_raw_registry(&buffer, params, &mut Some(manager), Some(options));
         let entries = match reg_results {
             Ok((_, results)) => results,
             Err(_err) => {
@@ -232,7 +231,7 @@ fn parse_user_hives(
                 return Err(RegistryError::Serialize);
             }
         };
-        if let Err(err) = manager.write_artifact(artifact_name, &params.options, &mut records) {
+        if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
             error!(
                 "[registry] Failed to output data for {}, error: {err:?}",
                 params.registry_path
@@ -288,9 +287,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::new(),
-            options: Some(options),
         };
-        parse_user_hives('C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params, &options).unwrap();
     }
 
     #[test]
@@ -309,9 +307,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::new(),
-            options: Some(options),
         };
-        parse_default_system_hives('C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params, &options).unwrap();
     }
 
     #[test]
@@ -330,9 +327,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::new(),
-            options: Some(options),
         };
-        parse_user_hives('C', &mut output, &mut params).unwrap();
+        parse_user_hives('C', &mut output, &mut params, &options).unwrap();
     }
 
     #[test]
@@ -351,9 +347,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::new(),
-            options: Some(options),
         };
-        parse_default_system_hives('C', &mut output, &mut params).unwrap();
+        parse_default_system_hives('C', &mut output, &mut params, &options).unwrap();
     }
 
     #[test]
@@ -366,7 +361,7 @@ mod tests {
             alt_file: None,
             path_regex: None,
         };
-        parse_registry(reg_options, &mut output).unwrap();
+        parse_registry(&reg_options, &mut output).unwrap();
     }
 
     #[test]
@@ -387,9 +382,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: test_location.to_str().unwrap().to_string(),
-            options: Some(options),
         };
-        parse_registry_file(&mut output, &mut params).unwrap();
+        parse_registry_file(&mut output, &mut params, &options).unwrap();
     }
 
     #[test]

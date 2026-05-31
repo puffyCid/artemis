@@ -5,6 +5,7 @@ use super::{
 };
 use crate::{
     output2::manager::OutputManager,
+    structs::artifacts::os::windows::RegistryOptions,
     utils::nom_helper::{Endian, nom_signed_four_bytes},
 };
 use common::windows::KeyValue;
@@ -59,6 +60,7 @@ pub(crate) fn walk_registry<'a>(
     params: &mut Params,
     minor_version: u32,
     manager: &mut Option<&mut OutputManager>,
+    options: Option<&RegistryOptions>,
 ) -> nom::IResult<&'a [u8], ()> {
     if let Some(_value) = params.offset_tracker.get(&offset) {
         error!(
@@ -87,15 +89,22 @@ pub(crate) fn walk_registry<'a>(
     let (list_data, cell_type) = get_cell_type(list_data)?;
 
     if cell_type == CellType::Lh {
-        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version, manager)?;
+        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version, manager, options)?;
     } else if cell_type == CellType::Nk {
-        NameKey::parse_name_key(reg_data, list_data, params, minor_version, manager)?;
+        NameKey::parse_name_key(reg_data, list_data, params, minor_version, manager, options)?;
     } else if cell_type == CellType::Lf {
-        Leaf::parse_leaf(reg_data, list_data, params, minor_version, manager)?;
+        Leaf::parse_leaf(reg_data, list_data, params, minor_version, manager, options)?;
     } else if cell_type == CellType::Li {
-        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version, manager)?;
+        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version, manager, options)?;
     } else if cell_type == CellType::Ri {
-        RefItem::parse_reference_item(reg_data, list_data, params, minor_version, manager)?;
+        RefItem::parse_reference_item(
+            reg_data,
+            list_data,
+            params,
+            minor_version,
+            manager,
+            options,
+        )?;
     } else {
         error!("[registry] Got unknown cell type: {cell_type:?}.");
         return Err(nom::Err::Failure(nom::error::Error::new(
@@ -269,9 +278,8 @@ mod tests {
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
             registry_path: String::from("test\\test"),
-            options: None,
         };
-        let _ = walk_registry(&buffer, 216, &mut params, 4, &mut None).unwrap();
+        let _ = walk_registry(&buffer, 216, &mut params, 4, &mut None, None).unwrap();
     }
 
     #[test]
