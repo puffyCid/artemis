@@ -46,8 +46,7 @@ pub(crate) fn grab_tasks(
                 }
             };
 
-            output_tasks(records, manager, options);
-            return Ok(());
+            return output_tasks(records, manager, options);
         }
         let result = grab_task_xml(file)?;
         let records = match serialize_records_to_stream(vec![result]) {
@@ -58,9 +57,7 @@ pub(crate) fn grab_tasks(
             }
         };
 
-        output_tasks(records, manager, options);
-
-        return Ok(());
+        return output_tasks(records, manager, options);
     }
 
     let drive_result = get_systemdrive();
@@ -147,7 +144,7 @@ fn drive_tasks(
             return Err(TaskError::Serialize);
         }
     };
-    output_tasks(records, manager, options);
+    output_tasks(records, manager, options)?;
 
     // Legacy Task path associated with Job files
     let job_path = format!("{letter}:\\Windows\\Tasks");
@@ -191,17 +188,22 @@ fn drive_tasks(
         }
     };
 
-    output_tasks(records, manager, options);
-
-    Ok(())
+    output_tasks(records, manager, options)
 }
 
 /// Output Schedule tasks artifacts
-fn output_tasks(mut records: VecRecordStream, manager: &mut OutputManager, options: &TasksOptions) {
+fn output_tasks(
+    mut records: VecRecordStream,
+    manager: &mut OutputManager,
+    options: &TasksOptions,
+) -> Result<(), TaskError> {
     let artifact_name = "tasks";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[tasks] Could not output Schedule Tasks data: {err:?}");
+        return Err(TaskError::Output);
     }
+
+    Ok(())
 }
 
 /// Convert `TaskXml` to `TaskInfo`

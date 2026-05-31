@@ -631,7 +631,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 match results {
                     Ok(_) => info!("Collected connections"),
                     Err(err) => {
-                        error!("[forensics] Failed to parse MFT: {err:?}");
+                        error!("[forensics] Failed to parse connections: {err:?}");
                         manager.write_failed_artifact(artifact, &"");
                     }
                 }

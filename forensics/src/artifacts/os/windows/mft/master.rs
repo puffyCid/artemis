@@ -612,6 +612,7 @@ mod tests {
         config::{OutputConfig, OutputDestination, OutputFormat},
         manager::OutputManager,
     };
+    use crate::structs::artifacts::os::windows::MftOptions;
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
@@ -651,7 +652,6 @@ mod tests {
         use crate::{
             artifacts::os::windows::mft::master::{MftArgs, read_mft, setup_mft_reader_windows},
             filesystem::ntfs::attributes::get_raw_file_size,
-            structs::artifacts::os::windows::MftOptions,
         };
 
         let mut ntfs_parser = setup_ntfs_parser('C').unwrap();

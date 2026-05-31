@@ -403,7 +403,7 @@ fn read_eventlogs(
                 Ok(records) => output_logs(manager, options, records),
                 Err(err) => {
                     error!("[eventlogs] Could not serialize remaining raw logs: {err:?}");
-                    return Err(EventLogsError::Serialize)
+                    return Err(EventLogsError::Serialize);
                 }
             };
         }
