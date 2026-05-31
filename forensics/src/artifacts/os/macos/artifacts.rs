@@ -11,20 +11,14 @@ use super::{
     unified_logs::logs::grab_logs,
 };
 use crate::{
-    artifacts::output::output_artifact,
     output2::{manager::OutputManager, record::serialize_records_to_stream},
-    structs::{
-        artifacts::os::macos::{
-            EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-            MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
-            UnifiedLogsOptions,
-        },
-        toml::Output,
+    structs::artifacts::os::macos::{
+        EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+        MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
+        UnifiedLogsOptions,
     },
-    utils::time::{self, time_now},
 };
 use log::{error, warn};
-use serde_json::Value;
 
 /// Parse macOS `LoginItems`
 pub(crate) fn loginitems(
@@ -97,18 +91,14 @@ pub(crate) fn emond(
 
 /// Get macOS `Users`
 pub(crate) fn users_macos(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &MacosUsersOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let entries = grab_users(options);
     if entries.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize users: {err:?}");
@@ -116,24 +106,25 @@ pub(crate) fn users_macos(
         }
     };
 
-    let output_name = "users-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "users-macos";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output users: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get macOS `Groups`
 pub(crate) fn groups_macos(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &MacosGroupsOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let entries = grab_groups(options);
     if entries.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize groups: {err:?}");
@@ -141,17 +132,21 @@ pub(crate) fn groups_macos(
         }
     };
 
-    let output_name = "groups-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "groups-macos";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output groups: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse macOS `FsEvents`
 pub(crate) fn fseventsd(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
-    if let Err(err) = grab_fseventsd(options, filter, output) {
+    if let Err(err) = grab_fseventsd(options, manager) {
         warn!("[forensics] Failed to parse fseventsd: {err:?}");
         return Err(MacArtifactError::FsEventsd);
     }
@@ -161,12 +156,9 @@ pub(crate) fn fseventsd(
 
 /// Parse macOS `Launchd`
 pub(crate) fn launchd(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &LaunchdOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_launchd(options);
     let entries = match artifact_result {
         Ok(results) => results,
@@ -180,8 +172,7 @@ pub(crate) fn launchd(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize launchd: {err:?}");
@@ -189,27 +180,28 @@ pub(crate) fn launchd(
         }
     };
 
-    let output_name = "launchd";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "launchd";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output launchd: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get macOS `Unifiedlogs`
 pub(crate) fn unifiedlogs(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
-    grab_logs(options, output, filter)
+    grab_logs(options, manager)
 }
 
 /// Get macOS `ExecPolicy`
 pub(crate) fn execpolicy(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &ExecPolicyOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_execpolicy(options);
     let entries = match artifact_result {
         Ok(results) => results,
@@ -221,8 +213,8 @@ pub(crate) fn execpolicy(
     if entries.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize execpolicy: {err:?}");
@@ -230,17 +222,20 @@ pub(crate) fn execpolicy(
         }
     };
 
-    let output_name = "execpolicy";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "execpolicy";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output execpolicy: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse sudo logs on macOS
 pub(crate) fn sudo_logs_macos(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &MacosSudoOptions,
 ) -> Result<(), MacArtifactError> {
-    let start_time = time_now();
     let artifact_result = grab_sudo_logs(options);
     let entries = match artifact_result {
         Ok(results) => results,
@@ -254,8 +249,7 @@ pub(crate) fn sudo_logs_macos(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
             error!("[forensics] Failed to serialize sudo log data: {err:?}");
@@ -263,17 +257,21 @@ pub(crate) fn sudo_logs_macos(
         }
     };
 
-    let output_name = "sudologs-macos";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "sudologs-macos";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output sudo logs: {err:?}");
+        return Err(MacArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse spotlight on macOS
 pub(crate) fn spotlight(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &SpotlightOptions,
 ) -> Result<(), MacArtifactError> {
-    if let Err(err) = grab_spotlight(options, output, filter) {
+    if let Err(err) = grab_spotlight(options, manager) {
         warn!("[forensics] Failed to get spotlight data: {err:?}");
         return Err(MacArtifactError::Spotlight);
     }
@@ -281,61 +279,27 @@ pub(crate) fn spotlight(
     Ok(())
 }
 
-/// Output macOS artifacts
-pub(crate) fn output_data(
-    serde_data: &mut Value,
-    output_name: &str,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
-) -> Result<(), MacArtifactError> {
-    let status = output_artifact(serde_data, output_name, output, start_time, filter);
-    if let Err(result) = status {
-        error!("[forensics] Could not output data: {result:?}");
-        return Err(MacArtifactError::Output);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, output_data,
-            spotlight, sudo_logs_macos, unifiedlogs, users_macos,
+            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
+            sudo_logs_macos, unifiedlogs, users_macos,
         },
         output2::{
             config::{OutputConfig, OutputDestination, OutputFormat},
             manager::OutputManager,
         },
-        structs::{
-            artifacts::os::macos::{
-                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
-                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
-                SpotlightOptions, UnifiedLogsOptions,
-            },
-            toml::Output,
+        structs::artifacts::os::macos::{
+            EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+            MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
+            UnifiedLogsOptions,
         },
-        utils::time,
     };
-    use serde_json::json;
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
-            name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
-            compress,
-            endpoint_id: String::from("abcd"),
-            output: output.to_string(),
-            ..Default::default()
-        }
-    }
-
-    fn output_options2(name: &str, directory: &str, compress: bool) -> OutputManager {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
         let config = OutputConfig {
             name: name.to_string(),
             directory: PathBuf::from(directory),
@@ -350,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_loginitems() {
-        let mut output = output_options2("loginitems_test", "./tmp", false);
+        let mut output = output_options("loginitems_test", "./tmp", false);
 
         let status = loginitems(&mut output, &LoginitemsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
@@ -358,7 +322,7 @@ mod tests {
 
     #[test]
     fn test_emond() {
-        let mut output = output_options2("emond_test", "./tmp", false);
+        let mut output = output_options("emond_test", "./tmp", false);
 
         let status = emond(&mut output, &EmondOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
@@ -366,47 +330,44 @@ mod tests {
 
     #[test]
     fn test_users_macos() {
-        let mut output = output_options("users_test", "local", "./tmp", false);
+        let mut output = output_options("users_test", "./tmp", false);
 
-        let status =
-            users_macos(&mut output, false, &&MacosUsersOptions { alt_dir: None }).unwrap();
+        let status = users_macos(&mut output, &MacosUsersOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_groups_macos() {
-        let mut output = output_options("groups_test", "local", "./tmp", false);
+        let mut output = output_options("groups_test", "./tmp", false);
 
-        let status =
-            groups_macos(&mut output, false, &&MacosGroupsOptions { alt_dir: None }).unwrap();
+        let status = groups_macos(&mut output, &MacosGroupsOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     #[ignore = "Takes a long time to run"]
     fn test_fseventsd() {
-        let mut output = output_options("fseventsd_test", "local", "./tmp", false);
+        let mut output = output_options("fseventsd_test", "./tmp", false);
 
-        let status = fseventsd(&mut output, false, &FseventsOptions { alt_file: None }).unwrap();
+        let status = fseventsd(&mut output, &FseventsOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_launchd() {
-        let mut output = output_options("launchd_test", "local", "./tmp", false);
+        let mut output = output_options("launchd_test", "./tmp", false);
 
-        let status = launchd(&mut output, false, &LaunchdOptions { alt_file: None }).unwrap();
+        let status = launchd(&mut output, &LaunchdOptions { alt_file: None }).unwrap();
         assert_eq!(status, ());
     }
 
     #[test]
     fn test_unifiedlogs() {
-        let mut output = output_options("unifiedlogs_test", "local", "./tmp", false);
+        let mut output = output_options("unifiedlogs_test", "./tmp", false);
         let sources = vec![String::from("Special")];
 
         let status = unifiedlogs(
             &mut output,
-            false,
             &UnifiedLogsOptions {
                 sources,
                 logarchive_path: None,
@@ -418,19 +379,18 @@ mod tests {
 
     #[test]
     fn test_execpolicy() {
-        let mut output = output_options("execpolicy_test", "local", "./tmp", true);
+        let mut output = output_options("execpolicy_test", "./tmp", true);
 
-        let _status = execpolicy(&mut output, false, &ExecPolicyOptions { alt_file: None });
+        let _status = execpolicy(&mut output, &ExecPolicyOptions { alt_file: None });
     }
 
     #[test]
     fn test_sudo_logs_macos() {
-        let mut output = output_options("sudologs", "local", "./tmp", false);
+        let mut output = output_options("sudologs", "./tmp", false);
 
         let status = sudo_logs_macos(
             &mut output,
-            false,
-            &&MacosSudoOptions {
+            &MacosSudoOptions {
                 logarchive_path: None,
             },
         )
@@ -440,28 +400,16 @@ mod tests {
 
     #[test]
     fn test_spotlight() {
-        let mut output = output_options("spotlight", "local", "./tmp", false);
+        let mut output = output_options("spotlight", "./tmp", false);
 
         let status = spotlight(
             &mut output,
-            false,
             &SpotlightOptions {
                 alt_dir: None,
                 include_additional: None,
             },
         )
         .unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_output_data() {
-        let mut output = output_options("output_test", "local", "./tmp", false);
-        let start_time = time::time_now();
-
-        let name = "test";
-        let mut data = json!({"test":"test"});
-        let status = output_data(&mut data, name, &mut output, start_time, false).unwrap();
         assert_eq!(status, ());
     }
 }

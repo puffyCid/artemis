@@ -3,11 +3,9 @@ use super::{
     property::{parse_property, property_header},
 };
 use crate::{
-    artifacts::os::macos::{
-        artifacts::output_data,
-        spotlight::{dbstr::meta::SpotlightMeta, error::SpotlightError},
-    },
-    structs::toml::Output,
+    artifacts::os::macos::spotlight::{dbstr::meta::SpotlightMeta, error::SpotlightError},
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::macos::SpotlightOptions,
     utils::{
         nom_helper::{Endian, nom_unsigned_four_bytes},
         strings::extract_utf8_string,
@@ -19,15 +17,15 @@ use nom::bytes::complete::take;
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
+    mem,
 };
 
 /// Parse the Spotlight store.db and extract entries
 pub(crate) fn parse_store(
     reader: &mut File,
     meta: &SpotlightMeta,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SpotlightOptions,
 ) -> Result<(), SpotlightError> {
     let (blocks, dir) = get_blocks(reader)?;
     let offset_size = 0x1000;
@@ -75,35 +73,34 @@ pub(crate) fn parse_store(
         entries.append(&mut spotlight_data);
 
         if entries.len() >= limit {
-            let serde_data_result = serde_json::to_value(&entries);
-            let mut serde_data = match serde_data_result {
+            let mut records = match serialize_records_to_stream(mem::take(&mut entries)) {
                 Ok(results) => results,
                 Err(err) => {
                     error!("[spotlight] Failed to serialize spotlight data: {err:?}");
                     continue;
                 }
             };
-            let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
-            if let Err(status) = result {
-                error!("[spotlight] Could not output spotlight data: {status:?}");
-            }
 
-            entries = Vec::new();
+            let artifact_name = "spotlight";
+            if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+                error!("[spotlight] Could not output spotlight data: {err:?}");
+            }
         }
     }
 
     if !entries.is_empty() {
-        let serde_data_result = serde_json::to_value(&entries);
-        let mut serde_data = match serde_data_result {
+        let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[spotlight] Failed to serialize last spotlight data: {err:?}");
+                error!("[spotlight] Failed to serialize remainingspotlight data: {err:?}");
                 return Err(SpotlightError::Serialize);
             }
         };
-        let result = output_data(&mut serde_data, "spotlight", output, start_time, filter);
-        if let Err(status) = result {
-            error!("[spotlight] Could not output last spotlight data: {status:?}");
+
+        let artifact_name = "spotlight";
+        if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+            error!("[spotlight] Could not output remaiing spotlight data: {err:?}");
+            return Err(SpotlightError::Output);
         }
     }
 
@@ -285,18 +282,22 @@ mod tests {
             files::{file_reader, read_file},
             metadata::glob_paths,
         },
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
@@ -312,9 +313,19 @@ mod tests {
         let mut data = file_reader(test_location.to_str().unwrap()).unwrap();
 
         let meta = get_spotlight_meta(&paths).unwrap();
-        let mut output = output_options("spotlight_test", "local", "./tmp", false);
+        let output = output_options("spotlight_test", "./tmp", false);
+        let mut manage = OutputManager::new(output).unwrap();
 
-        parse_store(&mut data, &meta, &mut output, 0, false).unwrap();
+        parse_store(
+            &mut data,
+            &meta,
+            &mut manage,
+            &SpotlightOptions {
+                alt_dir: None,
+                include_additional: Some(false),
+            },
+        )
+        .unwrap();
     }
 
     #[test]

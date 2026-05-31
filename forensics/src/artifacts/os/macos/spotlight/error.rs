@@ -14,6 +14,7 @@ pub(crate) enum SpotlightError {
     StoreRead,
     StoreMap,
     Serialize,
+    Output,
 }
 
 impl std::error::Error for SpotlightError {}
@@ -33,6 +34,7 @@ impl fmt::Display for SpotlightError {
             SpotlightError::StoreRead => write!(f, "Could not read store data"),
             SpotlightError::StoreMap => write!(f, "Could not parse store map"),
             SpotlightError::Serialize => write!(f, "Could not serialize spotlight data"),
+            SpotlightError::Output => write!(f, "Could not output spotlight data"),
         }
     }
 }

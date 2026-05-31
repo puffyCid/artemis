@@ -90,11 +90,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = fseventsd(&mut collector.output, filter, options);
+                let results = fseventsd(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected fseventsd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse fseventsd: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -103,11 +104,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = launchd(&mut collector.output, filter, options);
+                let results = launchd(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected launchd"),
                     Err(err) => {
                         error!("[forensics] Failed to parse launchd: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -131,11 +133,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = users_macos(&mut collector.output, filter, options);
+                let results = users_macos(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected users"),
                     Err(err) => {
                         error!("[forensics] Failed to parse users: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -144,11 +147,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = groups_macos(&mut collector.output, filter, options);
+                let results = groups_macos(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected groups"),
                     Err(err) => {
                         error!("[forensics] Failed to parse groups: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -182,11 +186,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = execpolicy(&mut collector.output, filter, options);
+                let results = execpolicy(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected execpolicy"),
                     Err(err) => {
                         error!("[forensics] Failed to parse execpolicy: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -196,11 +201,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     _ => continue,
                 };
 
-                let results = unifiedlogs(&mut collector.output, filter, options);
+                let results = unifiedlogs(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected unified logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse unified logs: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -210,11 +216,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     _ => continue,
                 };
 
-                let results = sudo_logs_macos(&mut collector.output, filter, options);
+                let results = sudo_logs_macos(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected macOS sudo logs"),
                     Err(err) => {
                         error!("[forensics] Failed to parse macOS sudo log data: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
@@ -223,11 +230,12 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result_data) => result_data,
                     _ => continue,
                 };
-                let results = spotlight(&mut collector.output, filter, options);
+                let results = spotlight(&mut manager, options);
                 match results {
                     Ok(_) => info!("Collected spotlight"),
                     Err(err) => {
                         error!("[forensics] Failed to parse spotlight: {err:?}");
+                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }
