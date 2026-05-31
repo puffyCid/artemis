@@ -116,14 +116,14 @@ fn parse_trace_file(
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[forensics] Failed to serialize remaining unifiedlogs: {err:?}");
+                error!("[unifiedlogs] Failed to serialize remaining unifiedlogs: {err:?}");
                 continue;
             }
         };
 
         let artifact_name = "unifiedlogs";
         if let Err(err) = manager.write_artifact(artifact_name, params, &mut records) {
-            error!("[forensics] Failed to output remaining unifiedlogs: {err:?}");
+            error!("[unifiedlogs] Failed to output remaining unifiedlogs: {err:?}");
             continue;
         }
 
@@ -166,28 +166,29 @@ fn iterate_logs(
             .append(&mut options.oversize_strings.oversize);
         let (entries, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
         options.oversize_strings.oversize = chunk.oversize;
-        if entries.is_empty()
-            || (missing_logs.catalog_data.is_empty()
-                && missing_logs.header.is_empty()
-                && missing_logs.oversize.is_empty())
+        if !missing_logs.catalog_data.is_empty()
+            && !missing_logs.header.is_empty()
+            && !missing_logs.oversize.is_empty()
         {
-            continue;
+            // Track possible missing log data due to oversize strings being in another file
+            options.missing.push(missing_logs);
         }
 
-        // Track possible missing log data due to oversize strings being in another file
-        options.missing.push(missing_logs);
+        if entries.is_empty() {
+            continue;
+        }
 
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[forensics] Failed to serialize unifiedlogs: {err:?}");
+                error!("[unifiedlogs] Failed to serialize unifiedlogs: {err:?}");
                 continue;
             }
         };
 
         let artifact_name = "unifiedlogs";
         if let Err(err) = manager.write_artifact(artifact_name, params, &mut records) {
-            error!("[forensics] Failed to output unifiedlogs: {err:?}");
+            error!("[unifiedlogs] Failed to output unifiedlogs: {err:?}");
         }
     }
     Ok(())
