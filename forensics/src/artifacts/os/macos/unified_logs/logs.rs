@@ -167,8 +167,8 @@ fn iterate_logs(
         let (entries, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
         options.oversize_strings.oversize = chunk.oversize;
         if !missing_logs.catalog_data.is_empty()
-            && !missing_logs.header.is_empty()
-            && !missing_logs.oversize.is_empty()
+            || !missing_logs.header.is_empty()
+            || !missing_logs.oversize.is_empty()
         {
             // Track possible missing log data due to oversize strings being in another file
             options.missing.push(missing_logs);
