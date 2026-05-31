@@ -17,8 +17,9 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
-    structs::{artifacts::os::windows::UsnJrnlOptions, toml::Output},
-    utils::{environment::get_systemdrive, time::time_now},
+    output2::manager::OutputManager,
+    structs::artifacts::os::windows::UsnJrnlOptions,
+    utils::environment::get_systemdrive,
 };
 use common::windows::UsnJrnlEntry;
 use log::error;
@@ -26,16 +27,13 @@ use log::error;
 /// Parse `UsnJrnl` data and return list of entries
 pub(crate) fn grab_usnjrnl(
     options: &UsnJrnlOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), UsnJrnlError> {
-    let start_time = time_now();
-
     if let Some(alt) = options.alt_drive {
-        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"), output, filter, start_time);
+        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"), manager, options);
     }
     if let Some(path) = &options.alt_file {
-        return get_usnjrnl_path_stream(path, &options.alt_mft, output, filter, start_time);
+        return get_usnjrnl_path_stream(path, &options.alt_mft, manager, options);
     }
     let systemdrive_result = get_systemdrive();
     let systemdrive = match systemdrive_result {
@@ -49,9 +47,8 @@ pub(crate) fn grab_usnjrnl(
     parse_usnjrnl_data(
         systemdrive,
         &format!("{systemdrive}:\\$MFT"),
-        output,
-        filter,
-        start_time,
+        manager,
+        options,
     )
 }
 
@@ -80,19 +77,26 @@ pub(crate) fn grab_usnjrnl_path(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_usnjrnl, grab_usnjrnl_path};
-    use crate::structs::{artifacts::os::windows::UsnJrnlOptions, toml::Output};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::{artifacts::os::windows::UsnJrnlOptions},
+    };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -102,9 +106,9 @@ mod tests {
             alt_file: None,
             alt_mft: None,
         };
-        let mut output = output_options("usnjrnl_temp", "local", "./tmp", false);
+        let mut output = output_options("usnjrnl_temp",  "./tmp", false);
 
-        grab_usnjrnl(&params, &mut output, false).unwrap();
+        grab_usnjrnl(&params, &mut output).unwrap();
     }
 
     #[test]
