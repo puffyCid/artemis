@@ -440,8 +440,6 @@ pub(crate) fn services(
     options: &ServicesOptions,
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let service_results = grab_services(options);
     let entries = match service_results {
         Ok(results) => results,

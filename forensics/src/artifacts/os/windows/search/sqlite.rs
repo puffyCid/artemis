@@ -1,10 +1,11 @@
 use super::{error::SearchError, ese::SearchEntry};
 use crate::{
-    artifacts::os::windows::artifacts::output_data, structs::toml::Output, utils::time::time_now,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::windows::SearchOptions,
 };
 use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::take};
 
 struct SqlEntry {
     document_id: i32,
@@ -15,11 +16,9 @@ struct SqlEntry {
 /// Parse the Windows `Search` SQLITE file
 pub(crate) fn parse_search_sqlite(
     path: &str,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SearchOptions,
 ) -> Result<(), SearchError> {
-    let start_time = time_now();
-
     // Bypass SQLITE file lock
     let search_file = format!("file:{path}?immutable=1");
 
@@ -85,26 +84,22 @@ pub(crate) fn parse_search_sqlite(
                         entry.properties.insert(sql_entry.prop, sql_entry.value);
                         // We set a limit just in case a system has indexed alot of data
                         if entries.len() == limit {
-                            let serde_data_result = serde_json::to_value(&entries);
-                            let mut serde_data = match serde_data_result {
+                            let mut records = match serialize_records_to_stream(take(&mut entries))
+                            {
                                 Ok(results) => results,
                                 Err(err) => {
                                     error!(
                                         "[search] Failed to serialize search SQLITE data: {err:?}"
                                     );
-                                    return Err(SearchError::Serialize);
+                                    continue;
                                 }
                             };
-                            let result =
-                                output_data(&mut serde_data, "search", output, start_time, filter);
-                            match result {
-                                Ok(_result) => {}
-                                Err(err) => {
-                                    error!("[search] Could not output search SQLITE data: {err:?}");
-                                }
+                            let artifact_name = "search";
+                            if let Err(err) =
+                                manager.write_artifact(artifact_name, options, &mut records)
+                            {
+                                error!("[search] Could not output search SQLITE data: {err:?}");
                             }
-
-                            entries = Vec::new();
                         }
                     }
                     Err(err) => {
@@ -118,20 +113,17 @@ pub(crate) fn parse_search_sqlite(
             }
 
             // Output any leftover data
-            let serde_data_result = serde_json::to_value(&entries);
-            let mut serde_data = match serde_data_result {
+            let mut records = match serialize_records_to_stream(entries) {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[search] Failed to serialize search SQLITE data: {err:?}");
+                    error!("[search] Failed to serialize remaining search SQLITE data: {err:?}");
                     return Err(SearchError::Serialize);
                 }
             };
-            let result = output_data(&mut serde_data, "search", output, start_time, filter);
-            match result {
-                Ok(_result) => {}
-                Err(err) => {
-                    error!("[search] Could not output search SQLITE data: {err:?}");
-                }
+            let artifact_name = "search";
+            if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+                error!("[search] Could not output remaining search SQLITE data: {err:?}");
+                return Err(SearchError::Output);
             }
         }
         Err(err) => {
@@ -226,28 +218,37 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 #[cfg(test)]
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
-    use crate::structs::toml::Output;
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::SearchOptions,
+    };
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_parse_search_sqlite() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/search/win11/Windows.db");
-        let mut output = output_options("search_temp", "local", "./tmp", false);
+        let options = SearchOptions { alt_file: None };
 
-        parse_search_sqlite(&test_location.display().to_string(), &mut output, false).unwrap();
+        let mut output = output_options("search_temp", "./tmp", false);
+
+        parse_search_sqlite(&test_location.display().to_string(), &mut output, &options).unwrap();
     }
 
     #[test]
