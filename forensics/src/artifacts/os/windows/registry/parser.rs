@@ -228,7 +228,7 @@ fn parse_user_hives(
                     "[registry] Failed to serialize Registry file {}: {err:?}",
                     params.registry_path
                 );
-                return Err(RegistryError::Serialize);
+                continue;
             }
         };
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
