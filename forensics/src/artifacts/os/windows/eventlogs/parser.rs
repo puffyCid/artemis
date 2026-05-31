@@ -1,5 +1,5 @@
 /**
- * Windows `EventLogs` are the primary files associated with logging with system activity.  
+ * Windows `EventLogs` are the primary files associated with logging with system activity.
  * They are stored in a binary format, typically at C:\Windows\System32\winevt\Logs
  *
  * This parser uses the `evtx` crate to parse the `EventLogs`
@@ -201,6 +201,10 @@ fn alt_eventlogs(
         ) {
             error!("[eventlogs] Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
+        }
+
+        if options.only_templates {
+            return Ok(());
         }
     }
 

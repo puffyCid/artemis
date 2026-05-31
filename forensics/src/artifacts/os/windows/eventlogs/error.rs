@@ -26,7 +26,7 @@ impl fmt::Display for EventLogsError {
             EventLogsError::NoWevtTemplate => write!(f, "No WEVT_TEMPLATE resource found"),
             EventLogsError::ReadTemplateFile => write!(f, "Could not read provided template file"),
             EventLogsError::DeserializeTemplate => write!(f, "Could not deserialize template data"),
-            EventLogsError::Output => write!(f, "Could write eventlog data"),
+            EventLogsError::Output => write!(f, "Could not write eventlog data"),
         }
     }
 }
