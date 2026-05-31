@@ -15,47 +15,50 @@
  */
 use super::{error::TaskError, job::parse_job, xml::parse_xml};
 use crate::{
-    artifacts::os::windows::{artifacts::output_data, tasks::registry::cache_info},
+    artifacts::os::windows::tasks::registry::cache_info,
     filesystem::{
         files::{get_filename, list_files},
         metadata::{get_timestamps, glob_paths},
     },
-    structs::{artifacts::os::windows::TasksOptions, toml::Output},
-    utils::{environment::get_systemdrive, time},
+    output2::{
+        manager::OutputManager,
+        record::{VecRecordStream, serialize_records_to_stream},
+    },
+    structs::artifacts::os::windows::TasksOptions,
+    utils::environment::get_systemdrive,
 };
 use common::windows::{Flags, TaskFormat, TaskInfo, TaskJob, TaskXml};
 use log::{error, warn};
-use serde_json::Value;
 
 /// Grab Schedule Tasks based on `TaskOptions`
 pub(crate) fn grab_tasks(
     options: &TasksOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), TaskError> {
-    let start_time = time::time_now();
     if let Some(file) = &options.alt_file {
         if file.ends_with(".job") {
             let result = grab_task_job(file)?;
-            let mut serde_data = match serde_json::to_value(vec![result]) {
+            let records = match serialize_records_to_stream(vec![result]) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("[tasks] Failed to serialize job: {err:?}");
                     return Err(TaskError::Serialize);
                 }
             };
-            output_tasks(&mut serde_data, output, filter, start_time);
+
+            output_tasks(records, manager, options);
             return Ok(());
         }
         let result = grab_task_xml(file)?;
-        let mut serde_data = match serde_json::to_value(vec![result]) {
+        let records = match serialize_records_to_stream(vec![result]) {
             Ok(result) => result,
             Err(err) => {
                 error!("[tasks] Failed to serialize task: {err:?}");
                 return Err(TaskError::Serialize);
             }
         };
-        output_tasks(&mut serde_data, output, filter, start_time);
+
+        output_tasks(records, manager, options);
 
         return Ok(());
     }
@@ -69,7 +72,7 @@ pub(crate) fn grab_tasks(
         }
     };
 
-    drive_tasks(drive, output, filter, start_time)
+    drive_tasks(drive, manager, options)
 }
 
 /// Grab and parse single Task Job File at provided path
@@ -87,9 +90,8 @@ pub(crate) fn grab_task_xml(path: &str) -> Result<TaskInfo, TaskError> {
 /// Parse Tasks at provided drive
 fn drive_tasks(
     letter: char,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    manager: &mut OutputManager,
+    options: &TasksOptions,
 ) -> Result<(), TaskError> {
     let path = format!("{letter}:\\Windows\\System32\\Tasks");
     // Tasks may be under nested directories. Glob everything at path
@@ -138,14 +140,14 @@ fn drive_tasks(
         xml_tasks.push(info);
     }
 
-    let mut serde_data = match serde_json::to_value(&xml_tasks) {
+    let records = match serialize_records_to_stream(xml_tasks) {
         Ok(result) => result,
         Err(err) => {
             error!("[tasks] Failed to serialize tasks: {err:?}");
             return Err(TaskError::Serialize);
         }
     };
-    output_tasks(&mut serde_data, output, filter, start_time);
+    output_tasks(records, manager, options);
 
     // Legacy Task path associated with Job files
     let job_path = format!("{letter}:\\Windows\\Tasks");
@@ -181,22 +183,23 @@ fn drive_tasks(
     if job_tasks.is_empty() {
         return Ok(());
     }
-
-    let mut serde_data = match serde_json::to_value(&job_tasks) {
+    let records = match serialize_records_to_stream(job_tasks) {
         Ok(result) => result,
         Err(err) => {
             error!("[tasks] Failed to serialize jobs: {err:?}");
             return Err(TaskError::Serialize);
         }
     };
-    output_tasks(&mut serde_data, output, filter, start_time);
+
+    output_tasks(records, manager, options);
 
     Ok(())
 }
 
 /// Output Schedule tasks artifacts
-fn output_tasks(result: &mut Value, output: &mut Output, filter: bool, start_time: u64) {
-    if let Err(err) = output_data(result, "tasks", output, start_time, filter) {
+fn output_tasks(mut records: VecRecordStream, manager: &mut OutputManager, options: &TasksOptions) {
+    let artifact_name = "tasks";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[tasks] Could not output Schedule Tasks data: {err:?}");
     }
 }
@@ -285,7 +288,8 @@ mod tests {
     use crate::artifacts::os::windows::tasks::parser::{
         grab_task_job, grab_task_xml, job_info, xml_info,
     };
-    use crate::structs::toml::Output;
+    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::output2::manager::OutputManager;
     use crate::{
         artifacts::os::windows::tasks::parser::drive_tasks,
         structs::artifacts::os::windows::TasksOptions,
@@ -293,31 +297,33 @@ mod tests {
     use common::windows::{Actions, Priority, Status, TaskJob, TaskXml};
     use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_grab_tasks() {
         let options = TasksOptions { alt_file: None };
-        let mut output = output_options("tasks_temp", "local", "./tmp", false);
+        let mut output = output_options("tasks_temp", "./tmp", false);
 
-        grab_tasks(&options, &mut output, false).unwrap();
+        grab_tasks(&options, &mut output).unwrap();
     }
 
     #[test]
     fn test_drive_tasks() {
-        let mut output = output_options("tasks_temp", "local", "./tmp", false);
+        let mut output = output_options("tasks_temp", "./tmp", false);
+        let options = TasksOptions { alt_file: None };
 
-        drive_tasks('C', &mut output, false, 0).unwrap();
+        drive_tasks('C', &mut output, &options).unwrap();
     }
 
     #[test]
