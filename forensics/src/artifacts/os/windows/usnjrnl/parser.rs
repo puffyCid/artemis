@@ -82,7 +82,7 @@ mod tests {
             config::{OutputConfig, OutputDestination, OutputFormat},
             manager::OutputManager,
         },
-        structs::{artifacts::os::windows::UsnJrnlOptions},
+        structs::artifacts::os::windows::UsnJrnlOptions,
     };
     use std::path::PathBuf;
 
@@ -106,7 +106,7 @@ mod tests {
             alt_file: None,
             alt_mft: None,
         };
-        let mut output = output_options("usnjrnl_temp",  "./tmp", false);
+        let mut output = output_options("usnjrnl_temp", "./tmp", false);
 
         grab_usnjrnl(&params, &mut output).unwrap();
     }

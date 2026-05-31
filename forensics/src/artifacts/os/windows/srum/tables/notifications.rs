@@ -1,7 +1,9 @@
-use crate::artifacts::os::windows::srum::error::SrumError;
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    output2::record::{VecRecordStream, serialize_records_to_stream},
+};
 use common::windows::{NotificationInfo, TableDump};
 use log::error;
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse the notification table from SRUM
@@ -9,7 +11,7 @@ pub(crate) fn parse_notification(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut notif_vec: Vec<NotificationInfo> = Vec::new();
     for rows in column_rows {
         let mut notif = NotificationInfo {
@@ -61,8 +63,7 @@ pub(crate) fn parse_notification(
         notif_vec.push(notif);
     }
 
-    let serde_data_result = serde_json::to_value(&notif_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(notif_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM Notification table: {err:?}");
@@ -70,7 +71,7 @@ pub(crate) fn parse_notification(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 #[cfg(test)]

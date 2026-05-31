@@ -1,7 +1,10 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_iso};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    output2::record::{VecRecordStream, serialize_records_to_stream},
+    utils::time::filetime_to_iso,
+};
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
 use log::error;
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse the application table from SRUM
@@ -9,7 +12,7 @@ pub(crate) fn parse_application(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut app_vec: Vec<ApplicationInfo> = Vec::new();
     for rows in column_rows {
         let mut app = ApplicationInfo {
@@ -121,15 +124,15 @@ pub(crate) fn parse_application(
         app_vec.push(app);
     }
 
-    let serde_data_result = serde_json::to_value(&app_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(app_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM application table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
-    Ok(serde_data)
+
+    Ok(records)
 }
 
 /// Parse the app timeline table from SRUM
@@ -137,8 +140,8 @@ pub(crate) fn parse_app_timeline(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
-    let mut energy_vec: Vec<AppTimelineInfo> = Vec::new();
+) -> Result<VecRecordStream, SrumError> {
+    let mut app_timeline: Vec<AppTimelineInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = AppTimelineInfo {
             auto_inc_id: 0,
@@ -347,11 +350,10 @@ pub(crate) fn parse_app_timeline(
                 _ => (),
             }
         }
-        energy_vec.push(energy);
+        app_timeline.push(energy);
     }
 
-    let serde_data_result = serde_json::to_value(&energy_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(app_timeline) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM App Timeline table: {err:?}");
@@ -359,7 +361,7 @@ pub(crate) fn parse_app_timeline(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 /// Parse VFU table from SRUM. Not sure what this table is used for
@@ -367,7 +369,7 @@ pub(crate) fn parse_vfu_provider(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut app_vec: Vec<AppVfu> = Vec::new();
     for rows in column_rows {
         let mut app = AppVfu {
@@ -422,8 +424,7 @@ pub(crate) fn parse_vfu_provider(
         app_vec.push(app);
     }
 
-    let serde_data_result = serde_json::to_value(&app_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(app_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM application vfu table: {err:?}");
@@ -431,15 +432,16 @@ pub(crate) fn parse_vfu_provider(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_app_timeline, parse_application, parse_vfu_provider};
-    use crate::artifacts::os::windows::srum::{
-        resource::get_srum_ese, tables::index::parse_id_lookup,
+    use crate::{
+        artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
+        output2::record::RecordStream,
     };
 
     #[test]
@@ -450,8 +452,8 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
 
-        let results = parse_app_timeline(&srum_data, &lookups, test_path).unwrap();
-        assert_eq!(results.is_null(), false)
+        let mut results = parse_app_timeline(&srum_data, &lookups, test_path).unwrap();
+        assert!(results.next_record().is_ok())
     }
 
     #[test]
@@ -462,8 +464,8 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}").unwrap();
 
-        let results = parse_application(&srum_data, &lookups, test_path).unwrap();
-        assert_eq!(results.is_null(), false);
+        let mut results = parse_application(&srum_data, &lookups, test_path).unwrap();
+        assert!(results.next_record().is_ok())
     }
 
     #[test]
@@ -474,7 +476,7 @@ mod tests {
         let lookups = parse_id_lookup(&indexes);
         let srum_data = get_srum_ese(test_path, "{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}").unwrap();
 
-        let results = parse_vfu_provider(&srum_data, &lookups, test_path).unwrap();
-        assert_eq!(results.is_null(), false)
+        let mut results = parse_vfu_provider(&srum_data, &lookups, test_path).unwrap();
+        assert!(results.next_record().is_ok())
     }
 }

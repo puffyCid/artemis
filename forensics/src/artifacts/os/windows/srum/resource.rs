@@ -9,24 +9,28 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::{
-        artifacts::output_data,
         ese::{
             helper::{get_all_pages, get_catalog_info, get_page_data},
             tables::table_info,
         },
         srum::tables::index::parse_id_lookup,
     },
-    structs::toml::Output,
-    utils::time::time_now,
+    output2::{
+        manager::OutputManager,
+        record::{Record, RecordStream},
+    },
+    structs::artifacts::os::windows::SrumOptions,
 };
 use common::windows::TableDump;
 use log::{error, warn};
 use serde_json::Value;
 
 /// Parse and dump the provided SRUM tables
-pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Result<(), SrumError> {
-    let start_time = time_now();
-
+pub(crate) fn parse_srum(
+    path: &str,
+    manager: &mut OutputManager,
+    options: &SrumOptions,
+) -> Result<(), SrumError> {
     let indexes = get_srum_ese(path, "SruDbIdMapTable")?;
     let lookups = parse_id_lookup(&indexes);
 
@@ -45,7 +49,7 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Resul
     for table in tables {
         let srum_data = get_srum_ese(path, table)?;
 
-        let mut serde_data = match table {
+        let mut records = match table {
             "{5C8CF1C7-7257-4F13-B223-970EF5939312}" => {
                 parse_app_timeline(&srum_data, &lookups, path)?
             }
@@ -70,12 +74,9 @@ pub(crate) fn parse_srum(path: &str, output: &mut Output, filter: bool) -> Resul
             _ => continue,
         };
 
-        let result = output_data(&mut serde_data, "srum", output, start_time, filter);
-        match result {
-            Ok(_result) => {}
-            Err(err) => {
-                error!("[srum] Could not output srum {table} data: {err:?}");
-            }
+        let artifact_name = "srum";
+        if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+            error!("[srum] Could not output srum {table} data: {err:?}");
         }
     }
 
@@ -88,7 +89,7 @@ pub(crate) fn get_srum(path: &str, table: &str) -> Result<Value, SrumError> {
     let lookups = parse_id_lookup(&indexes);
     let srum_data = get_srum_ese(path, table)?;
 
-    let srum_data = match table {
+    let mut srum_data = match table {
         "{5C8CF1C7-7257-4F13-B223-970EF5939312}" => parse_app_timeline(&srum_data, &lookups, path)?,
         "{973F5D5C-1D90-4944-BE8E-24B94231A174}" => parse_network(&srum_data, &lookups, path)?,
         "{DD6636C4-8929-4683-974E-22C046A43763}" => {
@@ -105,7 +106,14 @@ pub(crate) fn get_srum(path: &str, table: &str) -> Result<Value, SrumError> {
             return Err(SrumError::NoTable);
         }
     };
-    Ok(srum_data)
+
+    let mut serde_data = Value::Array(Vec::new());
+    while let Ok(Some(entries)) = srum_data.next_record() {
+        let Record::Json(record) = entries;
+        serde_data.as_array_mut().unwrap().push(record.into_value());
+    }
+
+    Ok(serde_data)
 }
 
 /// Extract SRUM info from ESE database
@@ -149,26 +157,35 @@ pub(crate) fn get_srum_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{get_srum, get_srum_ese, parse_srum};
-    use crate::structs::toml::Output;
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::SrumOptions,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_parse_srum() {
         let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-        let mut output = output_options("srum_temp", "local", "./tmp", true);
+        let mut output = output_options("srum_temp", "./tmp", true);
+        let options = SrumOptions { alt_file: None };
 
-        parse_srum(test_path, &mut output, false).unwrap();
+        parse_srum(test_path, &mut output, &options).unwrap();
     }
 
     #[test]
