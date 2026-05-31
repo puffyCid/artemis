@@ -122,7 +122,7 @@ impl OutputManager {
         let hash = hash_artifact_options(&artifact_options).unwrap_or_default();
         // Only track unique artifacts per Artemis collection
         // If a user collects a process listing twice in a single Artemis collection
-        // We only `Processes` artifact once instead of twice
+        // We only record `Processes` artifact once instead of twice
         if let Some(run) = self
             .artifact_runs
             .iter_mut()

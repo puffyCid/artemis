@@ -110,6 +110,9 @@ fn parse_trace_file(
         // If we fail to find any missing data its probably due to the logs rolling
         // Ex: tracev3A rolls, tracev3B references Oversize entry in tracev3A will trigger missing data since tracev3A is gone
         let (entries, _) = build_log(leftover_data, provider, timesync_data, include_missing);
+        if entries.is_empty() {
+            continue;
+        }
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
@@ -163,6 +166,16 @@ fn iterate_logs(
             .append(&mut options.oversize_strings.oversize);
         let (entries, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
         options.oversize_strings.oversize = chunk.oversize;
+        if entries.is_empty()
+            || (missing_logs.catalog_data.is_empty()
+                && missing_logs.header.is_empty()
+                && missing_logs.oversize.is_empty())
+        {
+            continue;
+        }
+
+        // Track possible missing log data due to oversize strings being in another file
+        options.missing.push(missing_logs);
 
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
@@ -175,17 +188,7 @@ fn iterate_logs(
         let artifact_name = "unifiedlogs";
         if let Err(err) = manager.write_artifact(artifact_name, params, &mut records) {
             error!("[forensics] Failed to output unifiedlogs: {err:?}");
-            continue;
         }
-
-        if missing_logs.catalog_data.is_empty()
-            && missing_logs.header.is_empty()
-            && missing_logs.oversize.is_empty()
-        {
-            continue;
-        }
-        // Track possible missing log data due to oversize strings being in another file
-        options.missing.push(missing_logs);
     }
     Ok(())
 }
