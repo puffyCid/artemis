@@ -21,13 +21,11 @@ use super::{
     reader::{setup_outlook_reader, setup_outlook_reader_windows},
 };
 use crate::{
-    artifacts::os::{systeminfo::info::get_platform, windows::artifacts::output_data},
+    artifacts::os::systeminfo::info::get_platform,
     filesystem::{metadata::glob_paths, ntfs::setup::setup_ntfs_parser},
-    structs::{artifacts::os::windows::OutlookOptions, toml::Output},
-    utils::{
-        environment::get_systemdrive,
-        time::{compare_timestamps, time_now},
-    },
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::windows::OutlookOptions,
+    utils::{environment::get_systemdrive, time::compare_timestamps},
 };
 use common::windows::{OutlookAttachment, OutlookMessage};
 use log::error;
@@ -40,11 +38,10 @@ use crate::utils::yara::{scan_base64_bytes, scan_bytes};
 /// Parse and grab Outlook messages based on options provided
 pub(crate) fn grab_outlook(
     options: &OutlookOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), OutlookError> {
     if let Some(file) = &options.alt_file {
-        return grab_outlook_file(file, options, filter, output);
+        return grab_outlook_file(file, options, manager);
     }
     let systemdrive_result = get_systemdrive();
     let drive = match systemdrive_result {
@@ -67,7 +64,7 @@ pub(crate) fn grab_outlook(
     };
 
     for path in paths {
-        let status = grab_outlook_file(&path.full_path, options, filter, output);
+        let status = grab_outlook_file(&path.full_path, options, manager);
         if let Err(result) = status {
             error!(
                 "[outlook] Could not extract messages from {}: {result:?}",
@@ -83,19 +80,14 @@ pub(crate) fn grab_outlook(
 fn grab_outlook_file(
     path: &str,
     options: &OutlookOptions,
-    filter: bool,
-    output: &mut Output,
+    manager: &mut OutputManager,
 ) -> Result<(), OutlookError> {
-    let start_time = time_now();
-
     let runner = OutlookRunner {
         start_date: options.start_date.clone(),
         end_date: options.end_date.clone(),
         include_attachments: options.include_attachments,
         yara_rule_attachment: options.yara_rule_attachment.clone(),
         yara_rule_message: options.yara_rule_message.clone(),
-        start_time,
-        filter,
         source: path.to_string(),
     };
 
@@ -112,7 +104,7 @@ fn grab_outlook_file(
             // This will get updated when parsing starts
             size: 4096,
         };
-        return read_outlook(&mut outlook_reader, None, &runner, output);
+        return read_outlook(&mut outlook_reader, None, &runner, manager, options);
     }
 
     // Windows we default to parsing the NTFS in order to bypass locked OST
@@ -135,7 +127,13 @@ fn grab_outlook_file(
         size: 4096,
     };
 
-    read_outlook(&mut outlook_reader, Some(&ntfs_file), &runner, output)
+    read_outlook(
+        &mut outlook_reader,
+        Some(&ntfs_file),
+        &runner,
+        manager,
+        options,
+    )
 }
 
 struct OutlookRunner {
@@ -144,8 +142,6 @@ struct OutlookRunner {
     include_attachments: bool,
     yara_rule_attachment: Option<String>,
     yara_rule_message: Option<String>,
-    start_time: u64,
-    filter: bool,
     source: String,
 }
 
@@ -154,7 +150,8 @@ fn read_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
     options: &OutlookRunner,
-    output: &mut Output,
+    manager: &mut OutputManager,
+    params: &OutlookOptions,
 ) -> Result<(), OutlookError> {
     // Parse the Outlook header and extract the initial BTrees, format type, and page size
     reader.setup(use_ntfs)?;
@@ -163,7 +160,15 @@ fn read_outlook<T: std::io::Seek + std::io::Read>(
     let root = reader.root_folder(use_ntfs)?;
 
     for folders in root.subfolders {
-        stream_outlook(reader, use_ntfs, options, output, folders.node, &root.name)?;
+        stream_outlook(
+            reader,
+            use_ntfs,
+            options,
+            manager,
+            params,
+            folders.node,
+            &root.name,
+        )?;
     }
 
     Ok(())
@@ -174,7 +179,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     reader: &mut OutlookReader<T>,
     use_ntfs: Option<&NtfsFile<'_>>,
     options: &OutlookRunner,
-    output: &mut Output,
+    manager: &mut OutputManager,
+    params: &OutlookOptions,
     folder: u64,
     folder_path: &str,
 ) -> Result<(), OutlookError> {
@@ -219,7 +225,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 entries.push(entry.unwrap());
             }
 
-            output_messages(&entries, options, output)?;
+            output_messages(entries, manager, params)?;
             chunks = Vec::new();
         }
 
@@ -247,7 +253,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 }
                 entries.push(entry.unwrap());
             }
-            output_messages(&entries, options, output)?;
+            output_messages(entries, manager, params)?;
         }
 
         // Now check for subfolders
@@ -257,7 +263,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 reader,
                 use_ntfs,
                 options,
-                output,
+                manager,
+                params,
                 folder.node,
                 &new_folder_path,
             )?;
@@ -304,7 +311,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     entries.push(entry.unwrap());
                 }
 
-                output_messages(&entries, options, output)?;
+                output_messages(entries, manager, params)?;
                 chunks = Vec::new();
             }
 
@@ -333,7 +340,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                     entries.push(entry.unwrap());
                 }
 
-                output_messages(&entries, options, output)?;
+                output_messages(entries, manager, params)?;
             }
 
             all_rows += branch.rows_info.count;
@@ -347,7 +354,8 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
             reader,
             use_ntfs,
             options,
-            output,
+            manager,
+            params,
             folder.node,
             &new_folder_path,
         )?;
@@ -445,34 +453,24 @@ fn message_details<T: std::io::Seek + std::io::Read>(
 
 /// Output the extract messages
 fn output_messages(
-    messages: &[OutlookMessage],
-    options: &OutlookRunner,
-    output: &mut Output,
+    messages: Vec<OutlookMessage>,
+    manager: &mut OutputManager,
+    options: &OutlookOptions,
 ) -> Result<(), OutlookError> {
     if messages.is_empty() {
         return Ok(());
     }
-    let serde_data_result = serde_json::to_value(messages);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(messages) {
         Ok(results) => results,
         Err(err) => {
             error!("[outlook] Failed to serialize Outlook messages: {err:?}");
             return Err(OutlookError::Serialize);
         }
     };
-    let result = output_data(
-        &mut serde_data,
-        "outlook",
-        output,
-        options.start_time,
-        options.filter,
-    );
-    match result {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[outlook] Could not output Outlook messages: {err:?}");
-            return Err(OutlookError::OutputData);
-        }
+    let artifact_name = "outlook";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[outlook] Could not output Outlook messages: {err:?}");
+        return Err(OutlookError::OutputData);
     }
 
     Ok(())
@@ -481,8 +479,27 @@ fn output_messages(
 #[cfg(test)]
 mod tests {
     use super::grab_outlook;
-    use crate::structs::{artifacts::os::windows::OutlookOptions, toml::Output};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::OutlookOptions,
+    };
     use std::path::PathBuf;
+
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
 
     #[test]
     #[cfg(target_family = "unix")]
@@ -499,17 +516,9 @@ mod tests {
             yara_rule_attachment: None,
         };
 
-        let mut out = Output {
-            name: "outlook_temp".to_string(),
-            directory: "./tmp".to_string(),
-            format: String::from("jsonl"),
-            compress: false,
-            endpoint_id: String::from("abcd"),
-            output: "local".to_string(),
-            ..Default::default()
-        };
+        let mut out = output_options("outlook_temp", "./tmp", false);
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out).unwrap()
     }
 
     #[test]
@@ -527,17 +536,9 @@ mod tests {
             yara_rule_attachment: None,
         };
 
-        let mut out = Output {
-            name: "outlook_temp".to_string(),
-            directory: "./tmp".to_string(),
-            format: String::from("jsonl"),
-            compress: false,
-            endpoint_id: String::from("abcd"),
-            output: "local".to_string(),
-            ..Default::default()
-        };
+        let mut out = output_options("outlook_temp", "./tmp", false);
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out).unwrap()
     }
 
     #[test]
@@ -552,16 +553,8 @@ mod tests {
             yara_rule_attachment: None,
         };
 
-        let mut out = Output {
-            name: "outlook_temp".to_string(),
-            directory: "./tmp".to_string(),
-            format: String::from("jsonl"),
-            compress: false,
-            endpoint_id: String::from("abcd"),
-            output: "local".to_string(),
-            ..Default::default()
-        };
+        let mut out = output_options("outlook_temp", "./tmp", false);
 
-        grab_outlook(&options, &mut out, false).unwrap()
+        grab_outlook(&options, &mut out).unwrap()
     }
 }

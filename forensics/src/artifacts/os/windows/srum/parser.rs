@@ -18,7 +18,7 @@ use super::{
     resource::{get_srum, parse_srum},
 };
 use crate::{
-    structs::{artifacts::os::windows::SrumOptions, toml::Output},
+    output2::manager::OutputManager, structs::artifacts::os::windows::SrumOptions,
     utils::environment::get_systemdrive,
 };
 use log::error;
@@ -30,8 +30,7 @@ use serde_json::Value;
  */
 pub(crate) fn grab_srum(
     options: &SrumOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), SrumError> {
     let path = if let Some(alt) = &options.alt_file {
         alt.clone()
@@ -47,7 +46,7 @@ pub(crate) fn grab_srum(
         format!("{systemdrive}:\\Windows\\System32\\sru\\SRUDB.dat")
     };
 
-    parse_srum(&path, output, filter)
+    parse_srum(&path, manager, options)
 }
 
 /**
@@ -61,22 +60,28 @@ pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
+    use super::grab_srum;
     use crate::{
         artifacts::os::windows::srum::parser::grab_srum_path,
-        structs::artifacts::os::windows::SrumOptions, structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::SrumOptions,
     };
+    use std::path::PathBuf;
 
-    use super::grab_srum;
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -90,8 +95,8 @@ mod tests {
     #[test]
     fn test_grab_srum() {
         let options = SrumOptions { alt_file: None };
-        let mut output = output_options("srum_test", "local", "./tmp", false);
+        let mut output = output_options("srum_test", "./tmp", false);
 
-        grab_srum(&options, &mut output, false).unwrap();
+        grab_srum(&options, &mut output).unwrap();
     }
 }

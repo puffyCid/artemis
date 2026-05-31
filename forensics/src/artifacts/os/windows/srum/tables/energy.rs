@@ -1,7 +1,10 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_iso};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    output2::record::{VecRecordStream, serialize_records_to_stream},
+    utils::time::filetime_to_iso,
+};
 use common::windows::{EnergyInfo, EnergyUsage, TableDump};
 use log::error;
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse the unknown energy table from SRUM
@@ -9,7 +12,7 @@ pub(crate) fn parse_energy(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut energy_vec: Vec<EnergyInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyInfo {
@@ -50,8 +53,7 @@ pub(crate) fn parse_energy(
         energy_vec.push(energy);
     }
 
-    let serde_data_result = serde_json::to_value(&energy_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(energy_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM Unknown Energy table: {err:?}");
@@ -59,7 +61,7 @@ pub(crate) fn parse_energy(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 /// Parse the energy usage table from SRUM
@@ -67,7 +69,7 @@ pub(crate) fn parse_energy_usage(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut energy_vec: Vec<EnergyUsage> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyUsage {
@@ -130,8 +132,7 @@ pub(crate) fn parse_energy_usage(
         energy_vec.push(energy);
     }
 
-    let serde_data_result = serde_json::to_value(&energy_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(energy_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM Energy Usage table: {err:?}");
@@ -139,7 +140,7 @@ pub(crate) fn parse_energy_usage(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 #[cfg(test)]

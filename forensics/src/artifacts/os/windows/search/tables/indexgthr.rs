@@ -1,9 +1,7 @@
 use crate::{
-    artifacts::os::windows::{
-        artifacts::output_data,
-        search::{error::SearchError, ese::SearchEntry},
-    },
-    structs::toml::Output,
+    artifacts::os::windows::search::{error::SearchError, ese::SearchEntry},
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::windows::SearchOptions,
     utils::{
         encoding::base64_decode_standard,
         nom_helper::{Endian, nom_unsigned_eight_bytes},
@@ -12,15 +10,14 @@ use crate::{
 };
 use common::windows::TableDump;
 use log::error;
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::take};
 
 /// Parse the `SystemIndex_Gthr` table and output data
 pub(crate) fn parse_index_gthr(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, HashMap<String, String>>,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SearchOptions,
     evidence: &str,
 ) -> Result<(), SearchError> {
     let mut entries = Vec::new();
@@ -72,23 +69,17 @@ pub(crate) fn parse_index_gthr(
 
         // We set a limit just in case a system has indexed a lot of data
         if entries.len() == limit {
-            let serde_data_result = serde_json::to_value(&entries);
-            let mut serde_data = match serde_data_result {
+            let mut records = match serialize_records_to_stream(take(&mut entries)) {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[search] Failed to serialize Index Gthr table: {err:?}");
-                    return Err(SearchError::Serialize);
+                    error!("[search] Failed to serialize search ESE data: {err:?}");
+                    continue;
                 }
             };
-            let result = output_data(&mut serde_data, "search", output, start_time, filter);
-            match result {
-                Ok(_result) => {}
-                Err(err) => {
-                    error!("[search] Could not output Index Gthr search data: {err:?}");
-                }
+            let artifact_name = "search";
+            if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+                error!("[search] Could not output search ESE data: {err:?}");
             }
-
-            entries = Vec::new();
         }
     }
 
@@ -97,20 +88,17 @@ pub(crate) fn parse_index_gthr(
     }
 
     // Output any leftover data
-    let serde_data_result = serde_json::to_value(&entries);
-    let mut serde_data = match serde_data_result {
+    let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[search] Failed to serialize Index Gthr table: {err:?}");
+            error!("[search] Failed to serialize remaining search ESE data: {err:?}");
             return Err(SearchError::Serialize);
         }
     };
-    let result = output_data(&mut serde_data, "search", output, start_time, filter);
-    match result {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[search] Could not output Index Gthr search data: {err:?}");
-        }
+    let artifact_name = "search";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[search] Could not output remaining search ESE data: {err:?}");
+        return Err(SearchError::Output);
     }
 
     Ok(())
@@ -179,20 +167,25 @@ mod tests {
             search::ese::{search_catalog, search_pages},
         },
         filesystem::files::is_file,
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::SearchOptions,
     };
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::PathBuf};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -203,7 +196,7 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-        let mut output = output_options("search_temp", "local", "./tmp", false);
+        let mut output = output_options("search_temp", "./tmp", false);
 
         let catalog = search_catalog(test_path).unwrap();
 
@@ -213,6 +206,8 @@ mod tests {
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
         let last_page = 0;
+        let options = SearchOptions { alt_file: None };
+
         for gather_page in gather_pages {
             if gather_page == last_page {
                 continue;
@@ -235,8 +230,7 @@ mod tests {
                 &gather_rows.get("SystemIndex_Gthr").unwrap(),
                 &HashMap::new(),
                 &mut output,
-                0,
-                false,
+                &options,
                 test_path,
             )
             .unwrap();

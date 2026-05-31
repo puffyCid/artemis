@@ -8,21 +8,15 @@
  */
 use super::{error::MftError, master::parse_mft};
 use crate::{
-    structs::{artifacts::os::windows::MftOptions, toml::Output},
-    utils::{environment::get_systemdrive, time::time_now},
+    output2::manager::OutputManager, structs::artifacts::os::windows::MftOptions,
+    utils::environment::get_systemdrive,
 };
 
 /// Try create a filelisting from provided MFT file
-pub(crate) fn grab_mft(
-    options: &MftOptions,
-    output: &mut Output,
-    filter: bool,
-) -> Result<(), MftError> {
-    let start_time = time_now();
-
+pub(crate) fn grab_mft(options: &MftOptions, manager: &mut OutputManager) -> Result<(), MftError> {
     let mut drive = String::new();
     let path = if let Some(file) = &options.alt_file {
-        return parse_mft(file, output, filter, start_time, &drive);
+        return parse_mft(file, manager, options, &drive);
     } else {
         // Check if alternative drive letter provided
         if let Some(alt_drive) = &options.alt_drive {
@@ -35,25 +29,33 @@ pub(crate) fn grab_mft(
         }
     };
 
-    parse_mft(&path, output, filter, start_time, &drive)
+    parse_mft(&path, manager, options, &drive)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_mft;
-    use crate::structs::{artifacts::os::windows::MftOptions, toml::Output};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::MftOptions,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -62,7 +64,7 @@ mod tests {
             alt_drive: None,
             alt_file: None,
         };
-        let mut output = output_options("mft_temp", "local", "./tmp", false);
-        grab_mft(&options, &mut output, false).unwrap();
+        let mut output = output_options("mft_temp", "./tmp", false);
+        grab_mft(&options, &mut output).unwrap();
     }
 }

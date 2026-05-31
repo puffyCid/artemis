@@ -26,7 +26,7 @@ fn test_tasks_parser() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if text.contains("\"total_output_files\":0,") {
-                //panic!("missing Tasks??");
+                panic!("missing Tasks??");
             }
         }
         let output_file = value.to_str().unwrap();

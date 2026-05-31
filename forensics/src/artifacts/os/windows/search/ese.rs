@@ -9,8 +9,8 @@ use crate::{
         helper::{get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data},
         tables::{TableInfo, table_info},
     },
-    structs::toml::Output,
-    utils::time::time_now,
+    output2::manager::OutputManager,
+    structs::artifacts::os::windows::SearchOptions,
 };
 use common::windows::TableDump;
 use log::{error, warn};
@@ -29,10 +29,9 @@ pub(crate) struct SearchEntry {
 /// Parse the Windows `Search` ESE database
 pub(crate) fn parse_search(
     path: &str,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SearchOptions,
 ) -> Result<(), SearchError> {
-    let start_time = time_now();
     let catalog = search_catalog(path)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
@@ -70,14 +69,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(
-            &property_rows,
-            &gather_rows,
-            output,
-            start_time,
-            filter,
-            path,
-        );
+        let _ = process_search(&property_rows, &gather_rows, manager, options, path);
         gather_chunk = Vec::new();
     }
 
@@ -98,14 +90,7 @@ pub(crate) fn parse_search(
         let property_rows =
             get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(
-            &property_rows,
-            &gather_rows,
-            output,
-            start_time,
-            filter,
-            path,
-        );
+        let _ = process_search(&property_rows, &gather_rows, manager, options, path);
     }
 
     Ok(())
@@ -221,9 +206,8 @@ pub(crate) fn get_properties(
 fn process_search(
     properties: &HashMap<String, Vec<Vec<TableDump>>>,
     gather: &HashMap<String, Vec<Vec<TableDump>>>,
-    output: &mut Output,
-    start_time: u64,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &SearchOptions,
     evidence: &str,
 ) -> Result<(), SearchError> {
     let indexes = if let Some(values) = properties.get("SystemIndex_PropertyStore") {
@@ -244,7 +228,7 @@ fn process_search(
         );
         return Err(SearchError::ParseEse);
     };
-    let _ = parse_index_gthr(entries, &props, output, start_time, filter, evidence);
+    let _ = parse_index_gthr(entries, &props, manager, options, evidence);
 
     Ok(())
 }
@@ -394,19 +378,25 @@ mod tests {
     use crate::{
         artifacts::os::windows::ese::{helper::get_page_data, tables::table_info},
         filesystem::files::is_file,
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::SearchOptions,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -418,9 +408,10 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-        let mut output = output_options("search_temp", "local", "./tmp", false);
+        let mut output = output_options("search_temp", "./tmp", false);
+        let options = SearchOptions { alt_file: None };
 
-        parse_search(test_path, &mut output, false).unwrap();
+        parse_search(test_path, &mut output, &options).unwrap();
     }
 
     #[test]
@@ -557,7 +548,8 @@ mod tests {
         let mut gather_chunk = Vec::new();
         let last_page = 0;
 
-        let mut output = output_options("search_temp", "local", "./tmp", false);
+        let mut output = output_options("search_temp", "./tmp", false);
+        let options = SearchOptions { alt_file: None };
 
         for gather_page in gather_pages {
             if gather_page == last_page {
@@ -583,7 +575,7 @@ mod tests {
                 get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
 
             let _ =
-                process_search(&property_rows, &gather_rows, &mut output, 0, false, path).unwrap();
+                process_search(&property_rows, &gather_rows, &mut output, &options, path).unwrap();
             break;
         }
     }

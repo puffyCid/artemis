@@ -1,6 +1,5 @@
 use crate::{
     artifacts::os::windows::{
-        artifacts::output_data,
         mft::reader::setup_mft_reader_windows,
         usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
     },
@@ -8,19 +7,22 @@ use crate::{
         files::{file_extension, read_file},
         ntfs::{raw_files::read_attribute, setup::setup_ntfs_parser},
     },
-    structs::toml::Output,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::os::windows::UsnJrnlOptions,
 };
 use common::windows::UsnJrnlEntry;
 use log::error;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    mem::take,
+};
 
 /// Grab `UsnJrnl` entries by reading the $J ADS attribute and parsing its data runs
 pub(crate) fn parse_usnjrnl_data(
     drive: char,
     mft: &str,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    manager: &mut OutputManager,
+    options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
     let data = get_data(drive)?;
     let ntfs_parser_result = setup_ntfs_parser(drive);
@@ -60,9 +62,8 @@ pub(crate) fn parse_usnjrnl_data(
 
     extract_entries(
         &mut result,
-        Some(output),
-        filter,
-        start_time,
+        Some(manager),
+        Some(options),
         &journal_cache,
         &format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
         &drive.to_string(),
@@ -71,7 +72,7 @@ pub(crate) fn parse_usnjrnl_data(
     Ok(())
 }
 
-/// Parse the `UsnJrnl` file at provided path and return all entriess
+/// Parse the `UsnJrnl` file at provided path and return all entries
 pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     let data = get_data(drive)?;
     let ntfs_parser_result = setup_ntfs_parser(drive);
@@ -111,8 +112,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
     extract_entries(
         &mut result,
         None,
-        false,
-        0,
+        None,
         &journal_cache,
         &format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
         &drive.to_string(),
@@ -144,16 +144,15 @@ pub(crate) fn get_usnjrnl_alt_path(
         }
     };
     // Drive is empty because we cannot be certain what the source drive is
-    extract_entries(&mut entries, None, false, 0, &journal_cache, path, "")
+    extract_entries(&mut entries, None, None, &journal_cache, path, "")
 }
 
 /// Parse the `UsnJrnl` file at provided path and output the results
 pub(crate) fn get_usnjrnl_path_stream(
     path: &str,
     mft_path: &Option<String>,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    manager: &mut OutputManager,
+    options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
     let data_result = read_file(path);
     let data = match data_result {
@@ -177,9 +176,8 @@ pub(crate) fn get_usnjrnl_path_stream(
 
     extract_entries(
         &mut entries,
-        Some(output),
-        filter,
-        start_time,
+        Some(manager),
+        Some(options),
         &journal_cache,
         path,
         // Drive is empty because we cannot be certain what the source drive is
@@ -191,9 +189,8 @@ pub(crate) fn get_usnjrnl_path_stream(
 /// Loop through the parsed entries
 fn extract_entries(
     data: &mut [UsnJrnlFormat],
-    mut output: Option<&mut Output>,
-    filter: bool,
-    start_time: u64,
+    mut manager: Option<&mut OutputManager>,
+    options: Option<&UsnJrnlOptions>,
     journal_cache: &HashMap<String, UsnJrnlFormat>,
     path: &str,
     drive: &str,
@@ -228,18 +225,19 @@ fn extract_entries(
         usnjrnl_entries.push(entry);
         let limit = 1000;
         // If we are give an output structure we will dump the results
-        if let Some(out) = output.as_deref_mut()
+        if let Some(out) = manager.as_deref_mut()
             && usnjrnl_entries.len() == limit
+            && let Some(opt) = options
         {
-            let _ = output_usnjnl(&usnjrnl_entries, out, filter, start_time);
-            usnjrnl_entries = Vec::new();
+            let _ = output_usnjnl(take(&mut usnjrnl_entries), out, opt);
         }
     }
 
-    if let Some(out) = output
+    if let Some(out) = manager
         && !usnjrnl_entries.is_empty()
+        && let Some(opt) = options
     {
-        let _ = output_usnjnl(&usnjrnl_entries, out, filter, start_time);
+        let _ = output_usnjnl(take(&mut usnjrnl_entries), out, opt);
     }
 
     // If no output structure was provided. Return all parsed entries
@@ -290,24 +288,23 @@ fn lookup_journal_cache(
 
 /// Output `UsnJrnl` entries based on `Output` structure
 fn output_usnjnl(
-    entries: &[UsnJrnlEntry],
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
+    entries: Vec<UsnJrnlEntry>,
+    manager: &mut OutputManager,
+    options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
     if entries.is_empty() {
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[usnjrnl] Failed to serialize UsnJrnl entries: {err:?}");
             return Err(UsnJrnlError::Serialize);
         }
     };
-    if let Err(err) = output_data(&mut serde_data, "usnjrnl", output, start_time, filter) {
+    let artifact_name = "usnjrnl";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[usnjrnl] Could not output UsnJrnl entries: {err:?}");
         return Err(UsnJrnlError::OutputData);
     }
@@ -322,7 +319,11 @@ mod tests {
     use crate::{
         artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
         filesystem::metadata::glob_paths,
-        structs::toml::Output,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::UsnJrnlOptions,
     };
     use common::windows::UsnJrnlEntry;
     use std::{
@@ -331,23 +332,28 @@ mod tests {
         path::PathBuf,
     };
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_parse_usnjrnl_data() {
-        let mut output = output_options("usnjrnl_temp", "local", "./tmp", false);
-
-        parse_usnjrnl_data('C', "C:\\$MFT", &mut output, false, 0).unwrap();
+        let mut output = output_options("usnjrnl_temp", "./tmp", false);
+        let params = UsnJrnlOptions {
+            alt_drive: None,
+            alt_file: None,
+            alt_mft: None,
+        };
+        parse_usnjrnl_data('C', "C:\\$MFT", &mut output, &params).unwrap();
     }
 
     #[test]
@@ -369,15 +375,13 @@ mod tests {
     fn test_get_usnjrnl_path_stream() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\dfir\\windows\\usnjrnl\\win11\\$J");
-        let mut out = Output {
-            name: String::from("usnjrnl_stream_alt"),
-            directory: String::from("./tmp"),
-            format: String::from("jsonl"),
-            output: String::from("local"),
-            ..Default::default()
+        let mut out = output_options("usnjrnl_stream_alt", "./tmp", false);
+        let params = UsnJrnlOptions {
+            alt_drive: None,
+            alt_file: None,
+            alt_mft: None,
         };
-        get_usnjrnl_path_stream(test_location.to_str().unwrap(), &None, &mut out, false, 0)
-            .unwrap();
+        get_usnjrnl_path_stream(test_location.to_str().unwrap(), &None, &mut out, &params).unwrap();
         let mut output_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         output_location.push("tmp/usnjrnl_stream_alt/*");
 

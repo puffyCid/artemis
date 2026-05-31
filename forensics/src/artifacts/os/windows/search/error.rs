@@ -9,6 +9,7 @@ pub(crate) enum SearchError {
     SqliteParse,
     BadSQL,
     NotSearchFile,
+    Output,
 }
 
 impl std::error::Error for SearchError {}
@@ -23,6 +24,7 @@ impl fmt::Display for SearchError {
             SearchError::SqliteParse => write!(f, "Failed to read and parse SQLITE file"),
             SearchError::BadSQL => write!(f, "Failed to query SQLITE file"),
             SearchError::NotSearchFile => write!(f, "Not a recognizable search file"),
+            SearchError::Output => write!(f, "Could not write search data"),
         }
     }
 }

@@ -1,7 +1,10 @@
-use crate::{artifacts::os::windows::srum::error::SrumError, utils::time::filetime_to_iso};
+use crate::{
+    artifacts::os::windows::srum::error::SrumError,
+    output2::record::{VecRecordStream, serialize_records_to_stream},
+    utils::time::filetime_to_iso,
+};
 use common::windows::{NetworkConnectivityInfo, NetworkInfo, TableDump};
 use log::error;
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parse the network table from SRUM
@@ -9,7 +12,7 @@ pub(crate) fn parse_network(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut network_vec: Vec<NetworkInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkInfo {
@@ -69,8 +72,7 @@ pub(crate) fn parse_network(
         network_vec.push(network);
     }
 
-    let serde_data_result = serde_json::to_value(&network_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(network_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM Network table: {err:?}");
@@ -78,7 +80,7 @@ pub(crate) fn parse_network(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 /// Parse the network connectivity table from SRUM
@@ -86,7 +88,7 @@ pub(crate) fn parse_network_connectivity(
     column_rows: &[Vec<TableDump>],
     lookups: &HashMap<String, String>,
     evidence: &str,
-) -> Result<Value, SrumError> {
+) -> Result<VecRecordStream, SrumError> {
     let mut network_vec: Vec<NetworkConnectivityInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkConnectivityInfo {
@@ -147,8 +149,7 @@ pub(crate) fn parse_network_connectivity(
         network_vec.push(network);
     }
 
-    let serde_data_result = serde_json::to_value(&network_vec);
-    let serde_data = match serde_data_result {
+    let records = match serialize_records_to_stream(network_vec) {
         Ok(results) => results,
         Err(err) => {
             error!("[srum] Failed to serialize SRUM Network Connectivity table: {err:?}");
@@ -156,7 +157,7 @@ pub(crate) fn parse_network_connectivity(
         }
     };
 
-    Ok(serde_data)
+    Ok(records)
 }
 
 #[cfg(test)]

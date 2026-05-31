@@ -21,17 +21,15 @@ use super::{
     sqlite::{parse_search_sqlite, parse_search_sqlite_path},
 };
 use crate::{
-    filesystem::files::is_file,
-    structs::{artifacts::os::windows::SearchOptions, toml::Output},
-    utils::environment::get_systemdrive,
+    filesystem::files::is_file, output2::manager::OutputManager,
+    structs::artifacts::os::windows::SearchOptions, utils::environment::get_systemdrive,
 };
 use log::error;
 
 /// Grab the Windows `Search` data
 pub(crate) fn grab_search(
     options: &SearchOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), SearchError> {
     let path = if let Some(alt) = &options.alt_file {
         alt.clone()
@@ -71,10 +69,10 @@ pub(crate) fn grab_search(
          * `https://www.sqlite.org/datatype3.html#collation`
          * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
          */
-        return parse_search_sqlite(&win11, output, filter);
+        return parse_search_sqlite(&win11, manager, options);
     }
 
-    parse_search(&path, output, filter)
+    parse_search(&path, manager, options)
 }
 
 /// Parse a provided Windows `Search` file and return its contents
@@ -98,26 +96,30 @@ mod tests {
     use super::grab_search;
     use super::grab_search_path;
     use crate::filesystem::files::is_file;
-    use crate::{structs::artifacts::os::windows::SearchOptions, structs::toml::Output};
+    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::output2::manager::OutputManager;
+    use crate::structs::artifacts::os::windows::SearchOptions;
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_grab_search() {
-        let mut output = output_options("search_temp", "local", "./tmp", false);
+        let mut output = output_options("search_temp", "./tmp", false);
         let options = SearchOptions { alt_file: None };
 
-        let _ = grab_search(&options, &mut output, false);
+        let _ = grab_search(&options, &mut output);
     }
 
     #[test]
