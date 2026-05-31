@@ -461,22 +461,27 @@ mod tests {
             parser::ntfs_filelist,
         },
         filesystem::ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
-        structs::{artifacts::os::windows::RawFilesOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::RawFilesOptions,
     };
     use common::files::Hashes;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -747,9 +752,9 @@ mod tests {
             filename_regex: None,
         };
 
-        let mut output = output_options("rawfiles_temp", "local", "./tmp", false);
+        let mut output = output_options("rawfiles_temp", "./tmp", false);
 
-        let result = ntfs_filelist(&test_path, &mut output, false).unwrap();
+        let result = ntfs_filelist(&test_path, &mut output).unwrap();
         assert_eq!(result, ());
     }
 

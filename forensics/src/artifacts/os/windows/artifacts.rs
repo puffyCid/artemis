@@ -75,7 +75,7 @@ pub(crate) fn eventlogs(
 
 /// Parse the Windows `Registry` artifact
 pub(crate) fn registry(
-    options: &RegistryOptions,
+    options: RegistryOptions,
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
