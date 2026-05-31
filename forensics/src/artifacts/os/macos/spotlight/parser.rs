@@ -48,7 +48,7 @@ pub(crate) fn grab_spotlight(
 
     for glob in paths {
         if let Err(err) = parse_spotlight(&glob, manager, options) {
-            error!["[spotlight] Could not parse spotlight for '{glob}': {err:?}"]
+            error!["[spotlight] Could not parse spotlight for '{glob}': {err:?}"];
         }
     }
 

@@ -54,7 +54,6 @@ pub(crate) fn grab_fseventsd(
         };
         if let Err(err) = output_fsevents(results, manager, options) {
             error!("Failed to output FsEvent data for '{file}', err: {err:?}");
-            continue;
         }
     }
     Ok(())

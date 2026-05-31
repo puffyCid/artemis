@@ -350,11 +350,11 @@ fn read_eventlogs(
 
             // If we failed to combine log data and strings. Then output any log raw data
             if !raw_output.is_empty() {
-                match serialize_records_to_stream(raw_output) {
+                let _ = match serialize_records_to_stream(raw_output) {
                     Ok(records) => output_logs(manager, options, records),
                     Err(err) => {
                         error!("[eventlogs] Could not serialize raw logs: {err:?}");
-                        Ok(())
+                        return Err(EventLogsError::Serialize);
                     }
                 };
             }
@@ -367,7 +367,7 @@ fn read_eventlogs(
                     continue;
                 }
             };
-            output_logs(manager, options, records);
+            let _ = output_logs(manager, options, records);
 
             eventlog_records = Vec::new();
         }
@@ -399,11 +399,11 @@ fn read_eventlogs(
 
         // If we failed to combine log data and strings. Then output any log raw data
         if !raw_output.is_empty() {
-            match serialize_records_to_stream(raw_output) {
+            let _ = match serialize_records_to_stream(raw_output) {
                 Ok(records) => output_logs(manager, options, records),
                 Err(err) => {
                     error!("[eventlogs] Could not serialize remaining raw logs: {err:?}");
-                    Ok(())
+                    return Err(EventLogsError::Serialize)
                 }
             };
         }
@@ -415,7 +415,7 @@ fn read_eventlogs(
                 return Err(EventLogsError::Serialize);
             }
         };
-        output_logs(manager, options, records);
+        let _ = output_logs(manager, options, records);
     }
 
     Ok(())
