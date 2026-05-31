@@ -4,7 +4,7 @@ use super::{
     parser::Params,
 };
 use crate::{
-    structs::toml::Output,
+    output2::manager::OutputManager,
     utils::nom_helper::{Endian, nom_signed_four_bytes},
 };
 use common::windows::KeyValue;
@@ -58,7 +58,7 @@ pub(crate) fn walk_registry<'a>(
     offset: u32,
     params: &mut Params,
     minor_version: u32,
-    output: &mut Option<&mut Output>,
+    manager: &mut Option<&mut OutputManager>,
 ) -> nom::IResult<&'a [u8], ()> {
     if let Some(_value) = params.offset_tracker.get(&offset) {
         error!(
@@ -87,15 +87,15 @@ pub(crate) fn walk_registry<'a>(
     let (list_data, cell_type) = get_cell_type(list_data)?;
 
     if cell_type == CellType::Lh {
-        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version, output)?;
+        HashLeaf::parse_hash_leaf(reg_data, list_data, params, minor_version, manager)?;
     } else if cell_type == CellType::Nk {
-        NameKey::parse_name_key(reg_data, list_data, params, minor_version, output)?;
+        NameKey::parse_name_key(reg_data, list_data, params, minor_version, manager)?;
     } else if cell_type == CellType::Lf {
-        Leaf::parse_leaf(reg_data, list_data, params, minor_version, output)?;
+        Leaf::parse_leaf(reg_data, list_data, params, minor_version, manager)?;
     } else if cell_type == CellType::Li {
-        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version, output)?;
+        LeafItem::parse_leaf_item(reg_data, list_data, params, minor_version, manager)?;
     } else if cell_type == CellType::Ri {
-        RefItem::parse_reference_item(reg_data, list_data, params, minor_version, output)?;
+        RefItem::parse_reference_item(reg_data, list_data, params, minor_version, manager)?;
     } else {
         error!("[registry] Got unknown cell type: {cell_type:?}.");
         return Err(nom::Err::Failure(nom::error::Error::new(
@@ -268,9 +268,8 @@ mod tests {
             registry_list: Vec::new(),
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
-            filter: false,
             registry_path: String::from("test\\test"),
-            start_time: 0,
+            options: None,
         };
         let _ = walk_registry(&buffer, 216, &mut params, 4, &mut None).unwrap();
     }

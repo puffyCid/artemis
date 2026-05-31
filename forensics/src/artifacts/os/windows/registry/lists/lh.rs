@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::registry::{cell::walk_registry, parser::Params},
-    structs::toml::Output,
+    output2::manager::OutputManager,
     utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
 
@@ -16,7 +16,7 @@ impl HashLeaf {
         lh_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
-        output: &mut Option<&mut Output>,
+        manager: &mut Option<&mut OutputManager>,
     ) -> nom::IResult<&'a [u8], ()> {
         let (input, sig) = nom_unsigned_two_bytes(lh_data, Endian::Le)?;
         let (mut input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -38,7 +38,7 @@ impl HashLeaf {
                 continue;
             }
 
-            walk_registry(reg_data, offset, params, minor_version, output)?;
+            walk_registry(reg_data, offset, params, minor_version, manager)?;
         }
         Ok((reg_data, ()))
     }
@@ -76,9 +76,8 @@ mod tests {
             registry_list: Vec::new(),
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
-            filter: false,
             registry_path: String::from("path/NTUSER.dat"),
-            start_time: 0,
+            options: None,
         };
 
         let (_, result) =

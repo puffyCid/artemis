@@ -10,6 +10,8 @@ use super::{
     wmi::parser::grab_wmi_persist,
 };
 use crate::artifacts::output::output_artifact;
+use crate::output2::manager::OutputManager;
+use crate::output2::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions, OutlookOptions,
     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
@@ -25,11 +27,8 @@ use serde_json::Value;
 /// Parse the Windows `Prefetch` artifact
 pub(crate) fn prefetch(
     options: &PrefetchOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let pf_results = grab_prefetch(options);
     let entries = match pf_results {
         Ok(results) => results,
@@ -43,27 +42,30 @@ pub(crate) fn prefetch(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize prefetch: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "prefetch";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "prefetch";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output prefetch: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `EventLogs` artifact
 pub(crate) fn eventlogs(
     options: &EventLogsOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    if let Err(err) = grab_eventlogs(options, output, filter) {
+    if let Err(err) = grab_eventlogs(options, manager) {
         error!("[forensics] Artemis failed to parse EventLogs: {err:?}");
         return Err(WinArtifactError::EventLogs);
     }
@@ -74,11 +76,10 @@ pub(crate) fn eventlogs(
 /// Parse the Windows `Registry` artifact
 pub(crate) fn registry(
     options: &RegistryOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
-    if let Err(err) = parse_registry(options, output, filter) {
+    if let Err(err) = parse_registry(options, manager) {
         error!("[forensics] Failed to parse Registry: {err:?}");
         return Err(WinArtifactError::Registry);
     }
@@ -89,11 +90,10 @@ pub(crate) fn registry(
 /// Parse the Windows `NTFS` artifact
 pub(crate) fn raw_filelist(
     options: &RawFilesOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
-    if let Err(err) = ntfs_filelist(options, output, filter) {
+    if let Err(err) = ntfs_filelist(options, manager) {
         error!("[forensics] Failed to parse NTFS: {err:?}");
         return Err(WinArtifactError::Ntfs);
     }
@@ -104,15 +104,13 @@ pub(crate) fn raw_filelist(
 /// Get Windows `Shimdatabase(s)`
 pub(crate) fn shimdb(
     options: &ShimdbOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
     let shimdb_results = grab_shimdb(options);
     let entries = match shimdb_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Shimdb: {err:?}");
+            error!("[forensics] Artemis failed to parse shimdb: {err:?}");
             return Err(WinArtifactError::Shimdb);
         }
     };
@@ -121,32 +119,33 @@ pub(crate) fn shimdb(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize Shimdb: {err:?}");
+            error!("[forensics] Failed to serialize shimdb: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "shimdb";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "shimdb";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output shimdb: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `UserAssist` entries
 pub(crate) fn userassist(
     options: &UserAssistOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let assist_results = grab_userassist(options);
     let entries = match assist_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse UserAssist: {err:?}");
+            error!("[forensics] Artemis failed to parse userassist: {err:?}");
             return Err(WinArtifactError::UserAssist);
         }
     };
@@ -155,31 +154,33 @@ pub(crate) fn userassist(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize UserAssist: {err:?}");
+            error!("[forensics] Failed to serialize userassist: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "userassist";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "userassist";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output userassist: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `Shimcache` entries
 pub(crate) fn shimcache(
     options: &ShimcacheOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let shim_results = grab_shimcache(options);
     let entries = match shim_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Shimcache: {err:?}");
+            error!("[forensics] Artemis failed to parse shimcache: {err:?}");
             return Err(WinArtifactError::Shimcache);
         }
     };
@@ -188,26 +189,28 @@ pub(crate) fn shimcache(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize Shimcache: {err:?}");
+            error!("[forensics] Failed to serialize shimcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "shimcache";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "shimcache";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output shimcache: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `Shellbag` entries
 pub(crate) fn shellbags(
     options: &ShellbagsOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let mut entries = Vec::new();
     let artifact_result = grab_shellbags(options);
     match artifact_result {
@@ -222,26 +225,28 @@ pub(crate) fn shellbags(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize Shellbags: {err:?}");
+            error!("[forensics] Failed to serialize shellbags: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "shellbags";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "shellbags";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output shellbags: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `Amcache` entries
 pub(crate) fn amcache(
     options: &AmcacheOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let mut entries = Vec::new();
     let artifact_result = grab_amcache(options);
     match artifact_result {
@@ -256,26 +261,28 @@ pub(crate) fn amcache(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize Amcache: {err:?}");
+            error!("[forensics] Failed to serialize amcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "amcache";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "amcache";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output amcache: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `Shortcut` data
 pub(crate) fn shortcuts(
     options: &ShortcutOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_lnk_directory(&options.dir);
     let entries = match artifact_result {
         Ok(result) => result,
@@ -289,25 +296,29 @@ pub(crate) fn shortcuts(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize shortcuts: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "shortcuts";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "shortcuts";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output shortcuts: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `UsnJrnl` data
 pub(crate) fn usnjrnl(
     options: &UsnJrnlOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_usnjrnl(options, output, filter) {
+    if let Err(err) = grab_usnjrnl(options, manager) {
         error!("[forensics] Artemis failed to parse UsnJrnl data: {err:?}");
         return Err(WinArtifactError::UsnJrnl);
     }
@@ -318,11 +329,8 @@ pub(crate) fn usnjrnl(
 /// Get Windows `Bits` data
 pub(crate) fn bits(
     options: &BitsOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_bits(options);
     let entries = match artifact_result {
         Ok(result) => result,
@@ -336,25 +344,29 @@ pub(crate) fn bits(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize bits: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "bits";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "bits";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output bits: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Get Windows `SRUM` data
 pub(crate) fn srum(
     options: &SrumOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_srum(options, output, filter) {
+    if let Err(err) = grab_srum(options, manager) {
         error!("[forensics] Artemis failed to parse SRUM data: {err:?}");
         return Err(WinArtifactError::Srum);
     }
@@ -365,10 +377,9 @@ pub(crate) fn srum(
 /// Get Windows `Search` data
 pub(crate) fn search(
     options: &SearchOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_search(options, output, filter) {
+    if let Err(err) = grab_search(options, manager) {
         error!("[forensics] Artemis failed to parse Search data: {err:?}");
         return Err(WinArtifactError::Search);
     }
@@ -379,11 +390,8 @@ pub(crate) fn search(
 /// Get Windows `Users` info
 pub(crate) fn users_windows(
     options: &WindowsUserOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let artifact_result = grab_users(options);
     let entries = match artifact_result {
         Ok(result) => result,
@@ -397,25 +405,29 @@ pub(crate) fn users_windows(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize users: {err:?}");
+            error!("[forensics] Failed to serialize users-windows: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
-    let output_name = "users-windows";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+
+    let artifact_name = "users-windows";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output users-windows: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `Schedule Tasks` artifact
 pub(crate) fn tasks(
     options: &TasksOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_tasks(options, output, filter) {
+    if let Err(err) = grab_tasks(options, manager) {
         error!("[forensics] Artemis failed to parse Tasks: {err:?}");
         return Err(WinArtifactError::Tasks);
     }
@@ -426,8 +438,7 @@ pub(crate) fn tasks(
 /// Parse the Windows `Services` artifact
 pub(crate) fn services(
     options: &ServicesOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     let start_time = time::time_now();
 
@@ -444,27 +455,28 @@ pub(crate) fn services(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize services: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "services";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "services";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output services: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `Jumplists` artifact
 pub(crate) fn jumplists(
     options: &JumplistsOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let jumplist_result = grab_jumplists(options);
     let entries = match jumplist_result {
         Ok(results) => results,
@@ -478,27 +490,28 @@ pub(crate) fn jumplists(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
             error!("[forensics] Failed to serialize jumplists: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "jumplists";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "jumplists";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output jumplists: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `Recycle Bin` artifact
 pub(crate) fn recycle_bin(
     options: &RecycleBinOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let bin_result = grab_recycle_bin(options);
     let entries = match bin_result {
         Ok(results) => results,
@@ -512,27 +525,28 @@ pub(crate) fn recycle_bin(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize recycle bin: {err:?}");
+            error!("[forensics] Failed to serialize recyclebin: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "recyclebin";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "recyclebin";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output recyclebin: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `WMI Persist` artifact
 pub(crate) fn wmi_persist(
     options: &WmiPersistOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    let start_time = time::time_now();
-
     let wmi_result = grab_wmi_persist(options);
     let entries = match wmi_result {
         Ok(results) => results,
@@ -546,26 +560,29 @@ pub(crate) fn wmi_persist(
         return Ok(());
     }
 
-    let serde_data_result = serde_json::to_value(entries);
-    let mut serde_data = match serde_data_result {
-        Ok(results) => results,
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize recycle bin: {err:?}");
+            error!("[forensics] Failed to serialize wmipersist: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
-    let output_name = "wmipersist";
-    output_data(&mut serde_data, output_name, output, start_time, filter)
+    let artifact_name = "wmipersist";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[forensics] Failed to output wmipersist: {err:?}");
+        return Err(WinArtifactError::Output);
+    }
+
+    Ok(())
 }
 
 /// Parse the Windows `Outlook` artifact
 pub(crate) fn outlook(
     options: &OutlookOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_outlook(options, output, filter) {
+    if let Err(err) = grab_outlook(options, manager) {
         error!("[forensics] Artemis failed to parse Outlook: {err:?}");
         return Err(WinArtifactError::Outlook);
     }
@@ -576,10 +593,9 @@ pub(crate) fn outlook(
 /// Parse the Windows `MFT` artifact
 pub(crate) fn mft(
     options: &MftOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_mft(options, output, filter) {
+    if let Err(err) = grab_mft(options, manager) {
         error!("[forensics] Artemis failed to parse MFT: {err:?}");
         return Err(WinArtifactError::Mft);
     }

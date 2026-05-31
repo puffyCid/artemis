@@ -6,7 +6,7 @@ use crate::{
         raw_files::{raw_read_by_file_ref, raw_read_file},
         setup::NtfsParser,
     },
-    structs::toml::Output,
+    output2::manager::OutputManager,
 };
 use common::windows::RegistryData;
 use log::error;
@@ -28,9 +28,8 @@ pub(crate) fn get_registry_keys(
         registry_list: Vec::new(),
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
-        filter: false,
         registry_path: file_path.to_string(),
-        start_time: 0,
+        options: None,
     };
     let buffer = read_registry(file_path)?;
     let reg_entries_results = parse_raw_registry(&buffer, &mut params, &mut None);
@@ -58,9 +57,8 @@ pub(crate) fn get_registry_keys_by_ref(
         registry_list: Vec::new(),
         key_tracker: Vec::new(),
         offset_tracker: HashMap::new(),
-        filter: false,
         registry_path: String::new(),
-        start_time: 0,
+        options: None,
     };
     let buffer = read_registry_ref(file_ref, ntfs_parser)?;
     let reg_entries_results = parse_raw_registry(&buffer, &mut params, &mut None);
@@ -74,12 +72,12 @@ pub(crate) fn get_registry_keys_by_ref(
 }
 
 /// Parse the provided `Registry` bytes with associated parsing parameters.
-/// Provide an optional `Output` structure if you want artemis to stream the Registry output to disk.
+/// Provide an optional `OutputManager` structure if you want artemis to stream the Registry output to disk.
 /// Caller will need to handle any leftover `Params.registry_list` data remaining from the stream
 pub(crate) fn parse_raw_registry<'a>(
     data: &'a [u8],
     params: &mut Params,
-    output: &mut Option<&mut Output>,
+    manager: &mut Option<&mut OutputManager>,
 ) -> nom::IResult<&'a [u8], Vec<RegistryData>> {
     let (input, header) = RegHeader::parse_header(data)?;
 
@@ -88,7 +86,7 @@ pub(crate) fn parse_raw_registry<'a>(
     let (input, hbin_data) = take(result.size)(reg_data)?;
 
     let (_, result) =
-        HiveBin::parse_hive_cells(reg_data, hbin_data, params, header.minor_version, output)?;
+        HiveBin::parse_hive_cells(reg_data, hbin_data, params, header.minor_version, manager)?;
 
     Ok((input, result))
 }
@@ -193,9 +191,8 @@ mod tests {
                 registry_list: Vec::new(),
                 key_tracker: Vec::new(),
                 offset_tracker: HashMap::new(),
-                filter: false,
                 registry_path: String::new(),
-                start_time: 0,
+                options: None,
             };
             let result = parse_raw_registry(&buffer, &mut params, &mut None);
             if result.is_err() {

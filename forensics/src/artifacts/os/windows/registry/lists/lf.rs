@@ -1,5 +1,5 @@
 use super::lh::HashLeaf;
-use crate::{artifacts::os::windows::registry::parser::Params, structs::toml::Output};
+use crate::{artifacts::os::windows::registry::parser::Params, output2::manager::OutputManager};
 
 pub(crate) type Leaf = HashLeaf;
 
@@ -10,9 +10,9 @@ impl Leaf {
         lf_data: &'a [u8],
         params: &mut Params,
         minor_version: u32,
-        output: &mut Option<&mut Output>,
+        manager: &mut Option<&mut OutputManager>,
     ) -> nom::IResult<&'a [u8], ()> {
-        Leaf::parse_hash_leaf(reg_data, lf_data, params, minor_version, output)
+        Leaf::parse_hash_leaf(reg_data, lf_data, params, minor_version, manager)
     }
 }
 
@@ -48,9 +48,8 @@ mod tests {
             registry_list: Vec::new(),
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
-            filter: false,
             registry_path: String::from("path/NTUSER.dat"),
-            start_time: 0,
+            options: None,
         };
 
         let (_, result) = Leaf::parse_leaf(&buffer, &test_data, &mut params, 4, &mut None).unwrap();

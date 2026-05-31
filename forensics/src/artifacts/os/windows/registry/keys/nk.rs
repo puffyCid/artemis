@@ -1,13 +1,10 @@
 use crate::{
-    artifacts::os::windows::{
-        artifacts::output_data,
-        registry::{
-            cell::{walk_registry, walk_values},
-            parser::Params,
-        },
+    artifacts::os::windows::registry::{
+        cell::{walk_registry, walk_values},
+        parser::Params,
     },
     filesystem::files::get_filename,
-    structs::toml::Output,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
     utils::{
         nom_helper::{
             Endian, nom_signed_four_bytes, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
@@ -21,6 +18,7 @@ use crate::{
 use common::windows::RegistryData;
 use log::error;
 use nom::bytes::complete::take;
+use std::mem;
 
 #[derive(Debug)]
 pub(crate) struct NameKey {
@@ -54,7 +52,7 @@ impl NameKey {
         name_key: &'a [u8],
         params: &mut Params,
         minor_version: u32,
-        output: &mut Option<&mut Output>,
+        manager: &mut Option<&mut OutputManager>,
     ) -> nom::IResult<&'a [u8], ()> {
         let (input, sig) = nom_unsigned_two_bytes(name_key, Endian::Le)?;
         let (input, flags) = nom_unsigned_two_bytes(input, Endian::Le)?;
@@ -157,6 +155,22 @@ impl NameKey {
         {
             params.registry_list.push(registry_entry);
             let max_limit = 200;
+            if let Some(writer) = manager
+                && params.registry_list.len() >= max_limit
+            {
+                let artifact_name = "registry";
+                if let Ok(mut records) =
+                    serialize_records_to_stream(mem::take(&mut params.registry_list))
+                    && let Err(err) =
+                        writer.write_artifact(artifact_name, &params.options, &mut records)
+                {
+                    error!(
+                        "[registry] Failed to output data for {}, error: {err:?}",
+                        params.registry_path
+                    );
+                }
+            }
+            /*
             if output.is_some() && params.registry_list.len() >= max_limit {
                 if let Ok(mut serde_data) = serde_json::to_value(&params.registry_list)
                     && let Err(err) = output_data(
@@ -174,7 +188,7 @@ impl NameKey {
                 }
 
                 params.registry_list = Vec::new();
-            }
+            }*/
         }
 
         if name_key.subkeys_list_offset != no_lists
@@ -188,7 +202,7 @@ impl NameKey {
                 name_key.subkeys_list_offset as u32,
                 params,
                 minor_version,
-                output,
+                manager,
             );
             match result {
                 Ok((_, _)) => {}
@@ -237,9 +251,8 @@ mod tests {
             registry_list: Vec::new(),
             key_tracker: Vec::new(),
             offset_tracker: HashMap::new(),
-            filter: false,
             registry_path: String::from("test/test"),
-            start_time: 0,
+            options: None,
         };
 
         let (_, result) =

@@ -15,28 +15,28 @@ use super::{
     strings::{StringResource, get_resources},
 };
 use crate::{
-    artifacts::os::windows::artifacts::output_data,
     filesystem::files::{file_extension, list_files, read_file},
-    output::formats::json::raw_json,
-    structs::{artifacts::os::windows::EventLogsOptions, toml::Output},
-    utils::{environment::get_systemdrive, regex_options::create_regex, time::time_now},
+    output2::{
+        manager::OutputManager,
+        record::{VecRecordStream, serialize_records_to_stream, serialize_to_record},
+    },
+    structs::artifacts::os::windows::EventLogsOptions,
+    utils::{environment::get_systemdrive, regex_options::create_regex},
 };
 use common::windows::{EventLogRecord, EventMessage};
 use evtx::EvtxParser;
 use log::{error, warn};
-use serde_json::{Error, Value};
 
 /// Parse `EventLogs` based on `EventLogsOptions`
 pub(crate) fn grab_eventlogs(
     options: &EventLogsOptions,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
 ) -> Result<(), EventLogsError> {
     if let Some(file) = &options.alt_file {
-        return alt_eventlogs(file, output, filter, options);
+        return alt_eventlogs(file, manager, options);
     }
 
-    default_eventlogs(output, filter, options)
+    default_eventlogs(manager, options)
 }
 
 /// Parse the `EventLog` evtx file at provided path
@@ -134,8 +134,7 @@ pub(crate) fn parse_eventlogs(
 
 /// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
 fn default_eventlogs(
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let path = if let Some(alt_dir) = &options.alt_dir {
@@ -152,14 +151,13 @@ fn default_eventlogs(
         &format!("{drive}:\\Windows\\System32\\winevt\\Logs")
     };
 
-    read_directory(path, output, filter, options)
+    read_directory(path, manager, options)
 }
 
 /// Read and parse `EventLog` files with alternative path
 fn alt_eventlogs(
     path: &str,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let templates = if options.include_templates && options.alt_template_file.is_none() {
@@ -185,29 +183,34 @@ fn alt_eventlogs(
         None
     };
 
-    if templates.is_some() && options.dump_templates {
-        output_logs(
-            &mut serde_json::to_value(&templates),
-            output,
-            filter,
-            0,
-            "eventlog_templates",
-            true,
-        )?;
-
-        if options.only_templates {
-            return Ok(());
+    if let Some(template) = templates.as_ref()
+        && options.dump_templates
+    {
+        let record = match serialize_to_record(template) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to serialize provider strings: {err:?}");
+                return Err(EventLogsError::Serialize);
+            }
+        };
+        let artifact_name = "eventlog_templates";
+        if let Err(err) = manager.write_artifact(
+            artifact_name,
+            options,
+            &mut VecRecordStream::new(vec![record]),
+        ) {
+            error!("[eventlogs] Failed to output provider strings: {err:?}");
+            return Err(EventLogsError::Output);
         }
     }
 
-    read_eventlogs(path, output, filter, &templates)
+    read_eventlogs(path, manager, options, &templates)
 }
 
 /// Read all files at provided path
 fn read_directory(
     path: &str,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
     options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let dir_results = list_files(path);
@@ -242,18 +245,24 @@ fn read_directory(
         None
     };
 
-    if templates.is_some() && options.dump_templates {
-        output_logs(
-            &mut serde_json::to_value(&templates),
-            output,
-            filter,
-            0,
-            "eventlog_templates",
-            true,
-        )?;
-
-        if options.only_templates {
-            return Ok(());
+    if let Some(template) = templates.as_ref()
+        && options.dump_templates
+    {
+        let record = match serialize_to_record(template) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Failed to serialize provider strings: {err:?}");
+                return Err(EventLogsError::Serialize);
+            }
+        };
+        let artifact_name = "eventlog_templates";
+        if let Err(err) = manager.write_artifact(
+            artifact_name,
+            options,
+            &mut VecRecordStream::new(vec![record]),
+        ) {
+            error!("[eventlogs] Failed to output provider strings: {err:?}");
+            return Err(EventLogsError::Output);
         }
     }
 
@@ -263,7 +272,7 @@ fn read_directory(
             continue;
         }
 
-        let eventlogs_results = read_eventlogs(&evtx_file, output, filter, &templates);
+        let eventlogs_results = read_eventlogs(&evtx_file, manager, options, &templates);
         match eventlogs_results {
             Ok(_) => (),
             Err(err) => {
@@ -278,12 +287,10 @@ fn read_directory(
 /// Read and parse the `EventLog` file
 fn read_eventlogs(
     path: &str,
-    output: &mut Output,
-    filter: bool,
+    manager: &mut OutputManager,
+    options: &EventLogsOptions,
     resources: &Option<StringResource>,
 ) -> Result<(), EventLogsError> {
-    let start_time = time_now();
-
     let evt_parser_results = EvtxParser::from_path(path);
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
@@ -316,7 +323,7 @@ fn read_eventlogs(
         }
 
         if eventlog_records.len() == limit {
-            let (mut serde_data_result, raw_output) = if let Some(resource) = resources {
+            let (messages, raw_output) = if let Some(resource) = resources {
                 let mut all_messages = Vec::new();
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
@@ -335,38 +342,39 @@ fn read_eventlogs(
 
                     all_messages.push(message);
                 }
-                (serde_json::to_value(&all_messages), raw_messages)
+
+                (all_messages, raw_messages)
             } else {
-                (serde_json::to_value(&eventlog_records), Vec::new())
+                (Vec::new(), eventlog_records)
             };
 
-            // If we failed to combine log data and strings. Then output the raw data
+            // If we failed to combine log data and strings. Then output any log raw data
             if !raw_output.is_empty() {
-                output_logs(
-                    &mut serde_json::to_value(&raw_output),
-                    output,
-                    filter,
-                    start_time,
-                    "eventlogs",
-                    false,
-                )?;
+                match serialize_records_to_stream(raw_output) {
+                    Ok(records) => output_logs(manager, options, records),
+                    Err(err) => {
+                        error!("[eventlogs] Could not serialize raw logs: {err:?}");
+                        Ok(())
+                    }
+                };
             }
 
-            output_logs(
-                &mut serde_data_result,
-                output,
-                filter,
-                start_time,
-                "eventlogs",
-                false,
-            )?;
+            let records = match serialize_records_to_stream(messages) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("[eventlogs] Could not serialize logs: {err:?}");
+                    eventlog_records = Vec::new();
+                    continue;
+                }
+            };
+            output_logs(manager, options, records);
 
             eventlog_records = Vec::new();
         }
     }
 
     if !eventlog_records.is_empty() {
-        let (mut serde_data_result, raw_output) = if let Some(resource) = resources {
+        let (messages, raw_output) = if let Some(resource) = resources {
             let mut all_messages = Vec::new();
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
@@ -384,31 +392,30 @@ fn read_eventlogs(
                 };
                 all_messages.push(message);
             }
-            (serde_json::to_value(&all_messages), raw_messages)
+            (all_messages, raw_messages)
         } else {
-            (serde_json::to_value(&eventlog_records), Vec::new())
+            (Vec::new(), eventlog_records)
         };
 
-        // If we failed to combine log data and strings. Then output the raw data
+        // If we failed to combine log data and strings. Then output any log raw data
         if !raw_output.is_empty() {
-            output_logs(
-                &mut serde_json::to_value(&raw_output),
-                output,
-                filter,
-                start_time,
-                "eventlogs",
-                false,
-            )?;
+            match serialize_records_to_stream(raw_output) {
+                Ok(records) => output_logs(manager, options, records),
+                Err(err) => {
+                    error!("[eventlogs] Could not serialize remaining raw logs: {err:?}");
+                    Ok(())
+                }
+            };
         }
 
-        output_logs(
-            &mut serde_data_result,
-            output,
-            filter,
-            start_time,
-            "eventlogs",
-            false,
-        )?;
+        let records = match serialize_records_to_stream(messages) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("[eventlogs] Could not serialize remaining logs: {err:?}");
+                return Err(EventLogsError::Serialize);
+            }
+        };
+        output_logs(manager, options, records);
     }
 
     Ok(())
@@ -416,35 +423,14 @@ fn read_eventlogs(
 
 /// Output log results
 fn output_logs(
-    result: &mut Result<Value, Error>,
-    output: &mut Output,
-    filter: bool,
-    start_time: u64,
-    name: &str,
-    raw: bool,
+    manager: &mut OutputManager,
+    options: &EventLogsOptions,
+    mut records: VecRecordStream,
 ) -> Result<(), EventLogsError> {
-    let serde_data = match result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[eventlogs] Failed to serialize last eventlogs: {err:?}");
-            return Err(EventLogsError::Serialize);
-        }
-    };
-
-    // Skip adding metadata to the output if we are just dumping templates
-    if raw {
-        let status = raw_json(serde_data, name, output);
-        if let Err(result) = status {
-            error!("[eventlogs] Could not output raw json results: {result:?}");
-        }
-        return Ok(());
-    }
-
-    match output_data(serde_data, name, output, start_time, filter) {
-        Ok(_result) => {}
-        Err(err) => {
-            error!("[eventlogs] Could not output last eventlogs data: {err:?}");
-        }
+    let artifact_name = "eventlogs";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[eventlogs] Failed to output eventlogs: {err:?}");
+        return Err(EventLogsError::Output);
     }
 
     Ok(())
@@ -453,25 +439,27 @@ fn output_logs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use serde_json::json;
-
-    use super::{
-        alt_eventlogs, default_eventlogs, grab_eventlogs, output_logs, read_directory,
-        read_eventlogs,
+    use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::os::windows::EventLogsOptions,
     };
-    use crate::{structs::artifacts::os::windows::EventLogsOptions, structs::toml::Output};
     use std::{fs::read_dir, path::PathBuf};
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -484,15 +472,15 @@ mod tests {
             alt_template_file: None,
             only_templates: false,
         };
-        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
+        let mut output = output_options("eventlog_temp", "./tmp", true);
 
-        let results = grab_eventlogs(&options, &mut output, false).unwrap();
+        let results = grab_eventlogs(&options, &mut output).unwrap();
         assert_eq!(results, ())
     }
 
     #[test]
     fn test_default_eventlogs() {
-        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
+        let mut output = output_options("eventlog_temp", "./tmp", true);
         let options = EventLogsOptions {
             alt_file: None,
             include_templates: false,
@@ -502,7 +490,7 @@ mod tests {
             only_templates: false,
         };
 
-        let results = default_eventlogs(&mut output, false, &options).unwrap();
+        let results = default_eventlogs(&mut output, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -510,7 +498,7 @@ mod tests {
     #[should_panic(expected = "Parser")]
     fn test_alt_eventlogs() {
         let path = "madeup";
-        let mut output = output_options("eventlog_temp", "local", "./tmp", true);
+        let mut output = output_options("eventlog_temp", "./tmp", true);
 
         let options = EventLogsOptions {
             alt_file: None,
@@ -521,7 +509,7 @@ mod tests {
             only_templates: false,
         };
 
-        let results = alt_eventlogs(&path, &mut output, false, &options).unwrap();
+        let results = alt_eventlogs(&path, &mut output, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -529,7 +517,7 @@ mod tests {
     fn test_read_directory() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
-        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+        let mut output = output_options("eventlog_temp", "./tmp", false);
         let options = EventLogsOptions {
             alt_file: None,
             include_templates: false,
@@ -539,13 +527,8 @@ mod tests {
             only_templates: false,
         };
 
-        let results = read_directory(
-            &test_location.display().to_string(),
-            &mut output,
-            false,
-            &options,
-        )
-        .unwrap();
+        let results =
+            read_directory(&test_location.display().to_string(), &mut output, &options).unwrap();
         assert_eq!(results, ())
     }
 
@@ -554,30 +537,28 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
         let read_dir = read_dir(test_location.display().to_string()).unwrap();
+        let options = EventLogsOptions {
+            alt_file: None,
+            include_templates: false,
+            dump_templates: false,
+            alt_dir: None,
+            alt_template_file: None,
+            only_templates: false,
+        };
         for file_path in read_dir {
             if file_path.as_ref().unwrap().file_type().unwrap().is_dir() {
                 continue;
             }
-            let mut output = output_options("eventlog_temp", "local", "./tmp", false);
+            let mut output = output_options("eventlog_temp", "./tmp", false);
 
             let results = read_eventlogs(
                 &file_path.unwrap().path().display().to_string(),
                 &mut output,
-                false,
+                &options,
                 &None,
             )
             .unwrap();
             assert_eq!(results, ())
         }
-    }
-
-    #[test]
-    fn test_output_log() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/eventlogs");
-        let mut output = output_options("eventlog_temp", "local", "./tmp", false);
-
-        let test = json!({"key": "value"});
-        output_logs(&mut Ok(test), &mut output, false, 0, "testing", true).unwrap();
     }
 }
