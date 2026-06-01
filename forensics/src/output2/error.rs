@@ -10,6 +10,13 @@ pub(crate) enum OutputError {
     UnsupportedFormat(String),
     /// Got unsupported destination value
     UnsupportedDestination(String),
+    /// Record type is not supported by the selected output format
+    UnsupportedRecord {
+        /// Selected output format
+        format: String,
+        /// Record type that ws provided
+        record_type: String,
+    },
     /// Got bad output config
     Config(String),
     /// Could not create an output context value
@@ -66,6 +73,13 @@ impl fmt::Display for OutputError {
             OutputError::UnsupportedDestination(value) => {
                 write!(f, "Unsupported destination: {value}")
             }
+            Self::UnsupportedRecord {
+                format,
+                record_type,
+            } => write!(
+                f,
+                "Output format '{format}' does not support record type '{record_type}'"
+            ),
             Self::Config(value) => write!(f, "Output config error: {value}"),
             Self::Context(value) => write!(f, "Output context error: {value}"),
             Self::Record(value) => write!(f, "Record stream error: {value}"),
@@ -92,6 +106,13 @@ impl OutputError {
         Self::Io {
             path: Some(path.into()),
             source,
+        }
+    }
+
+    pub(crate) fn unsupported_record(format: &str, record_type: &str) -> Self {
+        Self::UnsupportedRecord {
+            format: format.to_string(),
+            record_type: record_type.to_string(),
         }
     }
 }

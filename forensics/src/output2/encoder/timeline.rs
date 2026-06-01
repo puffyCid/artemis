@@ -2,7 +2,7 @@ use crate::output2::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::OutputResult,
-    record::{Record, RecordStream},
+    record::RecordStream,
 };
 use log::debug;
 use std::io::Write;
@@ -28,8 +28,7 @@ impl ArtifactEncoder for TimelineEncoder {
         let mut count = 0;
 
         while let Some(record) = records.next_record()? {
-            let Record::Json(record) = record;
-            let mut value = record.into_value();
+            let mut value = record.into_value()?;
             // If false skip writing
             if !timeline_artifact_ng(
                 &mut value,

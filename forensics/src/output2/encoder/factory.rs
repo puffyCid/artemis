@@ -2,7 +2,7 @@ use crate::output2::{
     config::{OutputConfig, OutputFormat},
     encoder::{
         artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
-        timeline::TimelineEncoder,
+        text::TextEncoder, timeline::TimelineEncoder,
     },
 };
 
@@ -13,6 +13,7 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
         OutputFormat::Jsonl => Encoder::Jsonl(JsonlEncoder),
         OutputFormat::Csv => Encoder::Csv(CsvEncoder),
         OutputFormat::Timeline => Encoder::Timeline(TimelineEncoder),
+        OutputFormat::Text => Encoder::Text(TextEncoder),
     }
 }
 

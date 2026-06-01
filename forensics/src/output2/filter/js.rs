@@ -58,18 +58,40 @@ impl RecordStream for JsFilterRecordStream<'_> {
                 return Ok(None);
             };
 
-            let Record::Json(record) = record;
+            let Record::Json(record) = record else {
+                return Err(OutputError::unsupported_record("filter", record.kind()));
+            };
             // Excute our JavaScript code using the BoaJS runtime
             let result = self
                 .runtime
                 .filter_record(record.into_value(), &self.filter_context)
                 .map_err(|err| OutputError::Record(format!("javascript filter failed: {err:?}")))?;
 
-            // Only JSON objects are supported right now. Any other value is dropped
-            if let Value::Object(fields) = result {
-                return Ok(Some(Record::Json(JsonRecord::new(fields))));
+            match result {
+                Value::Null => continue,
+                Value::Object(fields) => {
+                    return Ok(Some(Record::Json(JsonRecord::new(fields))));
+                }
+                other => {
+                    return Err(OutputError::Record(format!(
+                        "javascript filter must return an object or null; received {}",
+                        json_value_kind(&other)
+                    )));
+                }
             }
         }
+    }
+}
+
+/// Return short name for `serde_json::Value`
+fn json_value_kind(value: &Value) -> &str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "bool",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
     }
 }
 

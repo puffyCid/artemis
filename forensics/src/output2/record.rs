@@ -189,7 +189,7 @@ impl RecordValue {
 
 /// A single output entry is represented as a `Record`.
 ///
-/// `Record` describes the internal shape of one artifact entry before it is
+/// `Record` describes the internal shape of one output entry before it is
 /// encoded into an output format. Rust artifact parsers produce `JsonRecord` values,
 /// while the BoaJS runtime may produce scalar, array, or null records.
 #[derive(Debug, PartialEq)]

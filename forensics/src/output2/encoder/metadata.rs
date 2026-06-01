@@ -2,6 +2,8 @@ use crate::output2::context::ArtifactContext;
 use serde_json::{Value, json};
 
 /// Ensure a small amount of metadata is added to each `Record` entry
+///
+/// This only appended to JSON objects. Scalar output types do not get metadata
 pub(crate) fn append_metadata(record: &mut Value, context: &ArtifactContext) {
     if let Value::Object(fields) = record {
         fields.insert(
