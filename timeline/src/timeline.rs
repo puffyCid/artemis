@@ -17,7 +17,7 @@ use serde_json::Value;
 
 /// Timeline supported artifacts.
 /// Returns false if the artifact could not be timelined
-pub fn timeline_artifact_ng(
+pub fn timeline_artifact(
     data: &mut Value,
     artifact: &str,
     start: &Option<String>,
@@ -72,7 +72,7 @@ pub fn timeline_artifact_ng(
 
 #[cfg(test)]
 mod tests {
-    use super::timeline_artifact_ng;
+    use super::timeline_artifact;
     use std::{fs::read_to_string, path::PathBuf};
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "files", &None, &None));
+            assert!(timeline_artifact(&mut value, "files", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -105,7 +105,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "amcache", &None, &None));
+            assert!(timeline_artifact(&mut value, "amcache", &None, &None));
 
             data.push(value);
         }
@@ -124,7 +124,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "bits", &None, &None));
+            assert!(timeline_artifact(&mut value, "bits", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -144,7 +144,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "jumplists", &None, &None));
+            assert!(timeline_artifact(&mut value, "jumplists", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -164,7 +164,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "tasks", &None, &None));
+            assert!(timeline_artifact(&mut value, "tasks", &None, &None));
             data.push(value);
         }
 
@@ -182,7 +182,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "registry", &None, &None));
+            assert!(timeline_artifact(&mut value, "registry", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -202,7 +202,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "search", &None, &None));
+            assert!(timeline_artifact(&mut value, "search", &None, &None));
             data.push(value);
         }
 
@@ -220,7 +220,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "shortcuts", &None, &None));
+            assert!(timeline_artifact(&mut value, "shortcuts", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -240,7 +240,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "prefetch", &None, &None));
+            assert!(timeline_artifact(&mut value, "prefetch", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -260,7 +260,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "shimdb", &None, &None));
+            assert!(timeline_artifact(&mut value, "shimdb", &None, &None));
             for entry in value.as_array().unwrap() {
                 data.push(entry.clone())
             }
@@ -281,7 +281,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(&mut value, "spotlight", &None, &None));
+            assert!(timeline_artifact(&mut value, "spotlight", &None, &None));
             data.push(value);
         }
         assert_eq!(data.len(), 66);
@@ -299,12 +299,7 @@ mod tests {
             .lines()
         {
             let mut value = serde_json::from_str(line).unwrap();
-            assert!(timeline_artifact_ng(
-                &mut value,
-                "unifiedlogs",
-                &None,
-                &None
-            ));
+            assert!(timeline_artifact(&mut value, "unifiedlogs", &None, &None));
             data.push(value);
         }
 

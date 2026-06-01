@@ -46,7 +46,7 @@ pub(crate) enum OutputFormat {
     Jsonl,
     Csv,
     Timeline,
-    /// Plaintext output for BoaJS runtime data
+    /// Plaintext output for `BoaJS` runtime data
     Text,
 }
 
@@ -97,7 +97,7 @@ impl TryFrom<Output> for OutputConfig {
 impl OutputFormat {
     /// Parse format string to format enum value
     ///
-    /// BoaJS only formats such as `Text` are rejected
+    /// `BoaJS` only formats such as `Text` are rejected
     pub(crate) fn parse(value: &str) -> Result<Self, OutputError> {
         match value.to_ascii_lowercase().as_str() {
             "json" => Ok(Self::Json),
@@ -108,10 +108,10 @@ impl OutputFormat {
         }
     }
 
-    /// Parse format string for BoaJS runtime output
+    /// Parse format string for `BoaJS` runtime output
     pub(crate) fn parse_runtime(value: &str) -> Result<Self, OutputError> {
         match value.to_ascii_lowercase().as_str() {
-            "text" => Ok(Self::Text),
+            "txt" | "text" => Ok(Self::Text),
             _ => Self::parse(value),
         }
     }

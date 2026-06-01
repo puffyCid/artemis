@@ -1,5 +1,5 @@
-# Small Justfile (https://github.com/casey/just and https://just.systems/man/en). 
-# `just` is recommended. 
+# Small Justfile (https://github.com/casey/just and https://just.systems/man/en).
+# `just` is recommended.
 # Its useful when you want to run groups of tests and do not want to type the full test path
 # Windows users will need to use PowerShell `just --shell pwsh.exe --shell-arg -c`
 
@@ -8,7 +8,7 @@ import ".setup/fedora.just"
 import ".setup/windows.just"
 import ".setup/macos.just"
 
-# Run cargo clippy on artemis project 
+# Run cargo clippy on artemis project
 default:
   cargo clippy
 
@@ -52,6 +52,9 @@ mft: (_test "artifacts::os::windows::mft")
 
 # Test only the JavaScript runtime
 runtime: (_test "runtime::")
+
+# Test only the Output workflow
+output: (_test "output2::")
 
 # Test only the FileSystem functions
 filesystem: (_test "filesystem::")
@@ -257,7 +260,7 @@ _ci_deb version target: (_ci_release target)
   @rm -r target/${TARGET}/release-action/artemis.d
   @mv ~/artemis_{{version}}-1.deb "target/${TARGET}/release-action/"
   @debsigs --sign=origin --default-key=${PUB} target/${TARGET}/release-action/artemis*.deb
-  
+
   cd "target/${TARGET}/release-action" && echo -n "$(shasum -ba 256 artemis*.deb | cut -d " " -f 1)" > artemis_{{version}}-1.deb.sha256
 
 # Package Artemis into macOS PKG installer file
@@ -279,7 +282,7 @@ _ci_pkg version profile target: (_ci_release target)
   @cd target/${TARGET}/release-action && codesign --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp -s "${TEAM_ID}" --entitlements ../../../.packages/entitlements.plist --deep -v -f -o runtime artemis
   @mkdir target/${TARGET}/release-action/pkg && mv target/${TARGET}/release-action/artemis target/${TARGET}/release-action/pkg
   @pkgbuild --keychain ${RUNNER_TEMP}/app-signing.keychain-db --timestamp --sign "${TEAM_ID}" --root target/${TARGET}/release-action/pkg --install-location /usr/local/bin --identifier io.github.puffycid.artemis --version {{version}} artemis-{{version}}.{{target}}.pkg
-  @xcrun notarytool submit artemis-{{version}}.{{target}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait 
+  @xcrun notarytool submit artemis-{{version}}.{{target}}.pkg --keychain-profile {{profile}} --keychain ${RUNNER_TEMP}/app-signing.keychain-db --wait
   @rm -r target/${TARGET}/release-action/* && mv artemis-{{version}}.{{target}}.pkg "target/${TARGET}/release-action/"
 
   cd "target/${TARGET}/release-action" && echo "$(shasum -ba 256 artemis*.pkg | cut -d " " -f 1)" > artemis-{{version}}.{{target}}.pkg.sha256
@@ -346,4 +349,3 @@ daemon-preview: (server-podman)
   podman run -d --network daemonnet localhost/daemon-endpoint
   podman run -d --network daemonnet localhost/daemon-endpoint
   podman run -d --network daemonnet localhost/daemon-endpoint
-

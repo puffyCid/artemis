@@ -68,7 +68,7 @@ impl RecordStream for JsFilterRecordStream<'_> {
                 .map_err(|err| OutputError::Record(format!("javascript filter failed: {err:?}")))?;
 
             match result {
-                Value::Null => continue,
+                Value::Null => {}
                 Value::Object(fields) => {
                     return Ok(Some(Record::Json(JsonRecord::new(fields))));
                 }

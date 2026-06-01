@@ -21,9 +21,9 @@ impl JsonRecord {
     }
 }
 
-/// A single BoaJS runtime scalar entry
+/// A single `BoaJS` runtime scalar entry
 ///
-/// `ScalarRecord` describes the primitive BoaJS entry before it is encoded
+/// `ScalarRecord` describes the primitive `BoaJS` entry before it is encoded
 /// into an output format
 #[derive(Debug, PartialEq)]
 pub(crate) enum ScalarRecord {
@@ -35,7 +35,7 @@ pub(crate) enum ScalarRecord {
     Integer(i64),
     /// Float value
     Float(f64),
-    /// JavaScript BigInt value represented as a decimal string
+    /// JavaScript `BigInt` value represented as a decimal string
     BigInt(String),
 }
 
@@ -45,8 +45,8 @@ impl ScalarRecord {
     /// String becomes `ScalarRecord::Text`, bool becomes `ScalarRecord::Bool`,
     /// Number becomes `ScalarRecord::Integer` or `ScalarRecord::Float`
     ///
-    /// BigInt cannot be built from `serde_json::Value` it must be done
-    /// at the BoaJS value layer
+    /// `BigInt` cannot be built from `serde_json::Value` it must be done
+    /// at the `BoaJS` value layer
     pub(crate) fn from_value(value: Value) -> OutputResult<Self> {
         match value {
             Value::String(value) => Ok(Self::Text(value)),
@@ -64,7 +64,7 @@ impl ScalarRecord {
     /// records that cannot be represented as valid JSON, such as non-finite float values
     pub(crate) fn into_value(self) -> OutputResult<Value> {
         match self {
-            ScalarRecord::Text(value) => Ok(Value::String(value)),
+            ScalarRecord::Text(value) | ScalarRecord::BigInt(value) => Ok(Value::String(value)),
             ScalarRecord::Bool(value) => Ok(Value::Bool(value)),
             ScalarRecord::Integer(value) => Ok(Value::Number(value.into())),
             ScalarRecord::Float(value) => {
@@ -72,7 +72,6 @@ impl ScalarRecord {
                     OutputError::Record(String::from("float number not a finite JSON number"))
                 })
             }
-            ScalarRecord::BigInt(value) => Ok(Value::String(value)),
         }
     }
 
@@ -92,11 +91,10 @@ impl ScalarRecord {
     /// Convert `ScalarRecord` into text value
     pub(crate) fn to_text(&self) -> String {
         match self {
-            ScalarRecord::Text(value) => value.clone(),
+            ScalarRecord::Text(value) | ScalarRecord::BigInt(value) => value.clone(),
             ScalarRecord::Bool(value) => value.to_string(),
             ScalarRecord::Integer(value) => value.to_string(),
             ScalarRecord::Float(value) => value.to_string(),
-            ScalarRecord::BigInt(value) => value.clone(),
         }
     }
 
@@ -123,17 +121,17 @@ impl ScalarRecord {
 
 /// A nested runtime value.
 ///
-/// This is needed when preserving arrays from BoaJS runtime that contain different values for
+/// This is needed when preserving arrays from `BoaJS` runtime that contain different values for
 /// JSON/JSONL-style output.
 #[derive(Debug, PartialEq)]
 pub(crate) enum RecordValue {
     /// Artifact entry represented as a JSON object.
     Json(JsonRecord),
-    /// Scalar values from the BoaJS runtime
+    /// Scalar values from the `BoaJS` runtime
     Scalar(ScalarRecord),
-    /// Array values from the BoaJS runtime
+    /// Array values from the `BoaJS` runtime
     Array(Vec<RecordValue>),
-    /// Null value from the BoaJS runtime
+    /// Null value from the `BoaJS` runtime
     Null,
 }
 
@@ -191,16 +189,16 @@ impl RecordValue {
 ///
 /// `Record` describes the internal shape of one output entry before it is
 /// encoded into an output format. Rust artifact parsers produce `JsonRecord` values,
-/// while the BoaJS runtime may produce scalar, array, or null records.
+/// while the `BoaJS` runtime may produce scalar, array, or null records.
 #[derive(Debug, PartialEq)]
 pub(crate) enum Record {
     /// Artifact entry represented as a JSON object.
     Json(JsonRecord),
-    /// Scalar value produced by the BoaJS runtime
+    /// Scalar value produced by the `BoaJS` runtime
     Scalar(ScalarRecord),
-    /// Array values produced by the BoaJS runtime
+    /// Array values produced by the `BoaJS` runtime
     Array(Vec<RecordValue>),
-    /// Null value produced by the BoaJS runtime
+    /// Null value produced by the `BoaJS` runtime
     Null,
 }
 
