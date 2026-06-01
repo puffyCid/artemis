@@ -101,11 +101,11 @@ mod tests {
         config::OutputConfig,
         context::CollectionContext,
         error::OutputError,
-        filter::js::JsFilterRecordStream,
+        filter::js::{JsFilterRecordStream, json_value_kind},
         manager::OutputManager,
         record::{JsonRecord, Record, VecRecordStream},
     };
-    use serde_json::Map;
+    use serde_json::{Map, Value};
     use std::path::PathBuf;
 
     #[test]
@@ -150,5 +150,20 @@ mod tests {
         assert!(
             matches!(err, OutputError::Record(value) if value == "javascript filter failed: ExecuteScript")
         );
+    }
+
+    #[test]
+    fn test_json_value_kind() {
+        let test = vec![
+            Value::Null,
+            Value::Number(1.into()),
+            Value::String("test".into()),
+            Value::Object(Map::new()),
+            Value::Array(Vec::new()),
+            Value::Bool(true),
+        ];
+        for entry in test {
+            assert!(!json_value_kind(&entry).is_empty())
+        }
     }
 }
