@@ -4,6 +4,10 @@ use super::{
 };
 use crate::{
     artifacts::output::output_artifact,
+    output2::{
+        manager::OutputManager,
+        record::{Record, VecRecordStream},
+    },
     structs::{artifacts::runtime::script::JSScript, toml::Output},
     utils::{encoding::base64_decode_standard, time},
 };
@@ -122,11 +126,41 @@ pub(crate) fn output_data(
     Ok(())
 }
 
+pub(crate) fn output_data2(
+    entries: Value,
+    script_name: &str,
+    manager: &mut OutputManager,
+) -> Result<(), RuntimeError> {
+    let records = match Record::from_value(entries) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[runtime] Could not create record from data: {err:?}");
+            return Err(RuntimeError::Output);
+        }
+    };
+    if let Err(err) =
+        manager.write_artifact(script_name, &"", &mut VecRecordStream::new(vec![records]))
+    {
+        error!("[runtime] Could not write record from data: {err:?}");
+        return Err(RuntimeError::Output);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::{decode_script, execute_script, filter_script, raw_script};
     use crate::{
-        runtime::run::output_data,
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        runtime::{
+            error::RuntimeError,
+            run::{output_data, output_data2},
+        },
         structs::{artifacts::runtime::script::JSScript, toml::Output},
         utils::time,
     };
@@ -142,6 +176,24 @@ mod tests {
             output: output.to_string(),
             ..Default::default()
         }
+    }
+
+    fn output_options2(
+        name: &str,
+        directory: &str,
+        compress: bool,
+        format: OutputFormat,
+    ) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
@@ -205,5 +257,55 @@ mod tests {
         let mut data = json!({"test":"test"});
         let status = output_data(&mut data, name, &mut output, start_time).unwrap();
         assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data2() {
+        let mut output = output_options2("output_test", "./tmp", false, OutputFormat::Jsonl);
+
+        let name = "test";
+        let data = json!([{"test":"test"},{"test":"test"}]);
+        let status = output_data2(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data2_mix_array() {
+        let mut output = output_options2("output_test", "./tmp", false, OutputFormat::Jsonl);
+
+        let name = "test";
+        let data = json!([{"test":"test"},123, false]);
+        let status = output_data2(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data2_json_format_mix_array() {
+        let mut output = output_options2("output_test", "./tmp", false, OutputFormat::Json);
+
+        let name = "test";
+        let data = json!([{"test":"test"},123, false]);
+        let status = output_data2(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data2_text_format_mix_array() {
+        let mut output = output_options2("output_test", "./tmp", false, OutputFormat::Text);
+
+        let name = "test";
+        let data = json!([{"test":"test"},123, false]);
+        let status = output_data2(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data2_csv_format_mix_array() {
+        let mut output = output_options2("output_test", "./tmp", false, OutputFormat::Csv);
+
+        let name = "test";
+        let data = json!([{"test":"test"},123, false]);
+        let err = output_data2(data, name, &mut output).unwrap_err();
+        assert!(matches!(err, RuntimeError::Output));
     }
 }

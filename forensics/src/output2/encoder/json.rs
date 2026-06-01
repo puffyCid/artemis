@@ -32,6 +32,16 @@ impl ArtifactEncoder for JsonEncoder {
             }
 
             let mut value = record.into_value()?;
+            if let Some(value_array) = value.as_array_mut() {
+                for value_record in value_array {
+                    append_metadata(value_record, context);
+                    serde_json::to_writer(&mut *writer, &value_record)?;
+                    writer.write_all(b"\n")?;
+
+                    count += 1;
+                }
+                continue;
+            }
             append_metadata(&mut value, context);
             serde_json::to_writer(&mut *writer, &value)?;
 
