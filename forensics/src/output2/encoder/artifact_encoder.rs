@@ -96,10 +96,11 @@ mod tests {
         context::CollectionContext,
         encoder::{
             artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
+            text::TextEncoder,
         },
-        record::{JsonRecord, Record, VecRecordStream},
+        record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };
-    use serde_json::json;
+    use serde_json::{Value, json};
     use std::{io::Cursor, path::PathBuf};
 
     #[test]
@@ -153,6 +154,33 @@ mod tests {
             .unwrap();
         assert_eq!(jsonl_encoder.extension(), "jsonl");
         assert_eq!(jsonl_encoder.mime_type(), "application/jsonl");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_text_encoder() {
+        let text_encoder = Encoder::Text(TextEncoder);
+        let output = OutputConfig::default();
+
+        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        );
+
+        let mut writer = Cursor::new(Vec::new());
+        let count = text_encoder
+            .encode(
+                &mut VecRecordStream::new(vec![Record::Scalar(
+                    ScalarRecord::from_value(Value::String("test".into())).unwrap(),
+                )]),
+                &mut writer,
+                context,
+            )
+            .unwrap();
+
+        assert_eq!(text_encoder.extension(), "txt");
+        assert_eq!(text_encoder.mime_type(), "text/plain");
         assert_eq!(count, 1);
     }
 }

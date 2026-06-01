@@ -1,11 +1,10 @@
-use std::io::Write;
-
 use crate::output2::{
     context::ArtifactContext,
     encoder::artifact_encoder::ArtifactEncoder,
     error::{OutputError, OutputResult},
     record::{Record, RecordStream},
 };
+use std::io::Write;
 
 /// Encoder for plaintext files
 #[derive(Debug, PartialEq)]
