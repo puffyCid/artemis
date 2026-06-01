@@ -62,6 +62,12 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     if result.is_undefined() {
         return Ok(Value::Null);
     }
+    if result.is_bigint()
+        && let Ok(value) = result.to_string(&mut context)
+        && let Ok(record) = value.to_std_string()
+    {
+        return Ok(Value::String(record.into()));
+    }
     if let Ok(Some(value)) = result.to_json(&mut context) {
         return Ok(value);
     }
@@ -399,6 +405,7 @@ fn setup_runtime(context: &mut Context) {
 #[cfg(test)]
 mod tests {
     use super::run_script;
+    use crate::runtime::error::RuntimeError;
 
     #[test]
     fn test_run_script() {
@@ -410,5 +417,12 @@ mod tests {
     fn test_run_async_script() {
         let script = "console.warn(`true + true = ${true + true}. Classic JS, gotta love it`)";
         let _ = run_script(script, &[]).unwrap();
+    }
+
+    #[test]
+    fn test_bigint() {
+        let script = "function main(){return {'test':BigInt(9007199254740991)};} main();";
+        let err = run_script(script, &[]).unwrap_err();
+        assert!(matches!(err, RuntimeError::ScriptResult))
     }
 }

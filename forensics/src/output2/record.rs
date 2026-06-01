@@ -35,8 +35,6 @@ pub(crate) enum ScalarRecord {
     Integer(i64),
     /// Float value
     Float(f64),
-    /// JavaScript `BigInt` value represented as a decimal string
-    BigInt(String),
 }
 
 impl ScalarRecord {
@@ -84,14 +82,13 @@ impl ScalarRecord {
             ScalarRecord::Bool(_) => "bool",
             ScalarRecord::Integer(_) => "integer",
             ScalarRecord::Float(_) => "float",
-            ScalarRecord::BigInt(_) => "bigint",
         }
     }
 
     /// Convert `ScalarRecord` into text value
     pub(crate) fn to_text(&self) -> String {
         match self {
-            ScalarRecord::Text(value) | ScalarRecord::BigInt(value) => value.clone(),
+            ScalarRecord::Text(value) => value.clone(),
             ScalarRecord::Bool(value) => value.to_string(),
             ScalarRecord::Integer(value) => value.to_string(),
             ScalarRecord::Float(value) => value.to_string(),
