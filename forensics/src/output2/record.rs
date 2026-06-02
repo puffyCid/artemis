@@ -33,6 +33,8 @@ pub(crate) enum ScalarRecord {
     Bool(bool),
     /// Integer value
     Integer(i64),
+    /// Unsigned integer value
+    UnsignedInteger(u64),
     /// Float value
     Float(f64),
 }
@@ -65,6 +67,7 @@ impl ScalarRecord {
             ScalarRecord::Text(value) => Ok(Value::String(value)),
             ScalarRecord::Bool(value) => Ok(Value::Bool(value)),
             ScalarRecord::Integer(value) => Ok(Value::Number(value.into())),
+            ScalarRecord::UnsignedInteger(value) => Ok(Value::Number(value.into())),
             ScalarRecord::Float(value) => {
                 Number::from_f64(value).map(Value::Number).ok_or_else(|| {
                     OutputError::Record(String::from("float number not a finite JSON number"))
@@ -82,6 +85,7 @@ impl ScalarRecord {
             ScalarRecord::Bool(_) => "bool",
             ScalarRecord::Integer(_) => "integer",
             ScalarRecord::Float(_) => "float",
+            ScalarRecord::UnsignedInteger(_) => "unsignedinteger",
         }
     }
 
@@ -92,19 +96,17 @@ impl ScalarRecord {
             ScalarRecord::Bool(value) => value.to_string(),
             ScalarRecord::Integer(value) => value.to_string(),
             ScalarRecord::Float(value) => value.to_string(),
+            ScalarRecord::UnsignedInteger(value) => value.to_string(),
         }
     }
 
     /// Attempt to convert the JavaScript number to proper `ScalarRecord`
     fn from_number(value: Number) -> OutputResult<Self> {
-        if let Some(value) = value.as_i64() {
-            return Ok(Self::Integer(value));
+        if let Some(value) = value.as_u64() {
+            return Ok(Self::UnsignedInteger(value));
         }
 
-        if let Some(value) = value.as_u64() {
-            let value = i64::try_from(value).map_err(|err| {
-                OutputError::Record(format!("unsigned integer exceeded i64 range {err:?}"))
-            })?;
+        if let Some(value) = value.as_i64() {
             return Ok(Self::Integer(value));
         }
 
