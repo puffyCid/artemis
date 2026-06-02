@@ -266,6 +266,10 @@ fn read_directory(
             error!("[eventlogs] Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
         }
+
+        if options.only_templates {
+            return Ok(());
+        }
     }
 
     for evtx_file in read_dir {
