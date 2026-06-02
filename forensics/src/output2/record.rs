@@ -43,7 +43,7 @@ impl ScalarRecord {
     /// Builds a `ScalarRecord` from a JSON value
     ///
     /// String becomes `ScalarRecord::Text`, bool becomes `ScalarRecord::Bool`,
-    /// Number becomes `ScalarRecord::Integer` or `ScalarRecord::Float`
+    /// Number becomes `ScalarRecord::Integer` or `ScalarRecord::Float` or `ScalarRecord::UnsignedInteger`
     ///
     /// `BigInt` cannot be built from `serde_json::Value` it must be done
     /// at the `BoaJS` value layer
