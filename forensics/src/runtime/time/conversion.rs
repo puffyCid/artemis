@@ -61,26 +61,32 @@ pub(crate) fn js_fat_time_to_iso(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_time() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3RpbWUvY29udmVyc2lvbi50cwpmdW5jdGlvbiB0aW1lTm93KCkgewogIGNvbnN0IGRhdGEgPSBqc190aW1lX25vdygpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGZpbGV0aW1lVG9Vbml4RXBvY2goZmlsZXRpbWUpIHsKICBjb25zdCBkYXRhID0ganNfZmlsZXRpbWVfdG9faXNvKGZpbGV0aW1lKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBjb2NvYXRpbWVUb1VuaXhFcG9jaChjb2NvYXRpbWUpIHsKICBjb25zdCBkYXRhID0ganNfY29jb2F0aW1lX3RvX2lzbyhjb2NvYXRpbWUpOwogIHJldHVybiBkYXRhOwp9CgpmdW5jdGlvbiBvbGVUb1VuaXhFcG9jaChvbGV0aW1lKSB7CiAgY29uc3QgZGF0YSA9IGpzX29sZV9hdXRvbWF0aW9udGltZV90b19pc28ob2xldGltZSk7CiAgcmV0dXJuIGRhdGE7Cn0KCmZ1bmN0aW9uIGZhdFRvVW5peEVwb2NoKGZhdHRpbWUpIHsKICBjb25zdCBkYXRhID0ganNfZmF0X3RpbWVfdG9faXNvKGZhdHRpbWUpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgbGV0IGRhdGEgPSB0aW1lTm93KCk7CiAgY29uc3QgYmlnID0gMTMyMjQ0NzY2NDE4OTQwMjU0bjsKICBkYXRhID0gZmlsZXRpbWVUb1VuaXhFcG9jaChiaWcpOwogIGNvbnN0IGZhdHRlc3QgPSBbMTIzLCA3OSwgMTk1LCAxNF07CiAgZGF0YSA9IGZhdFRvVW5peEVwb2NoKFVpbnQ4QXJyYXkuZnJvbShmYXR0ZXN0KSk7CiAgbGV0IHRlc3QgPSA0Mzc5NC4wMTg3NTsKICBkYXRhID0gb2xlVG9Vbml4RXBvY2godGVzdCk7CiAgdGVzdCA9IDEwLjAxODc1OwogIGRhdGEgPSBjb2NvYXRpbWVUb1VuaXhFcG9jaCh0ZXN0KTsKICBjb25zb2xlLmxvZyhkYXRhKTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("timestuff"),
             script: test.to_string(),

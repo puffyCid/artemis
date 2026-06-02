@@ -27,26 +27,32 @@ pub(crate) fn js_get_elf(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_get_elf() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbGludXgvZWxmLnRzCmZ1bmN0aW9uIGdldEVsZihwYXRoKSB7CiAgdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBqc19nZXRfZWxmKHBhdGgpOwogICAgcmV0dXJuIGRhdGE7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbnVsbDsKICB9Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmFzeW5jIGZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBhd2FpdCBqc19yZWFkX2RpcihwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGJpbl9wYXRoID0gIi9iaW4iOwogIGNvbnN0IGVsZnMgPSBbXTsKICBmb3IgKGNvbnN0IGVudHJ5IG9mIGF3YWl0IHJlYWREaXIoYmluX3BhdGgpKSB7CiAgICBpZiAoIWVudHJ5LmlzX2ZpbGUpIHsKICAgICAgY29udGludWU7CiAgICB9CiAgICBjb25zdCBlbGZfcGF0aCA9IGAke2Jpbl9wYXRofS8ke2VudHJ5LmZpbGVuYW1lfWA7CiAgICBjb25zdCBpbmZvID0gZ2V0RWxmKGVsZl9wYXRoKTsKICAgIGlmIChpbmZvID09PSBudWxsKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgbWV0YSA9IHsKICAgICAgcGF0aDogZWxmX3BhdGgsCiAgICAgIGVsZjogaW5mbywKICAgIH07CiAgICBlbGZzLnB1c2gobWV0YSk7CiAgfQogIHJldHVybiBlbGZzOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
 
         let script = JSScript {
             name: String::from("elf"),

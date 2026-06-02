@@ -46,26 +46,32 @@ pub(crate) fn js_groups_macos(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_users_groups() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcnMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfdXNlcnNfbWFjb3MoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldF9ncm91cHMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZ3JvdXBzX21hY29zKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRVc2VycygpIHsKICAgIHJldHVybiBnZXRfdXNlcnMoKTsKfQpmdW5jdGlvbiBnZXRHcm91cHMoKSB7CiAgICByZXR1cm4gZ2V0X2dyb3VwcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCB1c2VycyA9IGdldFVzZXJzKCk7CiAgICBjb25zdCBncm91cHMgPSBnZXRHcm91cHMoKTsKICAgIGNvbnN0IGFjY291bnRzID0gewogICAgICAgIHVzZXJzLAogICAgICAgIGdyb3VwcwogICAgfTsKICAgIHJldHVybiBhY2NvdW50czsKfQptYWluKCk7Cgo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("users"),
             script: test.to_string(),

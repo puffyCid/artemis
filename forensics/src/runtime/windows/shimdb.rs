@@ -33,26 +33,32 @@ pub(crate) fn js_shimdb(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_shimdb() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWRiKCkgewogICAgY29uc3QgZGF0YSA9IGpzX3NoaW1kYigpOwogICAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZ2V0U2hpbWRiKCkgewogICAgcmV0dXJuIGdldF9zaGltZGIoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3Qgc2RiID0gZ2V0U2hpbWRiKCk7CiAgICByZXR1cm4gc2RiOwp9Cm1haW4oKTsKCg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("shimdb"),
             script: test.to_string(),

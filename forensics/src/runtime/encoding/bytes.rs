@@ -19,26 +19,32 @@ pub(crate) fn js_encode_bytes(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_encode_bytes() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZW5jb2RpbmcvYnl0ZXMudHMKZnVuY3Rpb24gZW5jb2RlQnl0ZXMoZGF0YSkgewogIGNvbnN0IHJlc3VsdCA9IGpzX2VuY29kZV9ieXRlcyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdGVzdCA9ICJEZW5vIGlzIHZlcnkgY29vbCEiOwogIGNvbnN0IGRhdGEgPSBlbmNvZGVCeXRlcyh0ZXN0KTsKICBjb25zb2xlLmxvZyhkYXRhKTsKICByZXR1cm4gQXJyYXkuZnJvbShkYXRhKTsKfQptYWluKCk7Cgo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("bytes_test"),
             script: test.to_string(),

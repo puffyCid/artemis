@@ -62,7 +62,7 @@ impl ScalarRecord {
     /// records that cannot be represented as valid JSON, such as non-finite float values
     pub(crate) fn into_value(self) -> OutputResult<Value> {
         match self {
-            ScalarRecord::Text(value) | ScalarRecord::BigInt(value) => Ok(Value::String(value)),
+            ScalarRecord::Text(value) => Ok(Value::String(value)),
             ScalarRecord::Bool(value) => Ok(Value::Bool(value)),
             ScalarRecord::Integer(value) => Ok(Value::Number(value.into())),
             ScalarRecord::Float(value) => {

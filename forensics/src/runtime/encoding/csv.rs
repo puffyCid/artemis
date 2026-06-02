@@ -62,25 +62,33 @@ pub(crate) fn js_read_csv(
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::run::execute_script;
-    use crate::{structs::artifacts::runtime::script::JSScript, structs::toml::Output};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        runtime::run::execute_script,
+        structs::artifacts::runtime::script::JSScript,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_read_csv() {
         let test = "KCgpID0+IHsKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKICB2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgICBuYW1lOwogICAgbWVzc2FnZTsKICAgIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgICAgc3VwZXIoKTsKICAgICAgdGhpcy5uYW1lID0gbmFtZTsKICAgICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICAgIH0KICB9OwoKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2RpbmcvZXJyb3JzLnRzCiAgdmFyIEVuY29kaW5nRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7CiAgfTsKCiAgLy8gLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2Nzdi50cwogIGZ1bmN0aW9uIHJlYWRDc3YocGF0aCwgb2Zmc2V0ID0gMCwgbGltaXQgPSAxMDApIHsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdCA9IGpzX3JlYWRfY3N2KHBhdGgsIG9mZnNldCwgbGltaXQpOwogICAgICByZXR1cm4gcmVzdWx0OwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIHJldHVybiBuZXcgRW5jb2RpbmdFcnJvcigiQ1NWIiwgYGZhaWxlZCB0byByZWFkIENTViAke3BhdGh9OiAke2Vycn1gKTsKICAgIH0KICB9CgogIC8vIG1haW4udHMKICBmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZGF0YSA9IHJlYWRDc3YoInRlc3QuY3N2Iik7CiAgICBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeShkYXRhKSk7CiAgfQogIG1haW4oKTsKfSkoKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("csv_test_failed"),
             script: test.to_string(),

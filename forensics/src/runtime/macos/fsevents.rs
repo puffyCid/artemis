@@ -27,26 +27,32 @@ pub(crate) fn js_fsevents(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_fsevents() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZnNldmVudHMudHMKZnVuY3Rpb24gZ2V0RnNldmVudHMocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19mc2V2ZW50cyhwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZnNfZGF0YSA9IFtdOwogIGNvbnN0IGZzZXZlbnRzX3BhdGggPSAiL1N5c3RlbS9Wb2x1bWVzL0RhdGEvLmZzZXZlbnRzZCI7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBhd2FpdCByZWFkRGlyKGZzZXZlbnRzX3BhdGgpKSB7CiAgICBpZiAoIWVudHJ5LmlzX2ZpbGUpIHsKICAgICAgY29udGludWU7CiAgICB9CiAgICBjb25zdCBmc2V2ZW50c19maWxlID0gYCR7ZnNldmVudHNfcGF0aH0vJHtlbnRyeS5maWxlbmFtZX1gOwogICAgY29uc3QgaW5mbyA9IGdldEZzZXZlbnRzKGZzZXZlbnRzX2ZpbGUpOwogICAgZm9yIChjb25zdCBmc2V2ZW50X2VudHJ5IG9mIGluZm8pIHsKICAgICAgaWYgKCFmc2V2ZW50X2VudHJ5LnBhdGguaW5jbHVkZXMoIi5ycyIpKSB7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgZnNfZGF0YS5wdXNoKGZzZXZlbnRfZW50cnkpOwogICAgfQogICAgYnJlYWs7CiAgfQogIHJldHVybiBmc19kYXRhOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", true);
+        let mut output = output_options("runtime_test", "./tmp", true);
         let script = JSScript {
             name: String::from("fsevent"),
             script: test.to_string(),

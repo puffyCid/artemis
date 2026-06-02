@@ -30,26 +30,32 @@ pub(crate) fn js_search(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_search() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZWFyY2gudHMKZnVuY3Rpb24gZ2V0U2VhcmNoKHBhdGgpIHsKICBjb25zdCBkYXRhPSBqc19zZWFyY2gocGF0aCwgNTApOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGpzX2Vudl92YWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIHN0YXQocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19zdGF0KHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHBhdGggPSBgJHtkcml2ZX1cXFByb2dyYW1EYXRhXFxNaWNyb3NvZnRcXFNlYXJjaFxcRGF0YVxcQXBwbGljYXRpb25zXFxXaW5kb3dzYDsKICB0cnkgewogICAgY29uc3Qgc2VhcmNoX3BhdGggPSBgJHtwYXRofVxcV2luZG93cy5lZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoX2UpIHsKICAgIGNvbnN0IHNlYXJjaF9wYXRoID0gYCR7cGF0aH1cXFdpbmRvd3MuZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfQp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("search"),
             script: test.to_string(),

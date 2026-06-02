@@ -36,26 +36,32 @@ pub(crate) fn js_generate_uuid(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_uuid() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2Vycm9ycy50cwp2YXIgRW5jb2RpbmdFcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsKfTsKCi8vIC4uLy4uL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9iYXNlNjQudHMKZnVuY3Rpb24gZGVjb2RlKGI2NCkgewogIHRyeSB7CiAgICBjb25zdCBieXRlcyA9IGpzX2Jhc2U2NF9kZWNvZGUoYjY0KTsKICAgIHJldHVybiBieXRlczsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgRW5jb2RpbmdFcnJvcigiQkFTRTY0IiwgYGZhaWxlZCB0byBkZWNvZGUgJHtiNjR9OiAke2Vycn1gKTsKICB9Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy91dWlkLnRzCmZ1bmN0aW9uIGZvcm1hdEd1aWQoZm9ybWF0LCBkYXRhKSB7CiAgaWYgKGZvcm1hdCA9PT0gMCAvKiBCZSAqLykgewogICAgY29uc3QgcmVzdWx0MiA9IGpzX2Zvcm1hdF9ndWlkX2JlX2J5dGVzKGRhdGEpOwogICAgcmV0dXJuIHJlc3VsdDI7CiAgfQogIGNvbnN0IHJlc3VsdCA9IGpzX2Zvcm1hdF9ndWlkX2xlX2J5dGVzKGRhdGEpOwogIHJldHVybiByZXN1bHQ7Cn0KZnVuY3Rpb24gZ2VuZXJhdGVVdWlkKCkgewogIGNvbnN0IHJlc3VsdCA9IGpzX2dlbmVyYXRlX3V1aWQoKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGRlY29kZSgidFBTQ2xFUGp0a094Y0pwbHZJSXNkdz09Iik7CiAgY29uc3QgZ3VpZCA9IGZvcm1hdEd1aWQoMSAvKiBMZSAqLywgZGF0YSk7CiAgY29uc29sZS5sb2coZ3VpZCk7CiAgY29uc3QgZ3VpZDIgPSBmb3JtYXRHdWlkKDAgLyogQmUgKi8sIGRhdGEpOwogIGNvbnNvbGUubG9nKGd1aWQyKTsKICBjb25zb2xlLmxvZyhnZW5lcmF0ZVV1aWQoKSk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("strings_test"),
             script: test.to_string(),

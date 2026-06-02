@@ -115,25 +115,32 @@ impl JsBufReader {
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::run::execute_script;
-    use crate::structs::artifacts::runtime::script::JSScript;
-    use crate::structs::toml::Output;
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        runtime::run::execute_script,
+        structs::artifacts::runtime::script::JSScript,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
     #[test]
     fn test_js_buf_reader() {
         let test = "Ly8gLi4vYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBuYW1lOwogIG1lc3NhZ2U7CiAgY29uc3RydWN0b3IobmFtZSwgbWVzc2FnZSkgewogICAgc3VwZXIoKTsKICAgIHRoaXMubmFtZSA9IG5hbWU7CiAgICB0aGlzLm1lc3NhZ2UgPSBtZXNzYWdlOwogIH0KfTsKCi8vIC4uL2FydGVtaXMtYXBpL3NyYy9maWxlc3lzdGVtL2Vycm9ycy50cwp2YXIgRmlsZUVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2Ugewp9OwoKLy8gLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vcmVhZGVyLnRzCnZhciBCdWZSZWFkZXIgPSBjbGFzcyB7CiAgcmVhZGVyOwogIGNvbnN0cnVjdG9yKHBhdGgpIHsKICAgIHRoaXMucmVhZGVyID0gbmV3IEpzQnVmUmVhZGVyKHBhdGgpOwogIH0KICByZWFkQnl0ZXMob2Zmc2V0LCBieXRlcykgewogICAgaWYgKG9mZnNldCA8IDApIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoYFJFQURFUmAsIGBDYW5ub3Qgc2VlayB0byBuZWdhdGl2ZSBvZmZzZXQgJHtvZmZzZXR9YCk7CiAgICB9CiAgICBpZiAoYnl0ZXMgPCAwKSB7CiAgICAgIHJldHVybiBuZXcgRmlsZUVycm9yKGBSRUFERVJgLCBgQ2Fubm90IHJlYWQgdG8gbmVnYXRpdmUgYnl0ZXMgJHtieXRlc31gKTsKICAgIH0KICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdHMgPSB0aGlzLnJlYWRlci5yZWFkKG9mZnNldCwgYnl0ZXMpOwogICAgICByZXR1cm4gcmVzdWx0czsKICAgIH0gY2F0Y2ggKGVycikgewogICAgICByZXR1cm4gbmV3IEZpbGVFcnJvcihgUkVBREVSYCwgYGNvdWxkIG5vdCByZWFkIGJ5dGVzICR7ZXJyfWApOwogICAgfQogIH0KfTsKCi8vIC4uLy4uL0Rvd25sb2Fkcy9tYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgcmVhZGVyID0gbmV3IEJ1ZlJlYWRlcigiQzpcXFdpbmRvd3NcXGV4cGxvcmVyLmV4ZSIpOwogIGNvbnN0IGJ5dGVzID0gcmVhZGVyLnJlYWRCeXRlcygwLCAyNSk7CiAgaWYgKGJ5dGVzIGluc3RhbmNlb2YgRmlsZUVycm9yKSB7CiAgICByZXR1cm47CiAgfQogIGNvbnN0IGFycmF5ID0gQXJyYXkuZnJvbShieXRlcyk7CiAgaWYgKGFycmF5Lmxlbmd0aCAhPT0gMjUpIHsKICAgIHRocm93ICJiYWQgbGVuZ3RoIjsKICB9CiAgY29uc29sZS5sb2coYEkgdXNlZCB0aGUgUnVzdCBCdWZSZWFkZXIgdG8gcmVhZCB0aGUgZmlyc3QgMjUgYnl0ZXMgb2YgZXhwbG9yZXIuZXhlISAke2FycmF5fWApOwogIGNvbnN0IG1pZGRsZSA9IHJlYWRlci5yZWFkQnl0ZXMoMWUzLCA1MCk7CiAgaWYgKG1pZGRsZSBpbnN0YW5jZW9mIEZpbGVFcnJvcikgewogICAgcmV0dXJuOwogIH0KICBjb25zb2xlLmxvZyhgSSB1c2VkIHRoZSBSdXN0IEJ1ZlJlYWRlciB0byByZWFkIDUwIGJ5dGVzIG9mIGV4cGxvcmVyLmV4ZSBhdCBvZmZzZXQgMTAwMCEgSSBkaWQgbm90IHJlYWQgdGhlIGVudGlyZSBmaWxlIGludG8gbWVtb3J5ISAke2FycmF5fWApOwogIHJldHVybiBBcnJheS5mcm9tKGJ5dGVzKTsKfQptYWluKCk7";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("js_reader"),
             script: test.to_string(),

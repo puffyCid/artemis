@@ -248,7 +248,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 };
                 // Use the more descriptive script name as our artifact name
                 artifacts.artifact_name = script.name.clone();
-                let results = execute_script(&mut collector.output, script);
+                let results = execute_script(&mut manager, script);
                 match results {
                     Ok(_) => info!("Executed JavaScript "),
                     Err(err) => {

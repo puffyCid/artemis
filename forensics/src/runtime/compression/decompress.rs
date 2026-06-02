@@ -138,26 +138,32 @@ pub(crate) fn js_decompress_lz4(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_zlib_decompress() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvRGVuby9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKdmFyIEVycm9yQmFzZSA9IGNsYXNzIGV4dGVuZHMgRXJyb3IgewogIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgIHN1cGVyKCk7CiAgICB0aGlzLm5hbWUgPSBuYW1lOwogICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICB9Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9lcnJvcnMudHMKdmFyIENvbXByZXNzaW9uRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9EZW5vL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3NfemxpYihkYXRhLCB3Yml0cyA9IDApIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19kZWNvbXByZXNzX3psaWIoZGF0YSwgd2JpdHMsIDApOwogICAgcmV0dXJuIGJ5dGVzOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBDb21wcmVzc2lvbkVycm9yKGBaTElCYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYXRhID0gbmV3IFVpbnQ4QXJyYXkoWwogICAgMTIwLAogICAgMTU2LAogICAgNSwKICAgIDEyOCwKICAgIDIwOSwKICAgIDksCiAgICAwLAogICAgMCwKICAgIDQsCiAgICA2OCwKICAgIDg3LAogICAgOTcsCiAgICA1NiwKICAgIDIyOSwKICAgIDIyNywKICAgIDE0OSwKICAgIDE5NCwKICAgIDIzNywKICAgIDEyNywKICAgIDExNywKICAgIDE5MywKICAgIDE5NiwKICAgIDIzNCwKICAgIDYyLAogICAgMTMsCiAgICAyNSwKICAgIDIxOCwKICAgIDQsCiAgICAzNgogIF0pOwogIGNvbnN0IGRlY29tX2RhdGEgPSBkZWNvbXByZXNzX3psaWIoZGF0YSk7CiAgY29uc29sZS5hc3NlcnQoZGVjb21fZGF0YS5sZW5ndGggPT09IDExKTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("zlib_test"),
             script: test.to_string(),
@@ -168,7 +174,7 @@ mod tests {
     #[test]
     fn test_gzip_decompress() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2NvbXByZXNzaW9uL2Vycm9ycy50cwp2YXIgQ29tcHJlc3Npb25FcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsKfTsKCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3NfZ3ppcChkYXRhKSB7CiAgdHJ5IHsKICAgIGNvbnN0IGJ5dGVzID0ganNfZGVjb21wcmVzc19nemlwKGRhdGEpOwogICAgcmV0dXJuIGJ5dGVzOwogIH0gY2F0Y2ggKGVycikgewogICAgcmV0dXJuIG5ldyBDb21wcmVzc2lvbkVycm9yKGBHWklQYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9lcnJvcnMudHMKdmFyIEVuY29kaW5nRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19iYXNlNjRfZGVjb2RlKGI2NCk7CiAgICByZXR1cm4gYnl0ZXM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IEVuY29kaW5nRXJyb3IoYEJBU0U2NGAsIGBmYWlsZWQgdG8gZGVjb2RlICR7YjY0fTogJHtlcnJ9YCk7CiAgfQp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGRlY29kZSgiSDRzSUFIaFhqMllBL3dXQVFRa0FBQWdEcTJnM0JSOEhnMzJzUDI1QjlUTFRBVzNDdEFNTUFBQUEiKTsKICBjb25zdCB2YWx1ZSA9IGRlY29tcHJlc3NfZ3ppcChkYXRhKTsKICBjb25zdCB0ZXh0ID0gZXh0cmFjdFV0ZjhTdHJpbmcodmFsdWUpOwogIGlmICh0ZXh0ICE9ICJoZWxsbyB3b3JsZCEiKSB7CiAgICB0aHJvdyAiYmFkIGRlY29tcHJlc3NzaW9uISI7CiAgfQogIGNvbnNvbGUubG9nKGBJIGRlY29tcHJlc3NlZCAke3RleHR9YCk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("gzip_test"),
             script: test.to_string(),
@@ -179,7 +185,7 @@ mod tests {
     #[test]
     fn test_snappy_decompress() {
         let test = "Ly8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzCnZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsKICBjb25zdHJ1Y3RvcihuYW1lLCBtZXNzYWdlKSB7CiAgICBzdXBlcigpOwogICAgdGhpcy5uYW1lID0gbmFtZTsKICAgIHRoaXMubWVzc2FnZSA9IG1lc3NhZ2U7CiAgfQp9OwoKLy8gLi4vLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2NvbXByZXNzaW9uL2Vycm9ycy50cwp2YXIgQ29tcHJlc3Npb25FcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsKfTsKCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9jb21wcmVzc2lvbi9kZWNvbXByZXNzLnRzCmZ1bmN0aW9uIGRlY29tcHJlc3Nfc25hcHB5KGRhdGEpIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19kZWNvbXByZXNzX3NuYXBweShkYXRhKTsKICAgIHJldHVybiBieXRlczsKICB9IGNhdGNoIChlcnIpIHsKICAgIHJldHVybiBuZXcgQ29tcHJlc3Npb25FcnJvcihgU05BUFBZYCwgYGZhaWxlZCB0byBkZWNvbXByZXNzOiAke2Vycn1gKTsKICB9Cn0KCi8vIC4uLy4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9lbmNvZGluZy9lcnJvcnMudHMKdmFyIEVuY29kaW5nRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7Cn07CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2RpbmcvYmFzZTY0LnRzCmZ1bmN0aW9uIGRlY29kZShiNjQpIHsKICB0cnkgewogICAgY29uc3QgYnl0ZXMgPSBqc19iYXNlNjRfZGVjb2RlKGI2NCk7CiAgICByZXR1cm4gYnl0ZXM7CiAgfSBjYXRjaCAoZXJyKSB7CiAgICByZXR1cm4gbmV3IEVuY29kaW5nRXJyb3IoYEJBU0U2NGAsIGBmYWlsZWQgdG8gZGVjb2RlICR7YjY0fTogJHtlcnJ9YCk7CiAgfQp9CgovLyAuLi8uLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2Rpbmcvc3RyaW5ncy50cwpmdW5jdGlvbiBleHRyYWN0VXRmOFN0cmluZyhkYXRhKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfZXh0cmFjdF91dGY4X3N0cmluZyhkYXRhKTsKICByZXR1cm4gcmVzdWx0Owp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGRlY29kZSgidVFGSUFCUURUVVZVUVRwbWFXeGxPaTh2QWFNb0FBVUJFS0FTQUJRRU1ob0FCQzBuQlJrY3BSTHFFUUFuQkY4Tk1XUUFBV3hoYzNSU1pXTmxhWFpsWkVGMFEyOTFiblJsY2dHQ0tRVXVESlFrdEJDS0xnQUF2Z2xjSk0wMHpRd0FDUVJnQWY4SkFReWZRYnNLQVVkTUdnQUFBRFVBQUFCakFBQUFrUUFBQUFVQUFBQT0iKTsKICBjb25zdCB2YWx1ZSA9IGRlY29tcHJlc3Nfc25hcHB5KGRhdGEpOwogIGlmKHZhbHVlIGluc3RhbmNlb2YgQ29tcHJlc3Npb25FcnJvcikgewogICB0aHJvdyB2YWx1ZTsKICB9Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("snappy_test"),
             script: test.to_string(),
@@ -190,7 +196,7 @@ mod tests {
     #[test]
     fn test_lz4_decompress() {
         let test = "KCgpPT57dmFyIHM9Y2xhc3MgZXh0ZW5kcyBFcnJvcntuYW1lO21lc3NhZ2U7Y29uc3RydWN0b3IodCxuKXtzdXBlcigpLHRoaXMubmFtZT10LHRoaXMubWVzc2FnZT1ufX07dmFyIGU9Y2xhc3MgZXh0ZW5kcyBze307ZnVuY3Rpb24gaShyLHQsbil7dHJ5e3JldHVybiBqc19kZWNvbXByZXNzX2x6NChyLHQsbil9Y2F0Y2gobyl7cmV0dXJuIG5ldyBlKCJMWlZOIixgZmFpbGVkIHRvIGRlY29tcHJlc3M6ICR7b31gKX19ZnVuY3Rpb24gYyhyKXtyZXR1cm4ganNfZXh0cmFjdF91dGY4X3N0cmluZyhyKX1mdW5jdGlvbiBhKCl7bGV0IHI9bmV3IFVpbnQ4QXJyYXkoWzE3NiwxMDQsMTAxLDEwOCwxMDgsMTExLDMyLDExOSwxMTEsMTE0LDEwOCwxMDBdKSx0PWkociwxMSxuZXcgVWludDhBcnJheSk7dCBpbnN0YW5jZW9mIGV8fGNvbnNvbGUubG9nKGModCkpfWEoKTt9KSgpOw0K";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("lz4_test"),
             script: test.to_string(),
