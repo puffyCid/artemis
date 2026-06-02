@@ -185,7 +185,7 @@ impl Record {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum RecordStreamKind {
     /// The stream emits a single object. Do not surround with array brackets when encoding to JSON
     Single,

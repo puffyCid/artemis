@@ -83,7 +83,7 @@ impl RecordStream for JsFilterRecordStream<'_> {
     }
 
     fn stream_kind(&self) -> RecordStreamKind {
-        RecordStreamKind::Array
+        self.inner.stream_kind()
     }
 }
 
@@ -107,7 +107,7 @@ mod tests {
         error::OutputError,
         filter::js::{JsFilterRecordStream, json_value_kind},
         manager::OutputManager,
-        record::{JsonRecord, Record, VecRecordStream},
+        record::{JsonRecord, Record, RecordStreamKind, SingleRecordStream, VecRecordStream},
     };
     use serde_json::{Map, Value};
     use std::path::PathBuf;
@@ -128,6 +128,23 @@ mod tests {
         ]);
         let js = JsFilterRecordStream::new(&mut records, "YXN5bmMgZnVuY3Rpb24gbWFpbihyZWNvcmQsIGNvbnRleHQpIHsKICBhd2FpdCBQcm9taXNlLnJlc29sdmUoKTsKICBpZihyZWNvcmQucGF0aCAhPT0gIi90bXAvdHdvLnR4dCIpIHsKICAgIHJldHVybiBudWxsOwogIH0KIGNvbnNvbGUubG9nKGBJIGdvdCAke3JlY29yZC5wYXRofWApOwogIGNvbnNvbGUubG9nKGBDb250ZXh0IGlzIGVuZHBvaW50IElEOiAke2NvbnRleHQuZW5kcG9pbnRfaWR9YCk7CiAgcmVjb3JkWyJtZXNzYWdlIl0gPSAiWW91IGdvdCBhc3luYyBmaWx0ZXJlZCEiOwogIHJlY29yZFsiZmlsdGVyZWRfYnkiXSA9IGNvbnRleHQuZmlsdGVyX25hbWU7CiAgcmVjb3JkWyJhc3luY19maWx0ZXIiXSA9IHRydWU7CiAgcmV0dXJuIHJlY29yZDsKfQ==", "test", "test", &context).unwrap();
         assert_eq!(js.filter_context["collection_name"], "");
+        assert_eq!(js.inner.stream_kind(), RecordStreamKind::Array);
+    }
+
+    #[test]
+    fn test_js_stream_object() {
+        let config = OutputConfig::default();
+        let context = CollectionContext::new(&config, PathBuf::from("./tmp"));
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = SingleRecordStream::new(Record::Json(JsonRecord::new(first)));
+        let js = JsFilterRecordStream::new(&mut records, "YXN5bmMgZnVuY3Rpb24gbWFpbihyZWNvcmQsIGNvbnRleHQpIHsKICBhd2FpdCBQcm9taXNlLnJlc29sdmUoKTsKICBpZihyZWNvcmQucGF0aCAhPT0gIi90bXAvdHdvLnR4dCIpIHsKICAgIHJldHVybiBudWxsOwogIH0KIGNvbnNvbGUubG9nKGBJIGdvdCAke3JlY29yZC5wYXRofWApOwogIGNvbnNvbGUubG9nKGBDb250ZXh0IGlzIGVuZHBvaW50IElEOiAke2NvbnRleHQuZW5kcG9pbnRfaWR9YCk7CiAgcmVjb3JkWyJtZXNzYWdlIl0gPSAiWW91IGdvdCBhc3luYyBmaWx0ZXJlZCEiOwogIHJlY29yZFsiZmlsdGVyZWRfYnkiXSA9IGNvbnRleHQuZmlsdGVyX25hbWU7CiAgcmVjb3JkWyJhc3luY19maWx0ZXIiXSA9IHRydWU7CiAgcmV0dXJuIHJlY29yZDsKfQ==", "test", "test", &context).unwrap();
+        assert_eq!(js.filter_context["collection_name"], "");
+        assert_eq!(js.inner.stream_kind(), RecordStreamKind::Single);
     }
 
     #[test]
