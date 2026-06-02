@@ -62,11 +62,15 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     if result.is_undefined() {
         return Ok(Value::Null);
     }
+
+    // We cannot serialize BigInteger values
+    // Very simple attempt to catch a returned BigInt type
+    // This can also be partially prevented in JavaScript directly
     if result.is_bigint()
         && let Ok(value) = result.to_string(&mut context)
         && let Ok(record) = value.to_std_string()
     {
-        return Ok(Value::String(record.into()));
+        return Ok(Value::String(record));
     }
     if let Ok(Some(value)) = result.to_json(&mut context) {
         return Ok(value);

@@ -116,72 +116,6 @@ impl ScalarRecord {
     }
 }
 
-/// A nested runtime value.
-///
-/// This is needed when preserving arrays from `BoaJS` runtime that contain different values for
-/// JSON/JSONL-style output.
-#[derive(Debug, PartialEq)]
-pub(crate) enum RecordValue {
-    /// Artifact entry represented as a JSON object.
-    Json(JsonRecord),
-    /// Scalar values from the `BoaJS` runtime
-    Scalar(ScalarRecord),
-    /// Array values from the `BoaJS` runtime
-    Array(Vec<RecordValue>),
-    /// Null value from the `BoaJS` runtime
-    Null,
-}
-
-impl RecordValue {
-    /// Builds a `RecordValue` from a JSON value
-    ///
-    /// JSON objects become `RecordValue::Json`, scalar JSON values become `RecordValue::Scalar`,
-    /// arrays become `RecordValue::Array`, and null becomes `RecordValue::Null`
-    pub(crate) fn from_value(value: Value) -> OutputResult<Self> {
-        match value {
-            Value::Null => Ok(Self::Null),
-            Value::String(_) | Value::Bool(_) | Value::Number(_) => {
-                ScalarRecord::from_value(value).map(Self::Scalar)
-            }
-            Value::Object(fields) => Ok(Self::Json(JsonRecord::new(fields))),
-            Value::Array(values) => values
-                .into_iter()
-                .map(Self::from_value)
-                .collect::<OutputResult<Vec<_>>>()
-                .map(Self::Array),
-        }
-    }
-
-    /// Convert `RecordValue` into JSON value
-    ///
-    /// Primarily used by JSON/JSONL encoders. Conversion will fail for
-    /// records that cannot be represented as valid JSON, such as non-finite float values
-    pub(crate) fn into_value(self) -> OutputResult<Value> {
-        match self {
-            Self::Scalar(value) => value.into_value(),
-            Self::Json(value) => Ok(value.into_value()),
-            Self::Array(value) => value
-                .into_iter()
-                .map(Self::into_value)
-                .collect::<OutputResult<Vec<_>>>()
-                .map(Value::Array),
-            Self::Null => Ok(Value::Null),
-        }
-    }
-
-    /// Return short name for the `RecordValue` type
-    ///
-    /// Used for errors/debugging
-    pub(crate) fn kind(&self) -> &str {
-        match self {
-            Self::Scalar(value) => value.kind(),
-            Self::Json(_) => "json",
-            Self::Array(_) => "array",
-            Self::Null => "null",
-        }
-    }
-}
-
 /// A single output entry is represented as a `Record`.
 ///
 /// `Record` describes the internal shape of one output entry before it is
@@ -194,7 +128,7 @@ pub(crate) enum Record {
     /// Scalar value produced by the `BoaJS` runtime
     Scalar(ScalarRecord),
     /// Array values produced by the `BoaJS` runtime
-    Array(Vec<RecordValue>),
+    Array(Vec<Record>),
     /// Null value produced by the `BoaJS` runtime
     Null,
 }
@@ -213,7 +147,7 @@ impl Record {
             Value::Object(fields) => Ok(Self::Json(JsonRecord::new(fields))),
             Value::Array(values) => values
                 .into_iter()
-                .map(RecordValue::from_value)
+                .map(Record::from_value)
                 .collect::<OutputResult<Vec<_>>>()
                 .map(Self::Array),
         }
@@ -229,7 +163,7 @@ impl Record {
             Self::Scalar(value) => value.into_value(),
             Self::Array(value) => value
                 .into_iter()
-                .map(RecordValue::into_value)
+                .map(Record::into_value)
                 .collect::<OutputResult<Vec<_>>>()
                 .map(Value::Array),
             Self::Null => Ok(Value::Null),

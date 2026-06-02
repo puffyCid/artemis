@@ -23,16 +23,6 @@ pub(crate) fn execute_script(
     decode_script(manager, &script.name, &script.script, &[])
 }
 
-/// Execute the provided JavaScript data from the TOML and provide a stringified serde Value as an argument to JavaScript
-pub(crate) fn filter_script(
-    manager: &mut OutputManager,
-    args: &[String],
-    filter_name: &str,
-    filter_script: &str,
-) -> Result<(), RuntimeError> {
-    decode_script(manager, filter_name, filter_script, args)
-}
-
 /// Execute raw JavaScript code
 pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     let args = [];
@@ -103,11 +93,12 @@ pub(crate) struct JsFilterRuntime {
     /// `BoaJS` runtime context
     pub(crate) context: Context,
 }
-/// Create a JavaScript runtime to filter data
+/// Create a JavaScript runtime to filter data. Used by the `OutputManager` to filter data when writing results
 pub(crate) fn create_filter_runtime(script: &str) -> Result<JsFilterRuntime, RuntimeError> {
     JsFilterRuntime::new(script)
 }
 
+/// Output our script data based the configured `OutputManager`
 pub(crate) fn output_data(
     entries: Value,
     script_name: &str,
@@ -120,18 +111,32 @@ pub(crate) fn output_data(
             return Err(RuntimeError::Output);
         }
     };
-    if let Err(err) =
-        manager.write_artifact(script_name, &"", &mut VecRecordStream::new(vec![records]))
-    {
-        error!("[runtime] Could not write record from data: {err:?}");
-        return Err(RuntimeError::Output);
+
+    match records {
+        Record::Array(record_array) => {
+            if let Err(err) =
+                manager.write_artifact(script_name, &"", &mut VecRecordStream::new(record_array))
+            {
+                println!("[runtime] Could not write record from data: {err:?}");
+                return Err(RuntimeError::Output);
+            }
+        }
+        _ => {
+            if let Err(err) =
+                manager.write_artifact(script_name, &"", &mut VecRecordStream::new(vec![records]))
+            {
+                error!("[runtime] Could not write record from data: {err:?}");
+                return Err(RuntimeError::Output);
+            }
+        }
     }
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_script, execute_script, filter_script, raw_script};
+    use super::{decode_script, execute_script, raw_script};
     use crate::{
         output2::{
             config::{OutputConfig, OutputDestination, OutputFormat},
@@ -208,12 +213,6 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_script() {
-        let mut output = output_options("split_string", "./tmp", false, OutputFormat::Text);
-        filter_script(&mut output, &vec![String::from("helloRust")], "test", "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgYXJncyA9IFNUQVRJQ19BUkdTOwogICAgaWYgKGFyZ3MubGVuZ3RoID09PSAwKSB7CiAgICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgdGVzdCA9IGFyZ3NbMF07CiAgICBjb25zdCB2YWx1ZXMgPSB0ZXN0LnNwbGl0KCJoZWxsbyIpCgogICAgcmV0dXJuIHZhbHVlczsKfQptYWluKCk7Cgo=").unwrap();
-    }
-
-    #[test]
     fn test_output_data() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Jsonl);
 
@@ -249,6 +248,16 @@ mod tests {
 
         let name = "test";
         let data = json!([{"test":"test"},123, false]);
+        let err = output_data(data, name, &mut output).unwrap_err();
+        assert!(matches!(err, RuntimeError::Output));
+    }
+
+    #[test]
+    fn test_output_data_text_format() {
+        let mut output = output_options("output_test", "./tmp", false, OutputFormat::Text);
+
+        let name = "test";
+        let data = json!(["test", "hello world!", 123, true]);
         let status = output_data(data, name, &mut output).unwrap();
         assert_eq!(status, ());
     }
