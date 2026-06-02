@@ -2,7 +2,7 @@ use crate::{
     output2::{
         context::CollectionContext,
         error::{OutputError, OutputResult},
-        record::{JsonRecord, Record, RecordStream},
+        record::{JsonRecord, Record, RecordStream, RecordStreamKind},
     },
     runtime::run::{JsFilterRuntime, create_filter_runtime},
     utils::{encoding::base64_decode_standard, strings::extract_utf8_string},
@@ -80,6 +80,10 @@ impl RecordStream for JsFilterRecordStream<'_> {
                 }
             }
         }
+    }
+
+    fn stream_kind(&self) -> RecordStreamKind {
+        RecordStreamKind::Array
     }
 }
 

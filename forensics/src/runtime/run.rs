@@ -5,7 +5,7 @@ use super::{
 use crate::{
     output2::{
         manager::OutputManager,
-        record::{Record, VecRecordStream},
+        record::{Record, SingleRecordStream, VecRecordStream},
     },
     structs::artifacts::runtime::script::JSScript,
     utils::encoding::base64_decode_standard,
@@ -121,9 +121,10 @@ pub(crate) fn output_data(
                 return Err(RuntimeError::Output);
             }
         }
+        // All other values are treat as a `SingleRecordStream`
         _ => {
             if let Err(err) =
-                manager.write_artifact(script_name, &"", &mut VecRecordStream::new(vec![records]))
+                manager.write_artifact(script_name, &"", &mut SingleRecordStream::new(records))
             {
                 error!("[runtime] Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
@@ -258,6 +259,26 @@ mod tests {
 
         let name = "test";
         let data = json!(["test", "hello world!", 123, true]);
+        let status = output_data(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data_text_format_string() {
+        let mut output = output_options("output_test", "./tmp", false, OutputFormat::Text);
+
+        let name = "test";
+        let data = json!("a very simple string of text");
+        let status = output_data(data, name, &mut output).unwrap();
+        assert_eq!(status, ());
+    }
+
+    #[test]
+    fn test_output_data_json_format_string() {
+        let mut output = output_options("output_test", "./tmp", false, OutputFormat::Json);
+
+        let name = "test";
+        let data = json!("a very simple string of text");
         let status = output_data(data, name, &mut output).unwrap();
         assert_eq!(status, ());
     }

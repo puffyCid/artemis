@@ -2,7 +2,7 @@ use crate::output2::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::OutputResult,
-    record::RecordStream,
+    record::{RecordStream, RecordStreamKind},
 };
 use std::io::Write;
 
@@ -24,7 +24,10 @@ impl ArtifactEncoder for JsonEncoder {
         context: &ArtifactContext,
     ) -> OutputResult<usize> {
         let mut count = 0;
-        writer.write_all(b"[")?;
+
+        if records.stream_kind() == RecordStreamKind::Array {
+            writer.write_all(b"[")?;
+        }
 
         while let Some(record) = records.next_record()? {
             if count > 0 {
@@ -36,7 +39,10 @@ impl ArtifactEncoder for JsonEncoder {
 
             count += 1;
         }
-        writer.write_all(b"]")?;
+        if records.stream_kind() == RecordStreamKind::Array {
+            writer.write_all(b"]")?;
+        }
+
         Ok(count)
     }
 }

@@ -183,10 +183,20 @@ impl Record {
     }
 }
 
+#[derive(PartialEq)]
+pub(crate) enum RecordStreamKind {
+    /// The stream emits a single object. Do not surround with array brackets when encoding to JSON
+    Single,
+    /// The stream emits an array of objects. Must surround with array brackets when encoding to JSON
+    Array,
+}
+
 /// Streams artifact records to an output encoder.
 pub(crate) trait RecordStream {
     /// Returns the next record, or `None` when the stream is exhausted.
     fn next_record(&mut self) -> OutputResult<Option<Record>>;
+    /// Return the stream type we are using
+    fn stream_kind(&self) -> RecordStreamKind;
 }
 
 /// A `RecordStream` backed by a vector of `Record`.
@@ -207,6 +217,35 @@ impl VecRecordStream {
 impl RecordStream for VecRecordStream {
     fn next_record(&mut self) -> OutputResult<Option<Record>> {
         Ok(self.records.next())
+    }
+
+    fn stream_kind(&self) -> RecordStreamKind {
+        RecordStreamKind::Array
+    }
+}
+
+/// A `RecordStream` for a single `Record`
+pub(crate) struct SingleRecordStream {
+    /// A single `Record` to output
+    record: Option<Record>,
+}
+
+impl SingleRecordStream {
+    /// Create a stream for a single `Record`
+    pub(crate) fn new(record: Record) -> Self {
+        Self {
+            record: Some(record),
+        }
+    }
+}
+
+impl RecordStream for SingleRecordStream {
+    fn next_record(&mut self) -> OutputResult<Option<Record>> {
+        Ok(self.record.take())
+    }
+
+    fn stream_kind(&self) -> RecordStreamKind {
+        RecordStreamKind::Single
     }
 }
 

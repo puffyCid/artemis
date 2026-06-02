@@ -86,8 +86,6 @@ pub(crate) fn js_raw_dump(
 
 #[cfg(test)]
 mod tests {
-    use common::system::Processes;
-
     use crate::{
         output2::{
             config::{OutputConfig, OutputDestination, OutputFormat},
@@ -96,6 +94,7 @@ mod tests {
         runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
+    use common::system::Processes;
     use std::{
         fs::{read, read_dir},
         path::PathBuf,
@@ -123,19 +122,15 @@ mod tests {
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
-        output.finalize().unwrap();
 
         let output_dir = PathBuf::from("./tmp").join(String::from("artemis_proc"));
         assert!(output_dir.exists());
         let mut json_files = Vec::new();
-        let mut report_files = Vec::new();
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
             if name.starts_with("artemis_info") && name.ends_with(".json") {
                 json_files.push(path);
-            } else if name.starts_with("report_") && name.ends_with(".json") {
-                report_files.push(path);
             }
         }
         assert!(json_files.len() >= 1);
