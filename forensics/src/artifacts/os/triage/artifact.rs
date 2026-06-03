@@ -70,6 +70,7 @@ pub(crate) fn triage(
     let artifact_name = "triage";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("[triage] Could not write triage report: {err:?}");
+        return Err(TriageError::Output);
     }
 
     Ok(())
