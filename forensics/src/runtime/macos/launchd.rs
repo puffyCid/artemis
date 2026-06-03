@@ -44,29 +44,32 @@ pub(crate) fn js_launchd_agents(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
-            url: Some(String::new()),
-            timeline: false,
-            api_key: Some(String::new()),
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_launchd_daemons_agents() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbGF1bmNoZC50cwpmdW5jdGlvbiBnZXRfbGF1bmNoZF9kYWVtb25zKCkgewogIGNvbnN0IGRhdGEgPSBqc19sYXVuY2hkX2RhZW1vbnMoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRfbGF1bmNoZF9hZ2VudHMoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2xhdW5jaGRfYWdlbnRzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvbW9kLnRzCmZ1bmN0aW9uIGdldExhdW5jaGRBZ2VudHMoKSB7CiAgcmV0dXJuIGdldF9sYXVuY2hkX2FnZW50cygpOwp9CmZ1bmN0aW9uIGdldExhdW5jaGREYWVtb25zKCkgewogIHJldHVybiBnZXRfbGF1bmNoZF9kYWVtb25zKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBhZ2VudHMgPSBnZXRMYXVuY2hkQWdlbnRzKCk7CiAgY29uc3QgZGFlbW9ucyA9IGdldExhdW5jaGREYWVtb25zKCk7CiAgcmV0dXJuIGFnZW50cy5jb25jYXQoZGFlbW9ucyk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("launchd_daemons"),
             script: test.to_string(),

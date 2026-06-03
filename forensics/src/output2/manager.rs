@@ -209,7 +209,7 @@ mod tests {
     use crate::output2::{
         config::{OutputConfig, OutputDestination, OutputFormat},
         manager::OutputManager,
-        record::{JsonRecord, Record, VecRecordStream},
+        record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };
     use httpmock::{
         Method::{POST, PUT},
@@ -701,5 +701,58 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert!(lines[1].contains("You got async filtered!"));
         assert!(lines[1].contains(",true"));
+    }
+
+    #[test]
+    fn test_output_manager_text() {
+        let name = String::from("manager_collection_txt");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Text,
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut records = VecRecordStream::new(vec![
+            Record::Scalar(ScalarRecord::Text(String::from("hello boa"))),
+            Record::Scalar(ScalarRecord::Integer(100)),
+            Record::Scalar(ScalarRecord::Bool(true)),
+            Record::Scalar(ScalarRecord::Float(3.14)),
+            Record::Null,
+        ]);
+
+        manage
+            .write_artifact("runtime_text", &json!({"runtime": "boajs"}), &mut records)
+            .unwrap();
+
+        manage.finalize().unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection_txt"));
+        assert!(output_dir.exists());
+        let mut txt_files = Vec::new();
+        let mut report_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("runtime_text_") && name.ends_with(".txt") {
+                txt_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            }
+        }
+        assert!(txt_files.len() >= 1);
+        let txt_data = read_to_string(&txt_files[0]).unwrap();
+        let lines = txt_data.lines().collect::<Vec<_>>();
+        assert_eq!(lines, vec!["hello boa", "100", "true", "3.14", "null"]);
+        let report_data = read_to_string(&report_files[0]).unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
+        assert_eq!(report["total_output_files"], 1);
+        assert_eq!(report["artifact_runs"][0]["name"], "runtime_text");
+        assert_eq!(report["artifact_runs"][0]["record_count"], 5);
+        assert_eq!(report["artifact_runs"][0]["status"], "completed");
     }
 }

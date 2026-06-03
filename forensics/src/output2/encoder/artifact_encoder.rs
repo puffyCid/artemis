@@ -1,6 +1,9 @@
 use crate::output2::{
     context::ArtifactContext,
-    encoder::{csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, timeline::TimelineEncoder},
+    encoder::{
+        csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, text::TextEncoder,
+        timeline::TimelineEncoder,
+    },
     error::OutputResult,
     record::RecordStream,
 };
@@ -19,6 +22,8 @@ pub(crate) enum Encoder {
     Csv(CsvEncoder),
     /// Timeline encoder
     Timeline(TimelineEncoder),
+    /// Plaintext encoder
+    Text(TextEncoder),
 }
 
 impl Encoder {
@@ -29,6 +34,7 @@ impl Encoder {
             Self::Json(encoder) => encoder.extension(),
             Self::Jsonl(encoder) => encoder.extension(),
             Self::Timeline(encoder) => encoder.extension(),
+            Self::Text(encoder) => encoder.extension(),
         }
     }
 
@@ -41,6 +47,7 @@ impl Encoder {
             Self::Json(encoder) => encoder.mime_type(),
             Self::Jsonl(encoder) => encoder.mime_type(),
             Self::Timeline(encoder) => encoder.mime_type(),
+            Self::Text(encoder) => encoder.mime_type(),
         }
     }
 
@@ -58,6 +65,7 @@ impl Encoder {
             Self::Json(encoder) => encoder.encode(records, writer, context),
             Self::Jsonl(encoder) => encoder.encode(records, writer, context),
             Self::Timeline(encoder) => encoder.encode(records, writer, context),
+            Self::Text(encoder) => encoder.encode(records, writer, context),
         }
     }
 }
@@ -88,10 +96,11 @@ mod tests {
         context::CollectionContext,
         encoder::{
             artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
+            text::TextEncoder,
         },
-        record::{JsonRecord, Record, VecRecordStream},
+        record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };
-    use serde_json::json;
+    use serde_json::{Value, json};
     use std::{io::Cursor, path::PathBuf};
 
     #[test]
@@ -146,5 +155,63 @@ mod tests {
         assert_eq!(jsonl_encoder.extension(), "jsonl");
         assert_eq!(jsonl_encoder.mime_type(), "application/jsonl");
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_text_encoder() {
+        let text_encoder = Encoder::Text(TextEncoder);
+        let output = OutputConfig::default();
+
+        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        );
+
+        let mut writer = Cursor::new(Vec::new());
+        let count = text_encoder
+            .encode(
+                &mut VecRecordStream::new(vec![Record::Scalar(
+                    ScalarRecord::from_value(Value::String("test".into())).unwrap(),
+                )]),
+                &mut writer,
+                context,
+            )
+            .unwrap();
+
+        assert_eq!(text_encoder.extension(), "txt");
+        assert_eq!(text_encoder.mime_type(), "text/plain");
+        assert_eq!(count, 1);
+        assert_eq!(String::from_utf8(writer.into_inner()).unwrap(), "test\n");
+    }
+
+    #[test]
+    fn test_text_encoder_array() {
+        let text_encoder = Encoder::Text(TextEncoder);
+        let output = OutputConfig::default();
+
+        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        );
+
+        let mut writer = Cursor::new(Vec::new());
+        let count = text_encoder
+            .encode(
+                &mut VecRecordStream::new(vec![
+                    Record::from_value(json!(["one", 2, true, 3.14])).unwrap(),
+                ]),
+                &mut writer,
+                context,
+            )
+            .unwrap();
+
+        assert_eq!(text_encoder.extension(), "txt");
+        assert_eq!(text_encoder.mime_type(), "text/plain");
+        assert_eq!(count, 1);
+
+        let output = String::from_utf8(writer.into_inner()).unwrap();
+        assert_eq!(output, "[\"one\",2,true,3.14]\n");
     }
 }

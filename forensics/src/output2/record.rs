@@ -1,6 +1,6 @@
 use crate::output2::error::{OutputError, OutputResult};
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 use std::vec::IntoIter;
 
 /// A JSON backed artifact record represented as a key/value object
@@ -21,20 +21,184 @@ impl JsonRecord {
     }
 }
 
-/// A single artifact entry is represented as a `Record`.
+/// A single `BoaJS` runtime scalar entry
 ///
-/// `Record` describes the internal shape of one artifact entry before it is
-/// encoded into an output format.
+/// `ScalarRecord` describes the primitive `BoaJS` entry before it is encoded
+/// into an output format
+#[derive(Debug, PartialEq)]
+pub(crate) enum ScalarRecord {
+    /// String value
+    Text(String),
+    /// Boolean value
+    Bool(bool),
+    /// Integer value
+    Integer(i64),
+    /// Unsigned integer value
+    UnsignedInteger(u64),
+    /// Float value
+    Float(f64),
+}
+
+impl ScalarRecord {
+    /// Builds a `ScalarRecord` from a JSON value
+    ///
+    /// String becomes `ScalarRecord::Text`, bool becomes `ScalarRecord::Bool`,
+    /// Number becomes `ScalarRecord::Integer` or `ScalarRecord::Float` or `ScalarRecord::UnsignedInteger`
+    ///
+    /// `BigInt` cannot be built from `serde_json::Value` it must be done
+    /// at the `BoaJS` value layer
+    pub(crate) fn from_value(value: Value) -> OutputResult<Self> {
+        match value {
+            Value::String(value) => Ok(Self::Text(value)),
+            Value::Bool(value) => Ok(Self::Bool(value)),
+            Value::Number(value) => Self::from_number(value),
+            _ => Err(OutputError::Record(String::from(
+                "value was not a scalar record",
+            ))),
+        }
+    }
+
+    /// Convert `ScalarRecord` into JSON value
+    ///
+    /// Primarily used by JSON/JSONL encoders. Conversion will fail for
+    /// records that cannot be represented as valid JSON, such as non-finite float values
+    pub(crate) fn into_value(self) -> OutputResult<Value> {
+        match self {
+            ScalarRecord::Text(value) => Ok(Value::String(value)),
+            ScalarRecord::Bool(value) => Ok(Value::Bool(value)),
+            ScalarRecord::Integer(value) => Ok(Value::Number(value.into())),
+            ScalarRecord::UnsignedInteger(value) => Ok(Value::Number(value.into())),
+            ScalarRecord::Float(value) => {
+                Number::from_f64(value).map(Value::Number).ok_or_else(|| {
+                    OutputError::Record(String::from("float number not a finite JSON number"))
+                })
+            }
+        }
+    }
+
+    /// Return short name for the `ScalarRecord` type
+    ///
+    /// Used for errors/debugging
+    pub(crate) fn kind(&self) -> &str {
+        match self {
+            ScalarRecord::Text(_) => "text",
+            ScalarRecord::Bool(_) => "bool",
+            ScalarRecord::Integer(_) => "integer",
+            ScalarRecord::Float(_) => "float",
+            ScalarRecord::UnsignedInteger(_) => "unsignedinteger",
+        }
+    }
+
+    /// Convert `ScalarRecord` into text value
+    pub(crate) fn to_text(&self) -> String {
+        match self {
+            ScalarRecord::Text(value) => value.clone(),
+            ScalarRecord::Bool(value) => value.to_string(),
+            ScalarRecord::Integer(value) => value.to_string(),
+            ScalarRecord::Float(value) => value.to_string(),
+            ScalarRecord::UnsignedInteger(value) => value.to_string(),
+        }
+    }
+
+    /// Attempt to convert the JavaScript number to proper `ScalarRecord`
+    fn from_number(value: Number) -> OutputResult<Self> {
+        if let Some(value) = value.as_u64() {
+            return Ok(Self::UnsignedInteger(value));
+        }
+
+        if let Some(value) = value.as_i64() {
+            return Ok(Self::Integer(value));
+        }
+
+        if let Some(value) = value.as_f64() {
+            return Ok(Self::Float(value));
+        }
+
+        Err(OutputError::Record(String::from("unsupported JSON number")))
+    }
+}
+
+/// A single output entry is represented as a `Record`.
+///
+/// `Record` describes the internal shape of one output entry before it is
+/// encoded into an output format. Rust artifact parsers produce `JsonRecord` values,
+/// while the `BoaJS` runtime may produce scalar, array, or null records.
 #[derive(Debug, PartialEq)]
 pub(crate) enum Record {
     /// Artifact entry represented as a JSON object.
     Json(JsonRecord),
+    /// Scalar value produced by the `BoaJS` runtime
+    Scalar(ScalarRecord),
+    /// Array values produced by the `BoaJS` runtime
+    Array(Vec<Record>),
+    /// Null value produced by the `BoaJS` runtime
+    Null,
+}
+
+impl Record {
+    /// Builds a `Record` from a JSON value
+    ///
+    /// JSON objects become `Record::Json`, scalar JSON values become `Record::Scalar`,
+    /// arrays become `Record::Array`, and null becomes `Record::Null`
+    pub(crate) fn from_value(value: Value) -> OutputResult<Self> {
+        match value {
+            Value::Null => Ok(Self::Null),
+            Value::String(_) | Value::Bool(_) | Value::Number(_) => {
+                ScalarRecord::from_value(value).map(Self::Scalar)
+            }
+            Value::Object(fields) => Ok(Self::Json(JsonRecord::new(fields))),
+            Value::Array(values) => values
+                .into_iter()
+                .map(Record::from_value)
+                .collect::<OutputResult<Vec<_>>>()
+                .map(Self::Array),
+        }
+    }
+
+    /// Convert `Record` into JSON value
+    ///
+    /// Primarily used by JSON/JSONL encoders. Conversion will fail for
+    /// records that cannot be represented as valid JSON, such as non-finite float values
+    pub(crate) fn into_value(self) -> OutputResult<Value> {
+        match self {
+            Self::Json(value) => Ok(value.into_value()),
+            Self::Scalar(value) => value.into_value(),
+            Self::Array(value) => value
+                .into_iter()
+                .map(Record::into_value)
+                .collect::<OutputResult<Vec<_>>>()
+                .map(Value::Array),
+            Self::Null => Ok(Value::Null),
+        }
+    }
+
+    /// Return short name for the `Record` type
+    ///
+    /// Used for errors/debugging
+    pub(crate) fn kind(&self) -> &str {
+        match self {
+            Self::Scalar(value) => value.kind(),
+            Self::Json(_) => "json",
+            Self::Array(_) => "array",
+            Self::Null => "null",
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum RecordStreamKind {
+    /// The stream emits a single object. Do not surround with array brackets when encoding to JSON
+    Single,
+    /// The stream emits an array of objects. Must surround with array brackets when encoding to JSON
+    Array,
 }
 
 /// Streams artifact records to an output encoder.
 pub(crate) trait RecordStream {
     /// Returns the next record, or `None` when the stream is exhausted.
     fn next_record(&mut self) -> OutputResult<Option<Record>>;
+    /// Return the stream type we are using
+    fn stream_kind(&self) -> RecordStreamKind;
 }
 
 /// A `RecordStream` backed by a vector of `Record`.
@@ -55,6 +219,35 @@ impl VecRecordStream {
 impl RecordStream for VecRecordStream {
     fn next_record(&mut self) -> OutputResult<Option<Record>> {
         Ok(self.records.next())
+    }
+
+    fn stream_kind(&self) -> RecordStreamKind {
+        RecordStreamKind::Array
+    }
+}
+
+/// A `RecordStream` for a single `Record`
+pub(crate) struct SingleRecordStream {
+    /// A single `Record` to output
+    record: Option<Record>,
+}
+
+impl SingleRecordStream {
+    /// Create a stream for a single `Record`
+    pub(crate) fn new(record: Record) -> Self {
+        Self {
+            record: Some(record),
+        }
+    }
+}
+
+impl RecordStream for SingleRecordStream {
+    fn next_record(&mut self) -> OutputResult<Option<Record>> {
+        Ok(self.record.take())
+    }
+
+    fn stream_kind(&self) -> RecordStreamKind {
+        RecordStreamKind::Single
     }
 }
 
@@ -132,11 +325,17 @@ mod tests {
             Record::Json(record) => {
                 assert_eq!(record.into_value(), json!({ "path": "/tmp/one.txt" }));
             }
+            Record::Scalar(_) => panic!("not scalar?"),
+            Record::Array(_) => panic!("not array"),
+            Record::Null => panic!("not null"),
         }
         match second {
             Record::Json(record) => {
                 assert_eq!(record.into_value(), json!({ "path": "/tmp/two.txt" }));
             }
+            Record::Scalar(_) => panic!("not scalar?"),
+            Record::Array(_) => panic!("not array"),
+            Record::Null => panic!("not null"),
         }
         assert!(third.is_none());
     }

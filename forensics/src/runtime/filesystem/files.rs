@@ -197,27 +197,34 @@ pub(crate) fn js_read_file(
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::run::execute_script;
-    use crate::structs::artifacts::runtime::script::JSScript;
-    use crate::structs::toml::Output;
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        runtime::run::execute_script,
+        structs::artifacts::runtime::script::JSScript,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     #[cfg(target_os = "macos")]
     fn test_js_stat_mac() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3N0YXQocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB0YXJnZXQgPSAiL1VzZXJzIjsKICBjb25zdCBkYXRhID0gc3RhdCh0YXJnZXQpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("stat_path"),
             script: test.to_string(),
@@ -229,7 +236,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_js_stat_windows() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3N0YXQocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB0YXJnZXQgPSAiQzpcXFVzZXJzIjsKICBjb25zdCBkYXRhID0gc3RhdCh0YXJnZXQpOwogIHJldHVybiBkYXRhOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("stat_path"),
             script: test.to_string(),
@@ -241,7 +248,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn test_js_stat_linux() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gc3RhdChwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3N0YXQocGF0aCk7CiAgY29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkoZGF0YSkpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgdGFyZ2V0ID0gIi9ldGMiOwogIGNvbnN0IGRhdGEgPSBzdGF0KHRhcmdldCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOw==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("stat_path"),
             script: test.to_string(),
@@ -253,7 +260,7 @@ mod tests {
     #[cfg(target_family = "unix")]
     fn test_js_hash_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIi9iaW4iOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),
             script: test.to_string(),
@@ -265,7 +272,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_js_hash_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIkM6XFwiOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),
             script: test.to_string(),
@@ -277,7 +284,7 @@ mod tests {
     #[cfg(target_family = "unix")]
     fn test_js_read_text_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19yZWFkX3RleHRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiL2V0Yy9yZXNvbHYuY29uZiI7CiAgY29uc3QgZGF0YSA9IHJlYWRUZXh0RmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_text"),
             script: test.to_string(),
@@ -289,7 +296,7 @@ mod tests {
     #[cfg(target_family = "unix")]
     fn test_js_read_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3JlYWRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiL2V0Yy9yZXNvbHYuY29uZiI7CiAgY29uc3QgZGF0YSA9IHJlYWRGaWxlKHBhdGgpOwogIHJldHVybiBBcnJheS5mcm9tKGRhdGEpOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_file"),
             script: test.to_string(),
@@ -301,7 +308,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_js_read_text_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19yZWFkX3RleHRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiQzpcXFdpbmRvd3NcXHdpbi5pbmkiOwogIGNvbnN0IGRhdGEgPSByZWFkVGV4dEZpbGUocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_text"),
             script: test.to_string(),
@@ -313,7 +320,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_js_read_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3JlYWRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiQzpcXFdpbmRvd3NcXHdpbi5pbmkiOwogIGNvbnN0IGRhdGEgPSByZWFkRmlsZShwYXRoKTsKICByZXR1cm4gQXJyYXkuZnJvbShkYXRhKTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_text"),
             script: test.to_string(),
@@ -325,7 +332,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     fn test_js_glob() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRocyA9IGdsb2IoIkM6XFwqIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBnbG9iIHBhdGg6ICR7cGF0aHN9YCk7CiAgfQogIHJldHVybiBwYXRoczsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("glob"),
             script: test.to_string(),
@@ -337,18 +344,19 @@ mod tests {
     #[cfg(target_family = "unix")]
     fn test_js_glob() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBwYXRocyA9IGdsb2IoIi8qIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBnbG9iIHBhdGg6ICR7cGF0aHN9YCk7CiAgfQogIHJldHVybiBwYXRoczsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("glob"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
+        output.finalize().unwrap();
     }
 
     #[test]
     fn test_read_lines() {
         let test = "KCgpID0+IHsKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKICB2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgICBuYW1lOwogICAgbWVzc2FnZTsKICAgIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgICAgc3VwZXIoKTsKICAgICAgdGhpcy5uYW1lID0gbmFtZTsKICAgICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICAgIH0KICB9OwoKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZmlsZXN5c3RlbS9lcnJvcnMudHMKICB2YXIgRmlsZUVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2UgewogIH07CgogIC8vIC4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCiAgZnVuY3Rpb24gcmVhZExpbmVzKHBhdGgsIG9mZnNldCA9IDAsIGxpbWl0ID0gMTAwKSB7CiAgICBpZiAob2Zmc2V0IDwgMCB8fCBsaW1pdCA8IDApIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgbmVpdGhlciBvZmZzZXQgKCR7b2Zmc2V0fSkgb3IgbGltaXQgKCR7bGltaXR9KSBjYW4gYmUgbGVzcyB0aGFuIDBgKTsKICAgIH0KICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdCA9IGpzX3JlYWRfbGluZXMocGF0aCwgb2Zmc2V0LCBsaW1pdCk7CiAgICAgIHJldHVybiByZXN1bHQ7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgZmFpbGVkIHRvIHJlYWQgbGluZXMgZm9yICR7cGF0aH06ICR7ZXJyfWApOwogICAgfQogIH0KCiAgLy8gbWFpbi50cwogIGZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIi9ldGMvcmVzb2x2LmNvbmYiOwogICAgY29uc3QgbGluZXMgPSByZWFkTGluZXMocGF0aCk7CiAgICBpZiAobGluZXMgaW5zdGFuY2VvZiBGaWxlRXJyb3IpIHsKICAgICAgcmV0dXJuOwogICAgfQogICAgY29uc29sZS5sb2coYHJlYWQ6ICR7bGluZXMubGVuZ3RofWApOwogIH0KICBtYWluKCk7Cn0pKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_lines"),
             script: test.to_string(),

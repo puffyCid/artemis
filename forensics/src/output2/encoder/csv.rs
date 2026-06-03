@@ -1,7 +1,7 @@
 use crate::output2::{
     context::ArtifactContext,
     encoder::artifact_encoder::ArtifactEncoder,
-    error::OutputResult,
+    error::{OutputError, OutputResult},
     record::{Record, RecordStream},
 };
 use csv::{Writer, WriterBuilder};
@@ -31,7 +31,9 @@ impl ArtifactEncoder for CsvEncoder {
         };
 
         // Need headers first
-        let Record::Json(record) = record;
+        let Record::Json(record) = record else {
+            return Err(OutputError::unsupported_record("csv", record.kind()));
+        };
         let fields = record.fields;
         let headers: Vec<String> = fields.keys().cloned().collect();
         csv_writer.write_record(&headers)?;
@@ -41,7 +43,9 @@ impl ArtifactEncoder for CsvEncoder {
 
         // Now write each row
         while let Some(record) = records.next_record()? {
-            let Record::Json(record) = record;
+            let Record::Json(record) = record else {
+                return Err(OutputError::unsupported_record("csv", record.kind()));
+            };
             write_row(&mut csv_writer, &headers, &record.fields)?;
 
             count += 1;

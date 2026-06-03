@@ -46,6 +46,8 @@ pub(crate) enum OutputFormat {
     Jsonl,
     Csv,
     Timeline,
+    /// Plaintext output for `BoaJS` runtime data
+    Text,
 }
 
 /// Determine where our data should be sent
@@ -94,6 +96,8 @@ impl TryFrom<Output> for OutputConfig {
 
 impl OutputFormat {
     /// Parse format string to format enum value
+    ///
+    /// `BoaJS` only formats such as `Text` are rejected
     pub(crate) fn parse(value: &str) -> Result<Self, OutputError> {
         match value.to_ascii_lowercase().as_str() {
             "json" => Ok(Self::Json),
@@ -101,6 +105,25 @@ impl OutputFormat {
             "csv" => Ok(Self::Csv),
             "timeline" => Ok(Self::Timeline),
             _ => Err(OutputError::UnsupportedFormat(value.to_string())),
+        }
+    }
+
+    /// Parse format string for `BoaJS` runtime output
+    pub(crate) fn parse_runtime(value: &str) -> Result<Self, OutputError> {
+        match value.to_ascii_lowercase().as_str() {
+            "txt" | "text" => Ok(Self::Text),
+            _ => Self::parse(value),
+        }
+    }
+
+    /// Return format name for logging and debugging
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            OutputFormat::Json => "json",
+            OutputFormat::Jsonl => "jsonl",
+            OutputFormat::Csv => "csv",
+            OutputFormat::Timeline => "timeline",
+            OutputFormat::Text => "text",
         }
     }
 }

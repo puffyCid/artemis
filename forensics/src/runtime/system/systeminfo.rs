@@ -71,26 +71,32 @@ pub(crate) fn js_platform(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_get_systeminfo() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3Mvc3lzdGVtaW5mby50cwpmdW5jdGlvbiBnZXRfc3lzdGVtaW5mb193aW4oKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dldF9zeXN0ZW1pbmZvKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIC4uLy4uL2FydGVtaXMtYXBpL21vZC50cwpmdW5jdGlvbiBnZXRTeXN0ZW1JbmZvV2luKCkgewogIHJldHVybiBnZXRfc3lzdGVtaW5mb193aW4oKTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGluZm8gPSBnZXRTeXN0ZW1JbmZvV2luKCk7CiAgcmV0dXJuIGluZm87Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),
@@ -101,7 +107,7 @@ mod tests {
     #[test]
     fn test_js_uptime() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gdXB0aW1lKCkgewogIGNvbnN0IGRhdGEgPSBqc191cHRpbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvc1ZlcnNpb24oKSB7CiAgY29uc3QgZGF0YSA9IGpzX29zX3ZlcnNpb24oKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBrZXJuZWxWZXJzaW9uKCkgewogIGNvbnN0IGRhdGEgPSBqc19rZXJuZWxfdmVyc2lvbigpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIHBsYXRmb3JtKCkgewogIGNvbnN0IGRhdGEgPSBqc19wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9zeXN0ZW0vZGlza3MudHMKZnVuY3Rpb24gZGlza3MoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2Rpc2tzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9jcHUudHMKZnVuY3Rpb24gY3B1cygpIHsKICBjb25zdCBkYXRhID0ganNfY3B1KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9tZW1vcnkudHMKZnVuY3Rpb24gbWVtb3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19tZW1vcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRpbWUgPSB1cHRpbWUoKTsKICBjb25zdCBrZXJuZWwgPSBrZXJuZWxWZXJzaW9uKCk7CiAgY29uc3Qgb3MgPSBvc1ZlcnNpb24oKTsKICBjb25zdCBpbmZvID0gcGxhdGZvcm0oKTsKICBjb25zdCBkaXNrID0gZGlza3MoKTsKICBjb25zdCBtZW0gPSBtZW1vcnkoKTsKICBjb25zdCBjcHUgPSBjcHVzKCk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),
@@ -112,7 +118,7 @@ mod tests {
     #[test]
     fn test_js_platform() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gdXB0aW1lKCkgewogIGNvbnN0IGRhdGEgPSBqc191cHRpbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBob3N0bmFtZSgpIHsKICBjb25zdCBkYXRhID0ganNfaG9zdG5hbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvc1ZlcnNpb24oKSB7CiAgY29uc3QgZGF0YSA9IGpzX29zX3ZlcnNpb24oKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBrZXJuZWxWZXJzaW9uKCkgewogIGNvbnN0IGRhdGEgPSBqc19rZXJuZWxfdmVyc2lvbigpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIHBsYXRmb3JtKCkgewogIGNvbnN0IGRhdGEgPSBqc19wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9zeXN0ZW0vZGlza3MudHMKZnVuY3Rpb24gZGlza3MoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2Rpc2tzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9jcHUudHMKZnVuY3Rpb24gY3B1cygpIHsKICBjb25zdCBkYXRhID0ganNfY3B1KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9tZW1vcnkudHMKZnVuY3Rpb24gbWVtb3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19tZW1vcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRpbWUgPSB1cHRpbWUoKTsKICBjb25zdCBrZXJuZWwgPSBrZXJuZWxWZXJzaW9uKCk7CiAgY29uc3Qgb3MgPSBvc1ZlcnNpb24oKTsKICBjb25zdCBpbmZvID0gcGxhdGZvcm0oKTsKICBjb25zdCBkaXNrID0gZGlza3MoKTsKICBjb25zdCBtZW0gPSBtZW1vcnkoKTsKICBjb25zdCBjcHUgPSBjcHVzKCk7CiAgY29uc3QgaG9zdCA9IGhvc3RuYW1lKCk7CiAgY29uc29sZS5sb2coCiAgICBgVXB0aW1lOiAke3RpbWV9IC0gS2VybmVsOiAke2tlcm5lbH0gLSBPUzogJHtvc30gLSBQbGF0Zm9ybTogJHtpbmZvfSAtIEhvc3RuYW1lOiAke2hvc3R9YAogICk7CiAgY29uc29sZS5sb2coCiAgICBgRGlza3MgU3BhY2U6ICR7ZGlza1swXS50b3RhbF9zcGFjZX0gLSBUb3RhbCBNZW1vcnk6ICR7bWVtLnRvdGFsX21lbW9yeX0gLSBDUFUgQnJhbmQ6ICR7Y3B1WzBdLmJyYW5kfWAKICApOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),
@@ -123,7 +129,7 @@ mod tests {
     #[test]
     fn test_js_hostname() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gdXB0aW1lKCkgewogIGNvbnN0IGRhdGEgPSBqc191cHRpbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBob3N0bmFtZSgpIHsKICBjb25zdCBkYXRhID0ganNfaG9zdG5hbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvc1ZlcnNpb24oKSB7CiAgY29uc3QgZGF0YSA9IGpzX29zX3ZlcnNpb24oKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBrZXJuZWxWZXJzaW9uKCkgewogIGNvbnN0IGRhdGEgPSBqc19rZXJuZWxfdmVyc2lvbigpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIHBsYXRmb3JtKCkgewogIGNvbnN0IGRhdGEgPSBqc19wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9zeXN0ZW0vZGlza3MudHMKZnVuY3Rpb24gZGlza3MoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2Rpc2tzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9jcHUudHMKZnVuY3Rpb24gY3B1cygpIHsKICBjb25zdCBkYXRhID0ganNfY3B1KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9tZW1vcnkudHMKZnVuY3Rpb24gbWVtb3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19tZW1vcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRpbWUgPSB1cHRpbWUoKTsKICBjb25zdCBrZXJuZWwgPSBrZXJuZWxWZXJzaW9uKCk7CiAgY29uc3Qgb3MgPSBvc1ZlcnNpb24oKTsKICBjb25zdCBpbmZvID0gcGxhdGZvcm0oKTsKICBjb25zdCBkaXNrID0gZGlza3MoKTsKICBjb25zdCBtZW0gPSBtZW1vcnkoKTsKICBjb25zdCBjcHUgPSBjcHVzKCk7CiAgY29uc3QgaG9zdCA9IGhvc3RuYW1lKCk7CiAgY29uc29sZS5sb2coCiAgICBgVXB0aW1lOiAke3RpbWV9IC0gS2VybmVsOiAke2tlcm5lbH0gLSBPUzogJHtvc30gLSBQbGF0Zm9ybTogJHtpbmZvfSAtIEhvc3RuYW1lOiAke2hvc3R9YAogICk7CiAgY29uc29sZS5sb2coCiAgICBgRGlza3MgU3BhY2U6ICR7ZGlza1swXS50b3RhbF9zcGFjZX0gLSBUb3RhbCBNZW1vcnk6ICR7bWVtLnRvdGFsX21lbW9yeX0gLSBDUFUgQnJhbmQ6ICR7Y3B1WzBdLmJyYW5kfWAKICApOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),
@@ -134,7 +140,7 @@ mod tests {
     #[test]
     fn test_js_os_version() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gdXB0aW1lKCkgewogIGNvbnN0IGRhdGEgPSBqc191cHRpbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvc1ZlcnNpb24oKSB7CiAgY29uc3QgZGF0YSA9IGpzX29zX3ZlcnNpb24oKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBrZXJuZWxWZXJzaW9uKCkgewogIGNvbnN0IGRhdGEgPSBqc19rZXJuZWxfdmVyc2lvbigpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIHBsYXRmb3JtKCkgewogIGNvbnN0IGRhdGEgPSBqc19wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9zeXN0ZW0vZGlza3MudHMKZnVuY3Rpb24gZGlza3MoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2Rpc2tzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9jcHUudHMKZnVuY3Rpb24gY3B1cygpIHsKICBjb25zdCBkYXRhID0ganNfY3B1KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9tZW1vcnkudHMKZnVuY3Rpb24gbWVtb3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19tZW1vcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRpbWUgPSB1cHRpbWUoKTsKICBjb25zdCBrZXJuZWwgPSBrZXJuZWxWZXJzaW9uKCk7CiAgY29uc3Qgb3MgPSBvc1ZlcnNpb24oKTsKICBjb25zdCBpbmZvID0gcGxhdGZvcm0oKTsKICBjb25zdCBkaXNrID0gZGlza3MoKTsKICBjb25zdCBtZW0gPSBtZW1vcnkoKTsKICBjb25zdCBjcHUgPSBjcHVzKCk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),
@@ -145,7 +151,7 @@ mod tests {
     #[test]
     fn test_js_kernel_version() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvc3lzdGVtL3N5c3RlbWluZm8udHMKZnVuY3Rpb24gdXB0aW1lKCkgewogIGNvbnN0IGRhdGEgPSBqc191cHRpbWUoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBvc1ZlcnNpb24oKSB7CiAgY29uc3QgZGF0YSA9IGpzX29zX3ZlcnNpb24oKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBrZXJuZWxWZXJzaW9uKCkgewogIGNvbnN0IGRhdGEgPSBqc19rZXJuZWxfdmVyc2lvbigpOwogIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIHBsYXRmb3JtKCkgewogIGNvbnN0IGRhdGEgPSBqc19wbGF0Zm9ybSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9zeXN0ZW0vZGlza3MudHMKZnVuY3Rpb24gZGlza3MoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2Rpc2tzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9jcHUudHMKZnVuY3Rpb24gY3B1cygpIHsKICBjb25zdCBkYXRhID0ganNfY3B1KCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL3N5c3RlbS9tZW1vcnkudHMKZnVuY3Rpb24gbWVtb3J5KCkgewogIGNvbnN0IGRhdGEgPSBqc19tZW1vcnkoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHRpbWUgPSB1cHRpbWUoKTsKICBjb25zdCBrZXJuZWwgPSBrZXJuZWxWZXJzaW9uKCk7CiAgY29uc3Qgb3MgPSBvc1ZlcnNpb24oKTsKICBjb25zdCBpbmZvID0gcGxhdGZvcm0oKTsKICBjb25zdCBkaXNrID0gZGlza3MoKTsKICBjb25zdCBtZW0gPSBtZW1vcnkoKTsKICBjb25zdCBjcHUgPSBjcHVzKCk7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("systeminfo"),
             script: test.to_string(),

@@ -2,7 +2,7 @@ use crate::output2::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::OutputResult,
-    record::{Record, RecordStream},
+    record::RecordStream,
 };
 use std::io::Write;
 
@@ -26,8 +26,7 @@ impl ArtifactEncoder for JsonlEncoder {
         let mut count = 0;
 
         while let Some(record) = records.next_record()? {
-            let Record::Json(record) = record;
-            let mut value = record.into_value();
+            let mut value = record.into_value()?;
             append_metadata(&mut value, context);
             serde_json::to_writer(&mut *writer, &value)?;
             writer.write_all(b"\n")?;

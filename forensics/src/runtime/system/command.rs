@@ -56,26 +56,34 @@ pub(crate) fn js_command(
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::run::execute_script;
-    use crate::{structs::artifacts::runtime::script::JSScript, structs::toml::Output};
+    use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        runtime::run::execute_script,
+        structs::artifacts::runtime::script::JSScript,
+    };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[cfg(target_family = "unix")]
     #[test]
     fn test_js_command() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBqc19jb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGNvbW1hbmQgPSAibHMiOwogIGNvbnN0IGFyZ3MgPSBbIi1sIiwgIi1oIiwgIi1hIl07CiAgY29uc3QgcmVzdWx0cyA9IGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIHJldHVybiByZXN1bHRzOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("command"),
             script: test.to_string(),
@@ -87,7 +95,7 @@ mod tests {
     #[test]
     fn test_js_command() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3N5c3RlbS9jb21tYW5kLnRzCmZ1bmN0aW9uIGV4ZWN1dGVDb21tYW5kKGNvbW1hbmQsIGFyZ3MgPSBbXSkgewogIGNvbnN0IGRhdGEgPSBqc19jb21tYW5kKGNvbW1hbmQsIGFyZ3MpOwogIGlmIChkYXRhIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIHJldHVybiBkYXRhOwogIH0KICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGNvbW1hbmQgPSAiIEM6XFdpbmRvd3NcU3lzdGVtMzJcd2hvYW1pLmV4ZSI7CiAgY29uc3QgYXJncyA9IFtdOwogIGNvbnN0IHJlc3VsdHMgPSBleGVjdXRlQ29tbWFuZChjb21tYW5kLCBhcmdzKTsKICByZXR1cm4gcmVzdWx0czsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("command"),
             script: test.to_string(),

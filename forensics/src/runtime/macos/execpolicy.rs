@@ -35,26 +35,32 @@ pub(crate) fn js_execpolicy(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_execpolicy() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvZXhlY3BvbGljeS50cwpmdW5jdGlvbiBnZXRfZXhlY3BvbGljeSgpIHsKICBjb25zdCBkYXRhID0ganNfZXhlY3BvbGljeSgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL21vZC50cwpmdW5jdGlvbiBnZXRFeGVjUG9saWN5KCkgewogIHJldHVybiBnZXRfZXhlY3BvbGljeSgpOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldEV4ZWNQb2xpY3koKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "local", "./tmp", true);
+        let mut output = output_options("runtime_test", "./tmp", true);
         let script = JSScript {
             name: String::from("execpolicy"),
             script: test.to_string(),

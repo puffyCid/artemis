@@ -27,26 +27,32 @@ pub(crate) fn js_get_journal(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_get_journal() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbGludXgvam91cm5hbC50cwpmdW5jdGlvbiBnZXRKb3VybmFsKHBhdGgpIHsKICBjb25zdCBkYXRhID0ganNfZ2V0X2pvdXJuYWwocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvc3JjL2ZpbGVzeXN0ZW0vZGlyZWN0b3J5LnRzCmFzeW5jIGZ1bmN0aW9uIHJlYWREaXIocGF0aCkgewogIGNvbnN0IGRhdGEgPSBhd2FpdCBqc19yZWFkX2RpcihwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGpvdXJuYWxzID0gIi92YXIvbG9nL2pvdXJuYWwiOwogIGZvciAoY29uc3QgZW50cnkgb2YgYXdhaXQgcmVhZERpcihqb3VybmFscykpIHsKICAgIGlmICghZW50cnkuaXNfZGlyZWN0b3J5KSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgZnVsbF9wYXRoID0gYCR7am91cm5hbHN9LyR7ZW50cnkuZmlsZW5hbWV9YDsKICAgIGZvciAoY29uc3QgZmlsZXMgb2YgYXdhaXQgcmVhZERpcihmdWxsX3BhdGgpKSB7CiAgICAgIGlmICghZmlsZXMuZmlsZW5hbWUuZW5kc1dpdGgoImpvdXJuYWwiKSkgewogICAgICAgIGNvbnRpbnVlOwogICAgICB9CiAgICAgIGNvbnN0IGpvdXJuYWxfZmlsZSA9IGAke2Z1bGxfcGF0aH0vJHtmaWxlcy5maWxlbmFtZX1gOwogICAgICBjb25zdCBkYXRhID0gZ2V0Sm91cm5hbChqb3VybmFsX2ZpbGUpOwogICAgICByZXR1cm4gZGF0YTsKICAgIH0KICB9Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "local", "./tmp", false);
+        let mut output = output_options("runtime_test", "./tmp", false);
 
         let script = JSScript {
             name: String::from("journal"),

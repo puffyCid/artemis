@@ -89,7 +89,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         }
     }
 
-    artemis_collection(collector).unwrap();
+    artemis_collection(collector).expect("Failed to run collector due bad arguments")
 }
 
 /// Setup any artifact options

@@ -109,7 +109,10 @@ pub(crate) fn get_srum(path: &str, table: &str) -> Result<Value, SrumError> {
 
     let mut serde_data = Value::Array(Vec::new());
     while let Ok(Some(entries)) = srum_data.next_record() {
-        let Record::Json(record) = entries;
+        let Record::Json(record) = entries else {
+            error!("[srum] Got non JsonRecord type");
+            return Err(SrumError::Serialize);
+        };
         serde_data.as_array_mut().unwrap().push(record.into_value());
     }
 

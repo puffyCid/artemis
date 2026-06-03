@@ -18,7 +18,9 @@ use crate::{
     filesystem::files::{file_extension, list_files, read_file},
     output2::{
         manager::OutputManager,
-        record::{VecRecordStream, serialize_records_to_stream, serialize_to_record},
+        record::{
+            SingleRecordStream, VecRecordStream, serialize_records_to_stream, serialize_to_record,
+        },
     },
     structs::artifacts::os::windows::EventLogsOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
@@ -194,11 +196,9 @@ fn alt_eventlogs(
             }
         };
         let artifact_name = "eventlog_templates";
-        if let Err(err) = manager.write_artifact(
-            artifact_name,
-            options,
-            &mut VecRecordStream::new(vec![record]),
-        ) {
+        if let Err(err) =
+            manager.write_artifact(artifact_name, options, &mut SingleRecordStream::new(record))
+        {
             error!("[eventlogs] Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
         }
@@ -260,13 +260,15 @@ fn read_directory(
             }
         };
         let artifact_name = "eventlog_templates";
-        if let Err(err) = manager.write_artifact(
-            artifact_name,
-            options,
-            &mut VecRecordStream::new(vec![record]),
-        ) {
+        if let Err(err) =
+            manager.write_artifact(artifact_name, options, &mut SingleRecordStream::new(record))
+        {
             error!("[eventlogs] Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
+        }
+
+        if options.only_templates {
+            return Ok(());
         }
     }
 

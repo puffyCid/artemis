@@ -16,26 +16,32 @@ pub(crate) fn js_connections(
 #[cfg(test)]
 mod tests {
     use crate::{
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
         runtime::run::execute_script,
-        structs::{artifacts::runtime::script::JSScript, toml::Output},
+        structs::artifacts::runtime::script::JSScript,
     };
+    use std::path::PathBuf;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("json"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_js_connections() {
         let test = "ZnVuY3Rpb24gbygpe3JldHVybiBqc19jb25uZWN0aW9ucygpfWZ1bmN0aW9uIG4oKXtyZXR1cm4gbygpfW4oKTsK";
-        let mut output = output_options("runtime_test", "local", "./tmp", true);
+        let mut output = output_options("runtime_test", "./tmp", true);
         let script = JSScript {
             name: String::from("connections"),
             script: test.to_string(),

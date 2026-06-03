@@ -4,4 +4,5 @@ pub(crate) mod factory;
 mod json;
 mod jsonl;
 mod metadata;
+mod text;
 mod timeline;

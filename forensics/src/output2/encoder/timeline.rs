@@ -1,12 +1,12 @@
 use crate::output2::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
-    error::OutputResult,
+    error::{OutputError, OutputResult},
     record::{Record, RecordStream},
 };
 use log::debug;
 use std::io::Write;
-use timeline::timeline::timeline_artifact_ng;
+use timeline::timeline::timeline_artifact;
 
 /// Encoder for Timeline files. This is same as JSONL encoder except we do extra processing to timeline the data
 #[derive(Debug, PartialEq)]
@@ -28,10 +28,12 @@ impl ArtifactEncoder for TimelineEncoder {
         let mut count = 0;
 
         while let Some(record) = records.next_record()? {
-            let Record::Json(record) = record;
+            let Record::Json(record) = record else {
+                return Err(OutputError::unsupported_record("timeline", record.kind()));
+            };
             let mut value = record.into_value();
             // If false skip writing
-            if !timeline_artifact_ng(
+            if !timeline_artifact(
                 &mut value,
                 &context.artifact_name,
                 &context.start_time_filter,

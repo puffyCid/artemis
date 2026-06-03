@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::systeminfo::error::SystemInfoError,
     output2::{
         manager::OutputManager,
-        record::{VecRecordStream, serialize_to_record},
+        record::{SingleRecordStream, serialize_to_record},
     },
 };
 use log::error;
@@ -22,7 +22,7 @@ pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoEr
 
     let artifact_name = "systeminfo";
     if let Err(err) =
-        manager.write_artifact(artifact_name, &"", &mut VecRecordStream::new(vec![records]))
+        manager.write_artifact(artifact_name, &"", &mut SingleRecordStream::new(records))
     {
         error!("[forensics] Failed to output systeminfo: {err:?}");
         return Err(SystemInfoError::Output);
