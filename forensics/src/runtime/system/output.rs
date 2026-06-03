@@ -123,7 +123,7 @@ mod tests {
         };
         execute_script(&mut output, &script).unwrap();
 
-        let output_dir = PathBuf::from("./tmp").join(String::from("artemis_proc"));
+        let output_dir = PathBuf::from("./tmp").join(String::from("artemis_proc_validate"));
         assert!(output_dir.exists());
         let mut json_files = Vec::new();
         for entry in read_dir(&output_dir).unwrap() {
