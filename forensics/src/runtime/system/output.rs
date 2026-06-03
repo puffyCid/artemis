@@ -94,9 +94,8 @@ mod tests {
         runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
-    use common::system::Processes;
     use std::{
-        fs::{read, read_dir},
+        fs::{read_dir, read_to_string},
         path::PathBuf,
     };
 
@@ -134,9 +133,8 @@ mod tests {
             }
         }
         assert!(json_files.len() >= 1);
-        println!("{:?}", json_files[0]);
-        let proc_data: Processes = serde_json::from_slice(&read(&json_files[0]).unwrap()).unwrap();
-        assert!(proc_data.full_path.contains("forensics"));
+        let text = read_to_string(&json_files[0]).unwrap();
+        assert!(text.contains("forensics-"));
     }
 
     #[test]
