@@ -588,7 +588,7 @@ mod tests {
         let out = output_options("read_file_ntfs_ads", "./tmp", false);
         let path = "C:\\$Secure:$SDS";
 
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
         let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
         let zip = ZipWriter::new(zip_file);
