@@ -89,9 +89,7 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
         }
     }
 
-    if let Err(err) = artemis_collection(collector) {
-        println!("Failed to run collector: {err:?}");
-    }
+    artemis_collection(collector).expect("Failed to run collector due bad arguments")
 }
 
 /// Setup any artifact options
